@@ -1,0 +1,10 @@
+{
+	"name": "nana-pi-pack",
+	"version": "0.1.0",
+	"description": "Nana's pi extension pack: permission gate, post-edit format/lint triggers, session lifecycle journal, desktop notifications",
+	"keywords": ["pi-package"],
+	"license": "MIT",
+	"pi": {
+		"extensions": ["./extensions"]
+	}
+}
