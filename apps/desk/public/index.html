@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>the pi desk</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header id="masthead">
+	<h1>the pi desk</h1>
+	<div id="stats" aria-live="polite"></div>
+</header>
+
+<div id="frame">
+	<aside id="rail">
+		<section id="live-rail">
+			<h2>Live</h2>
+			<div id="live-list"></div>
+			<form id="spawn-form">
+				<input id="spawn-cwd" type="text" placeholder="~/some/repo" aria-label="Working directory" />
+				<button type="submit">Open a session</button>
+			</form>
+		</section>
+		<section id="sessions-rail">
+			<h2>Sessions</h2>
+			<div id="session-list"></div>
+		</section>
+		<section id="wire">
+			<h2>The wire <span id="wire-dot" title="live journal feed"></span></h2>
+			<div id="wire-list"></div>
+		</section>
+	</aside>
+
+	<main id="stage">
+		<div id="stage-head"></div>
+		<div id="transcript" tabindex="0"></div>
+		<div id="composer" hidden>
+			<textarea id="input" rows="2" placeholder="Say something — Enter sends, Shift+Enter for a new line"></textarea>
+			<div id="composer-row">
+				<select id="mode" aria-label="Delivery">
+					<option value="prompt">prompt</option>
+					<option value="steer">steer</option>
+					<option value="follow_up">follow-up</option>
+				</select>
+				<button id="send">Send</button>
+				<button id="abort" class="quiet">Stop turn</button>
+				<button id="kill" class="danger">Kill session</button>
+			</div>
+		</div>
+		<div id="empty">
+			<p class="voice">Nothing open.</p>
+			<p>Pick a session on the left to read it, continue it live, or open a fresh one in any directory.</p>
+		</div>
+	</main>
+</div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
