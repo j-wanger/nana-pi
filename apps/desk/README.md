@@ -40,6 +40,12 @@ path reference; it does not attach file contents the way TUI submit does.
 
 ## Design decisions
 
+Visual language = the nana loop-desk system ("Orchestr — light / studio",
+`nana-agent-loop/app/src/styles.css`): warm paper surfaces, mono for structure +
+tool output, sans for prose, semantic go/warn/stop, terracotta accent for
+interactive/live. One `:root` token block in `public/styles.css`; reskins touch
+only that file.
+
 RPC subprocess over in-process SDK (extension/auth fidelity — the gate rides
 along; decoupled from SDK churn); strict LF-only JSONL framing per upstream docs
 (Node readline is non-compliant); binds 127.0.0.1 only, no auth — do not
