@@ -54,3 +54,11 @@ set_model → prompt → streamed deltas → settled → stats; extension-UI dia
 round-trip via a throwaway `-e` extension; REAL nana-gate escalation answered
 from the desk; bash streaming; fork; export; queue steer + reclaim; historical
 transcript with branch flags; clean teardown, zero orphan `pi` processes.
+
+## Known issues
+
+(none currently. The 2026-09-02 double-rendered-user-message bug is FIXED: `send()`
+appends the user bubble optimistically *before* the POST and queues it; the
+`message_end` handler swaps the queued bubble for pi's echoed user message —
+append-before-POST matters because the SSE echo can beat the fetch response.
+Regression check: `test/double-msg.e2e.mjs`, browser-level, passed 2026-09-02.)

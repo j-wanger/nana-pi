@@ -28,6 +28,7 @@ function newLiveState(id, cwd) {
 		state: null, // last get_state data
 		ctx: { container: $("transcript"), toolRows: new Map() },
 		liveEls: [], // elements created from deltas since last message_start
+		optimisticUserEls: [], // user bubbles appended at send(), awaiting their echoed message_end
 		currentBubble: null,
 		attachments: [], // {data, mimeType, name}
 		commands: null, // get_commands cache
@@ -347,6 +348,7 @@ function renderMessages(messages) {
 	container.innerHTML = "";
 	L.ctx.toolRows.clear();
 	L.liveEls = [];
+	L.optimisticUserEls = [];
 	L.currentBubble = null;
 	for (const m of messages) appendMessage(m, L.ctx);
 	pin(container);
@@ -649,6 +651,9 @@ function handleEvent(e) {
 			for (const elm of L.liveEls) elm.remove();
 			L.liveEls = [];
 			L.currentBubble = null;
+			// pi echoes user messages as message_end too; swap the optimistic
+			// bubble from send() for the echo instead of rendering a second copy
+			if (e.message?.role === "user" && L.optimisticUserEls.length) L.optimisticUserEls.shift().remove();
 			if (e.message) appendMessage(e.message, L.ctx);
 			break;
 		}
@@ -1075,9 +1080,27 @@ async function send() {
 	const savedAtt = L.attachments;
 	input.value = "";
 	setAttachments([]);
+	// optimistic append must happen BEFORE the POST: pi's echoed user
+	// message_end can arrive over SSE before the fetch resolves, and the
+	// message_end handler needs the bubble queued to swap instead of duplicate
+	let optimistic = null;
+	if (mode === "prompt") {
+		const pinned = isPinned(L.ctx.container);
+		optimistic = appendMessage({ role: "user", content: text }, L.ctx);
+		if (optimistic) L.optimisticUserEls.push(optimistic);
+		if (pinned) pin(L.ctx.container);
+		setChip("running");
+		L.streaming = true;
+	}
 	const restore = () => {
 		input.value = input.value ? `${text}\n${input.value}` : text;
 		setAttachments(savedAtt);
+		if (optimistic) {
+			L.optimisticUserEls = L.optimisticUserEls.filter((elm) => elm !== optimistic);
+			optimistic.remove();
+			setChip("idle");
+			L.streaming = false;
+		}
 	};
 	try {
 		const r = await fetch(`/api/session/${L.id}/prompt`, {
@@ -1088,13 +1111,6 @@ async function send() {
 		if (!r.ok) {
 			restore();
 			return toast(r.error || "prompt rejected", "error");
-		}
-		if (mode === "prompt") {
-			const pinned = isPinned(L.ctx.container);
-			appendMessage({ role: "user", content: text }, L.ctx);
-			if (pinned) pin(L.ctx.container);
-			setChip("running");
-			L.streaming = true;
 		}
 	} catch (e) {
 		restore();
