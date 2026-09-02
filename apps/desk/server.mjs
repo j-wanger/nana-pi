@@ -1,19 +1,29 @@
 /**
- * the pi desk — local pilot server. Zero dependencies, binds 127.0.0.1 only.
+ * the pi desk — local server. Zero dependencies, binds 127.0.0.1 only.
  *
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
  *   GET  /api/live                  currently running RPC children
- *   POST /api/spawn                 {cwd, session?} → spawn `pi --mode rpc`
- *   GET  /api/session/:id/events    SSE: replayed buffer + live RPC events
- *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up}
+ *   POST /api/spawn                 {cwd, session?, name?, extensions?} → spawn `pi --mode rpc`
+ *   GET  /api/session/:id/events    SSE: desk_hello state snapshot, then live RPC events
+ *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up, images?}
+ *   POST /api/session/:id/rpc      {command} → allowlisted RPC passthrough with correlated response
+ *   POST /api/session/:id/ui-response  {id, value?|confirmed?|cancelled?} → answer an extension dialog
+ *   POST /api/session/:id/bash      {command} → {id}; output streams as bash_execution_update events
+ *   GET  /api/session/:id/files     file list of the child cwd (for @-completion)
+ *   POST /api/session/:id/export    export session to HTML, returns the document
  *   POST /api/session/:id/abort
  *   DELETE /api/session/:id         kill child
  *   GET  /api/wire                  SSE: tail of the nana-pack lifecycle journal
+ *
+ * Live transcript architecture: the server does NOT replay event buffers. A client
+ * attaching to /events gets a `desk_hello` (open dialogs, statuses, widgets, queue),
+ * renders history from `get_messages` via /rpc, then applies live events. `message_end`
+ * and `agent_settled` re-sync make that race-free enough for a local tool.
  */
 
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import * as os from "node:os";
@@ -24,10 +34,27 @@ const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
 const JOURNAL = path.join(os.homedir(), ".pi", "agent", "nana-journal.jsonl");
 const PUBLIC = path.join(path.dirname(new URL(import.meta.url).pathname), "public");
 const MAX_CHILDREN = 4;
-const BUFFER_CAP = 4000;
+const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
+
+// RPC commands a client may send through /rpc. prompt/steer/follow_up/abort/bash and
+// extension_ui_response have dedicated endpoints so desk bookkeeping stays consistent.
+const RPC_ALLOWED = new Set([
+	"get_state", "get_messages", "get_session_stats", "get_commands",
+	"get_available_models", "set_model", "cycle_model",
+	"get_available_thinking_levels", "set_thinking_level", "cycle_thinking_level",
+	"set_steering_mode", "set_follow_up_mode", "clear_queue",
+	"compact", "set_auto_compaction", "set_auto_retry", "abort_retry", "abort_bash",
+	"new_session", "switch_session", "fork", "clone", "get_fork_messages",
+	"get_entries", "get_tree", "get_last_assistant_text", "set_session_name",
+]);
+const RPC_TIMEOUTS = {
+	compact: 600000, new_session: 60000, switch_session: 60000, fork: 60000, clone: 60000,
+	// a prompt response can be held for minutes by an extension command that blocks on a dialog
+	prompt: 600000, steer: 600000, follow_up: 600000,
+};
 
 // ── RPC children ──
-const children = new Map(); // id → {proc, cwd, buffer, clients, state, startedAt, stderrTail}
+const children = new Map(); // id → child record
 let nextId = 1;
 
 function broadcast(child, obj) {
@@ -35,13 +62,26 @@ function broadcast(child, obj) {
 	for (const res of child.clients) res.write(line);
 }
 
-function spawnChild(cwd, sessionFile) {
-	if (children.size >= MAX_CHILDREN) throw new Error(`max ${MAX_CHILDREN} live sessions`);
+function spawnChild({ cwd, session, name, extensions }) {
+	if ([...children.values()].filter((c) => c.state === "running").length >= MAX_CHILDREN)
+		throw new Error(`max ${MAX_CHILDREN} live sessions`);
 	const args = ["--mode", "rpc"];
-	if (sessionFile) args.push("--session", sessionFile);
+	if (session) args.push("--session", session);
+	if (name) args.push("--name", String(name));
+	for (const ext of extensions || []) {
+		if (!fs.existsSync(ext)) throw new Error(`no such extension: ${ext}`);
+		args.push("-e", ext);
+	}
 	const proc = spawn("pi", args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
 	const id = String(nextId++);
-	const child = { proc, cwd, buffer: [], clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "" };
+	const child = {
+		proc, cwd, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		pending: new Map(), // rpcId → {resolve, reject, timer}
+		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
+		statuses: new Map(), widgets: new Map(), title: null,
+		queue: { steering: [], followUp: [] },
+		nextRpc: 1, files: null, filesAt: 0, exitNote: null,
+	};
 	children.set(id, child);
 
 	// Strict-JSONL framing: split on \n ONLY (upstream docs: readline is
@@ -60,9 +100,7 @@ function spawnChild(cwd, sessionFile) {
 			} catch {
 				continue;
 			}
-			child.buffer.push(obj);
-			if (child.buffer.length > BUFFER_CAP) child.buffer.splice(0, child.buffer.length - BUFFER_CAP);
-			broadcast(child, obj);
+			handleChildEvent(child, obj);
 		}
 	});
 	proc.stderr.on("data", (c) => {
@@ -70,16 +108,68 @@ function spawnChild(cwd, sessionFile) {
 	});
 	proc.on("exit", (code) => {
 		child.state = "exited";
-		const note = { type: "desk_exit", code, stderrTail: child.stderrTail.slice(-500) };
-		child.buffer.push(note);
-		broadcast(child, note);
+		for (const [, p] of child.pending) {
+			clearTimeout(p.timer);
+			p.reject(new Error("session process exited"));
+		}
+		child.pending.clear();
+		child.dialogs.clear();
+		child.exitNote = { type: "desk_exit", code, stderrTail: child.stderrTail.slice(-500) };
+		broadcast(child, child.exitNote);
+	});
+	proc.on("error", (err) => {
+		child.state = "exited";
+		child.exitNote = { type: "desk_exit", code: null, stderrTail: String(err) };
+		broadcast(child, child.exitNote);
 	});
 	return id;
 }
 
-function sendToChild(id, obj) {
-	const child = children.get(id);
-	if (!child || child.state !== "running") return false;
+function handleChildEvent(child, obj) {
+	if (obj.type === "response" && child.pending.has(obj.id)) {
+		const p = child.pending.get(obj.id);
+		child.pending.delete(obj.id);
+		clearTimeout(p.timer);
+		p.resolve(obj);
+		return; // correlated responses are not transcript events
+	}
+	if (obj.type === "extension_ui_request") {
+		if (DIALOG_METHODS.has(obj.method)) child.dialogs.set(obj.id, obj);
+		else if (obj.method === "setStatus") {
+			if (obj.statusText === undefined || obj.statusText === null) child.statuses.delete(obj.statusKey);
+			else child.statuses.set(obj.statusKey, obj.statusText);
+		} else if (obj.method === "setWidget") {
+			if (!obj.widgetLines) child.widgets.delete(obj.widgetKey);
+			else child.widgets.set(obj.widgetKey, { lines: obj.widgetLines, placement: obj.widgetPlacement || "aboveEditor" });
+		} else if (obj.method === "setTitle") child.title = obj.title;
+	} else if (obj.type === "queue_update") {
+		child.queue = { steering: obj.steering || [], followUp: obj.followUp || [] };
+	}
+	broadcast(child, obj);
+}
+
+function sendRpc(child, command) {
+	if (child.state !== "running") return Promise.reject(new Error("session not running"));
+	const id = `desk-${child.nextRpc++}`;
+	const timeoutMs = RPC_TIMEOUTS[command.type] ?? 30000;
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			child.pending.delete(id);
+			reject(new Error(`rpc timeout: ${command.type}`));
+		}, timeoutMs);
+		child.pending.set(id, { resolve, reject, timer });
+		try {
+			child.proc.stdin.write(`${JSON.stringify({ ...command, id })}\n`);
+		} catch (e) {
+			child.pending.delete(id);
+			clearTimeout(timer);
+			reject(e);
+		}
+	});
+}
+
+function writeToChild(child, obj) {
+	if (child.state !== "running") return false;
 	try {
 		child.proc.stdin.write(`${JSON.stringify(obj)}\n`);
 		return true;
@@ -88,8 +178,118 @@ function sendToChild(id, obj) {
 	}
 }
 
+function sanitizeImages(images) {
+	if (!Array.isArray(images)) return undefined;
+	const out = images
+		.filter((i) => i && typeof i.data === "string" && typeof i.mimeType === "string")
+		.slice(0, 8)
+		.map((i) => ({ type: "image", data: i.data, mimeType: i.mimeType }));
+	return out.length ? out : undefined;
+}
+
+// ── file listing for @-completion ──
+function listFiles(child) {
+	const now = Date.now();
+	if (child.files && now - child.filesAt < 30000) return Promise.resolve(child.files);
+	return new Promise((resolve) => {
+		execFile(
+			"git", ["ls-files", "--cached", "--others", "--exclude-standard"],
+			{ cwd: child.cwd, maxBuffer: 8 * 1024 * 1024 },
+			(err, stdout) => {
+				let files;
+				if (!err) files = stdout.split("\n").filter(Boolean);
+				else files = walkFiles(child.cwd);
+				files = files.slice(0, 8000);
+				child.files = files;
+				child.filesAt = now;
+				resolve(files);
+			},
+		);
+	});
+}
+
+function walkFiles(root) {
+	const out = [];
+	const skip = new Set([".git", "node_modules", ".venv", "dist", "build", "__pycache__"]);
+	const stack = [""];
+	while (stack.length && out.length < 8000) {
+		const rel = stack.pop();
+		let entries;
+		try {
+			entries = fs.readdirSync(path.join(root, rel), { withFileTypes: true });
+		} catch {
+			continue;
+		}
+		for (const e of entries) {
+			if (e.name.startsWith(".") && e.name !== ".pi") continue;
+			if (skip.has(e.name)) continue;
+			const r = rel ? `${rel}/${e.name}` : e.name;
+			if (e.isDirectory()) stack.push(r);
+			else out.push(r);
+		}
+	}
+	return out;
+}
+
 // ── session listing / transcript parsing ──
-async function listSessions() {
+function readChunk(file, start, len) {
+	const fd = fs.openSync(file, "r");
+	try {
+		const buf = Buffer.alloc(len);
+		const n = fs.readSync(fd, buf, 0, len, start);
+		return buf.toString("utf-8", 0, n);
+	} finally {
+		fs.closeSync(fd);
+	}
+}
+
+function readSessionMeta(file) {
+	// Header is line 1; title = first user message; name = last session_info entry.
+	let head, size;
+	try {
+		size = fs.statSync(file).size;
+		head = readChunk(file, 0, 65536);
+	} catch {
+		return null;
+	}
+	const lines = head.split("\n");
+	let header;
+	try {
+		header = JSON.parse(lines[0]);
+	} catch {
+		return null;
+	}
+	let title = "";
+	let name = null;
+	const scanLine = (line) => {
+		if (!line) return;
+		if (!title && line.includes('"role":"user"')) {
+			try {
+				const e = JSON.parse(line);
+				if (e.type === "message" && e.message?.role === "user") {
+					const c = e.message.content;
+					const text = typeof c === "string" ? c : (c || []).find((b) => b.type === "text")?.text || "";
+					title = text.slice(0, 120).replace(/\s+/g, " ").trim();
+				}
+			} catch {}
+		}
+		if (line.includes('"type":"session_info"')) {
+			try {
+				const e = JSON.parse(line);
+				if (e.type === "session_info" && e.name) name = e.name;
+			} catch {}
+		}
+	};
+	for (const line of lines.slice(1)) scanLine(line);
+	if (size > 65536) {
+		// names are usually set late in the file; scan the tail too
+		const tail = readChunk(file, Math.max(0, size - 32768), 32768);
+		for (const line of tail.split("\n")) scanLine(line);
+	}
+	return { cwd: header.cwd, id: header.id, title, name };
+}
+
+function listSessions() {
 	const groups = [];
 	let dirs = [];
 	try {
@@ -120,51 +320,20 @@ async function listSessions() {
 			const meta = readSessionMeta(f.full);
 			if (!meta) continue;
 			cwd = cwd ?? meta.cwd;
-			sessions.push({ file: f.full, mtime: f.mtime, title: meta.title, id: meta.id });
+			sessions.push({ file: f.full, mtime: f.mtime, title: meta.title, name: meta.name, id: meta.id });
 		}
 		if (sessions.length) groups.push({ cwd: cwd ?? d, sessions, latest: sessions[0].mtime });
 	}
 	return groups.sort((a, b) => b.latest - a.latest);
 }
 
-function readSessionMeta(file) {
-	// Header is line 1; title = first user message. Cap the read — sessions can be huge.
-	let head;
-	try {
-		const fd = fs.openSync(file, "r");
-		const buf = Buffer.alloc(65536);
-		const n = fs.readSync(fd, buf, 0, buf.length, 0);
-		fs.closeSync(fd);
-		head = buf.toString("utf-8", 0, n);
-	} catch {
-		return null;
-	}
-	const lines = head.split("\n");
-	let header;
-	try {
-		header = JSON.parse(lines[0]);
-	} catch {
-		return null;
-	}
-	let title = "";
-	for (const line of lines.slice(1)) {
-		try {
-			const e = JSON.parse(line);
-			if (e.type === "message" && e.message?.role === "user") {
-				const t = (e.message.content || []).find((c) => c.type === "text");
-				title = (t?.text || "").slice(0, 120).replace(/\s+/g, " ").trim();
-				break;
-			}
-		} catch {
-			break; // truncated tail of the capped read
-		}
-	}
-	return { cwd: header.cwd, id: header.id, title };
-}
+const ENTRY_CAP = 2000;
 
 function parseTranscript(file) {
-	const entries = [];
 	const raw = fs.readFileSync(file, "utf-8").split("\n");
+	let header = null;
+	const entries = [];
+	let name = null;
 	for (const line of raw) {
 		if (!line) continue;
 		let e;
@@ -173,18 +342,28 @@ function parseTranscript(file) {
 		} catch {
 			continue;
 		}
-		if (e.type !== "message") continue;
-		const m = e.message || {};
-		const texts = (m.content || []).filter((c) => c.type === "text").map((c) => c.text);
-		const tools = (m.content || [])
-			.filter((c) => c.type === "toolCall")
-			.map((c) => ({ name: c.name, args: JSON.stringify(c.arguments ?? c.input ?? {}).slice(0, 200) }));
-		if (m.role === "user") entries.push({ role: "user", text: texts.join("\n") });
-		else if (m.role === "assistant") entries.push({ role: "assistant", text: texts.join("\n"), tools });
-		else if (m.role === "toolResult")
-			entries.push({ role: "tool", text: texts.join("\n").slice(0, 800), isError: !!m.isError });
+		if (e.type === "session") {
+			header = e;
+			continue;
+		}
+		if (e.type === "session_info") {
+			if (e.name) name = e.name;
+			continue;
+		}
+		if (!e.id) continue;
+		entries.push(e);
 	}
-	return entries.slice(-500);
+	// Active branch = parentId chain from the last entry (the file is append-only,
+	// so the last entry is the current tip).
+	const byId = new Map(entries.map((e) => [e.id, e]));
+	const onBranch = new Set();
+	let cur = entries.length ? entries[entries.length - 1] : null;
+	while (cur) {
+		onBranch.add(cur.id);
+		cur = cur.parentId ? byId.get(cur.parentId) : null;
+	}
+	const out = entries.slice(-ENTRY_CAP).map((e) => ({ ...e, onBranch: onBranch.has(e.id) }));
+	return { cwd: header?.cwd, sessionId: header?.id, name, total: entries.length, entries: out };
 }
 
 // ── the wire (journal tail via fs.watch — no polling loops, cleans up on close) ──
@@ -214,11 +393,8 @@ function wireStream(res) {
 		offset = Math.max(0, size - 4096);
 		if (offset > 0) {
 			// skip the first (likely partial) line of the tail window
-			const fd = fs.openSync(JOURNAL, "r");
-			const buf = Buffer.alloc(512);
-			const n = fs.readSync(fd, buf, 0, 512, offset);
-			fs.closeSync(fd);
-			const idx = buf.toString("utf-8", 0, n).indexOf("\n");
+			const head = readChunk(JOURNAL, offset, 512);
+			const idx = head.indexOf("\n");
 			if (idx >= 0) offset += idx + 1;
 		}
 		sendFrom();
@@ -261,53 +437,69 @@ function sseHead(res) {
 
 function readBody(req) {
 	return new Promise((resolve, reject) => {
-		let data = "";
+		const chunks = [];
+		let size = 0;
 		req.on("data", (c) => {
-			data += c;
-			if (data.length > 1e6) reject(new Error("body too large"));
+			size += c.length;
+			if (size > 32 * 1024 * 1024) {
+				reject(new Error("body too large"));
+				req.destroy();
+				return;
+			}
+			chunks.push(c);
 		});
 		req.on("end", () => {
 			try {
+				const data = Buffer.concat(chunks).toString("utf-8");
 				resolve(data ? JSON.parse(data) : {});
 			} catch (e) {
 				reject(e);
 			}
 		});
+		req.on("error", reject);
 	});
 }
 
-const STATIC = {
-	"/": ["index.html", "text/html"],
-	"/app.js": ["app.js", "text/javascript"],
-	"/styles.css": ["styles.css", "text/css"],
-};
+function assertInsideSessions(file) {
+	const real = fs.realpathSync(file);
+	const root = fs.realpathSync(SESSIONS_DIR);
+	if (!real.startsWith(root + path.sep)) throw new Error("outside sessions dir");
+	return real;
+}
+
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
+
+function serveStatic(res, p) {
+	const rel = p === "/" ? "index.html" : p.slice(1);
+	const full = path.normalize(path.join(PUBLIC, rel));
+	if (!full.startsWith(PUBLIC + path.sep) && full !== path.join(PUBLIC, "index.html")) return false;
+	let data;
+	try {
+		data = fs.readFileSync(full);
+	} catch {
+		return false;
+	}
+	res.writeHead(200, { "content-type": MIME[path.extname(full)] || "application/octet-stream" });
+	res.end(data);
+	return true;
+}
 
 const server = http.createServer(async (req, res) => {
 	const url = new URL(req.url, "http://localhost");
 	const p = url.pathname;
 	try {
-		if (STATIC[p] && req.method === "GET") {
-			const [file, type] = STATIC[p];
-			res.writeHead(200, { "content-type": type });
-			return res.end(fs.readFileSync(path.join(PUBLIC, file)));
-		}
-		if (p === "/api/sessions" && req.method === "GET") return json(res, 200, await listSessions());
+		if (req.method === "GET" && !p.startsWith("/api/") && serveStatic(res, p)) return;
+		if (p === "/api/sessions" && req.method === "GET") return json(res, 200, listSessions());
 		if (p === "/api/transcript" && req.method === "GET") {
-			const file = url.searchParams.get("file") || "";
-			const real = fs.realpathSync(file);
-			const root = fs.realpathSync(SESSIONS_DIR);
-			if (!real.startsWith(root + path.sep)) return json(res, 403, { error: "outside sessions dir" });
+			const real = assertInsideSessions(url.searchParams.get("file") || "");
 			return json(res, 200, parseTranscript(real));
 		}
 		if (p === "/api/live" && req.method === "GET") {
 			return json(
-				res,
-				200,
+				res, 200,
 				[...children.entries()].map(([id, c]) => ({
-					id,
-					cwd: c.cwd,
-					state: c.state,
-					startedAt: c.startedAt,
+					id, cwd: c.cwd, state: c.state, startedAt: c.startedAt,
+					openDialogs: c.dialogs.size, queued: c.queue.steering.length + c.queue.followUp.length,
 				})),
 			);
 		}
@@ -315,17 +507,27 @@ const server = http.createServer(async (req, res) => {
 			const body = await readBody(req);
 			const cwd = (body.cwd || os.homedir()).replace(/^~(?=\/|$)/, os.homedir());
 			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
-			const id = spawnChild(cwd, body.session);
+			let session = body.session;
+			if (session) session = assertInsideSessions(session);
+			const id = spawnChild({ cwd, session, name: body.name, extensions: body.extensions });
 			return json(res, 200, { id });
 		}
-		const m = p.match(/^\/api\/session\/(\w+)\/(events|prompt|abort)$/);
+		const m = p.match(/^\/api\/session\/(\w+)\/(events|prompt|rpc|ui-response|bash|files|export|abort)$/);
 		if (m) {
 			const [, id, action] = m;
 			const child = children.get(id);
 			if (!child) return json(res, 404, { error: "no such live session" });
 			if (action === "events" && req.method === "GET") {
 				sseHead(res);
-				for (const obj of child.buffer) res.write(`data: ${JSON.stringify(obj)}\n\n`);
+				const hello = {
+					type: "desk_hello", id, cwd: child.cwd, state: child.state, startedAt: child.startedAt,
+					dialogs: [...child.dialogs.values()],
+					statuses: Object.fromEntries(child.statuses),
+					widgets: Object.fromEntries(child.widgets),
+					title: child.title, queue: child.queue,
+				};
+				res.write(`data: ${JSON.stringify(hello)}\n\n`);
+				if (child.exitNote) res.write(`data: ${JSON.stringify(child.exitNote)}\n\n`);
 				child.clients.add(res);
 				res.on("close", () => child.clients.delete(res));
 				return;
@@ -333,11 +535,98 @@ const server = http.createServer(async (req, res) => {
 			if (action === "prompt" && req.method === "POST") {
 				const body = await readBody(req);
 				const mode = ["prompt", "steer", "follow_up"].includes(body.mode) ? body.mode : "prompt";
-				const ok = sendToChild(id, { type: mode, message: String(body.message || "") });
+				const cmd = { type: mode, message: String(body.message || "") };
+				const images = sanitizeImages(body.images);
+				if (images) cmd.images = images;
+				if (mode === "prompt" && body.streamingBehavior) cmd.streamingBehavior = body.streamingBehavior;
+				// Acceptance usually answers instantly, but an extension command can hold the
+				// response for minutes while it blocks on a dialog. Wait briefly, then detach:
+				// a late rejection is surfaced to clients as a desk_prompt_rejected event.
+				const p = sendRpc(child, cmd);
+				const winner = await Promise.race([
+					p.then((r) => ({ r })).catch((e) => ({ r: { success: false, error: String(e.message || e) } })),
+					new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+				]);
+				if (winner) return json(res, winner.r.success ? 200 : 409, { ok: winner.r.success, error: winner.r.error });
+				p.then((r) => {
+					if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
+				}).catch(() => {});
+				return json(res, 200, { ok: true, pending: true });
+			}
+			if (action === "rpc" && req.method === "POST") {
+				const body = await readBody(req);
+				const cmd = body.command;
+				if (!cmd || !RPC_ALLOWED.has(cmd.type)) return json(res, 400, { error: `rpc type not allowed: ${cmd?.type}` });
+				if (cmd.type === "switch_session") cmd.sessionPath = assertInsideSessions(cmd.sessionPath || "");
+				delete cmd.id;
+				const r = await sendRpc(child, cmd);
+				return json(res, 200, r);
+			}
+			if (action === "ui-response" && req.method === "POST") {
+				const body = await readBody(req);
+				const uiId = String(body.id || "");
+				if (!child.dialogs.has(uiId)) return json(res, 409, { error: "dialog not open" });
+				const reply = { type: "extension_ui_response", id: uiId };
+				if (body.cancelled) reply.cancelled = true;
+				else if (typeof body.confirmed === "boolean") reply.confirmed = body.confirmed;
+				else reply.value = body.value;
+				const ok = writeToChild(child, reply);
+				if (ok) {
+					child.dialogs.delete(uiId);
+					broadcast(child, { type: "desk_ui_resolved", id: uiId });
+				}
 				return json(res, ok ? 200 : 409, { ok });
 			}
+			if (action === "bash" && req.method === "POST") {
+				const body = await readBody(req);
+				const command = String(body.command || "");
+				if (!command) return json(res, 400, { error: "empty command" });
+				const rpcId = `desk-${child.nextRpc++}`;
+				const timer = setTimeout(() => {
+					if (child.pending.delete(rpcId))
+						broadcast(child, { type: "desk_bash_result", id: rpcId, success: false, error: "bash timeout" });
+				}, 600000);
+				child.pending.set(rpcId, {
+					resolve: (r) => {
+						clearTimeout(timer);
+						broadcast(child, { type: "desk_bash_result", id: rpcId, success: r.success, error: r.error, data: r.data });
+					},
+					reject: (e) => {
+						clearTimeout(timer);
+						broadcast(child, { type: "desk_bash_result", id: rpcId, success: false, error: String(e.message || e) });
+					},
+					timer,
+				});
+				const ok = writeToChild(child, { type: "bash", command, id: rpcId });
+				if (!ok) {
+					clearTimeout(timer);
+					child.pending.delete(rpcId);
+					return json(res, 409, { error: "session not running" });
+				}
+				return json(res, 200, { id: rpcId });
+			}
+			if (action === "files" && req.method === "GET") {
+				return json(res, 200, { files: await listFiles(child) });
+			}
+			if (action === "export" && req.method === "POST") {
+				const out = path.join(os.tmpdir(), `pi-desk-export-${id}-${Date.now()}.html`);
+				const r = await sendRpc(child, { type: "export_html", outputPath: out });
+				if (!r.success) return json(res, 500, { error: r.error || "export failed" });
+				let html;
+				try {
+					html = fs.readFileSync(r.data?.path || out);
+				} finally {
+					fs.rmSync(r.data?.path || out, { force: true });
+				}
+				res.writeHead(200, {
+					"content-type": "text/html",
+					"content-disposition": `attachment; filename="pi-session-${id}.html"`,
+				});
+				return res.end(html);
+			}
 			if (action === "abort" && req.method === "POST") {
-				return json(res, 200, { ok: sendToChild(id, { type: "abort" }) });
+				const r = await sendRpc(child, { type: "abort" });
+				return json(res, 200, { ok: r.success });
 			}
 		}
 		const dm = p.match(/^\/api\/session\/(\w+)$/);

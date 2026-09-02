@@ -33,27 +33,77 @@
 	</aside>
 
 	<main id="stage">
-		<div id="stage-head"></div>
+		<div id="live-head" hidden>
+			<div class="head-row">
+				<span id="chip" class="chip">…</span>
+				<button id="sess-name" class="linky" title="Rename session">(unnamed)</button>
+				<span id="sess-file" class="dim"></span>
+				<span id="cwd-label" class="dim"></span>
+				<span class="spacer"></span>
+				<button id="model-chip" class="chipbtn" title="Switch model">model</button>
+				<button id="think-chip" class="chipbtn" title="Thinking level">think</button>
+			</div>
+			<div class="head-row">
+				<span id="status-chips"></span>
+				<span class="spacer"></span>
+				<button id="btn-new" class="quiet" title="Start a fresh session in this process">New</button>
+				<button id="btn-fork" class="quiet" title="Fork from a previous message">Fork</button>
+				<button id="btn-compact" class="quiet" title="Compact context">Compact</button>
+				<button id="btn-export" class="quiet" title="Download session HTML">Export</button>
+				<button id="btn-settings" class="quiet" title="Session settings">⚙</button>
+				<button id="kill" class="danger" title="Kill the session process">Kill</button>
+			</div>
+		</div>
+
+		<div id="hist-head" hidden>
+			<div class="head-row">
+				<b id="hist-title"></b>
+				<span id="hist-sub" class="dim"></span>
+				<span class="spacer"></span>
+				<button id="btn-continue">Continue here</button>
+			</div>
+		</div>
+
 		<div id="transcript" tabindex="0"></div>
+
+		<div id="queue" hidden></div>
+		<div id="widgets-above"></div>
+
 		<div id="composer" hidden>
-			<textarea id="input" rows="2" placeholder="Say something — Enter sends, Shift+Enter for a new line"></textarea>
+			<div id="attachments" hidden></div>
+			<div id="completion" hidden></div>
+			<textarea id="input" rows="3" placeholder="Enter sends · Shift+Enter newline · Alt+Enter follow-up · ! bash · / commands · @ files · paste images"></textarea>
 			<div id="composer-row">
-				<select id="mode" aria-label="Delivery">
+				<select id="mode" aria-label="Delivery" title="auto = prompt when idle, steer while running">
+					<option value="auto">auto</option>
 					<option value="prompt">prompt</option>
 					<option value="steer">steer</option>
 					<option value="follow_up">follow-up</option>
 				</select>
 				<button id="send">Send</button>
-				<button id="abort" class="quiet">Stop turn</button>
-				<button id="kill" class="danger">Kill session</button>
+				<button id="abort" class="quiet" title="Esc also stops (and reclaims queued messages)">Stop turn</button>
 			</div>
 		</div>
+		<div id="widgets-below"></div>
+
+		<div id="live-foot" hidden>
+			<span id="foot-msgs" class="dim"></span>
+			<span id="foot-tokens" class="dim"></span>
+			<span id="foot-cost"></span>
+			<span class="spacer"></span>
+			<span id="ctx-label" class="dim"></span>
+			<span id="ctx-meter" hidden><span id="ctx-fill" class="meter-fill"></span></span>
+		</div>
+
 		<div id="empty">
 			<p class="voice">Nothing open.</p>
 			<p>Pick a session on the left to read it, continue it live, or open a fresh one in any directory.</p>
 		</div>
 	</main>
 </div>
+
+<div id="dialogs"></div>
+<div id="toasts"></div>
 
 <script type="module" src="/app.js"></script>
 </body>
