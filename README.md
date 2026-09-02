@@ -8,8 +8,15 @@ Sibling repo to `~/nana-agent-loop`.
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
 - `packages/` — our pi packages, chiefly the nana extension pack covering the four hook
-  classes: pre-tool permission gating, post-edit format/lint/test triggers, session lifecycle,
-  notifications/observability. Installable via `pi install git:` or a local path.
+  classes (pre-tool permission gating, post-edit format/lint/test triggers, session lifecycle,
+  notifications/observability) plus scaffold + dev-workflow skills. Installable via
+  `pi install git:` or a local path.
+- `templates/` — copier project templates the `scaffold-py`/`scaffold-ts` skills generate
+  from (opinionated Python and TypeScript stacks, folder-by-feature, nested AGENTS.md,
+  post-edit quality gates). Generated projects re-sync via `uvx copier update`.
+- `apps/desk/` — the pi desk, a zero-dependency local browser dashboard over pi sessions.
+- `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
+  shippability plan.
 
 Canonical upstream coordinates: repo `earendil-works/pi`, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.

@@ -1,0 +1,27 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Layout
+
+- `src/` — code organized **by feature**: one folder per feature, everything the
+  feature needs colocated. See `src/AGENTS.md`.
+- `tests/` — vitest suite mirroring the feature folders. See `tests/AGENTS.md`.
+
+## Commands
+
+- `pnpm install` — dependencies (pnpm only; never npm or yarn)
+- `pnpm check` — typecheck + lint + test, the full gate
+- `pnpm typecheck` / `pnpm lint` / `pnpm test` — individually
+- `pnpm format` — Biome format
+
+## Rules
+
+- One function, one job. Cognitive complexity cap 15 (Biome, error) — decompose
+  instead of suppressing.
+- Files stay under **300 lines**; new feature = new folder, not growth of an
+  existing file.
+- tsconfig is strict plus `noUncheckedIndexedAccess`/`exactOptionalPropertyTypes`;
+  no `@ts-ignore` — use `@ts-expect-error` with a reason comment if unavoidable.
+- No barrel re-export files beyond a feature's own entry point.
+- ESM only (`type: module`); imports use explicit `.js` extensions per NodeNext.

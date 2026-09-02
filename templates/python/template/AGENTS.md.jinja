@@ -1,0 +1,27 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Layout
+
+- `src/{{ package_name }}/` — the package, organized **by feature**: one folder per
+  feature, everything a feature needs colocated inside it. See `src/AGENTS.md`.
+- `tests/` — pytest suite mirroring the feature folders. See `tests/AGENTS.md`.
+
+## Commands
+
+- `uv sync` — install/update the environment (uv only; never pip or poetry)
+- `uv run pytest` — tests + coverage (floor: 85%)
+- `uv run ruff check . && uv run ruff format .` — lint + format
+- `uv run mypy` — strict type-check
+
+## Rules
+
+- One function, one job. If a docstring needs "and", split the function.
+- Modules stay under **500 lines**; complexity caps (mccabe 10, PLR too-many-*)
+  are enforced — decompose instead of suppressing.
+- Every function fully typed; mypy runs strict.
+- No `print` in library code (ruff T20) — use `logging`.
+- New feature = new folder under `src/{{ package_name }}/`, not new code smeared
+  across existing modules.
+- Warnings are errors in tests; fix the cause, don't filter.

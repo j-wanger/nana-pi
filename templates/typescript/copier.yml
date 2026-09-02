@@ -1,0 +1,28 @@
+_subdirectory: template
+_min_copier_version: "9.0.0"
+
+project_name:
+  type: str
+  help: Project name (human-readable)
+
+project_slug:
+  type: str
+  default: "{{ project_name | lower | replace(' ', '-') | replace('_', '-') }}"
+  help: Package name (kebab-case, used in package.json)
+
+description:
+  type: str
+  default: ""
+  help: One-line project description
+
+_message_after_copy: |
+  {{ project_name }} scaffolded.
+
+  Next steps:
+    cd into the project, then:
+      git init && git add -A && git commit -m "scaffold"
+      pnpm install
+      pnpm check        # typecheck + lint + test
+      git add pnpm-lock.yaml && git commit -m "lockfile"
+
+  This project tracks its template: `uvx copier update` re-syncs it later.

@@ -1,0 +1,14 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Setup
+
+```bash
+uv sync
+uv run pre-commit install
+uv run pytest
+```
+
+Scaffolded from the nana-pi Python template; `uvx copier update` re-syncs it
+when the template evolves. Agent-facing structure and rules live in `AGENTS.md`.
