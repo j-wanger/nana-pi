@@ -651,9 +651,15 @@ function handleEvent(e) {
 			for (const elm of L.liveEls) elm.remove();
 			L.liveEls = [];
 			L.currentBubble = null;
-			// pi echoes user messages as message_end too; swap the optimistic
-			// bubble from send() for the echo instead of rendering a second copy
-			if (e.message?.role === "user" && L.optimisticUserEls.length) L.optimisticUserEls.shift().remove();
+			// pi echoes user messages as message_end too; swap the matching
+			// optimistic bubble from send() for the echo instead of rendering a
+			// second copy. Content-matched (not FIFO) so a user echo from another
+			// client/tab on the same session can't consume our pending bubble.
+			if (e.message?.role === "user" && L.optimisticUserEls.length) {
+				const echoText = contentBlocks(e.message.content).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+				const i = L.optimisticUserEls.findIndex((o) => o.text === echoText);
+				if (i >= 0) L.optimisticUserEls.splice(i, 1)[0].el.remove();
+			}
 			if (e.message) appendMessage(e.message, L.ctx);
 			break;
 		}
@@ -1087,7 +1093,7 @@ async function send() {
 	if (mode === "prompt") {
 		const pinned = isPinned(L.ctx.container);
 		optimistic = appendMessage({ role: "user", content: text }, L.ctx);
-		if (optimistic) L.optimisticUserEls.push(optimistic);
+		if (optimistic) L.optimisticUserEls.push({ el: optimistic, text });
 		if (pinned) pin(L.ctx.container);
 		setChip("running");
 		L.streaming = true;
@@ -1096,7 +1102,7 @@ async function send() {
 		input.value = input.value ? `${text}\n${input.value}` : text;
 		setAttachments(savedAtt);
 		if (optimistic) {
-			L.optimisticUserEls = L.optimisticUserEls.filter((elm) => elm !== optimistic);
+			L.optimisticUserEls = L.optimisticUserEls.filter((o) => o.el !== optimistic);
 			optimistic.remove();
 			setChip("idle");
 			L.streaming = false;
