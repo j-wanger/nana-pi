@@ -19,8 +19,9 @@ the reconciliation surface — nothing is lost because the tree starts clean.
 - Node ≥22 available. Detect their package manager from the lockfile
   (pnpm/npm/yarn) — **adoption keeps their package manager**; only greenfield
   scaffolds pin pnpm.
-- nana-pi checkout at `~/nana-pi` (the repo root is the copier src; ask where
-  nana-pi lives if not).
+- Network access to github.com — the template src is
+  `https://github.com/j-wanger/nana-pi.git` (a local nana-pi checkout works as
+  src too, for offline use or template development).
 
 ## Steps
 
@@ -41,7 +42,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    uvx copier copy --defaults --overwrite --data language=typescript \
      --data adopt=true \
      --data project_name="<name>" \
-     ~/nana-pi .
+     https://github.com/j-wanger/nana-pi.git .
    ```
 
    Adopt mode emits configs only: package.json, tsconfig + tsconfig.build,
@@ -65,7 +66,8 @@ the reconciliation surface — nothing is lost because the tree starts clean.
      every edit fires failing post-edit commands. Merge any pre-existing
      postEdit list.
    - CI: adapt the workflow to their package manager; if they already have CI,
-     merge the `check` step into it instead of adding a duplicate workflow.
+     merge the `check` step AND the template-drift job into it instead of
+     adding a duplicate workflow.
    - `AGENTS.md`: fold existing AGENTS/CLAUDE.md content in, write the real
      Layout section, fix Commands to their package manager, one screen.
 5. **Stage the strictness** — pins stay, escapes are recorded:

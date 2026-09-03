@@ -20,8 +20,9 @@ reconciliation surface — nothing is lost because the tree starts clean.
   surface it, and proceed only on the user's explicit call.
 - uv is installed. Deps in requirements.txt/Poetry get migrated during
   reconcile.
-- nana-pi checkout at `~/nana-pi` (the repo root is the copier src; ask where
-  nana-pi lives if not).
+- Network access to github.com — the template src is
+  `https://github.com/j-wanger/nana-pi.git` (a local nana-pi checkout works as
+  src too, for offline use or template development).
 
 ## Steps
 
@@ -40,7 +41,7 @@ reconciliation surface — nothing is lost because the tree starts clean.
    uvx copier copy --defaults --overwrite --data language=python \
      --data adopt=true \
      --data project_name="<name>" --data package_name="<import_name>" \
-     ~/nana-pi .
+     https://github.com/j-wanger/nana-pi.git .
    ```
 
    Adopt mode emits configs only: pyproject, pre-commit, CI, root AGENTS.md,
@@ -56,9 +57,9 @@ reconciliation surface — nothing is lost because the tree starts clean.
      floor — adoption never bumps the runtime.
    - `.gitignore`: union of theirs and the template's.
    - `.pre-commit-config.yaml` and CI: if they already had hooks or workflows,
-     merge — fold the template's hooks into their pre-commit list, and add the
-     gate steps to their existing workflow instead of keeping a duplicate
-     ci.yml.
+     merge — fold the template's hooks into their pre-commit list, and move the
+     gate steps AND the template-drift job into their existing workflow instead
+     of keeping a duplicate ci.yml.
    - `.pi/nana-pack.json`: if one existed, merge the postEdit command lists.
    - `AGENTS.md`: fold any existing AGENTS/CLAUDE.md content in, write the
      real Layout section (the template leaves a placeholder comment), keep it

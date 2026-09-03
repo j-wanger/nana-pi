@@ -15,8 +15,10 @@ Sibling repo to `~/nana-agent-loop`.
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
   folder-by-feature, nested AGENTS.md, post-edit quality gates. The copier src is the
-  REPO ROOT (root `copier.yml`, `language` question) so copies are tag-versioned and
-  re-sync via `uvx copier update` — template changes ship by commit + `v*` tag.
+  REPO ROOT (root `copier.yml`, `language` question) — canonically
+  `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
+  via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
+  carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `apps/desk/` — the pi desk, a zero-dependency local browser dashboard over pi sessions.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.

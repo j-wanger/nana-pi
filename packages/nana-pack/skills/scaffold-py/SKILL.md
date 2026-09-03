@@ -16,15 +16,17 @@ every edit, 500-line module cap, mypy).
 1. Need from the user (ask only for what's missing): destination directory and
    project name. Description is optional; package/distribution names derive
    automatically.
-2. The template src is the nana-pi repo root, `~/nana-pi` (copier needs the
-   git root to version the copy — that's what makes `copier update` work). If
-   that checkout doesn't exist on this machine, ask where nana-pi lives.
+2. The template src is the nana-pi repo,
+   `https://github.com/j-wanger/nana-pi.git` — copier clones it at the latest
+   v* tag, which is what `_commit` records and `copier update` + the generated
+   CI drift job track. (A local checkout path works as src too, for template
+   development.)
 3. Run:
 
    ```bash
    uvx copier copy --defaults --data language=python \
      --data project_name="<name>" --data description="<one-liner>" \
-     ~/nana-pi <destination>
+     https://github.com/j-wanger/nana-pi.git <destination>
    ```
 
 4. Then complete the printed next steps: `git init` + first commit, `uv sync`,

@@ -18,3 +18,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+
+  template-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check template is current
+        run: |
+          set -euo pipefail
+          src=$(sed -n 's/^_src_path:[[:space:]]*//p' .copier-answers.yml)
+          cur=$(sed -n 's/^_commit:[[:space:]]*//p' .copier-answers.yml)
+          if [ -z "$src" ] || [ -z "$cur" ]; then
+            echo "no template linkage in .copier-answers.yml - nothing to check"
+            exit 0
+          fi
+          if ! latest=$(git ls-remote --tags --refs "$src" 'v*' 2>/dev/null | sed 's|.*refs/tags/||' | sort -V | tail -1); then
+            echo "::notice::template src unreachable from CI ($src) - drift not checked"
+            exit 0
+          fi
+          echo "template $src - pinned $cur, latest ${latest:-none}"
+          if [ -n "$latest" ] && [ "$latest" != "$cur" ]; then
+            echo "::error::template drift: $cur -> $latest. Run 'uvx copier update', reconcile, commit."
+            exit 1
+          fi

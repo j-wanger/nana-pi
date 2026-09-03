@@ -3,11 +3,11 @@
 Extensions + skills making pi shippable the nana way: hook coverage, opinionated
 project scaffolding, and dev-workflow skills.
 
-## Skills (v0.3.0)
+## Skills (v0.4.0)
 
 | Skill | What it does |
 |---|---|
-| `scaffold-py` / `scaffold-ts` | Generate a project via copier from the nana-pi repo root (`--data language=python\|typescript`; the git root is the versioned template src) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag and re-sync via `uvx copier update`. |
+| `scaffold-py` / `scaffold-ts` | Generate a project via copier from `github.com/j-wanger/nana-pi` (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
 | `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
@@ -26,7 +26,7 @@ Four extensions giving pi the hook coverage we require (Claude Code parity class
 
 ```bash
 pi install /path/to/nana-pi/packages/nana-pack   # local dev
-pi install git:github.com/<owner>/nana-pi        # once pushed (subdir support via manifest)
+pi install git:github.com/j-wanger/nana-pi       # from the canonical repo (subdir support via manifest)
 pi remove ...                                     # uninstall
 ```
 
