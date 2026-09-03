@@ -74,6 +74,21 @@ function resolvePiBin() {
 	return exe; // last resort: let spawn search PATH and fail loudly
 }
 const PI_BIN = resolvePiBin();
+
+// Children need a working PATH even when the desk itself was started with a
+// minimal one: the pi shim does `env node`, and sessions run uv/pnpm/git.
+// Prepend node's own dir + pi's dir + the usual prefixes to whatever we got.
+function childEnv() {
+	const extra = [
+		path.dirname(process.execPath),
+		path.dirname(path.resolve(PI_BIN)),
+		path.join(os.homedir(), ".local", "bin"),
+		"/opt/homebrew/bin", "/usr/local/bin",
+	];
+	const cur = (process.env.PATH || "").split(path.delimiter);
+	const merged = [...new Set([...extra, ...cur])].filter(Boolean);
+	return { ...process.env, PATH: merged.join(path.delimiter) };
+}
 const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
@@ -141,7 +156,7 @@ function spawnChild({ cwd, session, name, approve, resources, appendSystemPrompt
 	// inert. (Plain manual quoting can't do that — cmd expands %…% inside quotes.)
 	let proc;
 	if (process.platform === "win32") {
-		const env = { ...process.env };
+		const env = childEnv();
 		const line = [`"${PI_BIN.replaceAll('"', "")}"`, ...args.map((a, i) => {
 			// `"` would close the quote after expansion (illegal in paths, dropped);
 			// a trailing `\` would escape the closing quote at argv parsing (a path
@@ -153,7 +168,7 @@ function spawnChild({ cwd, session, name, approve, resources, appendSystemPrompt
 		})].join(" ");
 		proc = spawn(line, { cwd, env, stdio: ["pipe", "pipe", "pipe"], shell: true, windowsHide: true });
 	} else {
-		proc = spawn(PI_BIN, args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
+		proc = spawn(PI_BIN, args, { cwd, env: childEnv(), stdio: ["pipe", "pipe", "pipe"] });
 	}
 	const id = String(nextId++);
 	const child = {
@@ -725,7 +740,7 @@ function runPi(args, cwd, timeoutMs) {
 		const cb = (err, stdout) => resolve({ code: err ? 1 : 0, out: String(stdout || "") });
 		let child;
 		if (process.platform === "win32") {
-			const env = { ...process.env };
+			const env = childEnv();
 			const line = [`"${PI_BIN.replaceAll('"', "")}"`, ...args.map((a, i) => {
 				const v = a.replaceAll('"', "").replace(/\\+$/, "");
 				if (!v) return '""';
@@ -733,7 +748,7 @@ function runPi(args, cwd, timeoutMs) {
 				return `"%NANA_PI_HARG_${i}%"`;
 			})].join(" ");
 			child = exec(line, { cwd, env, timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024 }, cb);
-		} else child = execFile(PI_BIN, args, { cwd, timeout: timeoutMs, maxBuffer: 1024 * 1024 }, cb);
+		} else child = execFile(PI_BIN, args, { cwd, env: childEnv(), timeout: timeoutMs, maxBuffer: 1024 * 1024 }, cb);
 		child.stdin?.end(); // pi -p waits for EOF on a piped stdin — without this it hangs to timeout
 	});
 }
