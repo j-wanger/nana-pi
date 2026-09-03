@@ -29,7 +29,12 @@ Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and
 (`npm i -g @earendil-works/pi-coding-agent`); `uv` for the Python template, `pnpm` for
 the TypeScript one (copier itself runs via `uvx`, nothing to install). On Windows add
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
-everything here works in PowerShell or cmd, no WSL needed).
+everything here works in PowerShell or cmd, no WSL needed). If pi errors
+`No bash shell found`: install Git for Windows to its default location (pi probes
+`%ProgramFiles%\Git\bin\bash.exe`, no PATH change needed), or for scoop/portable Git
+set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. Don't
+let it fall through to WSL's `System32\bash.exe` — commands would run inside Linux
+with Linux paths.
 
 ```bash
 # 1. the nana-pack — all four extensions + every skill (the root package.json
