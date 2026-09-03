@@ -4,13 +4,16 @@
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
- *   POST /api/pick-dir              open the NATIVE OS folder picker (Finder/Explorer/zenity) on this
- *                                   machine; → {path} | {cancelled:true}. One at a time (409 when busy).
+ *   POST /api/pick-dir              open the NATIVE OS folder picker (Finder/Explorer/zenity); → {id}
+ *   GET  /api/pick-dir?id=          poll it → {pending:true} | {path} | {cancelled:true} | {error}
+ *                                   (start-then-poll so no request is held open while a dialog sits;
+ *                                   held XHRs exhaust the browser's per-host connection pool)
  *   GET  /api/resources?cwd=        skills + extensions pi would discover for that cwd (for spawn toggles)
  *   POST /api/rename                {file, name} → append a session_info entry (non-live sessions;
  *                                   same shape pi's set_session_name persists — last one wins on read)
- *   POST /api/derive-title          {file} → headless `pi -p` writes a short title for an unnamed
- *                                   session and persists it as a session_info entry
+ *   POST /api/derive-titles         {files:[…]} → enqueue headless title derivation for unnamed
+ *                                   sessions (server-side serial queue; names persist as session_info
+ *                                   entries and surface via the normal sessions refresh)
  *   GET  /api/settings              pi settings.json + mcp.json + nana-pack.json + agents dir (with paths)
  *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into ~/.pi/agent/settings.json
  *   POST /api/mcp                   {mcpServers} → rewrite that key of ~/.pi/agent/mcp.json
@@ -629,7 +632,51 @@ function listAgents() {
 }
 
 // ── title derivation (headless pi, once per session — the name persists) ──
-const deriving = new Set();
+// Server-side queue: the client submits a batch and returns immediately; names
+// land in the session files and surface through normal rail refresh. (A client
+// that held one request per derivation kept a browser connection busy for
+// minutes — the same pool-exhaustion class as the held picker request.)
+const titleQueue = [];
+const titleQueued = new Set();
+let titleWorkerRunning = false;
+
+function enqueueTitles(files) {
+	let queued = 0;
+	for (const f of files.slice(0, 50)) {
+		let real;
+		try {
+			real = assertInsideSessions(String(f));
+		} catch {
+			continue;
+		}
+		if (titleQueued.has(real)) continue;
+		const meta = readSessionMeta(real);
+		if (!meta || meta.name || !meta.title) continue;
+		titleQueued.add(real);
+		titleQueue.push(real);
+		queued++;
+	}
+	if (queued && !titleWorkerRunning) {
+		titleWorkerRunning = true;
+		(async () => {
+			try {
+				while (titleQueue.length) {
+					const real = titleQueue.shift();
+					try {
+						if (!readSessionMeta(real)?.name) await deriveTitle(real);
+					} catch {
+						// best-effort; a page reload may retry
+					} finally {
+						titleQueued.delete(real);
+					}
+				}
+			} finally {
+				titleWorkerRunning = false;
+			}
+		})();
+	}
+	return queued;
+}
 
 function firstUserText(file) {
 	const head = readChunk(file, 0, 262144);
@@ -692,15 +739,33 @@ async function deriveTitle(real) {
 // the server can open the real OS dialog and hand the absolute path back —
 // something a web page can never get from its own file pickers. The scripts are
 // FIXED STRINGS (no request data is interpolated); the dialog itself is the UI.
-let pickerOpen = false;
+// Start-then-poll, never a held request: a dialog can sit open for minutes, and
+// a long-held XHR eats one of the browser's ~6 per-host connections — enough of
+// those and every desk fetch queues behind them (the "desk feels frozen" bug).
+let picker = null; // {id, status: "pending"|"done", result}
+
+function startPicker() {
+	if (picker?.status === "pending") return { error: "picker already open" };
+	const id = randomBytes(4).toString("hex");
+	picker = { id, status: "pending", result: null };
+	pickDirectory().then((result) => {
+		if (picker?.id === id) picker = { id, status: "done", result };
+	});
+	return { id };
+}
+
+function pollPicker(id) {
+	if (!picker || picker.id !== id) return { error: "no such pick" };
+	if (picker.status === "pending") return { pending: true };
+	const r = picker.result;
+	picker = null; // delivered — frees the single-flight guard
+	return r;
+}
 
 function pickDirectory() {
-	if (pickerOpen) return Promise.resolve({ error: "picker already open" });
-	pickerOpen = true;
 	const run = (cmd, args) =>
 		new Promise((resolve) => {
 			execFile(cmd, args, { timeout: 10 * 60 * 1000, windowsHide: false }, (err, stdout) => {
-				pickerOpen = false;
 				const out = String(stdout || "").trim();
 				if (out) return resolve({ path: out });
 				if (err?.code === "ENOENT") return resolve({ error: `no native picker (${cmd} not found) — type a path instead` });
@@ -991,29 +1056,20 @@ const server = http.createServer(async (req, res) => {
 			return json(res, 200, { ok: true });
 		}
 		if (p === "/api/pick-dir" && req.method === "POST") {
-			const result = await pickDirectory();
-			return json(res, result.error === "picker already open" ? 409 : result.error ? 500 : 200, result);
+			const r = startPicker();
+			return json(res, r.error ? 409 : 200, r);
+		}
+		if (p === "/api/pick-dir" && req.method === "GET") {
+			return json(res, 200, pollPicker(String(url.searchParams.get("id") || "")));
 		}
 		if (p === "/api/resources" && req.method === "GET") {
 			const cwd = path.resolve(expandHome(url.searchParams.get("cwd") || os.homedir()));
 			if (!isDirectory(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			return json(res, 200, { cwd, ...listResources(cwd) });
 		}
-		if (p === "/api/derive-title" && req.method === "POST") {
+		if (p === "/api/derive-titles" && req.method === "POST") {
 			const body = await readBody(req);
-			const real = assertInsideSessions(String(body.file || ""));
-			const meta = readSessionMeta(real);
-			if (!meta) return json(res, 400, { error: "unreadable session" });
-			if (meta.name) return json(res, 200, { name: meta.name });
-			if (deriving.has(real)) return json(res, 409, { error: "derivation in progress" });
-			deriving.add(real);
-			try {
-				return json(res, 200, { name: await deriveTitle(real) });
-			} catch (e) {
-				return json(res, 500, { error: String(e.message || e) });
-			} finally {
-				deriving.delete(real);
-			}
+			return json(res, 200, { queued: enqueueTitles(Array.isArray(body.files) ? body.files : []) });
 		}
 		if (p === "/api/settings" && req.method === "GET") {
 			return json(res, 200, {

@@ -39,10 +39,27 @@ function newLiveState(id, cwd) {
 }
 
 // ── rail ──
+// Overlap-guarded + timed out: if the server or connection pool stalls, ticks
+// must not pile queued requests behind the stall (that turns a hiccup into a
+// permanently wedged desk).
+let railBusy = false;
 async function refreshRail() {
+	if (railBusy) return;
+	railBusy = true;
+	try {
+		await refreshRailInner();
+	} catch {
+		// next tick retries
+	} finally {
+		railBusy = false;
+	}
+}
+
+async function refreshRailInner() {
+	const t = () => AbortSignal.timeout(10000);
 	const [live, groups] = await Promise.all([
-		fetch("/api/live").then((r) => r.json()),
-		fetch("/api/sessions").then((r) => r.json()),
+		fetch("/api/live", { signal: t() }).then((r) => r.json()),
+		fetch("/api/sessions", { signal: t() }).then((r) => r.json()),
 	]);
 
 	const states = await Promise.all(
@@ -52,6 +69,7 @@ async function refreshRail() {
 						method: "POST",
 						headers: { "content-type": "application/json" },
 						body: JSON.stringify({ command: { type: "get_state" } }),
+						signal: t(),
 					})
 						.then((r) => r.json())
 						.then((r) => r.data)
@@ -127,36 +145,50 @@ async function refreshRail() {
 }
 
 // ── background title derivation for unnamed sessions ──
-// One headless pi call per session, EVER — the derived name persists in the
-// session file as a session_info entry. Serial, expanded groups only, capped.
-const titleTried = new Set();
-let titleQueueRunning = false;
-let titleBudget = 12; // per page load
-async function deriveTitles(groups) {
-	if (titleQueueRunning || titleBudget <= 0) return;
+// One batched submit; the SERVER queues and derives (one headless pi call per
+// session, ever — names persist in the session files) and results surface via
+// the normal 15s refresh. No held browser connections.
+const titleSubmitted = new Set();
+function deriveTitles(groups) {
 	const pref = collapsedPref();
-	const targets = [];
+	const files = [];
 	for (let gi = 0; gi < groups.length; gi++) {
 		if (!(pref[groups[gi].cwd] ?? gi === 0)) continue;
-		for (const s of groups[gi].sessions) if (!s.name && s.title && !titleTried.has(s.file)) targets.push(s.file);
-	}
-	if (!targets.length) return;
-	titleQueueRunning = true;
-	let derived = 0;
-	try {
-		for (const file of targets) {
-			if (titleBudget <= 0) break;
-			titleTried.add(file);
-			titleBudget--;
-			try {
-				const r = await fetch("/api/derive-title", { method: "POST", headers: JH, body: JSON.stringify({ file }) }).then((r) => r.json());
-				if (r.name) derived++;
-			} catch {}
+		for (const s of groups[gi].sessions) {
+			if (!s.name && s.title && !titleSubmitted.has(s.file)) {
+				titleSubmitted.add(s.file);
+				files.push(s.file);
+			}
 		}
-	} finally {
-		titleQueueRunning = false;
 	}
-	if (derived) refreshRail();
+	if (!files.length) return;
+	fetch("/api/derive-titles", { method: "POST", headers: JH, body: JSON.stringify({ files: files.slice(0, 30) }) }).catch(() => {});
+}
+
+// Native folder picker: start, then poll with short requests (a held request
+// while a dialog sits open would eat a browser connection — the frozen-desk bug).
+async function pickDir() {
+	const start = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
+	if (start.error) {
+		toast(start.error, "warning");
+		return null;
+	}
+	for (let i = 0; i < 900; i++) {
+		await new Promise((r) => setTimeout(r, 700));
+		let r;
+		try {
+			r = await fetch(`/api/pick-dir?id=${start.id}`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json());
+		} catch {
+			continue;
+		}
+		if (r.pending) continue;
+		if (r.error) {
+			toast(r.error, "warning");
+			return null;
+		}
+		return r.cancelled ? null : r.path;
+	}
+	return null;
 }
 
 function collapsedPref() {
@@ -1134,12 +1166,11 @@ async function tabSkills(body) {
 	}
 	const add = el("button", "", "Add skills folder…");
 	add.onclick = async () => {
-		const r2 = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
-		if (r2.error) return toast(r2.error, "warning");
-		if (!r2.path) return;
+		const picked = await pickDir();
+		if (!picked) return;
 		try {
 			const now = await currentFolders();
-			if (!now.includes(r2.path)) await patchSettings({ skills: [...now, r2.path] });
+			if (!now.includes(picked)) await patchSettings({ skills: [...now, picked] });
 			tabReload(body, tabSkills);
 		} catch (e) {
 			toast(String(e.message || e), "error");
@@ -1247,8 +1278,8 @@ async function tabContext(body) {
 	const dirIn = txtInput("", "project directory");
 	const pick = el("button", "", "Browse…");
 	pick.onclick = async () => {
-		const r = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
-		if (r.path) dirIn.value = r.path;
+		const picked = await pickDir();
+		if (picked) dirIn.value = picked;
 	};
 	const nameSel = el("select");
 	for (const n of ["AGENTS.md", "CLAUDE.md", "AGENTS.override.md"]) {
@@ -1810,9 +1841,8 @@ function spawnPopover() {
 		browseBtn.onclick = async () => {
 			browseBtn.disabled = true;
 			try {
-				const r = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
-				if (r.error) toast(r.error, "warning");
-				else if (r.path) nav(r.path);
+				const picked = await pickDir();
+				if (picked && pop.isConnected) nav(picked);
 			} finally {
 				browseBtn.disabled = false;
 			}
