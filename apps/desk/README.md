@@ -15,8 +15,11 @@ node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change
   renames — live sessions via `set_session_name` RPC, historical ones by appending
   the same `session_info` entry shape pi itself persists (desk readers take the
   last name entry; an empty name clears back to the inferred title).
-- **Spawning** — "Open a session…" opens a repo browser (directory navigation, git
-  repos marked ●) plus per-spawn resource toggles: the skills and extensions pi's
+- **Spawning** — "Open a session…" opens a picker: Browse… pops the NATIVE OS
+  folder dialog (Finder / Explorer / zenity — the server opens it locally and
+  returns the absolute path, which web pages can't get from their own pickers;
+  one dialog at a time), or type a path directly. Plus per-spawn resource
+  toggles: the skills and extensions pi's
   documented locations yield for that cwd (global + project incl. ancestor
   `.agents/skills` + plain-path settings entries + installed packages; settings
   glob/exclusion entries are NOT enumerated — the UI says so). All-on spawns with

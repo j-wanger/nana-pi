@@ -841,10 +841,15 @@ function popover(anchor, build) {
 	pop.style.top = `${Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 10)}px`;
 	pop.style.left = `${Math.min(r.left, window.innerWidth - pop.offsetWidth - 10)}px`;
 	setTimeout(() => {
+		// not {once}: inside-clicks (checkboxes, filters) must not disarm closing
 		const close = (ev) => {
-			if (!pop.contains(ev.target)) closePopover();
+			if (!pop.isConnected) return document.removeEventListener("mousedown", close);
+			if (!pop.contains(ev.target)) {
+				closePopover();
+				document.removeEventListener("mousedown", close);
+			}
 		};
-		document.addEventListener("mousedown", close, { once: true });
+		document.addEventListener("mousedown", close);
 	}, 0);
 }
 function closePopover() {
@@ -1343,19 +1348,21 @@ async function spawnSession(cwd, sessionFile, extra) {
 	openLive(r.id, cwd);
 }
 
-// ── spawn popover: browse to a directory, toggle skills/extensions, open ──
-// (pi has no MCP — extensions ARE the pluggable surface; toggling happens at
-// spawn because pi resolves resources at process start.)
+// ── spawn popover: pick a directory (native OS dialog), toggle skills/
+// extensions, open. (pi has no MCP — extensions ARE the pluggable surface;
+// toggling happens at spawn because pi resolves resources at process start.)
 function spawnPopover() {
 	popover($("btn-spawn"), (pop) => {
 		pop.classList.add("spawn-pop");
 		pop.appendChild(el("div", "pop-title", "Open a session"));
 
+		const pathRow = el("div", "path-row");
 		const pathIn = el("input", "pop-filter");
-		pathIn.placeholder = "~/some/repo — Enter to go";
-		pop.appendChild(pathIn);
-		const dirList = el("div", "pop-list browse-list");
-		pop.appendChild(dirList);
+		pathIn.placeholder = "~/some/repo — Enter to load";
+		const browseBtn = el("button", "", "Browse…");
+		browseBtn.title = "Pick a folder with the system dialog";
+		pathRow.append(pathIn, browseBtn);
+		pop.appendChild(pathRow);
 		const resWrap = el("div", "res-wrap");
 		pop.appendChild(resWrap);
 
@@ -1372,25 +1379,8 @@ function spawnPopover() {
 		foot.append(nameIn, trustRow, openBtn);
 		pop.appendChild(foot);
 
-		let cur = null; // /api/browse payload for the shown directory
+		let cur = null; // {path} of the validated directory
 		let res = null; // /api/resources payload, items get .on
-
-		const drawDirs = () => {
-			dirList.innerHTML = "";
-			if (cur.parent) {
-				const up = el("button", "pop-item browse-row", "↑ ..");
-				up.onclick = () => nav(cur.parent);
-				dirList.appendChild(up);
-			}
-			for (const d of cur.dirs) {
-				const b = el("button", "pop-item browse-row");
-				b.innerHTML = `<span class="repo-dot"></span><span></span>`;
-				b.querySelector(".repo-dot").textContent = d.isRepo ? "●" : "";
-				b.querySelector("span:last-child").textContent = d.name;
-				b.onclick = () => nav(cur.path + cur.sep + d.name);
-				dirList.appendChild(b);
-			}
-		};
 
 		// what pi itself would load: everything, except project items when untrusted
 		const defaultOn = (item) => (item.project ? trustBox.checked : true);
@@ -1426,21 +1416,27 @@ function spawnPopover() {
 		let navSeq = 0;
 		const nav = async (p) => {
 			const seq = ++navSeq;
-			const r = await fetch(`/api/browse?path=${encodeURIComponent(p)}`).then((r) => r.json());
-			if (seq !== navSeq) return; // superseded by a later navigation
-			if (r.error) return toast(r.error, "error");
-			cur = r;
-			pathIn.value = r.path;
-			drawDirs();
-			res = null;
-			resWrap.innerHTML = "";
-			const rr = await fetch(`/api/resources?cwd=${encodeURIComponent(r.path)}`).then((r) => r.json());
-			if (seq !== navSeq || rr.error) return;
+			const rr = await fetch(`/api/resources?cwd=${encodeURIComponent(p)}`).then((r) => r.json());
+			if (seq !== navSeq || !pop.isConnected) return; // superseded / popover closed
+			if (rr.error) return toast(rr.error, "error");
+			cur = { path: rr.cwd };
+			pathIn.value = rr.cwd;
 			res = {
 				skills: rr.skills.map((x) => ({ ...x, on: defaultOn(x) })),
 				extensions: rr.extensions.map((x) => ({ ...x, on: defaultOn(x) })),
 			};
 			drawResources();
+		};
+
+		browseBtn.onclick = async () => {
+			browseBtn.disabled = true;
+			try {
+				const r = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
+				if (r.error) toast(r.error, "warning");
+				else if (r.path) nav(r.path);
+			} finally {
+				browseBtn.disabled = false;
+			}
 		};
 
 		trustBox.onchange = () => {

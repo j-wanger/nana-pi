@@ -4,7 +4,8 @@
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
- *   GET  /api/browse?path=          directory listing for the repo browser (dirs only, ~ expanded)
+ *   POST /api/pick-dir              open the NATIVE OS folder picker (Finder/Explorer/zenity) on this
+ *                                   machine; → {path} | {cancelled:true}. One at a time (409 when busy).
  *   GET  /api/resources?cwd=        skills + extensions pi would discover for that cwd (for spawn toggles)
  *   POST /api/rename                {file, name} → append a session_info entry (non-live sessions;
  *                                   same shape pi's set_session_name persists — last one wins on read)
@@ -419,6 +420,14 @@ function parseTranscript(file) {
 // The default spawn path never depends on this — with no narrowing the desk
 // passes no flags and pi discovers on its own.
 const expandHome = (p) => String(p || "").replace(/^~(?=[\\/]|$)/, () => os.homedir());
+
+function isDirectory(p) {
+	try {
+		return fs.statSync(p).isDirectory();
+	} catch {
+		return false;
+	}
+}
 const PI_DIR = path.join(os.homedir(), ".pi", "agent");
 
 function readJsonFile(p) {
@@ -559,6 +568,47 @@ function addPackage(source, baseDir, cwd, out) {
 	out.extensions.push(...(Array.isArray(entry.extensions) ? exts.filter((x) => entry.extensions.includes(x.name)) : exts));
 }
 
+// ── native folder picker ──
+// The desk binds 127.0.0.1 only, so the browser and this server share a display:
+// the server can open the real OS dialog and hand the absolute path back —
+// something a web page can never get from its own file pickers. The scripts are
+// FIXED STRINGS (no request data is interpolated); the dialog itself is the UI.
+let pickerOpen = false;
+
+function pickDirectory() {
+	if (pickerOpen) return Promise.resolve({ error: "picker already open" });
+	pickerOpen = true;
+	const run = (cmd, args) =>
+		new Promise((resolve) => {
+			execFile(cmd, args, { timeout: 10 * 60 * 1000, windowsHide: false }, (err, stdout) => {
+				pickerOpen = false;
+				const out = String(stdout || "").trim();
+				if (out) return resolve({ path: out });
+				if (err?.code === "ENOENT") return resolve({ error: `no native picker (${cmd} not found) — type a path instead` });
+				resolve({ cancelled: true }); // cancel = nonzero exit / empty output, shape varies per OS
+			});
+		});
+	if (process.platform === "darwin")
+		// choose folder inside a Finder tell block so the dialog comes to the front
+		return run("osascript", [
+			"-e", 'tell application "Finder"',
+			"-e", "activate",
+			"-e", 'set f to choose folder with prompt "Open a pi session in…"',
+			"-e", "end tell",
+			"-e", "POSIX path of f",
+		]);
+	if (process.platform === "win32")
+		return run("powershell.exe", [
+			"-NoProfile", "-STA", "-Command",
+			"Add-Type -AssemblyName System.Windows.Forms; " +
+				"$owner = New-Object System.Windows.Forms.Form; $owner.TopMost = $true; " +
+				"$f = New-Object System.Windows.Forms.FolderBrowserDialog; " +
+				"$f.Description = 'Open a pi session in...'; $f.ShowNewFolderButton = $false; " +
+				"if ($f.ShowDialog($owner) -eq 'OK') { [Console]::Out.Write($f.SelectedPath) }",
+		]);
+	return run("zenity", ["--file-selection", "--directory", "--title=Open a pi session in…"]);
+}
+
 function listResources(cwd) {
 	const out = { skills: [], extensions: [] };
 	// project-scoped waves land in here first and get project:true — the client
@@ -683,7 +733,7 @@ const server = http.createServer(async (req, res) => {
 		if (p === "/api/spawn" && req.method === "POST") {
 			const body = await readBody(req);
 			const cwd = expandHome(body.cwd || os.homedir());
-			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
+			if (!isDirectory(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			let session = body.session;
 			if (session) session = assertInsideSessions(session);
 			const id = spawnChild({
@@ -820,26 +870,14 @@ const server = http.createServer(async (req, res) => {
 			children.delete(dm[1]);
 			return json(res, 200, { ok: true });
 		}
-		if (p === "/api/browse" && req.method === "GET") {
-			const dir = path.resolve(expandHome(url.searchParams.get("path") || os.homedir()));
-			let entries;
-			try {
-				entries = fs.readdirSync(dir, { withFileTypes: true });
-			} catch {
-				return json(res, 400, { error: `cannot list: ${dir}` });
-			}
-			const dirs = entries
-				.filter((e) => e.isDirectory() && !e.name.startsWith("."))
-				.map((e) => ({ name: e.name, isRepo: fs.existsSync(path.join(dir, e.name, ".git")) }))
-				.sort((a, b) => a.name.localeCompare(b.name))
-				.slice(0, 500);
-			const parent = path.dirname(dir);
-			return json(res, 200, { path: dir, parent: parent === dir ? null : parent, home: os.homedir(), sep: path.sep, dirs });
+		if (p === "/api/pick-dir" && req.method === "POST") {
+			const result = await pickDirectory();
+			return json(res, result.error === "picker already open" ? 409 : result.error ? 500 : 200, result);
 		}
 		if (p === "/api/resources" && req.method === "GET") {
 			const cwd = path.resolve(expandHome(url.searchParams.get("cwd") || os.homedir()));
-			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
-			return json(res, 200, listResources(cwd));
+			if (!isDirectory(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
+			return json(res, 200, { cwd, ...listResources(cwd) });
 		}
 		if (p === "/api/rename" && req.method === "POST") {
 			const body = await readBody(req);
