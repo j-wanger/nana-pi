@@ -1392,6 +1392,25 @@ $("btn-fork").onclick = forkPicker;
 $("btn-compact").onclick = () => handleDeskCommand("/compact");
 $("btn-export").onclick = exportSession;
 $("btn-settings").onclick = settingsPopover;
+
+// ── theme ── (index.html applies the saved theme pre-CSS; this owns cycling + live system-follow)
+const THEME_ORDER = ["auto", "light", "dark"];
+const THEME_MARKS = { auto: "◐", light: "○", dark: "●" };
+const darkMedia = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+	const stored = localStorage.getItem("desk-theme");
+	const pref = THEME_ORDER.includes(stored) ? stored : "auto";
+	document.documentElement.dataset.theme = pref === "auto" ? (darkMedia.matches ? "dark" : "light") : pref;
+	$("theme-btn").textContent = `${THEME_MARKS[pref]} ${pref}`;
+}
+$("theme-btn").onclick = () => {
+	const cur = localStorage.getItem("desk-theme");
+	const i = Math.max(0, THEME_ORDER.indexOf(cur)); // unset/garbage counts as "auto"
+	localStorage.setItem("desk-theme", THEME_ORDER[(i + 1) % THEME_ORDER.length]);
+	applyTheme();
+};
+darkMedia.addEventListener("change", applyTheme);
+applyTheme();
 $("spawn-form").onsubmit = (e) => {
 	e.preventDefault();
 	const raw = $("spawn-cwd").value.trim();

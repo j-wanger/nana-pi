@@ -3,7 +3,9 @@
    Warm paper studio: page darkest, cards raised lighter; MONOSPACE for
    structure + tool/command output, system SANS for prose; SEMANTIC color
    (green = settled/ok, amber = pending/cost, red = fail/danger, terracotta
-   accent = interactive/live). One :root token block so a reskin is one place.
+   accent = interactive/live). All color lives in the two token blocks below
+   (:root = light, [data-theme="dark"] = dark) so a reskin is one place.
+   app.js resolves the "auto" preference to an explicit data-theme on <html>.
    System fonts only. */
 
 :root {
@@ -36,6 +38,30 @@
 
 	--r: 8px;
 	--r-sm: 5px;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+
+	/* dark studio — same warm family; in the dark, raised surfaces get LIGHTER */
+	--bg-0: #171512;
+	--bg-1: #1e1b17;
+	--bg-2: #26221d;
+	--bg-3: #3b352c;
+	--line: #322d26;
+	--line-strong: #4a4338;
+
+	--fg-0: #e6dfd2;
+	--fg-1: #a59c8c;
+	--fg-2: #7b7365;
+
+	--go: #9fb95c;
+	--go-dim: #2c331b;
+	--warn: #cfae4d;
+	--warn-dim: #3a3115;
+	--stop: #db7a56;
+	--stop-dim: #40251b;
+	--accent: #de7950;
 }
 
 * { box-sizing: border-box; margin: 0; }

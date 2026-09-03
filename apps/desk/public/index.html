@@ -4,12 +4,22 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>the pi desk</title>
+<script>
+	// runs before the stylesheet so the desk never paints in the wrong theme
+	(() => {
+		const p = localStorage.getItem("desk-theme");
+		document.documentElement.dataset.theme =
+			p === "light" || p === "dark" ? p : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+	})();
+</script>
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 <header id="masthead">
 	<h1>the pi desk</h1>
 	<div id="stats" aria-live="polite"></div>
+	<span class="spacer"></span>
+	<button id="theme-btn" class="chipbtn" title="Theme — auto follows the system"></button>
 </header>
 
 <div id="frame">

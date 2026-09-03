@@ -27,7 +27,8 @@ node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change
   Block → `nana-gate: blocked by user`); notify → toasts; setStatus → header
   chips; setWidget → editor-adjacent boxes; set_editor_text → composer.
 - **Header/footer** — model picker, thinking-level picker, session rename,
-  queue bar, status chips, tokens/cost, context meter (get_session_stats).
+  queue bar, status chips, tokens/cost, context meter (get_session_stats),
+  theme toggle (auto/light/dark).
 - **Session ops** — /model, /thinking, /compact [instructions], /name, /new,
   /fork (picker over prior user messages), /clone, /export (HTML download),
   /session; auto-compaction + steering/follow-up modes under ⚙.
@@ -43,8 +44,11 @@ path reference; it does not attach file contents the way TUI submit does.
 Visual language = the nana loop-desk system ("Orchestr — light / studio",
 `nana-agent-loop/app/src/styles.css`): warm paper surfaces, mono for structure +
 tool output, sans for prose, semantic go/warn/stop, terracotta accent for
-interactive/live. One `:root` token block in `public/styles.css`; reskins touch
-only that file.
+interactive/live. All color lives in two token blocks in `public/styles.css`
+(`:root` = light, `[data-theme="dark"]` = dark studio); reskins touch only that
+file. A masthead toggle cycles auto/light/dark — auto follows the system live,
+the choice persists in localStorage, and an inline pre-CSS script in
+`index.html` applies the saved theme before first paint so there is no flash.
 
 RPC subprocess over in-process SDK (extension/auth fidelity — the gate rides
 along; decoupled from SDK churn); strict LF-only JSONL framing per upstream docs
