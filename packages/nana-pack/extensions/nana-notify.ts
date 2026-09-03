@@ -31,7 +31,7 @@ function windowsNotify(title: string, body: string): void {
 
 export default function (pi: ExtensionAPI) {
 	pi.on("agent_settled", async (_event, ctx) => {
-		const cfg = loadConfig(ctx.cwd);
+		const cfg = loadConfig(ctx);
 		if (!cfg.notify.enabled) return;
 		if (!ctx.hasUI && !cfg.notify.headless) return;
 

@@ -44,7 +44,7 @@ function truncate(s: string, n: number): string {
 
 export default function (pi: ExtensionAPI) {
 	pi.on("tool_call", async (event, ctx) => {
-		const cfg = loadConfig(ctx.cwd);
+		const cfg = loadConfig(ctx);
 
 		let subject: string;
 		let isCommand: boolean;

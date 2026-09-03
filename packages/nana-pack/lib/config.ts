@@ -3,7 +3,10 @@
  *
  * Sources (project wins over user, both optional — every extension works with defaults):
  *   user:    ~/.pi/agent/nana-pack.json
- *   project: <cwd>/.pi/nana-pack.json
+ *   project: <cwd>/.pi/nana-pack.json — TRUSTED PROJECTS ONLY. Project config can
+ *   relax the gate (allowPatterns), define post-edit COMMANDS, and redirect the
+ *   handoff path, so an untrusted repo must not be able to supply it. Fail-closed
+ *   when the trust API is missing (older pi).
  *
  * Read on every event so config edits apply live, without restarting the session.
  */
@@ -32,6 +35,7 @@ export interface NanaPackConfig {
 	postEdit: { commands: PostEditCommand[] };
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
+	handoff: { enabled: boolean; path: string | null };
 }
 
 const DEFAULTS: NanaPackConfig = {
@@ -39,6 +43,7 @@ const DEFAULTS: NanaPackConfig = {
 	postEdit: { commands: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
+	handoff: { enabled: true, path: null },
 };
 
 function readJson(p: string): Record<string, any> | undefined {
@@ -49,14 +54,21 @@ function readJson(p: string): Record<string, any> | undefined {
 	}
 }
 
-export function loadConfig(cwd: string): NanaPackConfig {
+export interface ConfigContext {
+	cwd: string;
+	isProjectTrusted?: () => boolean;
+}
+
+export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	const user = readJson(path.join(os.homedir(), ".pi", "agent", "nana-pack.json")) ?? {};
-	const project = readJson(path.join(cwd, ".pi", "nana-pack.json")) ?? {};
+	const trusted = typeof ctx.isProjectTrusted === "function" && ctx.isProjectTrusted();
+	const project = trusted ? (readJson(path.join(ctx.cwd, ".pi", "nana-pack.json")) ?? {}) : {};
 	return {
 		gate: { ...DEFAULTS.gate, ...user.gate, ...project.gate },
 		postEdit: { ...DEFAULTS.postEdit, ...user.postEdit, ...project.postEdit },
 		notify: { ...DEFAULTS.notify, ...user.notify, ...project.notify },
 		journal: { ...DEFAULTS.journal, ...user.journal, ...project.journal },
+		handoff: { ...DEFAULTS.handoff, ...user.handoff, ...project.handoff },
 	};
 }
 

@@ -7,7 +7,17 @@ is a complete one-liner index), source read of every shortlisted candidate, and 
 load test: all five shortlist picks loaded together headlessly on 0.84.4 in a git repo,
 zero errors. agent-pi re-checked the same day (bottom).
 
-## Shortlist — worth enabling (all load-verified together)
+## Shortlist — RULED 2026-09-03 (Jake)
+
+Verdicts on the shortlist below: **git-checkpoint ENABLED** (copied to
+`~/.pi/agent/extensions/`). **plan-mode and preset REJECTED as extensions** — the
+current pattern is plan-as-a-skill-command (dev-plan-style), not a mode toggle; a lean
+pi plan skill is the candidate shape if wanted. **handoff.ts SUPERSEDED** by
+`nana-handoff` in nana-pack: compaction now AUTO-writes `<cwd>/.pi/handoff.md` and
+fresh sessions auto-inject it (HANDOFF.md pattern) — no manual `/handoff` needed.
+claude-rules: available whenever a repo carries `.claude/rules/`.
+
+## Original shortlist (pre-ruling, all load-verified together)
 
 | Example | What it gives Jake | Notes from source read |
 |---|---|---|

@@ -46,7 +46,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_result", async (event, ctx) => {
 		if (event.toolName !== "edit" && event.toolName !== "write") return undefined;
 		if (event.isError) return undefined;
-		const cfg = loadConfig(ctx.cwd);
+		const cfg = loadConfig(ctx);
 		if (cfg.postEdit.commands.length === 0) return undefined;
 		const file = String((event.input as any).path ?? "");
 		if (!file) return undefined;

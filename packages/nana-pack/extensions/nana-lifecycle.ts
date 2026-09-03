@@ -7,11 +7,11 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { appendJournal, loadConfig } from "../lib/config.ts";
+import { appendJournal, type ConfigContext, loadConfig } from "../lib/config.ts";
 
 export default function (pi: ExtensionAPI) {
-	const log = (ctx: { cwd: string }, event: string, extra: Record<string, unknown> = {}) => {
-		appendJournal(loadConfig(ctx.cwd), {
+	const log = (ctx: ConfigContext, event: string, extra: Record<string, unknown> = {}) => {
+		appendJournal(loadConfig(ctx), {
 			ts: new Date().toISOString(),
 			event,
 			cwd: ctx.cwd,
