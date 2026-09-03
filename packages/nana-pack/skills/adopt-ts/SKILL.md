@@ -81,7 +81,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    test all green.
 8. **Commit the adoption as one commit** (including `.copier-answers.yml` —
    the update relationship needs it git-tracked), then prove the
-   relationship: `uvx copier update --pretend` runs clean.
+   relationship: `uvx copier update --pretend --defaults` runs clean.
 
 ## Notes
 
