@@ -4,7 +4,9 @@ Local, zero-dependency dashboard over pi: every session on the machine in one pl
 live sessions driven from the browser. Aim: the TUI's main capabilities, in a browser.
 
 ```bash
-node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change)
+node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change;
+                              #    not 4317 — that's OTLP, and VPN/telemetry
+                              #    filters can silently eat loopback to it)
 ```
 
 ## What it does (TUI parity map)

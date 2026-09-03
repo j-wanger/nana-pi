@@ -49,7 +49,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PORT = Number(process.env.DESK_PORT || 4317);
+// 7317, NOT 4317: 4317 is the OTLP default and network filters (Tailscale,
+// telemetry collectors) can silently eat loopback traffic to it — observed
+// live 2026-09-03 (listener healthy, every client stuck in SYN_SENT).
+const PORT = Number(process.env.DESK_PORT || 7317);
 const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
