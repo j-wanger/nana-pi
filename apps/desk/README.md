@@ -32,7 +32,11 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
   items are locked off so untrusted project code can't ride in via explicit flags.
 - **Transcripts** — markdown rendering, collapsed thinking blocks, tool cards with
   full args + results + edit diffs, compaction/branch summaries, model/thinking
-  change markers; abandoned branches collapse into dimmed groups.
+  change markers; abandoned branches collapse into dimmed groups. The `subagent`
+  tool (pi-subagents) gets a readable card instead of raw JSON: agent — task in
+  the header, and a live strip per child (agent, model, tools/tokens/duration,
+  current activity) built from the tool's `details`, both mid-run and on
+  history re-render.
 - **Live drive** — `pi --mode rpc` subprocess per session (max 4), so auth,
   models.json, and installed packages (incl. nana-gate) behave exactly as in the
   terminal. Composer: Enter sends (auto prompt/steer by run state), Alt+Enter
@@ -42,9 +46,14 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 - **Extension UI** — select/confirm/input/editor dialogs render as modals (this is
   how nana-gate escalations reach a human — live-verified: rm -rf → dialog →
   Block → `nana-gate: blocked by user`); notify → toasts; setStatus → header
-  chips; setWidget → editor-adjacent boxes; set_editor_text → composer.
+  chips; setWidget → editor-adjacent boxes (pi-subagents' async-jobs widget
+  arrives as a `PI_SUBAGENT_ASYNC_JSON:` machine snapshot for RPC clients — the
+  desk decodes it into per-run rows instead of printing the blob);
+  set_editor_text → composer.
 - **Header/footer** — model picker, thinking-level picker, session rename,
-  queue bar, status chips, tokens/cost, context meter (get_session_stats),
+  queue bar, status chips, tokens/cost, context meter (get_session_stats; after
+  a compaction pi reports percent:null until the next reply, so the meter shows
+  the compaction's own estimate as `~N% (est)` instead of going stale),
   theme toggle (auto/light/dark).
 - **Session ops** — /model, /thinking, /compact [instructions], /name, /new,
   /fork (picker over prior user messages), /clone, /export (HTML download),

@@ -35,6 +35,7 @@ function newLiveState(id, cwd) {
 		commands: null, // get_commands cache
 		files: null,
 		retryNote: null,
+		ctxEstimate: null, // estimatedTokensAfter from the last compaction; pi reports percent:null until the next reply
 	};
 }
 
@@ -278,6 +279,73 @@ function argSummary(args) {
 	return s === "{}" ? "" : s.slice(0, 160);
 }
 
+// ── subagent tool: human-readable card instead of raw args/output JSON ──
+function subagentArgSummary(a) {
+	if (!a || typeof a !== "object") return "";
+	if (typeof a.agent === "string") return [a.agent, a.task].filter(Boolean).join(" — ").slice(0, 160);
+	if (Array.isArray(a.chain)) {
+		const names = a.chain.map((s) =>
+			s?.agent || (Array.isArray(s?.parallel) ? `[${s.parallel.map((p) => p?.agent || "?").join(" | ")}]` : s?.expand ? "expand" : "?"));
+		return `chain: ${names.join(" → ")}`.slice(0, 160);
+	}
+	if (typeof a.action === "string") return a.action.slice(0, 160);
+	if (a.workflowScript || a.workflowScriptPath) return "workflow";
+	return argSummary(a);
+}
+
+const fmtDur = (ms) => (ms >= 60000 ? `${Math.floor(ms / 60000)}m${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}s` : `${Math.round(ms / 1000)}s`);
+
+// merge Details.results (per-child rows) with Details.progress (live snapshots)
+function subagentChildren(d) {
+	const byIndex = new Map();
+	for (const p of d.progress || []) byIndex.set(p.index ?? 0, p);
+	const rows = d.results?.length
+		? d.results
+		: [...byIndex.values()].map((p) => ({ index: p.index, agent: p.agent, task: p.task, progress: p }));
+	return rows.map((r) => {
+		const p = r.progress || byIndex.get(r.index) || r.progressSummary || {};
+		return {
+			agent: r.agent || p.agent || "?",
+			task: r.task || p.task || "",
+			model: r.model || p.model || "",
+			status: p.status || (r.detached ? "detached" : r.exitCode === undefined ? "running" : r.exitCode === 0 ? "completed" : "failed"),
+			tokens: p.tokens || 0,
+			toolCount: p.toolCount || 0,
+			durationMs: p.durationMs || 0,
+			activity: p.currentTool ? `${p.currentTool}${p.currentToolArgs ? ` ${p.currentToolArgs}` : ""}` : "",
+			error: p.error || r.error || "",
+		};
+	});
+}
+
+const SUB_GLYPH = { running: "⚙", pending: "○", completed: "✓", failed: "✗", detached: "⇢" };
+function setSubagentProgress(row, d, autoOpen) {
+	let strip = row.querySelector(".sub-strip");
+	if (!strip) {
+		strip = el("div", "sub-strip");
+		row.querySelector(".tool-body").prepend(strip);
+	}
+	strip.innerHTML = "";
+	for (const c of subagentChildren(d)) {
+		const line = el("div", "sub-child");
+		const markCls = c.status === "running" ? "mark spin" : c.status === "completed" ? "mark ok" : c.status === "failed" ? "mark bad" : "mark";
+		line.appendChild(el("span", markCls, SUB_GLYPH[c.status] || "○"));
+		line.appendChild(el("b", "sub-name", c.agent));
+		if (c.model) line.appendChild(el("span", "dim", c.model));
+		const stats = [c.toolCount > 0 && `${c.toolCount} tools`, c.tokens > 0 && `${fmtTok(c.tokens)} tok`, c.durationMs > 0 && fmtDur(c.durationMs)]
+			.filter(Boolean).join(" · ");
+		if (stats) line.appendChild(el("span", "dim", `· ${stats}`));
+		strip.appendChild(line);
+		if (c.task) strip.appendChild(el("div", "sub-task", c.task.length > 200 ? `${c.task.slice(0, 200)}…` : c.task));
+		if (c.status === "running" && c.activity) strip.appendChild(el("div", "sub-task", `⎿ ${c.activity.slice(0, 140)}`));
+		if (c.error) strip.appendChild(el("div", "sub-task err", c.error.slice(0, 200)));
+	}
+	if (autoOpen && !row.dataset.userToggled) {
+		row.querySelector(".tool-body").hidden = false;
+		row.querySelector(".caret").textContent = "▾";
+	}
+}
+
 function toolRow(ctx, id, name, args) {
 	let row = id ? ctx.toolRows.get(id) : null;
 	if (row && !row.isConnected) row = null;
@@ -295,7 +363,7 @@ function toolRow(ctx, id, name, args) {
 	}
 	row.querySelector(".tname").textContent = name || "";
 	if (args !== undefined) {
-		row.querySelector(".targ").textContent = argSummary(args);
+		row.querySelector(".targ").textContent = name === "subagent" ? subagentArgSummary(args) : argSummary(args);
 		row.querySelector(".targs pre").textContent = JSON.stringify(args, null, 2);
 	}
 	return row;
@@ -337,6 +405,8 @@ function finishToolRow(ctx, m) {
 	for (const b of contentBlocks(m.content).filter((b) => b.type === "image"))
 		row.querySelector(".tool-body").appendChild(renderImage(b));
 	if (m.details?.diff) renderDiff(row.querySelector(".tdiff"), m.details.diff);
+	if (m.toolName === "subagent" && m.details && (m.details.results?.length || m.details.progress?.length))
+		setSubagentProgress(row, m.details, false);
 	const body = row.querySelector(".tool-body");
 	if (!row.dataset.userToggled) {
 		body.hidden = !m.isError;
@@ -495,10 +565,19 @@ async function refreshStats() {
 		$("foot-cost").textContent = fmtCost(d.cost);
 		$("foot-msgs").textContent = `${d.totalMessages} msgs`;
 		if (cu && cu.percent != null) {
+			L.ctxEstimate = null; // real usage is known again
 			$("ctx-meter").hidden = false;
 			$("ctx-fill").style.width = `${Math.min(100, cu.percent)}%`;
 			$("ctx-fill").className = `meter-fill${cu.percent > 80 ? " hot" : ""}`;
 			$("ctx-label").textContent = `${Math.round(cu.percent)}% of ${fmtTok(cu.contextWindow)}`;
+		} else if (cu && cu.contextWindow && L.ctxEstimate != null) {
+			// post-compaction: pi reports percent:null until the next reply — show
+			// the compaction's own estimate instead of a stale or empty meter
+			const pct = Math.min(100, (L.ctxEstimate / cu.contextWindow) * 100);
+			$("ctx-meter").hidden = false;
+			$("ctx-fill").style.width = `${pct}%`;
+			$("ctx-fill").className = "meter-fill";
+			$("ctx-label").textContent = `~${Math.round(pct)}% of ${fmtTok(cu.contextWindow)} (est)`;
 		} else {
 			$("ctx-meter").hidden = true;
 			$("ctx-label").textContent = "";
@@ -599,17 +678,61 @@ function renderStatuses(statuses) {
 	}
 }
 
+// pi-subagents publishes its async-jobs widget to RPC clients as one line of
+// "PI_SUBAGENT_ASYNC_JSON:{...}" — a machine snapshot the client is expected to
+// decode and render itself (the TUI draws its own tree from the same data)
+const SUB_WIDGET_PREFIX = "PI_SUBAGENT_ASYNC_JSON:";
+const SUB_STATE_GLYPH = { queued: "○", running: "⚙", complete: "✓", failed: "✗", rejected: "✗", partial: "◐", paused: "⏸", stopped: "■" };
+function subagentWidgetBox(snap) {
+	const box = el("div", "widget sub-widget");
+	const walk = (node, depth) => {
+		const st = node.state;
+		const line = el("div", "sub-child");
+		line.style.paddingLeft = `${depth * 14}px`;
+		const markCls = st === "running" ? "mark spin" : st === "complete" ? "mark ok" : st === "failed" || st === "rejected" ? "mark bad" : "mark";
+		line.appendChild(el("span", markCls, SUB_STATE_GLYPH[st] || "○"));
+		line.appendChild(el("b", "sub-name", node.label || node.kind || "run"));
+		const a = node.activity || {};
+		const stats = [
+			st !== "running" && st,
+			a.turnCount > 0 && `${a.turnCount} turns`,
+			a.toolCount > 0 && `${a.toolCount} tools`,
+			st === "running" && node.startedAt && fmtDur(Date.now() - node.startedAt),
+		].filter(Boolean).join(" · ");
+		if (stats) line.appendChild(el("span", "dim", `· ${stats}`));
+		box.appendChild(line);
+		if (st === "running" && a.currentTool) box.appendChild(el("div", "sub-task", `⎿ ${a.currentTool}`));
+		for (const c of node.children || []) walk(c, depth + 1);
+	};
+	for (const r of snap.runs || []) walk(r, 0);
+	if (snap.omitted?.runs) box.appendChild(el("div", "sub-task", `… +${snap.omitted.runs} more`));
+	return box;
+}
+
+function widgetBox(key, lines) {
+	const enc = (lines || []).find((l) => typeof l === "string" && l.startsWith(SUB_WIDGET_PREFIX));
+	if (enc) {
+		try {
+			const box = subagentWidgetBox(JSON.parse(enc.slice(SUB_WIDGET_PREFIX.length)));
+			box.title = key;
+			return box;
+		} catch {
+			// fall through to raw rendering
+		}
+	}
+	const box = el("pre", "widget");
+	box.title = key;
+	box.textContent = (lines || []).map(stripAnsi).join("\n");
+	return box;
+}
+
 function renderWidgets(widgets) {
 	const above = $("widgets-above");
 	const below = $("widgets-below");
 	above.innerHTML = "";
 	below.innerHTML = "";
-	for (const [k, w] of Object.entries(widgets || {})) {
-		const box = el("pre", "widget");
-		box.title = k;
-		box.textContent = (w.lines || []).map(stripAnsi).join("\n");
-		(w.placement === "belowEditor" ? below : above).appendChild(box);
-	}
+	for (const [k, w] of Object.entries(widgets || {}))
+		(w.placement === "belowEditor" ? below : above).appendChild(widgetBox(k, w.lines));
 }
 
 function renderQueue(q) {
@@ -779,8 +902,15 @@ function handleEvent(e) {
 		}
 		case "tool_execution_update": {
 			const row = toolRow(L.ctx, e.toolCallId, e.toolName);
-			const texts = contentBlocks(e.partialResult?.content).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-			setToolStreaming(row, texts);
+			const d = e.partialResult?.details;
+			if (e.toolName === "subagent" && d && (d.results?.length || d.progress?.length)) {
+				// subtle live tracking (agent · model · task · tokens) instead of
+				// dumping the child's raw streamed output
+				setSubagentProgress(row, d, true);
+			} else {
+				const texts = contentBlocks(e.partialResult?.content).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+				setToolStreaming(row, texts);
+			}
 			break;
 		}
 		case "tool_execution_end":
@@ -811,8 +941,10 @@ function handleEvent(e) {
 			setChip(L.streaming ? "running" : "idle");
 			if (e.aborted) noteRow(L.ctx, "— compaction aborted —");
 			else if (e.errorMessage) noteRow(L.ctx, `— compaction FAILED: ${e.errorMessage} —`, "err");
-			else if (e.result)
+			else if (e.result) {
 				expandableNote(L.ctx, `— compacted ${fmtTok(e.result.tokensBefore)} → ~${fmtTok(e.result.estimatedTokensAfter)} —`, e.result.summary);
+				if (e.result.estimatedTokensAfter != null) L.ctxEstimate = e.result.estimatedTokensAfter;
+			}
 			if (!L.streaming) resync();
 			else refreshStats();
 			break;
@@ -878,12 +1010,7 @@ function handleUiRequest(e) {
 			const parent = e.widgetPlacement === "belowEditor" ? $("widgets-below") : $("widgets-above");
 			const existing = [...parent.children, ...$("widgets-above").children, ...$("widgets-below").children].find((c) => c.title === e.widgetKey);
 			existing?.remove();
-			if (e.widgetLines) {
-				const box = el("pre", "widget");
-				box.title = e.widgetKey;
-				box.textContent = e.widgetLines.map(stripAnsi).join("\n");
-				parent.appendChild(box);
-			}
+			if (e.widgetLines) parent.appendChild(widgetBox(e.widgetKey, e.widgetLines));
 			break;
 		}
 		case "setTitle":

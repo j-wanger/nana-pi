@@ -428,6 +428,16 @@ body {
 .tdiff .dctx { color: var(--fg-1); }
 .att-img { max-width: 320px; max-height: 240px; border-radius: var(--r-sm); border: 1px solid var(--line); display: block; margin: 6px 0; }
 
+/* subagent tracking strip: one quiet line per child + dim task/activity lines */
+.sub-strip { margin: 2px 0 4px; }
+.sub-widget { white-space: normal; }
+.sub-widget:empty { display: none; }
+.sub-child { display: flex; gap: 8px; align-items: baseline; white-space: nowrap; overflow: hidden; }
+.sub-child .sub-name { color: var(--fg-0); font-weight: 600; }
+.sub-child .dim { overflow: hidden; text-overflow: ellipsis; }
+.sub-task { color: var(--fg-2); font-size: 11px; padding-left: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub-task.err { color: var(--stop); }
+
 /* ── queue / widgets ── */
 #queue {
 	display: flex;
