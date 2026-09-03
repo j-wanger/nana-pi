@@ -19,8 +19,8 @@ the reconciliation surface — nothing is lost because the tree starts clean.
 - Node ≥22 available. Detect their package manager from the lockfile
   (pnpm/npm/yarn) — **adoption keeps their package manager**; only greenfield
   scaffolds pin pnpm.
-- Template checkout at `~/nana-pi/templates/typescript` (ask where nana-pi
-  lives if not).
+- nana-pi checkout at `~/nana-pi` (the repo root is the copier src; ask where
+  nana-pi lives if not).
 
 ## Steps
 
@@ -38,9 +38,10 @@ the reconciliation surface — nothing is lost because the tree starts clean.
 3. **Overlay**:
 
    ```bash
-   uvx copier copy --defaults --overwrite --data adopt=true \
+   uvx copier copy --defaults --overwrite --data language=typescript \
+     --data adopt=true \
      --data project_name="<name>" \
-     ~/nana-pi/templates/typescript .
+     ~/nana-pi .
    ```
 
    Adopt mode emits configs only: package.json, tsconfig + tsconfig.build,

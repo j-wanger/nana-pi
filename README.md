@@ -14,8 +14,9 @@ Sibling repo to `~/nana-agent-loop`.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
-  folder-by-feature, nested AGENTS.md, post-edit quality gates; projects re-sync via
-  `uvx copier update`.
+  folder-by-feature, nested AGENTS.md, post-edit quality gates. The copier src is the
+  REPO ROOT (root `copier.yml`, `language` question) so copies are tag-versioned and
+  re-sync via `uvx copier update` — template changes ship by commit + `v*` tag.
 - `apps/desk/` — the pi desk, a zero-dependency local browser dashboard over pi sessions.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.

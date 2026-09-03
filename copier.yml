@@ -1,0 +1,69 @@
+# nana-pi template root — one copier entry point for both language templates.
+# The repo root must be the copier src (not templates/<lang>) so copier's git
+# detection versions the template: that is what records _commit in generated
+# projects and makes `uvx copier update` work. Consumption is tag-pinned
+# (latest v* tag), so uncommitted template edits do NOT render — commit and
+# tag to ship template changes.
+_min_copier_version: "9.0.0"
+_subdirectory: "templates/{{ language }}/template"
+
+language:
+  type: str
+  help: Which stack?
+  choices:
+    - python
+    - typescript
+
+project_name:
+  type: str
+  help: Project name (human-readable)
+
+project_slug:
+  type: str
+  default: "{{ project_name | lower | replace(' ', '-') | replace('_', '-') }}"
+  help: Distribution/package name (kebab-case)
+
+package_name:
+  type: str
+  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  when: "{{ language == 'python' }}"
+  help: Import package name (snake_case, lives under src/)
+
+description:
+  type: str
+  default: ""
+  help: One-line project description
+
+adopt:
+  type: bool
+  default: false
+  help: Applying to an EXISTING project? (skips the README/src/tests starters — drive this via the adopt-py / adopt-ts skill)
+
+_message_after_copy: |
+  {% if adopt -%}
+  {{ project_name }}: nana stack overlaid (adopt mode — configs only, source tree untouched).
+
+  Now reconcile from `git diff` per the adopt-{{ 'py' if language == 'python' else 'ts' }} skill:
+  merge your project metadata/deps back into the pinned configs, stage the
+  strictness, then commit including .copier-answers.yml.
+  {%- elif language == 'python' -%}
+  {{ project_name }} scaffolded.
+
+  Next steps:
+    cd into the project, then:
+      git init && git add -A && git commit -m "scaffold"
+      uv sync
+      uv run pre-commit install
+      uv run pytest
+  {%- else -%}
+  {{ project_name }} scaffolded.
+
+  Next steps:
+    cd into the project, then:
+      git init && git add -A && git commit -m "scaffold"
+      pnpm install
+      pnpm check        # typecheck + lint + test
+      git add pnpm-lock.yaml && git commit -m "lockfile"
+  {%- endif %}
+
+  This project tracks its template: `uvx copier update` re-syncs it later.

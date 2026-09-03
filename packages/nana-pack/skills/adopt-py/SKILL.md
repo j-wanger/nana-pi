@@ -20,8 +20,8 @@ reconciliation surface — nothing is lost because the tree starts clean.
   surface it, and proceed only on the user's explicit call.
 - uv is installed. Deps in requirements.txt/Poetry get migrated during
   reconcile.
-- Template checkout at `~/nana-pi/templates/python` (ask where nana-pi lives if
-  not).
+- nana-pi checkout at `~/nana-pi` (the repo root is the copier src; ask where
+  nana-pi lives if not).
 
 ## Steps
 
@@ -37,9 +37,10 @@ reconciliation surface — nothing is lost because the tree starts clean.
 3. **Overlay**:
 
    ```bash
-   uvx copier copy --defaults --overwrite --data adopt=true \
+   uvx copier copy --defaults --overwrite --data language=python \
+     --data adopt=true \
      --data project_name="<name>" --data package_name="<import_name>" \
-     ~/nana-pi/templates/python .
+     ~/nana-pi .
    ```
 
    Adopt mode emits configs only: pyproject, pre-commit, CI, root AGENTS.md,

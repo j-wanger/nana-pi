@@ -16,14 +16,15 @@ edit, 300-line file cap, `tsc --noEmit`).
 
 1. Need from the user (ask only for what's missing): destination directory and
    project name. Description is optional; the package name derives automatically.
-2. Template location is `~/nana-pi/templates/typescript`. If that checkout
-   doesn't exist on this machine, ask where nana-pi lives.
+2. The template src is the nana-pi repo root, `~/nana-pi` (copier needs the
+   git root to version the copy — that's what makes `copier update` work). If
+   that checkout doesn't exist on this machine, ask where nana-pi lives.
 3. Run:
 
    ```bash
-   uvx copier copy --defaults \
+   uvx copier copy --defaults --data language=typescript \
      --data project_name="<name>" --data description="<one-liner>" \
-     ~/nana-pi/templates/typescript <destination>
+     ~/nana-pi <destination>
    ```
 
 4. Then complete the printed next steps: `git init` + first commit,
