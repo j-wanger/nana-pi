@@ -1137,10 +1137,11 @@ async function tabSkills(body) {
 	body.appendChild(el("div", "sec-head", "Discovered skills (global scope)"));
 	for (const sk of r.skills || []) {
 		const row = el("div", "srow");
-		row.append(el("b", "", sk.name), el("span", "dim", ` ${sk.origin}`));
+		row.append(el("b", "", sk.name), el("span", "dim", ` /skill:${sk.name} · ${sk.origin}`));
 		if (sk.description) row.title = sk.description;
 		body.appendChild(row);
 	}
+	body.appendChild(el("p", "dim", "Invoke in a session as /skill:<name> (or just describe the task — the model picks skills up from its system prompt). Typing /<name> in the composer now completes to the full form."));
 	body.appendChild(el("div", "sec-head", "Extra skill folders (settings.json → skills)"));
 	// re-read current state inside each handler — a captured array would let two
 	// quick edits clobber each other
@@ -1622,11 +1623,14 @@ function updateCompletion() {
 			hint: `${c.description || ""} (${c.source})`,
 			insert: `/${c.name} `,
 		}));
-		found = {
-			start: 0,
-			end: pos,
-			items: [...deskItems, ...extItems].filter((i) => i.label.slice(1).toLowerCase().startsWith(q)),
-		};
+		// match the full name OR the segment after a namespace colon, so typing
+		// /adopt finds /skill:adopt-py (pi registers skills as skill:<name>)
+		const matches = [...deskItems, ...extItems].filter((i) => {
+			const name = i.label.slice(1).toLowerCase();
+			return name.startsWith(q) || name.split(":").pop().startsWith(q);
+		});
+		matches.sort((a, b) => (a.label.slice(1).toLowerCase().startsWith(q) ? 0 : 1) - (b.label.slice(1).toLowerCase().startsWith(q) ? 0 : 1));
+		found = { start: 0, end: pos, items: matches };
 	} else {
 		const before = text.slice(0, pos);
 		const at = before.match(/(?:^|\s)@([\w./-]*)$/);
