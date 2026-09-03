@@ -1,0 +1,20 @@
+{
+	"name": "nana-pi",
+	"version": "0.4.0",
+	"description": "nana-pi bundle: the nana-pack pi extensions (gate, post-edit, lifecycle, notify) + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
+	"keywords": ["pi-package"],
+	"license": "MIT",
+	"repository": "github:j-wanger/nana-pi",
+	"pi": {
+		"extensions": ["packages/nana-pack/extensions"],
+		"skills": ["packages/nana-pack/skills"]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"peerDependenciesMeta": {
+		"@earendil-works/pi-coding-agent": {
+			"optional": true
+		}
+	}
+}
