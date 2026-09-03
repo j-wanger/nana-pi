@@ -39,11 +39,11 @@ the reconciliation surface — nothing is lost because the tree starts clean.
 3. **Overlay**:
 
    ```bash
-   uvx copier copy --defaults --overwrite --data language=typescript \
-     --data adopt=true \
-     --data project_name="<name>" \
-     https://github.com/j-wanger/nana-pi.git .
+   uvx copier copy --defaults --overwrite --data language=typescript --data adopt=true --data project_name="<name>" https://github.com/j-wanger/nana-pi.git .
    ```
+
+   (One line on purpose — it must work in PowerShell too, where bash's `\`
+   continuation breaks.)
 
    Adopt mode emits configs only: package.json, tsconfig + tsconfig.build,
    biome.json, CI, root AGENTS.md, `.pi/nana-pack.json`,

@@ -26,6 +26,9 @@ const DANGEROUS: RegExp[] = [
 	/\bmkfs\b/,
 	/\b(shutdown|reboot|halt)\b/,
 	/Remove-Item\b[^|;&]*(-Recurse|-Force)/i,
+	/\b(rd|rmdir)\b[^|;&]*\s\/s\b/i, // cmd.exe: rd /s /q
+	/\b(del|erase)\b[^|;&]*\s\/[fsq]\b/i, // cmd.exe: del /f /s /q (+ its erase alias)
+	/\bformat\s+[a-z]:(\s|$)/i, // disk format (colon guard keeps `ruff format c:\…` safe)
 ];
 
 const PROTECTED_PATHS: RegExp[] = [

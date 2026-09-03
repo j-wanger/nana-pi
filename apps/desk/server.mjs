@@ -28,11 +28,12 @@ import * as fs from "node:fs";
 import * as http from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const PORT = Number(process.env.DESK_PORT || 4317);
 const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
 const JOURNAL = path.join(os.homedir(), ".pi", "agent", "nana-journal.jsonl");
-const PUBLIC = path.join(path.dirname(new URL(import.meta.url).pathname), "public");
+const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
 
@@ -72,7 +73,27 @@ function spawnChild({ cwd, session, name, extensions }) {
 		if (!fs.existsSync(ext)) throw new Error(`no such extension: ${ext}`);
 		args.push("-e", ext);
 	}
-	const proc = spawn("pi", args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
+	// win32: npm installs pi as a .cmd shim, which spawn() can only run through a
+	// shell — and shell mode does no arg quoting. Passing values via env vars and
+	// referencing `"%VAR%"` on the line makes cmd itself substitute them: one
+	// non-recursive expansion, so spaces, `&`, and literal `%` in values are all
+	// inert. (Plain manual quoting can't do that — cmd expands %…% inside quotes.)
+	let proc;
+	if (process.platform === "win32") {
+		const env = { ...process.env };
+		const line = ["pi", ...args.map((a, i) => {
+			// `"` would close the quote after expansion (illegal in paths, dropped);
+			// a trailing `\` would escape the closing quote at argv parsing (a path
+			// means the same without it). Empty values can't ride env on Windows.
+			const v = a.replaceAll('"', "").replace(/\\+$/, "");
+			if (!v) return '""';
+			env[`NANA_PI_ARG_${i}`] = v;
+			return `"%NANA_PI_ARG_${i}%"`;
+		})].join(" ");
+		proc = spawn(line, { cwd, env, stdio: ["pipe", "pipe", "pipe"], shell: true, windowsHide: true });
+	} else {
+		proc = spawn("pi", args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
+	}
 	const id = String(nextId++);
 	const child = {
 		proc, cwd, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
@@ -123,6 +144,13 @@ function spawnChild({ cwd, session, name, extensions }) {
 		broadcast(child, child.exitNote);
 	});
 	return id;
+}
+
+function killChild(child) {
+	// win32 shell-mode spawn: proc is the cmd.exe wrapper — kill the whole tree
+	// or pi itself is orphaned.
+	if (process.platform === "win32") execFile("taskkill", ["/pid", String(child.proc.pid), "/t", "/f"], () => {});
+	else child.proc.kill();
 }
 
 function handleChildEvent(child, obj) {
@@ -505,7 +533,7 @@ const server = http.createServer(async (req, res) => {
 		}
 		if (p === "/api/spawn" && req.method === "POST") {
 			const body = await readBody(req);
-			const cwd = (body.cwd || os.homedir()).replace(/^~(?=\/|$)/, os.homedir());
+			const cwd = (body.cwd || os.homedir()).replace(/^~(?=[\\/]|$)/, () => os.homedir());
 			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			let session = body.session;
 			if (session) session = assertInsideSessions(session);
@@ -633,7 +661,7 @@ const server = http.createServer(async (req, res) => {
 		if (dm && req.method === "DELETE") {
 			const child = children.get(dm[1]);
 			if (!child) return json(res, 404, { error: "no such live session" });
-			child.proc.kill();
+			killChild(child);
 			children.delete(dm[1]);
 			return json(res, 200, { ok: true });
 		}
@@ -649,7 +677,7 @@ const server = http.createServer(async (req, res) => {
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
 	process.on(sig, () => {
-		for (const [, c] of children) c.proc.kill();
+		for (const [, c] of children) killChild(c);
 		process.exit(0);
 	});
 }

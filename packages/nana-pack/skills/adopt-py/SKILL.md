@@ -38,11 +38,11 @@ reconciliation surface — nothing is lost because the tree starts clean.
 3. **Overlay**:
 
    ```bash
-   uvx copier copy --defaults --overwrite --data language=python \
-     --data adopt=true \
-     --data project_name="<name>" --data package_name="<import_name>" \
-     https://github.com/j-wanger/nana-pi.git .
+   uvx copier copy --defaults --overwrite --data language=python --data adopt=true --data project_name="<name>" --data package_name="<import_name>" https://github.com/j-wanger/nana-pi.git .
    ```
+
+   (One line on purpose — it must work in PowerShell too, where bash's `\`
+   continuation breaks.)
 
    Adopt mode emits configs only: pyproject, pre-commit, CI, root AGENTS.md,
    `.pi/nana-pack.json`, `.copier-answers.yml`. No README/src/tests starters.

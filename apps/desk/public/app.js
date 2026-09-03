@@ -3,7 +3,8 @@ import { mdToHtml } from "./md.js";
 const $ = (id) => document.getElementById(id);
 const HOME = "~";
 
-const short = (p) => (p || "").replace(/^\/(Users|home)\/[^/]+/, HOME);
+const short = (p) => (p || "").replace(/^(\/(Users|home)\/[^/]+|[A-Za-z]:\\Users\\[^\\]+)/, HOME);
+const basename = (p) => (p || "").split(/[\\/]/).pop();
 const stripAnsi = (s) => String(s ?? "").replace(/\x1b\[[0-9;]*m/g, "");
 const when = (ms) => {
 	const d = new Date(ms);
@@ -371,7 +372,7 @@ async function refreshState() {
 	const s = L.state;
 	L.streaming = !!s.isStreaming;
 	$("sess-name").textContent = s.sessionName || "(unnamed)";
-	$("sess-file").textContent = s.sessionFile ? short(s.sessionFile).split("/").pop() : "(ephemeral)";
+	$("sess-file").textContent = s.sessionFile ? basename(s.sessionFile) : "(ephemeral)";
 	$("model-chip").textContent = s.model ? `${s.model.provider}/${s.model.id}` : "no model";
 	$("think-chip").textContent = `think: ${s.thinkingLevel || "off"}`;
 	if (!s.isStreaming && !s.isCompacting) setChip("idle");
@@ -1244,7 +1245,7 @@ async function openHistorical(file, cwd) {
 		noteRow({ container: $("transcript") }, data.error, "err");
 		return;
 	}
-	$("hist-title").textContent = data.name || short(file).split("/").pop();
+	$("hist-title").textContent = data.name || basename(file);
 	$("hist-sub").textContent = `${short(cwd)} · ${data.total} entries${data.total > data.entries.length ? ` (showing last ${data.entries.length})` : ""}`;
 	$("btn-continue").onclick = () => spawnSession(cwd, file);
 

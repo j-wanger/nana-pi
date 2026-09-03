@@ -28,11 +28,12 @@ function run(
 	cwd: string,
 	timeoutMs: number,
 	signal: AbortSignal,
+	env?: NodeJS.ProcessEnv,
 ): Promise<{ code: number; out: string }> {
 	return new Promise((resolve) => {
 		exec(
 			cmd,
-			{ cwd, timeout: timeoutMs, signal, maxBuffer: 1024 * 1024, windowsHide: true },
+			{ cwd, env, timeout: timeoutMs, signal, maxBuffer: 1024 * 1024, windowsHide: true },
 			(err, stdout, stderr) => {
 				const code = err ? (typeof (err as any).code === "number" ? (err as any).code : 1) : 0;
 				resolve({ code, out: `${stdout ?? ""}${stderr ?? ""}` });
@@ -59,8 +60,14 @@ export default function (pi: ExtensionAPI) {
 				continue;
 			}
 			if (!re.test(file)) continue;
-			const cmd = c.run.replaceAll("{file}", quote(file));
-			const { code, out } = await run(cmd, ctx.cwd, c.timeoutMs ?? 30_000, ctx.signal);
+			// win32: exec() goes through cmd.exe, where sh-style quoting corrupts
+			// `C:\` paths and %…% expands even inside quotes. Passing the path via
+			// an env var and substituting `"%NANA_PI_FILE%"` lets cmd expand it
+			// itself — once, non-recursively — so any legal path survives.
+			const win = process.platform === "win32";
+			const cmd = c.run.replaceAll("{file}", win ? '"%NANA_PI_FILE%"' : quote(file));
+			const env = win ? { ...process.env, NANA_PI_FILE: file } : undefined;
+			const { code, out } = await run(cmd, ctx.cwd, c.timeoutMs ?? 30_000, ctx.signal, env);
 			if (code !== 0) failures.push(`\`${cmd}\` exited ${code}:\n${tail(out, 2000)}`);
 		}
 		if (failures.length === 0) return undefined;

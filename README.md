@@ -27,7 +27,9 @@ Sibling repo to `~/nana-agent-loop`.
 
 Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and pi
 (`npm i -g @earendil-works/pi-coding-agent`); `uv` for the Python template, `pnpm` for
-the TypeScript one (copier itself runs via `uvx`, nothing to install).
+the TypeScript one (copier itself runs via `uvx`, nothing to install). On Windows add
+Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
+everything here works in PowerShell or cmd, no WSL needed).
 
 ```bash
 # 1. the nana-pack — all four extensions + every skill (the root package.json
@@ -37,8 +39,10 @@ pi install git:github.com/j-wanger/nana-pi
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# 3. the desk — zero npm dependencies, clone and run
-git clone https://github.com/j-wanger/nana-pi && node nana-pi/apps/desk/server.mjs
+# 3. the desk — zero npm dependencies, clone and run (two lines: `&&` breaks
+#    in Windows PowerShell 5.1)
+git clone https://github.com/j-wanger/nana-pi
+node nana-pi/apps/desk/server.mjs
 ```
 
 Pinned pack installs (`@ref`) need a ref that contains the root manifest — tags

@@ -24,10 +24,11 @@ every edit, 500-line module cap, mypy).
 3. Run:
 
    ```bash
-   uvx copier copy --defaults --data language=python \
-     --data project_name="<name>" --data description="<one-liner>" \
-     https://github.com/j-wanger/nana-pi.git <destination>
+   uvx copier copy --defaults --data language=python --data project_name="<name>" --data description="<one-liner>" https://github.com/j-wanger/nana-pi.git <destination>
    ```
+
+   (One line on purpose — it must work in PowerShell too, where bash's `\`
+   continuation breaks.)
 
 4. Then complete the printed next steps: `git init` + first commit, `uv sync`,
    `uv run pre-commit install`, `uv run pytest` — and confirm the smoke test
