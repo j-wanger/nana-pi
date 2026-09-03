@@ -4,8 +4,14 @@
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
+ *   GET  /api/browse?path=          directory listing for the repo browser (dirs only, ~ expanded)
+ *   GET  /api/resources?cwd=        skills + extensions pi would discover for that cwd (for spawn toggles)
+ *   POST /api/rename                {file, name} → append a session_info entry (non-live sessions;
+ *                                   same shape pi's set_session_name persists — last one wins on read)
  *   GET  /api/live                  currently running RPC children
- *   POST /api/spawn                 {cwd, session?, name?, extensions?} → spawn `pi --mode rpc`
+ *   POST /api/spawn                 {cwd, session?, name?, approve?, resources?} → spawn `pi --mode rpc`;
+ *                                   resources {skills:[paths], extensions:[paths]} narrows via
+ *                                   --no-skills/--skill + --no-extensions/-e; omit for pi defaults
  *   GET  /api/session/:id/events    SSE: desk_hello state snapshot, then live RPC events
  *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up, images?}
  *   POST /api/session/:id/rpc      {command} → allowlisted RPC passthrough with correlated response
@@ -15,7 +21,6 @@
  *   POST /api/session/:id/export    export session to HTML, returns the document
  *   POST /api/session/:id/abort
  *   DELETE /api/session/:id         kill child
- *   GET  /api/wire                  SSE: tail of the nana-pack lifecycle journal
  *
  * Live transcript architecture: the server does NOT replay event buffers. A client
  * attaching to /events gets a `desk_hello` (open dialogs, statuses, widgets, queue),
@@ -24,6 +29,7 @@
  */
 
 import { execFile, spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import * as os from "node:os";
@@ -32,7 +38,6 @@ import { fileURLToPath } from "node:url";
 
 const PORT = Number(process.env.DESK_PORT || 4317);
 const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
-const JOURNAL = path.join(os.homedir(), ".pi", "agent", "nana-journal.jsonl");
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
@@ -63,15 +68,27 @@ function broadcast(child, obj) {
 	for (const res of child.clients) res.write(line);
 }
 
-function spawnChild({ cwd, session, name, extensions }) {
+function spawnChild({ cwd, session, name, approve, resources }) {
 	if ([...children.values()].filter((c) => c.state === "running").length >= MAX_CHILDREN)
 		throw new Error(`max ${MAX_CHILDREN} live sessions`);
 	const args = ["--mode", "rpc"];
 	if (session) args.push("--session", session);
 	if (name) args.push("--name", String(name));
-	for (const ext of extensions || []) {
-		if (!fs.existsSync(ext)) throw new Error(`no such extension: ${ext}`);
-		args.push("-e", ext);
+	if (approve) args.push("-a");
+	// Narrowed resources: turn discovery off and load the chosen set explicitly
+	// (--skill/-e stay additive under --no-skills/--no-extensions). No `resources`
+	// means pure pi defaults — the desk adds no flags at all.
+	if (resources) {
+		args.push("--no-skills");
+		for (const p of resources.skills || []) {
+			if (!fs.existsSync(p)) throw new Error(`no such skill: ${p}`);
+			args.push("--skill", p);
+		}
+		args.push("--no-extensions");
+		for (const p of resources.extensions || []) {
+			if (!fs.existsSync(p)) throw new Error(`no such extension: ${p}`);
+			args.push("-e", p);
+		}
 	}
 	// win32: npm installs pi as a .cmd shim, which spawn() can only run through a
 	// shell — and shell mode does no arg quoting. Passing values via env vars and
@@ -304,7 +321,8 @@ function readSessionMeta(file) {
 		if (line.includes('"type":"session_info"')) {
 			try {
 				const e = JSON.parse(line);
-				if (e.type === "session_info" && e.name) name = e.name;
+				// empty string = cleared name → fall back to the inferred title
+				if (e.type === "session_info" && typeof e.name === "string") name = e.name || null;
 			} catch {}
 		}
 	};
@@ -375,7 +393,7 @@ function parseTranscript(file) {
 			continue;
 		}
 		if (e.type === "session_info") {
-			if (e.name) name = e.name;
+			if (typeof e.name === "string") name = e.name || null;
 			continue;
 		}
 		if (!e.id) continue;
@@ -394,58 +412,189 @@ function parseTranscript(file) {
 	return { cwd: header?.cwd, sessionId: header?.id, name, total: entries.length, entries: out };
 }
 
-// ── the wire (journal tail via fs.watch — no polling loops, cleans up on close) ──
-function wireStream(res) {
-	let offset = 0;
-	const sendFrom = () => {
-		let stat;
-		try {
-			stat = fs.statSync(JOURNAL);
-		} catch {
-			return;
-		}
-		if (stat.size < offset) offset = 0; // rotated/truncated
-		if (stat.size === offset) return;
-		const fd = fs.openSync(JOURNAL, "r");
-		const buf = Buffer.alloc(stat.size - offset);
-		fs.readSync(fd, buf, 0, buf.length, offset);
-		fs.closeSync(fd);
-		offset = stat.size;
-		for (const line of buf.toString("utf-8").split("\n")) {
-			if (line.trim()) res.write(`data: ${line}\n\n`);
-		}
-	};
-	// replay tail: last 4KB worth of complete lines
+// ── resource discovery (the skills/extensions a spawn can toggle) ──
+// Mirrors pi's documented locations (docs/skills.md, docs/extensions.md,
+// docs/settings.md, docs/packages.md). Best-effort: plain paths only (glob and
+// !/+/- entries in settings arrays are skipped), silent-skip on anything odd.
+// The default spawn path never depends on this — with no narrowing the desk
+// passes no flags and pi discovers on its own.
+const expandHome = (p) => String(p || "").replace(/^~(?=[\\/]|$)/, () => os.homedir());
+const PI_DIR = path.join(os.homedir(), ".pi", "agent");
+
+function readJsonFile(p) {
 	try {
-		const size = fs.statSync(JOURNAL).size;
-		offset = Math.max(0, size - 4096);
-		if (offset > 0) {
-			// skip the first (likely partial) line of the tail window
-			const head = readChunk(JOURNAL, offset, 512);
-			const idx = head.indexOf("\n");
-			if (idx >= 0) offset += idx + 1;
-		}
-		sendFrom();
+		return JSON.parse(fs.readFileSync(p, "utf-8"));
 	} catch {
-		/* journal may not exist yet */
+		return undefined;
 	}
-	let watcher = null;
-	const tryWatch = () => {
-		try {
-			watcher = fs.watch(JOURNAL, sendFrom);
-			watcher.on("error", () => {});
-		} catch {
-			watcher = null;
-		}
+}
+
+function parseSkillMeta(file) {
+	let head;
+	try {
+		head = fs.readFileSync(file, "utf-8").slice(0, 4000);
+	} catch {
+		return null;
+	}
+	const m = head.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+	if (!m) return null;
+	return {
+		name: m[1].match(/^name:\s*(.+)$/m)?.[1]?.trim(),
+		description: m[1].match(/^description:\s*(.+)$/m)?.[1]?.trim(),
 	};
-	tryWatch();
-	const rewatch = setInterval(() => {
-		if (!watcher) tryWatch();
-	}, 10000);
-	res.on("close", () => {
-		clearInterval(rewatch);
-		watcher?.close();
-	});
+}
+
+// Dirs containing SKILL.md are skills (recursive, all locations). Loose .md
+// files follow the location's documented rule — mode "pi" (~/.pi/agent/skills,
+// .pi/skills): root .md only; mode "agents" (.agents/skills): nested .md in
+// grouping folders only; mode "plain" (packages): SKILL.md dirs only.
+function addSkills(dir, origin, out, mode, depth = 0) {
+	if (depth > 3) return;
+	const skillMd = path.join(dir, "SKILL.md");
+	if (fs.existsSync(skillMd)) {
+		const meta = parseSkillMeta(skillMd) || {};
+		out.push({ name: meta.name || path.basename(dir), path: dir, origin, description: meta.description || "" });
+		return;
+	}
+	let entries;
+	try {
+		entries = fs.readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return;
+	}
+	const looseMd = mode === "pi" ? depth === 0 : mode === "agents" ? depth >= 1 : false;
+	for (const e of entries) {
+		if (e.isDirectory() && !e.name.startsWith(".")) addSkills(path.join(dir, e.name), origin, out, mode, depth + 1);
+		else if (looseMd && e.isFile() && e.name.endsWith(".md")) {
+			const meta = parseSkillMeta(path.join(dir, e.name));
+			if (meta?.description)
+				out.push({ name: meta.name || e.name.replace(/\.md$/, ""), path: path.join(dir, e.name), origin, description: meta.description });
+		}
+	}
+}
+
+function addSkillPath(p, origin, out) {
+	let st;
+	try {
+		st = fs.statSync(p);
+	} catch {
+		return;
+	}
+	if (st.isDirectory()) addSkills(p, origin, out, "pi");
+	else if (p.endsWith(".md")) {
+		const meta = parseSkillMeta(p);
+		if (meta?.description) out.push({ name: meta.name || path.basename(p, ".md"), path: p, origin, description: meta.description });
+	}
+}
+
+function addExtensions(dir, origin, out) {
+	let entries;
+	try {
+		entries = fs.readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return;
+	}
+	for (const e of entries) {
+		const full = path.join(dir, e.name);
+		if (e.isFile() && e.name.endsWith(".ts")) out.push({ name: e.name.replace(/\.ts$/, ""), path: full, origin });
+		else if (e.isDirectory() && fs.existsSync(path.join(full, "index.ts")))
+			out.push({ name: e.name, path: path.join(full, "index.ts"), origin });
+	}
+}
+
+function addExtPath(p, origin, out) {
+	let st;
+	try {
+		st = fs.statSync(p);
+	} catch {
+		return;
+	}
+	if (st.isDirectory()) addExtensions(p, origin, out);
+	else if (p.endsWith(".ts")) out.push({ name: path.basename(p, ".ts"), path: p, origin });
+}
+
+// settings `packages` entry → the package's clone/install dir, or null.
+// Sources: local path · npm name incl. `npm:` prefix and version suffix
+// (~/.pi/agent/npm, .pi/npm) · git (~/.pi/agent/git/<host>/<path>, .pi/git/…)
+function resolvePackageDir(source, baseDir, cwd) {
+	const s = String(source);
+	if (/^(git:|https?:\/\/|ssh:\/\/|git@)/.test(s)) {
+		const rest = s
+			.replace(/^git:/, "").replace(/^(https?|ssh):\/\//, "").replace(/^git@/, "")
+			.replace(":", "/").replace(/@[^/@]*$/, "").replace(/\.git$/, "");
+		const segs = rest.split("/").filter(Boolean);
+		for (const root of [path.join(PI_DIR, "git"), path.join(cwd, ".pi", "git")]) {
+			const p = path.join(root, ...segs);
+			if (fs.existsSync(p)) return p;
+		}
+		return null;
+	}
+	if (/^[.~]|^[/\\]|^[A-Za-z]:/.test(s)) {
+		const p = path.resolve(baseDir, expandHome(s));
+		return fs.existsSync(p) ? p : null;
+	}
+	let name = s.startsWith("npm:") ? s.slice(4) : s;
+	const at = name.lastIndexOf("@");
+	if (at > 0) name = name.slice(0, at); // version suffix; `@scope/pkg` alone keeps its leading @
+	for (const root of [path.join(PI_DIR, "npm"), path.join(cwd, ".pi", "npm")]) {
+		const p = path.join(root, "node_modules", ...name.split("/"));
+		if (fs.existsSync(p)) return p;
+	}
+	return null;
+}
+
+function addPackage(source, baseDir, cwd, out) {
+	const entry = typeof source === "string" ? { source } : source && typeof source === "object" ? source : null;
+	if (!entry?.source) return;
+	const dir = resolvePackageDir(entry.source, baseDir, cwd);
+	if (!dir) return;
+	const pkg = readJsonFile(path.join(dir, "package.json")) || {};
+	const origin = `pkg:${pkg.name || path.basename(dir)}`;
+	const skills = [];
+	const exts = [];
+	for (const r of pkg.pi?.skills || ["skills"]) addSkills(path.join(dir, r), origin, skills, "plain");
+	for (const r of pkg.pi?.extensions || ["extensions"]) addExtensions(path.join(dir, r), origin, exts);
+	// object form filters by resource name; absent = all, [] = none
+	out.skills.push(...(Array.isArray(entry.skills) ? skills.filter((x) => entry.skills.includes(x.name)) : skills));
+	out.extensions.push(...(Array.isArray(entry.extensions) ? exts.filter((x) => entry.extensions.includes(x.name)) : exts));
+}
+
+function listResources(cwd) {
+	const out = { skills: [], extensions: [] };
+	// project-scoped waves land in here first and get project:true — the client
+	// gates them behind the trust toggle (pi won't load them untrusted either)
+	const proj = { skills: [], extensions: [] };
+	addSkills(path.join(PI_DIR, "skills"), "global", out.skills, "pi");
+	addSkills(path.join(os.homedir(), ".agents", "skills"), "global", out.skills, "agents");
+	addSkills(path.join(cwd, ".pi", "skills"), "project", proj.skills, "pi");
+	// .agents/skills in cwd and ancestors up to the git repo root (docs/skills.md)
+	for (let d = cwd; ; ) {
+		addSkills(path.join(d, ".agents", "skills"), "project", proj.skills, "agents");
+		const up = path.dirname(d);
+		if (fs.existsSync(path.join(d, ".git")) || up === d) break;
+		d = up;
+	}
+	addExtensions(path.join(PI_DIR, "extensions"), "global", out.extensions);
+	addExtensions(path.join(cwd, ".pi", "extensions"), "project", proj.extensions);
+	const gSet = readJsonFile(path.join(PI_DIR, "settings.json")) || {};
+	const pSet = readJsonFile(path.join(cwd, ".pi", "settings.json")) || {};
+	const plain = (arr) => (Array.isArray(arr) ? arr.filter((x) => typeof x === "string" && !/[*!]/.test(x) && !/^[+-]/.test(x)) : []);
+	for (const p of plain(gSet.skills)) addSkillPath(path.resolve(PI_DIR, expandHome(p)), "settings", out.skills);
+	for (const p of plain(pSet.skills)) addSkillPath(path.resolve(path.join(cwd, ".pi"), expandHome(p)), "settings", proj.skills);
+	for (const p of plain(gSet.extensions)) addExtPath(path.resolve(PI_DIR, expandHome(p)), "settings", out.extensions);
+	for (const p of plain(pSet.extensions)) addExtPath(path.resolve(path.join(cwd, ".pi"), expandHome(p)), "settings", proj.extensions);
+	for (const src of Array.isArray(gSet.packages) ? gSet.packages : []) addPackage(src, PI_DIR, cwd, out);
+	for (const src of Array.isArray(pSet.packages) ? pSet.packages : []) addPackage(src, path.join(cwd, ".pi"), cwd, proj);
+	for (const key of ["skills", "extensions"]) out[key].push(...proj[key].map((x) => ({ ...x, project: true })));
+	const seen = new Set();
+	for (const key of ["skills", "extensions"])
+		out[key] = out[key].filter((x) => {
+			const k = `${key}:${x.path}`;
+			if (seen.has(k)) return false;
+			seen.add(k);
+			return true;
+		});
+	return out;
 }
 
 // ── http plumbing ──
@@ -533,11 +682,17 @@ const server = http.createServer(async (req, res) => {
 		}
 		if (p === "/api/spawn" && req.method === "POST") {
 			const body = await readBody(req);
-			const cwd = (body.cwd || os.homedir()).replace(/^~(?=[\\/]|$)/, () => os.homedir());
+			const cwd = expandHome(body.cwd || os.homedir());
 			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			let session = body.session;
 			if (session) session = assertInsideSessions(session);
-			const id = spawnChild({ cwd, session, name: body.name, extensions: body.extensions });
+			const id = spawnChild({
+				cwd, session, name: body.name, approve: body.approve,
+				resources: body.resources && {
+					skills: (body.resources.skills || []).map(String),
+					extensions: (body.resources.extensions || []).map(String),
+				},
+			});
 			return json(res, 200, { id });
 		}
 		const m = p.match(/^\/api\/session\/(\w+)\/(events|prompt|rpc|ui-response|bash|files|export|abort)$/);
@@ -665,9 +820,40 @@ const server = http.createServer(async (req, res) => {
 			children.delete(dm[1]);
 			return json(res, 200, { ok: true });
 		}
-		if (p === "/api/wire" && req.method === "GET") {
-			sseHead(res);
-			return wireStream(res);
+		if (p === "/api/browse" && req.method === "GET") {
+			const dir = path.resolve(expandHome(url.searchParams.get("path") || os.homedir()));
+			let entries;
+			try {
+				entries = fs.readdirSync(dir, { withFileTypes: true });
+			} catch {
+				return json(res, 400, { error: `cannot list: ${dir}` });
+			}
+			const dirs = entries
+				.filter((e) => e.isDirectory() && !e.name.startsWith("."))
+				.map((e) => ({ name: e.name, isRepo: fs.existsSync(path.join(dir, e.name, ".git")) }))
+				.sort((a, b) => a.name.localeCompare(b.name))
+				.slice(0, 500);
+			const parent = path.dirname(dir);
+			return json(res, 200, { path: dir, parent: parent === dir ? null : parent, home: os.homedir(), sep: path.sep, dirs });
+		}
+		if (p === "/api/resources" && req.method === "GET") {
+			const cwd = path.resolve(expandHome(url.searchParams.get("cwd") || os.homedir()));
+			if (!fs.existsSync(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
+			return json(res, 200, listResources(cwd));
+		}
+		if (p === "/api/rename" && req.method === "POST") {
+			const body = await readBody(req);
+			const real = assertInsideSessions(String(body.file || ""));
+			// Same entry shape pi's own set_session_name persists (verified against
+			// real sessions); readers take the LAST session_info, so append wins.
+			// Renaming a file a live pi also holds is last-writer-wins on a display
+			// name — benign; the desk UI routes live sessions through RPC instead.
+			const entry = {
+				type: "session_info", id: randomBytes(4).toString("hex"), parentId: null,
+				timestamp: new Date().toISOString(), name: String(body.name ?? "").trim(),
+			};
+			fs.appendFileSync(real, `${JSON.stringify(entry)}\n`);
+			return json(res, 200, { ok: true });
 		}
 		json(res, 404, { error: "not found" });
 	} catch (e) {

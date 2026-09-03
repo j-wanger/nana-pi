@@ -1,9 +1,7 @@
 # the pi desk
 
 Local, zero-dependency dashboard over pi: every session on the machine in one place,
-live sessions driven from the browser, and **the wire** — a live tape of session
-lifecycle events across ALL pi activity (TUI sessions included), fed by the
-nana-pack lifecycle journal. Aim: the TUI's main capabilities, in a browser.
+live sessions driven from the browser. Aim: the TUI's main capabilities, in a browser.
 
 ```bash
 node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change)
@@ -12,7 +10,21 @@ node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change
 ## What it does (TUI parity map)
 
 - **Sessions rail** — `~/.pi/agent/sessions/` JSONL trees (newest 15 per workspace),
-  display names included. Click to read; "Continue here" resumes live.
+  grouped by workspace with collapsible headers (only the most recent starts open;
+  choices persist). Titles are inferred from the first user message; ✎ on any row
+  renames — live sessions via `set_session_name` RPC, historical ones by appending
+  the same `session_info` entry shape pi itself persists (desk readers take the
+  last name entry; an empty name clears back to the inferred title).
+- **Spawning** — "Open a session…" opens a repo browser (directory navigation, git
+  repos marked ●) plus per-spawn resource toggles: the skills and extensions pi's
+  documented locations yield for that cwd (global + project incl. ancestor
+  `.agents/skills` + plain-path settings entries + installed packages; settings
+  glob/exclusion entries are NOT enumerated — the UI says so). All-on spawns with
+  pure pi defaults (no flags); any narrowing spawns `--no-skills`/`--skill` +
+  `--no-extensions`/`-e` with exactly the checked set. pi has no MCP — extensions
+  are the pluggable surface, so that's what the toggles cover. "Trust project
+  config" maps to `-a` (RPC sessions never prompt); when unchecked, project-local
+  items are locked off so untrusted project code can't ride in via explicit flags.
 - **Transcripts** — markdown rendering, collapsed thinking blocks, tool cards with
   full args + results + edit diffs, compaction/branch summaries, model/thinking
   change markers; abandoned branches collapse into dimmed groups.
@@ -32,7 +44,9 @@ node apps/desk/server.mjs     # → http://127.0.0.1:4317   (DESK_PORT to change
 - **Session ops** — /model, /thinking, /compact [instructions], /name, /new,
   /fork (picker over prior user messages), /clone, /export (HTML download),
   /session; auto-compaction + steering/follow-up modes under ⚙.
-- **The wire** — SSE tail of `~/.pi/agent/nana-journal.jsonl` via fs.watch.
+
+(The wire — a journal-tail lifecycle feed — was removed 2026-09-03: it confused
+more than it informed. The nana-pack journal itself still exists on disk.)
 
 Not covered (TUI-only): `/tree` branch *jumping* (RPC has no goto; fork/clone are
 the desk's branch tools), `!!` hidden bash, themes, `/login`, `/settings` beyond

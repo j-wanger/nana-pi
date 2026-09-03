@@ -87,23 +87,63 @@ async function refreshRail() {
 	const list = $("session-list");
 	list.innerHTML = "";
 	let count = 0;
-	for (const g of groups) {
-		const h = document.createElement("div");
-		h.className = "ws-head";
-		h.textContent = short(g.cwd);
+	const pref = collapsedPref();
+	for (let gi = 0; gi < groups.length; gi++) {
+		const g = groups[gi];
+		count += g.sessions.length;
+		// default: only the most recently active workspace starts open
+		const isOpen = pref[g.cwd] ?? gi === 0;
+		const h = document.createElement("button");
+		h.className = "ws-head" + (isOpen ? "" : " closed");
+		h.innerHTML = `<span class="chev"></span><span class="wname"></span><span class="wcount"></span>`;
+		h.querySelector(".chev").textContent = isOpen ? "▾" : "▸";
+		h.querySelector(".wname").textContent = short(g.cwd);
+		h.querySelector(".wcount").textContent = g.sessions.length;
+		h.title = g.cwd;
+		h.onclick = () => {
+			const p = collapsedPref();
+			p[g.cwd] = !isOpen;
+			localStorage.setItem("desk-collapsed", JSON.stringify(p));
+			refreshRail();
+		};
 		list.appendChild(h);
+		if (!isOpen) continue;
 		for (const s of g.sessions) {
-			count++;
 			const b = document.createElement("button");
 			b.className = "sess" + (selected?.kind === "hist" && selected.file === s.file ? " selected" : "");
-			b.innerHTML = `<span class="when">${when(s.mtime)}</span><span class="title"></span>`;
+			b.innerHTML = `<span class="when">${when(s.mtime)}</span><span class="title"></span><span class="row-rename" title="Rename">✎</span>`;
 			b.querySelector(".title").textContent = s.name || s.title || "(untitled)";
 			b.title = s.title || "(untitled)";
 			b.onclick = () => openHistorical(s.file, g.cwd);
+			b.querySelector(".row-rename").onclick = (ev) => {
+				ev.stopPropagation();
+				renameHistorical(s);
+			};
 			list.appendChild(b);
 		}
 	}
 	$("stats").textContent = `${groups.length} workspaces · ${count} sessions · ${live.length} live`;
+}
+
+function collapsedPref() {
+	// {cwd: true=open, false=closed}; unset falls to the default rule
+	try {
+		return JSON.parse(localStorage.getItem("desk-collapsed")) || {};
+	} catch {
+		return {};
+	}
+}
+
+async function renameHistorical(s) {
+	const name = prompt("Session name:", s.name || s.title || "");
+	if (name === null) return;
+	const r = await fetch("/api/rename", {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ file: s.file, name }),
+	}).then((r) => r.json());
+	if (r.error) return toast(r.error, "error");
+	refreshRail();
 }
 
 // ── rpc helper ──
@@ -1291,8 +1331,8 @@ async function openHistorical(file, cwd) {
 	refreshRail();
 }
 
-async function spawnSession(cwd, sessionFile) {
-	const body = { cwd };
+async function spawnSession(cwd, sessionFile, extra) {
+	const body = { cwd, ...extra };
 	if (sessionFile) body.session = sessionFile;
 	const r = await fetch("/api/spawn", {
 		method: "POST",
@@ -1301,6 +1341,137 @@ async function spawnSession(cwd, sessionFile) {
 	}).then((r) => r.json());
 	if (r.error) return toast(r.error, "error");
 	openLive(r.id, cwd);
+}
+
+// ── spawn popover: browse to a directory, toggle skills/extensions, open ──
+// (pi has no MCP — extensions ARE the pluggable surface; toggling happens at
+// spawn because pi resolves resources at process start.)
+function spawnPopover() {
+	popover($("btn-spawn"), (pop) => {
+		pop.classList.add("spawn-pop");
+		pop.appendChild(el("div", "pop-title", "Open a session"));
+
+		const pathIn = el("input", "pop-filter");
+		pathIn.placeholder = "~/some/repo — Enter to go";
+		pop.appendChild(pathIn);
+		const dirList = el("div", "pop-list browse-list");
+		pop.appendChild(dirList);
+		const resWrap = el("div", "res-wrap");
+		pop.appendChild(resWrap);
+
+		const foot = el("div", "spawn-foot");
+		const nameIn = el("input", "pop-filter");
+		nameIn.placeholder = "session name (optional)";
+		const trustRow = el("label", "checkrow");
+		const trustBox = el("input");
+		trustBox.type = "checkbox";
+		trustBox.checked = true;
+		trustRow.append(trustBox, el("span", "", "trust project config"));
+		trustRow.title = "pi -a: load .pi settings/extensions from this project (RPC sessions never prompt)";
+		const openBtn = el("button", "", "Open here");
+		foot.append(nameIn, trustRow, openBtn);
+		pop.appendChild(foot);
+
+		let cur = null; // /api/browse payload for the shown directory
+		let res = null; // /api/resources payload, items get .on
+
+		const drawDirs = () => {
+			dirList.innerHTML = "";
+			if (cur.parent) {
+				const up = el("button", "pop-item browse-row", "↑ ..");
+				up.onclick = () => nav(cur.parent);
+				dirList.appendChild(up);
+			}
+			for (const d of cur.dirs) {
+				const b = el("button", "pop-item browse-row");
+				b.innerHTML = `<span class="repo-dot"></span><span></span>`;
+				b.querySelector(".repo-dot").textContent = d.isRepo ? "●" : "";
+				b.querySelector("span:last-child").textContent = d.name;
+				b.onclick = () => nav(cur.path + cur.sep + d.name);
+				dirList.appendChild(b);
+			}
+		};
+
+		// what pi itself would load: everything, except project items when untrusted
+		const defaultOn = (item) => (item.project ? trustBox.checked : true);
+
+		const drawResources = () => {
+			resWrap.innerHTML = "";
+			for (const [key, label] of [["skills", "Skills"], ["extensions", "Extensions"]]) {
+				if (!res[key].length) continue;
+				const sec = el("div", "res-sec");
+				sec.appendChild(el("div", "res-head", label));
+				for (const item of res[key]) {
+					const row = el("label", "checkrow");
+					const box = el("input");
+					box.type = "checkbox";
+					if (item.project && !trustBox.checked) {
+						// untrusted project code must not ride in via explicit --skill/-e
+						item.on = false;
+						box.disabled = true;
+						row.classList.add("off");
+						row.title = "project-local — enable “trust project config” to load";
+					} else if (item.description) row.title = item.description;
+					box.checked = item.on;
+					box.onchange = () => (item.on = box.checked);
+					row.append(box, el("span", "", item.name), el("span", "dim", item.origin));
+					sec.appendChild(row);
+				}
+				resWrap.appendChild(sec);
+			}
+			if (res.skills.length || res.extensions.length)
+				resWrap.appendChild(el("div", "res-note", "unchecking anything spawns with exactly this checked set — glob entries in settings.json aren't listed here and would be dropped"));
+		};
+
+		let navSeq = 0;
+		const nav = async (p) => {
+			const seq = ++navSeq;
+			const r = await fetch(`/api/browse?path=${encodeURIComponent(p)}`).then((r) => r.json());
+			if (seq !== navSeq) return; // superseded by a later navigation
+			if (r.error) return toast(r.error, "error");
+			cur = r;
+			pathIn.value = r.path;
+			drawDirs();
+			res = null;
+			resWrap.innerHTML = "";
+			const rr = await fetch(`/api/resources?cwd=${encodeURIComponent(r.path)}`).then((r) => r.json());
+			if (seq !== navSeq || rr.error) return;
+			res = {
+				skills: rr.skills.map((x) => ({ ...x, on: defaultOn(x) })),
+				extensions: rr.extensions.map((x) => ({ ...x, on: defaultOn(x) })),
+			};
+			drawResources();
+		};
+
+		trustBox.onchange = () => {
+			if (!res) return;
+			for (const item of [...res.skills, ...res.extensions]) if (item.project) item.on = trustBox.checked;
+			drawResources();
+		};
+		pathIn.onkeydown = (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				nav(pathIn.value.trim() || "~");
+			}
+		};
+		openBtn.onclick = () => {
+			if (!cur) return;
+			const extra = {};
+			if (nameIn.value.trim()) extra.name = nameIn.value.trim();
+			if (trustBox.checked) extra.approve = true;
+			// flags only when the set differs from what pi would load on its own
+			if (res && [...res.skills, ...res.extensions].some((x) => x.on !== defaultOn(x)))
+				extra.resources = {
+					skills: res.skills.filter((x) => x.on).map((x) => x.path),
+					extensions: res.extensions.filter((x) => x.on).map((x) => x.path),
+				};
+			const cwd = cur.path;
+			closePopover();
+			spawnSession(cwd, undefined, extra);
+		};
+		nav("~");
+		setTimeout(() => pathIn.focus(), 0);
+	});
 }
 
 // ── global wiring ──
@@ -1360,11 +1531,12 @@ $("composer").addEventListener("drop", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-	if (e.key !== "Escape" || !L) return;
+	if (e.key !== "Escape") return;
+	if (document.getElementById("popover")) return closePopover();
+	if (!L) return;
 	const dialog = document.querySelector("#dialogs .dialog");
 	if (dialog) return; // dialogs own Escape via their Cancel buttons; don't abort under a dialog
 	if (comp.open) return;
-	if (document.getElementById("popover")) return closePopover();
 	// TUI Esc: reclaim queued messages, then abort
 	(async () => {
 		try {
@@ -1412,38 +1584,7 @@ $("theme-btn").onclick = () => {
 };
 darkMedia.addEventListener("change", applyTheme);
 applyTheme();
-$("spawn-form").onsubmit = (e) => {
-	e.preventDefault();
-	const raw = $("spawn-cwd").value.trim();
-	if (raw) spawnSession(raw); // server expands a leading ~
-};
-
-// ── the wire ──
-function startWire() {
-	const es = new EventSource("/api/wire");
-	es.onopen = () => $("wire-dot").classList.remove("off");
-	es.onerror = () => $("wire-dot").classList.add("off");
-	es.onmessage = (ev) => {
-		let e;
-		try {
-			e = JSON.parse(ev.data);
-		} catch {
-			return;
-		}
-		const row = document.createElement("div");
-		row.className = "wire-row fresh";
-		const evName = (e.event || "?").replace("session_", "");
-		const cls = evName.includes("compact") ? "compact" : evName.includes("fail") ? "fail" : "";
-		// journal fields are untrusted (project-local extensions can write the journal) — textContent only
-		row.appendChild(el("span", "", (e.ts || "").slice(11, 19)));
-		row.appendChild(el("span", `ev ${cls}`, evName));
-		row.appendChild(el("span", "wcwd", short(e.cwd)));
-		const list = $("wire-list");
-		list.prepend(row);
-		while (list.children.length > 100) list.lastChild.remove();
-	};
-}
+$("btn-spawn").onclick = spawnPopover;
 
 refreshRail();
-startWire();
 setInterval(refreshRail, 15000);
