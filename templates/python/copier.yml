@@ -20,7 +20,19 @@ description:
   default: ""
   help: One-line project description
 
+adopt:
+  type: bool
+  default: false
+  help: Applying to an EXISTING project? (skips the README/src/tests starters — drive this via the adopt-py skill)
+
 _message_after_copy: |
+  {% if adopt -%}
+  {{ project_name }}: nana stack overlaid (adopt mode — configs only, source tree untouched).
+
+  Now reconcile from `git diff`: merge your [project] metadata/deps back into
+  pyproject, union .gitignore, fix layout paths if not src/, stage the
+  strictness (see the adopt-py skill), then commit including .copier-answers.yml.
+  {%- else -%}
   {{ project_name }} scaffolded.
 
   Next steps:
@@ -29,5 +41,6 @@ _message_after_copy: |
       uv sync
       uv run pre-commit install
       uv run pytest
+  {%- endif %}
 
   This project tracks its template: `uvx copier update` re-syncs it later.

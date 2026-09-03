@@ -4,9 +4,13 @@
 
 ## Layout
 
+{% if adopt -%}
+<!-- adopt reconcile: replace with the REAL layout; fix Commands to the project's package manager -->
+{%- else -%}
 - `src/` — code organized **by feature**: one folder per feature, everything the
   feature needs colocated. See `src/AGENTS.md`.
 - `tests/` — vitest suite mirroring the feature folders. See `tests/AGENTS.md`.
+{%- endif %}
 
 ## Commands
 

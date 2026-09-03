@@ -3,11 +3,12 @@
 Extensions + skills making pi shippable the nana way: hook coverage, opinionated
 project scaffolding, and dev-workflow skills.
 
-## Skills (v0.2.0)
+## Skills (v0.3.0)
 
 | Skill | What it does |
 |---|---|
 | `scaffold-py` / `scaffold-ts` | Generate a project from `~/nana-pi/templates/{python,typescript}` via copier — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects re-sync via `uvx copier update`. |
+| `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |

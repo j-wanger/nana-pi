@@ -11,9 +11,11 @@ Sibling repo to `~/nana-agent-loop`.
   classes (pre-tool permission gating, post-edit format/lint/test triggers, session lifecycle,
   notifications/observability) plus scaffold + dev-workflow skills. Installable via
   `pi install git:` or a local path.
-- `templates/` — copier project templates the `scaffold-py`/`scaffold-ts` skills generate
-  from (opinionated Python and TypeScript stacks, folder-by-feature, nested AGENTS.md,
-  post-edit quality gates). Generated projects re-sync via `uvx copier update`.
+- `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
+  (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
+  emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
+  folder-by-feature, nested AGENTS.md, post-edit quality gates; projects re-sync via
+  `uvx copier update`.
 - `apps/desk/` — the pi desk, a zero-dependency local browser dashboard over pi sessions.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.

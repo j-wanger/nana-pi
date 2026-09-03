@@ -4,14 +4,18 @@
 
 ## Layout
 
+{% if adopt -%}
+<!-- adopt reconcile: replace with the REAL layout, one line per major folder -->
+{%- else -%}
 - `src/{{ package_name }}/` — the package, organized **by feature**: one folder per
   feature, everything a feature needs colocated inside it. See `src/AGENTS.md`.
 - `tests/` — pytest suite mirroring the feature folders. See `tests/AGENTS.md`.
+{%- endif %}
 
 ## Commands
 
 - `uv sync` — install/update the environment (uv only; never pip or poetry)
-- `uv run pytest` — tests + coverage (floor: 85%)
+- `uv run pytest` — tests + coverage (floor: {% if adopt %}see pyproject — ratchet toward 85%{% else %}85%{% endif %})
 - `uv run ruff check . && uv run ruff format .` — lint + format
 - `uv run mypy` — strict type-check
 
@@ -22,6 +26,6 @@
   are enforced — decompose instead of suppressing.
 - Every function fully typed; mypy runs strict.
 - No `print` in library code (ruff T20) — use `logging`.
-- New feature = new folder under `src/{{ package_name }}/`, not new code smeared
-  across existing modules.
+- New feature = new folder {% if adopt %}in the package{% else %}under `src/{{ package_name }}/`{% endif %}, not new code
+  smeared across existing modules.
 - Warnings are errors in tests; fix the cause, don't filter.

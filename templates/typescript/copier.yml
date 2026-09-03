@@ -15,7 +15,19 @@ description:
   default: ""
   help: One-line project description
 
+adopt:
+  type: bool
+  default: false
+  help: Applying to an EXISTING project? (skips the README/src/tests starters — drive this via the adopt-ts skill)
+
 _message_after_copy: |
+  {% if adopt -%}
+  {{ project_name }}: nana stack overlaid (adopt mode — configs only, source tree untouched).
+
+  Now reconcile from `git diff`: merge your package.json fields/deps with the
+  pinned scripts + devDeps, keep YOUR package manager, adapt CI to it, stage
+  the strictness (see the adopt-ts skill), then commit including .copier-answers.yml.
+  {%- else -%}
   {{ project_name }} scaffolded.
 
   Next steps:
@@ -24,5 +36,6 @@ _message_after_copy: |
       pnpm install
       pnpm check        # typecheck + lint + test
       git add pnpm-lock.yaml && git commit -m "lockfile"
+  {%- endif %}
 
   This project tracks its template: `uvx copier update` re-syncs it later.
