@@ -184,7 +184,23 @@ deterministic gates at boundaries fit naturally.
 - pi-web-ui: does it get promoted to an app or stay a lagging component lib?
 - Win32 paste bug (#2839) and the rising Node floor on Windows.
 
-## Sources (primary unless noted)
+## Addendum 2026-09-03 — verified drift since the snapshot
+
+- **§7 MCP/census is superseded.** The MCP-extension ecosystem materialized within days:
+  `pi-mcp-adapter` (nicobailon, 1.4k★, ~761k npm dl/mo, single ~200-token proxy tool +
+  lazy connects — honors the §7 context-cost rationale) is the community standard and is
+  ADOPTED here (verified live against a real stdio server). `pi-subagents` (same author)
+  fills the §8 sub-agents omission; also adopted. A community census now exists
+  (awesome-pi.site; pi.dev/packages gallery) — the §10 "does an awesome-list emerge"
+  question is answered yes.
+- **Hook-class overlap rule checked for the new installs**: neither package registers
+  `tool_call` — nana-gate remains the only gate; both use `tool_result`, which is
+  middleware-chained by design and coexists with nana-post-edit.
+- **Version**: 0.84.4 still npm latest as of 2026-09-03 — no upstream drift yet.
+- **New §6-relevant signal**: upstream discussion #4444 (Agent Client Protocol support)
+  — a potential future standard surface for editor/GUI attachment; watch item.
+- Still open: #2839 paste-bug status, Windows-box Node ≥22.19 verification, §9-R3 local
+  models (untouched).
 
 - https://github.com/earendil-works/pi (README, docs/extensions.md, compaction.md, sessions.md,
   providers.md, models.md, windows.md, packages.md, rpc.md, sdk.md, examples/)
