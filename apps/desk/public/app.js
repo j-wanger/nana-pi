@@ -123,6 +123,40 @@ async function refreshRail() {
 		}
 	}
 	$("stats").textContent = `${groups.length} workspaces · ${count} sessions · ${live.length} live`;
+	deriveTitles(groups);
+}
+
+// ── background title derivation for unnamed sessions ──
+// One headless pi call per session, EVER — the derived name persists in the
+// session file as a session_info entry. Serial, expanded groups only, capped.
+const titleTried = new Set();
+let titleQueueRunning = false;
+let titleBudget = 12; // per page load
+async function deriveTitles(groups) {
+	if (titleQueueRunning || titleBudget <= 0) return;
+	const pref = collapsedPref();
+	const targets = [];
+	for (let gi = 0; gi < groups.length; gi++) {
+		if (!(pref[groups[gi].cwd] ?? gi === 0)) continue;
+		for (const s of groups[gi].sessions) if (!s.name && s.title && !titleTried.has(s.file)) targets.push(s.file);
+	}
+	if (!targets.length) return;
+	titleQueueRunning = true;
+	let derived = 0;
+	try {
+		for (const file of targets) {
+			if (titleBudget <= 0) break;
+			titleTried.add(file);
+			titleBudget--;
+			try {
+				const r = await fetch("/api/derive-title", { method: "POST", headers: JH, body: JSON.stringify({ file }) }).then((r) => r.json());
+				if (r.name) derived++;
+			} catch {}
+		}
+	} finally {
+		titleQueueRunning = false;
+	}
+	if (derived) refreshRail();
 }
 
 function collapsedPref() {
@@ -956,27 +990,370 @@ async function forkPicker() {
 	});
 }
 
-function settingsPopover() {
-	popover($("btn-settings"), (pop) => {
-		pop.appendChild(el("div", "pop-title", "Session settings"));
-		const mk = (label, get, set, opts) => {
-			const row = el("div", "pop-setting");
-			row.appendChild(el("span", "", label));
-			const sel = el("select");
-			for (const o of opts) {
-				const op = el("option", "", o);
-				op.value = o;
-				sel.appendChild(op);
+// ── settings window (tabs over pi settings.json / mcp.json / nana-pack.json /
+// context files / pi-subagents agent files; every server write backs up .bak) ──
+const JH = { "content-type": "application/json" };
+const getSettings = () => fetch("/api/settings").then((r) => r.json());
+async function patchSettings(patch) {
+	const r = await fetch("/api/settings", { method: "POST", headers: JH, body: JSON.stringify({ patch }) }).then((r) => r.json());
+	if (r.error) throw new Error(r.error);
+	return r;
+}
+const field = (label, input) => {
+	const w = el("label", "field");
+	w.append(el("span", "flabel", label), input);
+	return w;
+};
+const txtInput = (val, ph) => {
+	const i = el("input", "tin");
+	i.value = val ?? "";
+	if (ph) i.placeholder = ph;
+	return i;
+};
+const area = (val, rows = 10) => {
+	const a = el("textarea", "tarea");
+	a.value = val ?? "";
+	a.rows = rows;
+	return a;
+};
+const saveBtn = (label, fn) => {
+	const b = el("button", "", label);
+	b.onclick = async () => {
+		b.disabled = true;
+		try {
+			await fn();
+			toast("saved");
+		} catch (e) {
+			toast(String(e.message || e), "error");
+		}
+		b.disabled = false;
+	};
+	return b;
+};
+
+function settingsModal(initialTab) {
+	closePopover();
+	document.getElementById("desk-modal")?.remove();
+	const overlay = el("div", "modal-overlay");
+	overlay.id = "desk-modal";
+	const modal = el("div", "modal");
+	const head = el("div", "modal-head");
+	head.append(el("b", "", "Settings"), el("span", "spacer"));
+	const x = el("button", "quiet", "✕");
+	x.onclick = () => overlay.remove();
+	head.appendChild(x);
+	const tabbar = el("div", "tabbar");
+	const body = el("div", "modal-body");
+	modal.append(head, tabbar, body);
+	overlay.appendChild(modal);
+	overlay.onmousedown = (e) => {
+		if (e.target === overlay) overlay.remove();
+	};
+	document.body.appendChild(overlay);
+
+	const TABS = [
+		["skills", "Skills", tabSkills],
+		["mcp", "MCP", tabMcp],
+		["models", "Models", tabModels],
+		["context", "Context", tabContext],
+		["agents", "Agents", tabAgents],
+		["nana", "Nana pack", tabNana],
+		["session", "Session", tabSession],
+	];
+	const show = (key) => {
+		for (const t of tabbar.querySelectorAll(".tab")) t.classList.toggle("on", t.dataset.key === key);
+		body.innerHTML = "";
+		// fresh pane per invocation: an async tab resolving after a switch appends
+		// into a detached node instead of the new tab's view
+		const pane = el("div", "pane");
+		body.appendChild(pane);
+		TABS.find(([k]) => k === key)[2](pane);
+	};
+	for (const [key, label] of TABS) {
+		const t = el("button", "tab", label);
+		t.dataset.key = key;
+		t.onclick = () => show(key);
+		tabbar.appendChild(t);
+	}
+	show(TABS.some(([k]) => k === initialTab) ? initialTab : "skills");
+}
+
+function tabSession(body) {
+	if (!L || selected?.kind !== "live") {
+		body.appendChild(el("p", "dim", "Open a live session to change its runtime settings."));
+		return;
+	}
+	const mk = (label, get, set, opts) => {
+		const sel = el("select");
+		for (const o of opts) {
+			const op = el("option", "", o);
+			op.value = o;
+			sel.appendChild(op);
+		}
+		sel.value = String(get() ?? opts[0]);
+		sel.onchange = () => set(sel.value);
+		body.appendChild(field(label, sel));
+	};
+	mk("steering", () => L.state?.steeringMode, (v) => rpc({ type: "set_steering_mode", mode: v }).then(refreshState).catch((e) => toast(String(e), "error")), ["one-at-a-time", "all"]);
+	mk("follow-ups", () => L.state?.followUpMode, (v) => rpc({ type: "set_follow_up_mode", mode: v }).then(refreshState).catch((e) => toast(String(e), "error")), ["one-at-a-time", "all"]);
+	mk("auto-compaction", () => String(L.state?.autoCompactionEnabled ?? true), (v) => rpc({ type: "set_auto_compaction", enabled: v === "true" }).then(refreshState).catch((e) => toast(String(e), "error")), ["true", "false"]);
+	body.appendChild(el("p", "dim", "These apply to the OPEN session only. Startup defaults live in the Models and Context tabs."));
+}
+
+async function tabSkills(body) {
+	const [s, r] = await Promise.all([getSettings(), fetch("/api/resources?cwd=~").then((r) => r.json())]);
+	body.appendChild(el("div", "sec-head", "Discovered skills (global scope)"));
+	for (const sk of r.skills || []) {
+		const row = el("div", "srow");
+		row.append(el("b", "", sk.name), el("span", "dim", ` ${sk.origin}`));
+		if (sk.description) row.title = sk.description;
+		body.appendChild(row);
+	}
+	body.appendChild(el("div", "sec-head", "Extra skill folders (settings.json → skills)"));
+	// re-read current state inside each handler — a captured array would let two
+	// quick edits clobber each other
+	const currentFolders = async () => {
+		const cur = await getSettings();
+		return Array.isArray(cur.settings.skills) ? cur.settings.skills : [];
+	};
+	const folders = Array.isArray(s.settings.skills) ? s.settings.skills : [];
+	for (const f of folders) {
+		const row = el("div", "srow");
+		row.appendChild(el("span", "", f));
+		const rm = el("button", "quiet", "✕");
+		rm.onclick = async () => {
+			try {
+				await patchSettings({ skills: (await currentFolders()).filter((x) => x !== f) });
+				tabReload(body, tabSkills);
+			} catch (e) {
+				toast(String(e.message || e), "error");
 			}
-			sel.value = String(get() ?? opts[0]);
-			sel.onchange = () => set(sel.value);
-			row.appendChild(sel);
-			pop.appendChild(row);
 		};
-		mk("steering", () => L.state?.steeringMode, (v) => rpc({ type: "set_steering_mode", mode: v }).then(refreshState).catch((e) => toast(String(e), "error")), ["one-at-a-time", "all"]);
-		mk("follow-ups", () => L.state?.followUpMode, (v) => rpc({ type: "set_follow_up_mode", mode: v }).then(refreshState).catch((e) => toast(String(e), "error")), ["one-at-a-time", "all"]);
-		mk("auto-compaction", () => String(L.state?.autoCompactionEnabled ?? true), (v) => rpc({ type: "set_auto_compaction", enabled: v === "true" }).then(refreshState).catch((e) => toast(String(e), "error")), ["true", "false"]);
-	});
+		row.append(el("span", "spacer"), rm);
+		body.appendChild(row);
+	}
+	const add = el("button", "", "Add skills folder…");
+	add.onclick = async () => {
+		const r2 = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
+		if (r2.error) return toast(r2.error, "warning");
+		if (!r2.path) return;
+		try {
+			const now = await currentFolders();
+			if (!now.includes(r2.path)) await patchSettings({ skills: [...now, r2.path] });
+			tabReload(body, tabSkills);
+		} catch (e) {
+			toast(String(e.message || e), "error");
+		}
+	};
+	body.appendChild(add);
+	body.appendChild(el("p", "dim", "Folders here load in every session. Per-session on/off lives in the spawn popover. Project skills (.pi/skills, .agents/skills) are managed in each repo."));
+}
+
+async function tabMcp(body) {
+	const s = await getSettings();
+	const servers = s.mcp.mcpServers || {};
+	body.appendChild(el("div", "sec-head", `MCP servers — ${s.mcpPath}`));
+	for (const [name, cfg] of Object.entries(servers)) {
+		const row = el("div", "srow");
+		row.append(el("b", "", name), el("span", "dim", ` ${cfg.url || [cfg.command, ...(cfg.args || [])].join(" ")}`));
+		const rm = el("button", "quiet", "✕");
+		rm.onclick = async () => {
+			if (!confirm(`Remove MCP server "${name}"?`)) return;
+			const next = { ...servers };
+			delete next[name];
+			await saveMcp(next);
+			tabReload(body, tabMcp);
+		};
+		row.append(el("span", "spacer"), rm);
+		body.appendChild(row);
+	}
+	body.appendChild(el("div", "sec-head", "Add server"));
+	const nameIn = txtInput("", "name (e.g. memory)");
+	const cmdIn = txtInput("", "stdio command line (simple space split) — OR leave empty and use URL");
+	const urlIn = txtInput("", "http(s) URL for streamable-http/SSE servers");
+	body.append(field("name", nameIn), field("command", cmdIn), field("url", urlIn));
+	body.appendChild(
+		saveBtn("Add", async () => {
+			const name = nameIn.value.trim();
+			if (!/^[\w-]{1,64}$/.test(name)) throw new Error("name: letters/digits/_- only");
+			const cmd = cmdIn.value.trim();
+			const u = urlIn.value.trim();
+			if (!cmd && !u) throw new Error("give a command or a URL");
+			const entry = u ? { url: u } : { command: cmd.split(/\s+/)[0], args: cmd.split(/\s+/).slice(1) };
+			await saveMcp({ ...servers, [name]: entry });
+			tabReload(body, tabMcp);
+		}),
+	);
+	body.appendChild(el("div", "sec-head", "Raw (advanced — full mcpServers JSON)"));
+	const raw = area(JSON.stringify(servers, null, 2), 8);
+	body.append(raw, saveBtn("Save raw", async () => {
+		const parsed = JSON.parse(raw.value);
+		await saveMcp(parsed);
+		tabReload(body, tabMcp);
+	}));
+	body.appendChild(el("p", "dim", "Bridged by pi-mcp-adapter: one ~200-token proxy tool, servers connect on first use. In-session: /mcp for status, OAuth, and direct-tool toggles. Env vars and secrets: edit the file directly."));
+}
+
+async function saveMcp(mcpServers) {
+	const r = await fetch("/api/mcp", { method: "POST", headers: JH, body: JSON.stringify({ mcpServers }) }).then((r) => r.json());
+	if (r.error) throw new Error(r.error);
+}
+
+async function tabModels(body) {
+	const s = await getSettings();
+	const prov = txtInput(s.settings.defaultProvider, "e.g. openai-codex, anthropic");
+	const model = txtInput(s.settings.defaultModel, "e.g. gpt-5.5, claude-fable-5");
+	const think = txtInput(s.settings.defaultThinkingLevel, "off · minimal · low · medium · high · xhigh · max");
+	body.append(
+		el("div", "sec-head", "Startup defaults (new sessions)"),
+		field("provider", prov), field("model", model), field("thinking", think),
+		saveBtn("Save defaults", () => patchSettings({
+			defaultProvider: prov.value.trim() || null,
+			defaultModel: model.value.trim() || null,
+			defaultThinkingLevel: think.value.trim() || null,
+		})),
+		el("p", "dim", "The live session's model/thinking switch from the header chips; this sets what NEW sessions start with."),
+		el("div", "sec-head", "Append to system prompt (desk-side, every desk spawn)"),
+	);
+	const sp = area(localStorage.getItem("desk-append-sp") || "", 6);
+	sp.placeholder = "Extra system-prompt text passed with --append-system-prompt on every session the desk opens. Leave empty for none.";
+	body.append(sp, saveBtn("Save", () => localStorage.setItem("desk-append-sp", sp.value)));
+}
+
+async function tabContext(body) {
+	const s = await getSettings();
+	const c = s.settings.compaction || {};
+	const en = el("input");
+	en.type = "checkbox";
+	en.checked = c.enabled !== false;
+	const reserve = txtInput(c.reserveTokens ?? 16384);
+	const keep = txtInput(c.keepRecentTokens ?? 20000);
+	body.append(
+		el("div", "sec-head", "Auto-compaction"),
+		field("enabled", en), field("reserveTokens", reserve), field("keepRecentTokens", keep),
+		el("p", "dim", "Compaction fires when context exceeds window − reserveTokens. \"Compact at 75%\" of a 200k window → reserveTokens 50000. keepRecentTokens stays verbatim."),
+		saveBtn("Save compaction", () => patchSettings({
+			compaction: { enabled: en.checked, reserveTokens: Number(reserve.value) || 16384, keepRecentTokens: Number(keep.value) || 20000 },
+		})),
+		el("div", "sec-head", "Global instructions — ~/.pi/agent/AGENTS.md (every session)"),
+	);
+	const g = await fetch(`/api/context-file?dir=${encodeURIComponent(s.piDir)}&name=AGENTS.md`).then((r) => r.json());
+	const ga = area(g.content, 8);
+	body.append(ga, saveBtn("Save global AGENTS.md", async () => {
+		const r = await fetch("/api/context-file", { method: "POST", headers: JH, body: JSON.stringify({ dir: s.piDir, name: "AGENTS.md", content: ga.value }) }).then((r) => r.json());
+		if (r.error) throw new Error(r.error);
+	}));
+	body.appendChild(el("div", "sec-head", "Project context file"));
+	const dirIn = txtInput("", "project directory");
+	const pick = el("button", "", "Browse…");
+	pick.onclick = async () => {
+		const r = await fetch("/api/pick-dir", { method: "POST" }).then((r) => r.json());
+		if (r.path) dirIn.value = r.path;
+	};
+	const nameSel = el("select");
+	for (const n of ["AGENTS.md", "CLAUDE.md", "AGENTS.override.md"]) {
+		const o = el("option", "", n);
+		o.value = n;
+		nameSel.appendChild(o);
+	}
+	const pa = area("", 8);
+	const load = el("button", "", "Load");
+	load.onclick = async () => {
+		const r = await fetch(`/api/context-file?dir=${encodeURIComponent(dirIn.value.trim())}&name=${encodeURIComponent(nameSel.value)}`).then((r) => r.json());
+		if (r.error) return toast(r.error, "error");
+		pa.value = r.content;
+		toast(r.exists ? "loaded" : "new file — save to create");
+	};
+	const prow = el("div", "srow");
+	prow.append(dirIn, pick, nameSel, load);
+	body.append(prow, pa, saveBtn("Save project file", async () => {
+		const r = await fetch("/api/context-file", { method: "POST", headers: JH, body: JSON.stringify({ dir: dirIn.value.trim(), name: nameSel.value, content: pa.value }) }).then((r) => r.json());
+		if (r.error) throw new Error(r.error);
+	}));
+}
+
+async function tabAgents(body) {
+	const s = await fetch("/api/agents").then((r) => r.json());
+	body.appendChild(el("div", "sec-head", `Subagents (pi-subagents) — ${s.dir}`));
+	const editor = (name, content, isNew) => {
+		body.querySelector(".agent-editor")?.remove();
+		const box = el("div", "agent-editor");
+		const nameIn = txtInput(name, "agent-name");
+		nameIn.disabled = !isNew;
+		const ta = area(content, 12);
+		box.append(field("name", nameIn), ta, saveBtn("Save agent", async () => {
+			const r = await fetch("/api/agents", { method: "POST", headers: JH, body: JSON.stringify({ name: nameIn.value.trim(), content: ta.value }) }).then((r) => r.json());
+			if (r.error) throw new Error(r.error);
+			tabReload(body, tabAgents);
+		}));
+		if (!isNew) {
+			const del = el("button", "danger", "Delete");
+			del.onclick = async () => {
+				if (!confirm(`Delete agent "${name}"?`)) return;
+				const target = s.agents.find((a) => a.name === name)?.path;
+				const r = await fetch(`/api/agents?path=${encodeURIComponent(target)}`, { method: "DELETE" }).then((r) => r.json());
+				if (r.error) return toast(r.error, "error");
+				tabReload(body, tabAgents);
+			};
+			box.appendChild(del);
+		}
+		body.appendChild(box);
+	};
+	for (const a of s.agents) {
+		const row = el("button", "srow srow-btn");
+		row.append(el("b", "", a.name), el("span", "dim", ` ${a.content.match(/^description:\s*(.+)$/m)?.[1] || ""}`));
+		row.onclick = () => editor(a.name, a.content, false);
+		body.appendChild(row);
+	}
+	const add = el("button", "", "New agent…");
+	add.onclick = () => editor("", "---\nname: my-agent\ndescription: what it does\nmodel: gpt-5.5\ntools: read, grep, find, ls\n---\n\nSystem prompt here.\n", true);
+	body.appendChild(add);
+	body.appendChild(el("p", "dim", "Built-ins (scout, researcher, worker, reviewer) ship with pi-subagents. Project agents live in each repo's .pi/agents/. Frontmatter fields: name, description, model, tools, thinking, systemPromptMode."));
+}
+
+async function tabNana(body) {
+	const s = await getSettings();
+	const n = s.nana;
+	const notifyEn = el("input");
+	notifyEn.type = "checkbox";
+	notifyEn.checked = n.notify?.enabled !== false;
+	const notifyHeadless = el("input");
+	notifyHeadless.type = "checkbox";
+	notifyHeadless.checked = n.notify?.headless === true;
+	const journalEn = el("input");
+	journalEn.type = "checkbox";
+	journalEn.checked = n.journal?.enabled !== false;
+	const lines = (arr) => (arr || []).join("\n");
+	const extra = area(lines(n.gate?.extraPatterns), 3);
+	const allow = area(lines(n.gate?.allowPatterns), 3);
+	const prot = area(lines(n.gate?.protectedPaths), 3);
+	const post = area(JSON.stringify(n.postEdit?.commands || [], null, 2), 6);
+	body.append(
+		el("div", "sec-head", `nana-pack — ${s.nanaPath}`),
+		field("notifications", notifyEn), field("notify when headless", notifyHeadless), field("lifecycle journal", journalEn),
+		el("div", "sec-head", "Gate (one regex per line)"),
+		field("extra dangerous", extra), field("allow (skip gate)", allow), field("protected paths", prot),
+		el("div", "sec-head", "Post-edit commands (JSON — [{match, run, timeoutMs?}])"),
+		post,
+		saveBtn("Save nana-pack", async () => {
+			const toLines = (a) => a.value.split("\n").map((x) => x.trim()).filter(Boolean);
+			const config = {
+				...n,
+				notify: { ...n.notify, enabled: notifyEn.checked, headless: notifyHeadless.checked },
+				journal: { ...n.journal, enabled: journalEn.checked },
+				gate: { ...n.gate, extraPatterns: toLines(extra), allowPatterns: toLines(allow), protectedPaths: toLines(prot) },
+				postEdit: { ...n.postEdit, commands: JSON.parse(post.value) },
+			};
+			const r = await fetch("/api/nana-pack", { method: "POST", headers: JH, body: JSON.stringify({ config }) }).then((r) => r.json());
+			if (r.error) throw new Error(r.error);
+		}),
+		el("p", "dim", "Config is re-read on every event — changes apply to running sessions without restart."),
+	);
+}
+
+function tabReload(body, tab) {
+	body.innerHTML = "";
+	tab(body);
 }
 
 async function renameSession() {
@@ -1339,6 +1716,8 @@ async function openHistorical(file, cwd) {
 async function spawnSession(cwd, sessionFile, extra) {
 	const body = { cwd, ...extra };
 	if (sessionFile) body.session = sessionFile;
+	const sp = localStorage.getItem("desk-append-sp");
+	if (sp?.trim() && !body.appendSystemPrompt) body.appendSystemPrompt = sp;
 	const r = await fetch("/api/spawn", {
 		method: "POST",
 		headers: { "content-type": "application/json" },
@@ -1560,7 +1939,8 @@ $("btn-new").onclick = () => handleDeskCommand("/new");
 $("btn-fork").onclick = forkPicker;
 $("btn-compact").onclick = () => handleDeskCommand("/compact");
 $("btn-export").onclick = exportSession;
-$("btn-settings").onclick = settingsPopover;
+$("btn-settings").onclick = () => settingsModal("session");
+$("btn-desk-settings").onclick = () => settingsModal("skills");
 
 // ── theme ── (index.html applies the saved theme pre-CSS; this owns cycling + live system-follow)
 const THEME_ORDER = ["auto", "light", "dark"];

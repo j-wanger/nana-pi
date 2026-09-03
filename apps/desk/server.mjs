@@ -9,6 +9,15 @@
  *   GET  /api/resources?cwd=        skills + extensions pi would discover for that cwd (for spawn toggles)
  *   POST /api/rename                {file, name} → append a session_info entry (non-live sessions;
  *                                   same shape pi's set_session_name persists — last one wins on read)
+ *   POST /api/derive-title          {file} → headless `pi -p` writes a short title for an unnamed
+ *                                   session and persists it as a session_info entry
+ *   GET  /api/settings              pi settings.json + mcp.json + nana-pack.json + agents dir (with paths)
+ *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into ~/.pi/agent/settings.json
+ *   POST /api/mcp                   {mcpServers} → rewrite that key of ~/.pi/agent/mcp.json
+ *   POST /api/nana-pack             {config} → rewrite ~/.pi/agent/nana-pack.json
+ *   GET/POST /api/context-file      read/write AGENTS.md | CLAUDE.md | AGENTS.override.md in a directory
+ *   GET/POST/DELETE /api/agents     pi-subagents definitions under ~/.pi/agent/agents/
+ *                                   (every config write backs up the previous file to <file>.bak)
  *   GET  /api/live                  currently running RPC children
  *   POST /api/spawn                 {cwd, session?, name?, approve?, resources?} → spawn `pi --mode rpc`;
  *                                   resources {skills:[paths], extensions:[paths]} narrows via
@@ -29,7 +38,7 @@
  * and `agent_settled` re-sync make that race-free enough for a local tool.
  */
 
-import { execFile, spawn } from "node:child_process";
+import { exec, execFile, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -69,13 +78,20 @@ function broadcast(child, obj) {
 	for (const res of child.clients) res.write(line);
 }
 
-function spawnChild({ cwd, session, name, approve, resources }) {
+function spawnChild({ cwd, session, name, approve, resources, appendSystemPrompt }) {
 	if ([...children.values()].filter((c) => c.state === "running").length >= MAX_CHILDREN)
 		throw new Error(`max ${MAX_CHILDREN} live sessions`);
 	const args = ["--mode", "rpc"];
 	if (session) args.push("--session", session);
 	if (name) args.push("--name", String(name));
 	if (approve) args.push("-a");
+	if (appendSystemPrompt) {
+		// via a temp FILE (the flag accepts file contents): multiline-safe on every
+		// platform and nothing user-written touches a shell line
+		const f = path.join(os.tmpdir(), `pi-desk-syspr-${Date.now()}-${randomBytes(3).toString("hex")}.txt`);
+		fs.writeFileSync(f, String(appendSystemPrompt).slice(0, 16000));
+		args.push("--append-system-prompt", f);
+	}
 	// Narrowed resources: turn discovery off and load the chosen set explicitly
 	// (--skill/-e stay additive under --no-skills/--no-extensions). No `resources`
 	// means pure pi defaults — the desk adds no flags at all.
@@ -568,6 +584,109 @@ function addPackage(source, baseDir, cwd, out) {
 	out.extensions.push(...(Array.isArray(entry.extensions) ? exts.filter((x) => entry.extensions.includes(x.name)) : exts));
 }
 
+// ── config files (settings/mcp/nana-pack/context/agents) ──
+const SETTINGS_PATH = path.join(os.homedir(), ".pi", "agent", "settings.json");
+const MCP_PATH = path.join(os.homedir(), ".pi", "agent", "mcp.json");
+const NANA_PACK_PATH = path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
+const AGENTS_DIR = path.join(os.homedir(), ".pi", "agent", "agents");
+// Only keys the desk UI actually exposes — never a whole-file replace, so a
+// stale client can't clobber packages/auth-adjacent settings.
+const SETTINGS_PATCH_KEYS = new Set(["defaultProvider", "defaultModel", "defaultThinkingLevel", "compaction", "skills", "extensions"]);
+const CONTEXT_NAMES = new Set(["AGENTS.md", "CLAUDE.md", "AGENTS.override.md"]);
+
+function backupWrite(file, content) {
+	try {
+		if (fs.existsSync(file)) fs.copyFileSync(file, `${file}.bak`);
+	} catch {}
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(file, content);
+}
+
+function listAgents() {
+	const out = [];
+	const walk = (dir, depth = 0) => {
+		if (depth > 3) return;
+		let entries;
+		try {
+			entries = fs.readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		for (const e of entries) {
+			const full = path.join(dir, e.name);
+			if (e.isDirectory()) walk(full, depth + 1);
+			else if (e.name.endsWith(".md")) {
+				let content = "";
+				try {
+					content = fs.readFileSync(full, "utf-8");
+				} catch {}
+				out.push({ path: full, name: path.basename(e.name, ".md"), content });
+			}
+		}
+	};
+	walk(AGENTS_DIR);
+	return out;
+}
+
+// ── title derivation (headless pi, once per session — the name persists) ──
+const deriving = new Set();
+
+function firstUserText(file) {
+	const head = readChunk(file, 0, 262144);
+	for (const line of head.split("\n").slice(1)) {
+		if (!line.includes('"role":"user"')) continue;
+		try {
+			const e = JSON.parse(line);
+			if (e.type === "message" && e.message?.role === "user") {
+				const c = e.message.content;
+				const text = typeof c === "string" ? c : (c || []).filter((b) => b.type === "text").map((b) => b.text).join(" ");
+				if (text?.trim()) return text;
+			}
+		} catch {}
+	}
+	return null;
+}
+
+// Cross-platform headless pi run (win32: .cmd shim needs a shell; args ride env
+// vars so session-derived text can't corrupt or inject — values are single-line).
+function runPi(args, cwd, timeoutMs) {
+	return new Promise((resolve) => {
+		const cb = (err, stdout) => resolve({ code: err ? 1 : 0, out: String(stdout || "") });
+		let child;
+		if (process.platform === "win32") {
+			const env = { ...process.env };
+			const line = ["pi", ...args.map((a, i) => {
+				const v = a.replaceAll('"', "").replace(/\\+$/, "");
+				if (!v) return '""';
+				env[`NANA_PI_HARG_${i}`] = v;
+				return `"%NANA_PI_HARG_${i}%"`;
+			})].join(" ");
+			child = exec(line, { cwd, env, timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024 }, cb);
+		} else child = execFile("pi", args, { cwd, timeout: timeoutMs, maxBuffer: 1024 * 1024 }, cb);
+		child.stdin?.end(); // pi -p waits for EOF on a piped stdin — without this it hangs to timeout
+	});
+}
+
+async function deriveTitle(real) {
+	const text = firstUserText(real);
+	if (!text) throw new Error("no user message to derive from");
+	const excerpt = text.replace(/\s+/g, " ").trim().slice(0, 2000);
+	// isolation per the headless lesson: no extensions/skills/context files, tmp cwd
+	const r = await runPi(
+		["-p", "--no-session", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files",
+			`Write a concise 3-7 word title for the coding session that starts with this request. Output ONLY the title text, no quotes. Request: ${excerpt}`],
+		os.tmpdir(), 90000,
+	);
+	const name = r.out.trim().split("\n").filter(Boolean).pop()?.replace(/^["'\s]+|["'\s.]+$/g, "").slice(0, 60);
+	if (!name) throw new Error("derivation produced no title");
+	const entry = {
+		type: "session_info", id: randomBytes(4).toString("hex"), parentId: null,
+		timestamp: new Date().toISOString(), name,
+	};
+	fs.appendFileSync(real, `${JSON.stringify(entry)}\n`);
+	return name;
+}
+
 // ── native folder picker ──
 // The desk binds 127.0.0.1 only, so the browser and this server share a display:
 // the server can open the real OS dialog and hand the absolute path back —
@@ -738,6 +857,7 @@ const server = http.createServer(async (req, res) => {
 			if (session) session = assertInsideSessions(session);
 			const id = spawnChild({
 				cwd, session, name: body.name, approve: body.approve,
+				appendSystemPrompt: body.appendSystemPrompt,
 				resources: body.resources && {
 					skills: (body.resources.skills || []).map(String),
 					extensions: (body.resources.extensions || []).map(String),
@@ -878,6 +998,103 @@ const server = http.createServer(async (req, res) => {
 			const cwd = path.resolve(expandHome(url.searchParams.get("cwd") || os.homedir()));
 			if (!isDirectory(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			return json(res, 200, { cwd, ...listResources(cwd) });
+		}
+		if (p === "/api/derive-title" && req.method === "POST") {
+			const body = await readBody(req);
+			const real = assertInsideSessions(String(body.file || ""));
+			const meta = readSessionMeta(real);
+			if (!meta) return json(res, 400, { error: "unreadable session" });
+			if (meta.name) return json(res, 200, { name: meta.name });
+			if (deriving.has(real)) return json(res, 409, { error: "derivation in progress" });
+			deriving.add(real);
+			try {
+				return json(res, 200, { name: await deriveTitle(real) });
+			} catch (e) {
+				return json(res, 500, { error: String(e.message || e) });
+			} finally {
+				deriving.delete(real);
+			}
+		}
+		if (p === "/api/settings" && req.method === "GET") {
+			return json(res, 200, {
+				settingsPath: SETTINGS_PATH, settings: readJsonFile(SETTINGS_PATH) || {},
+				mcpPath: MCP_PATH, mcp: readJsonFile(MCP_PATH) || { mcpServers: {} },
+				nanaPath: NANA_PACK_PATH, nana: readJsonFile(NANA_PACK_PATH) || {},
+				agentsDir: AGENTS_DIR, home: os.homedir(), piDir: PI_DIR,
+			});
+		}
+		if (p === "/api/settings" && req.method === "POST") {
+			const body = await readBody(req);
+			const cur = readJsonFile(SETTINGS_PATH) || {};
+			for (const [k, v] of Object.entries(body.patch || {})) {
+				if (!SETTINGS_PATCH_KEYS.has(k)) return json(res, 400, { error: `key not editable here: ${k}` });
+				if (v === null) delete cur[k];
+				else if (k === "compaction") cur.compaction = { ...cur.compaction, ...v };
+				else cur[k] = v;
+			}
+			backupWrite(SETTINGS_PATH, `${JSON.stringify(cur, null, 2)}\n`);
+			return json(res, 200, { ok: true, settings: cur });
+		}
+		if (p === "/api/mcp" && req.method === "POST") {
+			const body = await readBody(req);
+			if (!body.mcpServers || typeof body.mcpServers !== "object" || Array.isArray(body.mcpServers))
+				return json(res, 400, { error: "mcpServers must be an object" });
+			const cur = readJsonFile(MCP_PATH) || {};
+			cur.mcpServers = body.mcpServers; // other adapter keys (rendering, guards…) preserved
+			backupWrite(MCP_PATH, `${JSON.stringify(cur, null, 2)}\n`);
+			return json(res, 200, { ok: true, mcp: cur });
+		}
+		if (p === "/api/nana-pack" && req.method === "POST") {
+			const body = await readBody(req);
+			if (!body.config || typeof body.config !== "object" || Array.isArray(body.config))
+				return json(res, 400, { error: "config must be an object" });
+			backupWrite(NANA_PACK_PATH, `${JSON.stringify(body.config, null, 2)}\n`);
+			return json(res, 200, { ok: true });
+		}
+		if (p === "/api/context-file" && req.method === "GET") {
+			const dir = path.resolve(expandHome(url.searchParams.get("dir") || ""));
+			const name = url.searchParams.get("name") || "";
+			if (!CONTEXT_NAMES.has(name)) return json(res, 400, { error: `name must be one of: ${[...CONTEXT_NAMES].join(", ")}` });
+			if (!isDirectory(dir)) return json(res, 400, { error: `no such directory: ${dir}` });
+			const file = path.join(dir, name);
+			let content = null;
+			try {
+				content = fs.readFileSync(file, "utf-8");
+			} catch {}
+			return json(res, 200, { file, exists: content !== null, content: content ?? "" });
+		}
+		if (p === "/api/context-file" && req.method === "POST") {
+			const body = await readBody(req);
+			const dir = path.resolve(expandHome(String(body.dir || "")));
+			const name = String(body.name || "");
+			if (!CONTEXT_NAMES.has(name)) return json(res, 400, { error: `name must be one of: ${[...CONTEXT_NAMES].join(", ")}` });
+			if (!isDirectory(dir)) return json(res, 400, { error: `no such directory: ${dir}` });
+			backupWrite(path.join(dir, name), String(body.content ?? ""));
+			return json(res, 200, { ok: true });
+		}
+		if (p === "/api/agents" && req.method === "GET") {
+			return json(res, 200, { dir: AGENTS_DIR, agents: listAgents() });
+		}
+		if (p === "/api/agents" && req.method === "POST") {
+			const body = await readBody(req);
+			const name = String(body.name || "");
+			if (!/^[\w.-]{1,64}$/.test(name)) return json(res, 400, { error: "agent name: letters/digits/._- only" });
+			backupWrite(path.join(AGENTS_DIR, `${name}.md`), String(body.content ?? ""));
+			return json(res, 200, { ok: true, path: path.join(AGENTS_DIR, `${name}.md`) });
+		}
+		if (p === "/api/agents" && req.method === "DELETE") {
+			const target = String(url.searchParams.get("path") || "");
+			let real;
+			try {
+				real = fs.realpathSync(target);
+			} catch {
+				return json(res, 400, { error: "no such agent file" });
+			}
+			if (!real.startsWith(fs.realpathSync(AGENTS_DIR) + path.sep)) return json(res, 400, { error: "outside agents dir" });
+			if (!real.endsWith(".md")) return json(res, 400, { error: "only agent .md files can be deleted here" });
+			// recoverable delete: rename to .bak (pi-subagents only discovers *.md)
+			fs.renameSync(real, `${real}.bak`);
+			return json(res, 200, { ok: true });
 		}
 		if (p === "/api/rename" && req.method === "POST") {
 			const body = await readBody(req);
