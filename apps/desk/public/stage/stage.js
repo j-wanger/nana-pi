@@ -2,7 +2,7 @@
 // app listener. Second consumer of desk-client.mjs; the reducer/contract come
 // from blocks.mjs. The layout is fixed and app-owned; the agent only fills it.
 import { el, contentBlocks, stripAnsi, toolRow, setToolStreaming, finishToolRow, buildDialog, openEventStream, postJson } from "/desk-client.mjs";
-import { reduceEntries, applyLiveBlocks, rowPrompt, fmtNum, columnDecimals, fmtCell } from "/blocks.mjs";
+import { reduceEntries, applyLiveBlocks, pathEntries, rowPrompt, fmtNum, columnDecimals, fmtCell } from "/blocks.mjs";
 import { mdToHtml } from "/md.js";
 
 const $ = (id) => document.getElementById(id);
@@ -13,7 +13,7 @@ let manifest = null;
 let session = null; // {id, cwd, state, ...}
 let stream = null;
 let blocks = []; // the stage, in first-appearance order
-let cursor = null; // last entry id seen (get_entries since=)
+let leafId = null; // active-branch leaf at the last full replay
 let streaming = false;
 const turnsCtx = { container: null, toolRows: new Map() };
 let liveText = null; // streaming assistant bubble
@@ -134,7 +134,7 @@ function renderCard(b) {
 	for (const f of b.fields) {
 		dl.appendChild(el("dt", "", f.label));
 		const dd = el("dd", "", typeof f.value === "number" ? fmtNum(f.value) : String(f.value));
-		if (f.evidence) dd.title = f.evidence;
+		if (f.evidence) dd.appendChild(el("span", "evid", f.evidence)); // the source, visibly, not on hover
 		dl.appendChild(dd);
 	}
 	return dl;
@@ -198,8 +198,14 @@ function showGate(req) {
 	if (bar.querySelector(`[data-ui-id="${CSS.escape(req.id)}"]`)) return;
 	const wrap = el("div", "gate");
 	wrap.dataset.uiId = req.id;
-	const answer = (body) => {
-		fetch("/api/ui-response", { method: "POST", headers: JH, body: JSON.stringify({ id: req.id, ...body }) });
+	const answer = async (body) => {
+		// The card stays until the server confirms: a failed or refused answer must
+		// not hide a dialog that is still pending in the child.
+		wrap.classList.add("answering");
+		let r;
+		try { r = await postJson("/api/ui-response", { id: req.id, ...body }); } catch (e) { r = { ok: false, error: String(e.message || e) }; }
+		wrap.classList.remove("answering");
+		if (!r.ok) { toast(`answer not accepted: ${r.error || "dialog no longer open"}`, "error"); return; }
 		wrap.remove();
 		bar.hidden = !bar.children.length;
 	};
@@ -212,6 +218,12 @@ function dismissGate(id) {
 	$("gate-bar").querySelector(`[data-ui-id="${CSS.escape(id)}"]`)?.remove();
 	$("gate-bar").hidden = !$("gate-bar").children.length;
 }
+function clearGates(reason) {
+	const bar = $("gate-bar");
+	if (bar.children.length) toast(`pending dialogs dropped: ${reason}`, "warning");
+	bar.innerHTML = "";
+	bar.hidden = true;
+}
 
 // ── events ──
 function handleEvent(e) {
@@ -221,7 +233,7 @@ function handleEvent(e) {
 			if (e.state === "exited") setChip("exited");
 			break;
 		case "agent_start": streaming = true; setChip("running"); break;
-		case "agent_settled": streaming = false; setChip("idle"); liveText = null; syncEntries(); break;
+		case "agent_settled": streaming = false; setChip("idle"); liveText = null; replayLedger(); break;
 		case "message_start": liveText = null; break;
 		case "message_update": {
 			const ame = e.assistantMessageEvent;
@@ -243,10 +255,10 @@ function handleEvent(e) {
 		}
 		case "tool_execution_end": {
 			agentTurn();
-			const row = finishToolRow(turnsCtx, { toolCallId: e.toolCallId, toolName: e.toolName, content: e.result?.content, details: e.result?.details, isError: e.isError });
+			const row = finishToolRow(turnsCtx, { toolCallId: e.toolCallId, toolName: e.toolName, content: e.result?.content, details: e.result?.details, isError: !!(e.isError || e.result?.isError) });
 			const bs = e.result?.details?.blocks;
 			if (Array.isArray(bs) && bs.length) {
-				blocks = applyLiveBlocks(blocks, bs); // only stamped blocks are accepted
+				blocks = applyLiveBlocks(blocks, bs, e); // valid, stamped, and stamped BY THIS EVENT
 				renderStage();
 				const names = bs.filter((b) => b.produced_by).map((b) => b.title).join(", ");
 				if (names) row.querySelector(".targ").textContent = `→ ${names}`;
@@ -259,24 +271,35 @@ function handleEvent(e) {
 			break;
 		case "desk_ui_resolved": dismissGate(e.id); break;
 		case "desk_prompt_rejected": toast(`prompt rejected: ${e.error || "unknown"}`, "error"); break;
-		case "desk_exit": streaming = false; setChip("exited"); toast(`session exited (${e.code})`, "error"); break;
+		case "desk_exit": streaming = false; setChip("exited"); clearGates(`session exited (${e.code})`); toast(`session exited (${e.code})`, "error"); break;
 		case "auto_retry_start": setChip(`retry ${e.attempt}/${e.maxAttempts}`); break;
 		case "extension_error": toast(`extension error: ${e.error || ""}`, "error"); break;
 	}
 }
 
-// ── ledger sync (reload-safe: the ledger is the stage) ──
-async function syncEntries() {
-	const r = await fetch(cursor ? `/api/entries?since=${encodeURIComponent(cursor)}` : "/api/entries").then((x) => x.json()).catch(() => null);
+// ── ledger replay (the ledger IS the stage) ──
+// Full active-branch replay on attach and after every settled turn: sessions are
+// small, and a delta cannot carry the ancestry the branch reducer needs. Blocks
+// missed while the stream was down are picked up here.
+async function replayLedger() {
+	const r = await fetch("/api/entries").then((x) => x.json()).catch(() => null);
 	if (!r || !Array.isArray(r.entries)) return;
-	if (!cursor) {
-		blocks = reduceEntries(r.entries, r.leafId);
-		renderStage();
-		// history into the drawer
-		for (const en of r.entries) if (en.type === "message" && en.message) appendHistory(en.message);
+	blocks = reduceEntries(r.entries, r.leafId);
+	renderStage();
+	const path = pathEntries(r.entries, r.leafId);
+	// The drawer is rebuilt only when the branch CHANGED (fork/resume/switch): if the
+	// old leaf is an ancestor of the new one the turn merely appended, and the live
+	// rows already on screen are the truth. Rebuilding every turn would wipe them.
+	const appended = leafId === null ? false : path.some((e) => e.id === leafId);
+	if (r.leafId !== leafId && !appended) {
+		// drawer history: the ACTIVE branch only (same ancestry as the stage)
+		leafId = r.leafId;
+		$("turns").innerHTML = "";
+		turnsCtx.toolRows.clear();
 		currentTurn = null; liveText = null;
-	}
-	if (r.leafId) cursor = r.leafId;
+		for (const en of path) if (en.type === "message" && en.message) appendHistory(en.message);
+		currentTurn = null; liveText = null;
+	} else leafId = r.leafId;
 }
 
 // ── composing (the UI is a prompt composer) ──
@@ -322,7 +345,7 @@ async function boot() {
 	if (!session?.id) { setChip("no session"); toast("could not start the app session", "error"); return; }
 	setChip("idle");
 	stream = openEventStream("/api/events", handleEvent, () => setChip("disconnected"));
-	await syncEntries();
+	await replayLedger();
 }
 
 $("btn-send").onclick = () => { sendPrompt($("input").value); $("input").value = ""; };

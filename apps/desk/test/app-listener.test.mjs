@@ -23,9 +23,15 @@ fs.writeFileSync(extStage, "export default function () {}\n");
 const OUT = path.join(tmp, "stub-out.jsonl");
 
 // ── stub pi: records argv + cwd, answers get_state / get_entries / prompt, emits a dialog on "ask" ──
+const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
-fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd() }) + "\\n");
+fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), hasKey: /^[0-9a-f]{64}$/.test(process.env.NANA_STAGE_KEY || "") }) + "\\n");
+const BLOCK = { id: "blk_x", type: "card", title: "X", scope: "s", fields: [{ label: "a", value: 1 }], slot: "main", show: true };
+const stamp = (id, tool, call) => ({ ...BLOCK, id, produced_by: { tool, args: {}, toolCallId: call, at: "2026-09-04T00:00:00.000Z" } });
+let signBlock = null;
+const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
+const signed = (b) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(process.env.NANA_STAGE_KEY, b) } });
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
 const sessionFile = process.argv.includes("--session") ? process.argv[process.argv.indexOf("--session") + 1] : "/tmp/stub-" + process.pid + ".jsonl";
 let buf = "";
@@ -39,11 +45,24 @@ process.stdin.on("data", (c) => {
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
 			case "get_state": ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
-			case "get_entries": ok({ entries: [{ id: "e1", parentId: null, type: "message" }, { id: "e2", parentId: "e1", type: "custom", customType: "nana-block", data: { id: "blk_x", produced_by: { tool: "t" } } }], leafId: "e2", since: cmd.since || null }); break;
+			case "get_entries": ready.then(() => ok({ entries: [
+				{ id: "e1", parentId: null, type: "message" },
+				{ id: "e2", parentId: "e1", type: "custom", customType: "nana-block", data: signed(stamp("blk_ok", "t", "c1")) },
+				{ id: "e3", parentId: "e2", type: "custom", customType: "nana-block", data: stamp("blk_forged", "t", "c2") },
+				{ id: "e4", parentId: "e3", type: "custom", customType: "other", data: { keep: true } },
+			], leafId: "e4", since: cmd.since || null })); break;
 			case "prompt": {
 				ok({});
 				say({ type: "agent_start" });
 				if (/ask/.test(cmd.message)) say({ type: "extension_ui_request", id: "ui-1", method: "select", title: "Allow?", options: ["Allow", "Deny"] });
+				else if (/blocks/.test(cmd.message)) ready.then(() => {
+					say({ type: "tool_execution_end", toolCallId: "c9", toolName: "t", isError: false, result: { content: [{ type: "text", text: "x" }], details: { blocks: [
+						signed(stamp("blk_live_ok", "t", "c9")),         // signed by this event → passes
+						stamp("blk_live_unsigned", "t", "c9"),          // no sig → dropped
+						signed(stamp("blk_live_othercall", "t", "c8")), // signed but another call → dropped
+					] } } });
+					say({ type: "agent_end", messages: [] }); say({ type: "agent_settled" });
+				});
 				else { say({ type: "agent_end", messages: [] }); say({ type: "agent_settled" }); }
 				break;
 			}
@@ -62,6 +81,7 @@ fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, c
 fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cwdB, { trust: "approve", mutating: ["add_thing"] })));
 fs.writeFileSync(path.join(appsDir, "Bad Name.json"), JSON.stringify(manifest(4404, cwdA)));
 fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(4405, "/no/such/dir")));
+fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(4406, cwdA, { tools: [] })));
 
 const server = spawn("node", [SERVER], {
 	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
@@ -83,7 +103,8 @@ try {
 		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
-	check("invalid manifests rejected at load (bad name, bad cwd)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
+	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
+	check("empty-tools app has no listener", await fetch("http://127.0.0.1:4406/api/manifest").then(() => false).catch(() => true));
 
 	// ── route table: none of the desk's surfaces exist on an app port ──
 	for (const [method, p] of [["GET", "/api/live"], ["POST", "/api/spawn"], ["POST", "/api/session/1/bash"], ["GET", "/api/settings"], ["GET", "/api/sessions"], ["DELETE", "/api/session/1"], ["POST", "/api/session/1/rpc"]]) {
@@ -95,9 +116,12 @@ try {
 	check("events without a session → 404", (await fetch(A + "/api/events")).status === 404);
 
 	// ── spawn ignores the body; argv comes from the manifest ──
-	const s1 = await post(A, "/api/session", { cwd: "/etc", tools: ["bash"], approve: true, appendSystemPrompt: "pwned", resources: { extensions: ["/x"] } }).then((r) => r.json());
+	const body = { cwd: "/etc", tools: ["bash"], approve: true, appendSystemPrompt: "pwned", resources: { extensions: ["/x"] } };
+	const [s1, s1b, s1c] = await Promise.all([post(A, "/api/session", body), post(A, "/api/session", body), post(A, "/api/session", body)].map((p) => p.then((r) => r.json())));
 	check("spawn returns a child", typeof s1.id === "string" && s1.state === "running", JSON.stringify(s1));
+	check("three concurrent POST /api/session → ONE child", s1.id === s1b.id && s1b.id === s1c.id && stubRuns().length === 1, `${stubRuns().length} runs`);
 	const run = stubRuns().at(-1);
+	check("child received a per-session NANA_STAGE_KEY", run.hasKey === true);
 	check("child cwd is the manifest cwd, not the body's", run.cwd === fs.realpathSync(cwdA), run.cwd);
 	const argv = run.argv.join(" ");
 	check("argv: -t from manifest (body tools ignored)", /-t read,player_card\b/.test(argv) && !/bash/.test(argv), argv);
@@ -132,7 +156,23 @@ try {
 
 	// ── entries passthrough ──
 	const ent = await get(A, "/api/entries");
-	check("entries: leafId + custom entry pass through", ent.leafId === "e2" && ent.entries[1].customType === "nana-block");
+	check("entries: leafId + signed nana-block entry pass through", ent.leafId === "e4" && ent.entries.some((e) => e.customType === "nana-block" && e.data.id === "blk_ok"));
+	check("entries: FORGED (unsigned) nana-block entry stripped, other custom entries kept", !ent.entries.some((e) => e.data?.id === "blk_forged") && ent.entries.some((e) => e.customType === "other"));
+	// live path: only the block signed by THIS event reaches the SSE clients
+	const liveBlocks = await new Promise((resolve, reject) => {
+		const ctl = new AbortController();
+		let text = "";
+		fetch(A + "/api/events", { signal: ctl.signal }).then(async (res) => {
+			const reader = res.body.getReader();
+			post(A, "/api/prompt", { message: "emit blocks" });
+			for (let i = 0; i < 40 && !/tool_execution_end/.test(text); i++) text += new TextDecoder().decode((await reader.read()).value);
+			ctl.abort();
+			const line = text.split("\n").find((l) => l.startsWith("data: ") && /tool_execution_end/.test(l));
+			resolve(JSON.parse(line.slice(6)).result.details.blocks.map((b) => b.id));
+		}).catch(reject);
+	});
+	check("live: unsigned + other-call carriers stripped before broadcast", JSON.stringify(liveBlocks) === JSON.stringify(["blk_live_ok"]), JSON.stringify(liveBlocks));
+	await new Promise((r) => setTimeout(r, 200));
 	const ent2 = await get(A, "/api/entries?since=e1");
 	check("entries: since cursor forwarded", ent2.since === "e1");
 

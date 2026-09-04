@@ -44,7 +44,7 @@
  */
 
 import { exec, execFile, spawn } from "node:child_process";
-import { loadManifests, startAppListeners } from "./apps.mjs";
+import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -81,7 +81,7 @@ const PI_BIN = resolvePiBin();
 // Children need a working PATH even when the desk itself was started with a
 // minimal one: the pi shim does `env node`, and sessions run uv/pnpm/git.
 // Prepend node's own dir + pi's dir + the usual prefixes to whatever we got.
-function childEnv() {
+function childEnv(more = {}) {
 	const extra = [
 		path.dirname(process.execPath),
 		path.dirname(path.resolve(PI_BIN)),
@@ -90,7 +90,7 @@ function childEnv() {
 	];
 	const cur = (process.env.PATH || "").split(path.delimiter);
 	const merged = [...new Set([...extra, ...cur])].filter(Boolean);
-	return { ...process.env, PATH: merged.join(path.delimiter) };
+	return { ...process.env, PATH: merged.join(path.delimiter), ...more };
 }
 const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
@@ -163,9 +163,13 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// referencing `"%VAR%"` on the line makes cmd itself substitute them: one
 	// non-recursive expansion, so spaces, `&`, and literal `%` in values are all
 	// inert. (Plain manual quoting can't do that — cmd expands %…% inside quotes.)
+	// App sessions get a per-child provenance key: nana-stage signs every block with
+	// it and this server refuses unsigned blocks (handleChildEvent, /api/entries).
+	const stageKey = app ? randomBytes(32).toString("hex") : null;
+	const envMore = stageKey ? { NANA_STAGE_KEY: stageKey } : {};
 	let proc;
 	if (process.platform === "win32") {
-		const env = childEnv();
+		const env = childEnv(envMore);
 		const line = [`"${PI_BIN.replaceAll('"', "")}"`, ...args.map((a, i) => {
 			// `"` would close the quote after expansion (illegal in paths, dropped);
 			// a trailing `\` would escape the closing quote at argv parsing (a path
@@ -177,11 +181,11 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 		})].join(" ");
 		proc = spawn(line, { cwd, env, stdio: ["pipe", "pipe", "pipe"], shell: true, windowsHide: true });
 	} else {
-		proc = spawn(PI_BIN, args, { cwd, env: childEnv(), stdio: ["pipe", "pipe", "pipe"] });
+		proc = spawn(PI_BIN, args, { cwd, env: childEnv(envMore), stdio: ["pipe", "pipe", "pipe"] });
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, app: app || null, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		proc, cwd, app: app || null, stageKey, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,
@@ -257,6 +261,10 @@ function handleChildEvent(child, obj) {
 		} else if (obj.method === "setTitle") child.title = obj.title;
 	} else if (obj.type === "queue_update") {
 		child.queue = { steering: obj.steering || [], followUp: obj.followUp || [] };
+	} else if (child.stageKey && obj.type === "tool_execution_end" && obj.result?.details?.blocks !== undefined) {
+		// The provenance tooth, live path: only blocks signed by THIS child's
+		// nana-stage reach a page. A carrier injected by any other handler is dropped.
+		obj = { ...obj, result: { ...obj.result, details: { ...obj.result.details, blocks: verifiedBlocks(child.stageKey, obj.result.details.blocks, obj) } } };
 	}
 	broadcast(child, obj);
 }

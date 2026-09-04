@@ -92,6 +92,39 @@ try {
 	check("manifest.session written back to the real session file", typeof m.session === "string" && fs.existsSync(m.session), String(m.session));
 	const bad = await fetch(A + "/api/session/1/bash", { method: "POST", headers: { "content-type": "application/json", origin: A }, body: "{}" });
 	check("no bash route on the app port", bad.status === 404);
+
+	// a real malformed request through the full chain: a partial name is REFUSED by the
+	// producer (suggestions, isError), so no block is minted and the ledger is unchanged
+	const events2 = [];
+	const settled2 = new Promise((resolve) => {
+		const ctl = new AbortController();
+		fetch(A + "/api/events", { signal: ctl.signal }).then(async (res) => {
+			const reader = res.body.getReader();
+			let buf = "";
+			for (;;) {
+				const { value, done } = await reader.read();
+				if (done) break;
+				buf += new TextDecoder().decode(value);
+				let i;
+				while ((i = buf.indexOf("\n\n")) >= 0) {
+					const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+					const line = chunk.split("\n").find((l) => l.startsWith("data: "));
+					if (!line) continue;
+					try { const e = JSON.parse(line.slice(6)); events2.push(e); if (e.type === "agent_settled" || e.type === "desk_exit") { ctl.abort(); resolve(e.type); return; } } catch {}
+				}
+			}
+		}).catch(() => resolve("stream-closed"));
+		setTimeout(() => { ctl.abort(); resolve("timeout"); }, 150000);
+	});
+	await new Promise((r) => setTimeout(r, 300));
+	await fetch(A + "/api/prompt", { method: "POST", headers: { "content-type": "application/json", origin: A }, body: JSON.stringify({ message: "Call player_card with name='Jokic' exactly as written (do not correct the spelling, do not call any other tool), then reply with exactly one word: done" }) });
+	const how2 = await settled2;
+	check("second turn settled", how2 === "agent_settled", how2);
+	const pc = events2.filter((e) => e.type === "tool_execution_end" && e.toolName === "player_card");
+	check("player_card('Jokic') returned an error with suggestions, no blocks", pc.length >= 1 && (pc[0].isError === true || pc[0].result?.isError === true) && /Did you mean/.test(pc[0].result?.content?.[0]?.text || "") && !(pc[0].result?.details?.blocks || []).length, JSON.stringify({ isError: pc[0]?.isError, resultIsError: pc[0]?.result?.isError, keys: Object.keys(pc[0] || {}), blocks: pc[0]?.result?.details?.blocks, text: pc[0]?.result?.content?.[0]?.text }).slice(0, 400));
+	const ent2 = await fetch(A + "/api/entries").then((r) => r.json());
+	check("ledger unchanged by the refused call (still one block)", reduceEntries(ent2.entries, ent2.leafId).length === 1);
+	check("ledger blocks are signed (sig present on the live block)", typeof live[0].produced_by.sig === "string" && live[0].produced_by.sig.length === 64);
 } catch (e) {
 	console.log("HARNESS ERROR", e, "\n--- server log ---\n" + log.slice(-2000));
 	die(3);

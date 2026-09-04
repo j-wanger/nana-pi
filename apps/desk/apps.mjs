@@ -28,6 +28,21 @@
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { verifyBlock } from "../../packages/nana-stage/lib/sign.mjs";
+
+// The provenance tooth (server side). A block reaches a page only if it carries
+// a valid signature under this child's key AND, on the live path, was stamped by
+// the very tool event carrying it. Used on tool_execution_end (server.mjs) and
+// on the ledger read (/api/entries below).
+export function verifiedBlocks(key, blocks, event) {
+	if (!Array.isArray(blocks)) return [];
+	return blocks.filter((b) => b && typeof b === "object" && verifyBlock(key, b)
+		&& (!event || (b.produced_by.toolCallId === event.toolCallId && b.produced_by.tool === event.toolName)));
+}
+const ENTRY_TYPE = "nana-block";
+function verifiedEntries(key, entries) {
+	return entries.filter((e) => !(e && e.type === "custom" && e.customType === ENTRY_TYPE) || verifyBlock(key, e.data));
+}
 
 const isStr = (v) => typeof v === "string" && v.length > 0;
 const strList = (v) => (Array.isArray(v) ? v.filter(isStr) : []);
@@ -64,9 +79,13 @@ export function normalizeManifest(name, file, raw) {
 	const skills = strList(raw.skills);
 	for (const p of skills) if (!fs.existsSync(p)) return { error: `skills: no such path ${p}` };
 	const trust = raw.trust === "approve" ? "approve" : "no-approve";
+	const tools = strList(raw.tools);
+	// An EMPTY allowlist would mean "pi defaults" (bash, edit, write...). Refuse
+	// rather than silently widen: an app session names every tool it gets.
+	if (!tools.length) return { error: "tools: a non-empty allowlist is required (an empty list would enable pi's default tools)" };
 	return {
 		name, file, port, cwd, extensions, skills, trust,
-		tools: strList(raw.tools),
+		tools,
 		mutating: strList(raw.mutating),
 		title: isStr(raw.title) ? raw.title : name,
 		session: isStr(raw.session) ? raw.session : null,
@@ -102,7 +121,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 export function startAppListeners({ manifests, deps, dirs }) {
 	const servers = [];
 	for (const m of manifests.values()) {
-		const app = { manifest: m, childId: null };
+		const app = { manifest: m, childId: null, spawning: null };
 		const server = http.createServer((req, res) => handle(app, req, res, deps, staticMap(dirs)));
 		server.listen(m.port, "127.0.0.1", () => console.log(`app ${m.name} → http://127.0.0.1:${m.port}`));
 		server.on("error", (e) => console.error(`app ${m.name}: ${e.message}`));
@@ -175,7 +194,9 @@ async function handle(app, req, res, deps, files) {
 			await readBody(req); // drained and IGNORED: nothing about the spawn is client-supplied
 			let c = liveChild(app, deps);
 			if (!c) {
-				await spawnForApp(app, deps);
+				// Serialized: concurrent POSTs share one spawn (else two children, one orphaned).
+				if (!app.spawning) app.spawning = spawnForApp(app, deps).finally(() => (app.spawning = null));
+				await app.spawning;
 				c = deps.children.get(app.childId);
 			}
 			return json(res, 200, childInfo(app.childId, c));
@@ -210,7 +231,11 @@ async function handle(app, req, res, deps, files) {
 		if (p === "/api/entries" && req.method === "GET") {
 			const since = url.searchParams.get("since");
 			const r = await sendRpc(child, since ? { type: "get_entries", since } : { type: "get_entries" });
-			return json(res, r.success ? 200 : 500, r.success ? r.data : { error: r.error });
+			if (!r.success) return json(res, 500, { error: r.error });
+			// The provenance tooth, ledger path: a nana-block entry without a valid
+			// signature under this child's key (forged by another extension, or a
+			// hand-edited session file) is dropped before the page sees it.
+			return json(res, 200, { ...r.data, entries: verifiedEntries(child.stageKey || "", r.data.entries || []) });
 		}
 		json(res, 404, { error: "not found" });
 	} catch (e) {

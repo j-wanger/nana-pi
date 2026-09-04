@@ -2,8 +2,9 @@
 // (design §6 deliverable 2). Zero-dep. Run: node packages/nana-stage/tests/blocks.test.mjs
 import {
 	validateBlock, renderBlockText, extractBlocks, stripCarrier, reduceEntries, applyLiveBlocks,
-	processToolResult, rowPrompt, MAX_TABLE_ROWS, ENTRY_TYPE,
+	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE,
 } from "../lib/blocks.mjs";
+import { signBlock, verifyBlock, canonical } from "../lib/sign.mjs";
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
@@ -108,5 +109,27 @@ check("reducer: null leafId → last entry", reduceEntries(entries, null).length
 check("reducer: byte-stable over a fixture", JSON.stringify(reduceEntries(entries, "e7")) === JSON.stringify(reduceEntries(entries, "e7")));
 const live = applyLiveBlocks(stage, [stamp({ ...card(), title: "live update" }), { ...table(), id: "nope" }]);
 check("applyLiveBlocks: upsert stamped only", live.length === 2 && live.find((b) => b.id === "blk_player_203999").title === "live update");
+
+// ── strictness: reducers consume only VALID + STAMPED blocks; live blocks must belong to their event ──
+check("isStamp: needs tool/toolCallId/at/args", isStamp({ tool: "t", toolCallId: "c", at: "x", args: {} }) && !isStamp({ tool: "t" }) && !isStamp({}));
+check("consumable: malformed but stamped block rejected", !consumable(stamp({ ...card(), scope: "" })));
+check("reducer: a stamped-but-malformed ledger entry never reaches the stage", reduceEntries([{ id: "a", parentId: null, type: "custom", customType: ENTRY_TYPE, data: stamp({ ...card(), fields: [] }) }], "a").length === 0);
+check("reducer: produced_by:{} (forged shape) rejected", reduceEntries([{ id: "a", parentId: null, type: "custom", customType: ENTRY_TYPE, data: { ...card(), produced_by: {} } }], "a").length === 0);
+const evt = { toolCallId: "c", toolName: "t" };
+check("live: block stamped by another call is dropped", applyLiveBlocks([], [stamp(card())], { toolCallId: "other", toolName: "t" }).length === 0);
+check("live: block stamped by this event is applied", applyLiveBlocks([], [stamp(card())], evt).length === 1);
+check("live: malformed stamped block dropped", applyLiveBlocks([], [stamp({ ...card(), title: "" })], evt).length === 0);
+check("pathEntries: active branch only, root first", pathEntries(entries, "e7").map((e) => e.id).join(",") === "e1,e2,e3,e5,e6,e7");
+
+// ── signing: only the key holder can mint a block a server will pass through ──
+const KEY = "0123456789abcdef0123456789abcdef";
+const signed = processToolResult(ev({ blocks: [card()] }), { now: NOW, sign: (b) => signBlock(KEY, b) });
+check("signed: sig present and verifies", typeof signed.entries[0].produced_by.sig === "string" && verifyBlock(KEY, signed.entries[0]));
+check("signed: tampering the data breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], title: "x" }));
+check("signed: tampering the stamp breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], produced_by: { ...signed.entries[0].produced_by, tool: "forged" } }));
+check("signed: wrong key fails", !verifyBlock("f".repeat(32), signed.entries[0]));
+check("signed: unsigned block fails", !verifyBlock(KEY, stamp(card())));
+check("canonical: key order independent", canonical({ b: 1, a: [2, { d: 1, c: 2 }] }) === canonical({ a: [2, { c: 2, d: 1 }], b: 1 }));
+check("unsigned processing (no key) still stamps", processToolResult(ev({ blocks: [card()] }), { now: NOW }).entries[0].produced_by.sig === undefined);
 
 process.exit(fails ? 1 : 0);

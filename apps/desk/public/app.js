@@ -810,7 +810,8 @@ function handleEvent(e) {
 			break;
 		}
 		case "tool_execution_end":
-			finishToolRow(L.ctx, { toolCallId: e.toolCallId, toolName: e.toolName, content: e.result?.content, details: e.result?.details, isError: e.isError });
+			// pi 0.84: a failed tool reports result.isError; the event's own isError stays false
+			finishToolRow(L.ctx, { toolCallId: e.toolCallId, toolName: e.toolName, content: e.result?.content, details: e.result?.details, isError: !!(e.isError || e.result?.isError) });
 			break;
 		case "bash_execution_update": {
 			const row = L.ctx.toolRows.get(`bash:${e.id}`);

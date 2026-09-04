@@ -37,13 +37,21 @@ const TABLE = { id: "blk_board_general", type: "table", title: "General board", 
 const CARD = { id: "blk_player_1", type: "card", title: "Nikola Jokić", scope: "fixture card", fields: [{ label: "PTS", value: 29.6 }], slot: "side", show: true, produced_by: { ...STAMP, tool: "player_card", args: { name: "Nikola Jokić" } } };
 const UNSTAMPED = { id: "blk_forged", type: "card", title: "FORGED", scope: "x", fields: [{ label: "a", value: 1 }] };
 
+const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+let signBlock = null; const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
+const signed = (b) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(process.env.NANA_STAGE_KEY, b) } });
 const TABLE = ${JSON.stringify(TABLE)}; const CARD = ${JSON.stringify(CARD)}; const UNSTAMPED = ${JSON.stringify(UNSTAMPED)};
-const entries = [{ id: "e1", parentId: null, type: "message", message: { role: "user", content: [{ type: "text", text: "earlier turn" }] } }];
-let n = 1;
-const addEntry = (block) => { n++; entries.push({ id: "e" + n, parentId: "e" + (n - 1), type: "custom", customType: "nana-block", data: block }); };
+// e1 (user turn) → e2 ABANDONED user turn (branch off e1) → the live branch continues from e1
+const entries = [
+	{ id: "e1", parentId: null, type: "message", message: { role: "user", content: [{ type: "text", text: "earlier turn" }] } },
+	{ id: "e2", parentId: "e1", type: "message", message: { role: "user", content: [{ type: "text", text: "ABANDONED BRANCH TURN" }] } },
+];
+let n = 1; // leaf pointer stays on the e1 lineage; e2 is a dead branch
+const addEntry = (block) => { const id = "e" + (entries.length + 1); entries.push({ id, parentId: "e" + n, type: "custom", customType: "nana-block", data: block }); n = entries.length; };
+let leaf = () => "e" + n;
 let buf = "";
 process.stdin.on("data", (c) => {
 	buf += c; let nl;
@@ -54,22 +62,27 @@ process.stdin.on("data", (c) => {
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
 			case "get_state": ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile: "/tmp/stage-page-stub.jsonl", model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
-			case "get_entries": ok({ entries, leafId: "e" + n }); break;
+			case "get_entries": ready.then(() => ok({ entries, leafId: leaf() })); break;
 			case "prompt": {
 				fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ message: cmd.message }) + "\\n");
 				ok({}); say({ type: "agent_start" });
 				const msg = cmd.message;
-				const emit = (block, forged) => {
-					addEntry(block);
-					say({ type: "tool_execution_start", toolCallId: block.produced_by.toolCallId, toolName: block.produced_by.tool, args: block.produced_by.args });
-					say({ type: "tool_execution_end", toolCallId: block.produced_by.toolCallId, toolName: block.produced_by.tool, isError: false, result: { content: [{ type: "text", text: "## " + block.title }], details: { blocks: forged ? [block, UNSTAMPED] : [block] } } });
-				};
-				if (/board/i.test(msg)) emit(TABLE, true);
-				else if (/player card for (.+)/i.test(msg)) emit({ ...CARD, title: msg.match(/player card for (.+)/i)[1] });
-				else if (/update/i.test(msg)) emit({ ...TABLE, title: "General board v2", rows: TABLE.rows.slice(0, 1) });
-				if (/ask/i.test(msg)) { say({ type: "extension_ui_request", id: "ui-9", method: "select", title: "Overwrite the board?", options: ["Yes", "No"] }); break; }
-				say({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "done." }] } });
-				say({ type: "agent_end", messages: [] }); say({ type: "agent_settled" });
+				ready.then(() => {
+					const emit = (block, forged) => {
+						const sb = signed(block);
+						addEntry(sb);
+						say({ type: "tool_execution_start", toolCallId: block.produced_by.toolCallId, toolName: block.produced_by.tool, args: block.produced_by.args });
+						say({ type: "tool_execution_end", toolCallId: block.produced_by.toolCallId, toolName: block.produced_by.tool, isError: false, result: { content: [{ type: "text", text: "## " + block.title }], details: { blocks: forged ? [sb, UNSTAMPED, { ...CARD, id: "blk_stamped_unsigned" }] : [sb] } } });
+					};
+					if (/board/i.test(msg)) emit(TABLE, true);
+					else if (/player card for (.+)/i.test(msg)) emit({ ...CARD, title: msg.match(/player card for (.+)/i)[1] });
+					else if (/update/i.test(msg)) emit({ ...TABLE, title: "General board v2", rows: TABLE.rows.slice(0, 1) });
+					if (/two/i.test(msg)) { say({ type: "extension_ui_request", id: "ui-8", method: "confirm", title: "First?" }); say({ type: "extension_ui_request", id: "ui-9", method: "select", title: "Overwrite the board?", options: ["Yes", "No"] }); return; }
+					if (/ask/i.test(msg)) { say({ type: "extension_ui_request", id: "ui-9", method: "select", title: "Overwrite the board?", options: ["Yes", "No"] }); return; }
+					if (/die/i.test(msg)) { say({ type: "extension_ui_request", id: "ui-7", method: "confirm", title: "Doomed?" }); setTimeout(() => process.exit(3), 300); return; }
+					say({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "done." }] } });
+					say({ type: "agent_end", messages: [] }); say({ type: "agent_settled" });
+				});
 				break;
 			}
 			case "extension_ui_response": say({ type: "agent_end", messages: [] }); say({ type: "agent_settled" }); break;
@@ -105,7 +118,7 @@ try {
 	await page.goto(A + "/");
 	await page.waitForSelector("#chip.ok", { timeout: 10000 });
 	check("page boots, session idle, no page errors", errors.length === 0, errors.join(" | "));
-	check("history from entries in the drawer", (await page.locator(".turn.user").count()) === 1);
+	check("history from entries in the drawer: active branch only (abandoned turn absent)", (await page.locator(".turn.user").count()) === 1 && !/ABANDONED/.test(await page.locator("#turns").textContent()));
 
 	// 1. live block renders; forged (unstamped) never does
 	await page.fill("#input", "show the general board");
@@ -113,6 +126,7 @@ try {
 	await page.waitForSelector(".blk[data-id='blk_board_general']", { timeout: 10000 });
 	check("stamped table block on stage (main slot)", (await page.locator("#slot-main .blk-table").count()) === 1);
 	check("unstamped block in the same event NOT on stage", (await page.locator(".blk[data-id='blk_forged']").count()) === 0);
+	check("stamped-but-UNSIGNED block in the same event NOT on stage (server stripped it)", (await page.locator(".blk[data-id='blk_stamped_unsigned']").count()) === 0);
 	check("provenance footer shows tool + args + scope", /board_table.*general/.test(await page.locator(".blk-by").first().textContent()) && /fixture board/.test(await page.locator(".blk-scope").first().textContent()));
 	check("tool row in the drawer names the block it produced", /General board/.test(await page.locator(".tool-card .targ").first().textContent()));
 
@@ -147,6 +161,22 @@ try {
 	await page.locator("#gate-bar .dialog-opt", { hasText: "Yes" }).click();
 	await page.waitForFunction(() => document.getElementById("gate-bar").hidden, null, { timeout: 5000 });
 	check("answer clears the gate bar", await page.locator("#gate-bar").isHidden());
+
+	// two dialogs at once: both shown; answering one leaves the other
+	await page.click("#btn-drawer"); await page.fill("#input", "two questions"); await page.press("#input", "Enter");
+	await page.waitForFunction(() => document.querySelectorAll("#gate-bar .gate").length === 2, null, { timeout: 10000 });
+	check("two pending dialogs both on the gate bar", (await page.locator("#gate-bar .gate").count()) === 2);
+	await page.locator("#gate-bar .gate").nth(0).locator(".dialog-opt", { hasText: "Yes" }).click();
+	await page.waitForFunction(() => document.querySelectorAll("#gate-bar .gate").length === 1, null, { timeout: 5000 });
+	check("answering one keeps the other pending and visible", (await page.locator("#gate-bar .gate").count()) === 1 && await page.locator("#gate-bar").isVisible());
+	await page.locator("#gate-bar .dialog-opt", { hasText: "No" }).click();
+	await page.waitForFunction(() => document.getElementById("gate-bar").hidden, null, { timeout: 5000 });
+
+	// child death with a pending dialog: the gate bar is cleared with a notice, not left lying
+	await page.fill("#input", "please die"); await page.press("#input", "Enter");
+	await page.waitForSelector("#gate-bar:not([hidden]) .dialog-opt", { timeout: 10000 });
+	await page.waitForFunction(() => document.getElementById("gate-bar").hidden && document.getElementById("chip").textContent === "exited", null, { timeout: 10000 });
+	check("child exit clears stale gates and marks the session exited", true);
 	check("no page errors across the run", errors.length === 0, errors.join(" | "));
 
 	// 6. no desk routes here

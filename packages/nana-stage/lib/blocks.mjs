@@ -159,12 +159,19 @@ export function stripCarrier(details) {
 	return d;
 }
 
-// ── the stage reducer ──
-// entries: session entries (RPC get_entries or the session file), each with
-// {id, parentId, type, customType?, data?}. Walk parentId ancestry from leafId
-// (null → last entry), then fold nana-block entries on that path in order,
-// upserting by block id. Abandoned branches never reach the stage.
-export function reduceEntries(entries, leafId) {
+// A stamp is what nana-stage writes: tool, args, toolCallId, at (+ sig when keyed).
+export function isStamp(p) {
+	return isObj(p) && isStr(p.tool) && isStr(p.toolCallId) && isStr(p.at) && isObj(p.args);
+}
+// Every block a page consumes passes the same validator the boundary used, plus the stamp.
+export function consumable(b) {
+	return isObj(b) && isStamp(b.produced_by) && validateBlock(b).ok;
+}
+
+// Entries on the active branch: walk parentId ancestry from leafId (null → last
+// entry) to the root. Abandoned branches are excluded. Shared by the stage
+// reducer and the drawer history.
+export function pathEntries(entries, leafId) {
 	const byId = new Map();
 	for (const e of entries) if (e && e.id) byId.set(e.id, e);
 	let leaf = leafId ? byId.get(leafId) : entries[entries.length - 1];
@@ -175,22 +182,33 @@ export function reduceEntries(entries, leafId) {
 		path.push(leaf);
 		leaf = leaf.parentId ? byId.get(leaf.parentId) : null;
 	}
-	path.reverse();
+	return path.reverse();
+}
+
+// ── the stage reducer ──
+// entries: session entries (RPC get_entries or the session file), each with
+// {id, parentId, type, customType?, data?}. Walk parentId ancestry from leafId
+// (null → last entry), then fold nana-block entries on that path in order,
+// upserting by block id. Abandoned branches never reach the stage.
+export function reduceEntries(entries, leafId) {
 	const blocks = new Map();
-	for (const e of path) {
+	for (const e of pathEntries(entries, leafId)) {
 		if (e.type !== "custom" || e.customType !== ENTRY_TYPE) continue;
 		const b = e.data;
-		if (!isObj(b) || !isStr(b.id) || !isObj(b.produced_by)) continue; // only stamped blocks
+		if (!consumable(b)) continue; // malformed or unstamped never reaches the stage
 		blocks.set(b.id, b); // Map keeps first-insertion order → replace IN PLACE
 	}
 	return [...blocks.values()];
 }
 
-// Apply one live tool event's stamped blocks onto a block array (same upsert).
-export function applyLiveBlocks(current, blocks) {
+// Apply one live tool event's blocks onto a block array (same upsert). A live
+// block must be stamped BY THIS EVENT: tool and toolCallId must match, so a
+// carrier re-injected by a later handler under a different call is dropped.
+export function applyLiveBlocks(current, blocks, event) {
 	const m = new Map(current.map((b) => [b.id, b]));
 	for (const b of blocks || []) {
-		if (!isObj(b) || !isStr(b.id) || !isObj(b.produced_by)) continue;
+		if (!consumable(b)) continue;
+		if (event && (b.produced_by.toolCallId !== event.toolCallId || b.produced_by.tool !== event.toolName)) continue;
 		m.set(b.id, b); // in place
 	}
 	return [...m.values()];
@@ -200,7 +218,7 @@ export function applyLiveBlocks(current, blocks) {
 // event: {toolName, toolCallId, input, content, details, isError}
 // → null (not a block result) | { patch, entries } where patch is the tool_result
 //   return value and entries are the nana-block data objects to append, in order.
-export function processToolResult(event, { now = () => new Date().toISOString() } = {}) {
+export function processToolResult(event, { now = () => new Date().toISOString(), sign = null } = {}) {
 	const { blocks, where, overflow } = extractBlocks(event.details);
 	if (overflow) {
 		return {
@@ -221,12 +239,14 @@ export function processToolResult(event, { now = () => new Date().toISOString() 
 		const v = validateBlock(blocks[i]);
 		if (!v.ok) return { patch: fail(event, v.errors.map((m) => `blocks[${i}] ${m}`)), entries: [] };
 		const { produced_by: _ignored, ...rest } = blocks[i];
-		stamped.push({
+		const b = {
 			...rest,
 			slot: rest.slot || "main",
 			show: rest.show !== false,
-			produced_by: { tool: event.toolName, args: event.input ?? {}, toolCallId: event.toolCallId, at: now() },
-		});
+			produced_by: { tool: event.toolName, args: isObj(event.input) ? event.input : {}, toolCallId: event.toolCallId, at: now() },
+		};
+		if (sign) b.produced_by.sig = sign(b);
+		stamped.push(b);
 	}
 	const text = stamped.filter((b) => b.show).map(renderBlockText).join("\n\n") || "(blocks hidden: show=false)";
 	const details = stripCarrier(event.details);
