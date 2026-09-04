@@ -50,14 +50,16 @@ body.stage-body {
 .badge { font: 11px var(--mono); padding: 1px 7px; border-radius: 999px; background: var(--bg-3); color: var(--fg-1); }
 .blk-note { margin-top: 10px; color: var(--fg-1); font-style: italic; }
 .blk-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.blk-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 11.5px; color: var(--fg-2); }
-.blk-scope { flex: 1; min-width: 0; }
-.blk-by { font-family: var(--mono); white-space: nowrap; }
+.blk-foot { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 11.5px; color: var(--fg-2); }
+.blk-by { font-family: var(--mono); overflow-wrap: anywhere; }
 
 .tbl-wrap { overflow-x: auto; }
 .tbl { border-collapse: collapse; width: 100%; font-size: 13px; }
 .tbl th { text-align: left; font-weight: 600; color: var(--fg-1); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
-.tbl td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.tbl td.txt { white-space: normal; min-width: 8ch; }
+.tbl td.num { white-space: nowrap; }
+.tbl td.row-act { white-space: nowrap; width: 1%; }
 .tbl tr:hover td { background: var(--bg-1); }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }
 .tbl .row-act { text-align: right; }

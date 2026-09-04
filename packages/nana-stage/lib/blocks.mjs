@@ -75,16 +75,37 @@ export function validateBlock(b) {
 
 // ── canonical text (what the model reads; identical information to the stage) ──
 const cell = (v) => (v === null || v === undefined ? "" : typeof v === "number" ? fmtNum(v) : String(v));
+// Natural scalar rendering, at most 2 decimals, no trailing zeros (25 → "25",
+// 3.1 → "3.1", 0.5761 → "0.58"). Tables use columnDecimals for per-column consistency.
 export function fmtNum(n) {
 	if (!Number.isFinite(n)) return String(n);
-	return Number.isInteger(n) ? String(n) : n.toFixed(Math.abs(n) < 10 ? 2 : 1);
+	return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+}
+
+// Decimals to show for a numeric column: the most any value in it needs (cap 2),
+// so 1.3 and 4 render as 1.3 / 4.0 side by side instead of 1.30 / 4.
+export function columnDecimals(rows, key) {
+	let d = 0;
+	for (const r of rows) {
+		const v = r[key];
+		if (typeof v !== "number" || !Number.isFinite(v)) continue;
+		const m = String(v).match(/\.(\d+)$/);
+		if (m) d = Math.max(d, Math.min(2, m[1].length));
+	}
+	return d;
+}
+export function fmtCell(v, decimals) {
+	if (v === null || v === undefined) return "";
+	if (typeof v !== "number") return String(v);
+	return Number.isFinite(v) ? v.toFixed(decimals) : String(v);
 }
 
 export function renderBlockText(b) {
 	const out = [`## ${b.title}`, `scope: ${b.scope}`];
 	if (b.type === "table") {
 		const cols = b.columns;
-		const rows = b.rows.map((r) => cols.map((c) => cell(r[c.key])));
+		const dec = cols.map((c) => (c.type === "number" ? columnDecimals(b.rows, c.key) : 0));
+		const rows = b.rows.map((r) => cols.map((c, i) => (c.type === "number" ? fmtCell(r[c.key], dec[i]) : cell(r[c.key]))));
 		const widths = cols.map((c, i) => Math.max(c.label.length, ...rows.map((r) => r[i].length)));
 		const line = (cells) => cells.map((s, i) => (cols[i].type === "number" ? s.padStart(widths[i]) : s.padEnd(widths[i]))).join("  ").trimEnd();
 		out.push(line(cols.map((c) => c.label)));

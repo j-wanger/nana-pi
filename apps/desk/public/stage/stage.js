@@ -2,7 +2,7 @@
 // app listener. Second consumer of desk-client.mjs; the reducer/contract come
 // from blocks.mjs. The layout is fixed and app-owned; the agent only fills it.
 import { el, contentBlocks, stripAnsi, toolRow, setToolStreaming, finishToolRow, buildDialog, openEventStream, postJson } from "/desk-client.mjs";
-import { reduceEntries, applyLiveBlocks, rowPrompt, fmtNum } from "/blocks.mjs";
+import { reduceEntries, applyLiveBlocks, rowPrompt, fmtNum, columnDecimals, fmtCell } from "/blocks.mjs";
 import { mdToHtml } from "/md.js";
 
 const $ = (id) => document.getElementById(id);
@@ -105,12 +105,13 @@ function renderTable(b) {
 	thead.appendChild(hr);
 	t.appendChild(thead);
 	const tb = el("tbody");
+	const dec = b.columns.map((c) => (c.type === "number" ? columnDecimals(b.rows, c.key) : 0));
 	for (const r of b.rows) {
 		const tr = el("tr");
-		for (const c of b.columns) {
+		b.columns.forEach((c, i) => {
 			const v = r[c.key];
-			tr.appendChild(el("td", c.type === "number" ? "num" : "", v === null || v === undefined ? "" : typeof v === "number" ? fmtNum(v) : String(v)));
-		}
+			tr.appendChild(el("td", c.type === "number" ? "num" : "txt", c.type === "number" ? fmtCell(v, dec[i]) : v === null || v === undefined ? "" : String(v)));
+		});
 		if (perRow.length) {
 			const td = el("td", "row-act");
 			for (const a of perRow) {
