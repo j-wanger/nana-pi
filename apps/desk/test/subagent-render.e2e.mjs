@@ -48,8 +48,21 @@ const details = (status) => ({ results: [{ index: 0, agent: "researcher", task: 
 	model: "openai-codex/gpt-5.5", ...(status === "completed" ? { exitCode: 0 } : {}), progress: progress(status) }] });
 const SNAPSHOT = "PI_SUBAGENT_ASYNC_JSON:" + JSON.stringify({ kind: "pi-subagents-async-status", version: 1,
 	generatedAt: 0, caps: {}, omitted: { runs: 0, children: 0, byteLimitExceeded: false },
-	runs: [{ id: "as-1", kind: "single", label: "scout", state: "running", startedAt: Date.now() - 95000,
-		activity: { currentTool: "read", toolCount: 7, turnCount: 3 } }] });
+	runs: [
+		{ id: "as-1", kind: "single", label: "scout", state: "running", startedAt: Date.now() - 95000,
+			activity: { currentTool: "read", toolCount: 7, turnCount: 3 } },
+		// finished long ago in a state pi-subagents never cleans up ("partial") —
+		// the desk must prune it instead of pinning it above the editor forever
+		{ id: "as-2", kind: "single", label: "stalecheck", state: "partial",
+			startedAt: Date.now() - 300000, endedAt: Date.now() - 120000,
+			activity: { turnCount: 14, toolCount: 36 },
+			children: [{ id: "step:0", kind: "step", label: "stalecheck", state: "failed",
+				startedAt: Date.now() - 300000, endedAt: Date.now() - 120000 }] },
+		// freshly finished — stays visible through the linger window, with duration
+		{ id: "as-3", kind: "single", label: "freshdone", state: "complete",
+			startedAt: Date.now() - 45000, endedAt: Date.now() - 1000,
+			activity: { turnCount: 5, toolCount: 12 } },
+	] });
 const ARGS = { agent: "researcher", task: TASK };
 async function subagentScenario() {
 	say({ type: "agent_start" });
@@ -156,6 +169,8 @@ try {
 	const widget = await page.$eval(".sub-widget", (n) => n.textContent).catch(() => null);
 	check("async widget decoded (label visible)", !!widget && widget.includes("scout"));
 	check("async widget JSON blob not rendered", !!widget && !widget.includes("PI_SUBAGENT_ASYNC_JSON"));
+	check("expired terminal run pruned (stuck-partial bug)", !!widget && !widget.includes("stalecheck"));
+	check("fresh terminal run lingers with duration", !!widget && widget.includes("freshdone") && widget.includes("complete") && widget.includes("44s"));
 
 	// settle → history re-render path (toolResult.details) must keep the strip
 	for (let t = 0; t < 60; t++) {

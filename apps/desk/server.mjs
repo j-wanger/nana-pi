@@ -9,11 +9,13 @@
  *                                   (start-then-poll so no request is held open while a dialog sits;
  *                                   held XHRs exhaust the browser's per-host connection pool)
  *   GET  /api/resources?cwd=        skills + extensions pi would discover for that cwd (for spawn toggles)
- *   POST /api/rename                {file, name} → append a session_info entry (non-live sessions;
- *                                   same shape pi's set_session_name persists — last one wins on read)
+ *   POST /api/rename                {file, name} → set_session_name RPC if a live child holds the
+ *                                   file, else append a session_info entry (same shape pi persists —
+ *                                   last one wins on read)
  *   POST /api/derive-titles         {files:[…]} → enqueue headless title derivation for unnamed
- *                                   sessions (server-side serial queue; names persist as session_info
- *                                   entries and surface via the normal sessions refresh)
+ *                                   sessions (server-side serial queue; live sessions get the name
+ *                                   via set_session_name RPC + a desk_renamed event, others as
+ *                                   session_info entries; both surface via normal refresh)
  *   GET  /api/settings              pi settings.json + mcp.json + nana-pack.json + agents dir (with paths)
  *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into ~/.pi/agent/settings.json
  *   POST /api/mcp                   {mcpServers} → rewrite that key of ~/.pi/agent/mcp.json
@@ -765,12 +767,51 @@ async function deriveTitle(real) {
 	);
 	const name = r.out.trim().split("\n").filter(Boolean).pop()?.replace(/^["'\s]+|["'\s.]+$/g, "").slice(0, 60);
 	if (!name) throw new Error("derivation produced no title");
+	await applySessionName(real, name, false);
+	return name;
+}
+
+// A name for a file some live child holds open must go through that child's
+// set_session_name RPC: pi persists the same session_info entry itself AND
+// updates its in-memory state, so the header/rail (which read live get_state)
+// see it. A bare file append leaves the live session showing "(unnamed)"
+// until the next resume — the original stuck-title bug.
+async function liveChildForFile(real) {
+	let indeterminate = false;
+	for (const child of children.values()) {
+		if (child.state !== "running") continue;
+		try {
+			const r = await sendRpc(child, { type: "get_state" });
+			const f = r?.data?.sessionFile;
+			if (f && fs.realpathSync(f) === real) return { child, indeterminate: false };
+		} catch {
+			// a child that won't answer get_state might still be the owner
+			indeterminate = true;
+		}
+	}
+	return { child: null, indeterminate };
+}
+
+// mustPersist: derive path passes false — on an indeterminate owner scan a file
+// append could recreate the stale-header divergence, and an unnamed file simply
+// gets retried later. A user-initiated rename passes true: the name must land
+// even if the live header lags until the next resume.
+async function applySessionName(real, name, mustPersist) {
+	const { child, indeterminate } = await liveChildForFile(real);
+	if (child) {
+		try {
+			await sendRpc(child, { type: "set_session_name", name });
+			broadcast(child, { type: "desk_renamed", name });
+			return;
+		} catch {
+			// child died mid-flight — fall through to the file append
+		}
+	} else if (indeterminate && !mustPersist) throw new Error("live-session owner indeterminate — retry later");
 	const entry = {
 		type: "session_info", id: randomBytes(4).toString("hex"), parentId: null,
 		timestamp: new Date().toISOString(), name,
 	};
 	fs.appendFileSync(real, `${JSON.stringify(entry)}\n`);
-	return name;
 }
 
 // ── native folder picker ──
@@ -1194,15 +1235,10 @@ const server = http.createServer(async (req, res) => {
 		if (p === "/api/rename" && req.method === "POST") {
 			const body = await readBody(req);
 			const real = assertInsideSessions(String(body.file || ""));
-			// Same entry shape pi's own set_session_name persists (verified against
-			// real sessions); readers take the LAST session_info, so append wins.
-			// Renaming a file a live pi also holds is last-writer-wins on a display
-			// name — benign; the desk UI routes live sessions through RPC instead.
-			const entry = {
-				type: "session_info", id: randomBytes(4).toString("hex"), parentId: null,
-				timestamp: new Date().toISOString(), name: String(body.name ?? "").trim(),
-			};
-			fs.appendFileSync(real, `${JSON.stringify(entry)}\n`);
+			// Live sessions rename via that child's set_session_name RPC (keeps the
+			// in-memory name in sync); otherwise append the same session_info entry
+			// pi's own set_session_name persists — readers take the LAST one.
+			await applySessionName(real, String(body.name ?? "").trim(), true);
 			return json(res, 200, { ok: true });
 		}
 		json(res, 404, { error: "not found" });

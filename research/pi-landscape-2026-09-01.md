@@ -213,3 +213,22 @@ deterministic gates at boundaries fit naturally.
   github.com/disler/pi-vs-claude-code (secondary) · deepwiki.com pi-mono hooks page (secondary)
 - Local ground truth: installed 0.80.9 package docs + examples at
   `~/.local/lib/node_modules/@earendil-works/pi-coding-agent/`
+
+## Addendum 2026-09-04 — pi-subagents 0.64.0 upstream findings (desk dogfood r2)
+
+- **Stuck async widget (bug, reproduced live).** `src/runs/background/async-job-tracker.ts`
+  line ~97: the cleanup predicate `terminalStatus()` covers `complete|failed|paused|stopped`
+  but NOT `partial` or `rejected`. A run that ends `partial` (e.g. step failed on a provider
+  usage limit after producing output) never gets `scheduleCleanup`, never leaves
+  `state.asyncJobs`, and the async widget is never republished — the finished run is pinned
+  in TUI and RPC clients until the pi process restarts. Other modules disagree on the
+  terminal set (`async-retention.ts` TERMINAL_STATES = complete/failed/stopped/rejected —
+  also no `partial`). Desk defends itself since r2 (render-time linger + prune); worth an
+  upstream issue/PR.
+- **RPC async snapshot omits model/tokens (parity gap).** The `PI_SUBAGENT_ASYNC_JSON`
+  snapshot (`src/runs/shared/async-status-projection.ts`, `AsyncStatusSnapshotNodeV1` /
+  `ActivityV1`) carries state/turnCount/toolCount/currentTool only. The TUI widget renders
+  model badges + token counts from full in-process `AsyncJobState` (`totalTokens`,
+  `steps[].model`), so RPC clients (the desk) cannot reach TUI parity here — the data
+  exists in the run dir's `status.json` but is not published. Upstream ask: add
+  `model`/`tokens` to the snapshot node (fits the 32KB cap easily).

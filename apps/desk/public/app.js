@@ -683,7 +683,19 @@ function renderStatuses(statuses) {
 // decode and render itself (the TUI draws its own tree from the same data)
 const SUB_WIDGET_PREFIX = "PI_SUBAGENT_ASYNC_JSON:";
 const SUB_STATE_GLYPH = { queued: "○", running: "⚙", complete: "✓", failed: "✗", rejected: "✗", partial: "◐", paused: "⏸", stopped: "■" };
+// Finished runs linger briefly, then the desk clears them on its own clock.
+// pi-subagents' cleanup predicate misses `partial`/`rejected` (async-job-tracker
+// terminalStatus), so such runs stay in every future snapshot forever — observed
+// as a partial reviewer pinned above the editor for a day. The TUI clears
+// finished runs after ~10s; the desk keeps them a little longer, then prunes.
+const SUB_TERMINAL = new Set(["complete", "failed", "rejected", "partial", "stopped", "paused"]);
+const SUB_LINGER_MS = 60000;
+const subEndedAt = (node, snap) => node.endedAt ?? node.updatedAt ?? snap.generatedAt ?? 0;
+
 function subagentWidgetBox(snap) {
+	const now = Date.now();
+	const runs = (snap.runs || []).filter((r) => !(SUB_TERMINAL.has(r.state) && now - subEndedAt(r, snap) > SUB_LINGER_MS));
+	if (!runs.length && !snap.omitted?.runs) return null;
 	const box = el("div", "widget sub-widget");
 	const walk = (node, depth) => {
 		const st = node.state;
@@ -697,15 +709,29 @@ function subagentWidgetBox(snap) {
 			st !== "running" && st,
 			a.turnCount > 0 && `${a.turnCount} turns`,
 			a.toolCount > 0 && `${a.toolCount} tools`,
-			st === "running" && node.startedAt && fmtDur(Date.now() - node.startedAt),
+			st === "running" && node.startedAt && fmtDur(now - node.startedAt),
+			SUB_TERMINAL.has(st) && node.startedAt && node.endedAt && fmtDur(node.endedAt - node.startedAt),
 		].filter(Boolean).join(" · ");
 		if (stats) line.appendChild(el("span", "dim", `· ${stats}`));
 		box.appendChild(line);
 		if (st === "running" && a.currentTool) box.appendChild(el("div", "sub-task", `⎿ ${a.currentTool}`));
 		for (const c of node.children || []) walk(c, depth + 1);
 	};
-	for (const r of snap.runs || []) walk(r, 0);
+	for (const r of runs) walk(r, 0);
 	if (snap.omitted?.runs) box.appendChild(el("div", "sub-task", `… +${snap.omitted.runs} more`));
+	// self-clear: lingering finished runs must expire even if no further widget
+	// event ever arrives (the stuck-state case sends none)
+	const expiries = runs.filter((r) => SUB_TERMINAL.has(r.state)).map((r) => subEndedAt(r, snap) + SUB_LINGER_MS - now);
+	if (expiries.length) {
+		setTimeout(() => {
+			if (!box.isConnected) return;
+			const fresh = subagentWidgetBox(snap);
+			if (fresh) {
+				fresh.title = box.title;
+				box.replaceWith(fresh);
+			} else box.remove();
+		}, Math.max(1000, Math.min(...expiries) + 250));
+	}
 	return box;
 }
 
@@ -714,8 +740,8 @@ function widgetBox(key, lines) {
 	if (enc) {
 		try {
 			const box = subagentWidgetBox(JSON.parse(enc.slice(SUB_WIDGET_PREFIX.length)));
-			box.title = key;
-			return box;
+			if (box) box.title = key;
+			return box; // null = every finished run expired — render nothing
 		} catch {
 			// fall through to raw rendering
 		}
@@ -731,8 +757,10 @@ function renderWidgets(widgets) {
 	const below = $("widgets-below");
 	above.innerHTML = "";
 	below.innerHTML = "";
-	for (const [k, w] of Object.entries(widgets || {}))
-		(w.placement === "belowEditor" ? below : above).appendChild(widgetBox(k, w.lines));
+	for (const [k, w] of Object.entries(widgets || {})) {
+		const b = widgetBox(k, w.lines);
+		if (b) (w.placement === "belowEditor" ? below : above).appendChild(b);
+	}
 }
 
 function renderQueue(q) {
@@ -971,6 +999,11 @@ function handleEvent(e) {
 		case "desk_prompt_rejected":
 			toast(`prompt rejected: ${e.error || "unknown"}`, "error");
 			break;
+		case "desk_renamed":
+			// server pushed a derived/edited name into this live session
+			refreshState();
+			refreshRail();
+			break;
 		case "desk_exit":
 			L.streaming = false;
 			setChip("exited");
@@ -1010,7 +1043,10 @@ function handleUiRequest(e) {
 			const parent = e.widgetPlacement === "belowEditor" ? $("widgets-below") : $("widgets-above");
 			const existing = [...parent.children, ...$("widgets-above").children, ...$("widgets-below").children].find((c) => c.title === e.widgetKey);
 			existing?.remove();
-			if (e.widgetLines) parent.appendChild(widgetBox(e.widgetKey, e.widgetLines));
+			if (e.widgetLines) {
+				const b = widgetBox(e.widgetKey, e.widgetLines);
+				if (b) parent.appendChild(b);
+			}
 			break;
 		}
 		case "setTitle":
