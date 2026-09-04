@@ -36,22 +36,66 @@ set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. 
 let it fall through to WSL's `System32\bash.exe` — commands would run inside Linux
 with Linux paths.
 
+### From git (no clone needed)
+
 ```bash
 # 1. the nana-pack — all four extensions + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
-pi install git:github.com/j-wanger/nana-pi
+pi install git:github.com/j-wanger/nana-pi        # add -l for project-local
 
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# 3. the desk — zero npm dependencies, clone and run (two lines: `&&` breaks
-#    in Windows PowerShell 5.1)
+# 3. the desk — zero npm dependencies but it needs the files, so clone
+#    (two lines: `&&` breaks in Windows PowerShell 5.1)
 git clone https://github.com/j-wanger/nana-pi
 node nana-pi/apps/desk/server.mjs
 ```
 
-Pinned pack installs (`@ref`) need a ref that contains the root manifest — tags
-v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
+Copier renders the latest `v*` tag, never HEAD — template changes ship by commit
++ tag. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
+tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
+
+### From a local clone
+
+One `git clone https://github.com/j-wanger/nana-pi`, then everything runs off the
+working tree:
+
+```bash
+# pack — the install is LIVE: new sessions read the clone directly, so
+# updating is `git pull`, never a reinstall
+pi install /path/to/nana-pi
+
+# project — a local src still renders the latest v* tag by default;
+# --vcs-ref=HEAD renders the latest commit instead, and then uncommitted
+# template edits ARE included (copier warns "dirty template")
+uvx copier copy --data language=python /path/to/nana-pi <dest>
+
+# desk
+node /path/to/nana-pi/apps/desk/server.mjs
+```
+
+### Updating and partial adoption
+
+- **Pack** — `pi update git:github.com/j-wanger/nana-pi` for this package alone,
+  `pi update --extensions` for every installed package; a local-clone install
+  just needs `git pull`.
+- **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
+  switches user/project scope) to switch individual extensions and skills on or
+  off. There is no per-skill install; enable/disable is the partial surface.
+- **Generated project** — `uvx copier update` inside the project (reads
+  `.copier-answers.yml`): a three-way merge that replays your local edits onto
+  the newest template tag. Partial-merge controls: `--conflict inline` (default,
+  git-style markers in-file) or `--conflict rej` (clean files + `.rej` patches),
+  `--skip-answered` to keep prior answers, `--pretend` for a dry run, `--vcs-ref`
+  to pin a specific tag. `copier recopy` is the escape hatch — re-render clean,
+  discarding your diff. Generated CI carries a `template-drift` job that goes
+  red when the project is behind the latest template tag.
+- **Existing project, configs only** — adopt mode: the `adopt-py`/`adopt-ts`
+  skills (or `--data adopt=true` on the copier command) overlay the pinned
+  configs and leave the source tree untouched; reconcile from `git diff`, then
+  commit including `.copier-answers.yml`. An adopted project re-syncs with
+  `copier update` like any other copy.
 
 Canonical upstream coordinates: repo `earendil-works/pi`, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.
