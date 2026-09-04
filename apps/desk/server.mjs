@@ -958,7 +958,7 @@ function assertInsideSessions(file) {
 	return real;
 }
 
-const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
 
 function serveStatic(res, p) {
 	const rel = p === "/" ? "index.html" : p.slice(1);
@@ -975,10 +975,34 @@ function serveStatic(res, p) {
 	return true;
 }
 
+// Origin rule (2026-09-04): the desk is unauthenticated on localhost, so any web page open
+// in the same browser could fire a cross-origin "simple" POST (text/plain body) at
+// /api/spawn — browsers send those without a preflight. Every state-changing request must
+// come from this listener's own origin (or from a non-browser client, which sends no
+// Origin at all) and, when it carries a body, declare application/json. Reads stay open:
+// the browser's same-origin policy already hides their responses from other sites.
+function originRejection(req, port) {
+	const origin = req.headers.origin;
+	if (origin !== undefined) {
+		const allowed = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
+		if (!allowed.has(origin)) return `cross-origin request rejected (origin ${origin})`;
+	}
+	const len = req.headers["content-length"];
+	const hasBody = (len !== undefined && len !== "0") || req.headers["transfer-encoding"] !== undefined;
+	if (hasBody && !/^application\/json\b/i.test(String(req.headers["content-type"] || "")))
+		return "content-type must be application/json";
+	return null;
+}
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 const server = http.createServer(async (req, res) => {
 	const url = new URL(req.url, "http://localhost");
 	const p = url.pathname;
 	try {
+		if (!READ_METHODS.has(req.method)) {
+			const bad = originRejection(req, PORT);
+			if (bad) return json(res, 403, { error: bad });
+		}
 		if (req.method === "GET" && !p.startsWith("/api/") && serveStatic(res, p)) return;
 		if (p === "/api/sessions" && req.method === "GET") return json(res, 200, listSessions());
 		if (p === "/api/transcript" && req.method === "GET") {
