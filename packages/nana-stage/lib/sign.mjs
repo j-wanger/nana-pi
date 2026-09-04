@@ -8,6 +8,12 @@
 // extension re-injecting a carrier, or a forged nana-block entry, has no key.
 // Without a key (plain TUI use) blocks are unsigned and the page-side checks
 // still apply; the server-side filter is what makes the tooth un-bypassable.
+//
+// What the signature proves, precisely: the block was minted INSIDE the app
+// child's process by code holding the key — i.e. by the manifest-configured
+// extension set (nana-stage scrubs the key from the environment at load so tool
+// subprocesses never see it). It does not defend against hostile code already
+// running inside that process; the manifest is the trust boundary for that.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -17,7 +23,10 @@ export function canonical(v) {
 	return JSON.stringify(v);
 }
 
-function payload(block) {
+function payload(raw) {
+	// Sign the JSON-transported form: explicit undefined / sparse arrays / -0
+	// canonicalise the same way before and after the wire.
+	const block = JSON.parse(JSON.stringify(raw));
 	const { produced_by: p, ...rest } = block;
 	const { sig: _s, ...pb } = p || {};
 	return canonical({ ...rest, produced_by: pb });

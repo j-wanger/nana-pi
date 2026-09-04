@@ -40,8 +40,13 @@ export function verifiedBlocks(key, blocks, event) {
 		&& (!event || (b.produced_by.toolCallId === event.toolCallId && b.produced_by.tool === event.toolName)));
 }
 const ENTRY_TYPE = "nana-block";
+// REDACT, never delete: an entry is a node in the session tree (id/parentId), and
+// a forged one may sit in the ancestry of valid later entries. Dropping it would
+// sever the path and blank a valid stage. The payload is replaced instead.
 function verifiedEntries(key, entries) {
-	return entries.filter((e) => !(e && e.type === "custom" && e.customType === ENTRY_TYPE) || verifyBlock(key, e.data));
+	return entries.map((e) => (e && e.type === "custom" && e.customType === ENTRY_TYPE && !verifyBlock(key, e.data)
+		? { ...e, customType: "nana-block-rejected", data: { rejected: "unsigned or forged nana-block entry", id: e.data?.id ?? null } }
+		: e));
 }
 
 const isStr = (v) => typeof v === "string" && v.length > 0;

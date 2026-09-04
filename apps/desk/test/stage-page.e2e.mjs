@@ -172,6 +172,16 @@ try {
 	await page.locator("#gate-bar .dialog-opt", { hasText: "No" }).click();
 	await page.waitForFunction(() => document.getElementById("gate-bar").hidden, null, { timeout: 5000 });
 
+	// reconnect after missed events: the stage AND the drawer are rebuilt from the ledger
+	await page.evaluate(() => window.stage.disconnect());
+	await fetch(A + "/api/prompt", { method: "POST", headers: { "content-type": "application/json", origin: A }, body: JSON.stringify({ message: "show the player card for Reconnect Test" }) });
+	await new Promise((r) => setTimeout(r, 600));
+	check("while disconnected nothing new rendered", (await page.locator(".blk[data-id='blk_player_1'] .blk-title").textContent()) !== "Reconnect Test");
+	await page.evaluate(() => window.stage.reconnect());
+	await page.waitForFunction(() => document.querySelector(".blk[data-id='blk_player_1'] .blk-title")?.textContent === "Reconnect Test", null, { timeout: 10000 });
+	check("after reconnect: missed block on stage from the ledger", true);
+	check("after reconnect: drawer rebuilt from the active branch (no abandoned turn, history present)", (await page.locator(".turn.user").count()) >= 1 && !/ABANDONED/.test(await page.locator("#turns").textContent()));
+
 	// child death with a pending dialog: the gate bar is cleared with a notice, not left lying
 	await page.fill("#input", "please die"); await page.press("#input", "Enter");
 	await page.waitForSelector("#gate-bar:not([hidden]) .dialog-opt", { timeout: 10000 });

@@ -20,6 +20,9 @@ import { signBlock } from "../lib/sign.mjs";
 
 export default function nanaStage(pi: ExtensionAPI): void {
 	const key = process.env.NANA_STAGE_KEY || "";
+	// Taken once, then scrubbed: tool subprocesses (uv, python, git…) and any
+	// extension loaded after this one must not inherit the provenance key.
+	delete process.env.NANA_STAGE_KEY;
 	const sign = key ? (b: unknown) => signBlock(key, b) : null;
 
 	pi.on("tool_result", async (event) => {

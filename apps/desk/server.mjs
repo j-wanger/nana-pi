@@ -251,7 +251,19 @@ function handleChildEvent(child, obj) {
 		return; // correlated responses are not transcript events
 	}
 	if (obj.type === "extension_ui_request") {
-		if (DIALOG_METHODS.has(obj.method)) child.dialogs.set(obj.id, obj);
+		if (DIALOG_METHODS.has(obj.method)) {
+			child.dialogs.set(obj.id, obj);
+			// pi auto-resolves a timed dialog silently; mirror that here so the desk_hello
+			// snapshot never lists a dialog the child has already given up on.
+			if (Number.isFinite(obj.timeout) && obj.timeout > 0) {
+				setTimeout(() => {
+					if (child.dialogs.get(obj.id) === obj) {
+						child.dialogs.delete(obj.id);
+						broadcast(child, { type: "desk_ui_resolved", id: obj.id, reason: "timeout" });
+					}
+				}, obj.timeout + 250).unref?.();
+			}
+		}
 		else if (obj.method === "setStatus") {
 			if (obj.statusText === undefined || obj.statusText === null) child.statuses.delete(obj.statusKey);
 			else child.statuses.set(obj.statusKey, obj.statusText);

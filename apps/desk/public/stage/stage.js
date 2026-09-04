@@ -14,6 +14,7 @@ let session = null; // {id, cwd, state, ...}
 let stream = null;
 let blocks = []; // the stage, in first-appearance order
 let leafId = null; // active-branch leaf at the last full replay
+let hellos = 0; // desk_hello count on this stream (>1 = reconnect)
 let streaming = false;
 const turnsCtx = { container: null, toolRows: new Map() };
 let liveText = null; // streaming assistant bubble
@@ -228,10 +229,19 @@ function clearGates(reason) {
 // ── events ──
 function handleEvent(e) {
 	switch (e.type) {
-		case "desk_hello":
+		case "desk_hello": {
+			// The snapshot is the truth for pending dialogs: drop cards it no longer
+			// lists (answered elsewhere, timed out) and show the ones it does.
+			const pending = new Set((e.dialogs || []).map((d) => d.id));
+			for (const g of [...$("gate-bar").querySelectorAll(".gate")]) if (!pending.has(g.dataset.uiId)) g.remove();
+			$("gate-bar").hidden = !$("gate-bar").children.length;
 			for (const d of e.dialogs || []) showGate(d);
 			if (e.state === "exited") setChip("exited");
+			// A hello after the first is a RECONNECT: events were missed, so the stage
+			// and the drawer are rebuilt from the ledger rather than trusted.
+			if (hellos++ > 0) { setChip(streaming ? "running" : "idle"); replayLedger(true); }
 			break;
+		}
 		case "agent_start": streaming = true; setChip("running"); break;
 		case "agent_settled": streaming = false; setChip("idle"); liveText = null; replayLedger(); break;
 		case "message_start": liveText = null; break;
@@ -281,7 +291,7 @@ function handleEvent(e) {
 // Full active-branch replay on attach and after every settled turn: sessions are
 // small, and a delta cannot carry the ancestry the branch reducer needs. Blocks
 // missed while the stream was down are picked up here.
-async function replayLedger() {
+async function replayLedger(force = false) {
 	const r = await fetch("/api/entries").then((x) => x.json()).catch(() => null);
 	if (!r || !Array.isArray(r.entries)) return;
 	blocks = reduceEntries(r.entries, r.leafId);
@@ -291,7 +301,7 @@ async function replayLedger() {
 	// old leaf is an ancestor of the new one the turn merely appended, and the live
 	// rows already on screen are the truth. Rebuilding every turn would wipe them.
 	const appended = leafId === null ? false : path.some((e) => e.id === leafId);
-	if (r.leafId !== leafId && !appended) {
+	if (force || (r.leafId !== leafId && !appended)) {
 		// drawer history: the ACTIVE branch only (same ancestry as the stage)
 		leafId = r.leafId;
 		$("turns").innerHTML = "";
@@ -355,5 +365,10 @@ $("input").onkeydown = (e) => {
 $("btn-abort").onclick = () => postJson("/api/abort", {}).catch(() => {});
 $("btn-drawer").onclick = () => openDrawer();
 document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") { e.preventDefault(); openDrawer(); } });
-window.stage = { compose, get blocks() { return blocks; } };
+window.stage = {
+	compose,
+	get blocks() { return blocks; },
+	disconnect() { stream?.close(); stream = null; setChip("disconnected"); },
+	reconnect() { stream?.close(); stream = openEventStream("/api/events", handleEvent, () => setChip("disconnected")); },
+};
 boot();

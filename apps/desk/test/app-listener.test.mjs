@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { reduceEntries } from "../../../packages/nana-stage/lib/blocks.mjs";
 
 const DESK = Number(process.env.DESK_TEST_PORT || 4401);
 const PA = 4402, PB = 4403;
@@ -54,7 +55,8 @@ process.stdin.on("data", (c) => {
 			case "prompt": {
 				ok({});
 				say({ type: "agent_start" });
-				if (/ask/.test(cmd.message)) say({ type: "extension_ui_request", id: "ui-1", method: "select", title: "Allow?", options: ["Allow", "Deny"] });
+				if (/timed/.test(cmd.message)) say({ type: "extension_ui_request", id: "ui-t", method: "confirm", title: "Quick?", timeout: 400 });
+				else if (/ask/.test(cmd.message)) say({ type: "extension_ui_request", id: "ui-1", method: "select", title: "Allow?", options: ["Allow", "Deny"] });
 				else if (/blocks/.test(cmd.message)) ready.then(() => {
 					say({ type: "tool_execution_end", toolCallId: "c9", toolName: "t", isError: false, result: { content: [{ type: "text", text: "x" }], details: { blocks: [
 						signed(stamp("blk_live_ok", "t", "c9")),         // signed by this event → passes
@@ -157,7 +159,8 @@ try {
 	// ── entries passthrough ──
 	const ent = await get(A, "/api/entries");
 	check("entries: leafId + signed nana-block entry pass through", ent.leafId === "e4" && ent.entries.some((e) => e.customType === "nana-block" && e.data.id === "blk_ok"));
-	check("entries: FORGED (unsigned) nana-block entry stripped, other custom entries kept", !ent.entries.some((e) => e.data?.id === "blk_forged") && ent.entries.some((e) => e.customType === "other"));
+	check("entries: FORGED (unsigned) nana-block entry REDACTED, other custom entries kept", !ent.entries.some((e) => e.customType === "nana-block" && e.data?.id === "blk_forged") && ent.entries.some((e) => e.customType === "nana-block-rejected") && ent.entries.some((e) => e.customType === "other"));
+	check("entries: topology preserved — the forged node stays as a parent, so the reducer still reaches the valid block", ent.entries.length === 4 && ent.entries[2].id === "e3" && reduceEntries(ent.entries, ent.leafId).map((b) => b.id).join() === "blk_ok");
 	// live path: only the block signed by THIS event reaches the SSE clients
 	const liveBlocks = await new Promise((resolve, reject) => {
 		const ctl = new AbortController();
@@ -196,6 +199,15 @@ try {
 	check("own origin answers the dialog", r.status === 200 && (await r.json()).ok === true);
 	r = await post(A, "/api/ui-response", { id: "ui-1", value: "Allow" });
 	check("answering twice → 409 (dialog no longer open)", r.status === 409);
+
+	// a TIMED dialog expires server-side too: after its timeout the snapshot no longer lists it
+	await post(A, "/api/prompt", { message: "timed question" });
+	await new Promise((r) => setTimeout(r, 150));
+	check("timed dialog pending right after it arrives", (await get(A, "/api/session")).openDialogs === 1);
+	await new Promise((r) => setTimeout(r, 900));
+	check("timed dialog gone from the snapshot after its timeout", (await get(A, "/api/session")).openDialogs === 0);
+	r = await post(A, "/api/ui-response", { id: "ui-t", confirmed: true });
+	check("answering an expired dialog → 409", r.status === 409);
 } catch (e) {
 	console.log("HARNESS ERROR", e, "\n--- server log ---\n" + serverLog);
 	fails = 99;
