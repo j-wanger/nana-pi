@@ -1,6 +1,6 @@
 # UI-centric agent frontend — design
 
-*2026-09-04. Status: v6 — pi (gpt-5.6-sol) VERDICT LAND on round 6 (rounds 1-5 REWORK; corpus in `docs/reviews/agent-frontend-2026-09-04/`). Awaiting Jake's ruling before slice 1. Sibling of the chat-centric desk (`apps/desk`); does not replace it. Review rounds and adjudications are in §9.*
+*2026-09-04. Status: design LAND (pi gpt-5.6-sol, round 6). **Slice 1 BUILT the same day** (nana-pi `8e8bc5e`…`d0d6ef2`, basketball-geek `44e5e58`…`c6dcaa3`); adversarial build review rounds in §10. Awaiting Jake's feel check at http://127.0.0.1:7320.*
 
 ## 1. Decision
 
@@ -207,3 +207,30 @@ Deliverables, in order, each with its tests before the next starts:
 **Round 4 → REWORK.** F2 BLOCKING invalid `details.blocks` still ride `tool_execution_end` into the live stage → **failure path strips the carrier; success path replaces it with stamped blocks; live reducer accepts only stamped blocks (§3.2)**. F2 headless exit at `agent_end` is premature → **`agent_settled`, with retry and queued-continuation fixtures (§3.4, §6)**. F1/F2 appended tool text could contradict the rendering → **content is the canonical rendering only; code-authored `note` field for anything extra (§3.1)**. F3 `/api/run` under-specified; scheduled path not needed for a feel check → **contract defined (hold to settled, timeout, output path, single renderer module) and the whole path moved to slice 1b; Python validator and MCP overflow to slice 2 (§3.4, §6)**. F4 tests → **live malformed-block test, Origin middleware enumerated over every non-GET route incl. `DELETE`, settled-lifecycle fixtures, pre-recorded branch fixture, semantic-snapshot equality (§6)**.
 
 **Round 5 → all five round-4 items CLOSED; three payload corrections.** G2 live path is `event.result.details.blocks`, `content` patches are part arrays, `get_state` has no tools field → **fixed throughout; runtime allowlist check via a test-only extension calling `pi.getActiveTools()` (§3.2, §3.3, §6)**. G3 hook ordering and extension-block size → **`nana-stage` last in the manifest + stamp re-check on the live path; 64 KiB / 500-row cap (§3.2)**.
+
+## 10. Build log — slice 1 (2026-09-04)
+
+Built in the deliverable order of §6, each step with its tests before the next. What exists:
+
+| Piece | Where | Tests |
+|---|---|---|
+| Origin + JSON rule on the desk (deliverable 0) | `apps/desk/server.mjs` `originRejection` | `test/origin-rule.test.mjs` (11) |
+| Client library extracted | `apps/desk/public/desk-client.mjs`; desk unchanged | desk E2E ×3 |
+| Block contract + reducer + hook logic | `packages/nana-stage/lib/blocks.mjs`, `lib/sign.mjs` | `tests/blocks.test.mjs` (61) |
+| `nana-stage` extension | `packages/nana-stage/extensions/nana-stage.ts` | real chain (15, real pi + 2 model turns) |
+| Per-app listeners + manifests | `apps/desk/apps.mjs`; `~/.pi/agent/apps/<app>.json` | `test/app-listener.test.mjs` (43, stub pi) |
+| Stage host | `apps/desk/public/stage/` | `test/stage-page.e2e.mjs` (24, browser + stub pi) |
+| Basketball tools | `basketball-geek/.pi/extensions/nana-basketball.ts` → `scripts/blocks_cli.py` → `src/basketball_geek/blocks.py` | `tests/test_blocks.py` (12); repo gate 675 @ 94.4% |
+
+**What changed from the design during the build (all subtractions or hardenings, none new mechanisms):**
+- **Provenance is signed, not just stamped.** The adversarial review (round 1) showed a stamp alone is forgeable by any co-resident extension or a hand-edited session file. The desk now hands each app child a per-session key (`NANA_STAGE_KEY`); `nana-stage` signs every block (HMAC-SHA256 over the canonical JSON) and scrubs the key from the environment at load; the server drops unsigned or event-mismatched blocks on the live path and *redacts* (never deletes, to keep the session tree's ancestry) forged ledger entries on the read path. Precisely what this proves: the block was minted inside the app child by the manifest's extension set. It does not defend against hostile code already in that process; the manifest is that boundary.
+- **No delta cursor.** The stage replays the full active branch on attach, after every settled turn, and on every reconnect (a second `desk_hello`). Sessions are small; a delta cannot carry the branch ancestry.
+- **Empty tool allowlists are refused** at manifest load: an empty `-t` would have meant pi's defaults, shell included.
+- **Concurrent spawns are serialized** per app (three simultaneous `POST /api/session` → one child).
+- **Gates:** a card stays until the server accepts the answer; every `desk_hello` reconciles the bar against the snapshot; child exit clears stale cards with a notice; timed dialogs expire server-side so a snapshot never lists one pi already abandoned.
+- **Labelling:** board rows are "ANALYST-GENERATED" in scope; dossier lines carry a `dossier ·` label and file evidence; stat fields cite `stats`. Evidence renders inline, not on hover.
+- **Desk bug found:** pi reports tool failures in `result.isError`; the desk (and the stage) read the event's top-level flag and drew a green check on failures. Fixed in both.
+
+**Adversarial build review (pi gpt-5.6-sol):** round 1 REWORK (3 blockers: forgeable stamp, empty-allowlist hole + spawn race, gate answer race; plus cursor bug, drawer replaying abandoned branches, labelling) → all fixed above. Round 2 REWORK (forged-entry deletion severed ancestry; no replay on reconnect; timed dialogs lingered; sign the wire form; key is process-wide → claim narrowed) → all fixed above except the pre-existing Win32 drive-root argument handling, declined as out of slice and untestable here. **Round 3: LAND, no fixes** (all five round-2 items closed; the Win32 decline accepted as out of slice). Build-review corpus: `docs/reviews/agent-frontend-2026-09-04/build-round-{1,2,3}.md`.
+
+**Residuals (one line each, no round owed):** cross-origin GETs physically reach handlers though SOP hides responses; a failed post-spawn `get_state` leaves the manifest's session pointer stale but the child live; full replay is uncapped and will cost on very long sessions, and an in-flight replay can briefly overwrite a newer live update (the next settled replay corrects it); an extension loaded BEFORE `nana-stage` that deliberately captures the key is inside the trust boundary by construction; Win32 drive-root args in the desk's pre-existing shell-mode spawn.
