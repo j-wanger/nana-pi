@@ -44,6 +44,7 @@
  */
 
 import { exec, execFile, spawn } from "node:child_process";
+import { loadManifests, startAppListeners } from "./apps.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -122,13 +123,19 @@ function broadcast(child, obj) {
 	for (const res of child.clients) res.write(line);
 }
 
-function spawnChild({ cwd, session, name, approve, resources, appendSystemPrompt }) {
+function spawnChild({ cwd, session, name, approve, trust, tools, resources, appendSystemPrompt, app }) {
 	if ([...children.values()].filter((c) => c.state === "running").length >= MAX_CHILDREN)
 		throw new Error(`max ${MAX_CHILDREN} live sessions`);
 	const args = ["--mode", "rpc"];
 	if (session) args.push("--session", session);
 	if (name) args.push("--name", String(name));
-	if (approve) args.push("-a");
+	// Project trust is a spawn-time decision: `approve` (desk, legacy boolean) or the
+	// app manifest's explicit `trust` ("approve" | "no-approve" → -a | -na).
+	if (trust === "approve" || (approve && trust === undefined)) args.push("-a");
+	else if (trust === "no-approve") args.push("-na");
+	// App sessions run under an allowlist: built-in, extension AND adapter tools
+	// not named here are absent from the session (pi -t semantics).
+	if (Array.isArray(tools) && tools.length) args.push("-t", tools.join(","));
 	if (appendSystemPrompt) {
 		// via a temp FILE (the flag accepts file contents): multiline-safe on every
 		// platform and nothing user-written touches a shell line
@@ -174,7 +181,7 @@ function spawnChild({ cwd, session, name, approve, resources, appendSystemPrompt
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		proc, cwd, app: app || null, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,
@@ -995,6 +1002,43 @@ function originRejection(req, port) {
 }
 const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// ── shared per-child operations (desk listener AND app listeners) ──
+async function promptChild(child, body) {
+	const mode = ["prompt", "steer", "follow_up"].includes(body.mode) ? body.mode : "prompt";
+	const cmd = { type: mode, message: String(body.message || "") };
+	const images = sanitizeImages(body.images);
+	if (images) cmd.images = images;
+	if (mode === "prompt" && body.streamingBehavior) cmd.streamingBehavior = body.streamingBehavior;
+	// Acceptance usually answers instantly, but an extension command can hold the
+	// response for minutes while it blocks on a dialog. Wait briefly, then detach:
+	// a late rejection is surfaced to clients as a desk_prompt_rejected event.
+	const p = sendRpc(child, cmd);
+	const winner = await Promise.race([
+		p.then((r) => ({ r })).catch((e) => ({ r: { success: false, error: String(e.message || e) } })),
+		new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+	]);
+	if (winner) return { status: winner.r.success ? 200 : 409, body: { ok: winner.r.success, error: winner.r.error } };
+	p.then((r) => {
+		if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
+	}).catch(() => {});
+	return { status: 200, body: { ok: true, pending: true } };
+}
+
+async function answerDialog(child, body) {
+	const uiId = String(body.id || "");
+	if (!child.dialogs.has(uiId)) return { status: 409, body: { error: "dialog not open" } };
+	const reply = { type: "extension_ui_response", id: uiId };
+	if (body.cancelled) reply.cancelled = true;
+	else if (typeof body.confirmed === "boolean") reply.confirmed = body.confirmed;
+	else reply.value = body.value;
+	const ok = writeToChild(child, reply);
+	if (ok) {
+		child.dialogs.delete(uiId);
+		broadcast(child, { type: "desk_ui_resolved", id: uiId });
+	}
+	return { status: ok ? 200 : 409, body: { ok } };
+}
+
 const server = http.createServer(async (req, res) => {
 	const url = new URL(req.url, "http://localhost");
 	const p = url.pathname;
@@ -1055,25 +1099,8 @@ const server = http.createServer(async (req, res) => {
 				return;
 			}
 			if (action === "prompt" && req.method === "POST") {
-				const body = await readBody(req);
-				const mode = ["prompt", "steer", "follow_up"].includes(body.mode) ? body.mode : "prompt";
-				const cmd = { type: mode, message: String(body.message || "") };
-				const images = sanitizeImages(body.images);
-				if (images) cmd.images = images;
-				if (mode === "prompt" && body.streamingBehavior) cmd.streamingBehavior = body.streamingBehavior;
-				// Acceptance usually answers instantly, but an extension command can hold the
-				// response for minutes while it blocks on a dialog. Wait briefly, then detach:
-				// a late rejection is surfaced to clients as a desk_prompt_rejected event.
-				const p = sendRpc(child, cmd);
-				const winner = await Promise.race([
-					p.then((r) => ({ r })).catch((e) => ({ r: { success: false, error: String(e.message || e) } })),
-					new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
-				]);
-				if (winner) return json(res, winner.r.success ? 200 : 409, { ok: winner.r.success, error: winner.r.error });
-				p.then((r) => {
-					if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
-				}).catch(() => {});
-				return json(res, 200, { ok: true, pending: true });
+				const r = await promptChild(child, await readBody(req));
+				return json(res, r.status, r.body);
 			}
 			if (action === "rpc" && req.method === "POST") {
 				const body = await readBody(req);
@@ -1085,19 +1112,8 @@ const server = http.createServer(async (req, res) => {
 				return json(res, 200, r);
 			}
 			if (action === "ui-response" && req.method === "POST") {
-				const body = await readBody(req);
-				const uiId = String(body.id || "");
-				if (!child.dialogs.has(uiId)) return json(res, 409, { error: "dialog not open" });
-				const reply = { type: "extension_ui_response", id: uiId };
-				if (body.cancelled) reply.cancelled = true;
-				else if (typeof body.confirmed === "boolean") reply.confirmed = body.confirmed;
-				else reply.value = body.value;
-				const ok = writeToChild(child, reply);
-				if (ok) {
-					child.dialogs.delete(uiId);
-					broadcast(child, { type: "desk_ui_resolved", id: uiId });
-				}
-				return json(res, ok ? 200 : 409, { ok });
+				const r = await answerDialog(child, await readBody(req));
+				return json(res, r.status, r.body);
 			}
 			if (action === "bash" && req.method === "POST") {
 				const body = await readBody(req);
@@ -1280,4 +1296,17 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 
 server.listen(PORT, "127.0.0.1", () => {
 	console.log(`the pi desk → http://127.0.0.1:${PORT}`);
+});
+
+// ── app listeners: one origin per app manifest (apps.mjs) ──
+const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "agent", "apps");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+startAppListeners({
+	manifests: loadManifests(APPS_DIR),
+	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, originRejection, promptChild, answerDialog },
+	dirs: {
+		stage: path.join(PUBLIC, "stage"),
+		public: PUBLIC,
+		blocks: path.join(HERE, "..", "..", "packages", "nana-stage", "lib", "blocks.mjs"),
+	},
 });

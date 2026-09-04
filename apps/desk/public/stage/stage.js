@@ -1,0 +1,335 @@
+// stage.js — the stage host (design §3.3): stage + drawer + gate bar over one
+// app listener. Second consumer of desk-client.mjs; the reducer/contract come
+// from blocks.mjs. The layout is fixed and app-owned; the agent only fills it.
+import { el, contentBlocks, stripAnsi, toolRow, setToolStreaming, finishToolRow, buildDialog, openEventStream, postJson } from "/desk-client.mjs";
+import { reduceEntries, applyLiveBlocks, rowPrompt, fmtNum } from "/blocks.mjs";
+import { mdToHtml } from "/md.js";
+
+const $ = (id) => document.getElementById(id);
+const JH = { "content-type": "application/json" };
+
+// ── state ──
+let manifest = null;
+let session = null; // {id, cwd, state, ...}
+let stream = null;
+let blocks = []; // the stage, in first-appearance order
+let cursor = null; // last entry id seen (get_entries since=)
+let streaming = false;
+const turnsCtx = { container: null, toolRows: new Map() };
+let liveText = null; // streaming assistant bubble
+let currentTurn = null; // the .turn element receiving live content
+const QUICK = [
+	["general board", "Show the 2026-27 general board (top 30)"],
+	["consensus board", "Show the consensus dynasty board (top 30)"],
+	["which boards?", "Which boards are available?"],
+];
+
+// ── toasts / chip ──
+function toast(message, type = "info", ms) {
+	const t = el("div", `toast ${type}`, message);
+	$("toasts").appendChild(t);
+	setTimeout(() => t.remove(), ms || (type === "error" ? 10000 : 5000));
+}
+function setChip(s) {
+	const c = $("chip");
+	c.textContent = s;
+	c.className = `chip ${s === "running" ? "run" : s === "idle" ? "ok" : s === "exited" || s === "disconnected" ? "bad" : ""}`;
+	$("btn-abort").hidden = s !== "running";
+}
+
+// ── the stage ──
+function renderStage() {
+	const main = $("slot-main"), side = $("slot-side"), modal = $("modal-slot");
+	main.innerHTML = ""; side.innerHTML = ""; modal.innerHTML = "";
+	const shown = blocks.filter((b) => b.show !== false);
+	for (const b of shown) {
+		const target = b.slot === "side" ? side : b.slot === "modal" ? modal : main;
+		target.appendChild(renderBlock(b));
+	}
+	side.hidden = !side.children.length;
+	modal.hidden = !modal.children.length;
+	$("empty").hidden = shown.length > 0;
+}
+
+function provenance(b) {
+	const p = b.produced_by || {};
+	const args = p.args && Object.keys(p.args).length ? JSON.stringify(p.args) : "";
+	const foot = el("div", "blk-foot");
+	foot.appendChild(el("span", "blk-scope", b.scope || ""));
+	const by = el("span", "blk-by");
+	by.textContent = `${p.tool || "?"}${args ? " " + args : ""}${p.at ? " · " + new Date(p.at).toLocaleTimeString() : ""}`;
+	by.title = "produced by (stamped by nana-stage, not the model)";
+	foot.appendChild(by);
+	return foot;
+}
+
+function actionButtons(b, rowFor) {
+	const box = el("div", "blk-actions");
+	for (const a of b.actions || []) {
+		if (a.per_row) continue;
+		const btn = el("button", `btn small${a.mutates ? " mut" : ""}`, a.label);
+		btn.onclick = () => compose(a.prompt, { send: !a.mutates });
+		box.appendChild(btn);
+	}
+	return box;
+}
+
+function renderBlock(b) {
+	const card = el("article", `blk blk-${b.type}`);
+	card.dataset.id = b.id;
+	const head = el("div", "blk-head");
+	head.appendChild(el("h2", "blk-title", b.title));
+	if (b.subtitle) head.appendChild(el("div", "blk-sub", b.subtitle));
+	if (b.badges?.length) {
+		const bb = el("div", "blk-badges");
+		for (const t of b.badges) bb.appendChild(el("span", "badge", t));
+		head.appendChild(bb);
+	}
+	card.appendChild(head);
+	if (b.type === "table") card.appendChild(renderTable(b));
+	else if (b.type === "card") card.appendChild(renderCard(b));
+	if (b.note) card.appendChild(el("div", "blk-note", b.note));
+	const acts = actionButtons(b);
+	if (acts.children.length) card.appendChild(acts);
+	card.appendChild(provenance(b));
+	return card;
+}
+
+function renderTable(b) {
+	const wrap = el("div", "tbl-wrap");
+	const t = el("table", "tbl");
+	const perRow = (b.actions || []).filter((a) => a.per_row);
+	const thead = el("thead"), hr = el("tr");
+	for (const c of b.columns) hr.appendChild(el("th", c.type === "number" ? "num" : "", c.label));
+	if (perRow.length) hr.appendChild(el("th", "", ""));
+	thead.appendChild(hr);
+	t.appendChild(thead);
+	const tb = el("tbody");
+	for (const r of b.rows) {
+		const tr = el("tr");
+		for (const c of b.columns) {
+			const v = r[c.key];
+			tr.appendChild(el("td", c.type === "number" ? "num" : "", v === null || v === undefined ? "" : typeof v === "number" ? fmtNum(v) : String(v)));
+		}
+		if (perRow.length) {
+			const td = el("td", "row-act");
+			for (const a of perRow) {
+				const btn = el("button", "btn tiny", a.label);
+				btn.onclick = () => compose(rowPrompt(a.prompt, r), { send: !a.mutates });
+				td.appendChild(btn);
+			}
+			tr.appendChild(td);
+		}
+		tb.appendChild(tr);
+	}
+	t.appendChild(tb);
+	wrap.appendChild(t);
+	if (!b.rows.length) wrap.appendChild(el("div", "dim", "(no rows)"));
+	return wrap;
+}
+
+function renderCard(b) {
+	const dl = el("dl", "fields");
+	for (const f of b.fields) {
+		dl.appendChild(el("dt", "", f.label));
+		const dd = el("dd", "", typeof f.value === "number" ? fmtNum(f.value) : String(f.value));
+		if (f.evidence) dd.title = f.evidence;
+		dl.appendChild(dd);
+	}
+	return dl;
+}
+
+// ── the drawer (outcome cards over the transcript) ──
+function newTurn(kind) {
+	const t = el("div", `turn ${kind}`);
+	$("turns").appendChild(t);
+	return t;
+}
+function userTurn(text) {
+	const t = newTurn("user");
+	t.appendChild(el("div", "turn-text", text));
+	scrollTurns();
+	return t;
+}
+function agentTurn() {
+	if (!currentTurn || currentTurn.dataset.kind !== "agent") {
+		currentTurn = newTurn("agent");
+		currentTurn.dataset.kind = "agent";
+		currentTurn.appendChild(el("div", "turn-label", "agent's reading"));
+		turnsCtx.container = currentTurn;
+	}
+	return currentTurn;
+}
+function scrollTurns() {
+	const t = $("turns");
+	t.scrollTop = t.scrollHeight;
+}
+function assistantText(text, streamingNow) {
+	const t = agentTurn();
+	if (!liveText || !liveText.isConnected) {
+		liveText = el("div", "msg assistant md");
+		t.appendChild(liveText);
+	}
+	liveText.dataset.raw = text;
+	liveText.innerHTML = mdToHtml(text);
+	liveText.classList.toggle("streaming", !!streamingNow);
+	scrollTurns();
+}
+function appendHistory(m) {
+	if (m.role === "user") {
+		userTurn(contentBlocks(m.content).filter((b) => b.type === "text").map((b) => b.text).join("\n"));
+		currentTurn = null; liveText = null;
+	} else if (m.role === "assistant") {
+		for (const b of m.content || []) {
+			if (b.type === "text" && b.text.trim()) { liveText = null; assistantText(b.text, false); }
+			else if (b.type === "toolCall") { agentTurn(); toolRow(turnsCtx, b.id, b.name, b.arguments); }
+		}
+		liveText = null;
+	} else if (m.role === "toolResult") {
+		agentTurn();
+		finishToolRow(turnsCtx, m);
+	}
+}
+
+// ── gate bar ──
+function showGate(req) {
+	const bar = $("gate-bar");
+	if (bar.querySelector(`[data-ui-id="${CSS.escape(req.id)}"]`)) return;
+	const wrap = el("div", "gate");
+	wrap.dataset.uiId = req.id;
+	const answer = (body) => {
+		fetch("/api/ui-response", { method: "POST", headers: JH, body: JSON.stringify({ id: req.id, ...body }) });
+		wrap.remove();
+		bar.hidden = !bar.children.length;
+	};
+	wrap.appendChild(buildDialog(req, answer));
+	bar.appendChild(wrap);
+	bar.hidden = false;
+	toast(`the agent asks: ${stripAnsi(req.title || req.method).slice(0, 80)}`, "warning");
+}
+function dismissGate(id) {
+	$("gate-bar").querySelector(`[data-ui-id="${CSS.escape(id)}"]`)?.remove();
+	$("gate-bar").hidden = !$("gate-bar").children.length;
+}
+
+// ── events ──
+function handleEvent(e) {
+	switch (e.type) {
+		case "desk_hello":
+			for (const d of e.dialogs || []) showGate(d);
+			if (e.state === "exited") setChip("exited");
+			break;
+		case "agent_start": streaming = true; setChip("running"); break;
+		case "agent_settled": streaming = false; setChip("idle"); liveText = null; syncEntries(); break;
+		case "message_start": liveText = null; break;
+		case "message_update": {
+			const ame = e.assistantMessageEvent;
+			if (!ame) break;
+			if (ame.type === "text_delta") assistantText((liveText?.dataset.raw || "") + ame.delta, true);
+			else if (ame.type === "toolcall_start") { liveText = null; agentTurn(); toolRow(turnsCtx, ame.id, ame.toolName); }
+			break;
+		}
+		case "message_end":
+			if (e.message?.role === "user") { /* optimistic bubble already drawn by send() */ }
+			else if (e.message?.role === "assistant") { liveText?.classList.remove("streaming"); liveText = null; }
+			break;
+		case "tool_execution_start": agentTurn(); toolRow(turnsCtx, e.toolCallId, e.toolName, e.args ?? e.input); break;
+		case "tool_execution_update": {
+			const row = toolRow(turnsCtx, e.toolCallId, e.toolName);
+			const texts = contentBlocks(e.partialResult?.content).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+			setToolStreaming(row, texts);
+			break;
+		}
+		case "tool_execution_end": {
+			agentTurn();
+			const row = finishToolRow(turnsCtx, { toolCallId: e.toolCallId, toolName: e.toolName, content: e.result?.content, details: e.result?.details, isError: e.isError });
+			const bs = e.result?.details?.blocks;
+			if (Array.isArray(bs) && bs.length) {
+				blocks = applyLiveBlocks(blocks, bs); // only stamped blocks are accepted
+				renderStage();
+				const names = bs.filter((b) => b.produced_by).map((b) => b.title).join(", ");
+				if (names) row.querySelector(".targ").textContent = `→ ${names}`;
+			}
+			break;
+		}
+		case "extension_ui_request":
+			if (["select", "confirm", "input", "editor"].includes(e.method)) showGate(e);
+			else if (e.method === "notify") toast(stripAnsi(e.message || ""), e.notifyType || "info");
+			break;
+		case "desk_ui_resolved": dismissGate(e.id); break;
+		case "desk_prompt_rejected": toast(`prompt rejected: ${e.error || "unknown"}`, "error"); break;
+		case "desk_exit": streaming = false; setChip("exited"); toast(`session exited (${e.code})`, "error"); break;
+		case "auto_retry_start": setChip(`retry ${e.attempt}/${e.maxAttempts}`); break;
+		case "extension_error": toast(`extension error: ${e.error || ""}`, "error"); break;
+	}
+}
+
+// ── ledger sync (reload-safe: the ledger is the stage) ──
+async function syncEntries() {
+	const r = await fetch(cursor ? `/api/entries?since=${encodeURIComponent(cursor)}` : "/api/entries").then((x) => x.json()).catch(() => null);
+	if (!r || !Array.isArray(r.entries)) return;
+	if (!cursor) {
+		blocks = reduceEntries(r.entries, r.leafId);
+		renderStage();
+		// history into the drawer
+		for (const en of r.entries) if (en.type === "message" && en.message) appendHistory(en.message);
+		currentTurn = null; liveText = null;
+	}
+	if (r.leafId) cursor = r.leafId;
+}
+
+// ── composing (the UI is a prompt composer) ──
+export function compose(text, { send = true } = {}) {
+	const inp = $("input");
+	if (!send) {
+		inp.value = text;
+		openDrawer(true);
+		inp.focus();
+		return;
+	}
+	sendPrompt(text);
+}
+async function sendPrompt(text) {
+	text = text.trim();
+	if (!text || !session) return;
+	userTurn(text);
+	currentTurn = null; liveText = null;
+	const r = await postJson("/api/prompt", { message: text, mode: streaming ? "steer" : "prompt" }).catch((e) => ({ ok: false, error: String(e.message || e) }));
+	if (!r.ok) toast(`not accepted: ${r.error || "?"}`, "error");
+}
+function openDrawer(open) {
+	const d = $("drawer");
+	const want = open === undefined ? d.classList.contains("collapsed") : open;
+	d.classList.toggle("collapsed", !want);
+	$("btn-drawer").textContent = want ? "chat ▾" : "chat ▸";
+	try { localStorage.setItem("stage-drawer", want ? "open" : "closed"); } catch {}
+}
+
+// ── boot ──
+async function boot() {
+	manifest = await fetch("/api/manifest").then((r) => r.json());
+	$("app-title").textContent = manifest.title;
+	$("app-cwd").textContent = manifest.cwd.replace(/^\/(Users|home)\/[^/]+/, "~");
+	document.title = `${manifest.title} — stage`;
+	for (const [label, prompt] of QUICK) {
+		const b = el("button", "btn", label);
+		b.onclick = () => compose(prompt);
+		$("quick").appendChild(b);
+	}
+	try { openDrawer(localStorage.getItem("stage-drawer") !== "closed"); } catch { openDrawer(true); }
+	session = await postJson("/api/session", {}).catch(() => null);
+	if (!session?.id) { setChip("no session"); toast("could not start the app session", "error"); return; }
+	setChip("idle");
+	stream = openEventStream("/api/events", handleEvent, () => setChip("disconnected"));
+	await syncEntries();
+}
+
+$("btn-send").onclick = () => { sendPrompt($("input").value); $("input").value = ""; };
+$("input").onkeydown = (e) => {
+	if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("btn-send").click(); }
+};
+$("btn-abort").onclick = () => postJson("/api/abort", {}).catch(() => {});
+$("btn-drawer").onclick = () => openDrawer();
+document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") { e.preventDefault(); openDrawer(); } });
+window.stage = { compose, get blocks() { return blocks; } };
+boot();
