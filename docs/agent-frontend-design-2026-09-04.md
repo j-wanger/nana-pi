@@ -1,6 +1,6 @@
 # UI-centric agent frontend — design
 
-*2026-09-04. Status: design LAND (pi gpt-5.6-sol, round 6). **Slice 1 BUILT the same day** (nana-pi `8e8bc5e`…`d0d6ef2`, basketball-geek `44e5e58`…`c6dcaa3`); adversarial build review rounds in §10. Awaiting Jake's feel check at http://127.0.0.1:7320.*
+*2026-09-04. Status: design LAND (pi gpt-5.6-sol, round 6). **Slice 1 BUILT the same day** (nana-pi `8e8bc5e`…`d0d6ef2`, basketball-geek `44e5e58`…`c6dcaa3`); adversarial build review rounds in §10. **Slice 2 (the edge desk, §11) BUILT 2026-09-04/05 and review-LANDED after four adversarial rounds (§11.7).** Awaiting Jake's feel check at http://127.0.0.1:7320 (basketball) and http://127.0.0.1:7321 (edge desk).*
 
 ## 1. Decision
 
@@ -330,3 +330,7 @@ Built the same evening the redirect landed. Commits: nana-pi (kit: `chart`, list
 - MAJOR the shared Origin rule checks `content-type` only when a body is present, so a body-less simple POST from a no-Origin client could reach `/api/data/*` → **fixed**: that route demands `application/json` unconditionally; tests add body-less no-content-type and form-content-type POSTs → 403.
 - MINOR a child exiting mid-wait answered `200` with `tools: waiting` → **fixed**: `POST /api/session` answers 502 naming the exit; a dying stub child is tested.
 - Caught by the real-chain test while fixing the above: pi AWAITS extension event handlers, so an always-on watcher awaited inside `session_start` blocked the session forever (turn never settled). The watcher is now started detached from the handler. A stub-pi test cannot see this class; the real-chain e2e is the only net for it.
+
+**Round 4 → LAND** (`edge-r4.md`): all three round-3 findings confirmed FIXED. Two MINOR residuals: (1) the detached watcher had no rejection boundary → **fixed** (a throw downgrades to `missing: watcher error …` and polling continues); (2) after `ready`, the 2 s poll leaves a window in which one prompt can pass before a vanished tool is noticed — accepted as a bounded residual, no worse than a tool disappearing mid-turn; closing it would need prompt-time revalidation.
+
+**What four rounds taught (for slice 1b and the next app):** every round-1 fix I wrote for a *security-shaped* finding was itself fail-open in the direction the reviewer had not yet looked (a default of `ready`, a header whose absence was trusted, a guard conditional on body presence). The pattern to carry: a gate's default state is the finding's answer, not a convenience; and only the real-chain test sees handler-blocking and readiness classes — stubs cannot.

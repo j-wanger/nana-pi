@@ -48,10 +48,16 @@ export default function nanaStage(pi: ExtensionAPI): void {
 			// (server disconnect, metadata refresh). Keep watching; a disappearance downgrades
 			// the status and the desk refuses prompts until the tools are back.
 			for (;;) {
-				const active = new Set(pi.getActiveTools());
-				const missing = expect.filter((t) => !active.has(t));
-				if (!missing.length) report("ready");
-				else if (last === "ready" || Date.now() > deadline) report(`missing: ${missing.join(",")}`);
+				// Rejection boundary (review r4): a throw here must not kill the lifetime watcher
+				// and leave a stale "ready" behind; it downgrades and keeps polling.
+				try {
+					const active = new Set(pi.getActiveTools());
+					const missing = expect.filter((t) => !active.has(t));
+					if (!missing.length) report("ready");
+					else if (last === "ready" || Date.now() > deadline) report(`missing: ${missing.join(",")}`);
+				} catch (e) {
+					try { report(`missing: watcher error ${(e as Error)?.message || e}`); } catch { /* status channel gone: nothing left to report to */ }
+				}
 				await new Promise((r) => setTimeout(r, last === "ready" || last.startsWith("missing") ? 2000 : 200));
 			}
 		};
