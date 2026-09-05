@@ -92,6 +92,7 @@ fs.writeFileSync(path.join(appsDir, "gamma.json"), JSON.stringify(manifest(PG, c
 		"boom": ["node", "-e", "process.stderr.write('kaput'); process.exit(3)"],
 		"text": ["node", "-e", "console.log('not json')"],
 		"gone": ["/no/such/binary"],
+		"slow": ["node", "-e", "setTimeout(() => console.log('{}'), 5000)"],
 	},
 	quick: [["panel", "Show the panel"], ["bad"], "nope"],
 })));
@@ -105,7 +106,7 @@ fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(4405
 fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(4406, cwdA, { tools: [] })));
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
@@ -137,7 +138,7 @@ try {
 	// ── slice 2: app page + data commands ──
 	check("bad page / data manifests rejected at load", /badpage.json: page: no index.html/.test(serverLog) && /baddata.json: data: key 'Bad Key'/.test(serverLog) && /baddata2.json: data.ok: non-empty argv/.test(serverLog), serverLog.split("\n").filter((l) => /bad(page|data)/.test(l)).join(" | "));
 	const gm = await get(G, "/api/manifest");
-	check("manifest exposes quick prompts (well-formed only) and data keys, never argv", JSON.stringify(gm.quick) === JSON.stringify([["panel", "Show the panel"]]) && JSON.stringify(gm.data) === JSON.stringify(["tape", "boom", "text", "gone"]) && !JSON.stringify(gm).includes("node"), JSON.stringify(gm));
+	check("manifest exposes quick prompts (well-formed only) and data keys, never argv", JSON.stringify(gm.quick) === JSON.stringify([["panel", "Show the panel"]]) && JSON.stringify(gm.data) === JSON.stringify(["tape", "boom", "text", "gone", "slow"]) && !JSON.stringify(gm).includes("node"), JSON.stringify(gm));
 	check("app page served from the manifest's page dir", /gamma page/.test(await fetch(G + "/").then((r) => r.text())) && /gamma page/.test(await fetch(G + "/index.html").then((r) => r.text())));
 	check("app.js served from the page dir", /gamma app.js/.test(await fetch(G + "/app.js").then((r) => r.text())));
 	check("stage.js is the KIT's even when the page dir has its own", !/MUST NOT/.test(await fetch(G + "/stage.js").then((r) => r.text())));
@@ -152,6 +153,14 @@ try {
 	dr = await fetch(G + "/api/data/gone");
 	check("unstartable command → 500", dr.status === 500 && /failed to start/.test((await dr.json()).error));
 	check("unknown data key → 404", (await fetch(G + "/api/data/nope")).status === 404);
+	dr = await fetch(G + "/api/data/slow");
+	check("data command over the timeout → 504, killed", dr.status === 504 && /timed out/.test((await dr.json()).error), String(dr.status));
+	// cross-site GETs must not run the command: a foreign page's fetch (Origin) or <img>/<script> (Sec-Fetch-Site)
+	check("cross-origin GET /api/data → 403", (await fetch(G + "/api/data/tape", { headers: { origin: A } })).status === 403);
+	check("cross-site GET /api/data (sec-fetch-site: cross-site, no Origin) → 403", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "cross-site" } })).status === 403);
+	check("same-origin GET /api/data (sec-fetch-site: same-origin) → 200", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "same-origin" } })).status === 200);
+	check("typed-URL GET /api/data (sec-fetch-site: none) → 200", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "none" } })).status === 200);
+	check("cross-origin GET on a read-only route (manifest) still allowed — SOP hides the body", (await fetch(G + "/api/manifest", { headers: { origin: A } })).status === 200);
 	check("data route is GET-only (POST → not found, after the origin rule)", (await post(G, "/api/data/tape", {})).status === 404);
 	check("alpha (no data) → 404 on every data key", (await fetch(A + "/api/data/tape")).status === 404);
 	check("no session yet → null", (await get(A, "/api/session")) === null);

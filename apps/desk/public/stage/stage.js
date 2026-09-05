@@ -456,7 +456,8 @@ async function boot() {
 	try { openDrawer(localStorage.getItem("stage-drawer") !== "closed"); } catch { openDrawer(true); }
 	session = await postJson("/api/session", {}).catch(() => null);
 	if (!session?.id) { setChip("no session"); toast("could not start the app session", "error"); return; }
-	setChip("idle");
+	if (session.tools && session.tools !== "ready") { setChip("tools?"); toast(`app tools ${session.tools} — prompts are refused until they load`, "error", 15000); }
+	else setChip("idle");
 	stream = openEventStream("/api/events", handleEvent, () => setChip("disconnected"));
 	await replayLedger();
 }

@@ -167,6 +167,10 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// it and this server refuses unsigned blocks (handleChildEvent, /api/entries).
 	const stageKey = app ? randomBytes(32).toString("hex") : null;
 	const envMore = stageKey ? { NANA_STAGE_KEY: stageKey } : {};
+	// App sessions are told which tools they must have; nana-stage (when loaded) reports
+	// "waiting" → "ready" / "missing: …" on the RPC status channel (statusKey nana-tools).
+	// A child that never reports cannot be waited on and counts as ready (apps.mjs).
+	if (app && Array.isArray(tools) && tools.length) envMore.NANA_STAGE_EXPECT_TOOLS = tools.join(",");
 	let proc;
 	if (process.platform === "win32") {
 		const env = childEnv(envMore);

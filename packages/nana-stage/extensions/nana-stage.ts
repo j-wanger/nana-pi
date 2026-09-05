@@ -24,6 +24,25 @@ export default function nanaStage(pi: ExtensionAPI): void {
 	// extension loaded after this one must not inherit the provenance key.
 	delete process.env.NANA_STAGE_KEY;
 	const sign = key ? (b: unknown) => signBlock(key, b) : null;
+	// Tool readiness (design §11.7): the desk names the tools the app session must
+	// have; MCP-adapter direct tools register asynchronously, so this reports — via the
+	// RPC status channel the desk already tracks — when they are all active, or which
+	// are missing after the wait. The desk holds POST /api/session until "ready".
+	const expect = (process.env.NANA_STAGE_EXPECT_TOOLS || "").split(",").map((t) => t.trim()).filter(Boolean);
+	delete process.env.NANA_STAGE_EXPECT_TOOLS;
+	if (expect.length) {
+		pi.on("session_start", async (_event, ctx) => {
+			const deadline = Date.now() + 30000;
+			ctx.ui.setStatus("nana-tools", "waiting");
+			for (;;) {
+				const active = new Set(pi.getActiveTools());
+				const missing = expect.filter((t) => !active.has(t));
+				if (!missing.length) { ctx.ui.setStatus("nana-tools", "ready"); return; }
+				if (Date.now() > deadline) { ctx.ui.setStatus("nana-tools", `missing: ${missing.join(",")}`); return; }
+				await new Promise((r) => setTimeout(r, 200));
+			}
+		});
+	}
 
 	pi.on("tool_result", async (event) => {
 		const r = processToolResult(

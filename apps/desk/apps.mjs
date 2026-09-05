@@ -7,7 +7,9 @@
 // these routes; nothing else exists on it (no spawn, live, session/:id, bash,
 // rpc passthrough, delete, settings):
 //
-//   POST /api/session            spawn this app's session from its manifest, or return the live one
+//   POST /api/session            spawn this app's session from its manifest (held until nana-stage
+//                                reports the manifest tools active: `tools` = ready|waiting|missing: …),
+//                                or return the live one
 //   GET  /api/session            the live child, or null
 //   GET  /api/events             SSE: desk_hello, then live events
 //   POST /api/prompt             {message, mode?}
@@ -17,7 +19,8 @@
 //   GET  /api/manifest           {name, title, cwd, mutating, tools, quick} — read-only
 //   GET  /api/data/<key>         app-owned durable state: runs the manifest's `data[key]`
 //                                command (cwd = manifest.cwd, fixed argv, no client input,
-//                                20 s timeout) and relays its JSON stdout
+//                                20 s timeout) and relays its JSON stdout; same-origin or
+//                                direct requests only (Sec-Fetch-Site + Origin rule)
 //   GET  /<page file>            when the manifest names a `page` dir, its index.html /
 //                                app.js / app.css are served in place of the kit's stage
 //                                page (the kit modules stay at their paths)
@@ -173,7 +176,8 @@ function runData(argv, cwd, env) {
 	return new Promise((resolve) => {
 		let out = "", err = "";
 		const proc = spawn(argv[0], argv.slice(1), { cwd, stdio: ["ignore", "pipe", "pipe"], env });
-		const timer = setTimeout(() => { proc.kill("SIGKILL"); resolve({ status: 504, body: { error: "data command timed out (20 s)" } }); }, 20000);
+		const ms = Number(process.env.DESK_DATA_TIMEOUT_MS) || 20000; // env: tests only
+		const timer = setTimeout(() => { proc.kill("SIGKILL"); resolve({ status: 504, body: { error: `data command timed out (${ms} ms)` } }); }, ms);
 		proc.stdout.on("data", (c) => (out += c));
 		proc.stderr.on("data", (c) => (err += c));
 		proc.on("error", (e) => { clearTimeout(timer); resolve({ status: 500, body: { error: `data command failed to start: ${e.message}` } }); });
@@ -191,8 +195,21 @@ function liveChild(app, deps) {
 	return c;
 }
 
+// tools: "ready" | "waiting" | "missing: a,b" — nana-stage's status report (it sets
+// "waiting" synchronously in session_start, before the desk's post-spawn get_state
+// returns). A child that has not reported cannot be waited on and reads "ready"; the
+// real-chain e2e asserts the report itself is present, so a silent child is caught there.
+function toolsState(c) {
+	return c.statuses.get("nana-tools") || "ready";
+}
 function childInfo(id, c) {
-	return { id, cwd: c.cwd, state: c.state, startedAt: c.startedAt, title: c.title, openDialogs: c.dialogs.size };
+	return { id, cwd: c.cwd, state: c.state, startedAt: c.startedAt, title: c.title, openDialogs: c.dialogs.size, tools: toolsState(c) };
+}
+// Hold until the child reports its tools (bounded; nana-stage itself gives up at 30 s).
+async function awaitTools(c, ms = 35000) {
+	const end = Date.now() + ms;
+	while (toolsState(c) === "waiting" && c.state === "running" && Date.now() < end) await new Promise((r) => setTimeout(r, 150));
+	return toolsState(c);
 }
 
 async function spawnForApp(app, deps) {
@@ -241,6 +258,14 @@ async function handle(app, req, res, deps, files) {
 		if (p === "/api/manifest" && req.method === "GET")
 			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: m.port, quick: m.quick, data: Object.keys(m.data) });
 		if (p.startsWith("/api/data/") && req.method === "GET") {
+			// A GET that RUNS a command is state-changing in cost: another site's <img>/<script>
+			// or fetch must not be able to trigger it. Browsers send Sec-Fetch-Site on every
+			// request — only same-origin (the page) or none (typed URL, curl has no header) pass;
+			// a foreign Origin is refused as on every other route.
+			const site = req.headers["sec-fetch-site"];
+			if (site !== undefined && site !== "same-origin" && site !== "none") return json(res, 403, { error: `cross-site data request rejected (sec-fetch-site ${site})` });
+			const bad = originRejection(req, m.port);
+			if (bad) return json(res, 403, { error: bad });
 			const key = p.slice("/api/data/".length);
 			const argv = m.data[key];
 			if (!argv) return json(res, 404, { error: "no such data key" });
@@ -263,6 +288,7 @@ async function handle(app, req, res, deps, files) {
 				await app.spawning;
 				c = deps.children.get(app.childId);
 			}
+			await awaitTools(c);
 			return json(res, 200, childInfo(app.childId, c));
 		}
 		const child = liveChild(app, deps);
@@ -281,6 +307,10 @@ async function handle(app, req, res, deps, files) {
 			return;
 		}
 		if (p === "/api/prompt" && req.method === "POST") {
+			// A prompt before the app's tools are active would run the model without them
+			// (and the allowlist excludes the adapter's proxy): refuse, do not guess.
+			const ts = toolsState(child);
+			if (ts !== "ready") return json(res, 409, { error: ts === "waiting" ? "app tools not ready yet — retry" : `app tools ${ts}` });
 			const r = await promptChild(child, await readBody(req));
 			return json(res, r.status, r.body);
 		}

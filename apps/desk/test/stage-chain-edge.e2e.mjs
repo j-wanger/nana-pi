@@ -94,12 +94,14 @@ try {
 
 	const s = await post(A, "/api/session", {});
 	check("real pi child spawned from the manifest", typeof s.id === "string", JSON.stringify(s));
-	// the adapter registers direct tools from its metadata cache (or hot-loads them after the eager connect);
-	// give it a moment before the first turn so the model sees them
-	await new Promise((r) => setTimeout(r, 6000));
+	// POST /api/session is held until nana-stage reports the manifest's tools active (or names the
+	// missing ones) — the adapter registers direct tools asynchronously; the desk does not guess.
+	check("session reports its tools READY (nana-stage status via RPC), no sleep", s.tools === "ready", String(s.tools));
 
 	const t1 = await turn(A, "Call the screen_detail tool with screen=amihud_illiquidity. Then reply with exactly one word: done");
 	if (t1.how !== "agent_settled") { console.log("turn 1 never settled:", t1.how, "\n", log.slice(-2500), "\n", JSON.stringify(t1.events.slice(-4)).slice(0, 1500)); die(2); }
+	const hello1 = t1.events.find((e) => e.type === "desk_hello");
+	check("desk_hello carries nana-stage's own report (statuses.nana-tools = ready) — readiness was observed, not defaulted", hello1?.statuses?.["nana-tools"] === "ready", JSON.stringify(hello1?.statuses));
 	const e1 = ends(t1.events, "screen_detail");
 	check("screen_detail ran as a DIRECT tool (its own tool_execution_end, not the mcp proxy)", e1.length >= 1, `ends: ${t1.events.filter((e) => e.type === "tool_execution_end").map((e) => e.toolName).join(",")}`);
 	const end = e1[0];
@@ -134,8 +136,7 @@ try {
 
 	// ── overflow: the second child's adapter caps details at 512 bytes ──
 	const s2 = await post(T, "/api/session", {});
-	check("tiny-cap child spawned", typeof s2.id === "string", JSON.stringify(s2));
-	await new Promise((r) => setTimeout(r, 6000));
+	check("tiny-cap child spawned and READY", typeof s2.id === "string" && s2.tools === "ready", JSON.stringify(s2));
 	const t4 = await turn(T, "Call the screen_panel tool. Then reply with exactly one word: done");
 	const e4 = ends(t4.events, "screen_panel");
 	check("over-cap MCP result → nana-stage error naming the cap, nothing on stage", t4.how === "agent_settled" && e4.length >= 1 && (e4[0].isError === true || e4[0].result?.isError === true) && /detailsMaxBytes/.test(e4[0].result?.content?.[0]?.text || "") && !(e4[0].result?.details?.blocks || []).length, JSON.stringify({ how: t4.how, err: e4[0]?.isError ?? e4[0]?.result?.isError, text: e4[0]?.result?.content?.[0]?.text?.slice(0, 200), keys: Object.keys(e4[0]?.result?.details || {}) }));

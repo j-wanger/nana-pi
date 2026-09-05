@@ -2,7 +2,7 @@
 // (design §6 deliverable 2). Zero-dep. Run: node packages/nana-stage/tests/blocks.test.mjs
 import {
 	validateBlock, renderBlockText, extractBlocks, stripCarrier, reduceEntries, applyLiveBlocks,
-	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE, MAX_CHART_SERIES, MAX_CHART_POINTS,
+	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE, MAX_CHART_SERIES, MAX_CHART_POINTS, MAX_CHART_POINTS_TOTAL,
 } from "../lib/blocks.mjs";
 import { signBlock, verifyBlock, canonical } from "../lib/sign.mjs";
 
@@ -49,6 +49,10 @@ check("chart: empty series rejected", !validateBlock({ ...chart(), series: [] })
 check(`chart: > ${MAX_CHART_SERIES} series rejected`, !validateBlock({ ...chart(), series: Array.from({ length: MAX_CHART_SERIES + 1 }, (_, i) => ({ key: `s${i}`, label: `S${i}`, points: [["2020-01-01", 1]] })) }).ok);
 check(`chart: > ${MAX_CHART_POINTS} points rejected`, !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: Array.from({ length: MAX_CHART_POINTS + 1 }, (_, i) => [i, 1]) }], x: { type: "number" } }).ok);
 check("chart: bad date x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020/01/01", 1]] }] }).ok);
+check("chart: impossible calendar date rejected (2026-99-99, 2026-02-30)", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2026-99-99", 1]] }] }).ok && !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2026-02-30", 1]] }] }).ok && validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2024-02-29", 1]] }] }).ok);
+check("chart: all-null series (nothing to draw) rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", null], ["2020-01-02", null]] }] }).ok);
+check(`chart: > ${MAX_CHART_POINTS_TOTAL} points across series rejected even when each series is under ${MAX_CHART_POINTS}`, !validateBlock({ ...chart(), x: { type: "number" }, series: [1, 2, 3].map((k) => ({ key: `s${k}`, label: `S${k}`, points: Array.from({ length: 900 }, (_, i) => [i, 1]) })) }).ok);
+check("chart: a 2-series × 1000-point date chart fits the byte cap", validateBlock({ ...chart(), series: [1, 2].map((k) => ({ key: `s${k}`, label: `S${k}`, points: Array.from({ length: 1000 }, (_, i) => [new Date(Date.UTC(2013, 0, 4) + i * 7 * 86400000).toISOString().slice(0, 10), 1 + i * 0.0137]) })) }).ok);
 check("chart: non-monotonic x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-02-01", 1], ["2020-01-01", 1]] }] }).ok);
 check("chart: NaN y rejected, null y allowed", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", NaN]] }] }).ok && validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", null], ["2020-01-02", 1]] }] }).ok);
 check("chart: number x-axis accepts numbers only", validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [[1, 1], [2, 2]] }] }).ok && !validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [["2020-01-01", 1]] }] }).ok);

@@ -17,7 +17,14 @@ export const RESERVED_TYPES = new Set(["kpi", "timeline", "graph"]);
 export const CHART_KINDS = new Set(["line"]);
 export const CHART_X_TYPES = new Set(["date", "number"]);
 export const MAX_CHART_SERIES = 4;
-export const MAX_CHART_POINTS = 1000;
+export const MAX_CHART_POINTS = 1000; // per series
+export const MAX_CHART_POINTS_TOTAL = 2400; // all series — keeps a date-x chart under MAX_BLOCK_BYTES
+// A real calendar date: parses AND round-trips (2026-99-99 does not).
+export const isIsoDate = (x) => {
+	if (!isStr(x) || !/^\d{4}-\d{2}-\d{2}$/.test(x)) return false;
+	const t = Date.parse(x + "T00:00:00Z");
+	return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === x;
+};
 export const SLOTS = new Set(["main", "side", "modal"]);
 export const COLUMN_TYPES = new Set(["text", "number", "date"]);
 export const MAX_BLOCK_BYTES = 64 * 1024;
@@ -84,6 +91,8 @@ export function validateBlock(b) {
 		}
 		if (!Array.isArray(b.series) || !b.series.length) err("chart.series: non-empty array");
 		else if (b.series.length > MAX_CHART_SERIES) err(`chart.series: ${b.series.length} > ${MAX_CHART_SERIES} — facet into another block`);
+		else if (b.series.reduce((n, s) => n + (Array.isArray(s?.points) ? s.points.length : 0), 0) > MAX_CHART_POINTS_TOTAL) err(`chart: more than ${MAX_CHART_POINTS_TOTAL} points across series — downsample`);
+		else if (!b.series.some((s) => Array.isArray(s?.points) && s.points.some((p) => Array.isArray(p) && typeof p[1] === "number" && Number.isFinite(p[1])))) err("chart: no finite y value in any series — nothing to draw");
 		else b.series.forEach((s, i) => {
 			if (!isObj(s) || !isStr(s.key) || !isStr(s.label)) { err(`series[${i}]: {key, label, points}`); return; }
 			if (!Array.isArray(s.points) || !s.points.length) { err(`series[${i}].points: non-empty array`); return; }
@@ -93,8 +102,8 @@ export function validateBlock(b) {
 				const pt = s.points[j];
 				if (!Array.isArray(pt) || pt.length !== 2) { err(`series[${i}].points[${j}]: [x, y]`); return; }
 				const [x, y] = pt;
-				const xv = b.x?.type === "date" ? (isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null) : (typeof x === "number" && Number.isFinite(x) ? x : null);
-				if (xv === null) { err(`series[${i}].points[${j}]: x must be ${b.x?.type === "date" ? "YYYY-MM-DD" : "a finite number"}`); return; }
+				const xv = b.x?.type === "date" ? (isIsoDate(x) ? x : null) : (typeof x === "number" && Number.isFinite(x) ? x : null);
+				if (xv === null) { err(`series[${i}].points[${j}]: x must be ${b.x?.type === "date" ? "a real YYYY-MM-DD date" : "a finite number"}`); return; }
 				if (prev !== null && xv < prev) { err(`series[${i}].points[${j}]: x must be non-decreasing`); return; }
 				prev = xv;
 				if (y !== null && (typeof y !== "number" || !Number.isFinite(y))) { err(`series[${i}].points[${j}]: y must be a finite number or null`); return; }
