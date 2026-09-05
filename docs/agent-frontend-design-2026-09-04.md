@@ -155,12 +155,13 @@ Routes carry no app name and no child id: the listener *is* the app, and it hold
 
 ## 5. Transferability, stated so it can fail
 
-The claim is that the **mechanism** transfers, not the taxonomy: block contract + `nana-stage` + stage host + per-app listener + manifest are reused unchanged by the second and third apps, and each app adds only (a) its tools returning blocks, (b) its manifest, (c) its page. The claim is judged at slice 2, which must exercise everything slice 1 avoids: MCP-bridged tools with the `details.mcpResult` path, mutation refresh, cell-level evidence, and lifecycle recovery on a real case. If slice 2 needs a change to `nana-stage` or the host beyond adding a block type, the design failed and that app goes bespoke.
+The claim is that the **mechanism** transfers, not the taxonomy: block contract + `nana-stage` + stage host + per-app listener + manifest are reused unchanged by the second and third apps, and each app adds only (a) its tools returning blocks, (b) its manifest, (c) its page. The claim is judged at slice 2 (now the edge desk, §11 — Jake redirected it from AML on 2026-09-04), which must exercise everything slice 1 avoids: MCP-bridged tools with the `details.mcpResult` path, mutation refresh, cell-level evidence, and lifecycle recovery on a real artifact set. If slice 2 needs a change to `nana-stage` or the host beyond adding a block type, the design failed and that app goes bespoke.
 
 | | App-owned views | Blocks (v0 types) | Composed prompts | Scheduled |
 |---|---|---|---|---|
 | **fantasy basketball** | none in slice 1 | `card` player (players + season stats + contract + injuries), `table` board / nine-cat | click player → "evaluate trading X" | nightly after `scripts/nightly.py` |
-| **AML investigator** | case record, alert list (aggregate-only tools exist) | `card` entity, `table` red-flag hits with evidence, later `graph` + `timeline` | click red flag → "show the transactions behind this" | new-alert trigger |
+| **edge desk (edge-screener)** — slice 2, Jake 2026-09-04, §11 | tape card (vintage, span, as-of), reports shelf, persona roster | `table` screen panel / construction / direction board, `card` screen detail, **`chart`** OOS curve (first new block type) | click screen → "detail for X"; click row → "explore X on this universe" (mutating) | weekly tape pull + panel explore → static page |
+| **AML investigator** (deferred behind the edge desk) | case record, alert list (aggregate-only tools exist) | `card` entity, `table` red-flag hits with evidence, later `graph` + `timeline` | click red flag → "show the transactions behind this" | new-alert trigger |
 | **family-planner** | everything it has now; direct manipulation stays | `table` proposed meal plan, later `kpi` expiring | "plan next week around what expires" | morning briefing (phase 6) |
 
 ## 6. Slice 1: fantasy basketball, two blocks, one page
@@ -234,3 +235,55 @@ Built in the deliverable order of §6, each step with its tests before the next.
 **Adversarial build review (pi gpt-5.6-sol):** round 1 REWORK (3 blockers: forgeable stamp, empty-allowlist hole + spawn race, gate answer race; plus cursor bug, drawer replaying abandoned branches, labelling) → all fixed above. Round 2 REWORK (forged-entry deletion severed ancestry; no replay on reconnect; timed dialogs lingered; sign the wire form; key is process-wide → claim narrowed) → all fixed above except the pre-existing Win32 drive-root argument handling, declined as out of slice and untestable here. **Round 3: LAND, no fixes** (all five round-2 items closed; the Win32 decline accepted as out of slice). Build-review corpus: `docs/reviews/agent-frontend-2026-09-04/build-round-{1,2,3}.md`.
 
 **Residuals (one line each, no round owed):** cross-origin GETs physically reach handlers though SOP hides responses; a failed post-spawn `get_state` leaves the manifest's session pointer stale but the child live; full replay is uncapped and will cost on very long sessions, and an in-flight replay can briefly overwrite a newer live update (the next settled replay corrects it); an extension loaded BEFORE `nana-stage` that deliberately captures the key is inside the trust boundary by construction; Win32 drive-root args in the desk's pre-existing shell-mode spawn.
+
+## 11. Slice 2 (revised 2026-09-04): the edge desk over edge-screener
+
+*Jake's redirect: the second use case is a trading dashboard built from what `~/edge-screener` has today; AML moves behind it. Status: design, not built. Awaits the slice-1 feel check as before.*
+
+### 11.1 What edge-screener actually has (checked on this Mac, 2026-09-04)
+
+- **One frozen tape, no live data.** Vintage label `live`: 504 S&P names, daily OHLCV 2010-01-04 → 2026-05-29 (yfinance, content-addressed parquet, 77 MB). `pull` is network, explicitly non-reproducible, and gated behind an acknowledgement flag. The `surv-run` vintage the standing survivorship verdict needs is **absent here** — `edge-screener verdict` fails on this machine; the committed reports are the only source for that band.
+- **Committed verdicts (read, don't recompute):** corrected panel (11 screens × Deflated Sharpe / HAC p / FDR q / verdict, `reports/edge-verdict-corrected-live.md`), survivorship band (9 screens × three delisting assumptions), stage-2 construction table (amihud, 18 variants), stop-family report, the 2026-07-20 confirmatory test (momentum 0/8 rejected, amihud control calibrated), 12 persona direction/firm sessions as JSONL + markdown.
+- **Cheap compute:** `explore --screen X --manifest live` = 2.8 s on 503 names, writes a report, labelled NOT A VERDICT (in-sample, uncorrected). Direction rounds are ~5 min (sweep-dominated); stage-2 and robustness batteries are minutes to an hour. Standing conclusion: **no edge 9/9 survivorship-corrected; amihud is the one family-corrected edge, outside every mandate under 35% drawdown.**
+- **No positions, orders, P&L, quotes, or broker.** "Trading dashboard" over this repo is a **research desk**: what the tape says about each screen, under which construction, for which mandate. Anything with live positions is new ingest and out of scope for this slice.
+
+### 11.2 The page
+
+App-owned views (durable, painted from the repo, never by the agent): **tape card** (vintage label, symbol count, span, as-of), **reports shelf** (committed and exploratory reports by kind and date; refreshes on mutation), **persona roster** (12 personas, tolerance, last direction result).
+
+Blocks (tools return them; agent decides which to call):
+
+| Tool | Block | Source | Action |
+|---|---|---|---|
+| `screen_panel()` | `table` 11 screens: DSR, HAC p, FDR q, verdict, near-miss | corrected-live report; every cell carries `evidence` = report path + line | row → `screen_detail` |
+| `screen_detail(screen)` | `card` metrics + survivorship band + sub-period stability; **`chart`** OOS equity and drawdown vs SPY | card from reports; chart series computed or read from a cached artifact (§11.4 item 0 decides) | "explore {screen} on this universe" (mutating) · "construction table" |
+| `construction_table(screen)` / `stop_table(screen)` | `table` variants × Sharpe/IR/maxDD/DSR/edge/envelope | committed stage-2 and stop reports | row → detail card |
+| `direction_board()` | `table` persona × screen × family × in-mandate fraction × best config | direction-session JSONL | row → persona card |
+| `explore_screen(screen, universe?)` — **mutating** | `table` would-hold names + signal; code-authored `note`: "NOT A VERDICT — in-sample, uncorrected" | runs `explore` (≈3 s); writes `reports/explore/<ts>-<screen>.md` only | shelf refresh |
+
+Nothing that runs minutes is a tool. Stage-2, stops, robustness and direction sessions are **scheduled turns** (`/api/run`, slice 1b) or refused with a hint naming the schedule route. `pull` is never in the interactive allowlist; it runs only from the scheduled path under a dated label, so the standing verdict's vintage is never touched.
+
+### 11.3 What this slice judges (the transferability claim, §5)
+
+The kit must stay unchanged **except for adding the reserved `chart` block type** (line series, ≤2k points per series, code-authored, validated in both validators, inline-SVG render — no library). Everything slice 1 dodged is exercised here:
+
+- **MCP path.** Tools live in a Python MCP server inside edge-screener (`structuredContent.blocks`), bridged by `pi-mcp-adapter` (installed) with `directToolResultDetails: "bounded"`. This pins `details.mcpResult`, the 16 KiB cap → error-naming-the-cap behaviour, and lands the kit's **Python validator** (deferred from slice 1) with fixtures shared byte-for-byte with the JS one.
+- **Mutation refresh.** `explore_screen` in the manifest's `mutating` list → `agent:changed` → shelf refetch.
+- **Cell-level evidence.** Every number on the panel resolves to a committed report line; the test asserts each ref exists.
+- **Lifecycle.** Reload / desk restart replay over a session that mixes MCP blocks and an exploratory mutation.
+
+Failure rule unchanged: if `nana-stage` or the host needs a change beyond the block type, the design failed and the edge desk goes bespoke.
+
+### 11.4 Deliverables, in order
+
+0. **Measure first (≈15 min):** time `screen --focus` on `live` (decides whether the chart series is computed in-tool or read from a cached artifact); confirm how `pi-mcp-adapter` registers MCP tools (direct `pi.registerTool` per tool vs one proxy tool) and where the raw result lands. Either answer changes step 2.
+1. Kit: `chart` in `blocks.mjs` + Python validator `nana_stage/blocks.py` + shared fixtures; stage renderer for `chart`. Declared kit change, adversarial pi round on it alone.
+2. edge-screener: `src/edge_screener/blocks.py` (pure block builders over reports + `explore`) + MCP server; tests per builder (evidence refs resolve; explore writes only under `reports/explore/`; NOT-A-VERDICT note present).
+3. Manifest `~/.pi/agent/apps/edge.json` (port 7321, cwd edge-screener, tools = the five above, `mutating: ["explore_screen"]`, no bash/edit/write) + page with the three app-owned views.
+4. Tests through the real child: MCP block → stage; oversize → error naming the cap; mutation → shelf refresh; reload replay; chart cap.
+5. Adversarial pi round on the build → Jake's feel check: ask for the panel → click amihud → detail + chart → click "explore" → shelf gains a report → reading in the drawer.
+6. Slice 1b (scheduled path) then runs the weekly tape pull + panel explore as its first real job.
+
+### 11.5 Blast radius
+
+Tools read committed reports and run one 3-second in-sample peek; the only write is a new file under `reports/explore/`. No network from the interactive session, no standing-verdict path touched, no shell. The MCP server is a local stdio child of the pi session, launched by the adapter; it inherits the app session's cwd and nothing else.
