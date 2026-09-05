@@ -429,10 +429,24 @@ export function compose(text, { send = true } = {}) {
 async function sendPrompt(text) {
 	text = text.trim();
 	if (!text || !session) return;
-	userTurn(text);
+	if (!toolsReady) { toast(`app tools ${session.tools || "not ready"} — kept your prompt`, "warning"); $("input").value = text; return; }
+	const bubble = userTurn(text);
 	currentTurn = null; liveText = null;
 	const r = await postJson("/api/prompt", { message: text, mode: streaming ? "steer" : "prompt" }).catch((e) => ({ ok: false, error: String(e.message || e) }));
-	if (!r.ok) toast(`not accepted: ${r.error || "?"}`, "error");
+	if (!r.ok) { bubble.remove(); $("input").value = text; toast(`not accepted: ${r.error || "?"} — your text is back in the box`, "error"); if (/tools/.test(r.error || "")) toolsGate("waiting"); }
+}
+// Tool readiness gate (design §11.7): the listener refuses prompts until the session's
+// tools are ready; the page mirrors that — send disabled, chip says why, and it re-polls
+// the session while the state is transient (waiting).
+let toolsReady = false;
+function toolsGate(state) {
+	toolsReady = !state || state === "ready";
+	$("btn-send").disabled = !toolsReady;
+	$("input").placeholder = toolsReady ? "ask about a screen, a construction, a persona… (Enter to send)" : `app tools ${state} — waiting…`;
+	if (toolsReady) { setChip(streaming ? "running" : "idle"); return; }
+	setChip(`tools ${state}`);
+	if (state === "waiting") setTimeout(async () => { const s = await fetch("/api/session").then((r) => r.json()).catch(() => null); if (s?.tools) { session.tools = s.tools; toolsGate(s.tools); } }, 1500);
+	else toast(`app tools ${state} — the session cannot take prompts; check the app's MCP config`, "error", 15000);
 }
 function openDrawer(open) {
 	const d = $("drawer");
@@ -456,8 +470,7 @@ async function boot() {
 	try { openDrawer(localStorage.getItem("stage-drawer") !== "closed"); } catch { openDrawer(true); }
 	session = await postJson("/api/session", {}).catch(() => null);
 	if (!session?.id) { setChip("no session"); toast("could not start the app session", "error"); return; }
-	if (session.tools && session.tools !== "ready") { setChip("tools?"); toast(`app tools ${session.tools} — prompts are refused until they load`, "error", 15000); }
-	else setChip("idle");
+	toolsGate(session.tools);
 	stream = openEventStream("/api/events", handleEvent, () => setChip("disconnected"));
 	await replayLedger();
 }

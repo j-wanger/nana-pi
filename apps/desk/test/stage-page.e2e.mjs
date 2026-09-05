@@ -41,6 +41,9 @@ const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../.
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+// like nana-stage: waiting first, ready shortly after — the page must gate on this
+setTimeout(() => say({ type: "extension_ui_request", id: "st-0", method: "setStatus", statusKey: "nana-tools", statusText: "waiting" }), 50);
+setTimeout(() => say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }), 100);
 let signBlock = null; const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
 const signed = (b) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(process.env.NANA_STAGE_KEY, b) } });
 const TABLE = ${JSON.stringify(TABLE)}; const CARD = ${JSON.stringify(CARD)}; const UNSTAMPED = ${JSON.stringify(UNSTAMPED)};

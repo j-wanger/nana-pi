@@ -8,7 +8,8 @@
 // rpc passthrough, delete, settings):
 //
 //   POST /api/session            spawn this app's session from its manifest (held until nana-stage
-//                                reports the manifest tools active: `tools` = ready|waiting|missing: …),
+//                                reports the manifest tools active: `tools` = ready | waiting |
+//                                unreported | missing: …; prompts are refused unless ready),
 //                                or return the live one
 //   GET  /api/session            the live child, or null
 //   GET  /api/events             SSE: desk_hello, then live events
@@ -17,10 +18,10 @@
 //   POST /api/abort
 //   GET  /api/entries?since=     get_entries passthrough (the one RPC a stage page needs)
 //   GET  /api/manifest           {name, title, cwd, mutating, tools, quick} — read-only
-//   GET  /api/data/<key>         app-owned durable state: runs the manifest's `data[key]`
-//                                command (cwd = manifest.cwd, fixed argv, no client input,
-//                                20 s timeout) and relays its JSON stdout; same-origin or
-//                                direct requests only (Sec-Fetch-Site + Origin rule)
+//   POST /api/data/<key>         app-owned durable state: runs the manifest's `data[key]`
+//                                command (cwd = manifest.cwd, fixed argv, body ignored,
+//                                20 s timeout) and relays its JSON stdout; a POST so the
+//                                Origin + JSON rule guards it like every mutating route
 //   GET  /<page file>            when the manifest names a `page` dir, its index.html /
 //                                app.js / app.css are served in place of the kit's stage
 //                                page (the kit modules stay at their paths)
@@ -195,20 +196,23 @@ function liveChild(app, deps) {
 	return c;
 }
 
-// tools: "ready" | "waiting" | "missing: a,b" — nana-stage's status report (it sets
-// "waiting" synchronously in session_start, before the desk's post-spawn get_state
-// returns). A child that has not reported cannot be waited on and reads "ready"; the
-// real-chain e2e asserts the report itself is present, so a silent child is caught there.
+// tools: "ready" | "waiting" | "unreported" | "missing: a,b". The DESK owns the state: an
+// app child spawned with an expected tool list is "waiting" until nana-stage's report
+// (statusKey nana-tools) says otherwise; if no report arrives within the bound it is
+// "unreported" — never assumed ready. A child spawned without expected tools is ready.
+const READY_BOUND_MS = Number(process.env.DESK_READY_BOUND_MS) || 35000; // env: tests only
 function toolsState(c) {
-	return c.statuses.get("nana-tools") || "ready";
+	const st = c.statuses.get("nana-tools");
+	if (st) return st;
+	if (!c.toolsExpected) return "ready";
+	return Date.now() - c.startedAt > READY_BOUND_MS ? "unreported" : "waiting";
 }
 function childInfo(id, c) {
 	return { id, cwd: c.cwd, state: c.state, startedAt: c.startedAt, title: c.title, openDialogs: c.dialogs.size, tools: toolsState(c) };
 }
-// Hold until the child reports its tools (bounded; nana-stage itself gives up at 30 s).
-async function awaitTools(c, ms = 35000) {
-	const end = Date.now() + ms;
-	while (toolsState(c) === "waiting" && c.state === "running" && Date.now() < end) await new Promise((r) => setTimeout(r, 150));
+// Hold until the child's tools state leaves "waiting" (report, exit, or the bound).
+async function awaitTools(c) {
+	while (toolsState(c) === "waiting" && c.state === "running") await new Promise((r) => setTimeout(r, 150));
 	return toolsState(c);
 }
 
@@ -257,15 +261,12 @@ async function handle(app, req, res, deps, files) {
 		}
 		if (p === "/api/manifest" && req.method === "GET")
 			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: m.port, quick: m.quick, data: Object.keys(m.data) });
-		if (p.startsWith("/api/data/") && req.method === "GET") {
-			// A GET that RUNS a command is state-changing in cost: another site's <img>/<script>
-			// or fetch must not be able to trigger it. Browsers send Sec-Fetch-Site on every
-			// request — only same-origin (the page) or none (typed URL, curl has no header) pass;
-			// a foreign Origin is refused as on every other route.
-			const site = req.headers["sec-fetch-site"];
-			if (site !== undefined && site !== "same-origin" && site !== "none") return json(res, 403, { error: `cross-site data request rejected (sec-fetch-site ${site})` });
-			const bad = originRejection(req, m.port);
-			if (bad) return json(res, 403, { error: bad });
+		if (p.startsWith("/api/data/") && req.method === "POST") {
+			// Running a command is state-changing in cost, so the route is a POST under the
+			// same Origin + application/json rule as every other state-changing route: a
+			// cross-site <img>/<script>/form cannot send a JSON body with our origin, and a
+			// GET (which legacy clients could fire without Fetch Metadata) does not exist here.
+			await readBody(req); // drained and ignored: nothing client-supplied reaches the command
 			const key = p.slice("/api/data/".length);
 			const argv = m.data[key];
 			if (!argv) return json(res, 404, { error: "no such data key" });

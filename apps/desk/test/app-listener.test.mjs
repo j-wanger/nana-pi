@@ -27,7 +27,9 @@ const OUT = path.join(tmp, "stub-out.jsonl");
 const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
-fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), hasKey: /^[0-9a-f]{64}$/.test(process.env.NANA_STAGE_KEY || "") }) + "\\n");
+fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), hasKey: /^[0-9a-f]{64}$/.test(process.env.NANA_STAGE_KEY || ""), expect: process.env.NANA_STAGE_EXPECT_TOOLS || null }) + "\\n");
+// like nana-stage: report tool readiness on the status channel — unless this child is the SILENT one
+if (!/silent/.test(process.cwd())) setTimeout(() => process.stdout.write(JSON.stringify({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }) + "\\n"), 150);
 const BLOCK = { id: "blk_x", type: "card", title: "X", scope: "s", fields: [{ label: "a", value: 1 }], slot: "main", show: true };
 const stamp = (id, tool, call) => ({ ...BLOCK, id, produced_by: { tool, args: {}, toolCallId: call, at: "2026-09-04T00:00:00.000Z" } });
 let signBlock = null;
@@ -99,6 +101,10 @@ fs.writeFileSync(path.join(appsDir, "gamma.json"), JSON.stringify(manifest(PG, c
 fs.writeFileSync(path.join(appsDir, "badpage.json"), JSON.stringify(manifest(4408, cwdA, { page: path.join(tmp, "nowhere") })));
 fs.writeFileSync(path.join(appsDir, "baddata.json"), JSON.stringify(manifest(4409, cwdA, { data: { "Bad Key": ["node"] } })));
 fs.writeFileSync(path.join(appsDir, "baddata2.json"), JSON.stringify(manifest(4410, cwdA, { data: { ok: "node -e 1" } })));
+// delta: a child that NEVER reports its tools (its cwd name tells the stub to stay silent)
+const PD = 4411, Dl = `http://127.0.0.1:${PD}`;
+const cwdSilent = path.join(tmp, "repo-silent"); fs.mkdirSync(cwdSilent);
+fs.writeFileSync(path.join(appsDir, "delta.json"), JSON.stringify(manifest(PD, cwdSilent)));
 fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, cwdA)));
 fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cwdB, { trust: "approve", mutating: ["add_thing"] })));
 fs.writeFileSync(path.join(appsDir, "Bad Name.json"), JSON.stringify(manifest(4404, cwdA)));
@@ -106,7 +112,7 @@ fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(4405
 fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(4406, cwdA, { tools: [] })));
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
@@ -122,7 +128,7 @@ const stubRuns = () => fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf-8").trim()
 
 try {
 	for (let i = 0; i < 40; i++) {
-		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
+		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); await fetch(Dl + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
@@ -144,24 +150,23 @@ try {
 	check("stage.js is the KIT's even when the page dir has its own", !/MUST NOT/.test(await fetch(G + "/stage.js").then((r) => r.text())));
 	check("alpha (no page) has no /app.js", (await fetch(A + "/app.js")).status === 404);
 	check("alpha (no page) serves the kit stage page", /<title>stage<\/title>/.test(await fetch(A + "/").then((r) => r.text())));
-	const tape = await fetch(G + "/api/data/tape?x=1&argv=evil").then((r) => r.json());
-	check("data command runs with fixed argv in the app cwd; query string ignored", tape.label === "live" && tape.cwd === fs.realpathSync(cwdA) && JSON.stringify(tape.argv) === "[]", JSON.stringify(tape));
-	let dr = await fetch(G + "/api/data/boom");
+	const tape = await post(G, "/api/data/tape?x=1&argv=evil", { argv: ["evil"] }).then((r) => r.json());
+	check("data command runs with fixed argv in the app cwd; query string and body ignored", tape.label === "live" && tape.cwd === fs.realpathSync(cwdA) && JSON.stringify(tape.argv) === "[]", JSON.stringify(tape));
+	let dr = await post(G, "/api/data/boom", {});
 	check("failing data command → 500 with its stderr, never a guess", dr.status === 500 && /exit 3/.test((await dr.json()).error), String(dr.status));
-	dr = await fetch(G + "/api/data/text");
+	dr = await post(G, "/api/data/text", {});
 	check("non-JSON stdout → 500", dr.status === 500 && /did not print JSON/.test((await dr.json()).error));
-	dr = await fetch(G + "/api/data/gone");
+	dr = await post(G, "/api/data/gone", {});
 	check("unstartable command → 500", dr.status === 500 && /failed to start/.test((await dr.json()).error));
-	check("unknown data key → 404", (await fetch(G + "/api/data/nope")).status === 404);
-	dr = await fetch(G + "/api/data/slow");
+	check("unknown data key → 404", (await post(G, "/api/data/nope", {})).status === 404);
+	dr = await post(G, "/api/data/slow", {});
 	check("data command over the timeout → 504, killed", dr.status === 504 && /timed out/.test((await dr.json()).error), String(dr.status));
-	// cross-site GETs must not run the command: a foreign page's fetch (Origin) or <img>/<script> (Sec-Fetch-Site)
-	check("cross-origin GET /api/data → 403", (await fetch(G + "/api/data/tape", { headers: { origin: A } })).status === 403);
-	check("cross-site GET /api/data (sec-fetch-site: cross-site, no Origin) → 403", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "cross-site" } })).status === 403);
-	check("same-origin GET /api/data (sec-fetch-site: same-origin) → 200", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "same-origin" } })).status === 200);
-	check("typed-URL GET /api/data (sec-fetch-site: none) → 200", (await fetch(G + "/api/data/tape", { headers: { "sec-fetch-site": "none" } })).status === 200);
-	check("cross-origin GET on a read-only route (manifest) still allowed — SOP hides the body", (await fetch(G + "/api/manifest", { headers: { origin: A } })).status === 200);
-	check("data route is GET-only (POST → not found, after the origin rule)", (await post(G, "/api/data/tape", {})).status === 404);
+	// the route is a POST under the Origin + JSON rule: no GET exists, cross-site POSTs cannot run the command
+	check("GET /api/data → 404 (no command-running GET exists for legacy cross-site fetches)", (await fetch(G + "/api/data/tape")).status === 404);
+	check("cross-origin POST /api/data → 403", (await post(G, "/api/data/tape", {}, A)).status === 403);
+	check("text/plain POST /api/data (a form/simple request) → 403", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "text/plain", origin: G }, body: "{}" })).status === 403);
+	check("same-origin JSON POST /api/data → 200", (await post(G, "/api/data/tape", {})).status === 200);
+	check("curl-style POST (no Origin, JSON) → 200", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status === 200);
 	check("alpha (no data) → 404 on every data key", (await fetch(A + "/api/data/tape")).status === 404);
 	check("no session yet → null", (await get(A, "/api/session")) === null);
 	check("events without a session → 404", (await fetch(A + "/api/events")).status === 404);
@@ -182,6 +187,17 @@ try {
 	const s2 = await post(A, "/api/session", {}).then((r) => r.json());
 	check("second POST reattaches the same child", s2.id === s1.id && stubRuns().length === 1);
 	check("GET /api/session now returns it", (await get(A, "/api/session"))?.id === s1.id);
+
+	check("child was told the expected tools (NANA_STAGE_EXPECT_TOOLS = manifest tools)", run.expect === "read,player_card", String(run.expect));
+	check("session reports tools READY from the stub's status report", s1.tools === "ready", String(s1.tools));
+
+	// ── fail-closed readiness: a child that never reports is UNREPORTED after the bound, never ready ──
+	const t0 = Date.now();
+	const sD = await post(Dl, "/api/session", {}).then((r) => r.json());
+	check("silent child: POST /api/session held until the bound, then tools = unreported", sD.tools === "unreported" && Date.now() - t0 >= 1200, `${sD.tools} after ${Date.now() - t0} ms`);
+	const rD = await post(Dl, "/api/prompt", { message: "hi" });
+	check("silent child: prompts refused (409) — never run the model without the app's tools", rD.status === 409 && /unreported/.test((await rD.json()).error), String(rD.status));
+	check("silent child: GET /api/session shows unreported", (await get(Dl, "/api/session")).tools === "unreported");
 
 	// ── manifest session written back atomically after spawn ──
 	const mA = JSON.parse(fs.readFileSync(path.join(appsDir, "alpha.json"), "utf-8"));

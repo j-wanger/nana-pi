@@ -41,6 +41,9 @@ const CHART = { id: "blk_oos_x", type: "chart", kind: "line", title: "x — OOS 
 const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
 const STUB = `#!/usr/bin/env node
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+// like nana-stage: waiting first, ready shortly after — the page must gate on this
+setTimeout(() => say({ type: "extension_ui_request", id: "st-0", method: "setStatus", statusKey: "nana-tools", statusText: "waiting" }), 50);
+setTimeout(() => say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }), 100);
 let signBlock = null; const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
 const signed = (b) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(process.env.NANA_STAGE_KEY, b) } });
 const TABLE = ${JSON.stringify(TABLE)}; const CHART = ${JSON.stringify(CHART)};
@@ -102,6 +105,7 @@ try {
 	await page.waitForSelector("#chip.ok", { timeout: 10000 });
 	await page.waitForSelector("#view-shelf .shelf-item", { timeout: 5000 });
 	check("edge page boots on the stub with no page errors", errors.length === 0, errors.join(" | "));
+	check("send enabled only after the observed waiting→ready report (session.tools = ready)", (await page.evaluate(() => document.getElementById("btn-send").disabled)) === false && (await page.evaluate(() => window.stage.blocks.length === 0)));
 	check("app-owned views painted from /api/data: tape, roster, shelf", (await page.textContent('[data-view="tape"]')).includes("2010-01-04") && (await page.textContent('[data-view="roster"]')).includes("Breakout Rider") && (await page.textContent("#view-shelf .count")) === "(2)");
 	check("per-app quick prompt rendered from the manifest", (await page.textContent("#quick")).includes("panel"));
 

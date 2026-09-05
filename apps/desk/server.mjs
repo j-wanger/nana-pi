@@ -170,7 +170,8 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// App sessions are told which tools they must have; nana-stage (when loaded) reports
 	// "waiting" → "ready" / "missing: …" on the RPC status channel (statusKey nana-tools).
 	// A child that never reports cannot be waited on and counts as ready (apps.mjs).
-	if (app && Array.isArray(tools) && tools.length) envMore.NANA_STAGE_EXPECT_TOOLS = tools.join(",");
+	const toolsExpected = !!(app && Array.isArray(tools) && tools.length);
+	if (toolsExpected) envMore.NANA_STAGE_EXPECT_TOOLS = tools.join(",");
 	let proc;
 	if (process.platform === "win32") {
 		const env = childEnv(envMore);
@@ -189,7 +190,7 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, app: app || null, stageKey, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		proc, cwd, app: app || null, stageKey, toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,

@@ -89,7 +89,7 @@ try {
 	}
 	// page + data served before any session exists
 	check("edge page served from the repo's desk/ dir", /edge desk/.test(await fetch(A + "/").then((r) => r.text())));
-	const tape = await fetch(A + "/api/data/tape").then((r) => r.json());
+	const tape = await post(A, "/api/data/tape", {});
 	check("data/tape runs the repo's data command", tape.label === "live" && tape.symbols > 500, JSON.stringify(tape).slice(0, 120));
 
 	const s = await post(A, "/api/session", {});
