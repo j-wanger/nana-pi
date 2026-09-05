@@ -2,7 +2,7 @@
 // app listener. Second consumer of desk-client.mjs; the reducer/contract come
 // from blocks.mjs. The layout is fixed and app-owned; the agent only fills it.
 import { el, contentBlocks, stripAnsi, toolRow, setToolStreaming, finishToolRow, buildDialog, openEventStream, postJson } from "/desk-client.mjs";
-import { reduceEntries, applyLiveBlocks, pathEntries, rowPrompt, fmtNum, columnDecimals, fmtCell } from "/blocks.mjs";
+import { reduceEntries, applyLiveBlocks, pathEntries, rowPrompt, fmtNum, columnDecimals, fmtCell, fmtY, summarizeSeries } from "/blocks.mjs";
 import { mdToHtml } from "/md.js";
 
 const $ = (id) => document.getElementById(id);
@@ -89,6 +89,7 @@ function renderBlock(b) {
 	card.appendChild(head);
 	if (b.type === "table") card.appendChild(renderTable(b));
 	else if (b.type === "card") card.appendChild(renderCard(b));
+	else if (b.type === "chart") card.appendChild(renderChart(b));
 	if (b.note) card.appendChild(el("div", "blk-note", b.note));
 	const acts = actionButtons(b);
 	if (acts.children.length) card.appendChild(acts);
@@ -139,6 +140,104 @@ function renderCard(b) {
 		dl.appendChild(dd);
 	}
 	return dl;
+}
+
+// ── chart: inline SVG line chart (dataviz rules: one axis, 2px lines, fixed
+// categorical order, legend for ≥2 series, hover crosshair + tooltip, table view) ──
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs = {}) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); return n; };
+const xNum = (x) => (typeof x === "number" ? x : Date.parse(x));
+const fmtX = (b, x) => (b.x.type === "date" ? (typeof x === "number" ? new Date(x).toISOString().slice(0, 10) : x) : fmtNum(x));
+function niceTicks(lo, hi, n) {
+	if (!(hi > lo)) return [lo];
+	const span = hi - lo, raw = span / n, mag = 10 ** Math.floor(Math.log10(raw));
+	const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= n) || mag * 10;
+	const out = [];
+	for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+	return out;
+}
+function renderChart(b) {
+	const wrap = el("div", "chart-wrap");
+	const W = 640, H = 260, M = { l: 52, r: 14, t: 10, b: 28 };
+	const fmt = b.y?.format;
+	const pts = b.series.map((s) => s.points.filter((p) => p[1] !== null).map(([x, y]) => [xNum(x), y, x]));
+	const xs = pts.flat().map((p) => p[0]), ys = pts.flat().map((p) => p[1]);
+	const x0 = Math.min(...xs), x1 = Math.max(...xs), yLo = Math.min(...ys), yHi = Math.max(...ys);
+	const yTicks = niceTicks(yLo, yHi, 5);
+	const y0 = Math.min(yLo, yTicks[0]), y1 = Math.max(yHi, yTicks[yTicks.length - 1]);
+	const sx = (x) => M.l + ((x - x0) / (x1 - x0 || 1)) * (W - M.l - M.r);
+	const sy = (y) => M.t + (1 - (y - y0) / (y1 - y0 || 1)) * (H - M.t - M.b);
+	const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart", role: "img", "aria-label": b.title });
+	// recessive hairline grid + y labels (text wears text tokens, never the series color)
+	for (const t of yTicks) {
+		svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: sy(t), y2: sy(t), class: "grid" }));
+		const lbl = svgEl("text", { x: M.l - 6, y: sy(t) + 3.5, class: "tick", "text-anchor": "end" }); lbl.textContent = fmtY(t, fmt); svg.appendChild(lbl);
+	}
+	const xTicks = b.x.type === "date" ? niceTicks(x0, x1, 6) : niceTicks(x0, x1, 6);
+	for (const t of xTicks) {
+		if (t < x0 || t > x1) continue;
+		const lbl = svgEl("text", { x: sx(t), y: H - 8, class: "tick", "text-anchor": "middle" });
+		lbl.textContent = b.x.type === "date" ? new Date(t).toISOString().slice(0, 7) : fmtNum(t);
+		svg.appendChild(lbl);
+	}
+	svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: sy(y0), y2: sy(y0), class: "axis" }));
+	// 2px lines, fixed series order → fixed slot color (color follows the entity)
+	pts.forEach((sp, i) => {
+		if (!sp.length) return;
+		const d = sp.map((p, j) => `${j ? "L" : "M"}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join("");
+		svg.appendChild(svgEl("path", { d, class: `series s${i + 1}`, fill: "none" }));
+	});
+	// hover layer: crosshair + nearest-x tooltip
+	const cross = svgEl("line", { class: "cross", y1: M.t, y2: H - M.b, x1: 0, x2: 0, visibility: "hidden" });
+	svg.appendChild(cross);
+	const dots = pts.map((_, i) => { const c = svgEl("circle", { r: 4, class: `dot s${i + 1}`, visibility: "hidden" }); svg.appendChild(c); return c; });
+	const tip = el("div", "chart-tip"); tip.hidden = true;
+	const hit = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
+	svg.appendChild(hit);
+	const nearest = (sp, xv) => { let best = sp[0]; for (const p of sp) if (Math.abs(p[0] - xv) < Math.abs(best[0] - xv)) best = p; return best; };
+	hit.addEventListener("mousemove", (e) => {
+		const r = svg.getBoundingClientRect(); const xv = x0 + ((e.clientX - r.left) / r.width * W - M.l) / (W - M.l - M.r) * (x1 - x0);
+		const rows = pts.map((sp, i) => (sp.length ? [i, nearest(sp, xv)] : null)).filter(Boolean);
+		if (!rows.length) return;
+		const ax = rows[0][1][0];
+		cross.setAttribute("x1", sx(ax)); cross.setAttribute("x2", sx(ax)); cross.setAttribute("visibility", "visible");
+		rows.forEach(([i, p]) => { dots[i].setAttribute("cx", sx(p[0])); dots[i].setAttribute("cy", sy(p[1])); dots[i].setAttribute("visibility", "visible"); });
+		tip.innerHTML = `<div class="tip-x">${fmtX(b, rows[0][1][2])}</div>` + rows.map(([i, p]) => `<div><span class="key s${i + 1}"></span>${b.series[i].label} <b>${fmtY(p[1], fmt)}</b></div>`).join("");
+		tip.hidden = false;
+		const px = (e.clientX - r.left) / r.width; tip.style.left = `${Math.min(px * 100, 70)}%`;
+	});
+	hit.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); dots.forEach((d) => d.setAttribute("visibility", "hidden")); tip.hidden = true; });
+	const plot = el("div", "chart-plot"); plot.appendChild(svg); plot.appendChild(tip); wrap.appendChild(plot);
+	// legend (always for ≥2 series; the title names a single series) + table view
+	const foot = el("div", "chart-foot");
+	if (b.series.length > 1) {
+		const lg = el("div", "chart-legend");
+		b.series.forEach((s, i) => { const it = el("span", "lg-item"); it.appendChild(el("span", `key s${i + 1}`)); it.appendChild(el("span", "", s.label)); lg.appendChild(it); });
+		foot.appendChild(lg);
+	}
+	if (b.y?.label || b.x?.label) foot.appendChild(el("span", "dim", [b.y?.label, b.x?.label && `by ${b.x.label}`].filter(Boolean).join(" ")));
+	const tbtn = el("button", "btn tiny", "table view");
+	const tbl = el("div", "chart-table"); tbl.hidden = true;
+	tbtn.onclick = () => {
+		if (!tbl.children.length) {
+			const t = el("table", "tbl"), hd = el("tr");
+			hd.appendChild(el("th", "", b.x.label || "x"));
+			for (const s of b.series) hd.appendChild(el("th", "num", s.label));
+			t.appendChild(hd);
+			const byX = new Map();
+			b.series.forEach((s, i) => { for (const [x, y] of s.points) { if (!byX.has(x)) byX.set(x, []); byX.get(x)[i] = y; } });
+			for (const [x, row] of byX) { const tr = el("tr"); tr.appendChild(el("td", "txt", String(x))); b.series.forEach((_, i) => tr.appendChild(el("td", "num", fmtY(row[i], fmt)))); t.appendChild(tr); }
+			tbl.appendChild(t);
+		}
+		tbl.hidden = !tbl.hidden; tbtn.textContent = tbl.hidden ? "table view" : "chart view"; plot.hidden = !tbl.hidden;
+	};
+	foot.appendChild(tbtn);
+	wrap.appendChild(foot);
+	wrap.appendChild(tbl);
+	const sum = el("ul", "chart-summary");
+	for (const s of b.series) sum.appendChild(el("li", "", `${s.label}: ${summarizeSeries(s, fmt)}`));
+	wrap.appendChild(sum);
+	return wrap;
 }
 
 // ── the drawer (outcome cards over the transcript) ──
@@ -273,6 +372,10 @@ function handleEvent(e) {
 				const names = bs.filter((b) => b.produced_by).map((b) => b.title).join(", ");
 				if (names) row.querySelector(".targ").textContent = `→ ${names}`;
 			}
+			// Refresh rule (design §3.3): a tool in the manifest's `mutating` list finished →
+			// the app re-fetches its durable state. No diffing, no optimistic UI.
+			if ((manifest?.mutating || []).includes(e.toolName))
+				window.dispatchEvent(new CustomEvent("agent:changed", { detail: { tool: e.toolName, args: e.args ?? e.input ?? null, isError: !!(e.isError || e.result?.isError) } }));
 			break;
 		}
 		case "extension_ui_request":
@@ -345,7 +448,7 @@ async function boot() {
 	$("app-title").textContent = manifest.title;
 	$("app-cwd").textContent = manifest.cwd.replace(/^\/(Users|home)\/[^/]+/, "~");
 	document.title = `${manifest.title} — stage`;
-	for (const [label, prompt] of QUICK) {
+	for (const [label, prompt] of (Array.isArray(manifest.quick) && manifest.quick.length ? manifest.quick : QUICK)) {
 		const b = el("button", "btn", label);
 		b.onclick = () => compose(prompt);
 		$("quick").appendChild(b);

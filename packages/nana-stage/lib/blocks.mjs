@@ -10,8 +10,14 @@
 // Who authors what: everything but `produced_by` is app-tool code; `produced_by`
 // is stamped by nana-stage from the tool event. The model never touches a block.
 
-export const BLOCK_TYPES = new Set(["table", "card"]);
-export const RESERVED_TYPES = new Set(["kpi", "chart", "timeline", "graph"]);
+export const BLOCK_TYPES = new Set(["table", "card", "chart"]);
+export const RESERVED_TYPES = new Set(["kpi", "timeline", "graph"]);
+// chart (added for slice 2, the edge desk): line series over a date or number
+// x-axis. Code-authored like every block; the model reads a per-series summary.
+export const CHART_KINDS = new Set(["line"]);
+export const CHART_X_TYPES = new Set(["date", "number"]);
+export const MAX_CHART_SERIES = 4;
+export const MAX_CHART_POINTS = 1000;
 export const SLOTS = new Set(["main", "side", "modal"]);
 export const COLUMN_TYPES = new Set(["text", "number", "date"]);
 export const MAX_BLOCK_BYTES = 64 * 1024;
@@ -65,6 +71,35 @@ export function validateBlock(b) {
 			else if (f.evidence !== undefined && !isStr(f.evidence)) err(`fields[${i}].evidence: string`);
 		});
 		if (b.badges !== undefined && (!Array.isArray(b.badges) || !b.badges.every(isStr))) err("card.badges: string[]");
+	} else if (b.type === "chart") {
+		if (!CHART_KINDS.has(b.kind)) err(`chart.kind: must be one of ${[...CHART_KINDS].join("|")}`);
+		if (!isObj(b.x) || !CHART_X_TYPES.has(b.x.type)) err("chart.x: {type: date|number, label?}");
+		else if (b.x.label !== undefined && !isStr(b.x.label)) err("chart.x.label: string if present");
+		if (b.y !== undefined) {
+			if (!isObj(b.y)) err("chart.y: object if present");
+			else {
+				if (b.y.label !== undefined && !isStr(b.y.label)) err("chart.y.label: string if present");
+				if (b.y.format !== undefined && !["number", "percent"].includes(b.y.format)) err("chart.y.format: number|percent");
+			}
+		}
+		if (!Array.isArray(b.series) || !b.series.length) err("chart.series: non-empty array");
+		else if (b.series.length > MAX_CHART_SERIES) err(`chart.series: ${b.series.length} > ${MAX_CHART_SERIES} — facet into another block`);
+		else b.series.forEach((s, i) => {
+			if (!isObj(s) || !isStr(s.key) || !isStr(s.label)) { err(`series[${i}]: {key, label, points}`); return; }
+			if (!Array.isArray(s.points) || !s.points.length) { err(`series[${i}].points: non-empty array`); return; }
+			if (s.points.length > MAX_CHART_POINTS) { err(`series[${i}].points: ${s.points.length} > ${MAX_CHART_POINTS} — downsample`); return; }
+			let prev = null;
+			for (let j = 0; j < s.points.length; j++) {
+				const pt = s.points[j];
+				if (!Array.isArray(pt) || pt.length !== 2) { err(`series[${i}].points[${j}]: [x, y]`); return; }
+				const [x, y] = pt;
+				const xv = b.x?.type === "date" ? (isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null) : (typeof x === "number" && Number.isFinite(x) ? x : null);
+				if (xv === null) { err(`series[${i}].points[${j}]: x must be ${b.x?.type === "date" ? "YYYY-MM-DD" : "a finite number"}`); return; }
+				if (prev !== null && xv < prev) { err(`series[${i}].points[${j}]: x must be non-decreasing`); return; }
+				prev = xv;
+				if (y !== null && (typeof y !== "number" || !Number.isFinite(y))) { err(`series[${i}].points[${j}]: y must be a finite number or null`); return; }
+			}
+		});
 	}
 	if (!errors.length) {
 		const bytes = new TextEncoder().encode(JSON.stringify(b)).length;
@@ -117,10 +152,28 @@ export function renderBlockText(b) {
 		if (b.badges?.length) out.push(`[${b.badges.join("] [")}]`);
 		const w = Math.max(...b.fields.map((f) => f.label.length));
 		for (const f of b.fields) out.push(`${f.label.padEnd(w)}  ${cell(f.value)}${f.evidence ? `  (${f.evidence})` : ""}`);
+	} else if (b.type === "chart") {
+		// The model reads a summary, not the points: same facts the stage draws.
+		const axis = `${b.x.label || "x"} → ${b.y?.label || "y"}${b.y?.format === "percent" ? " (%)" : ""}`;
+		out.push(`${b.kind} chart, ${axis}`);
+		for (const s of b.series) out.push(`- ${s.label}: ${summarizeSeries(s, b.y?.format)}`);
 	}
 	if (b.note) out.push(`note: ${b.note}`);
 	if (b.actions?.length) out.push(`actions: ${b.actions.map((a) => (a.per_row ? `${a.label} (per row)` : a.label)).join(" · ")}`);
 	return out.join("\n");
+}
+
+// One line of facts per series: span, first/last, min/max. Shared by the text
+// rendering and the stage's table view so both say the same thing.
+export function fmtY(v, format) {
+	if (v === null || v === undefined || !Number.isFinite(v)) return "–";
+	return format === "percent" ? `${(v * 100).toFixed(1)}%` : fmtNum(v);
+}
+export function summarizeSeries(s, format) {
+	const ys = s.points.map((p) => p[1]).filter((y) => typeof y === "number" && Number.isFinite(y));
+	if (!ys.length) return `${s.points.length} points, no values`;
+	const first = s.points[0], last = s.points[s.points.length - 1];
+	return `${s.points.length} points ${first[0]} → ${last[0]}; first ${fmtY(first[1], format)}, last ${fmtY(last[1], format)}, min ${fmtY(Math.min(...ys), format)}, max ${fmtY(Math.max(...ys), format)}`;
 }
 
 // Per-row actions carry a prompt template; `{key}` is replaced by the row's cell.

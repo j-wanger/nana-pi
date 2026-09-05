@@ -2,7 +2,7 @@
 // (design §6 deliverable 2). Zero-dep. Run: node packages/nana-stage/tests/blocks.test.mjs
 import {
 	validateBlock, renderBlockText, extractBlocks, stripCarrier, reduceEntries, applyLiveBlocks,
-	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE,
+	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE, MAX_CHART_SERIES, MAX_CHART_POINTS,
 } from "../lib/blocks.mjs";
 import { signBlock, verifyBlock, canonical } from "../lib/sign.mjs";
 
@@ -30,7 +30,38 @@ check("valid table", validateBlock(table()).ok);
 check("valid card", validateBlock(card()).ok);
 check("missing scope rejected", !validateBlock({ ...table(), scope: "" }).ok);
 check("missing title rejected", !validateBlock({ ...card(), title: undefined }).ok);
-check("reserved type rejected with a specific message", (validateBlock({ ...table(), type: "chart" }).errors || []).some((m) => /reserved/.test(m)));
+check("reserved type rejected with a specific message", (validateBlock({ ...table(), type: "kpi" }).errors || []).some((m) => /reserved/.test(m)));
+
+// ── chart (slice 2) ──
+const chart = () => ({
+	id: "blk_oos_amihud", type: "chart", title: "amihud_illiquidity — OOS growth of $1 vs SPY", kind: "line",
+	scope: "reports/desk/oos-amihud_illiquidity.json; walk-forward OOS 2013-01-04→2026-05-29, weekly points, live vintage",
+	x: { type: "date", label: "week" }, y: { label: "growth of $1", format: "number" },
+	series: [
+		{ key: "strat", label: "amihud (126, 25)", points: [["2013-01-04", 1], ["2013-01-11", 1.02], ["2013-01-18", 0.99]] },
+		{ key: "spy", label: "SPY", points: [["2013-01-04", 1], ["2013-01-11", 1.01], ["2013-01-18", 1.015]] },
+	],
+});
+check("valid chart", validateBlock(chart()).ok, JSON.stringify(validateBlock(chart())));
+check("chart: unknown kind rejected", !validateBlock({ ...chart(), kind: "pie" }).ok);
+check("chart: missing x rejected", !validateBlock({ ...chart(), x: undefined }).ok);
+check("chart: empty series rejected", !validateBlock({ ...chart(), series: [] }).ok);
+check(`chart: > ${MAX_CHART_SERIES} series rejected`, !validateBlock({ ...chart(), series: Array.from({ length: MAX_CHART_SERIES + 1 }, (_, i) => ({ key: `s${i}`, label: `S${i}`, points: [["2020-01-01", 1]] })) }).ok);
+check(`chart: > ${MAX_CHART_POINTS} points rejected`, !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: Array.from({ length: MAX_CHART_POINTS + 1 }, (_, i) => [i, 1]) }], x: { type: "number" } }).ok);
+check("chart: bad date x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020/01/01", 1]] }] }).ok);
+check("chart: non-monotonic x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-02-01", 1], ["2020-01-01", 1]] }] }).ok);
+check("chart: NaN y rejected, null y allowed", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", NaN]] }] }).ok && validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", null], ["2020-01-02", 1]] }] }).ok);
+check("chart: number x-axis accepts numbers only", validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [[1, 1], [2, 2]] }] }).ok && !validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [["2020-01-01", 1]] }] }).ok);
+check("chart: y.format must be number|percent", !validateBlock({ ...chart(), y: { format: "money" } }).ok);
+{
+	const t = renderBlockText(chart());
+	check("chart text: a per-series summary, not the points", /^- amihud \(126, 25\): 3 points 2013-01-04 → 2013-01-18; first 1, last 0.99, min 0.99, max 1.02$/m.test(t) && !/1\.02.*1\.01.*1\.015/s.test(t.split("\n").slice(0, 3).join("\n")), t);
+	check("chart text: names kind and axes", /^line chart, week → growth of \$1$/m.test(t), t);
+	const pct = renderBlockText({ ...chart(), y: { label: "drawdown", format: "percent" } });
+	check("chart text: percent format renders as %", /min 99\.0%, max 102\.0%/.test(pct), pct);
+	const r = processToolResult(ev({ blocks: [chart()] }), { now: NOW });
+	check("chart through the hook: stamped, entry appended, text is the summary", r.entries.length === 1 && r.entries[0].produced_by.tool === "board_table" && r.patch.content[0].text === renderBlockText(r.entries[0]));
+}
 check("unknown type rejected", !validateBlock({ ...table(), type: "widget" }).ok);
 check("bad slot rejected", !validateBlock({ ...table(), slot: "top" }).ok);
 check("table without columns rejected", !validateBlock({ ...table(), columns: [] }).ok);

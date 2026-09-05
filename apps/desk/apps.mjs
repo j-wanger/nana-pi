@@ -14,7 +14,13 @@
 //   POST /api/ui-response        {id, value?|confirmed?|cancelled?}
 //   POST /api/abort
 //   GET  /api/entries?since=     get_entries passthrough (the one RPC a stage page needs)
-//   GET  /api/manifest           {name, title, cwd, mutating, tools} — read-only
+//   GET  /api/manifest           {name, title, cwd, mutating, tools, quick} — read-only
+//   GET  /api/data/<key>         app-owned durable state: runs the manifest's `data[key]`
+//                                command (cwd = manifest.cwd, fixed argv, no client input,
+//                                20 s timeout) and relays its JSON stdout
+//   GET  /<page file>            when the manifest names a `page` dir, its index.html /
+//                                app.js / app.css are served in place of the kit's stage
+//                                page (the kit modules stay at their paths)
 //
 // Routes carry no app name and no child id: the listener IS the app and holds
 // exactly one child reference. Everything about the spawn (cwd, tools → -t,
@@ -25,6 +31,7 @@
 // The desk server owns the children; this module borrows its primitives via
 // `deps` (no circular import, no second child map).
 
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -84,6 +91,26 @@ export function normalizeManifest(name, file, raw) {
 	const skills = strList(raw.skills);
 	for (const p of skills) if (!fs.existsSync(p)) return { error: `skills: no such path ${p}` };
 	const trust = raw.trust === "approve" ? "approve" : "no-approve";
+	// App-owned page + durable-state commands (slice 2). `page` is a directory the
+	// listener serves three fixed files from; `data` maps a route key to a fixed
+	// argv run in the app cwd. Both are manifest-side (trusted like `extensions`);
+	// nothing about them is client-supplied.
+	let page = null;
+	if (raw.page !== undefined) {
+		if (!isStr(raw.page)) return { error: "page: directory path" };
+		page = raw.page.replace(/^~(?=$|\/)/, process.env.HOME || "");
+		if (!fs.existsSync(path.join(page, "index.html"))) return { error: `page: no index.html in ${raw.page}` };
+	}
+	const data = {};
+	if (raw.data !== undefined) {
+		if (raw.data === null || typeof raw.data !== "object" || Array.isArray(raw.data)) return { error: "data: object of key → argv" };
+		for (const [k, argv] of Object.entries(raw.data)) {
+			if (!/^[a-z0-9][a-z0-9-]*$/.test(k)) return { error: `data: key '${k}' must be [a-z0-9-]` };
+			if (!Array.isArray(argv) || !argv.length || !argv.every(isStr)) return { error: `data.${k}: non-empty argv string[]` };
+			data[k] = argv;
+		}
+	}
+	const quick = Array.isArray(raw.quick) ? raw.quick.filter((q) => Array.isArray(q) && q.length === 2 && q.every(isStr)) : [];
 	const tools = strList(raw.tools);
 	// An EMPTY allowlist would mean "pi defaults" (bash, edit, write...). Refuse
 	// rather than silently widen: an app session names every tool it gets.
@@ -92,6 +119,7 @@ export function normalizeManifest(name, file, raw) {
 		name, file, port, cwd, extensions, skills, trust,
 		tools,
 		mutating: strList(raw.mutating),
+		page, data, quick,
 		title: isStr(raw.title) ? raw.title : name,
 		session: isStr(raw.session) ? raw.session : null,
 		raw,
@@ -108,11 +136,15 @@ export function writeManifestSession(m, sessionFile) {
 	fs.renameSync(tmp, m.file);
 }
 
-// Explicit static map — no directory traversal, no listing.
-function staticMap(dirs) {
+// Explicit static map — no directory traversal, no listing. An app `page` dir
+// overrides the three page files only; kit modules are always the kit's.
+function staticMap(dirs, page) {
+	const own = (f) => (page && fs.existsSync(path.join(page, f)) ? path.join(page, f) : null);
 	return {
-		"/": path.join(dirs.stage, "index.html"),
-		"/index.html": path.join(dirs.stage, "index.html"),
+		"/": own("index.html") || path.join(dirs.stage, "index.html"),
+		"/index.html": own("index.html") || path.join(dirs.stage, "index.html"),
+		"/app.js": own("app.js"),
+		"/app.css": own("app.css"),
 		"/stage.js": path.join(dirs.stage, "stage.js"),
 		"/stage.css": path.join(dirs.stage, "stage.css"),
 		"/desk-client.mjs": path.join(dirs.public, "desk-client.mjs"),
@@ -127,7 +159,9 @@ export function startAppListeners({ manifests, deps, dirs }) {
 	const servers = [];
 	for (const m of manifests.values()) {
 		const app = { manifest: m, childId: null, spawning: null };
-		const server = http.createServer((req, res) => handle(app, req, res, deps, staticMap(dirs)));
+		const files = staticMap(dirs, m.page);
+		for (const k of Object.keys(files)) if (!files[k]) delete files[k];
+		const server = http.createServer((req, res) => handle(app, req, res, deps, files));
 		server.listen(m.port, "127.0.0.1", () => console.log(`app ${m.name} → http://127.0.0.1:${m.port}`));
 		server.on("error", (e) => console.error(`app ${m.name}: ${e.message}`));
 		servers.push({ app, server });
@@ -135,6 +169,21 @@ export function startAppListeners({ manifests, deps, dirs }) {
 	return servers;
 }
 
+function runData(argv, cwd, env) {
+	return new Promise((resolve) => {
+		let out = "", err = "";
+		const proc = spawn(argv[0], argv.slice(1), { cwd, stdio: ["ignore", "pipe", "pipe"], env });
+		const timer = setTimeout(() => { proc.kill("SIGKILL"); resolve({ status: 504, body: { error: "data command timed out (20 s)" } }); }, 20000);
+		proc.stdout.on("data", (c) => (out += c));
+		proc.stderr.on("data", (c) => (err += c));
+		proc.on("error", (e) => { clearTimeout(timer); resolve({ status: 500, body: { error: `data command failed to start: ${e.message}` } }); });
+		proc.on("close", (code) => {
+			clearTimeout(timer);
+			if (code !== 0) return resolve({ status: 500, body: { error: `data command exit ${code}`, stderr: err.slice(-600) } });
+			try { resolve({ status: 200, body: JSON.parse(out) }); } catch { resolve({ status: 500, body: { error: "data command did not print JSON", stdout: out.slice(-300) } }); }
+		});
+	});
+}
 function liveChild(app, deps) {
 	if (!app.childId) return null;
 	const c = deps.children.get(app.childId);
@@ -190,7 +239,17 @@ async function handle(app, req, res, deps, files) {
 			if (bad) return json(res, 403, { error: bad });
 		}
 		if (p === "/api/manifest" && req.method === "GET")
-			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: m.port });
+			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: m.port, quick: m.quick, data: Object.keys(m.data) });
+		if (p.startsWith("/api/data/") && req.method === "GET") {
+			const key = p.slice("/api/data/".length);
+			const argv = m.data[key];
+			if (!argv) return json(res, 404, { error: "no such data key" });
+			// Fixed argv from the manifest; the query string is ignored. The command's
+			// stdout must be one JSON document. Failures are reported, never guessed.
+			// same PATH fix-up the pi child gets (service managers ship a minimal PATH)
+			const r = await runData(argv, m.cwd, deps.childEnv ? deps.childEnv() : process.env);
+			return json(res, r.status, r.body);
+		}
 		if (p === "/api/session" && req.method === "GET") {
 			const c = liveChild(app, deps);
 			return json(res, 200, c ? childInfo(app.childId, c) : null);

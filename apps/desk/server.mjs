@@ -1323,7 +1323,7 @@ const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "ag
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 startAppListeners({
 	manifests: loadManifests(APPS_DIR),
-	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, originRejection, promptChild, answerDialog },
+	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, originRejection, promptChild, answerDialog, childEnv },
 	dirs: {
 		stage: path.join(PUBLIC, "stage"),
 		public: PUBLIC,

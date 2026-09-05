@@ -79,6 +79,25 @@ process.stdin.on("end", () => process.exit(0));
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
 const manifest = (port, cwd, extra = {}) => ({ port, cwd, tools: ["read", "player_card"], extensions: [extA, extStage], trust: "no-approve", title: "T", ...extra });
+// gamma: an app with its OWN page and durable-state data commands (slice 2 seam)
+const PG = 4407, G = `http://127.0.0.1:${PG}`;
+const pageDir = path.join(tmp, "page"); fs.mkdirSync(pageDir);
+fs.writeFileSync(path.join(pageDir, "index.html"), "<!doctype html><title>gamma page</title><script type=module src=/stage.js></script><script type=module src=/app.js></script>");
+fs.writeFileSync(path.join(pageDir, "app.js"), "// gamma app.js\n");
+fs.writeFileSync(path.join(pageDir, "stage.js"), "// MUST NOT be served: kit modules stay the kit's\n");
+fs.writeFileSync(path.join(appsDir, "gamma.json"), JSON.stringify(manifest(PG, cwdA, {
+	page: pageDir,
+	data: {
+		"tape": ["node", "-e", "console.log(JSON.stringify({ label: 'live', cwd: process.cwd(), argv: process.argv.slice(1) }))"],
+		"boom": ["node", "-e", "process.stderr.write('kaput'); process.exit(3)"],
+		"text": ["node", "-e", "console.log('not json')"],
+		"gone": ["/no/such/binary"],
+	},
+	quick: [["panel", "Show the panel"], ["bad"], "nope"],
+})));
+fs.writeFileSync(path.join(appsDir, "badpage.json"), JSON.stringify(manifest(4408, cwdA, { page: path.join(tmp, "nowhere") })));
+fs.writeFileSync(path.join(appsDir, "baddata.json"), JSON.stringify(manifest(4409, cwdA, { data: { "Bad Key": ["node"] } })));
+fs.writeFileSync(path.join(appsDir, "baddata2.json"), JSON.stringify(manifest(4410, cwdA, { data: { ok: "node -e 1" } })));
 fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, cwdA)));
 fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cwdB, { trust: "approve", mutating: ["add_thing"] })));
 fs.writeFileSync(path.join(appsDir, "Bad Name.json"), JSON.stringify(manifest(4404, cwdA)));
@@ -102,7 +121,7 @@ const stubRuns = () => fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf-8").trim()
 
 try {
 	for (let i = 0; i < 40; i++) {
-		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
+		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
@@ -114,6 +133,27 @@ try {
 		check(`app port has no ${method} ${p}`, r.status === 404, String(r.status));
 	}
 	check("manifest is read-only public info", (await get(A, "/api/manifest")).name === "alpha");
+
+	// ── slice 2: app page + data commands ──
+	check("bad page / data manifests rejected at load", /badpage.json: page: no index.html/.test(serverLog) && /baddata.json: data: key 'Bad Key'/.test(serverLog) && /baddata2.json: data.ok: non-empty argv/.test(serverLog), serverLog.split("\n").filter((l) => /bad(page|data)/.test(l)).join(" | "));
+	const gm = await get(G, "/api/manifest");
+	check("manifest exposes quick prompts (well-formed only) and data keys, never argv", JSON.stringify(gm.quick) === JSON.stringify([["panel", "Show the panel"]]) && JSON.stringify(gm.data) === JSON.stringify(["tape", "boom", "text", "gone"]) && !JSON.stringify(gm).includes("node"), JSON.stringify(gm));
+	check("app page served from the manifest's page dir", /gamma page/.test(await fetch(G + "/").then((r) => r.text())) && /gamma page/.test(await fetch(G + "/index.html").then((r) => r.text())));
+	check("app.js served from the page dir", /gamma app.js/.test(await fetch(G + "/app.js").then((r) => r.text())));
+	check("stage.js is the KIT's even when the page dir has its own", !/MUST NOT/.test(await fetch(G + "/stage.js").then((r) => r.text())));
+	check("alpha (no page) has no /app.js", (await fetch(A + "/app.js")).status === 404);
+	check("alpha (no page) serves the kit stage page", /<title>stage<\/title>/.test(await fetch(A + "/").then((r) => r.text())));
+	const tape = await fetch(G + "/api/data/tape?x=1&argv=evil").then((r) => r.json());
+	check("data command runs with fixed argv in the app cwd; query string ignored", tape.label === "live" && tape.cwd === fs.realpathSync(cwdA) && JSON.stringify(tape.argv) === "[]", JSON.stringify(tape));
+	let dr = await fetch(G + "/api/data/boom");
+	check("failing data command → 500 with its stderr, never a guess", dr.status === 500 && /exit 3/.test((await dr.json()).error), String(dr.status));
+	dr = await fetch(G + "/api/data/text");
+	check("non-JSON stdout → 500", dr.status === 500 && /did not print JSON/.test((await dr.json()).error));
+	dr = await fetch(G + "/api/data/gone");
+	check("unstartable command → 500", dr.status === 500 && /failed to start/.test((await dr.json()).error));
+	check("unknown data key → 404", (await fetch(G + "/api/data/nope")).status === 404);
+	check("data route is GET-only (POST → not found, after the origin rule)", (await post(G, "/api/data/tape", {})).status === 404);
+	check("alpha (no data) → 404 on every data key", (await fetch(A + "/api/data/tape")).status === 404);
 	check("no session yet → null", (await get(A, "/api/session")) === null);
 	check("events without a session → 404", (await fetch(A + "/api/events")).status === 404);
 
