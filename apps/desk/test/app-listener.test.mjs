@@ -29,6 +29,7 @@ const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), hasKey: /^[0-9a-f]{64}$/.test(process.env.NANA_STAGE_KEY || ""), expect: process.env.NANA_STAGE_EXPECT_TOOLS || null }) + "\\n");
 // like nana-stage: report tool readiness on the status channel — unless this child is the SILENT one
+if (process.env.STUB_DIE_IN && process.cwd().includes(process.env.STUB_DIE_IN)) setTimeout(() => process.exit(7), 400);
 if (!/silent/.test(process.cwd())) setTimeout(() => process.stdout.write(JSON.stringify({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }) + "\\n"), 150);
 const BLOCK = { id: "blk_x", type: "card", title: "X", scope: "s", fields: [{ label: "a", value: 1 }], slot: "main", show: true };
 const stamp = (id, tool, call) => ({ ...BLOCK, id, produced_by: { tool, args: {}, toolCallId: call, at: "2026-09-04T00:00:00.000Z" } });
@@ -167,6 +168,8 @@ try {
 	check("text/plain POST /api/data (a form/simple request) → 403", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "text/plain", origin: G }, body: "{}" })).status === 403);
 	check("same-origin JSON POST /api/data → 200", (await post(G, "/api/data/tape", {})).status === 200);
 	check("curl-style POST (no Origin, JSON) → 200", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status === 200);
+	check("body-less POST with no Origin and no content-type (a legacy simple request) → 403", (await fetch(G + "/api/data/tape", { method: "POST" })).status === 403);
+	check("body-less POST with a form content-type → 403", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" } })).status === 403);
 	check("alpha (no data) → 404 on every data key", (await fetch(A + "/api/data/tape")).status === 404);
 	check("no session yet → null", (await get(A, "/api/session")) === null);
 	check("events without a session → 404", (await fetch(A + "/api/events")).status === 404);
@@ -198,6 +201,17 @@ try {
 	const rD = await post(Dl, "/api/prompt", { message: "hi" });
 	check("silent child: prompts refused (409) — never run the model without the app's tools", rD.status === 409 && /unreported/.test((await rD.json()).error), String(rD.status));
 	check("silent child: GET /api/session shows unreported", (await get(Dl, "/api/session")).tools === "unreported");
+	// a child that EXITS before reporting: the spawn answers with an error, never a 200 "waiting"
+	const cwdDying = path.join(tmp, "repo-silent-dying"); fs.mkdirSync(cwdDying);
+	fs.writeFileSync(path.join(appsDir, "epsilon.json"), JSON.stringify(manifest(4412, cwdDying)));
+	// (the server loads manifests at start — spawn a second server for this one app)
+	const OUT2 = path.join(tmp, "stub-out-2.jsonl");
+	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: "4413", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	try {
+		for (let i = 0; i < 40; i++) { try { await fetch("http://127.0.0.1:4412/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
+		const rE = await post("http://127.0.0.1:4412", "/api/session", {});
+		check("dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting", rE.status === 502 && /exited before its tools/.test((await rE.json()).error), String(rE.status));
+	} finally { server2.kill(); }
 
 	// ── manifest session written back atomically after spawn ──
 	const mA = JSON.parse(fs.readFileSync(path.join(appsDir, "alpha.json"), "utf-8"));

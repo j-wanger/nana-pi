@@ -31,17 +31,30 @@ export default function nanaStage(pi: ExtensionAPI): void {
 	const expect = (process.env.NANA_STAGE_EXPECT_TOOLS || "").split(",").map((t) => t.trim()).filter(Boolean);
 	delete process.env.NANA_STAGE_EXPECT_TOOLS;
 	if (expect.length) {
-		pi.on("session_start", async (_event, ctx) => {
+		let watching = false;
+		// pi awaits event handlers: the watcher must NOT be awaited from session_start, or
+		// the session never starts. It is started once and runs for the process lifetime.
+		pi.on("session_start", (_event, ctx) => {
+			if (watching) return; // a resume/new-session on the same process re-enters here; one watcher
+			watching = true;
+			void watch(ctx);
+		});
+		const watch = async (ctx: { ui: { setStatus(key: string, text: string | undefined): void } }) => {
 			const deadline = Date.now() + 30000;
-			ctx.ui.setStatus("nana-tools", "waiting");
+			let last = "";
+			const report = (state: string) => { if (state !== last) { last = state; ctx.ui.setStatus("nana-tools", state); } };
+			report("waiting");
+			// Readiness is not one-shot: the adapter can hot-swap or drop direct tools later
+			// (server disconnect, metadata refresh). Keep watching; a disappearance downgrades
+			// the status and the desk refuses prompts until the tools are back.
 			for (;;) {
 				const active = new Set(pi.getActiveTools());
 				const missing = expect.filter((t) => !active.has(t));
-				if (!missing.length) { ctx.ui.setStatus("nana-tools", "ready"); return; }
-				if (Date.now() > deadline) { ctx.ui.setStatus("nana-tools", `missing: ${missing.join(",")}`); return; }
-				await new Promise((r) => setTimeout(r, 200));
+				if (!missing.length) report("ready");
+				else if (last === "ready" || Date.now() > deadline) report(`missing: ${missing.join(",")}`);
+				await new Promise((r) => setTimeout(r, last === "ready" || last.startsWith("missing") ? 2000 : 200));
 			}
-		});
+		};
 	}
 
 	pi.on("tool_result", async (event) => {

@@ -266,6 +266,10 @@ async function handle(app, req, res, deps, files) {
 			// same Origin + application/json rule as every other state-changing route: a
 			// cross-site <img>/<script>/form cannot send a JSON body with our origin, and a
 			// GET (which legacy clients could fire without Fetch Metadata) does not exist here.
+			// The shared rule checks the content-type only when a body is present; a body-less
+			// simple POST from a client that sends no Origin would slip past it. This route
+			// runs a command, so it demands application/json unconditionally.
+			if (!/^application\/json\b/i.test(String(req.headers["content-type"] || ""))) return json(res, 403, { error: "content-type must be application/json" });
 			await readBody(req); // drained and ignored: nothing client-supplied reaches the command
 			const key = p.slice("/api/data/".length);
 			const argv = m.data[key];
@@ -290,6 +294,7 @@ async function handle(app, req, res, deps, files) {
 				c = deps.children.get(app.childId);
 			}
 			await awaitTools(c);
+			if (c.state !== "running") return json(res, 502, { error: `app session exited before its tools were ready (${toolsState(c)})`, exit: c.exitNote || null });
 			return json(res, 200, childInfo(app.childId, c));
 		}
 		const child = liveChild(app, deps);
