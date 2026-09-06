@@ -1,6 +1,6 @@
-# Perspective-puzzle game — design (v4)
+# Perspective-puzzle game — design (v5)
 
-*2026-09-06. **v4 after pi rounds 1–3 (all BLOCK, each adjudicated in `reviews/coop-game-2026-09-06/`) and Jake's rulings:** v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (now RESERVED — see §3.6); commit is never a model tool. v4 folds round 3: a three-step enterability rule that settles reduced-depth pushing, a single vertical-intent liquid/gravity step with two ordered passes, move directions derived from visible axes minus gravity, step-up as the v1 platformer verb, ablation of the start view, single-valued decision depth, symmetry acting on the view. Round 4 reviews this v4. NOT built; no repo yet.*
+*2026-09-06. **v4 after pi rounds 1–3 (all BLOCK, each adjudicated in `reviews/coop-game-2026-09-06/`) and Jake's rulings:** v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (now RESERVED — see §3.6); commit is never a model tool. v4 folds round 3: a three-step enterability rule that settles reduced-depth pushing, a single vertical-intent liquid/gravity step with two ordered passes, move directions derived from visible axes minus gravity, step-up as the v1 platformer verb, ablation of the start view, single-valued decision depth, symmetry acting on the view. v5 folds round 4: the true-destination solid check restored in enterability (a v4 regression), step-up defined on true cells with "above" = against gravity, fragile support evaluated on the pre-tick snapshot through stacks, symmetry restricted to the horizontal dihedral group, two fixtures. Round 5 reviews this v5. NOT built; no repo yet.*
 
 ## 1. Decision
 
@@ -27,13 +27,13 @@ Test (standing): **the agent is forced if a menu could replace it.** Round 1 sho
 
 The visible cell at a reduced-mode position is the nearest non-empty cell along the collapsed axis from the camera side; **entities count as occupants** for this purpose. Hidden cells stay hidden. Projection is a pure function of (world, mode).
 
-**Enterability, one rule for every mover (v4):** a `move` toward a projected destination resolves in order:
-1. the destination's front-most cell must be non-solid, else BLOCKED;
-2. if the front-most occupant is an entity that is NOT in the mover's true destination cell (frozen coordinates applied), BLOCKED — an entity at another depth is a wall in 2D, exactly like a solid at another depth (the Fez mechanic), and is never pushed remotely;
-3. if the mover's true destination holds an entity, that entity is **pushed** one cell in the move direction under this same rule with its own frozen coordinates (Sokoban; boxes never push boxes; a box is never stepped onto); if the push is blocked, so is the move;
+**Enterability, one rule for every mover (v5):** a `move` toward a projected destination resolves in order. The mover's *true destination* is its true position plus the move vector (frozen coordinates apply along collapsed axes); in 3D the projected and true destinations coincide.
+1. **Solids:** the projected destination's front-most cell must be non-solid AND the mover's true destination cell must be non-solid; if the true destination is solid, see step-up below; if only the front-most cell is solid, BLOCKED (a solid at another depth is a wall in 2D — the Fez mechanic);
+2. **Other-depth entities:** if the front-most occupant is an entity that is NOT in the mover's true destination cell, BLOCKED — an entity at another depth is a wall too, never pushed remotely;
+3. **Push:** if the true destination holds an entity, that entity is **pushed** one cell in the move direction under this same rule from its own true position (Sokoban; boxes never push boxes); if the push is blocked, so is the move;
 4. otherwise the mover moves into its true destination.
 
-**Step-up (v4 default, the v1 platformer verb; Jake may veto):** when step 1 fails because the front-most cell is solid, the move instead succeeds as a move to the cell above that destination if that cell and the cell above the mover are both free (true cells, one cell only), in any view where gravity is on and visible. There is no jump beyond this.
+**Step-up (v5; the v1 platformer verb; Jake may veto):** applies only when the mover's TRUE destination is a solid cell (never an entity — a box in the true destination goes to step 3, and a box is never stepped onto). "Above" means against gravity, for any gravity direction; step-up exists only when gravity is on and visible. The move then resolves as a move to the cell above the true destination, which must itself be enterable by steps 1–4 from the mover's position, AND the cell above the mover must be free (true cell, non-solid, no entity). One cell only; a front-most solid at another depth is a wall, never a step. There is no jump beyond this.
 
 ### 3.4 Physics acts only in the visible dimensions
 
@@ -61,8 +61,9 @@ Because every move requires the mover's TRUE destination to be free of solid and
 
 Tick order for `move` / `wait`:
 1. Movement resolution incl. pushing and step-up (§3.3, §3.5).
-2. **One vertical step per entity** (v4): each entity's *vertical intent* is — in liquid: the buoyancy direction (float = against gravity, sink = along it); else unsupported: along gravity; else none; with gravity off or its axis collapsed, every intent is none. Resolution in two passes: along-gravity movers first, processed from the far end of the gravity axis toward its source (stacks resolve bottom-up); then against-gravity movers, from the source toward the far end. A mover whose target cell is occupied when its turn comes stays. Fragile breaking (§3.1, one outcome) happens when an along-gravity mover is blocked by a fragile cell.
-3. Loss check (destroyed player — no trigger in v1) and goal check.
+2. **Support and fragile breaking (v5), on the pre-tick snapshot:** an entity is *supported* iff the cell along gravity from it is a non-fragile solid, or holds an entity that is supported. An entity whose support chain ends on a **fragile** cell is fragile-supported: that cell becomes `none` this tick (all breaks apply before any vertical movement), every entity in that chain stays put this tick, and falls on following ticks bottom-up. With gravity off or its axis collapsed, nothing is evaluated.
+3. **One vertical step per entity** (v4/v5): each entity's *vertical intent* is — in liquid: the buoyancy direction (float = against gravity, sink = along it); else not supported (after breaks) and not fragile-supported this tick: along gravity; else none; with gravity off or its axis collapsed, every intent is none. Resolution in two passes: along-gravity movers first, processed from the far end of the gravity axis toward its source (stacks resolve bottom-up); then against-gravity movers, from the source toward the far end. A mover whose target cell is occupied or solid when its turn comes stays.
+4. Loss check (destroyed player — no trigger in v1) and goal check.
 
 ### 3.8 Invariants (tests, before any renderer)
 
@@ -95,7 +96,7 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 - A puzzle = (room start state, goal predicate). Goal predicates v1: player reaches the exit cell; a box rests on a plate.
 - **Generator and solver are scripts.** The solver is an omniscient single-agent breadth-first search over §3.8's state space and §3.7's action set; loss states are terminal; a puzzle is valid only if a solution exists that never enters one. **Stable start:** the start state is a fixed point under `wait`.
 - **Non-triviality by ablation** (v4, C2): ablation removes one view (one side facing, or top) from the action set — **and if it is the start view, the ablated puzzle starts in 3D instead; 3D is never ablated** — then re-solves; a view counts toward the puzzle only if its removal makes it unsolvable. A v1 puzzle must have at least one counting view. **Decision depth** = the minimum number of `switch` actions over all shortest solutions (single-valued); that is the difficulty metric, never input length.
-- **Symmetry normalization (v4):** the grid's rotation/reflection group acts on the WHOLE state — grid, entities, gravity, goal, and the view/facing (reflecting across X maps side +X to side −X) — and on actions; the canonical form is the lexicographically smallest image. Duplicates are rejected on the normalized hash.
+- **Symmetry normalization (v5):** the **dihedral group of the horizontal plane** (rotations about the vertical axis by 90° and reflections across vertical planes; 8 elements) acts on the WHOLE state — grid, entities, gravity, goal, and the view/facing (it permutes the four side facings, fixes top and 3D, fixes gravity along Y, permutes gravity along X/Z with the facings) — and on actions; the canonical form is the lexicographically smallest image. Duplicates are rejected on the normalized hash.
 - Reset = restart the puzzle from its start state.
 
 ## 7. Relation to the kit
@@ -119,6 +120,6 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 
 ## 10. Gates before build
 
-1. pi round 4 on this v4 (fold check of round 3; step-up; any remaining partial rule).
-2. **Smallest playable:** one room, 3D + side + top, gravity on/off, the four-property table, player + one box, reach the exit; the solver proves the room; twenty minutes of play. **First fixture (round-3 D):** gravity −Y, flat floor, player at (0,1,0), box at (2,1,1), side view from +X, exit beyond the box's projected square; the single `+Z` move must resolve to BLOCKED in the renderer's legality preview and in the headless solver alike.
+1. pi round 5 on this v5 (fold check of round 4; any remaining partial rule).
+2. **Smallest playable:** one room, 3D + side + top, gravity on/off, the four-property table, player + one box, reach the exit; the solver proves the room; twenty minutes of play. **Fixture 1 (round-3 D):** a bounded room, gravity −Y, flat floor, player at (0,1,0), box at (2,1,1), side view from +X, exit beyond the box's projected square, with an alternate route (e.g. via top view) so the room is solvable; the single `+Z` move from the start must resolve to BLOCKED in the renderer's legality preview and in the headless solver alike. **Fixture 2 (round-4 D, "false stair"):** gravity −Y, side view from +X, player at (0,1,0), liquid at the true destination (0,1,1), a solid at (2,1,1) only, free cells at (0,2,0) and (0,2,1); `+Z` must resolve to BLOCKED (the true destination is liquid, so no step-up; the front-most cell at depth 2 is solid, so step 1 blocks) — no stair, no drop.
 3. Ten generated puzzles played. Then, and only then, the agent question (§2) with evidence from play.
