@@ -1,6 +1,6 @@
-# Perspective-puzzle game — design (v8)
+# Perspective-puzzle game — design (v9)
 
-*2026-09-06. **v4 after pi rounds 1–3 (all BLOCK, each adjudicated in `reviews/coop-game-2026-09-06/`) and Jake's rulings:** v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (now RESERVED — see §3.6); commit is never a model tool. v4 folds round 3: a three-step enterability rule that settles reduced-depth pushing, a single vertical-intent liquid/gravity step with two ordered passes, move directions derived from visible axes minus gravity, step-up as the v1 platformer verb, ablation of the start view, single-valued decision depth, symmetry acting on the view. v5 folds round 4: the true-destination solid check restored in enterability (a v4 regression), step-up defined on true cells with "above" = against gravity, fragile support evaluated on the pre-tick snapshot through stacks, symmetry restricted to the horizontal dihedral group, two fixtures. v6 folds round 5 (the last finding): support and fragility are evaluated on the post-movement snapshot, not pre-tick. v7 folds round 6 (one finding): cells outside the room are implicit solid. v8 folds round 7 (one finding) by subtraction: `passableFromTop` leaves v1 (it contradicted enterability under frozen depth; Jake may veto). Round 8 reviews this v8. NOT built; no repo yet.*
+*2026-09-06. **v4 after pi rounds 1–3 (all BLOCK, each adjudicated in `reviews/coop-game-2026-09-06/`) and Jake's rulings:** v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (now RESERVED — see §3.6); commit is never a model tool. v4 folds round 3: a three-step enterability rule that settles reduced-depth pushing, a single vertical-intent liquid/gravity step with two ordered passes, move directions derived from visible axes minus gravity, step-up as the v1 platformer verb, ablation of the start view, single-valued decision depth, symmetry acting on the view. v5 folds round 4: the true-destination solid check restored in enterability (a v4 regression), step-up defined on true cells with "above" = against gravity, fragile support evaluated on the pre-tick snapshot through stacks, symmetry restricted to the horizontal dihedral group, two fixtures. v6 folds round 5 (the last finding): support and fragility are evaluated on the post-movement snapshot, not pre-tick. v7 folds round 6 (one finding): cells outside the room are implicit solid. v8 folds round 7 (one finding) by subtraction: `passableFromTop` leaves v1 (it contradicted enterability under frozen depth; Jake may veto). v9 folds round 8 (one finding): the fragile-supported freeze takes precedence over buoyancy for every entity. Round 9 reviews this v9. NOT built; no repo yet.*
 
 ## 1. Decision
 
@@ -62,7 +62,7 @@ Because every move requires the mover's TRUE destination to be free of solid and
 Tick order for `move` / `wait`:
 1. Movement resolution incl. pushing and step-up (§3.3, §3.5).
 2. **Support and fragile breaking (v6), on the post-movement snapshot** — evaluated after stage 1 has placed every entity, before any vertical step: an entity is *supported* iff the cell along gravity from it is a non-fragile solid, or holds an entity that is supported. An entity whose support chain ends on a **fragile** cell is fragile-supported: that cell becomes `none` this tick (all breaks apply before any vertical movement), every entity in that chain keeps its post-movement position this tick, and falls on following ticks bottom-up. An entity that moved out of a chain in stage 1 is judged where it now stands. With gravity off or its axis collapsed, nothing is evaluated.
-3. **One vertical step per entity** (v4/v5): each entity's *vertical intent* is — in liquid: the buoyancy direction (float = against gravity, sink = along it); else not supported (after breaks) and not fragile-supported this tick: along gravity; else none; with gravity off or its axis collapsed, every intent is none. Resolution in two passes: along-gravity movers first, processed from the far end of the gravity axis toward its source (stacks resolve bottom-up); then against-gravity movers, from the source toward the far end. A mover whose target cell is occupied or solid when its turn comes stays.
+3. **One vertical step per entity** (v9): each entity's *vertical intent* is decided in this order — **fragile-supported this tick (stage 2): none**; else in liquid: the buoyancy direction (float = against gravity, sink = along it); else not supported (after breaks): along gravity; else none; with gravity off or its axis collapsed, every intent is none. Resolution in two passes: along-gravity movers first, processed from the far end of the gravity axis toward its source (stacks resolve bottom-up); then against-gravity movers, from the source toward the far end. A mover whose target cell is occupied or solid when its turn comes stays.
 4. Loss check (destroyed player — no trigger in v1) and goal check.
 
 ### 3.8 Invariants (tests, before any renderer)
@@ -79,7 +79,7 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 
 ## 4. Systems, in build order
 
-1. **v1:** grid gravity, the three mode families, the four-property table, the tick order. This is the whole first game.
+1. **v1:** grid gravity, the three mode families, the three-property table, the tick order. This is the whole first game.
 2. **Elements** (water, fire, ice, electricity) as cellular rules over the table — the point at which a rule-edit grammar (§5) becomes worth having.
 3. **Light** as raycasts over opacity and reflectivity.
 
@@ -115,11 +115,11 @@ In a reduced mode the renderer marks every adjacent destination the mover cannot
 2. The player's perspective verb: v3 default = all six views reachable at all times; the input (keys / on-screen) is open.
 3. Gravity into the screen: lever (default) or forbidden.
 4. v1 room size (default 12×12×12) and whether rooms connect.
-5. Whether the four-property rules in §3.1 (fragile breaks under a fall; float/sink one cell per tick) are the v1 rules or too thin.
+5. Whether the three-property rules in §3.1 (fragile breaks under a fall; float/sink one cell per tick) are the v1 rules or too thin.
 6. Veto points from v3–v8: Sokoban pushing and the enterability rule (§3.3); step-up as the only vertical verb (§3.3); switches take no time (§3.7); `passableFromTop` removed from v1 (§3.1).
 
 ## 10. Gates before build
 
-1. pi round 8 on this v8 (fold check of round 7; any remaining partial rule).
+1. pi round 9 on this v9 (fold check of round 8; any remaining partial rule).
 2. **Smallest playable:** one room, 3D + side + top, gravity on/off, the three-property table, player + one box, reach the exit; the solver proves the room; twenty minutes of play. **Fixture 1 (round-3 D):** a bounded room, gravity −Y, flat floor, player at (0,1,0), box at (2,1,1), side view from +X, exit beyond the box's projected square, with an alternate route (e.g. via top view) so the room is solvable; the single `+Z` move from the start must resolve to BLOCKED in the renderer's legality preview and in the headless solver alike. **Fixture 2 (round-4 D, "false stair"):** gravity −Y, side view from +X, player at (0,1,0), liquid at the true destination (0,1,1), a solid at (2,1,1) only, free cells at (0,2,0) and (0,2,1); `+Z` must resolve to BLOCKED (the true destination is liquid, so no step-up; the front-most cell at depth 2 is solid, so step 1 blocks) — no stair, no drop.
 3. Ten generated puzzles played. Then, and only then, the agent question (§2) with evidence from play.
