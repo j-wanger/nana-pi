@@ -7,6 +7,8 @@
 //   5. the gate bar shows a pending select with the drawer COLLAPSED, and
 //      after a reload (desk_hello); answering clears it
 //   6. the desk's own routes are absent on the app port
+//   7. the chat BUBBLE: closed by default, a reading that lands while it is closed
+//      shows on the badge, opening clears it; Esc closes
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/stage-page.e2e.mjs
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -123,6 +125,12 @@ try {
 	check("page boots, session idle, no page errors", errors.length === 0, errors.join(" | "));
 	check("history from entries in the drawer: active branch only (abandoned turn absent)", (await page.locator(".turn.user").count()) === 1 && !/ABANDONED/.test(await page.locator("#turns").textContent()));
 
+	// 7. the bubble: closed by default, the page is all stage; open it to chat
+	check("bubble: drawer closed by default", await page.locator("#drawer").evaluate((d) => d.classList.contains("collapsed")) && (await page.locator("#drawer-badge").isHidden()));
+	check("bubble: stage spans the full width with the drawer closed", (await page.locator("#stage").evaluate((s) => s.getBoundingClientRect().width)) >= 1200);
+	await page.click("#btn-drawer");
+	check("bubble: click opens the drawer over the page", !(await page.locator("#drawer").evaluate((d) => d.classList.contains("collapsed"))) && (await page.locator("#btn-drawer").getAttribute("aria-expanded")) === "true");
+
 	// 1. live block renders; forged (unstamped) never does
 	await page.fill("#input", "show the general board");
 	await page.press("#input", "Enter");
@@ -133,11 +141,18 @@ try {
 	check("provenance footer shows tool + args + scope", /board_table.*general/.test(await page.locator(".blk-by").first().textContent()) && /fixture board/.test(await page.locator(".blk-scope").first().textContent()));
 	check("tool row in the drawer names the block it produced", /General board/.test(await page.locator(".tool-card .targ").first().textContent()));
 
-	// 3. per-row action composes from the row
+	// 3. per-row action composes from the row — with the bubble CLOSED (a click on the
+	//    dashboard is a complete turn; the reading it produces counts on the badge)
+	await page.keyboard.press("Escape");
+	check("bubble: Esc closes the drawer", await page.locator("#drawer").evaluate((d) => d.classList.contains("collapsed")));
 	await page.locator(".tbl tbody tr").nth(1).locator("button").click();
 	await page.waitForSelector(".blk[data-id='blk_player_1']", { timeout: 10000 });
 	check("per-row action sent the composed prompt", prompts().at(-1) === "Show the player card for Luka Dončić", prompts().at(-1));
 	check("card block lands in the side slot", (await page.locator("#slot-side .blk-card").count()) === 1 && !(await page.locator("#slot-side").isHidden()));
+	await page.waitForFunction(() => !document.getElementById("drawer-badge").hidden, null, { timeout: 5000 });
+	check("bubble: a reading that settled while closed shows on the badge", (await page.locator("#drawer-badge").textContent()) === "1");
+	await page.click("#btn-drawer");
+	check("bubble: opening clears the badge", await page.locator("#drawer-badge").isHidden());
 
 	// 4. same-id replace in place
 	await page.fill("#input", "update it");

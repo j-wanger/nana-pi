@@ -21,7 +21,6 @@
 	<div class="brand"><span id="app-title">stage</span><span id="app-cwd" class="dim"></span></div>
 	<div class="top-right">
 		<span id="chip" class="chip">…</span>
-		<button id="btn-drawer" class="btn" title="toggle the agent drawer (⌘J)">chat ▸</button>
 	</div>
 </header>
 
@@ -48,6 +47,9 @@
 		</div>
 	</aside>
 </main>
+
+<!-- the chat bubble: a floating button; the drawer above opens over the page (⌘J, Esc closes) -->
+<button id="btn-drawer" class="btn" title="chat with the agent (⌘J)" aria-controls="drawer" aria-expanded="false"><span id="drawer-label">chat</span><span id="drawer-badge" hidden>0</span></button>
 
 <div id="modal-slot" hidden></div>
 <div id="toasts"></div>

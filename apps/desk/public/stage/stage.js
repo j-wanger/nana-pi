@@ -342,7 +342,7 @@ function handleEvent(e) {
 			break;
 		}
 		case "agent_start": streaming = true; setChip("running"); break;
-		case "agent_settled": streaming = false; setChip("idle"); liveText = null; replayLedger(); break;
+		case "agent_settled": streaming = false; setChip("idle"); liveText = null; readingArrived(); replayLedger(); break;
 		case "message_start": liveText = null; break;
 		case "message_update": {
 			const ame = e.assistantMessageEvent;
@@ -448,12 +448,28 @@ function toolsGate(state) {
 	if (state === "waiting") setTimeout(async () => { const s = await fetch("/api/session").then((r) => r.json()).catch(() => null); if (s?.tools) { session.tools = s.tools; toolsGate(s.tools); } }, 1500);
 	else toast(`app tools ${state} — the session cannot take prompts; check the app's MCP config`, "error", 15000);
 }
+// The bubble (Jake 2026-09-06): closed by default; the user opens it to chat and
+// the dashboard keeps the whole screen. Readings that arrive while it is closed
+// count on the badge; opening clears it. Gate dialogs never depend on it (gate bar).
+let unread = 0;
 function openDrawer(open) {
 	const d = $("drawer");
 	const want = open === undefined ? d.classList.contains("collapsed") : open;
 	d.classList.toggle("collapsed", !want);
-	$("btn-drawer").textContent = want ? "chat ▾" : "chat ▸";
+	$("btn-drawer").setAttribute("aria-expanded", want ? "true" : "false");
+	$("drawer-label").textContent = want ? "close" : "chat";
+	if (want) { unread = 0; setBadge(); $("input").focus(); }
 	try { localStorage.setItem("stage-drawer", want ? "open" : "closed"); } catch {}
+}
+function setBadge() {
+	const b = $("drawer-badge");
+	b.textContent = String(unread);
+	b.hidden = unread === 0;
+}
+function readingArrived() {
+	if (!$("drawer").classList.contains("collapsed")) return;
+	unread++;
+	setBadge();
 }
 
 // ── boot ──
@@ -467,7 +483,7 @@ async function boot() {
 		b.onclick = () => compose(prompt);
 		$("quick").appendChild(b);
 	}
-	try { openDrawer(localStorage.getItem("stage-drawer") !== "closed"); } catch { openDrawer(true); }
+	try { openDrawer(localStorage.getItem("stage-drawer") === "open"); } catch { openDrawer(false); }
 	session = await postJson("/api/session", {}).catch(() => null);
 	if (!session?.id) { setChip("no session"); toast("could not start the app session", "error"); return; }
 	toolsGate(session.tools);
@@ -481,7 +497,10 @@ $("input").onkeydown = (e) => {
 };
 $("btn-abort").onclick = () => postJson("/api/abort", {}).catch(() => {});
 $("btn-drawer").onclick = () => openDrawer();
-document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") { e.preventDefault(); openDrawer(); } });
+document.addEventListener("keydown", (e) => {
+	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") { e.preventDefault(); openDrawer(); }
+	else if (e.key === "Escape" && !$("drawer").classList.contains("collapsed")) openDrawer(false);
+});
 window.stage = {
 	compose,
 	get blocks() { return blocks; },
