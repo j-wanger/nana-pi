@@ -1,5 +1,7 @@
 # Perspective-puzzle game — design (v9)
 
+> **Canonical copy moved to `~/game-world/docs/design.md` (repo named by Jake 2026-09-06). This file is frozen at the round-9 LAND text; the review corpus is copied to `~/game-world/docs/reviews/design-2026-09-06/`.**
+
 *2026-09-06. **Status: design LAND — pi round 9 (gpt-5.6-sol) VERDICT LAND on this v9** after eight BLOCK rounds, each adjudicated in `reviews/coop-game-2026-09-06/` (r1 reshaped the plan; r2–r8 each closed one partial or contradictory transition). Jake's rulings: v1 is a puzzle game WITHOUT the agent; subtractions accepted; re-embedding with nowhere to go = game loss (RESERVED, §3.6); commit is never a model tool. Seat defaults awaiting Jake's veto pass are listed in §9.6. NOT built; no repo yet.*
 
 ## 1. Decision
