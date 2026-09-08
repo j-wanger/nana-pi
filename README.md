@@ -96,6 +96,11 @@ node /path/to/nana-pi/apps/desk/server.mjs
   configs and leave the source tree untouched; reconcile from `git diff`, then
   commit including `.copier-answers.yml`. An adopted project re-syncs with
   `copier update` like any other copy.
+- **Existing project, structure only** — the `adopt-structure` skill adds the
+  AGENTS.md navigation layer (a coherent root + per-folder AGENTS.md) and a
+  starter `.pi/nana-pack.json`, without touching the language toolchain. No
+  `.copier-answers.yml`, so no `copier update` relationship; layer `adopt-py`/
+  `adopt-ts` on top later for the pinned stack.
 
 Canonical upstream coordinates: repo `earendil-works/pi`, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.
