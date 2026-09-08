@@ -3,6 +3,7 @@
 import {
 	validateBlock, renderBlockText, extractBlocks, stripCarrier, reduceEntries, applyLiveBlocks,
 	processToolResult, rowPrompt, isStamp, consumable, pathEntries, MAX_TABLE_ROWS, ENTRY_TYPE, MAX_CHART_SERIES, MAX_CHART_POINTS, MAX_CHART_POINTS_TOTAL,
+	MAX_TEXT_COL_WIDTH, MAX_BLOCK_TEXT_BYTES, MAX_RESULT_TEXT_BYTES, clampText,
 } from "../lib/blocks.mjs";
 import { signBlock, verifyBlock, canonical } from "../lib/sign.mjs";
 
@@ -78,12 +79,91 @@ check("per_row action on a table accepted; rowPrompt substitutes", validateBlock
 check("oversize block (>64 KiB) rejected", !validateBlock({ ...card(), note: "x".repeat(70 * 1024) }).ok);
 check("produced_by supplied by the tool does not fail validation (it is overwritten later)", validateBlock({ ...card(), produced_by: { tool: "forged" } }).ok);
 
+// ── validateBlock NEVER throws: it runs in pi's tool_result handler, where a
+//    thrown error BLOCKS the tool. Malformed input is a rejection, not a crash. ──
+{
+	const thrower = { ...card(), get boom() { throw new Error("hostile getter"); } };
+	const cyclic = { ...card() }; cyclic.self = cyclic;
+	const caught = (b) => { try { return validateBlock(b); } catch (e) { return { threw: String(e && e.message) }; } };
+	check("a cyclic block is REJECTED, not thrown on", caught(cyclic).ok === false && /circular/i.test(caught(cyclic).errors.join(" ")), JSON.stringify(caught(cyclic)).slice(0, 120));
+	check("a block with a throwing getter is REJECTED, not thrown on", caught(thrower).ok === false && /hostile getter/.test(caught(thrower).errors.join(" ")), JSON.stringify(caught(thrower)).slice(0, 120));
+	check("a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw)", caught({ ...card(), fields: [{ label: "n", value: 1n }] }).ok === false && caught({ ...table(), rows: [{ rank: 1n }] }).ok === false && caught({ ...card(), actions: [{ label: "a", prompt: "p", extra: 1n }] }).ok === false);
+}
+
+// ── only JSON-durable scalars: a validated block must survive persist → replay ──
+{
+	const roundTrips = (b) => JSON.stringify(JSON.parse(JSON.stringify(b))) === JSON.stringify(b);
+	for (const [what, v] of [["NaN", NaN], ["Infinity", Infinity], ["a function", () => 1], ["a symbol", Symbol("s")]]) {
+		check(`card value ${what} rejected (silently mutates or vanishes on replay)`, !validateBlock({ ...card(), fields: [{ label: "x", value: v }] }).ok);
+		check(`table cell ${what} rejected`, !validateBlock({ ...table(), rows: [{ rank: v }] }).ok);
+	}
+	check("null, strings, booleans and finite numbers stay legal in both", validateBlock({ ...card(), fields: [{ label: "x", value: null }, { label: "y", value: true }, { label: "z", value: -1.5 }] }).ok && validateBlock({ ...table(), rows: [{ rank: 1, player: "p", salary: null }, { rank: 2, player: "q", extra: false }] }).ok);
+	check("a row key no column names is still checked (it rides rowPrompt and is persisted)", !validateBlock({ ...table(), rows: [{ rank: 1, _ref: () => "x" }] }).ok);
+	check("undefined in a row is legal — indistinguishable from an absent key", validateBlock({ ...table(), rows: [{ rank: 1, player: undefined }] }).ok);
+	check("what validates now round-trips through JSON unchanged", roundTrips(table()) && roundTrips(card()) && roundTrips(chart()));
+}
+
+// ── validation ⟷ render agreement: a block that validates must be renderable ──
+// The stage draws `subtitle` and `badges` on EVERY block type, so they are checked
+// for every type. `badges: {length: 2}` used to validate and then throw in the
+// stage's `for…of`; a non-string badge used to paint "[object Object]".
+check("badges: string[] enforced on table and chart, not only card", !validateBlock({ ...table(), badges: { length: 2 } }).ok && !validateBlock({ ...chart(), badges: ["ok", {}] }).ok && validateBlock({ ...table(), badges: ["NEW"] }).ok);
+check("subtitle: string enforced on table and chart, not only card", !validateBlock({ ...table(), subtitle: 42 }).ok && !validateBlock({ ...chart(), subtitle: ["x"] }).ok && validateBlock({ ...chart(), subtitle: "weekly" }).ok);
+// The other half of the same rule: shapes the renderers DO handle stay legal.
+{
+	const sparse = { ...table(), rows: [{ rank: 1 }, { player: "no rank, no salary" }] };
+	check("a row missing a column's key stays legal and renders an empty cell", validateBlock(sparse).ok && renderBlockText(sparse).includes("no rank, no salary"));
+	const halfNull = { ...chart(), series: [chart().series[0], { key: "n", label: "N", points: [["2013-01-04", null], ["2013-01-11", null]] }] };
+	check("an all-null series beside a drawable one stays legal (summarised, not rejected)", validateBlock(halfNull).ok && /N: 2 points, no values/.test(renderBlockText(halfNull)));
+	const onePoint = { ...chart(), series: [{ key: "s", label: "S", points: [["2013-01-04", 1]] }] };
+	check("a single-point series stays legal (degenerate axis is the renderer's job)", validateBlock(onePoint).ok);
+}
+
 // ── renderBlockText: deterministic, carries scope, note, actions ──
 const t1 = renderBlockText(table());
 check("table text has title, scope, header, rows", t1.includes("## 2026-27 general board") && t1.includes("scope: reports/") && t1.includes("Player") && t1.includes("Shai Gilgeous-Alexander"));
 check("table text is byte-stable", t1 === renderBlockText(table()));
 const c1 = renderBlockText(card());
 check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.includes("[C]") && c1.includes("note: no injury") && c1.includes("(player_season_stats)"));
+
+// ── the model-facing rendering is BOUNDED (the 64 KiB cap bounds JSON, not text) ──
+{
+	const bytes = (s) => new TextEncoder().encode(s).length;
+	// one wide cell × 500 rows of padding: 57 KiB of JSON rendered ~22 MB of context
+	const wideCell = "W".repeat(45000);
+	const wide = {
+		...table(), columns: [{ key: "player", label: "Player" }, { key: "rank", label: "#", type: "number" }],
+		rows: [{ player: wideCell, rank: 1 }, ...Array.from({ length: 499 }, (_, i) => ({ player: "x", rank: i + 2 }))],
+	};
+	check("padded-table fixture is a VALID block (under the 64 KiB JSON cap)", validateBlock(wide).ok, JSON.stringify(validateBlock(wide).errors || []).slice(0, 160));
+	const wt = renderBlockText(wide);
+	check(`one wide cell no longer pads every row: text ≤ ${MAX_BLOCK_TEXT_BYTES} bytes`, bytes(wt) <= MAX_BLOCK_TEXT_BYTES, `${bytes(wt)} bytes`);
+	check("the width cap loses no data: the wide cell is still printed whole", wt.includes(wideCell));
+	// many columns: the width cap alone cannot bound it, so the byte cap cuts — and says so
+	const cols = Array.from({ length: 12 }, (_, i) => ({ key: `c${i}`, label: `c${i}` }));
+	const many = {
+		...table(), columns: cols,
+		rows: [Object.fromEntries(cols.map((c) => [c.key, "y".repeat(MAX_TEXT_COL_WIDTH)])), ...Array.from({ length: 499 }, () => ({ c11: "z" }))],
+	};
+	check("wide-grid fixture is a VALID block", validateBlock(many).ok, JSON.stringify(validateBlock(many).errors || []).slice(0, 160));
+	const mt = renderBlockText(many);
+	check(`block text is hard-bounded at ${MAX_BLOCK_TEXT_BYTES} bytes`, bytes(mt) <= MAX_BLOCK_TEXT_BYTES, `${bytes(mt)} bytes`);
+	check("truncation is announced in the text, never silent", /truncated at \d+ bytes/.test(mt));
+	// the bound is on the whole tool result too — one call may return many blocks
+	const manyBlocks = processToolResult(ev({ blocks: [1, 2, 3, 4, 5].map((n) => ({ ...many, id: `blk_many_${n}` })) }), { now: NOW });
+	check(`tool-result text is hard-bounded at ${MAX_RESULT_TEXT_BYTES} bytes`, bytes(manyBlocks.patch.content[0].text) <= MAX_RESULT_TEXT_BYTES, `${bytes(manyBlocks.patch.content[0].text)} bytes`);
+	check("ordinary blocks render byte-identically under the caps", renderBlockText(table()) === t1 && renderBlockText(card()) === c1);
+	const multi = "é".repeat(200) + "🎉".repeat(100);
+	check("clampText holds the byte bound on multi-byte text, marker or not", [10, 120, 401, 1e6].every((cap) => bytes(clampText(multi, cap, "x")) <= cap) && clampText("short", 100, "x") === "short");
+	// A cap under the notice's own length takes the silent-cut path, which is the
+	// only way to drive the boundary logic exactly. U+FFFD is 3 bytes: a cut at 6
+	// lands right after the second one, and it must SURVIVE (it is real text, not
+	// the decoder's marker for a byte sequence that got sliced in half).
+	check("a genuine U+FFFD ending exactly on the cut is kept", clampText("\uFFFD".repeat(30), 6, "t") === "\uFFFD\uFFFD", JSON.stringify(clampText("\uFFFD".repeat(30), 6, "t")));
+	// 3-byte U+FFFD then 4-byte emoji: a cut at 5 splits the emoji → back up to 3.
+	check("a cut inside a 4-byte sequence backs up to the character boundary", clampText("\uFFFD" + "🎉".repeat(5), 5, "t") === "\uFFFD", JSON.stringify(clampText("\uFFFD" + "🎉".repeat(5), 5, "t")));
+	check("every cut decodes as valid UTF-8 (no lone replacement char invented)", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].every((cap) => { const o = clampText("\uFFFD" + "🎉".repeat(5), cap, "t"); return bytes(o) <= cap && o === new TextDecoder("utf-8", { fatal: true }).decode(new TextEncoder().encode(o)); }));
+}
 
 // ── extractBlocks / stripCarrier ──
 check("extension carrier found", extractBlocks({ blocks: [table()] }).where === "blocks");

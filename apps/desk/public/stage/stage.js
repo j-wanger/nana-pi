@@ -202,7 +202,15 @@ function renderChart(b) {
 		const ax = rows[0][1][0];
 		cross.setAttribute("x1", sx(ax)); cross.setAttribute("x2", sx(ax)); cross.setAttribute("visibility", "visible");
 		rows.forEach(([i, p]) => { dots[i].setAttribute("cx", sx(p[0])); dots[i].setAttribute("cy", sy(p[1])); dots[i].setAttribute("visibility", "visible"); });
-		tip.innerHTML = `<div class="tip-x">${fmtX(b, rows[0][1][2])}</div>` + rows.map(([i, p]) => `<div><span class="key s${i + 1}"></span>${b.series[i].label} <b>${fmtY(p[1], fmt)}</b></div>`).join("");
+		// DOM, never innerHTML: a series label is app-tool data that rides a tool
+		// result to this page, so as markup it would run with the app origin's authority.
+		tip.replaceChildren(el("div", "tip-x", fmtX(b, rows[0][1][2])), ...rows.map(([i, p]) => {
+			const line = el("div");
+			line.appendChild(el("span", `key s${i + 1}`));
+			line.appendChild(document.createTextNode(`${b.series[i].label} `));
+			line.appendChild(el("b", "", fmtY(p[1], fmt)));
+			return line;
+		}));
 		tip.hidden = false;
 		const px = (e.clientX - r.left) / r.width; tip.style.left = `${Math.min(px * 100, 70)}%`;
 	});

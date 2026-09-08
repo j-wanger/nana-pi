@@ -3,7 +3,7 @@
 // Pure ESM, zero deps, runs in the browser, in node tests, and inside the pi
 // extension. Four jobs, each a pure function:
 //   validateBlock       schema + size caps at the boundary
-//   renderBlockText     the canonical text a model reads (== what the stage shows)
+//   renderBlockText     the canonical text a model reads (== the stage, to a byte cap)
 //   extractBlocks       find the block carrier in a tool result's details
 //   reduceEntries       session entries → the stage (leafId ancestry, upsert by id)
 //
@@ -30,12 +30,30 @@ export const COLUMN_TYPES = new Set(["text", "number", "date"]);
 export const MAX_BLOCK_BYTES = 64 * 1024;
 export const MAX_TABLE_ROWS = 500;
 export const ENTRY_TYPE = "nana-block";
+// MAX_BLOCK_BYTES bounds the block's JSON, NOT the text the model reads: column
+// padding multiplies one wide cell across every row, so a 64 KiB-legal 500-row
+// table used to render ~25 MB of context. Padding stops at MAX_TEXT_COL_WIDTH
+// (a longer cell is printed whole, its row just runs ragged — no data is lost),
+// and the byte caps below are the hard bound behind that.
+export const MAX_TEXT_COL_WIDTH = 80;
+export const MAX_BLOCK_TEXT_BYTES = 2 * MAX_BLOCK_BYTES; // one block's rendering
+export const MAX_RESULT_TEXT_BYTES = 4 * MAX_BLOCK_BYTES; // one tool result's rendering
 
 const isStr = (v) => typeof v === "string";
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+// A value that survives persist → replay unchanged AND renders the same on both
+// sides. bigint throws in JSON.stringify; symbol/function are silently dropped;
+// NaN/Infinity come back as null — each makes a validated block non-durable.
+const isScalar = (v) => v === null || typeof v === "string" || typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v));
 
 // → { ok: true } | { ok: false, errors: string[] }
+// NEVER throws: this runs inside pi's `tool_result` handler, where a thrown error
+// BLOCKS the tool. A block that cannot even be inspected (a cycle, a throwing
+// getter or toJSON) is a rejection like any other, reported to the model.
 export function validateBlock(b) {
+	try { return validateBlockBody(b); } catch (e) { return { ok: false, errors: [`block could not be validated: ${e?.message || e}`] }; }
+}
+function validateBlockBody(b) {
 	const errors = [];
 	const err = (m) => errors.push(m);
 	if (!isObj(b)) return { ok: false, errors: ["block must be an object"] };
@@ -45,6 +63,11 @@ export function validateBlock(b) {
 	if (!isStr(b.title) || !b.title.trim()) err("title: required string");
 	if (!isStr(b.scope) || !b.scope.trim()) err("scope: required — one sentence: what data, what period, how fresh, from where");
 	if (b.note !== undefined && !isStr(b.note)) err("note: string if present");
+	// subtitle/badges are rendered on EVERY block type (renderBlock head), so they
+	// are checked here, not in the card branch: a table carrying badges:{length:2}
+	// used to validate and then throw in the stage's `for…of`.
+	if (b.subtitle !== undefined && !isStr(b.subtitle)) err("subtitle: string if present");
+	if (b.badges !== undefined && (!Array.isArray(b.badges) || !b.badges.every(isStr))) err("badges: string[] if present");
 	if (b.slot !== undefined && !SLOTS.has(b.slot)) err(`slot: must be one of ${[...SLOTS].join("|")}`);
 	if (b.show !== undefined && typeof b.show !== "boolean") err("show: boolean if present");
 	if (b.evidence !== undefined) {
@@ -68,16 +91,19 @@ export function validateBlock(b) {
 		});
 		if (!Array.isArray(b.rows)) err("table.rows: array");
 		else if (b.rows.length > MAX_TABLE_ROWS) err(`table.rows: ${b.rows.length} > ${MAX_TABLE_ROWS} — paginate`);
-		else b.rows.forEach((r, i) => { if (!isObj(r)) err(`rows[${i}]: object`); });
+		else b.rows.forEach((r, i) => {
+			if (!isObj(r)) { err(`rows[${i}]: object`); return; }
+			// every value, not only the ones `columns` names: extra keys ride rowPrompt
+			// templates and are persisted with the rest. undefined == an absent key.
+			for (const [k, v] of Object.entries(r)) if (v !== undefined && !isScalar(v)) err(`rows[${i}].${k}: null, a string, a boolean or a finite number`);
+		});
 	} else if (b.type === "card") {
-		if (b.subtitle !== undefined && !isStr(b.subtitle)) err("card.subtitle: string if present");
 		if (!Array.isArray(b.fields) || !b.fields.length) err("card.fields: non-empty array");
 		else b.fields.forEach((f, i) => {
 			if (!isObj(f) || !isStr(f.label)) err(`fields[${i}]: {label, value}`);
-			else if (f.value === undefined || isObj(f.value) || Array.isArray(f.value)) err(`fields[${i}].value: scalar`);
+			else if (!isScalar(f.value)) err(`fields[${i}].value: null, a string, a boolean or a finite number`);
 			else if (f.evidence !== undefined && !isStr(f.evidence)) err(`fields[${i}].evidence: string`);
 		});
-		if (b.badges !== undefined && (!Array.isArray(b.badges) || !b.badges.every(isStr))) err("card.badges: string[]");
 	} else if (b.type === "chart") {
 		if (!CHART_KINDS.has(b.kind)) err(`chart.kind: must be one of ${[...CHART_KINDS].join("|")}`);
 		if (!isObj(b.x) || !CHART_X_TYPES.has(b.x.type)) err("chart.x: {type: date|number, label?}");
@@ -144,13 +170,34 @@ export function fmtCell(v, decimals) {
 	return Number.isFinite(v) ? v.toFixed(decimals) : String(v);
 }
 
+// Cut `text` to `maxBytes`, announcing the cut so the model never reads a silently
+// shortened block. The byte bound holds even for a cap too small to hold the notice
+// — there the cut is silent, by necessity.
+export function clampText(text, maxBytes, what) {
+	const buf = new TextEncoder().encode(text);
+	if (buf.length <= maxBytes) return text;
+	// Back up to a real character boundary (a UTF-8 sequence is at most 4 bytes) by
+	// asking a strict decoder. Deleting a trailing replacement char instead would eat
+	// a GENUINE U+FFFD that ends exactly on the cut.
+	const cut = (n) => {
+		const dec = new TextDecoder("utf-8", { fatal: true });
+		for (let end = Math.max(0, Math.min(n, buf.length)); end >= 0 && end > n - 4; end--) {
+			try { return dec.decode(buf.slice(0, end)); } catch { /* split sequence: drop a byte */ }
+		}
+		return "";
+	};
+	const marker = `\n… ${what} truncated at ${maxBytes} bytes; the stage holds the full block`;
+	const room = maxBytes - new TextEncoder().encode(marker).length;
+	return room > 0 ? cut(room) + marker : cut(maxBytes);
+}
+
 export function renderBlockText(b) {
 	const out = [`## ${b.title}`, `scope: ${b.scope}`];
 	if (b.type === "table") {
 		const cols = b.columns;
 		const dec = cols.map((c) => (c.type === "number" ? columnDecimals(b.rows, c.key) : 0));
 		const rows = b.rows.map((r) => cols.map((c, i) => (c.type === "number" ? fmtCell(r[c.key], dec[i]) : cell(r[c.key]))));
-		const widths = cols.map((c, i) => Math.max(c.label.length, ...rows.map((r) => r[i].length)));
+		const widths = cols.map((c, i) => Math.min(MAX_TEXT_COL_WIDTH, Math.max(c.label.length, ...rows.map((r) => r[i].length))));
 		const line = (cells) => cells.map((s, i) => (cols[i].type === "number" ? s.padStart(widths[i]) : s.padEnd(widths[i]))).join("  ").trimEnd();
 		out.push(line(cols.map((c) => c.label)));
 		out.push(widths.map((w) => "-".repeat(w)).join("  "));
@@ -159,7 +206,7 @@ export function renderBlockText(b) {
 	} else if (b.type === "card") {
 		if (b.subtitle) out.push(b.subtitle);
 		if (b.badges?.length) out.push(`[${b.badges.join("] [")}]`);
-		const w = Math.max(...b.fields.map((f) => f.label.length));
+		const w = Math.min(MAX_TEXT_COL_WIDTH, Math.max(...b.fields.map((f) => f.label.length)));
 		for (const f of b.fields) out.push(`${f.label.padEnd(w)}  ${cell(f.value)}${f.evidence ? `  (${f.evidence})` : ""}`);
 	} else if (b.type === "chart") {
 		// The model reads a summary, not the points: same facts the stage draws.
@@ -169,7 +216,7 @@ export function renderBlockText(b) {
 	}
 	if (b.note) out.push(`note: ${b.note}`);
 	if (b.actions?.length) out.push(`actions: ${b.actions.map((a) => (a.per_row ? `${a.label} (per row)` : a.label)).join(" · ")}`);
-	return out.join("\n");
+	return clampText(out.join("\n"), MAX_BLOCK_TEXT_BYTES, `block ${b.id}`);
 }
 
 // One line of facts per series: span, first/last, min/max. Shared by the text
@@ -310,7 +357,8 @@ export function processToolResult(event, { now = () => new Date().toISOString(),
 		if (sign) b.produced_by.sig = sign(b);
 		stamped.push(b);
 	}
-	const text = stamped.filter((b) => b.show).map(renderBlockText).join("\n\n") || "(blocks hidden: show=false)";
+	// Bounded per block AND over the whole result: a tool may return many blocks.
+	const text = clampText(stamped.filter((b) => b.show).map(renderBlockText).join("\n\n") || "(blocks hidden: show=false)", MAX_RESULT_TEXT_BYTES, `${event.toolName} result text`);
 	const details = stripCarrier(event.details);
 	return {
 		patch: { content: [{ type: "text", text }], details: { ...details, blocks: stamped } },
