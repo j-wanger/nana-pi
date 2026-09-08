@@ -9,11 +9,12 @@ project scaffolding, and dev-workflow skills.
 |---|---|
 | `scaffold-py` / `scaffold-ts` | Generate a project via copier from `github.com/j-wanger/nana-pi` (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
 | `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
+| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, and a postEdit-only starter `.pi/nana-pack.json`. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 
-Four extensions giving pi the hook coverage we require (Claude Code parity classes):
+Five extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -21,6 +22,7 @@ Four extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
 | `nana-lifecycle` | Session lifecycle observability | `session_start/…compact…/shutdown` |
 | `nana-notify` | Outward notifications | `agent_settled` |
+| `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 
 ## Install
 
@@ -49,7 +51,9 @@ read live on every event — edits apply without restarting):
 		]
 	},
 	"notify": { "enabled": true, "headless": false },
-	"journal": { "enabled": true, "path": null }
+	"journal": { "enabled": true, "path": null },
+	"handoff": { "enabled": true, "path": null },
+	"receipts": { "enabled": true, "dir": null }
 }
 ```
 
@@ -69,3 +73,10 @@ read live on every event — edits apply without restarting):
   `journal.path`); one line per session event.
 - **Notify** never writes terminal escape codes without an attached UI, so print/RPC
   output stays clean. Headless notifications are opt-in (`notify.headless`).
+- **Handoff** writes the latest compaction summary to `<cwd>/.pi/handoff.md` and
+  re-injects it into the next fresh session in that directory. Disable the writes with
+  `handoff.enabled: false`; relocate the artifact with `handoff.path` (a custom path
+  gets no sibling `.gitignore` — its git semantics are the owner's).
+- **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
+  per repo+checker under `~/.pi/agent/receipts`). Turn them off with
+  `receipts.enabled: false`; relocate the store with `receipts.dir`.

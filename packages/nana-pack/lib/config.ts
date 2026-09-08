@@ -78,6 +78,9 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 
 export function compileRegexes(patterns: string[]): RegExp[] {
 	const out: RegExp[] = [];
+	// Malformed config (e.g. `"allowPatterns": null`) must not throw out of the
+	// gate handler — a throw there BLOCKS the tool. A non-array = no patterns.
+	if (!Array.isArray(patterns)) return out;
 	for (const p of patterns) {
 		try {
 			out.push(new RegExp(p, "i"));

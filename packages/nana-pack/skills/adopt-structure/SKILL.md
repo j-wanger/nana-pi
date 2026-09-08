@@ -43,6 +43,9 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    one (one screen max), derived from what's actually in the folder:
    - purpose (what changes together here), key files/subfolders, and local rules
      that genuinely apply (conventions, entry points, "don't do X here").
+   - Write each to stand alone as an on-demand read: pi layers only cwd + ancestors,
+     so a session at the repo root does NOT auto-load a subfolder's `AGENTS.md` —
+     its rules must make sense when read directly.
    - Skip folders whose purpose is obvious from the name and that carry no local
      rule. Reconcile existing files rather than overwrite. Mirror the terse
      style of the folder-level examples the templates ship.
@@ -61,29 +64,25 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git /tmp/nana-canon && sed -n '/## Working under nana-pi/,$p' /tmp/nana-canon/AGENTS.md
    ```
 
-5. **Starter `.pi/nana-pack.json`** — the config on-ramp. FIRST check `~/.pi/agent/nana-pack.json`: if the user
-   already has user-scope `postEdit.commands`, do NOT write the `postEdit` block —
-   project config replaces user config per key-group, so it would SHADOW their
-   global checks in this project; ship only the `gate`/`handoff` shape and say the
-   global checks stay active. Otherwise, if no project config exists, write this
+5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check `~/.pi/agent/nana-pack.json`: if the user
+   already has user-scope `postEdit.commands`, do NOT write this starter —
+   project config replaces user config per key-group, so a project `postEdit`
+   block would SHADOW their global checks in this project; say the global checks
+   stay active and skip the file. Otherwise, if no project config exists, write this
    starter at the project root. It is a SAFE on-ramp: the post-edit
    `match` matches no real path and the `run` is an obvious placeholder, so
-   **nothing runs until the user replaces them** with their real toolchain.
+   **nothing runs until the user replaces them** with their real toolchain. The
+   starter carries ONLY `postEdit` — omit the `gate` and `handoff` keys on purpose:
+   they default correctly, and empty project arrays / `handoff.enabled` would only
+   shadow the user's user-scope gate patterns or re-enable a globally-disabled
+   handoff in this one project.
 
    ```json
    {
-     "gate": {
-       "extraPatterns": [],
-       "allowPatterns": [],
-       "protectedPaths": []
-     },
      "postEdit": {
        "commands": [
          { "match": "(?!)", "run": "your-formatter {file}" }
        ]
-     },
-     "handoff": {
-       "enabled": true
      }
    }
    ```
@@ -92,8 +91,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    user swaps it for a real path regex (e.g. `\.py$`) and sets their command.
 
    If a `.pi/nana-pack.json` already exists, RECONCILE — leave a user-defined
-   `postEdit.commands` and any gate/handoff settings untouched; only fill in keys
-   that are missing. Never overwrite real commands with the placeholder. Tell the
+   `postEdit.commands` and any gate/handoff settings untouched; only add the
+   `postEdit` placeholder if it is missing. Never overwrite real commands with the placeholder. Tell the
    user where to fill in their real `match`/`run`, and that this file takes effect
    **only in a trusted project** (pi's project-trust gate) — an untrusted repo's
    **project** config is ignored, though any user-scope `~/.pi/agent/nana-pack.json`

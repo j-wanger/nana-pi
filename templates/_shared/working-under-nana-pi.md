@@ -33,16 +33,30 @@ setup. What that means while you work here:
   `~/.pi/agent/nana-journal.jsonl` for observability.
 - **Notify.** A desktop notification fires when the agent settles and is waiting on
   you.
-- **Gate.** Dangerous commands and protected paths (`.ssh`, `.env`, pi auth) prompt
-  before running — or block, when there's no UI to prompt. It is **advisory** — a load-path convenience, not a security
-  boundary; real enforcement is the sandbox / container layer.
+- **Gate.** Inspects `bash`/`powershell` command strings for dangerous patterns and
+  `edit`/`write` target paths for protected files (`.ssh`, `.env`, pi auth), and
+  prompts before running — or blocks, when there's no UI to prompt. Scope is narrow:
+  reads, custom tools, and direct extension commands are NOT gated, and a later
+  handler can still mutate input the gate already checked. It is **advisory** — a
+  load-path convenience, not a security boundary; real enforcement is the sandbox /
+  container layer.
 
 ### Navigation
 
-pi reads the closest `AGENTS.md` and layers every ancestor up the tree,
-closest-wins. Keep each rule where it applies: repo-wide rules at the root, folder
-rules in that folder's `AGENTS.md`. An `AGENTS.override.md` replaces a layer
-instead of adding to it.
+pi loads `AGENTS.md` from the session's cwd and every ANCESTOR up the tree at
+startup, closest-wins — it does NOT descend into subfolders. Keep each rule where
+it applies: repo-wide rules at the root, folder rules in that folder's `AGENTS.md`.
+
+A session started higher up does not auto-load a subfolder's `AGENTS.md`, so:
+
+- **Baseline (works everywhere):** before working in a folder, READ that folder's
+  `AGENTS.md` — each is written to stand alone as a useful on-demand read.
+- **Cleaner when available:** run or delegate folder-scoped work with the session
+  cwd set to that folder (e.g. a cwd-capable subagent rooted there), so pi
+  auto-loads that folder's `AGENTS.md` as its own cwd + ancestors. (Subagents are
+  an extension pattern, not core pi.)
+
+An `AGENTS.override.md` replaces a layer instead of adding to it.
 
 ### Config
 

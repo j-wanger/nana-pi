@@ -96,6 +96,14 @@ export default function (pi: ExtensionAPI) {
 
 		const failures: string[] = [];
 		for (const c of cfg.postEdit.commands) {
+			// Skip a malformed command defensively — a bad entry must never throw out
+			// of the handler (a throw here would BLOCK the edit) or abort the rest.
+			// `run` must be a usable string; an out-of-range `timeoutMs` makes exec()
+			// throw synchronously (Node requires a non-negative INTEGER — negative/NaN/
+			// fractional all throw), so treat it as malformed.
+			if (!c || typeof c.run !== "string") continue;
+			const timeoutMs = c.timeoutMs ?? 30_000;
+			if (typeof timeoutMs !== "number" || !Number.isInteger(timeoutMs) || timeoutMs < 0) continue;
 			let re: RegExp;
 			try {
 				re = new RegExp(c.match);
@@ -129,7 +137,7 @@ export default function (pi: ExtensionAPI) {
 				}
 			}
 
-			const { code, exitCode, status, out } = await run(cmd, ctx.cwd, c.timeoutMs ?? 30_000, ctx.signal, env);
+			const { code, exitCode, status, out } = await run(cmd, ctx.cwd, timeoutMs, ctx.signal, env);
 
 			// Digest AFTER so the binding reflects any in-place formatting. If the
 			// inputs changed during the check, the receipt is inconclusive, not current.
@@ -156,8 +164,17 @@ export default function (pi: ExtensionAPI) {
 				}
 			}
 
-			// Feedback behavior unchanged: the receipt is observability only.
-			if (code !== 0) failures.push(`\`${cmd}\` exited ${code}:\n${tail(out, 2000)}`);
+			// Feed back to the model when a check did not PASS — the receipt alone is
+			// observability the model never sees. A trapped-timeout can exit 0 yet be
+			// classified `timeout`, and a checker that could not run is `error`; a
+			// `code !== 0` test alone would leave the model uninformed for those. The
+			// pass path stays silent.
+			if (status === "timeout" || status === "error") {
+				const why = status === "timeout" ? "did not complete (timed out)" : "could not run";
+				failures.push(`\`${cmd}\` ${why}:\n${tail(out, 2000)}`);
+			} else if (code !== 0) {
+				failures.push(`\`${cmd}\` exited ${code}:\n${tail(out, 2000)}`);
+			}
 		}
 		if (failures.length === 0) return undefined;
 

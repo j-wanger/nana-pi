@@ -114,12 +114,20 @@ function setup(commands, opts = {}) {
 	const { td, cfg, fire } = setup([{ match: "\\.txt$", run: trap, timeoutMs: 300 }]);
 	const file = path.join(td, "trap.txt");
 	fs.writeFileSync(file, "z\n");
-	await fire(file);
+	const ret = await fire(file);
 
 	const r = readLatestReceipt(cfg, td, trap);
 	check("e: SIGTERM-trap exit-0 never checks_passed", r?.status !== "checks_passed");
 	check("e: SIGTERM-trap exit-0 classified timeout", r?.status === "timeout");
-	check("e: trap exited 0 — the null-error path (not err.killed) is what is pinned", r?.exitCode === 0);
+	// R4: a non-completing check (timeout) must be fed back to the MODEL, not only
+	// recorded in the receipt — this case exits 0, so a `code !== 0` test would miss it.
+	check("e: timeout is fed back to the model (not only the receipt)",
+		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
+	// R5: the exit-0 pin assumes POSIX signal semantics (win32 has no SIGTERM), so
+	// guard it by platform; the status===timeout assertion above stays cross-platform.
+	if (process.platform !== "win32") {
+		check("e: trap exited 0 — the null-error path (not err.killed) is what is pinned", r?.exitCode === 0);
+	}
 
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -176,6 +184,29 @@ function setup(commands, opts = {}) {
 	await fire(file);
 	const r = readLatestReceipt(cfg, td, cmd);
 	check("h: timeoutMs:0 passing check is checks_passed (not timeout)", r?.status === "checks_passed");
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// (i) R6: a malformed postEdit command (missing `run`, or a negative/NaN/fractional
+// timeoutMs that would make exec() throw — it requires a non-negative integer) must NOT throw out of the handler and must NOT skip
+// the remaining valid checks — the bad entries are skipped, the good one still runs.
+{
+	const good = 'node -e "process.exit(1)"'; // a real, failing check that must still run
+	const { td, fire } = setup([
+		{ match: "\\.txt$" }, // missing run → malformed, skip
+		{ match: "\\.txt$", run: good, timeoutMs: -5 }, // negative timeoutMs → would throw in exec(), skip
+		{ match: "\\.txt$", run: good, timeoutMs: 0.5 }, // fractional timeoutMs → exec() ERR_OUT_OF_RANGE, skip
+		{ match: "\\.txt$", run: good }, // valid → must still run
+	]);
+	const file = path.join(td, "mal.txt");
+	fs.writeFileSync(file, "m\n");
+	let ret, threw = false;
+	try { ret = await fire(file); } catch { threw = true; }
+	check("i: malformed command (missing run / negative timeoutMs) does not throw", !threw);
+	check("i: the valid check still ran (malformed entries skipped, not the rest)",
+		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
+	// exactly ONE failure — the two malformed entries produced no feedback (had one run, it would read "2 check(s) failed")
+	check("i: only the valid check reported (1 failure)", /] 1 check\(s\) failed/.test(ret?.content?.at(-1)?.text ?? ""));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
