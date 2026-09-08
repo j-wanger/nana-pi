@@ -1,12 +1,14 @@
 # nana-pi review punch-list (2026-09-08)
 
-**Status as of 2026-09-08, after the hardening pass.** The pass landed five commits on `main`.
+**Status as of 2026-09-08, after the hardening pass.** The pass landed eight commits on `main` (five code, three docs/skills).
 Four closed the per-angle review (`368f67f` desk · `2efd435` nana-pack · `58645c5` nana-stage ·
 `f777638` docs/skills), each adversarially reviewed per package by **gpt-5.6-sol** (all three code
 commits came back BLOCK first; every finding was folded failure-first). A whole-unit review by
 **gpt-6-astra** then read all four commits, the combined diff, the new tests and this list, and
 returned **BLOCK** on two incomplete repairs plus a SHOULD on resource classification; `53d4aab`
-folds all three.
+folds all three. A sol review of `53d4aab` then blocked again (timer-freed slot, error→exited,
+leaf-only save-symlink check); `e493043` folds those; its own sol review passed everything but the context-file root being request-derived,
+folded in `ddffd6b` (the last code commit of the pass; sol: A/C/D/E PASS).
 
 The original list came from four independent **gpt-6-astra** reviews, one per angle: security &
 trust · extension correctness & cross-platform · desk robustness · product coherence & docs.
