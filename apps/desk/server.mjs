@@ -924,8 +924,6 @@ function reachedThroughSymlink(root, file) {
 //     the write AND its .bak land on the target;
 //   · a component above it: `<repo>/docs -> /etc` makes `<repo>/docs/AGENTS.md` a
 //     perfectly ordinary file outside the repo, with both leaves regular.
-// The root passed in is the PARENT of the named directory, so the named directory's
-// own last component is checked while everything above it stays exempt.
 // NOT applied to ~/.pi/agent/*.json: those paths are the user's own, and symlinking
 // them into a dotfiles repo is a normal setup.
 // TOCTOU: none of these lstats is atomic with the write that follows, so a link
@@ -936,6 +934,52 @@ function assertNoSymlinkWrite(root, file) {
 		if (isSymlink(p)) throw httpError(409, `refusing to write through a symlink: ${p}`);
 	if (reachedThroughSymlink(root, file))
 		throw httpError(409, `refusing to write below a symlinked directory: ${file}`);
+}
+
+// Where does the walk START when the destination directory is itself supplied by
+// the request? NOT at its parent: for `dir = <repo>/link/sub`, the parent IS
+// `<repo>/link`, so the request would exempt its own symlink and the write escapes
+// the repo. /api/context-file is free-standing — the Settings tab writes to
+// ~/.pi/agent or to a directory the user typed or picked, with no live session and
+// no spawn cwd to anchor it — so the only root the SERVER owns here is $HOME.
+//
+// Walk the given path from the filesystem root and start checking once a prefix
+// canonicalizes into $HOME: home itself may legitimately be reached through a link
+// (a temp HOME on macOS is /var/… → /private/var/…), and where the user keeps home
+// is not a repo's business. Every component below it must be a real directory.
+// Returns true (refuse) / false (fine) / null (the path never enters $HOME).
+function belowHomeThroughSymlink(file) {
+	const home = canonicalPath(os.homedir());
+	if (home === null) return null;
+	const segments = path.resolve(file).split(path.sep).filter(Boolean);
+	let cur = path.sep;
+	let inHome = false;
+	for (const seg of segments) {
+		cur = path.join(cur, seg);
+		if (inHome) {
+			if (isSymlink(cur)) return true;
+			continue;
+		}
+		const c = canonicalPath(cur);
+		if (c !== null && (c === home || c.startsWith(home + path.sep))) inHome = true;
+	}
+	return inHome ? false : null;
+}
+
+// The rule for a destination whose directory the request chose.
+function assertRequestedDestination(dir, file) {
+	for (const p of [file, `${file}.bak`])
+		if (isSymlink(p)) throw httpError(409, `refusing to write through a symlink: ${p}`);
+	const below = belowHomeThroughSymlink(file);
+	if (below === true) throw httpError(409, `refusing to write below a symlinked directory: ${file}`);
+	if (below === null) {
+		// Outside $HOME there is no root the server can vouch for, so accept only a
+		// path that is ALREADY its own canonical form — no link anywhere in it.
+		// (/private/tmp/x is fine; /tmp/x, reached through the /tmp link, is not.)
+		const canon = canonicalPath(dir);
+		if (canon !== path.resolve(dir))
+			throw httpError(409, `outside your home directory the desk writes only to a symlink-free path — use ${canon || "the real path"}`);
+	}
 }
 
 function listAgents() {
@@ -1724,8 +1768,9 @@ const server = http.createServer(async (req, res) => {
 			const name = String(body.name || "");
 			if (!CONTEXT_NAMES.has(name)) return json(res, 400, { error: `name must be one of: ${[...CONTEXT_NAMES].join(", ")}` });
 			if (!isDirectory(dir)) return json(res, 400, { error: `no such directory: ${dir}` });
-			// root = the PARENT of the named dir: the dir's own last component is walked
-			assertNoSymlinkWrite(path.dirname(dir), path.join(dir, name));
+			// the root is $HOME (or "no links at all" outside it) — NEVER anything this
+			// request supplied, or a deep symlink would exempt itself
+			assertRequestedDestination(dir, path.join(dir, name));
 			backupWrite(path.join(dir, name), String(body.content ?? ""));
 			return json(res, 200, { ok: true });
 		}

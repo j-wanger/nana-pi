@@ -365,6 +365,34 @@ try {
 	r = await post("/api/context-file", { dir: path.join(repo, "docs"), name: "AGENTS.md", content: "pwned" });
 	check("context-file below a SYMLINKED directory → 409", r.status === 409, String(r.status));
 	check("…and nothing was written outside the tree", !fs.existsSync(path.join(outsideDir, "AGENTS.md")), JSON.stringify(fs.readdirSync(outsideDir)));
+	// the shape the request could exempt for itself: dir = <repo>/link/sub, where
+	// <repo>/link is the symlink. Its PARENT is the link, so a parent-derived root
+	// would wave it through — the root has to be one the server owns.
+	const escapeTarget = path.join(TD, "escape-tree", "sub");
+	fs.mkdirSync(escapeTarget, { recursive: true });
+	fs.symlinkSync(path.join(TD, "escape-tree"), path.join(repo, "link"));
+	r = await post("/api/context-file", { dir: path.join(repo, "link", "sub"), name: "AGENTS.md", content: "pwned" });
+	check("context-file at <repo>/link/sub (symlink one level up) → 409", r.status === 409, `${r.status} ${JSON.stringify(await r.json())}`);
+	check("…and nothing escaped the repository", !fs.existsSync(path.join(escapeTarget, "AGENTS.md")), JSON.stringify(fs.readdirSync(escapeTarget)));
+	// …while a legitimately nested, link-free directory still works
+	const deepDir = path.join(repo, "a", "b", "c");
+	fs.mkdirSync(deepDir, { recursive: true });
+	r = await post("/api/context-file", { dir: deepDir, name: "AGENTS.md", content: "deep and fine" });
+	check("a deeply nested link-free directory still writes", r.status === 200 && fs.readFileSync(path.join(deepDir, "AGENTS.md"), "utf-8") === "deep and fine", String(r.status));
+
+	// outside $HOME there is no root to walk from, so only an already-canonical path
+	// is accepted: on macOS /var/folders/... is reached through the /var link, and
+	// its /private/var/... spelling is the same directory written honestly
+	const outsideHome = fs.mkdtempSync(path.join(os.tmpdir(), "desk-outside-"));
+	const outsideCanon = fs.realpathSync(outsideHome);
+	if (outsideCanon !== outsideHome) {
+		r = await post("/api/context-file", { dir: outsideHome, name: "AGENTS.md", content: "x" });
+		check("outside $HOME, a path reached through a link → 409 naming the real path", r.status === 409 && ((await r.json()).error || "").includes(outsideCanon), String(r.status));
+	} else check("outside $HOME, a path reached through a link → 409 (SKIPPED: tmpdir is already canonical here)", true);
+	r = await post("/api/context-file", { dir: outsideCanon, name: "AGENTS.md", content: "canonical is fine" });
+	check("outside $HOME, the canonical spelling of the same directory writes", r.status === 200 && fs.readFileSync(path.join(outsideCanon, "AGENTS.md"), "utf-8") === "canonical is fine", String(r.status));
+	fs.rmSync(outsideCanon, { recursive: true, force: true });
+
 	// same shape for the agents dir: a planted link at ~/.pi/agent/agents
 	const agentsElsewhere = path.join(TD, "elsewhere-agents");
 	fs.mkdirSync(agentsElsewhere, { recursive: true });
