@@ -36,6 +36,8 @@ export interface NanaPackConfig {
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
 	handoff: { enabled: boolean; path: string | null };
+	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
+	receipts: { enabled: boolean; dir: string | null };
 }
 
 const DEFAULTS: NanaPackConfig = {
@@ -44,6 +46,7 @@ const DEFAULTS: NanaPackConfig = {
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null },
+	receipts: { enabled: true, dir: null },
 };
 
 function readJson(p: string): Record<string, any> | undefined {
@@ -69,6 +72,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		notify: { ...DEFAULTS.notify, ...user.notify, ...project.notify },
 		journal: { ...DEFAULTS.journal, ...user.journal, ...project.journal },
 		handoff: { ...DEFAULTS.handoff, ...user.handoff, ...project.handoff },
+		receipts: { ...DEFAULTS.receipts, ...user.receipts, ...project.receipts },
 	};
 }
 
