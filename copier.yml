@@ -49,21 +49,27 @@ _message_after_copy: |
   {%- elif language == 'python' -%}
   {{ project_name }} scaffolded.
 
-  Next steps:
+  Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
     cd into the project, then:
-      git init && git add -A && git commit -m "scaffold"
+      git init
+      git add -A
+      git commit -m "scaffold"
       uv sync
       uv run pre-commit install
       uv run pytest
   {%- else -%}
   {{ project_name }} scaffolded.
 
-  Next steps:
+  Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
     cd into the project, then:
-      git init && git add -A && git commit -m "scaffold"
+      git init
+      git add -A
+      git commit -m "scaffold"
       pnpm install
-      pnpm check        # typecheck + lint + test
-      git add pnpm-lock.yaml && git commit -m "lockfile"
+      pnpm check
+    (pnpm check = typecheck + lint + test)
+      git add pnpm-lock.yaml
+      git commit -m "lockfile"
   {%- endif %}
 
   This project tracks its template: `uvx copier update` re-syncs it later.

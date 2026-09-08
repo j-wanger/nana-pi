@@ -26,8 +26,10 @@ Sibling repo to `~/nana-agent-loop`.
 ## Install — the whole experience ships from this repo
 
 Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and pi
-(`npm i -g @earendil-works/pi-coding-agent`); `uv` for the Python template, `pnpm` for
-the TypeScript one (copier itself runs via `uvx`, nothing to install). On Windows add
+(`npm i -g @earendil-works/pi-coding-agent`); `uv` for BOTH templates — it is the Python
+toolchain, and copier runs as `uvx copier` with `uvx` shipping inside uv, so the
+TypeScript path needs uv as well (copier itself is nothing extra to install); plus
+`pnpm` for the TypeScript template. On Windows add
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
 everything here works in PowerShell or cmd, no WSL needed). If pi errors
 `No bash shell found`: install Git for Windows to its default location (pi probes

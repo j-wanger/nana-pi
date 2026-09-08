@@ -58,11 +58,27 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    block, and the whole point is that adopted and scaffolded projects read the
    same. Do not paraphrase or hand-write it. If that file is not reachable on
    disk, lift the exact text instead by rendering a throwaway scaffold and
-   copying the `## Working under nana-pi` section out of its `AGENTS.md`:
+   copying the `## Working under nana-pi` section out of its `AGENTS.md`.
+
+   Two separate commands on purpose — `&&` breaks in Windows PowerShell 5.1 —
+   and `node` instead of `sed`, which a native Windows shell does not have.
+   macOS / Linux:
 
    ```bash
-   uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git /tmp/nana-canon && sed -n '/## Working under nana-pi/,$p' /tmp/nana-canon/AGENTS.md
+   uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
+   node -e "const s=require('fs').readFileSync('/tmp/nana-canon/AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
    ```
+
+   Windows PowerShell (in cmd use `"%TEMP%\nana-canon"` — quoted — for the destination; the
+   `node -e` line is identical in both shells):
+
+   ```powershell
+   uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
+   node -e "const s=require('fs').readFileSync(process.env.TEMP + '\\nana-canon\\AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
+   ```
+
+   Delete the throwaway scaffold afterwards — it is outside the project on
+   purpose, so this skill's "only AGENTS.md and `.pi/nana-pack.json`" rule holds.
 
 5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check `~/.pi/agent/nana-pack.json`: if the user
    already has user-scope `postEdit.commands`, do NOT write this starter —

@@ -16,14 +16,18 @@
 
 - `uv sync` — install/update the environment (uv only; never pip or poetry)
 - `uv run pytest` — tests + coverage (floor: {% if adopt %}see pyproject — ratchet toward 85%{% else %}85%{% endif %})
-- `uv run ruff check . && uv run ruff format .` — lint + format
+- `uv run ruff check .` then `uv run ruff format .` — lint + format (two commands;
+  `&&` breaks in Windows PowerShell 5.1)
 - `uv run mypy` — strict type-check
 
 ## Rules
 
 - One function, one job. If a docstring needs "and", split the function.
-- Modules stay under **500 lines**; complexity caps (mccabe 10, PLR too-many-*)
-  are enforced — decompose instead of suppressing.
+- Modules stay under **500 lines**. Complexity caps (mccabe 10, PLR too-many-*)
+  are enforced by ruff, so lint and CI catch them; the 500-line cap is checked
+  only by the post-edit gate, per file as you edit it — nothing re-checks it at
+  commit or in CI, so code that lands another way (bulk move, merge, hand edit)
+  is on you. Decompose instead of suppressing.
 - Every function fully typed; mypy runs strict.
 - No `print` in library code (ruff T20) — use `logging`.
 - New feature = new folder {% if adopt %}in the package{% else %}under `src/{{ package_name }}/`{% endif %}, not new code

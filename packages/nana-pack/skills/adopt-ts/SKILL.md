@@ -19,6 +19,8 @@ the reconciliation surface — nothing is lost because the tree starts clean.
 - Node ≥22 available. Detect their package manager from the lockfile
   (pnpm/npm/yarn) — **adoption keeps their package manager**; only greenfield
   scaffolds pin pnpm.
+- `uv` is installed — the overlay runs `uvx copier`, and `uvx` ships with uv.
+  This holds for the TypeScript stack too; uv is not Python-only here.
 - Network access to github.com — the template src is
   `https://github.com/j-wanger/nana-pi.git` (a local nana-pi checkout works as
   src too, for offline use or template development).
@@ -33,9 +35,22 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    (their package.json fields/deps with the pinned scripts + devDeps), what is
    never touched (source tree and tests). If they run ESLint/Prettier, the
    plan must say so explicitly: Biome replaces them only with the user's OK —
-   otherwise keep their linter by adding `-x biome.json` to the overlay
-   command in step 3 and recording the deviation in AGENTS.md (a future
-   `copier update` may re-emit the file — delete it again; the note stays).
+   otherwise take the **keep-your-linter path** below.
+
+   **Keep-your-linter path** (they said no to Biome). Excluding `biome.json` is
+   NOT enough on its own: Biome runs fine with no config file, and the post-edit
+   preset's `biome check --write` REWRITES every file the agent edits — their
+   formatter and Biome would fight over the same bytes. All three of these:
+   - add `-x biome.json` to the overlay command in step 3;
+   - in step 4, delete the `biome check --write` entry from
+     `.pi/nana-pack.json` and put their own format/lint command in its place
+     (keep the size-cap and `tsc --noEmit` entries);
+   - in step 4, do NOT add the `@biomejs/biome` devDep, and leave the `lint` /
+     `format` scripts pointing at their tools.
+
+   Record the deviation in AGENTS.md (a future `copier update` may re-emit
+   `biome.json` and the Biome post-edit command — remove them again; the note
+   stays).
 3. **Overlay**:
 
    ```bash
@@ -54,7 +69,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
      pinned `typecheck`/`lint`/`format`/`test`/`check` set, and rewrite
      `check` to their package manager. Add the missing devDeps
      (typescript/biome/vitest/@types/node) via THEIR package manager so the
-     right lockfile updates.
+     right lockfile updates — minus biome on the keep-your-linter path.
    - `tsconfig.json`: the pinned strict base lands; carry over compiler
      options their build genuinely needs (jsx, paths, outDir, lib). CJS
      projects: `module`/`moduleResolution` stay theirs — record the deviation.
@@ -64,12 +79,15 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    - `.pi/nana-pack.json`: rewrite the `pnpm exec` runner prefixes to their
      package manager (npm → `npx`, yarn → `yarn exec`) — until this is done,
      every edit fires failing post-edit commands. Merge any pre-existing
-     postEdit list.
+     postEdit list. On the keep-your-linter path, swap the
+     `biome check --write` entry for their own format/lint command.
    - CI: adapt the workflow to their package manager; if they already have CI,
      merge the `check` step AND the template-drift job into it instead of
      adding a duplicate workflow.
    - `AGENTS.md`: fold existing AGENTS/CLAUDE.md content in, write the real
-     Layout section, fix Commands to their package manager, one screen.
+     Layout section, fix Commands to their package manager (and, on the
+     keep-your-linter path, to their linter/formatter — the template's Rules
+     name Biome), one screen.
 5. **Stage the strictness** — pins stay, escapes are recorded:
    - Run format + lint across the repo; fix the cheap remainder, targeted
      suppressions with a `// ratchet:` comment for the rest.
