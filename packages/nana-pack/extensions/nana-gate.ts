@@ -4,7 +4,8 @@
  * Gates bash/powershell commands matching dangerous patterns and any tool
  * touching protected paths. Interactive sessions confirm via UI (Block is the
  * default choice); headless runs BLOCK fail-closed. Handler errors also block
- * (pi's tool_call is fail-safe upstream).
+ * (pi's tool_call is fail-safe upstream). A running `gate ✓ N checked · M gated`
+ * status shows the gate is live even when it is letting everything through.
  *
  * This gate is advisory-by-load-path: anyone can run pi without it. Unattended
  * enforcement belongs to the container/sandbox layer, not here.
@@ -43,6 +44,24 @@ function truncate(s: string, n: number): string {
 }
 
 export default function (pi: ExtensionAPI) {
+	// Per-session counters (this closure is created once per extension load).
+	// `checked` = tool calls the gate actually inspected; `gated` = the ones that
+	// hit a pattern and had to be decided (a dialog interactively, a fail-closed
+	// block headless). A silent gate is indistinguishable from an absent one, so
+	// the running tally is the happy-path signal.
+	let checked = 0;
+	let gated = 0;
+	const publishStatus = (ctx: { hasUI?: boolean; ui?: any }) => {
+		// tool_call handler errors BLOCK the tool, so observability is wrapped:
+		// no status update may ever decide whether a command runs.
+		try {
+			if (!ctx.hasUI) return;
+			ctx.ui.setStatus("nana-gate", ctx.ui.theme.fg("dim", `gate ✓ ${checked} checked · ${gated} gated`));
+		} catch {
+			// observability only
+		}
+	};
+
 	pi.on("tool_call", async (event, ctx) => {
 		const cfg = loadConfig(ctx);
 
@@ -55,10 +74,14 @@ export default function (pi: ExtensionAPI) {
 			subject = String((event.input as any).path ?? "");
 			isCommand = false;
 		} else {
+			return undefined; // outside the gate's scope — stays silent, uncounted
+		}
+		checked += 1;
+
+		if (compileRegexes(cfg.gate.allowPatterns).some((r) => r.test(subject))) {
+			publishStatus(ctx);
 			return undefined;
 		}
-
-		if (compileRegexes(cfg.gate.allowPatterns).some((r) => r.test(subject))) return undefined;
 
 		const dangerousHit = isCommand
 			? [...DANGEROUS, ...compileRegexes(cfg.gate.extraPatterns)].find((r) => r.test(subject))
@@ -67,6 +90,8 @@ export default function (pi: ExtensionAPI) {
 			r.test(subject),
 		);
 		const hit = dangerousHit ?? protectedHit;
+		if (hit) gated += 1;
+		publishStatus(ctx);
 		if (!hit) return undefined;
 
 		const label = dangerousHit ? "dangerous command" : "protected path";

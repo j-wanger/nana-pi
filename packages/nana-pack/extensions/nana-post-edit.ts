@@ -3,7 +3,9 @@
  *
  * After a successful edit/write, runs each configured command whose `match`
  * regex hits the file path. Failures are appended to the tool result so the
- * model sees them immediately and can fix them; successes stay silent.
+ * model sees them immediately and can fix them; successes stay out of the
+ * model's context. Every run leaves a one-line UI status instead, so a working
+ * hook is visible rather than indistinguishable from no hook at all.
  *
  * Each check ALSO leaves a content-bound receipt (lib/receipts.ts) — for both
  * pass and fail — recording what ran, over which file bytes, and how it exited.
@@ -41,6 +43,27 @@ function quote(file: string): string {
 
 function tail(s: string, n: number): string {
 	return s.length <= n ? s : `…${s.slice(-n)}`;
+}
+
+/** Per-check outcome for the status line: pi's own statuses plus the lock refusal. */
+type Outcome = CheckStatus | "lock";
+
+/**
+ * One short line summarising the run for the footer/desk chip.
+ *
+ * The hook used to be silent unless something failed, so a working post-edit
+ * config looked exactly like no hook at all. This is the happy-path signal.
+ * It shares the TUI status line with everything else pi puts there, so it stays
+ * short, and it reports the WORST outcome first: a check that could not run is
+ * never folded into a pass (same rule the receipts follow).
+ */
+function statusLine(outcomes: Outcome[], name: string): { text: string; color: "dim" | "warning" | "error" } {
+	if (outcomes.includes("lock")) return { text: `post-edit – skipped (lock) · ${name}`, color: "warning" };
+	if (outcomes.includes("not_run")) return { text: `post-edit – skipped (aborted) · ${name}`, color: "warning" };
+	if (outcomes.includes("timeout")) return { text: `post-edit ⏱ timeout · ${name}`, color: "warning" };
+	const bad = outcomes.filter((s) => s !== "checks_passed").length;
+	if (bad > 0) return { text: `post-edit ✗ ${bad}/${outcomes.length} · ${name}`, color: "error" };
+	return { text: `post-edit ✓ ${outcomes.length} check${outcomes.length === 1 ? "" : "s"} · ${name}`, color: "dim" };
 }
 
 // ---------------------------------------------------------------------------
@@ -318,6 +341,7 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const failures: string[] = [];
+		const outcomes: Outcome[] = [];
 		for (const c of cfg.postEdit.commands) {
 			// Skip a malformed command defensively — a bad entry must never throw out
 			// of the handler (a throw here would BLOCK the edit) or abort the rest.
@@ -413,9 +437,11 @@ export default function (pi: ExtensionAPI) {
 					inputsStableDuringCheck: false,
 				});
 				failures.push(`\`${cmd}\` did not run — could not lock ${abs} for checking: ${lockError}`);
+				outcomes.push("lock");
 				continue;
 			}
 			const { code, exitCode, status, out } = res;
+			outcomes.push(status);
 
 			if (cfg.receipts.enabled && declared.length) {
 				try {
@@ -451,6 +477,20 @@ export default function (pi: ExtensionAPI) {
 				failures.push(`\`${cmd}\` exited ${code}:\n${tail(out, 2000)}`);
 			}
 		}
+
+		// Happy-path visibility. Only set when at least one check actually ran (or
+		// was refused): a run where nothing matched leaves the previous chip alone
+		// rather than replacing it with noise. Wrapped — a status update must never
+		// throw out of the tool_result handler and take the edit's result with it.
+		if (ctx.hasUI && outcomes.length > 0) {
+			try {
+				const s = statusLine(outcomes, path.basename(abs));
+				ctx.ui.setStatus("nana-post-edit", ctx.ui.theme.fg(s.color, s.text));
+			} catch {
+				// observability only
+			}
+		}
+
 		if (failures.length === 0) return undefined;
 
 		if (ctx.hasUI) ctx.ui.notify(`post-edit checks failed: ${file}`, "warning");

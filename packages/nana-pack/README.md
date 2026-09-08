@@ -32,6 +32,27 @@ pi install /path/to/nana-pi/packages/nana-pack   # local dev
 pi remove ...                                     # uninstall
 ```
 
+## What you will see
+
+In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
+Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
+
+- **Chips** (TUI footer / desk header): `nana-pack ✓` at session start · `post-edit ✓ 2 checks · foo.ts`
+  after each checked edit (`✗ 1/2` on failure, `⏱ timeout`, `– skipped (lock|aborted)` when a check
+  could not run) · `gate ✓ 12 checked · 1 gated` — tool calls the gate inspected, and the ones it stopped on.
+- **Toasts**: post-edit check failures, handoff written/picked up/refused, context compacted.
+- **OS notification** when the agent settles and waits for you. If the OS notifier fails or hangs —
+  the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
+  you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
+  saying why. (A notifier that exits 0 after printing a *localized* PowerShell error record can still
+  slip through; the spawn/exit-code/deadline paths do not.)
+
+**Is it actually installed on this machine?** `pi install` writes to *user* settings
+(`~/.pi/agent/settings.json`) by default, so it applies everywhere; `-l` writes project settings
+instead. The runtime tell is the `nana-pack ✓` chip at session start: seeing it means the pack is
+loaded. Not seeing it is not proof of the opposite — it is also absent in print/JSON mode and if
+`nana-lifecycle` is not loaded. Check the settings file, or the journal, when the chip is missing.
+
 ## Config (all optional)
 
 User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
@@ -67,8 +88,8 @@ read live on every event — edits apply without restarting):
 - **The gate is advisory-by-load-path** — a pi run without the extension has no gate.
   Unattended enforcement stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
-  successes are silent. `{file}` is shell-quoted; exotic path characters on Windows cmd.exe
-  are quoted best-effort.
+  successes stay out of its context and are reported by the status chip instead. `{file}` is
+  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.
 - **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
   pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
   `tool_result` handler, so two edits to one file in a single assistant message could race a
@@ -90,7 +111,10 @@ read live on every event — edits apply without restarting):
 - **Journal** is best-effort JSONL at `~/.pi/agent/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
 - **Notify** never writes terminal escape codes without an attached UI, so print/RPC
-  output stays clean. Headless notifications are opt-in (`notify.headless`).
+  output stays clean. Headless notifications are opt-in (`notify.headless`). A failing OS
+  notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
+  in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
+  an 8 s deadline, so a hung one fails over instead of holding the pipe open.
 - **Handoff** writes the latest compaction summary to `<cwd>/.pi/handoff.md` and
   re-injects it into the next fresh session in that directory. Disable the writes with
   `handoff.enabled: false`; relocate the artifact with `handoff.path` (a custom path
