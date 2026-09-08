@@ -1,6 +1,6 @@
 # nana-pi review punch-list (2026-09-08)
 
-**Status as of 2026-09-08, after the hardening pass.** The pass landed eight commits on `main` (five code, three docs/skills).
+**Status as of 2026-09-08, after the hardening pass.** The pass landed nine commits on `main` (five code, four docs/skills).
 Four closed the per-angle review (`368f67f` desk · `2efd435` nana-pack · `58645c5` nana-stage ·
 `f777638` docs/skills), each adversarially reviewed per package by **gpt-5.6-sol** (all three code
 commits came back BLOCK first; every finding was folded failure-first). A whole-unit review by
