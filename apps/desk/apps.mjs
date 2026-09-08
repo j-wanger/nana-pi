@@ -77,7 +77,17 @@ export function loadManifests(dir) {
 			console.error(`apps: ${f}: ${e.message}`);
 			continue;
 		}
-		const m = normalizeManifest(name, file, raw);
+		// One bad manifest must cost exactly one app. A file holding `null` (valid
+		// JSON, not an object) threw on `raw.port` and, because this runs at module
+		// load, took the WHOLE desk down before it served anything.
+		let m;
+		try {
+			m = raw && typeof raw === "object" && !Array.isArray(raw)
+				? normalizeManifest(name, file, raw)
+				: { error: "manifest must be a JSON object" };
+		} catch (e) {
+			m = { error: `unreadable manifest: ${e.message}` };
+		}
 		if (m.error) console.error(`apps: ${f}: ${m.error}`);
 		else out.set(name, m);
 	}
@@ -240,11 +250,22 @@ async function spawnForApp(app, deps) {
 }
 
 async function handle(app, req, res, deps, files) {
-	const { json, readBody, sseHead, originRejection, sendRpc, promptChild, answerDialog } = deps;
-	const url = new URL(req.url, "http://localhost");
-	const p = url.pathname;
+	const { json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, sendRpc, promptChild, answerDialog } = deps;
 	const m = app.manifest;
 	try {
+		// Inside the boundary: `GET /// HTTP/1.1` is a target Node's parser accepts
+		// and `new URL` rejects — thrown out here it killed the whole desk process,
+		// this listener and every other app's with it.
+		let url;
+		try {
+			url = new URL(req.url, "http://localhost");
+		} catch {
+			return json(res, 400, { error: "malformed request URL" });
+		}
+		const p = url.pathname;
+		// same DNS-rebind rule as the desk listener, against THIS app's port
+		const badHost = hostRejection(req, m.port);
+		if (badHost) return json(res, 403, { error: badHost });
 		if (req.method === "GET" && files[p]) {
 			let data;
 			try {
@@ -306,8 +327,10 @@ async function handle(app, req, res, deps, files) {
 				dialogs: [...child.dialogs.values()], statuses: Object.fromEntries(child.statuses),
 				widgets: Object.fromEntries(child.widgets), title: child.title, queue: child.queue,
 			};
-			res.write(`data: ${JSON.stringify(hello)}\n\n`);
-			if (child.exitNote) res.write(`data: ${JSON.stringify(child.exitNote)}\n\n`);
+			// guarded, same as the desk listener: a client that vanished between the
+			// request and here must not throw inside this route
+			if (!sseWrite(res, sseLine(hello))) return;
+			if (child.exitNote) sseWrite(res, sseLine(child.exitNote));
 			child.clients.add(res);
 			res.on("close", () => child.clients.delete(res));
 			return;
@@ -339,6 +362,6 @@ async function handle(app, req, res, deps, files) {
 		}
 		json(res, 404, { error: "not found" });
 	} catch (e) {
-		json(res, 500, { error: String(e.message || e) });
+		failRequest(res, e);
 	}
 }

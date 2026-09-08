@@ -1820,7 +1820,7 @@ function spawnPopover() {
 		trustBox.type = "checkbox";
 		trustBox.checked = true;
 		trustRow.append(trustBox, el("span", "", "trust project config"));
-		trustRow.title = "pi -a: load .pi settings/extensions from this project (RPC sessions never prompt)";
+		trustRow.title = "on = pi -a (load this project's .pi settings/extensions), off = pi -na (ignore them, even if trust was saved earlier)";
 		const openBtn = el("button", "", "Open here");
 		foot.append(nameIn, trustRow, openBtn);
 		pop.appendChild(foot);
@@ -1899,7 +1899,11 @@ function spawnPopover() {
 			if (!cur) return;
 			const extra = {};
 			if (nameIn.value.trim()) extra.name = nameIn.value.trim();
-			if (trustBox.checked) extra.approve = true;
+			// ALWAYS explicit: unchecked must mean pi -na (ignore this project's
+			// config), not "say nothing". Saying nothing let a saved trust decision
+			// or defaultProjectTrust:"always" load the project's .pi settings and
+			// extensions anyway — the box looked like a decision and wasn't one.
+			extra.approve = trustBox.checked;
 			// flags only when the set differs from what pi would load on its own
 			if (res && [...res.skills, ...res.extensions].some((x) => x.on !== defaultOn(x)))
 				extra.resources = {
