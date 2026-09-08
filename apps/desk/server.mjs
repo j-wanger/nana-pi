@@ -200,14 +200,14 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 		};
 		args.push("--no-skills");
 		for (const p of resources.skills || []) {
+			refuseProject(p, "skill"); // trust first: a path we cannot resolve is refused, not "missing"
 			if (!fs.existsSync(p)) throw new Error(`no such skill: ${p}`);
-			refuseProject(p, "skill");
 			args.push("--skill", p);
 		}
 		args.push("--no-extensions");
 		for (const p of resources.extensions || []) {
-			if (!fs.existsSync(p)) throw new Error(`no such extension: ${p}`);
 			refuseProject(p, "extension");
+			if (!fs.existsSync(p)) throw new Error(`no such extension: ${p}`);
 			args.push("-e", p);
 		}
 	}
@@ -318,7 +318,18 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 		child.exitNote = { type: "desk_exit", code, stderrTail: child.stderrTail.slice(-500) };
 		broadcast(child, child.exitNote);
 	});
+	let spawnOk = false;
+	proc.on("spawn", () => (spawnOk = true));
 	proc.on("error", (err) => {
+		// ChildProcess 'error' fires for a failed SPAWN *and* for a failed kill or
+		// send. Only the first means there is no process: writing a live child off as
+		// "exited" freed its capacity slot and stopped counting a pi that is still
+		// running — and made a later DELETE a no-op.
+		if (spawnOk && proc.pid !== undefined) {
+			child.stderrTail = `${child.stderrTail}\nchild error: ${String(err)}`.slice(-2000);
+			console.error(`session ${id}: error on a LIVE child (kept, still counted): ${err?.message || err}`);
+			return;
+		}
 		child.state = "exited";
 		child.exitNote = { type: "desk_exit", code: null, stderrTail: String(err) };
 		broadcast(child, child.exitNote);
@@ -342,11 +353,26 @@ const KILL_GRACE_MS = Number(process.env.DESK_KILL_GRACE_MS) || 3000;
 // MAX_CHILDREN — until the process is really gone: a child that ignores SIGTERM
 // used to be deleted on the spot, so spawn/delete cycles could leave any number of
 // live pi processes running with nothing tracking them.
+// Is the process definitely gone? Its own exit is the best evidence; failing that,
+// signal 0 tells us whether the pid still exists (EPERM = exists, not ours).
+function pidGone(child) {
+	if (child.proc.exitCode !== null || child.proc.signalCode !== null) return true;
+	const pid = child.proc.pid;
+	if (!pid) return true; // never spawned
+	try {
+		process.kill(pid, 0);
+		return false;
+	} catch (e) {
+		return e?.code === "ESRCH";
+	}
+}
+
 function teardownChild(id, child) {
-	if (child.state === "exited" || child.proc.exitCode !== null || child.proc.signalCode !== null) {
+	if (child.state === "exited" || pidGone(child)) {
 		children.delete(id);
 		return;
 	}
+	if (child.state === "exiting") return; // already being torn down: idempotent
 	child.state = "exiting";
 	child.proc.once("exit", () => children.delete(id));
 	killChild(child, "SIGTERM");
@@ -358,10 +384,23 @@ function teardownChild(id, child) {
 		} catch {}
 		setTimeout(() => {
 			if (!children.has(id)) return;
-			// unkillable (uninterruptible sleep, or a pid we no longer own): stop
-			// pretending we track it, but say so — this is the one orphan case left.
-			console.error(`session ${id}: no exit after SIGKILL — dropping the record, process may survive`);
-			children.delete(id);
+			if (pidGone(child)) {
+				children.delete(id);
+				return;
+			}
+			// A TIMER IS NOT EVIDENCE. Dropping the record here freed a capacity slot
+			// for a process that is demonstrably still alive (a kill that failed, an
+			// uninterruptible sleep). Keep it counted, say so once, and keep checking
+			// so the slot comes back the moment the pid really goes.
+			console.error(`session ${id}: still alive after SIGKILL (pid ${child.proc.pid}) — keeping it counted`);
+			const watch = setInterval(() => {
+				if (!children.has(id)) return clearInterval(watch);
+				if (pidGone(child)) {
+					children.delete(id);
+					clearInterval(watch);
+				}
+			}, KILL_GRACE_MS);
+			watch.unref?.();
 		}, KILL_GRACE_MS).unref?.();
 	}, KILL_GRACE_MS).unref?.();
 }
@@ -636,27 +675,36 @@ function parseTranscript(file) {
 const expandHome = (p) => String(p || "").replace(/^~(?=[\\/]|$)/, () => os.homedir());
 
 // Real paths on both sides: a symlink in the project pointing out (or a repo
-// reached through a symlinked parent) must not change the answer.
-function realOrResolve(p) {
+// reached through a symlinked parent) must not change the answer. null = the path
+// could not be canonicalized (dangling symlink, EACCES on a parent) — NOT the same
+// as "resolves lexically to somewhere outside", which is what the old fallback
+// silently claimed.
+function canonicalPath(p) {
 	try {
 		return fs.realpathSync(p);
 	} catch {
-		return path.resolve(p);
+		return null;
 	}
 }
 
+// true | false | null (cannot tell)
 function isInsideDir(dir, p) {
-	const root = realOrResolve(dir);
-	const real = realOrResolve(p);
+	const root = canonicalPath(dir);
+	const real = canonicalPath(p);
+	if (root === null || real === null) return null;
 	return real === root || real.startsWith(root + path.sep);
 }
 
-// Project-controlled = lives inside the project, EXCEPT pi's own global locations.
-// They sit under $HOME, so a session opened in $HOME (the desk's default) would
-// otherwise relabel every global skill and extension as the project's code.
+// Project-controlled = lives inside the project, EXCEPT pi's own global locations
+// (they sit under $HOME, and the desk's spawn popover opens in $HOME, so without
+// this every global skill would be relabelled the project's code).
+// A path we cannot canonicalize counts as PROJECT: the trust decision fails closed,
+// because "we could not check" must never read as "safe".
 function isProjectPath(cwd, p) {
-	if (!isInsideDir(cwd, p)) return false;
-	return ![PI_DIR, path.join(os.homedir(), ".agents")].some((g) => isInsideDir(g, p));
+	const inside = isInsideDir(cwd, p);
+	if (inside === null) return true;
+	if (!inside) return false;
+	return ![PI_DIR, path.join(os.homedir(), ".agents")].some((g) => isInsideDir(g, p) === true);
 }
 
 function isDirectory(p) {
@@ -842,22 +890,52 @@ function readJsonForUpdate(file) {
 	return cur;
 }
 
-// The two writes whose destination comes from a REQUEST (a context file in a
-// directory the user picked, an agent .md by name) must not follow a link out of
-// it: a repo can ship `AGENTS.md` as a symlink to ~/.ssh/authorized_keys, and both
-// the write and its .bak would land on the target. lstat, not stat — the point is
-// to see the link itself. NOT applied to ~/.pi/agent/*.json: those paths are the
-// user's own, and symlinking them into a dotfiles repo is a normal setup.
-function assertNoSymlinkWrite(file) {
-	for (const p of [file, `${file}.bak`]) {
-		let st;
-		try {
-			st = fs.lstatSync(p);
-		} catch {
-			continue; // absent is fine — we are about to create it
-		}
-		if (st.isSymbolicLink()) throw httpError(409, `refusing to write through a symlink: ${p}`);
+function isSymlink(p) {
+	try {
+		return fs.lstatSync(p).isSymbolicLink();
+	} catch {
+		return false; // absent is fine — we are about to create it
 	}
+}
+
+// Same rule (and the same reasoning) as nana-handoff's reachedThroughSymlink: walk
+// every component BELOW the trusted root; components at or above the root are
+// exempt, because where the user keeps that root is their business — on macOS
+// /tmp is itself a symlink, and a home or repo directory that is a symlink is a
+// normal setup. A target that is not below the root at all is judged on its own
+// final component only.
+function reachedThroughSymlink(root, file) {
+	const base = path.resolve(root);
+	const target = path.resolve(file);
+	const rel = path.relative(base, target);
+	if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return isSymlink(target);
+	let cur = base;
+	for (const segment of rel.split(path.sep)) {
+		cur = path.join(cur, segment);
+		if (isSymlink(cur)) return true;
+	}
+	return false;
+}
+
+// The two writes whose destination comes from a REQUEST (a context file in a
+// directory the user named, an agent .md by name) must not be redirected out of
+// the tree they name. Two shapes, both real:
+//   · the leaf: a repo ships `AGENTS.md` as a symlink to ~/.ssh/authorized_keys —
+//     the write AND its .bak land on the target;
+//   · a component above it: `<repo>/docs -> /etc` makes `<repo>/docs/AGENTS.md` a
+//     perfectly ordinary file outside the repo, with both leaves regular.
+// The root passed in is the PARENT of the named directory, so the named directory's
+// own last component is checked while everything above it stays exempt.
+// NOT applied to ~/.pi/agent/*.json: those paths are the user's own, and symlinking
+// them into a dotfiles repo is a normal setup.
+// TOCTOU: none of these lstats is atomic with the write that follows, so a link
+// swapped into a component in between is not caught — advisory, exactly like the
+// extension's version.
+function assertNoSymlinkWrite(root, file) {
+	for (const p of [file, `${file}.bak`])
+		if (isSymlink(p)) throw httpError(409, `refusing to write through a symlink: ${p}`);
+	if (reachedThroughSymlink(root, file))
+		throw httpError(409, `refusing to write below a symlinked directory: ${file}`);
 }
 
 function listAgents() {
@@ -1051,7 +1129,7 @@ function appendSessionInfoEntry(real, name) {
 		// Refuse rather than guess: appending with a null parentId here would sever
 		// the branch on resume, which is worse than a rename that did not happen.
 		if (tail.status !== "ok")
-			throw httpError(409, `cannot establish this session's leaf entry (its last entry is over ${TAIL_BUDGET >> 20} MiB) — rename it from inside the session instead`);
+			throw httpError(409, `cannot establish this session's leaf entry within the last ${TAIL_BUDGET} bytes — rename it from inside the session instead`);
 		const entry = {
 			type: "session_info", id: randomBytes(4).toString("hex"), parentId: tail.leafId,
 			timestamp: new Date().toISOString(), name: clean,
@@ -1113,7 +1191,7 @@ function hasSessionHeader(file) {
 // a normal node on the branch. Also reports whether the file is terminated, which
 // decides whether our append needs to open a new line first.
 // An entry bigger than this is one we will not read to rename a session.
-const TAIL_BUDGET = 64 * 1024 * 1024;
+const TAIL_BUDGET = Number(process.env.DESK_TAIL_BUDGET) || 64 * 1024 * 1024; // env: tests only
 
 function sessionTail(file) {
 	const size = fileSize(file);
@@ -1129,7 +1207,12 @@ function sessionTail(file) {
 	for (let window = 65536; ; window = Math.min(window * 8, TAIL_BUDGET)) {
 		const start = Math.max(0, size - window);
 		const lines = readChunk(file, start, size - start).split("\n");
-		if (start > 0) lines.shift(); // a partial first line — its start is outside the window
+		// Discard the first line ONLY if it is a fragment. When the byte before the
+		// window is a newline the window opens exactly on a line boundary and that
+		// line is whole — dropping it unconditionally threw away an entry that
+		// exactly filled the window, which at the budget turned a perfectly good
+		// file into "unknown" and a misleading refusal.
+		if (start > 0 && readChunk(file, start - 1, 1) !== "\n") lines.shift();
 		for (let i = lines.length - 1; i >= 0; i--) {
 			if (!lines[i].trim()) continue;
 			let e;
@@ -1641,7 +1724,8 @@ const server = http.createServer(async (req, res) => {
 			const name = String(body.name || "");
 			if (!CONTEXT_NAMES.has(name)) return json(res, 400, { error: `name must be one of: ${[...CONTEXT_NAMES].join(", ")}` });
 			if (!isDirectory(dir)) return json(res, 400, { error: `no such directory: ${dir}` });
-			assertNoSymlinkWrite(path.join(dir, name));
+			// root = the PARENT of the named dir: the dir's own last component is walked
+			assertNoSymlinkWrite(path.dirname(dir), path.join(dir, name));
 			backupWrite(path.join(dir, name), String(body.content ?? ""));
 			return json(res, 200, { ok: true });
 		}
@@ -1652,7 +1736,9 @@ const server = http.createServer(async (req, res) => {
 			const body = await readBody(req);
 			const name = String(body.name || "");
 			if (!/^[\w.-]{1,64}$/.test(name)) return json(res, 400, { error: "agent name: letters/digits/._- only" });
-			assertNoSymlinkWrite(path.join(AGENTS_DIR, `${name}.md`));
+			// root = ~/.pi/agent: `agents/` itself is walked (a planted symlink there
+			// would redirect every agent write), while a symlinked ~/.pi stays exempt
+			assertNoSymlinkWrite(path.dirname(AGENTS_DIR), path.join(AGENTS_DIR, `${name}.md`));
 			backupWrite(path.join(AGENTS_DIR, `${name}.md`), String(body.content ?? ""));
 			return json(res, 200, { ok: true, path: path.join(AGENTS_DIR, `${name}.md`) });
 		}

@@ -71,6 +71,11 @@ fs.mkdirSync(path.join(PI_DIR, "extensions"), { recursive: true });
 fs.writeFileSync(path.join(PI_DIR, "extensions", "global-ext.ts"), "export default function () {}\n");
 fs.writeFileSync(SETTINGS, JSON.stringify({ extensions: [projExt, outsideExt], packages: ["npm:sneaky-pkg"] }, null, 2));
 
+const BUDGET = 2 * 1024 * 1024; // DESK_TAIL_BUDGET for this desk (env: tests only)
+// a resource path that cannot be canonicalized at all
+const danglingExt = path.join(repo, "dangling.ts");
+fs.symlinkSync(path.join(TD, "no-such-target.ts"), danglingExt);
+
 const DERIVED = "Stub Derived Title";
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -111,6 +116,21 @@ fs.writeFileSync(RENAME_FILE, header("ren-1") + userEntry("r1", null, "rename me
 // silently becomes a new root and the resumed session comes back empty
 const BIG_FILE = path.join(SESS, "2026-01-01T00-00-08-000Z_big.jsonl");
 fs.writeFileSync(BIG_FILE, header("big-1") + userEntry("g1", null, "small first") + userEntry("g2", "g1", "IMG".repeat(600000)));
+// The scan budget is the last window sessionTail reads. At exactly that size the
+// window opens ON a line boundary: the first line is COMPLETE and discarding it
+// (as a fragment) was how a good file became an unresolvable one.
+const entryLine = (id, parentId, len) => {
+	const mk = (text) => JSON.stringify({ type: "message", id, parentId, timestamp: "2026-01-01T00:00:03.000Z", message: { role: "user", content: [{ type: "text", text }] } });
+	return mk("P".repeat(len - mk("").length));
+};
+const EXACT_FILE = path.join(SESS, "2026-01-01T00-00-09-000Z_exact.jsonl");
+const exactLine = entryLine("x1", "w1", BUDGET - 1); // + "\n" == exactly one window
+fs.writeFileSync(EXACT_FILE, header("exa-1") + userEntry("w1", null, "before") + `${exactLine}\n`);
+const EXACT_NONL_FILE = path.join(SESS, "2026-01-01T00-00-10-000Z_exactnonl.jsonl");
+const exactNoNl = entryLine("x2", "v1", BUDGET); // unterminated, exactly one window
+fs.writeFileSync(EXACT_NONL_FILE, header("exb-1") + userEntry("v1", null, "before") + exactNoNl);
+const OVER_FILE = path.join(SESS, "2026-01-01T00-00-11-000Z_over.jsonl");
+fs.writeFileSync(OVER_FILE, header("ovr-1") + userEntry("o1", null, "before") + `${entryLine("o2", "o1", BUDGET + 4096)}\n`);
 const EMPTY_FILE = path.join(SESS, "2026-01-01T00-00-03-000Z_empty.jsonl");
 fs.writeFileSync(EMPTY_FILE, header("emp-1"));
 // 0 bytes: pi would rewrite this with a fresh header — appending a session_info to
@@ -129,7 +149,10 @@ const TRUNCATED_FILE = path.join(SESS, "2026-01-01T00-00-07-000Z_truncated.jsonl
 fs.writeFileSync(TRUNCATED_FILE, header("tru-1") + userEntry("t1", null, "first") + '{"type":"message","id":"t2","par');
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: {
+		...process.env, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir, STUB_OUT: OUT,
+		DESK_TAIL_BUDGET: String(BUDGET), PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+	},
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let log = "";
@@ -200,6 +223,11 @@ try {
 	check("trust CHECKED + a project extension spawns with -a and -e", r.status === 200, String(r.status));
 	argv = await lastRpcArgv(before2 + 2);
 	check("…the project extension is passed only under -a", / -a /.test(argv) && argv.includes(`-e ${projExt}`), argv);
+	// a path we cannot canonicalize is treated as the project's, not waved through
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [danglingExt] } });
+	check("an unresolvable (dangling) resource path is REFUSED when trust is off", r.status >= 400 && /project trust/.test((await r.json()).error || ""), String(r.status));
+	r = await post("/api/spawn", { cwd: repo, approve: true, resources: { extensions: [danglingExt] } });
+	check("…and with trust on it fails on its own merits (no such extension)", r.status >= 400 && /no such extension/.test((await r.json()).error || ""), String(r.status));
 	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
 
 	// ── B + C. title derivation: no tools, fenced data, capped — and the append chains ──
@@ -273,6 +301,20 @@ try {
 		console.log("SKIP pi SessionManager cross-check (could not load the installed package):", e.message);
 	}
 
+	// C: an entry that exactly fills the last scan window is COMPLETE, not a fragment
+	check("fixture: the exact-boundary line really is one window", exactLine.length + 1 === BUDGET && exactNoNl.length === BUDGET, `${exactLine.length + 1} / ${exactNoNl.length} vs ${BUDGET}`);
+	r = await post("/api/rename", { file: EXACT_FILE, name: "Exact" });
+	check("rename on a file whose last entry exactly fills the scan budget → 200", r.status === 200, String(r.status));
+	check("…and it chains to that entry", lines(EXACT_FILE).at(-1).parentId === "x1", JSON.stringify(lines(EXACT_FILE).at(-1)));
+	r = await post("/api/rename", { file: EXACT_NONL_FILE, name: "Exact No Newline" });
+	check("…same at the boundary with no terminal newline", r.status === 200 && lines(EXACT_NONL_FILE).at(-1).parentId === "x2", `${r.status} ${JSON.stringify(lines(EXACT_NONL_FILE).at(-1))}`);
+	// and a genuinely unreadable leaf still refuses, with a message about the budget
+	const overBefore = fs.statSync(OVER_FILE).size;
+	r = await post("/api/rename", { file: OVER_FILE, name: "Over" });
+	const overErr = (await r.json()).error || "";
+	check("an entry LARGER than the budget → 409 naming the budget", r.status === 409 && /within the last \d+ bytes/.test(overErr), `${r.status} ${overErr}`);
+	check("…and that file is left untouched", fs.statSync(OVER_FILE).size === overBefore);
+
 	// C: a name with an embedded newline would split one entry into two bad lines
 	const beforeLines = fs.readFileSync(RENAME_FILE, "utf-8").split("\n").filter(Boolean).length;
 	check("rename with an embedded newline accepted", (await post("/api/rename", { file: RENAME_FILE, name: "line one\nline two\r\nthree" })).status === 200);
@@ -316,6 +358,24 @@ try {
 	check("a symlinked .bak destination → 409", r.status === 409, String(r.status));
 	check("…the link target is still untouched", fs.readFileSync(secret, "utf-8") === "SECRET");
 	check("…and the real file is unchanged", fs.readFileSync(path.join(repo2, "CLAUDE.md"), "utf-8") === "real file");
+	// a DIRECTORY component above the leaf, with both leaves perfectly ordinary
+	const outsideDir = path.join(TD, "outside-tree");
+	fs.mkdirSync(outsideDir, { recursive: true });
+	fs.symlinkSync(outsideDir, path.join(repo, "docs"));
+	r = await post("/api/context-file", { dir: path.join(repo, "docs"), name: "AGENTS.md", content: "pwned" });
+	check("context-file below a SYMLINKED directory → 409", r.status === 409, String(r.status));
+	check("…and nothing was written outside the tree", !fs.existsSync(path.join(outsideDir, "AGENTS.md")), JSON.stringify(fs.readdirSync(outsideDir)));
+	// same shape for the agents dir: a planted link at ~/.pi/agent/agents
+	const agentsElsewhere = path.join(TD, "elsewhere-agents");
+	fs.mkdirSync(agentsElsewhere, { recursive: true });
+	fs.symlinkSync(agentsElsewhere, path.join(PI_DIR, "agents"));
+	r = await post("/api/agents", { name: "planted", content: "pwned" });
+	check("agents write through a SYMLINKED agents dir → 409", r.status === 409, String(r.status));
+	check("…and nothing was written there either", !fs.existsSync(path.join(agentsElsewhere, "planted.md")), JSON.stringify(fs.readdirSync(agentsElsewhere)));
+	fs.unlinkSync(path.join(PI_DIR, "agents"));
+	r = await post("/api/agents", { name: "normal", content: "fine" });
+	check("…while an ordinary agents write still lands", r.status === 200 && fs.readFileSync(path.join(PI_DIR, "agents", "normal.md"), "utf-8") === "fine", String(r.status));
+
 	// an ordinary write still works
 	r = await post("/api/context-file", { dir: repo2, name: "AGENTS.md", content: "hello" });
 	check("an ordinary context-file write still lands", r.status === 200 && fs.readFileSync(path.join(repo2, "AGENTS.md"), "utf-8") === "hello", String(r.status));
