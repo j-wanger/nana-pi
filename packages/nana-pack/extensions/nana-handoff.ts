@@ -35,6 +35,54 @@ function displayPath(cwd: string, file: string): string {
 	return rel && !rel.startsWith("..") && !path.isAbsolute(rel) ? rel : file;
 }
 
+function isSymlink(file: string): boolean {
+	try {
+		return fs.lstatSync(file).isSymbolicLink();
+	} catch {
+		return false; // absent (or unreadable) — nothing is being followed
+	}
+}
+
+/**
+ * Refuse to read or write the artifact through a SYMLINK anywhere the repo
+ * controls.
+ *
+ * A repo can commit `.pi/handoff.md` as a link to, say, ~/.ssh/id_rsa: pickup
+ * would paste the target into the next session's system prompt, and the next
+ * compaction would overwrite it. Committing `.pi` itself as a link to an
+ * external directory is the same attack with the link one level up, and a
+ * final-component check would wave it through — so every component BELOW the
+ * workspace root is checked, not just the last one.
+ *
+ * Components at or ABOVE the root are deliberately not checked: a workspace
+ * legitimately lives under a symlinked parent (macOS /tmp → /private/tmp), and
+ * that is the user's own filesystem, not repo-supplied. A configured
+ * handoff.path outside the workspace has no repo-controlled prefix to walk, so
+ * only its final component is checked.
+ *
+ * The handoff (and its sibling .gitignore) is a file this extension owns — a
+ * link there is never something we need to honor — so this refuses regardless of
+ * project trust; someone who wants the artifact elsewhere points handoff.path at
+ * the real destination.
+ *
+ * Advisory, not a security boundary: none of these lstats is atomic with the
+ * open that follows, so a link swapped into any component in between is not
+ * caught.
+ */
+function reachedThroughSymlink(root: string, file: string): boolean {
+	const base = path.resolve(root);
+	const target = path.resolve(file);
+	const rel = path.relative(base, target);
+	// outside the workspace (or not below it): only the artifact itself is ours to judge
+	if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return isSymlink(target);
+	let cur = base;
+	for (const segment of rel.split(path.sep)) {
+		cur = path.join(cur, segment);
+		if (isSymlink(cur)) return true;
+	}
+	return false;
+}
+
 export default function (pi: ExtensionAPI) {
 	// loaded once per session at start; a mid-session compaction refreshes the
 	// FILE for future sessions but doesn't re-inject here (the summary is
@@ -49,6 +97,11 @@ export default function (pi: ExtensionAPI) {
 		if (!cfg.handoff.enabled) return;
 		try {
 			const file = handoffPath(ctx.cwd, cfg);
+			if (reachedThroughSymlink(ctx.cwd, file)) {
+				appendJournal(cfg, { ts: new Date().toISOString(), event: "handoff_symlink_refused", cwd: ctx.cwd, op: "read", path: file });
+				if (ctx.hasUI) ctx.ui.notify(`handoff ignored: ${displayPath(ctx.cwd, file)} is reached through a symlink`, "warning");
+				return;
+			}
 			const raw = fs.readFileSync(file, "utf-8").trim();
 			if (!raw) return;
 			pickup = raw.slice(0, INJECT_CAP);
@@ -79,6 +132,11 @@ export default function (pi: ExtensionAPI) {
 		if (!summary) return;
 		const file = handoffPath(ctx.cwd, cfg);
 		try {
+			if (reachedThroughSymlink(ctx.cwd, file)) {
+				appendJournal(cfg, { ts: new Date().toISOString(), event: "handoff_symlink_refused", cwd: ctx.cwd, op: "write", path: file });
+				if (ctx.hasUI) ctx.ui.notify(`handoff NOT written: ${displayPath(ctx.cwd, file)} is reached through a symlink`, "warning");
+				return;
+			}
 			const dir = path.dirname(file);
 			fs.mkdirSync(dir, { recursive: true });
 			// keep the artifact out of git status: an untracked handoff reads as
@@ -91,8 +149,16 @@ export default function (pi: ExtensionAPI) {
 				const gi = path.join(dir, ".gitignore");
 				const base = path.basename(file);
 				try {
-					const cur = fs.existsSync(gi) ? fs.readFileSync(gi, "utf-8") : "";
-					if (!cur.split(/\r?\n/).includes(base)) fs.writeFileSync(gi, cur ? `${cur.replace(/\n?$/, "\n")}${base}\n` : `${base}\n`);
+					// Same read-then-write-through-a-link vector as the artifact itself.
+					// Refusing it must be visible: the "handoff written" notice that
+					// follows would otherwise imply the whole write succeeded.
+					if (reachedThroughSymlink(ctx.cwd, gi)) {
+						appendJournal(cfg, { ts: new Date().toISOString(), event: "handoff_symlink_refused", cwd: ctx.cwd, op: "gitignore", path: gi });
+						if (ctx.hasUI) ctx.ui.notify(`.gitignore NOT updated: ${displayPath(ctx.cwd, gi)} is reached through a symlink`, "warning");
+					} else {
+						const cur = fs.existsSync(gi) ? fs.readFileSync(gi, "utf-8") : "";
+						if (!cur.split(/\r?\n/).includes(base)) fs.writeFileSync(gi, cur ? `${cur.replace(/\n?$/, "\n")}${base}\n` : `${base}\n`);
+					}
 				} catch {
 					// best-effort; the handoff itself still gets written
 				}
