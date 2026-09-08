@@ -34,7 +34,7 @@ no new toolchain.)
 | | Option | Tradeoff |
 |---|---|---|
 | A | Prompt/AGENTS.md guidance only | Cheapest; research says guidance is NOT useless (the "prompts don't reduce smells" claim was refuted) but nothing enforces it |
-| B | **In-loop deterministic gates + CI backstop** ✅ | nana-post-edit (already built) runs format + lint + typecheck + size/complexity caps on EVERY edit and feeds failures back to the model as self-correction text; pre-commit + CI re-enforce at the boundary. This is the documented "deterministic shell around the probabilistic agent" pattern |
+| B | **In-loop deterministic gates + CI backstop** ✅ | nana-post-edit (already built) runs format + lint + typecheck + size/complexity caps on EVERY edit and feeds failures back to the model as self-correction text; pre-commit + CI re-enforce lint/type/test at the boundary (the size caps are post-edit-only — no linter rule exists for them). This is the documented "deterministic shell around the probabilistic agent" pattern |
 | C | B + an LLM review pass (py-review analog) as a skill | Adds judgment-tier review; port later as cheap prose once B is proven |
 
 **Pick: B now, C as a fast follow.** Concrete cap preset (shipped as nana-pack config +

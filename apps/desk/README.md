@@ -93,10 +93,73 @@ round-trip via a throwaway `-e` extension; REAL nana-gate escalation answered
 from the desk; bash streaming; fork; export; queue steer + reclaim; historical
 transcript with branch flags; clean teardown, zero orphan `pi` processes.
 
-## Known issues
+## Contract notes (2026-09-08 hardening pass)
 
-(none currently. The 2026-09-02 double-rendered-user-message bug is FIXED: `send()`
-appends the user bubble optimistically *before* the POST and queues it; the
-`message_end` handler swaps the queued bubble for pi's echoed user message —
-append-before-POST matters because the SSE echo can beat the fetch response.
-Regression check: `test/double-msg.e2e.mjs`, browser-level, passed 2026-09-02.)
+Two client-visible API changes landed in commit `368f67f`. Both change what a caller gets back,
+not just what the server does internally.
+
+- **A config save that cannot be backed up is refused, not completed.** Every write to
+  `~/.pi/agent/settings.json`, `mcp.json`, `nana-pack.json`, a project `AGENTS.md`/`CLAUDE.md`/
+  `AGENTS.override.md`, and a subagent `.md` copies the existing file to `<file>.bak` *first*.
+  If that copy fails, the write is aborted and the request answers **500** with the reason —
+  previously the failure was swallowed and the file was overwritten anyway. "There was nothing
+  to back up" (the file does not exist yet) is still fine. Separately, a file that exists but
+  does not parse as a JSON object answers **409** rather than being clobbered with a two-key
+  replacement. Callers: retry after fixing the directory or moving the bad file; a save that
+  returns non-200 changed nothing on disk.
+- **`POST /api/spawn` `approve` is a strict boolean.** `true` → `-a`; `false` → `-na`;
+  **omitted or any non-boolean value → no flag at all**, which means pi's own defaults (a saved
+  `trust.json` decision, or `defaultProjectTrust: "always"`) decide. So `false` now denies where
+  it used to be indistinguishable from silence — an unchecked "Trust project config" box
+  previously still loaded project config. With the box unchecked the spawn UI switches
+  project-local skills and extensions off, and (since `53d4aab`) the server **refuses** any
+  narrowed `resources` path that resolves inside the session cwd: 500, `refusing to load project
+  <kind> without project trust: <path>`. A client cannot spend the trust it just declined. App
+  listeners do not use `approve` at all: they carry the manifest's own
+  `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
+  extensions inside its own cwd.
+
+## Known limits
+
+The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then
+`53d4aab` folding a whole-unit `gpt-6-astra` review) closed the crash, browser-boundary, resume,
+lifecycle, resource-classification and save-symlink items; item-by-item status is in
+`docs/review-punchlist-2026-09-08.md`. What it did **not** close — read this as "what the desk
+is not":
+
+- **Loopback only, and not a sandbox.** It binds 127.0.0.1 with no auth. Any process running as
+  you keeps full control-plane access: spawn a pi session in any directory, run bash in it, read
+  `/api/settings` including MCP credentials. Do not port-forward it and do not proxy it. The
+  Host and Origin checks added this pass stop a *browser* on another site (DNS rebinding, cross-
+  origin POSTs) from reaching it; they are not authentication.
+- **"Trust project config" is a resource policy, not a sandbox.** Unchecked now genuinely denies
+  (`-na`, the UI stops offering project-local items, and the server refuses a project path), but
+  any extension that *does* load runs with your full authority, and context files are still model
+  input.
+- **Buffers are unbounded.** A child's stdout accumulates until a newline arrives, SSE writes are
+  not backpressure-aware, pending RPCs are uncapped, and an app `data` command's stdout is read
+  whole. The stage's 128/256 KiB caps bound what a *model* reads, not what this server holds in
+  memory — a runaway or hostile local producer can exhaust it.
+- **`~/.pi/agent/*.json` saves still follow symlinks, on purpose.** `settings.json`, `mcp.json`
+  and `nana-pack.json` are your own paths, and symlinking them into a dotfiles repo is a normal
+  setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
+  whose destination comes from a *request* — a context file in a picked directory, a subagent
+  `.md` — do refuse a symlinked destination or `.bak` with 409 (`53d4aab`).
+- **A restart redacts old stage blocks.** Each app session gets a fresh signing key per spawn
+  (`NANA_STAGE_KEY`), and `/api/entries` drops any `nana-block` entry not signed under the
+  current child's key. After a desk or child restart, blocks from before the restart vanish from
+  the stage. That is the provenance rule working, not a render bug — the fix is a stable
+  per-session key, never accepting unverifiable blocks.
+- **Client-side races remain.** Switching sessions while a `get_messages` resync is in flight can
+  repaint the new pane with the old session's messages (`public/app.js` `resync()` re-reads the
+  live-session handle after the await with no generation check); SSE reconnect, bash
+  echo-before-fetch and prompt dedup have the same shape. Reported by review; only the resync
+  path has been read line-by-line.
+- **The running desk is whatever was on disk when it started.** The launchd service
+  (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
+  this repo, including everything above, do not reach it until it is restarted.
+
+Fixed and worth remembering: the 2026-09-02 double-rendered-user-message bug. `send()` appends
+the user bubble optimistically *before* the POST and queues it; the `message_end` handler swaps
+the queued bubble for pi's echoed user message — append-before-POST matters because the SSE echo
+can beat the fetch response. Regression check: `test/double-msg.e2e.mjs`, browser-level.

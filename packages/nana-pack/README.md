@@ -69,6 +69,24 @@ read live on every event — edits apply without restarting):
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
   successes are silent. `{file}` is shell-quoted; exotic path characters on Windows cmd.exe
   are quoted best-effort.
+- **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
+  pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
+  `tool_result` handler, so two edits to one file in a single assistant message could race a
+  formatter's read-modify-write. Two outcomes you can see:
+  - **The queue exists but the lock cannot be taken** → the checker does **NOT** run. The
+    receipt records `status: "not_run"` (`exitCode: null`, empty `inputs`/`digest`,
+    `inputsStableDuringCheck: false`) and the model is told ``  `<command>` did not run — could
+    not lock <file> for checking: <reason> ``. A skipped check is always reported; it is never
+    reported as passing.
+  - **The queue module cannot be resolved** (running outside pi — another host, a bare test
+    harness) → the check **does** run, unserialized, and the absence is announced once per
+    process: a `postedit_file_queue_unavailable` journal line plus the warning "checks are not
+    serialized against edits".
+- **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
+  gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
+  with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
+  handler pending forever. `timeoutMs: 0` still means no deadline. The win32 tree-kill branch has
+  not been exercised on real Windows.
 - **Journal** is best-effort JSONL at `~/.pi/agent/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
 - **Notify** never writes terminal escape codes without an attached UI, so print/RPC
@@ -77,6 +95,26 @@ read live on every event — edits apply without restarting):
   re-injects it into the next fresh session in that directory. Disable the writes with
   `handoff.enabled: false`; relocate the artifact with `handoff.path` (a custom path
   gets no sibling `.gitignore` — its git semantics are the owner's).
+- **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`) — at
+  session-start pickup, at compaction write, and for the sibling `.pi/.gitignore`. A repo can
+  commit `.pi/handoff.md`, or `.pi` itself, as a link to something like `~/.ssh/id_rsa`: pickup
+  would paste the target into the next session's system prompt and the next compaction would
+  overwrite it. What that means in practice:
+  - **Unconditional — not trust-gated.** A *trusted* project loses symlink-based handoff too.
+    If you want the artifact somewhere else, point `handoff.path` at the real destination
+    instead of linking to it.
+  - **Scope is every path component BELOW the workspace root.** Components at or above the root
+    are deliberately not checked: a workspace legitimately lives under a symlinked parent
+    (macOS `/tmp` → `/private/tmp`), and that is your filesystem, not repo-supplied. A
+    `handoff.path` pointing **outside** the workspace has no repo-controlled prefix to walk, so
+    only its final component is checked.
+  - **Refusals are loud, never silent** — a `handoff_symlink_refused` journal line
+    (`op: "read" | "write" | "gitignore"`) plus a UI warning. The `.gitignore` refusal is
+    announced on its own so the "handoff written" notice cannot imply it succeeded.
+  - **Advisory, not a security boundary, and not atomic.** The `lstat` checks are not atomic
+    with the open that follows, so a link swapped in between them is not caught; and the write
+    is a plain `writeFileSync`, not a temp-file rename, so an interrupted compaction can leave
+    a partially written handoff.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
   per repo+checker under `~/.pi/agent/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.
