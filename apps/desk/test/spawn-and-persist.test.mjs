@@ -20,6 +20,19 @@
 //   D. a config write must never guess: an unreadable settings.json read as `{}`
 //      wrote a two-key file over the user's real one, and a failed `.bak` was
 //      swallowed even though that backup IS the undo.
+//   E. per-spawn tool narrowing (2026-09-08, work package F) must go out as `-xt`,
+//      never `-t`: `-t` is a strict allowlist over ALL tools, so using it to drop
+//      `grep` would also delete nana-stage and the subagent tools from the session.
+//      Names are validated server-side — only they ever reach a pi flag. E1b: the
+//      picker's effective set has to come from /api/resources, because a TRUSTED
+//      project's .pi/settings.json defaultTools REPLACES the global array; reading
+//      global settings alone hid project-enabled tools and could not drop them.
+//      E2 does the same for `settings.defaultTools`.
+//   F. the nana-pack editor writes at TWO scopes. The project one takes its
+//      destination from the request, so it gets the context-file guards (no write
+//      through a symlinked `.pi` or leaf), and the whole-file replace refuses
+//      unknown TOP-LEVEL keys by name while preserving sub-keys the form never
+//      renders.
 //
 // Run: node apps/desk/test/spawn-and-persist.test.mjs   (exit 0 = all PASS)
 import { execFileSync, spawn } from "node:child_process";
@@ -413,6 +426,111 @@ try {
 	fs.rmSync(`${SETTINGS}.bak`);
 	r = await post("/api/settings", { patch: { defaultModel: "fresh" } });
 	check("a settings.json that does not exist yet is created", r.status === 200 && JSON.parse(fs.readFileSync(SETTINGS, "utf-8")).defaultModel === "fresh", String(r.status));
+
+	// ── E. per-spawn built-in tool narrowing goes out as -xt, NEVER -t ──
+	// `-t` is a strict allowlist over ALL tools (usage.md 0.84.4), so using it to
+	// drop `grep` would also delete nana-stage and the subagent tools from the
+	// session. `-xt` filters the resolved list and leaves extension tools alone.
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+	for (let i = 0; i < 60 && (await fetch(`${BASE}/api/live`).then((x) => x.json())).length; i++) await sleep(100);
+	const beforeE = rpcRuns().length;
+	r = await post("/api/spawn", { cwd: repo, excludeTools: ["grep", "find"] }).then((x) => x.json());
+	check("spawn with excludeTools accepted", typeof r.id === "string", JSON.stringify(r));
+	argv = await lastRpcArgv(beforeE + 1);
+	check("unchecked built-ins ride out as -xt", / -xt grep,find /.test(argv), argv);
+	check("…and never as -t, which would drop the extension tools too", !/ -t /.test(argv), argv);
+	r = await post("/api/spawn", { cwd: repo }).then((x) => x.json());
+	argv = await lastRpcArgv(beforeE + 2);
+	check("no narrowing → no tool flag at all (pure pi defaults)", !/ -xt | -t /.test(argv), argv);
+	const beforeERef = rpcRuns().length;
+	r = await post("/api/spawn", { cwd: repo, excludeTools: ["grep", "not-a-tool"] });
+	check("an unknown tool name is refused, never spliced into the -xt list", r.status === 400 && /not a pi built-in tool/.test((await r.json()).error || ""), String(r.status));
+	r = await post("/api/spawn", { cwd: repo, excludeTools: "grep,find" });
+	check("a non-array excludeTools is refused", r.status === 400, String(r.status));
+	check("…and neither refusal started a child", rpcRuns().length === beforeERef, `${rpcRuns().length} vs ${beforeERef}`);
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+
+	// E1b. the picker's "effective set" must come from the PROJECT when the project
+	// is trusted: `.pi/settings.json` defaultTools REPLACES the global array
+	// (settings.md "Tools"), so reading global settings alone hides a project-enabled
+	// tool and leaves the user unable to drop it.
+	fs.writeFileSync(SETTINGS, JSON.stringify({ defaultTools: ["read", "bash"] }, null, 2));
+	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: ["read", "bash", "find"] }, null, 2));
+	let rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
+	check("resources reports the GLOBAL defaultTools", JSON.stringify(rres.defaultTools?.global) === '["read","bash"]', JSON.stringify(rres.defaultTools));
+	check("…and the PROJECT one separately, so the client can pick by the trust box", JSON.stringify(rres.defaultTools?.project) === '["read","bash","find"]', JSON.stringify(rres.defaultTools));
+	// a cwd with no project settings falls back to global alone
+	rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(TD)}`).then((x) => x.json());
+	check("a cwd with no .pi/settings.json reports project:null (→ the global list)", rres.defaultTools?.project === null && JSON.stringify(rres.defaultTools?.global) === '["read","bash"]', JSON.stringify(rres.defaultTools));
+	// a malformed value is "absent", never handed to the picker as a tool list
+	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: "read,bash,find" }, null, 2));
+	rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
+	check("a non-array project defaultTools is reported as absent, not as a list", rres.defaultTools?.project === null, JSON.stringify(rres.defaultTools));
+	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: ["read", "bash", "find"] }, null, 2));
+	// and the whole point: a PROJECT-enabled tool can actually be dropped
+	const beforeEp = rpcRuns().length;
+	r = await post("/api/spawn", { cwd: repo, approve: true, excludeTools: ["find"] }).then((x) => x.json());
+	check("a project-enabled built-in can be excluded", typeof r.id === "string", JSON.stringify(r));
+	argv = await lastRpcArgv(beforeEp + 1);
+	check("…and it rides out as -xt find under -a", / -xt find /.test(argv) && / -a /.test(argv), argv);
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+
+	// ── E2. settings.defaultTools is editable, but only with real tool names ──
+	fs.writeFileSync(SETTINGS, JSON.stringify({ defaultModel: "keep-me", packages: ["a"] }, null, 2));
+	r = await post("/api/settings", { patch: { defaultTools: ["read", "grep", "ls"] } });
+	const toolsOf = () => JSON.stringify(JSON.parse(fs.readFileSync(SETTINGS, "utf-8")).defaultTools);
+	check("a valid defaultTools patch lands", r.status === 200 && toolsOf() === '["read","grep","ls"]', `${r.status} ${toolsOf()}`);
+	r = await post("/api/settings", { patch: { defaultTools: ["read", "telepathy"] } });
+	check("an unknown tool name → 400", r.status === 400 && /defaultTools must be an array of pi built-in/.test((await r.json()).error || ""), String(r.status));
+	r = await post("/api/settings", { patch: { defaultTools: "read,grep" } });
+	check("a non-array defaultTools → 400", r.status === 400, String(r.status));
+	check("…and neither rejection touched the file", toolsOf() === '["read","grep","ls"]', toolsOf());
+	r = await post("/api/settings", { patch: { defaultTools: null } });
+	check("null deletes the key (back to pi's own read/bash/edit/write)", r.status === 200 && !("defaultTools" in JSON.parse(fs.readFileSync(SETTINGS, "utf-8"))), String(r.status));
+	check("…and the other keys survived", JSON.parse(fs.readFileSync(SETTINGS, "utf-8")).defaultModel === "keep-me");
+
+	// ── F. nana-pack config: two scopes, known top-level keys only, guarded write ──
+	const NP_USER = path.join(PI_DIR, "nana-pack.json");
+	fs.writeFileSync(NP_USER, JSON.stringify({ journal: { enabled: true, path: null, rotateAt: 99 }, notify: { enabled: false, headless: true } }, null, 2));
+	let g = await fetch(`${BASE}/api/nana-pack`).then((x) => x.json());
+	check("GET with no dir reads the USER file", g.scope === "user" && g.path === NP_USER && g.exists === true && g.config.notify.headless === true, JSON.stringify(g));
+	r = await post("/api/nana-pack", { config: { ...g.config, notify: { ...g.config.notify, enabled: true } } });
+	check("a user-scope write lands", r.status === 200 && (await r.json()).scope === "user", String(r.status));
+	let np = JSON.parse(fs.readFileSync(NP_USER, "utf-8"));
+	check("…the edited field changed", np.notify.enabled === true, JSON.stringify(np.notify));
+	check("…a sub-key the form never renders survived the round-trip", np.journal.rotateAt === 99, JSON.stringify(np.journal));
+	check("…and the previous file is the .bak", JSON.parse(fs.readFileSync(`${NP_USER}.bak`, "utf-8")).notify.enabled === false);
+	const npBefore = fs.readFileSync(NP_USER, "utf-8");
+	r = await post("/api/nana-pack", { config: { gate: { allowPatterns: [] }, gaet: { extraPatterns: ["x"] } } });
+	const npErr = (await r.json()).error || "";
+	check("an unknown TOP-LEVEL key → 400 naming it (a typo the pack would ignore forever)", r.status === 400 && npErr.includes("gaet"), `${r.status} ${npErr}`);
+	check("…and the file is untouched", fs.readFileSync(NP_USER, "utf-8") === npBefore);
+
+	const proj = path.join(TD, "np-project");
+	fs.mkdirSync(proj, { recursive: true });
+	r = await post("/api/nana-pack", { dir: proj, config: { gate: { allowPatterns: ["^ls "] } } });
+	check("a project-scope write creates <dir>/.pi/nana-pack.json", r.status === 200 && fs.existsSync(path.join(proj, ".pi", "nana-pack.json")), String(r.status));
+	g = await fetch(`${BASE}/api/nana-pack?dir=${encodeURIComponent(proj)}`).then((x) => x.json());
+	check("…and GET with that dir reads it back", g.scope === "project" && g.config.gate.allowPatterns[0] === "^ls ", JSON.stringify(g));
+	check("…while the user file is a different file, unchanged", JSON.parse(fs.readFileSync(NP_USER, "utf-8")).notify.enabled === true);
+	r = await post("/api/nana-pack", { dir: path.join(TD, "no-such-project"), config: { gate: {} } });
+	check("a project dir that does not exist → 400", r.status === 400, String(r.status));
+
+	// the destination came from the request, so it gets the context-file guards
+	const npEscape = path.join(TD, "np-escape");
+	fs.mkdirSync(npEscape, { recursive: true });
+	const proj2 = path.join(TD, "np-project2");
+	fs.mkdirSync(proj2, { recursive: true });
+	fs.symlinkSync(npEscape, path.join(proj2, ".pi"));
+	r = await post("/api/nana-pack", { dir: proj2, config: { gate: {} } });
+	check("a project write through a SYMLINKED .pi → 409", r.status === 409, String(r.status));
+	check("…and nothing was written outside the project", !fs.existsSync(path.join(npEscape, "nana-pack.json")), JSON.stringify(fs.readdirSync(npEscape)));
+	const proj3 = path.join(TD, "np-project3");
+	fs.mkdirSync(path.join(proj3, ".pi"), { recursive: true });
+	fs.symlinkSync(secret, path.join(proj3, ".pi", "nana-pack.json"));
+	r = await post("/api/nana-pack", { dir: proj3, config: { gate: {} } });
+	check("a project write onto a symlinked nana-pack.json → 409", r.status === 409, String(r.status));
+	check("…the link target is untouched", fs.readFileSync(secret, "utf-8") === "SECRET", fs.readFileSync(secret, "utf-8"));
 } catch (e) {
 	console.log("HARNESS ERROR", e.message, "\n--- server log ---\n", log.slice(-2000));
 	fails = 99;

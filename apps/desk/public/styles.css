@@ -1,4 +1,4 @@
-/* the pi desk — reskinned 2026-09-02 to the nana loop-desk design language
+/* nana code (the desk) — reskinned 2026-09-02 to the nana loop-desk design language
    ("Orchestr — light / studio", see nana-agent-loop app/src/styles.css).
    Warm paper studio: page darkest, cards raised lighter; MONOSPACE for
    structure + tool/command output, system SANS for prose; SEMANTIC color
@@ -106,6 +106,15 @@ body {
 	flex-direction: column;
 	min-height: 0;
 }
+/* Collapsed rail: width to zero, and children hidden so nothing in a zero-width
+   rail stays in the tab order (clipping alone leaves them focusable). The state
+   lives on the ROOT element so index.html can set it before first paint — a
+   class applied by app.js paints the rail open for a frame first. Both selectors
+   below need to out-specify the plain `#rail` rules, hence `#frame #rail`. */
+#rail { transition: width 0.14s ease, min-width 0.14s ease; }
+[data-rail="closed"] #frame #rail { width: 0; min-width: 0; border-right: none; overflow: hidden; }
+[data-rail="closed"] #frame #rail > * { visibility: hidden; }
+#rail-toggle { align-self: center; }
 #rail h2 {
 	font: 600 11px/1 var(--mono);
 	text-transform: uppercase;
@@ -178,6 +187,9 @@ body {
 .path-row .pop-filter { flex: 1; min-width: 0; }
 .path-row button { flex: 0 0 auto; }
 .res-wrap { overflow-y: auto; flex: 1 1 auto; min-height: 0; padding: 2px 0; }
+/* the built-in-tools list is short and fixed — it must not take half the
+   popover away from the skills/extensions list above it */
+.tools-wrap { flex: 0 1 auto; }
 .res-head {
 	padding: 6px 12px 2px;
 	color: var(--fg-2);
@@ -667,8 +679,11 @@ button.danger:hover { border-color: var(--stop); background: var(--stop-dim); }
 @media (prefers-reduced-motion: reduce) {
 	.toast { animation: none; }
 	.msg.assistant.streaming::after, .mark.spin { animation: none; }
+	#rail { transition: none; }
 }
 @media (max-width: 760px) {
 	#frame { flex-direction: column; }
-	#rail { width: 100%; max-height: 45%; }
+	#rail { width: 100%; max-height: 45%; transition: max-height 0.14s ease; }
+	/* stacked: width is 100% here, so the collapse is vertical */
+	[data-rail="closed"] #frame #rail { width: 100%; max-height: 0; border-right: none; border-bottom: none; overflow: hidden; }
 }

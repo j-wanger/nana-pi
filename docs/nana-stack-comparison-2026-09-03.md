@@ -23,14 +23,14 @@ interactive side.
 | Identity/rules | nana-soul/nana-personal synced to CLAUDE.md etc. | inherited | nothing (loop workers isolated BY DESIGN; interactive pi runs bare) | **OPEN QUESTION for Jake**: carry a lean identity into interactive pi via global AGENTS.md? Deliberate non-port so far |
 | Knowledge wikis | 10 wiki skills, FTS5, episodic consolidation | research/ + DOCTRINE/IDEAS ledgers | deferred (D4 Tier-3) | **correctly deferred** — no felt need yet; revisit after dogfood |
 | Review flows | py-review 8-point | reviewer-in-loop + non-Anthropic independent review | py-review ported; no ts-review | **minor gap**: ts-review skill (known since assessment) |
-| Observability | session-start state hook, audit hooks | journal + desk feed + loop-status roll-call | nana-lifecycle journal + pi desk (sessions, approvals via dialogs) | **parity** for the seat |
+| Observability | session-start state hook, audit hooks | journal + desk feed + loop-status roll-call | nana-lifecycle journal + nana code (sessions, approvals via dialogs) | **parity** for the seat |
 | Governed loops | — | LoopSpec runner, budget gates, mandate gate, trust ladder, land choreography, ceremony Stop-hooks | none | **NOT A GAP** — stays in nana-agent-loop; pi is an engine there. Don't rebuild |
 | Enforcement teeth | marker-gated enforce-spec/loop/memory hooks | Stop-hook roll-call, doctrine-lint, handoff-shape caps | none | **deliberate**: nana-pi CLAUDE.md is feel-first; teeth arrive only when a real failure shows need |
 | Subagents | Claude-native Task tool | loop worker/manager pattern | pi-subagents (scout/researcher/worker/reviewer + custom .md agents) | **parity** for the seat |
 | MCP/tools | kit MCP config | fetch-provenance host tools | pi-mcp-adapter proxy (memory bridged) + desk MCP tab | **parity+** |
 | Native Windows | **NO** (bash hooks; WSL2 only) | partial (windows-native-shell lane) | **YES** — native win32 across pack/templates/desk (compat pass 2026-09-03) | **pi SUPERIOR — strategic**: the pi stack is the only nana surface that runs native on the Windows box |
 | Eval harness | 52-scenario eval + LongMemEval benchmark | feel-first + doctrine ledger | none | **deliberate** (feel-first invariant); the kit's eval stays kit-side |
-| UI | — | loop desk (loops ONLY, per AML rule) | pi desk (sessions, spawn, settings, titles) | complementary by design; keep the two desks separate |
+| UI | — | loop desk (loops ONLY, per AML rule) | nana code (sessions, spawn, settings, titles) | complementary by design; keep the two desks separate |
 
 ## What this nets out to
 

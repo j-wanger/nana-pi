@@ -690,7 +690,7 @@ function clearStage() {
 	$("live-head").hidden = true;
 	$("live-foot").hidden = true;
 	$("completion").hidden = true;
-	document.title = "the pi desk";
+	document.title = "nana code";
 }
 
 // ── live view ──
@@ -736,7 +736,7 @@ function handleEvent(e) {
 			renderStatuses(e.statuses);
 			renderWidgets(e.widgets);
 			renderQueue(e.queue);
-			if (e.title) document.title = `${e.title} — pi desk`;
+			if (e.title) document.title = `${e.title} — nana code`;
 			if (e.state === "exited") setChip("exited");
 			break;
 		}
@@ -919,7 +919,7 @@ function handleUiRequest(e) {
 			break;
 		}
 		case "setTitle":
-			document.title = e.title ? `${e.title} — pi desk` : "the pi desk";
+			document.title = e.title ? `${e.title} — nana code` : "nana code";
 			break;
 		case "set_editor_text":
 			$("input").value = e.text || "";
@@ -1121,6 +1121,7 @@ function settingsModal(initialTab) {
 		["models", "Models", tabModels],
 		["context", "Context", tabContext],
 		["agents", "Agents", tabAgents],
+		["tools", "Tools", tabTools],
 		["nana", "Nana pack", tabNana],
 		["session", "Session", tabSession],
 	];
@@ -1375,43 +1376,249 @@ async function tabAgents(body) {
 	body.appendChild(el("p", "dim", "Built-ins (scout, researcher, worker, reviewer) ship with pi-subagents. Project agents live in each repo's .pi/agents/. Frontmatter fields: name, description, model, tools, thinking, systemPromptMode."));
 }
 
-async function tabNana(body) {
+// pi 0.84.4 built-in tools (docs/settings.md "Tools"). settings.defaultTools
+// REPLACES pi's own default set; when it is absent pi uses PI_DEFAULT_TOOLS
+// (dist/core/sdk.js defaultActiveToolNames). Extension/SDK tools are never in here.
+const PI_BUILTIN_TOOLS = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
+const PI_DEFAULT_TOOLS = ["read", "bash", "edit", "write"];
+
+async function tabTools(body) {
 	const s = await getSettings();
-	const n = s.nana;
-	const notifyEn = el("input");
-	notifyEn.type = "checkbox";
-	notifyEn.checked = n.notify?.enabled !== false;
-	const notifyHeadless = el("input");
-	notifyHeadless.type = "checkbox";
-	notifyHeadless.checked = n.notify?.headless === true;
-	const journalEn = el("input");
-	journalEn.type = "checkbox";
-	journalEn.checked = n.journal?.enabled !== false;
-	const lines = (arr) => (arr || []).join("\n");
+	const configured = Array.isArray(s.settings.defaultTools) ? s.settings.defaultTools : null;
+	body.appendChild(el("div", "sec-head", "Built-in tools for NEW sessions (settings.json \u2192 defaultTools)"));
+	const boxes = new Map();
+	for (const name of PI_BUILTIN_TOOLS) {
+		const row = el("label", "checkrow");
+		const box = el("input");
+		box.type = "checkbox";
+		box.checked = configured ? configured.includes(name) : PI_DEFAULT_TOOLS.includes(name);
+		boxes.set(name, box);
+		row.append(box, el("span", "", name));
+		if (name === "powershell") row.append(el("span", "dim", "Windows only"));
+		if (!configured && PI_DEFAULT_TOOLS.includes(name)) row.append(el("span", "dim", "pi default"));
+		body.appendChild(row);
+	}
+	body.append(
+		el("p", "dim", configured
+			? "defaultTools is set, so this list replaces pi's own default set for every new session."
+			: "defaultTools is not set \u2014 pi's own defaults (read, bash, edit, write) apply. Saving pins the list above."),
+		el("p", "dim", "Built-in tools only. Extension-provided tools (nana-stage, pi-subagents, the MCP proxy) are unaffected by this list."),
+	);
+	const row = el("div", "srow");
+	row.appendChild(saveBtn("Save tools", async () => {
+		await patchSettings({ defaultTools: PI_BUILTIN_TOOLS.filter((n) => boxes.get(n).checked) });
+		tabReload(body, tabTools);
+	}));
+	const reset = el("button", "quiet", "Use pi defaults");
+	reset.disabled = !configured;
+	reset.title = "Remove defaultTools from settings.json";
+	reset.onclick = async () => {
+		try {
+			await patchSettings({ defaultTools: null });
+			toast("saved");
+			tabReload(body, tabTools);
+		} catch (e) {
+			toast(String(e.message || e), "error");
+		}
+	};
+	row.appendChild(reset);
+	body.appendChild(row);
+	body.appendChild(el("p", "dim", "A project's own settings.json defaultTools array replaces this one for sessions opened there."));
+}
+
+// ── nana-pack config editor ──
+// Covers the whole schema (packages/nana-pack/lib/config.ts) at BOTH scopes. The
+// server does a whole-file replace, so the form round-trips everything it read:
+// unknown sub-keys ride along untouched, unknown TOP-LEVEL keys are refused by the
+// server with their names (a typo the extensions would otherwise ignore forever).
+const NANA_SCOPE_NOTE = "Project overrides user per section, and the project file is only read when the project is trusted.";
+
+const checkbox = (on) => {
+	const b = el("input");
+	b.type = "checkbox";
+	b.checked = on;
+	return b;
+};
+
+// {match, run, timeoutMs?} rows + a raw-JSON escape hatch for power users
+function postEditRows(commands) {
+	const wrap = el("div", "pe-rows");
+	const draw = (list) => {
+		wrap.innerHTML = "";
+		for (const c of list) {
+			const row = el("div", "srow");
+			const match = txtInput(c.match ?? "", "regex on the file path");
+			const run = txtInput(c.run ?? "", "command; {file} = the edited file");
+			const ms = txtInput(c.timeoutMs ?? "", "timeoutMs");
+			ms.style.maxWidth = "110px";
+			const rm = el("button", "quiet", "✕");
+			rm.title = "Remove this command";
+			rm.onclick = () => row.remove();
+			row.append(match, run, ms, rm);
+			row._read = () => ({ match: match.value, run: run.value, ms: ms.value });
+			wrap.appendChild(row);
+		}
+	};
+	draw(commands);
+	return {
+		wrap,
+		add: () => draw([...readRaw(), { match: "", run: "", timeoutMs: "" }]),
+		replace: (list) => draw(list),
+		read,
+	};
+	function readRaw() {
+		return [...wrap.querySelectorAll(".srow")].map((r) => {
+			const v = r._read();
+			return { match: v.match, run: v.run, timeoutMs: v.ms };
+		});
+	}
+	// throws with the offending row number — a silently-dropped rule is worse than a refusal
+	function read() {
+		const out = [];
+		readRaw().forEach((v, i) => {
+			const n = i + 1;
+			if (!v.match.trim() && !v.run.trim() && !String(v.timeoutMs).trim()) return; // an empty row is "no rule"
+			if (typeof v.run !== "string" || !v.run.trim()) throw new Error(`post-edit command ${n}: run must be a command string`);
+			try {
+				new RegExp(v.match);
+			} catch {
+				throw new Error(`post-edit command ${n}: match is not a valid regex`);
+			}
+			const cmd = { match: v.match, run: v.run };
+			const raw = String(v.timeoutMs ?? "").trim();
+			if (raw) {
+				const ms = Number(raw);
+				if (!Number.isInteger(ms) || ms < 0) throw new Error(`post-edit command ${n}: timeoutMs must be a non-negative whole number`);
+				cmd.timeoutMs = ms;
+			}
+			out.push(cmd);
+		});
+		return out;
+	}
+}
+
+async function tabNana(body) {
+	// scope survives tabReload (same pane element, innerHTML cleared)
+	const mode = body.dataset.nanaScope === "project" ? "project" : "user";
+	const dir = body.dataset.nanaDir || "";
+	const scopeSel = el("select");
+	for (const [v, label] of [["user", "User — ~/.pi/agent/nana-pack.json"], ["project", "Project — <dir>/.pi/nana-pack.json"]]) {
+		const o = el("option", "", label);
+		o.value = v;
+		scopeSel.appendChild(o);
+	}
+	scopeSel.value = mode;
+	scopeSel.onchange = () => {
+		body.dataset.nanaScope = scopeSel.value;
+		tabReload(body, tabNana);
+	};
+	body.append(el("div", "sec-head", "Scope"), field("scope", scopeSel));
+
+	if (mode === "project") {
+		const dirIn = txtInput(dir, "project directory");
+		const pick = el("button", "", "Browse…");
+		pick.onclick = async () => {
+			const picked = await pickDir();
+			if (picked) {
+				dirIn.value = picked;
+				load.onclick();
+			}
+		};
+		const load = el("button", "", "Load");
+		load.onclick = () => {
+			body.dataset.nanaDir = dirIn.value.trim();
+			tabReload(body, tabNana);
+		};
+		const row = el("div", "srow");
+		row.append(dirIn, pick, load);
+		body.appendChild(row);
+		if (!dir) {
+			body.appendChild(el("p", "dim", `Pick a project directory to edit its nana-pack config. ${NANA_SCOPE_NOTE}`));
+			return;
+		}
+	}
+
+	const q = mode === "project" ? `?dir=${encodeURIComponent(dir)}` : "";
+	const s = await fetch(`/api/nana-pack${q}`).then((r) => r.json());
+	if (s.error) {
+		body.appendChild(el("p", "dim", s.error));
+		return;
+	}
+	const n = s.config || {};
+	body.appendChild(el("p", "dim", `${s.exists ? "" : "new file — "}${s.path}`));
+	if (s.unreadable) body.appendChild(el("p", "dim", "⚠ that file exists but is not readable JSON — the form below shows DEFAULTS, and saving replaces it (the previous file is kept as .bak)."));
+	body.appendChild(el("p", "dim", NANA_SCOPE_NOTE));
+
+	const lines = (arr) => (Array.isArray(arr) ? arr : []).join("\n");
 	const extra = area(lines(n.gate?.extraPatterns), 3);
 	const allow = area(lines(n.gate?.allowPatterns), 3);
 	const prot = area(lines(n.gate?.protectedPaths), 3);
-	const post = area(JSON.stringify(n.postEdit?.commands || [], null, 2), 6);
 	body.append(
-		el("div", "sec-head", `nana-pack — ${s.nanaPath}`),
-		field("notifications", notifyEn), field("notify when headless", notifyHeadless), field("lifecycle journal", journalEn),
 		el("div", "sec-head", "Gate (one regex per line)"),
 		field("extra dangerous", extra), field("allow (skip gate)", allow), field("protected paths", prot),
-		el("div", "sec-head", "Post-edit commands (JSON — [{match, run, timeoutMs?}])"),
-		post,
+	);
+
+	const pe = postEditRows(Array.isArray(n.postEdit?.commands) ? n.postEdit.commands : []);
+	const addBtn = el("button", "quiet", "Add command");
+	addBtn.onclick = () => pe.add();
+	const rawBox = el("details");
+	const rawArea = area(JSON.stringify(n.postEdit?.commands || [], null, 2), 6);
+	const rawApply = el("button", "quiet", "Load raw into the rows");
+	rawApply.onclick = () => {
+		try {
+			const parsed = JSON.parse(rawArea.value);
+			if (!Array.isArray(parsed)) throw new Error("raw post-edit commands must be a JSON array");
+			pe.replace(parsed);
+			toast("rows updated — Save to write");
+		} catch (e) {
+			toast(String(e.message || e), "error");
+		}
+	};
+	rawBox.append(el("summary", "", "raw JSON (advanced)"), rawArea, rawApply);
+	body.append(
+		el("div", "sec-head", "Post-edit commands — match (regex on path) · run ({file} = the file) · timeoutMs"),
+		pe.wrap, addBtn, rawBox,
+	);
+
+	const notifyEn = checkbox(n.notify?.enabled !== false);
+	const notifyHeadless = checkbox(n.notify?.headless === true);
+	const journalEn = checkbox(n.journal?.enabled !== false);
+	const journalPath = txtInput(n.journal?.path ?? "", "blank = ~/.pi/agent/nana-journal.jsonl");
+	const handoffEn = checkbox(n.handoff?.enabled !== false);
+	const handoffPath = txtInput(n.handoff?.path ?? "", "blank = the pack's default");
+	const receiptsEn = checkbox(n.receipts?.enabled !== false);
+	const receiptsDir = txtInput(n.receipts?.dir ?? "", "blank = ~/.pi/agent/receipts");
+	body.append(
+		el("div", "sec-head", "Notifications"),
+		field("enabled", notifyEn), field("also when headless", notifyHeadless),
+		el("div", "sec-head", "Lifecycle journal"),
+		field("enabled", journalEn), field("path", journalPath),
+		el("div", "sec-head", "Handoff"),
+		field("enabled", handoffEn), field("path", handoffPath),
+		el("div", "sec-head", "Post-edit check receipts"),
+		field("enabled", receiptsEn), field("dir", receiptsDir),
+	);
+
+	const orNull = (i) => (i.value.trim() ? i.value.trim() : null);
+	body.append(
 		saveBtn("Save nana-pack", async () => {
-			const toLines = (a) => a.value.split("\n").map((x) => x.trim()).filter(Boolean);
+			// only blank lines go: a gate regex may legitimately end in a space
+			// ("^curl " is the exact shape these take), so lines are NOT trimmed
+			const toLines = (a) => a.value.split("\n").map((x) => x.replace(/\r$/, "")).filter((x) => x.trim());
 			const config = {
-				...n,
-				notify: { ...n.notify, enabled: notifyEn.checked, headless: notifyHeadless.checked },
-				journal: { ...n.journal, enabled: journalEn.checked },
+				...n, // unknown SUB-keys survive; an unknown top-level key is refused by name
 				gate: { ...n.gate, extraPatterns: toLines(extra), allowPatterns: toLines(allow), protectedPaths: toLines(prot) },
-				postEdit: { ...n.postEdit, commands: JSON.parse(post.value) },
+				postEdit: { ...n.postEdit, commands: pe.read() },
+				notify: { ...n.notify, enabled: notifyEn.checked, headless: notifyHeadless.checked },
+				journal: { ...n.journal, enabled: journalEn.checked, path: orNull(journalPath) },
+				handoff: { ...n.handoff, enabled: handoffEn.checked, path: orNull(handoffPath) },
+				receipts: { ...n.receipts, enabled: receiptsEn.checked, dir: orNull(receiptsDir) },
 			};
-			const r = await fetch("/api/nana-pack", { method: "POST", headers: JH, body: JSON.stringify({ config }) }).then((r) => r.json());
+			const payload = mode === "project" ? { config, dir } : { config };
+			const r = await fetch("/api/nana-pack", { method: "POST", headers: JH, body: JSON.stringify(payload) }).then((r) => r.json());
 			if (r.error) throw new Error(r.error);
 		}),
-		el("p", "dim", "Config is re-read on every event — changes apply to running sessions without restart."),
+		el("p", "dim", "Config is re-read on every event — changes apply to running sessions without restart. Every write backs the previous file up to .bak."),
 	);
 }
 
@@ -1440,7 +1647,7 @@ async function exportSession() {
 		const blob = await r.blob();
 		const a = document.createElement("a");
 		a.href = URL.createObjectURL(blob);
-		a.download = `pi-session-${L.state?.sessionName || L.id}.html`;
+		a.download = `nana-code-session-${L.state?.sessionName || L.id}.html`;
 		a.click();
 		URL.revokeObjectURL(a.href);
 	} catch (e) {
@@ -1797,8 +2004,8 @@ async function spawnSession(cwd, sessionFile, extra) {
 // ── spawn popover: pick a directory (native OS dialog), toggle skills/
 // extensions, open. (pi has no MCP — extensions ARE the pluggable surface;
 // toggling happens at spawn because pi resolves resources at process start.)
-function spawnPopover() {
-	popover($("btn-spawn"), (pop) => {
+function spawnPopover(anchor) {
+	popover(anchor || $("btn-spawn"), (pop) => {
 		pop.classList.add("spawn-pop");
 		pop.appendChild(el("div", "pop-title", "Open a session"));
 
@@ -1811,6 +2018,56 @@ function spawnPopover() {
 		pop.appendChild(pathRow);
 		const resWrap = el("div", "res-wrap");
 		pop.appendChild(resWrap);
+		const toolsWrap = el("div", "res-wrap tools-wrap");
+		pop.appendChild(toolsWrap);
+
+		// Built-in tools for THIS session, shown all-checked so leaving them alone
+		// changes nothing. Unchecking sends `-xt`, NOT `-t`: `-t` is a strict
+		// allowlist over every tool and would silently drop nana-stage and the
+		// subagent tools along with it.
+		//
+		// The effective set depends on BOTH the cwd and the trust box: a project's
+		// .pi/settings.json defaultTools REPLACES the global array (settings.md
+		// "Tools"), and pi only reads that file for a trusted project. /api/resources
+		// reports both, so this recomputes on every nav and every trust flip —
+		// reading the global settings alone would hide a project-enabled tool and
+		// leave the user unable to drop it.
+		let builtinTools = null; // [{name, on}] for the current effective set
+		let toolDefaults = null; // {global, project} from /api/resources
+		const drawTools = () => {
+			toolsWrap.innerHTML = "";
+			if (!builtinTools?.length) return;
+			const useProject = trustBox.checked && Array.isArray(toolDefaults?.project);
+			const source = useProject ? "project settings.json" : Array.isArray(toolDefaults?.global) ? "global settings.json" : "pi defaults";
+			const sec = el("div", "res-sec");
+			sec.appendChild(el("div", "res-head", `Built-in tools \u00b7 ${source}`));
+			for (const t of builtinTools) {
+				const row = el("label", "checkrow");
+				const box = el("input");
+				box.type = "checkbox";
+				box.checked = t.on;
+				if (t.unknown) {
+					// named by settings but not a built-in this desk build knows, so the
+					// server would refuse it in -xt. Shown (it IS in the session) but not
+					// offered as something we can drop.
+					box.disabled = true;
+					row.classList.add("off");
+					row.title = "not a built-in this desk build knows — it cannot be dropped from here";
+				}
+				box.onchange = () => (t.on = box.checked);
+				row.append(box, el("span", "", t.name));
+				if (t.unknown) row.append(el("span", "dim", "unknown to this desk"));
+				sec.appendChild(row);
+			}
+			toolsWrap.append(sec, el("div", "res-note", "unchecked ones are dropped for this session only (pi -xt) \u2014 extension tools are unaffected; the startup default lives in Settings \u2192 Tools"));
+		};
+		const recomputeTools = () => {
+			const useProject = trustBox.checked && Array.isArray(toolDefaults?.project);
+			const eff = useProject ? toolDefaults.project : Array.isArray(toolDefaults?.global) ? toolDefaults.global : PI_DEFAULT_TOOLS;
+			const prev = new Map((builtinTools || []).map((t) => [t.name, t.on]));
+			builtinTools = eff.map((name) => ({ name, on: prev.get(name) ?? true, unknown: !PI_BUILTIN_TOOLS.includes(name) }));
+			drawTools();
+		};
 
 		const foot = el("div", "spawn-foot");
 		const nameIn = el("input", "pop-filter");
@@ -1871,7 +2128,9 @@ function spawnPopover() {
 				skills: rr.skills.map((x) => ({ ...x, on: defaultOn(x) })),
 				extensions: rr.extensions.map((x) => ({ ...x, on: defaultOn(x) })),
 			};
+			toolDefaults = rr.defaultTools || null;
 			drawResources();
+			recomputeTools();
 		};
 
 		browseBtn.onclick = async () => {
@@ -1885,6 +2144,7 @@ function spawnPopover() {
 		};
 
 		trustBox.onchange = () => {
+			recomputeTools(); // a trusted project's defaultTools replaces the global list
 			if (!res) return;
 			for (const item of [...res.skills, ...res.extensions]) if (item.project) item.on = trustBox.checked;
 			drawResources();
@@ -1914,6 +2174,8 @@ function spawnPopover() {
 					skills: res.skills.filter(sendable).map((x) => x.path),
 					extensions: res.extensions.filter(sendable).map((x) => x.path),
 				};
+			const off = (builtinTools || []).filter((t) => !t.on && !t.unknown).map((t) => t.name);
+			if (off.length) extra.excludeTools = off;
 			const cwd = cur.path;
 			closePopover();
 			spawnSession(cwd, undefined, extra);
@@ -1980,6 +2242,12 @@ $("composer").addEventListener("drop", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+	// Ctrl/Cmd+B folds the rail. Nothing else in the desk binds it (the composer's
+	// own handler runs first and never sees a plain modifier+letter).
+	if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === "b" || e.key === "B")) {
+		e.preventDefault();
+		return toggleRail();
+	}
 	if (e.key !== "Escape") return;
 	if (document.getElementById("popover")) return closePopover();
 	if (!L) return;
@@ -2021,20 +2289,45 @@ const THEME_ORDER = ["auto", "light", "dark"];
 const THEME_MARKS = { auto: "◐", light: "○", dark: "●" };
 const darkMedia = matchMedia("(prefers-color-scheme: dark)");
 function applyTheme() {
-	const stored = localStorage.getItem("desk-theme");
+	const stored = localStorage.getItem("nana-code-theme");
 	const pref = THEME_ORDER.includes(stored) ? stored : "auto";
 	document.documentElement.dataset.theme = pref === "auto" ? (darkMedia.matches ? "dark" : "light") : pref;
 	$("theme-btn").textContent = `${THEME_MARKS[pref]} ${pref}`;
 }
 $("theme-btn").onclick = () => {
-	const cur = localStorage.getItem("desk-theme");
+	const cur = localStorage.getItem("nana-code-theme");
 	const i = Math.max(0, THEME_ORDER.indexOf(cur)); // unset/garbage counts as "auto"
-	localStorage.setItem("desk-theme", THEME_ORDER[(i + 1) % THEME_ORDER.length]);
+	localStorage.setItem("nana-code-theme", THEME_ORDER[(i + 1) % THEME_ORDER.length]);
 	applyTheme();
 };
 darkMedia.addEventListener("change", applyTheme);
 applyTheme();
-$("btn-spawn").onclick = spawnPopover;
+$("btn-spawn").onclick = () => spawnPopover($("btn-spawn"));
+
+// ── rail collapse ── (persisted per browser; Ctrl/Cmd+B toggles. With the rail
+// away the masthead carries a compact spawn button, so "open a session" never
+// becomes unreachable.)
+const RAIL_KEY = "nana-code-rail";
+const railClosed = () => localStorage.getItem(RAIL_KEY) === "closed";
+function applyRail() {
+	const closed = railClosed();
+	// same attribute index.html sets pre-paint — one mechanism, no first-frame flash
+	if (closed) document.documentElement.dataset.rail = "closed";
+	else delete document.documentElement.dataset.rail;
+	const t = $("rail-toggle");
+	t.textContent = closed ? "\u2630" : "\u27e8";
+	t.title = closed ? "Show the sidebar (Ctrl/Cmd+B)" : "Hide the sidebar (Ctrl/Cmd+B)";
+	t.setAttribute("aria-expanded", String(!closed));
+	$("btn-spawn-mast").hidden = !closed;
+}
+function toggleRail() {
+	localStorage.setItem(RAIL_KEY, railClosed() ? "open" : "closed");
+	applyRail();
+	if (railClosed()) closePopover(); // a popover anchored to the rail button would hang in space
+}
+$("rail-toggle").onclick = toggleRail;
+$("btn-spawn-mast").onclick = () => spawnPopover($("btn-spawn-mast"));
+applyRail();
 
 refreshRail();
 setInterval(refreshRail, 15000);

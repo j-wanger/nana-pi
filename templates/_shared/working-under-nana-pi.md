@@ -67,5 +67,5 @@ always read.
 
 ### The desk
 
-Sessions here are visible and driveable on the nana desk (started separately) — a local browser
+Sessions here are visible and driveable on nana code (the desk, started separately) — a local browser
 dashboard over your pi sessions (history, live transcripts, spawn, rename).

@@ -19,7 +19,7 @@ Sibling repo to `~/nana-agent-loop`.
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
   via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
-- `apps/desk/` — the pi desk, a zero-dependency local browser dashboard over pi sessions.
+- `apps/desk/` — nana code, a zero-dependency local browser dashboard over pi sessions.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 
@@ -48,7 +48,7 @@ pi install git:github.com/j-wanger/nana-pi        # add -l for project-local
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# 3. the desk — zero npm dependencies but it needs the files, so clone
+# 3. nana code (the desk) — zero npm dependencies but it needs the files, so clone
 #    (two lines: `&&` breaks in Windows PowerShell 5.1)
 git clone https://github.com/j-wanger/nana-pi
 node nana-pi/apps/desk/server.mjs
@@ -73,7 +73,7 @@ pi install /path/to/nana-pi
 # template edits ARE included (copier warns "dirty template")
 uvx copier copy --data language=python /path/to/nana-pi <dest>
 
-# desk
+# nana code (the desk)
 node /path/to/nana-pi/apps/desk/server.mjs
 ```
 

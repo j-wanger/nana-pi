@@ -1,4 +1,4 @@
-// desk-client.mjs — the reusable pi-desk client core, extracted from app.js (2026-09-04).
+// desk-client.mjs — the reusable nana code client core, extracted from app.js (2026-09-04).
 //
 // Pure module: no document ids, no globals, no desk state. Everything takes its
 // targets as arguments. Two consumers: the desk itself (app.js) and the stage

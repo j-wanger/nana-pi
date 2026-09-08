@@ -3,20 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>the pi desk</title>
+<title>nana code</title>
 <script>
-	// runs before the stylesheet so the desk never paints in the wrong theme
+	// runs before the stylesheet so the desk never paints in the wrong theme —
+	// and never paints a folded rail open for a frame either
 	(() => {
-		const p = localStorage.getItem("desk-theme");
+		const p = localStorage.getItem("nana-code-theme");
 		document.documentElement.dataset.theme =
 			p === "light" || p === "dark" ? p : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+		if (localStorage.getItem("nana-code-rail") === "closed") document.documentElement.dataset.rail = "closed";
 	})();
 </script>
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 <header id="masthead">
-	<h1>the pi desk</h1>
+	<button id="rail-toggle" class="chipbtn" aria-controls="rail" aria-expanded="true" title="Hide the sidebar (Ctrl/Cmd+B)">⟨</button>
+	<h1>nana code</h1>
+	<button id="btn-spawn-mast" class="chipbtn" title="Open a session…" hidden>＋</button>
 	<div id="stats" aria-live="polite"></div>
 	<span class="spacer"></span>
 	<button id="btn-desk-settings" class="chipbtn" title="Skills, MCP, models, context, subagents, nana-pack">⚙ settings</button>

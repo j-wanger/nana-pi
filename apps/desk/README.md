@@ -1,4 +1,4 @@
-# the pi desk
+# nana code (the desk)
 
 Local, zero-dependency dashboard over pi: every session on the machine in one place,
 live sessions driven from the browser. Aim: the TUI's main capabilities, in a browser.
@@ -11,7 +11,9 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 
 ## What it does (TUI parity map)
 
-- **Sessions rail** — `~/.pi/agent/sessions/` JSONL trees (newest 15 per workspace),
+- **Sessions rail** — folds away entirely with the masthead `⟨`/`☰` or Ctrl/Cmd+B
+  (the choice persists; with it folded a compact `＋` in the masthead keeps
+  "open a session" one click away). Contents: `~/.pi/agent/sessions/` JSONL trees (newest 15 per workspace),
   grouped by workspace with collapsible headers (only the most recent starts open;
   choices persist). Titles are inferred from the first user message; ✎ on any row
   renames — live sessions via `set_session_name` RPC, historical ones by appending
@@ -30,6 +32,14 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
   are the pluggable surface, so that's what the toggles cover. "Trust project
   config" maps to `-a` (RPC sessions never prompt); when unchecked, project-local
   items are locked off so untrusted project code can't ride in via explicit flags.
+  The picker also lists the session's **built-in tools**, and says where the list
+  came from: a trusted project's `.pi/settings.json` `defaultTools` REPLACES the
+  global array (it is not merged), so the set is recomputed from `/api/resources`
+  on every cwd change *and* every flip of the trust box — reading global settings
+  alone hid project-enabled tools and left no way to drop them. With neither file
+  setting it, pi's own read/bash/edit/write. Unchecking sends `-xt` — deliberately
+  NOT `-t`, which is a strict allowlist over *every* tool and would delete
+  nana-stage and the subagent tools along with the one you dropped.
 - **Transcripts** — markdown rendering, collapsed thinking blocks, tool cards with
   full args + results + edit diffs, compaction/branch summaries, model/thinking
   change markers; abandoned branches collapse into dimmed groups. The `subagent`
@@ -58,6 +68,20 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 - **Session ops** — /model, /thinking, /compact [instructions], /name, /new,
   /fork (picker over prior user messages), /clone, /export (HTML download),
   /session; auto-compaction + steering/follow-up modes under ⚙.
+- **Settings → Tools** — checkboxes over pi's built-ins (read, bash, powershell
+  [win32], edit, write, grep, find, ls) writing `settings.json → defaultTools`,
+  which REPLACES pi's own default set for new sessions; "Use pi defaults" deletes
+  the key again. Built-ins only — extension tools are never in this list.
+- **Settings → Nana pack** — a form over the whole nana-pack schema
+  (`packages/nana-pack/lib/config.ts`): gate pattern lists, post-edit commands as
+  match/run/timeoutMs rows (with a raw-JSON escape hatch), notify, journal,
+  handoff, receipts. A scope switch edits either `~/.pi/agent/nana-pack.json` or a
+  project's `<dir>/.pi/nana-pack.json` (project overrides user per section, and the
+  project file is only read when the project is trusted). The write is a whole-file
+  replace, so unknown top-level keys are refused *by name* rather than persisted;
+  sub-keys the form does not render ride through untouched. Project-scope writes go
+  through the same destination guards as context files (no write through a
+  symlinked `.pi` or leaf), and every write leaves a `.bak`.
 
 (The wire — a journal-tail lifecycle feed — was removed 2026-09-03: it confused
 more than it informed. The nana-pack journal itself still exists on disk.)

@@ -1,5 +1,5 @@
 /**
- * the pi desk — local server. Zero dependencies, binds 127.0.0.1 only.
+ * nana code (the desk) — local server. Zero dependencies, binds 127.0.0.1 only.
  *
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
@@ -19,14 +19,19 @@
  *   GET  /api/settings              pi settings.json + mcp.json + nana-pack.json + agents dir (with paths)
  *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into ~/.pi/agent/settings.json
  *   POST /api/mcp                   {mcpServers} → rewrite that key of ~/.pi/agent/mcp.json
- *   POST /api/nana-pack             {config} → rewrite ~/.pi/agent/nana-pack.json
+ *   GET  /api/nana-pack?dir=        read nana-pack config — no dir = user scope (~/.pi/agent/
+ *                                   nana-pack.json), dir = that project's .pi/nana-pack.json
+ *   POST /api/nana-pack             {config, dir?} → rewrite that file (whole-file replace,
+ *                                   unknown top-level keys refused; project scope goes through
+ *                                   the same destination guards as /api/context-file)
  *   GET/POST /api/context-file      read/write AGENTS.md | CLAUDE.md | AGENTS.override.md in a directory
  *   GET/POST/DELETE /api/agents     pi-subagents definitions under ~/.pi/agent/agents/
  *                                   (every config write backs up the previous file to <file>.bak)
  *   GET  /api/live                  currently running RPC children
- *   POST /api/spawn                 {cwd, session?, name?, approve?, resources?} → spawn `pi --mode rpc`;
- *                                   resources {skills:[paths], extensions:[paths]} narrows via
- *                                   --no-skills/--skill + --no-extensions/-e; omit for pi defaults
+ *   POST /api/spawn                 {cwd, session?, name?, approve?, resources?, excludeTools?} →
+ *                                   spawn `pi --mode rpc`; resources {skills:[paths], extensions:[paths]}
+ *                                   narrows via --no-skills/--skill + --no-extensions/-e; omit for pi
+ *                                   defaults. excludeTools drops built-ins via -xt (extension tools stay)
  *   GET  /api/session/:id/events    SSE: desk_hello state snapshot, then live RPC events
  *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up, images?}
  *   POST /api/session/:id/rpc      {command} → allowlisted RPC passthrough with correlated response
@@ -154,7 +159,7 @@ function broadcast(child, obj) {
 	for (const res of [...child.clients]) if (!sseWrite(res, line)) child.clients.delete(res);
 }
 
-function spawnChild({ cwd, session, name, approve, trust, tools, resources, appendSystemPrompt, app }) {
+function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, resources, appendSystemPrompt, app }) {
 	// "exiting" counts too: a child we asked to die but have not seen die still holds
 	// a session file, its tools and its pid. The slot frees on the real exit.
 	if ([...children.values()].filter((c) => c.state === "running" || c.state === "exiting").length >= MAX_CHILDREN)
@@ -174,10 +179,14 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// App sessions run under an allowlist: built-in, extension AND adapter tools
 	// not named here are absent from the session (pi -t semantics).
 	if (Array.isArray(tools) && tools.length) args.push("-t", tools.join(","));
+	// Per-spawn narrowing from the desk's spawn picker. `-xt` FILTERS the resolved
+	// tool list, so extension tools (nana-stage, pi-subagents, the MCP proxy) survive
+	// — `-t` would not: it is a strict allowlist over ALL tools (usage.md 0.84.4).
+	if (Array.isArray(excludeTools) && excludeTools.length) args.push("-xt", excludeTools.join(","));
 	if (appendSystemPrompt) {
 		// via a temp FILE (the flag accepts file contents): multiline-safe on every
 		// platform and nothing user-written touches a shell line
-		const f = path.join(os.tmpdir(), `pi-desk-syspr-${Date.now()}-${randomBytes(3).toString("hex")}.txt`);
+		const f = path.join(os.tmpdir(), `nana-code-syspr-${Date.now()}-${randomBytes(3).toString("hex")}.txt`);
 		fs.writeFileSync(f, String(appendSystemPrompt).slice(0, 16000));
 		args.push("--append-system-prompt", f);
 	}
@@ -865,8 +874,16 @@ const NANA_PACK_PATH = path.join(os.homedir(), ".pi", "agent", "nana-pack.json")
 const AGENTS_DIR = path.join(os.homedir(), ".pi", "agent", "agents");
 // Only keys the desk UI actually exposes — never a whole-file replace, so a
 // stale client can't clobber packages/auth-adjacent settings.
-const SETTINGS_PATCH_KEYS = new Set(["defaultProvider", "defaultModel", "defaultThinkingLevel", "compaction", "skills", "extensions"]);
+const SETTINGS_PATCH_KEYS = new Set(["defaultProvider", "defaultModel", "defaultThinkingLevel", "compaction", "skills", "extensions", "defaultTools"]);
 const CONTEXT_NAMES = new Set(["AGENTS.md", "CLAUDE.md", "AGENTS.override.md"]);
+// pi 0.84.4 built-ins (docs/settings.md "Tools"); `powershell` is win32-only.
+// settings.defaultTools REPLACES pi's own default set (read/bash/edit/write,
+// dist/core/sdk.js defaultActiveToolNames); extension and SDK tools are not in it.
+const PI_BUILTIN_TOOLS = new Set(["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"]);
+// Top-level sections of the nana-pack schema (packages/nana-pack/lib/config.ts).
+// The write is a whole-file replace, so an unknown key is refused rather than
+// persisted: it would be a typo the extensions silently ignore forever.
+const NANA_PACK_KEYS = new Set(["gate", "postEdit", "notify", "journal", "handoff", "receipts"]);
 
 function backupWrite(file, content) {
 	// The .bak IS the undo for every config write, so a backup that did not happen
@@ -964,6 +981,17 @@ function belowHomeThroughSymlink(file) {
 		if (c !== null && (c === home || c.startsWith(home + path.sep))) inHome = true;
 	}
 	return inHome ? false : null;
+}
+
+// nana-pack has two scopes (packages/nana-pack/lib/config.ts): the user file, and
+// a per-project one that only a TRUSTED project's session ever reads. No `dir` =
+// user scope; a `dir` names the project whose `.pi/nana-pack.json` is meant.
+function nanaPackTarget(dirRaw) {
+	if (dirRaw === undefined || dirRaw === null || String(dirRaw).trim() === "")
+		return { scope: "user", dir: null, file: NANA_PACK_PATH };
+	const dir = path.resolve(expandHome(String(dirRaw)));
+	if (!isDirectory(dir)) throw httpError(400, `no such directory: ${dir}`);
+	return { scope: "project", dir, file: path.join(dir, ".pi", "nana-pack.json") };
 }
 
 // The rule for a destination whose directory the request chose.
@@ -1351,6 +1379,13 @@ function listResources(cwd) {
 	addExtensions(path.join(cwd, ".pi", "extensions"), "project", proj.extensions);
 	const gSet = readJsonFile(path.join(PI_DIR, "settings.json")) || {};
 	const pSet = readJsonFile(path.join(cwd, ".pi", "settings.json")) || {};
+	// Built-in tool defaults, for the spawn picker's "which tools will this session
+	// actually have" question. A project `defaultTools` ARRAY REPLACES the global one
+	// rather than merging into it (settings.md "Tools"), and pi reads .pi/settings.json
+	// only for a TRUSTED project — so both are reported and the client picks by its
+	// trust toggle. Anything that is not an array of strings is reported as absent.
+	const toolList = (v) => (Array.isArray(v) && v.every((t) => typeof t === "string") ? v : null);
+	out.defaultTools = { global: toolList(gSet.defaultTools), project: toolList(pSet.defaultTools) };
 	const plain = (arr) => (Array.isArray(arr) ? arr.filter((x) => typeof x === "string" && !/[*!]/.test(x) && !/^[+-]/.test(x)) : []);
 	for (const p of plain(gSet.skills)) addSkillPath(path.resolve(PI_DIR, expandHome(p)), "settings", out.skills);
 	for (const p of plain(pSet.skills)) addSkillPath(path.resolve(path.join(cwd, ".pi"), expandHome(p)), "settings", proj.skills);
@@ -1580,8 +1615,17 @@ const server = http.createServer(async (req, res) => {
 			if (!isDirectory(cwd)) return json(res, 400, { error: `no such directory: ${cwd}` });
 			let session = body.session;
 			if (session) session = assertInsideSessions(session);
+			// Names are validated HERE, not only in the picker: `-xt` takes a comma list,
+			// so an unchecked name is the only thing that may reach a pi flag.
+			let excludeTools;
+			if (body.excludeTools !== undefined) {
+				if (!Array.isArray(body.excludeTools)) return json(res, 400, { error: "excludeTools must be an array of tool names" });
+				excludeTools = body.excludeTools.map(String);
+				const bad = excludeTools.find((t) => !PI_BUILTIN_TOOLS.has(t));
+				if (bad !== undefined) return json(res, 400, { error: `not a pi built-in tool: ${bad}` });
+			}
 			const id = spawnChild({
-				cwd, session, name: body.name, approve: body.approve,
+				cwd, session, name: body.name, approve: body.approve, excludeTools,
 				appendSystemPrompt: body.appendSystemPrompt,
 				resources: body.resources && {
 					skills: (body.resources.skills || []).map(String),
@@ -1661,7 +1705,7 @@ const server = http.createServer(async (req, res) => {
 				return json(res, 200, { files: await listFiles(child) });
 			}
 			if (action === "export" && req.method === "POST") {
-				const out = path.join(os.tmpdir(), `pi-desk-export-${id}-${Date.now()}.html`);
+				const out = path.join(os.tmpdir(), `nana-code-export-${id}-${Date.now()}.html`);
 				const r = await sendRpc(child, { type: "export_html", outputPath: out });
 				if (!r.success) return json(res, 500, { error: r.error || "export failed" });
 				let html;
@@ -1672,7 +1716,7 @@ const server = http.createServer(async (req, res) => {
 				}
 				res.writeHead(200, {
 					"content-type": "text/html",
-					"content-disposition": `attachment; filename="pi-session-${id}.html"`,
+					"content-disposition": `attachment; filename="nana-code-session-${id}.html"`,
 				});
 				return res.end(html);
 			}
@@ -1722,9 +1766,13 @@ const server = http.createServer(async (req, res) => {
 			}
 			for (const [k, v] of Object.entries(body.patch || {})) {
 				if (!SETTINGS_PATCH_KEYS.has(k)) return json(res, 400, { error: `key not editable here: ${k}` });
-				if (v === null) delete cur[k];
+				if (v === null) delete cur[k]; // deleting defaultTools = back to pi's own defaults
 				else if (k === "compaction") cur.compaction = { ...cur.compaction, ...v };
-				else cur[k] = v;
+				else if (k === "defaultTools") {
+					if (!Array.isArray(v) || v.some((t) => typeof t !== "string" || !PI_BUILTIN_TOOLS.has(t)))
+						return json(res, 400, { error: `defaultTools must be an array of pi built-in tool names (${[...PI_BUILTIN_TOOLS].join(", ")})` });
+					cur.defaultTools = v;
+				} else cur[k] = v;
 			}
 			backupWrite(SETTINGS_PATH, `${JSON.stringify(cur, null, 2)}\n`);
 			return json(res, 200, { ok: true, settings: cur });
@@ -1743,12 +1791,36 @@ const server = http.createServer(async (req, res) => {
 			backupWrite(MCP_PATH, `${JSON.stringify(cur, null, 2)}\n`);
 			return json(res, 200, { ok: true, mcp: cur });
 		}
+		if (p === "/api/nana-pack" && req.method === "GET") {
+			const t = nanaPackTarget(url.searchParams.get("dir"));
+			const parsed = readJsonFile(t.file);
+			const usable = parsed !== undefined && parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+			return json(res, 200, {
+				scope: t.scope, path: t.file, exists: fs.existsSync(t.file),
+				// exists-but-unreadable is reported, not smoothed into {}: the editor
+				// would otherwise show defaults and Save would replace a real file
+				unreadable: fs.existsSync(t.file) && !usable,
+				config: usable ? parsed : {},
+			});
+		}
 		if (p === "/api/nana-pack" && req.method === "POST") {
 			const body = await readBody(req);
 			if (!body.config || typeof body.config !== "object" || Array.isArray(body.config))
 				return json(res, 400, { error: "config must be an object" });
-			backupWrite(NANA_PACK_PATH, `${JSON.stringify(body.config, null, 2)}\n`);
-			return json(res, 200, { ok: true });
+			const unknown = Object.keys(body.config).filter((k) => !NANA_PACK_KEYS.has(k));
+			if (unknown.length) return json(res, 400, { error: `unknown nana-pack keys: ${unknown.join(", ")} (known: ${[...NANA_PACK_KEYS].join(", ")})` });
+			const t = nanaPackTarget(body.dir);
+			if (t.scope === "project") {
+				// the destination directory came from the REQUEST, so it gets the same
+				// treatment as a context file: no write through a link, and `.pi` itself
+				// is a component the request supplied (checked explicitly because outside
+				// $HOME assertRequestedDestination can only vouch for the directory given)
+				if (isSymlink(path.dirname(t.file))) throw httpError(409, `refusing to write below a symlinked directory: ${path.dirname(t.file)}`);
+				assertRequestedDestination(t.dir, t.file);
+				fs.mkdirSync(path.dirname(t.file), { recursive: true });
+			}
+			backupWrite(t.file, `${JSON.stringify(body.config, null, 2)}\n`);
+			return json(res, 200, { ok: true, scope: t.scope, path: t.file });
 		}
 		if (p === "/api/context-file" && req.method === "GET") {
 			const dir = path.resolve(expandHome(url.searchParams.get("dir") || ""));
@@ -1841,7 +1913,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 }
 
 server.listen(PORT, "127.0.0.1", () => {
-	console.log(`the pi desk → http://127.0.0.1:${PORT}`);
+	console.log(`nana code → http://127.0.0.1:${PORT}`);
 });
 
 // ── app listeners: one origin per app manifest (apps.mjs) ──
