@@ -185,14 +185,29 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// (--skill/-e stay additive under --no-skills/--no-extensions). No `resources`
 	// means pure pi defaults — the desk adds no flags at all.
 	if (resources) {
+		// `-na` says "ignore this project's config" — passing the project's own code
+		// back in through an explicit --skill/-e would undo exactly that, and a
+		// resource can look global while living inside the repo (a global settings
+		// entry with an absolute path into it). Enforced HERE, not only in the desk
+		// UI, so no client can spend the trust decision it just refused.
+		// This is the DESK's per-spawn decision only: an app manifest's
+		// `trust: "no-approve"` is the operator's own declaration and legitimately
+		// names extensions inside the app's own cwd.
+		const denyProject = approve === false && trust === undefined;
+		const refuseProject = (p, kind) => {
+			if (denyProject && isProjectPath(cwd, p))
+				throw new Error(`refusing to load project ${kind} without project trust: ${p}`);
+		};
 		args.push("--no-skills");
 		for (const p of resources.skills || []) {
 			if (!fs.existsSync(p)) throw new Error(`no such skill: ${p}`);
+			refuseProject(p, "skill");
 			args.push("--skill", p);
 		}
 		args.push("--no-extensions");
 		for (const p of resources.extensions || []) {
 			if (!fs.existsSync(p)) throw new Error(`no such extension: ${p}`);
+			refuseProject(p, "extension");
 			args.push("-e", p);
 		}
 	}
@@ -276,9 +291,18 @@ function spawnChild({ cwd, session, name, approve, trust, tools, resources, appe
 	// broadcast and rejects the pending RPCs.
 	proc.stdin.on("error", (err) => {
 		if (child.state !== "running") return;
-		child.state = "exited";
 		child.stderrTail = `${child.stderrTail}\nstdin: ${String(err)}`.slice(-2000);
-		killChild(child);
+		// Same lifecycle as an explicit DELETE — NOT a bare `state = "exited"`. That
+		// freed the capacity slot and told a later DELETE the process was already
+		// gone, so a child that closes stdin AND ignores SIGTERM survived with
+		// nothing tracking it. teardownChild keeps it counted until it really dies.
+		teardownChild(id, child);
+		// Nothing can answer these: the pipe we would ask on is the one that failed.
+		for (const [, p] of child.pending) {
+			clearTimeout(p.timer);
+			p.reject(new Error("session stdin closed"));
+		}
+		child.pending.clear();
 	});
 	proc.stderr.on("data", (c) => {
 		child.stderrTail = (child.stderrTail + c.toString()).slice(-2000);
@@ -611,6 +635,30 @@ function parseTranscript(file) {
 // passes no flags and pi discovers on its own.
 const expandHome = (p) => String(p || "").replace(/^~(?=[\\/]|$)/, () => os.homedir());
 
+// Real paths on both sides: a symlink in the project pointing out (or a repo
+// reached through a symlinked parent) must not change the answer.
+function realOrResolve(p) {
+	try {
+		return fs.realpathSync(p);
+	} catch {
+		return path.resolve(p);
+	}
+}
+
+function isInsideDir(dir, p) {
+	const root = realOrResolve(dir);
+	const real = realOrResolve(p);
+	return real === root || real.startsWith(root + path.sep);
+}
+
+// Project-controlled = lives inside the project, EXCEPT pi's own global locations.
+// They sit under $HOME, so a session opened in $HOME (the desk's default) would
+// otherwise relabel every global skill and extension as the project's code.
+function isProjectPath(cwd, p) {
+	if (!isInsideDir(cwd, p)) return false;
+	return ![PI_DIR, path.join(os.homedir(), ".agents")].some((g) => isInsideDir(g, p));
+}
+
 function isDirectory(p) {
 	try {
 		return fs.statSync(p).isDirectory();
@@ -713,16 +761,20 @@ function addExtPath(p, origin, out) {
 }
 
 // settings `packages` entry → the package's clone/install dir, or null.
-// Sources: local path · npm name incl. `npm:` prefix and version suffix
-// (~/.pi/agent/npm, .pi/npm) · git (~/.pi/agent/git/<host>/<path>, .pi/git/…)
-function resolvePackageDir(source, baseDir, cwd) {
+// Sources: local path · npm name incl. `npm:` prefix and version suffix · git.
+// The install roots are SCOPED (packages.md): a user entry lives under
+// ~/.pi/agent/{npm,git}, a project entry under .pi/{npm,git}. Searching both made a
+// GLOBAL entry resolve to the project's copy — the repo's code, listed as global,
+// and so outside the trust toggle that gates project code.
+function resolvePackageDir(source, baseDir, cwd, scope) {
+	const roots = (kind) => (scope === "project" ? [path.join(cwd, ".pi", kind)] : [path.join(PI_DIR, kind)]);
 	const s = String(source);
 	if (/^(git:|https?:\/\/|ssh:\/\/|git@)/.test(s)) {
 		const rest = s
 			.replace(/^git:/, "").replace(/^(https?|ssh):\/\//, "").replace(/^git@/, "")
 			.replace(":", "/").replace(/@[^/@]*$/, "").replace(/\.git$/, "");
 		const segs = rest.split("/").filter(Boolean);
-		for (const root of [path.join(PI_DIR, "git"), path.join(cwd, ".pi", "git")]) {
+		for (const root of roots("git")) {
 			const p = path.join(root, ...segs);
 			if (fs.existsSync(p)) return p;
 		}
@@ -735,17 +787,17 @@ function resolvePackageDir(source, baseDir, cwd) {
 	let name = s.startsWith("npm:") ? s.slice(4) : s;
 	const at = name.lastIndexOf("@");
 	if (at > 0) name = name.slice(0, at); // version suffix; `@scope/pkg` alone keeps its leading @
-	for (const root of [path.join(PI_DIR, "npm"), path.join(cwd, ".pi", "npm")]) {
+	for (const root of roots("npm")) {
 		const p = path.join(root, "node_modules", ...name.split("/"));
 		if (fs.existsSync(p)) return p;
 	}
 	return null;
 }
 
-function addPackage(source, baseDir, cwd, out) {
+function addPackage(source, baseDir, cwd, out, scope) {
 	const entry = typeof source === "string" ? { source } : source && typeof source === "object" ? source : null;
 	if (!entry?.source) return;
-	const dir = resolvePackageDir(entry.source, baseDir, cwd);
+	const dir = resolvePackageDir(entry.source, baseDir, cwd, scope);
 	if (!dir) return;
 	const pkg = readJsonFile(path.join(dir, "package.json")) || {};
 	const origin = `pkg:${pkg.name || path.basename(dir)}`;
@@ -788,6 +840,24 @@ function readJsonForUpdate(file) {
 	if (cur === undefined || cur === null || typeof cur !== "object" || Array.isArray(cur))
 		throw new Error(`refusing to overwrite ${file}: it exists but is not readable JSON — fix or move it first`);
 	return cur;
+}
+
+// The two writes whose destination comes from a REQUEST (a context file in a
+// directory the user picked, an agent .md by name) must not follow a link out of
+// it: a repo can ship `AGENTS.md` as a symlink to ~/.ssh/authorized_keys, and both
+// the write and its .bak would land on the target. lstat, not stat — the point is
+// to see the link itself. NOT applied to ~/.pi/agent/*.json: those paths are the
+// user's own, and symlinking them into a dotfiles repo is a normal setup.
+function assertNoSymlinkWrite(file) {
+	for (const p of [file, `${file}.bak`]) {
+		let st;
+		try {
+			st = fs.lstatSync(p);
+		} catch {
+			continue; // absent is fine — we are about to create it
+		}
+		if (st.isSymbolicLink()) throw httpError(409, `refusing to write through a symlink: ${p}`);
+	}
 }
 
 function listAgents() {
@@ -978,6 +1048,10 @@ function appendSessionInfoEntry(real, name) {
 	for (let attempt = 0; attempt < 3; attempt++) {
 		const before = fileSize(real);
 		const tail = sessionTail(real);
+		// Refuse rather than guess: appending with a null parentId here would sever
+		// the branch on resume, which is worse than a rename that did not happen.
+		if (tail.status !== "ok")
+			throw httpError(409, `cannot establish this session's leaf entry (its last entry is over ${TAIL_BUDGET >> 20} MiB) — rename it from inside the session instead`);
 		const entry = {
 			type: "session_info", id: randomBytes(4).toString("hex"), parentId: tail.leafId,
 			timestamp: new Date().toISOString(), name: clean,
@@ -1038,15 +1112,24 @@ function hasSessionHeader(file) {
 // way pi's own appendSessionInfo does (`parentId: this.leafId`), and the rename is
 // a normal node on the branch. Also reports whether the file is terminated, which
 // decides whether our append needs to open a new line first.
+// An entry bigger than this is one we will not read to rename a session.
+const TAIL_BUDGET = 64 * 1024 * 1024;
+
 function sessionTail(file) {
 	const size = fileSize(file);
-	if (!size) return { leafId: null, endsWithNewline: true };
+	if (!size) return { status: "ok", leafId: null, endsWithNewline: true };
 	const endsWithNewline = readChunk(file, size - 1, 1) === "\n";
-	// tail windows: the last line is normally short, but one tool result can be big
-	for (const window of [65536, 1048576]) {
+	// GROW the window until a complete last entry is bounded. A single entry is
+	// routinely megabytes — an image-bearing message, a compaction checkpoint with a
+	// retained tail — and a window that lands mid-entry has no newline to start the
+	// last line from. Fixed windows made that case look identical to "no entries":
+	// leafId came back null and the rename became a new root, which is exactly the
+	// context-severing this function exists to prevent. "Not found within budget" is
+	// its own answer (`status: "unknown"`), never a null leaf.
+	for (let window = 65536; ; window = Math.min(window * 8, TAIL_BUDGET)) {
 		const start = Math.max(0, size - window);
-		const lines = readChunk(file, start, Math.min(window, size)).split("\n");
-		if (start > 0) lines.shift(); // a partial first line — never the last entry
+		const lines = readChunk(file, start, size - start).split("\n");
+		if (start > 0) lines.shift(); // a partial first line — its start is outside the window
 		for (let i = lines.length - 1; i >= 0; i--) {
 			if (!lines[i].trim()) continue;
 			let e;
@@ -1055,12 +1138,12 @@ function sessionTail(file) {
 			} catch {
 				continue; // pi skips malformed lines the same way
 			}
-			if (!e || typeof e !== "object" || e.type === "session") return { leafId: null, endsWithNewline }; // header only → no leaf
-			return { leafId: typeof e.id === "string" ? e.id : null, endsWithNewline };
+			if (!e || typeof e !== "object" || e.type === "session") return { status: "ok", leafId: null, endsWithNewline }; // only the header above us
+			return { status: "ok", leafId: typeof e.id === "string" ? e.id : null, endsWithNewline };
 		}
-		if (start === 0) break;
+		if (start === 0) return { status: "ok", leafId: null, endsWithNewline }; // whole file scanned: genuinely no entry
+		if (window >= TAIL_BUDGET) return { status: "unknown", endsWithNewline };
 	}
-	return { leafId: null, endsWithNewline };
 }
 
 // ── native folder picker ──
@@ -1146,9 +1229,15 @@ function listResources(cwd) {
 	for (const p of plain(pSet.skills)) addSkillPath(path.resolve(path.join(cwd, ".pi"), expandHome(p)), "settings", proj.skills);
 	for (const p of plain(gSet.extensions)) addExtPath(path.resolve(PI_DIR, expandHome(p)), "settings", out.extensions);
 	for (const p of plain(pSet.extensions)) addExtPath(path.resolve(path.join(cwd, ".pi"), expandHome(p)), "settings", proj.extensions);
-	for (const src of Array.isArray(gSet.packages) ? gSet.packages : []) addPackage(src, PI_DIR, cwd, out);
-	for (const src of Array.isArray(pSet.packages) ? pSet.packages : []) addPackage(src, path.join(cwd, ".pi"), cwd, proj);
+	for (const src of Array.isArray(gSet.packages) ? gSet.packages : []) addPackage(src, PI_DIR, cwd, out, "global");
+	for (const src of Array.isArray(pSet.packages) ? pSet.packages : []) addPackage(src, path.join(cwd, ".pi"), cwd, proj, "project");
 	for (const key of ["skills", "extensions"]) out[key].push(...proj[key].map((x) => ({ ...x, project: true })));
+	// WHERE IT LIVES decides, not which config named it. A global settings entry can
+	// point straight into the repo (an absolute path, or a package installed inside
+	// it): that is still the repo's code, and listing it as non-project let the desk
+	// pass it explicitly via --skill/-e with the trust box unchecked.
+	for (const key of ["skills", "extensions"])
+		for (const x of out[key]) if (!x.project && isProjectPath(cwd, x.path)) x.project = true;
 	const seen = new Set();
 	for (const key of ["skills", "extensions"])
 		out[key] = out[key].filter((x) => {
@@ -1552,6 +1641,7 @@ const server = http.createServer(async (req, res) => {
 			const name = String(body.name || "");
 			if (!CONTEXT_NAMES.has(name)) return json(res, 400, { error: `name must be one of: ${[...CONTEXT_NAMES].join(", ")}` });
 			if (!isDirectory(dir)) return json(res, 400, { error: `no such directory: ${dir}` });
+			assertNoSymlinkWrite(path.join(dir, name));
 			backupWrite(path.join(dir, name), String(body.content ?? ""));
 			return json(res, 200, { ok: true });
 		}
@@ -1562,6 +1652,7 @@ const server = http.createServer(async (req, res) => {
 			const body = await readBody(req);
 			const name = String(body.name || "");
 			if (!/^[\w.-]{1,64}$/.test(name)) return json(res, 400, { error: "agent name: letters/digits/._- only" });
+			assertNoSymlinkWrite(path.join(AGENTS_DIR, `${name}.md`));
 			backupWrite(path.join(AGENTS_DIR, `${name}.md`), String(body.content ?? ""));
 			return json(res, 200, { ok: true, path: path.join(AGENTS_DIR, `${name}.md`) });
 		}
@@ -1594,10 +1685,27 @@ const server = http.createServer(async (req, res) => {
 	}
 });
 
+// Shutdown goes through the same escalation a DELETE does: a child that ignores
+// SIGTERM must not outlive the desk as an untracked orphan. A second signal leaves
+// immediately, so Ctrl-C twice always works.
+let shuttingDown = false;
 for (const sig of ["SIGINT", "SIGTERM"]) {
 	process.on(sig, () => {
-		for (const [, c] of children) killChild(c);
-		process.exit(0);
+		if (shuttingDown) process.exit(0);
+		shuttingDown = true;
+		const gone = (c) => c.proc.exitCode !== null || c.proc.signalCode !== null;
+		for (const [, c] of children) killChild(c, "SIGTERM");
+		const poll = setInterval(() => {
+			if ([...children.values()].every(gone)) {
+				clearInterval(poll);
+				process.exit(0);
+			}
+		}, 50);
+		setTimeout(() => {
+			clearInterval(poll);
+			for (const [, c] of children) if (!gone(c)) killChild(c, "SIGKILL");
+			process.exit(0);
+		}, KILL_GRACE_MS);
 	});
 }
 

@@ -22,7 +22,7 @@
 //      swallowed even though that backup IS the undo.
 //
 // Run: node apps/desk/test/spawn-and-persist.test.mjs   (exit 0 = all PASS)
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -52,6 +52,24 @@ const SETTINGS = path.join(PI_DIR, "settings.json");
 // a real file for the stub's get_state: liveChildForFile realpath()s what it is told
 const LIVE_FILE = path.join(TD, "live.jsonl");
 fs.writeFileSync(LIVE_FILE, "");
+
+// a project-resident extension that the GLOBAL settings file declares: it looks
+// global by origin and is the repo's code by location
+const projExt = path.join(repo, "tools", "proj-ext.ts");
+fs.mkdirSync(path.dirname(projExt), { recursive: true });
+fs.writeFileSync(projExt, "export default function () {}\n");
+const outsideExt = path.join(TD, "outside-ext.ts");
+fs.writeFileSync(outsideExt, "export default function () {}\n");
+// a package the GLOBAL settings names, installed ONLY in the project's own
+// .pi/npm (packages.md: user installs live under ~/.pi/agent/npm, project installs
+// under .pi/npm) — pi would not load this one for a global entry, so neither do we
+const projPkg = path.join(repo, ".pi", "npm", "node_modules", "sneaky-pkg");
+fs.mkdirSync(path.join(projPkg, "extensions"), { recursive: true });
+fs.writeFileSync(path.join(projPkg, "package.json"), JSON.stringify({ name: "sneaky-pkg" }));
+fs.writeFileSync(path.join(projPkg, "extensions", "sneaky.ts"), "export default function () {}\n");
+fs.mkdirSync(path.join(PI_DIR, "extensions"), { recursive: true });
+fs.writeFileSync(path.join(PI_DIR, "extensions", "global-ext.ts"), "export default function () {}\n");
+fs.writeFileSync(SETTINGS, JSON.stringify({ extensions: [projExt, outsideExt], packages: ["npm:sneaky-pkg"] }, null, 2));
 
 const DERIVED = "Stub Derived Title";
 const STUB = `#!/usr/bin/env node
@@ -88,6 +106,11 @@ const LONG_FILE = path.join(SESS, "2026-01-01T00-00-01-000Z_long.jsonl");
 fs.writeFileSync(LONG_FILE, header("long-1") + userEntry("L1", null, `${"pad ".repeat(900)}TAILMARKER`));
 const RENAME_FILE = path.join(SESS, "2026-01-01T00-00-02-000Z_rename.jsonl");
 fs.writeFileSync(RENAME_FILE, header("ren-1") + userEntry("r1", null, "rename me") + userEntry("r2", "r1", "second"));
+// last entry BIGGER than any fixed tail window (an image-bearing message, a
+// compaction checkpoint): the leaf must still be established, or the rename
+// silently becomes a new root and the resumed session comes back empty
+const BIG_FILE = path.join(SESS, "2026-01-01T00-00-08-000Z_big.jsonl");
+fs.writeFileSync(BIG_FILE, header("big-1") + userEntry("g1", null, "small first") + userEntry("g2", "g1", "IMG".repeat(600000)));
 const EMPTY_FILE = path.join(SESS, "2026-01-01T00-00-03-000Z_empty.jsonl");
 fs.writeFileSync(EMPTY_FILE, header("emp-1"));
 // 0 bytes: pi would rewrite this with a fresh header — appending a session_info to
@@ -147,6 +170,38 @@ try {
 	argv = await lastRpcArgv(4);
 	check("approve non-boolean → no trust flag (never guessed from a truthy string)", !/ -a | -na /.test(argv), argv);
 
+	// ── A2. "project" is decided by WHERE THE CODE LIVES, not by which config named it ──
+	// free the slots first: four spawns above put us at MAX_CHILDREN
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+	for (let i = 0; i < 60 && (await fetch(`${BASE}/api/live`).then((x) => x.json())).length; i++) await sleep(100);
+	const resources = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
+	const projItem = resources.extensions.find((x) => x.path === projExt);
+	const outItem = resources.extensions.find((x) => x.path === outsideExt);
+	check("a GLOBAL settings entry pointing inside the project is labelled project", projItem?.project === true, JSON.stringify(projItem));
+	check("…and one outside the project is not", outItem && !outItem.project, JSON.stringify(outItem));
+	// the desk opens in ~ by default: pi's own global dirs sit under HOME and must
+	// NOT become "project code" just because the session's cwd is HOME
+	const homeRes = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(TD)}`).then((x) => x.json());
+	const globalExt = homeRes.extensions.find((x) => x.path === path.join(PI_DIR, "extensions", "global-ext.ts"));
+	check("a session opened in HOME does not relabel pi's global extensions as project", globalExt && !globalExt.project, JSON.stringify(globalExt));
+	r = await post("/api/spawn", { cwd: TD, approve: false, resources: { extensions: [path.join(PI_DIR, "extensions", "global-ext.ts")] } });
+	check("…and an untrusted spawn there still loads them", r.status === 200, String(r.status));
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+	check("a GLOBAL package entry is not resolved from the PROJECT's install dir", !resources.extensions.some((x) => x.path.includes("sneaky")), JSON.stringify(resources.extensions.map((x) => x.name)));
+	const before2 = rpcRuns().length;
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [projExt] } });
+	check("trust unchecked + a project extension → spawn REFUSED", r.status >= 400 && /project trust/.test((await r.json()).error || ""), String(r.status));
+	check("…and no child was started for it", rpcRuns().length === before2, `${rpcRuns().length} vs ${before2}`);
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [outsideExt] } });
+	check("trust unchecked + a NON-project extension still spawns", r.status === 200, String(r.status));
+	argv = await lastRpcArgv(before2 + 1);
+	check("…with -na and that extension, and never the project one", / -na /.test(argv) && argv.includes(`-e ${outsideExt}`) && !argv.includes(projExt), argv);
+	r = await post("/api/spawn", { cwd: repo, approve: true, resources: { extensions: [projExt] } });
+	check("trust CHECKED + a project extension spawns with -a and -e", r.status === 200, String(r.status));
+	argv = await lastRpcArgv(before2 + 2);
+	check("…the project extension is passed only under -a", / -a /.test(argv) && argv.includes(`-e ${projExt}`), argv);
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+
 	// ── B + C. title derivation: no tools, fenced data, capped — and the append chains ──
 	const q = await post("/api/derive-titles", { files: [INJECT_FILE, LONG_FILE] }).then((x) => x.json());
 	check("two unnamed sessions queued", q.queued === 2, JSON.stringify(q));
@@ -200,6 +255,24 @@ try {
 	check("…the truncated text is left on its own line, ours is a new one", truncRaw.length === 4 && truncRaw[2] === '{"type":"message","id":"t2","par', JSON.stringify(truncRaw.map((l) => l.slice(0, 40))));
 	check("…and the leaf skips it, exactly as pi's parser does", JSON.parse(truncRaw[3]).parentId === "t1", truncRaw[3]);
 
+	// C: an entry larger than any fixed tail window still yields the leaf
+	r = await post("/api/rename", { file: BIG_FILE, name: "Big Tail" });
+	check("rename on a session whose last entry is >1 MiB accepted", r.status === 200, String(r.status));
+	const bigEntry = lines(BIG_FILE).at(-1);
+	check("…chains to that oversized entry, NOT to a new root", bigEntry.parentId === "g2", JSON.stringify({ ...bigEntry, name: bigEntry.name }));
+	// pi's OWN loader is the judge of whether the branch survived
+	try {
+		const piRoot = path.join(execFileSync("npm", ["root", "-g"], { encoding: "utf-8" }).trim(), "@earendil-works", "pi-coding-agent");
+		const { SessionManager } = await import(path.join(piRoot, "dist", "core", "session-manager.js"));
+		const mgr = SessionManager.open(BIG_FILE);
+		const ctx = mgr.buildContextEntries();
+		check("pi resumes at our entry (getLeafId)", mgr.getLeafId() === bigEntry.id, String(mgr.getLeafId()));
+		check("pi still sees the conversation on the branch (3 entries, not 1)", ctx.length === 3 && ctx.map((e) => e.id).join(",") === `g1,g2,${bigEntry.id}`, ctx.map((e) => e.id).join(","));
+		check("pi reports the new name", mgr.getSessionName() === "Big Tail", String(mgr.getSessionName()));
+	} catch (e) {
+		console.log("SKIP pi SessionManager cross-check (could not load the installed package):", e.message);
+	}
+
 	// C: a name with an embedded newline would split one entry into two bad lines
 	const beforeLines = fs.readFileSync(RENAME_FILE, "utf-8").split("\n").filter(Boolean).length;
 	check("rename with an embedded newline accepted", (await post("/api/rename", { file: RENAME_FILE, name: "line one\nline two\r\nthree" })).status === 200);
@@ -225,6 +298,27 @@ try {
 	const after = JSON.parse(fs.readFileSync(SETTINGS, "utf-8"));
 	check("…patched key applied, untouched keys preserved", after.defaultModel === "gpt-5.5" && JSON.stringify(after.packages) === '["a"]', JSON.stringify(after));
 	check("…and the .bak holds the previous file", JSON.parse(fs.readFileSync(`${SETTINGS}.bak`, "utf-8")).defaultModel === "keep-me");
+
+	// ── D2. a request-named destination is never written THROUGH a symlink ──
+	const secret = path.join(TD, "secret.txt");
+	fs.writeFileSync(secret, "SECRET");
+	fs.symlinkSync(secret, path.join(repo, "AGENTS.md"));
+	r = await post("/api/context-file", { dir: repo, name: "AGENTS.md", content: "pwned" });
+	check("context-file write onto a symlink → 409", r.status === 409, String(r.status));
+	check("…the link target is untouched", fs.readFileSync(secret, "utf-8") === "SECRET", fs.readFileSync(secret, "utf-8"));
+	check("…and no .bak was made through it either", !fs.existsSync(path.join(repo, "AGENTS.md.bak")));
+	// the .bak side of the same trick
+	const repo2 = path.join(TD, "repo2");
+	fs.mkdirSync(repo2, { recursive: true });
+	fs.writeFileSync(path.join(repo2, "CLAUDE.md"), "real file");
+	fs.symlinkSync(secret, path.join(repo2, "CLAUDE.md.bak"));
+	r = await post("/api/context-file", { dir: repo2, name: "CLAUDE.md", content: "pwned" });
+	check("a symlinked .bak destination → 409", r.status === 409, String(r.status));
+	check("…the link target is still untouched", fs.readFileSync(secret, "utf-8") === "SECRET");
+	check("…and the real file is unchanged", fs.readFileSync(path.join(repo2, "CLAUDE.md"), "utf-8") === "real file");
+	// an ordinary write still works
+	r = await post("/api/context-file", { dir: repo2, name: "AGENTS.md", content: "hello" });
+	check("an ordinary context-file write still lands", r.status === 200 && fs.readFileSync(path.join(repo2, "AGENTS.md"), "utf-8") === "hello", String(r.status));
 
 	// a missing file is NOT an error: that is a first write, not a lost one
 	fs.rmSync(SETTINGS);

@@ -56,6 +56,7 @@ const epipeCwd = path.join(TD, "repo-epipe");
 const stubbornCwd = path.join(TD, "repo-stubborn");
 for (const d of [binDir, appsDir, SESS, plainCwd, epipeCwd, stubbornCwd]) fs.mkdirSync(d, { recursive: true });
 const STUBBORN_PID = path.join(stubbornCwd, "pid");
+const EPIPE_PID = path.join(epipeCwd, "pid");
 
 // ── the crafted session files ──
 const line = (o) => `${JSON.stringify(o)}\n`;
@@ -72,7 +73,14 @@ fs.writeFileSync(SELF_FILE, header("cyc-2") + msg("dd", null, "root") + msg("ee"
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 const cwd = process.cwd();
-if (/epipe/.test(cwd)) { fs.closeSync(0); setTimeout(() => {}, 20000); return; } // read end gone: every desk write EPIPEs
+if (/epipe/.test(cwd)) {
+	// the hard case: unwritable stdin AND deaf to SIGTERM — only SIGKILL ends it
+	fs.writeFileSync(${JSON.stringify(EPIPE_PID)}, String(process.pid));
+	fs.closeSync(0);
+	process.on("SIGTERM", () => {});
+	setInterval(() => {}, 1000);
+	return;
+}
 if (/stubborn/.test(cwd)) {
 	fs.writeFileSync(${JSON.stringify(STUBBORN_PID)}, String(process.pid));
 	process.on("SIGTERM", () => {});            // only SIGKILL ends this one
@@ -157,8 +165,19 @@ const listen = (id) => {
 	const ac = new AbortController();
 	seen.stop = () => ac.abort();
 	fetch(`${BASE}/api/session/${id}/events`, { signal: ac.signal }).then(async (r) => {
+		// incremental: an SSE frame can be split across chunks (and one of these
+		// events is ~100 KB), so hold the remainder instead of dropping it
 		const dec = new TextDecoder();
-		for await (const chunk of r.body) for (const m of dec.decode(chunk).matchAll(/^data: (.*)$/gm)) { try { seen.push(JSON.parse(m[1])); } catch {} }
+		let buf = "";
+		for await (const chunk of r.body) {
+			buf += dec.decode(chunk, { stream: true });
+			let nn;
+			while ((nn = buf.indexOf("\n\n")) >= 0) {
+				const frame = buf.slice(0, nn);
+				buf = buf.slice(nn + 2);
+				for (const l of frame.split("\n")) if (l.startsWith("data: ")) { try { seen.push(JSON.parse(l.slice(6))); } catch {} }
+			}
+		}
 	}).catch(() => {});
 	return seen;
 };
@@ -211,11 +230,11 @@ try {
 	const c1 = await spawnIn(plainCwd);
 	check("stub child spawned", typeof c1.id === "string", JSON.stringify(c1));
 	const seen1 = listen(c1.id);
-	await sleep(200);
+	await waitFor(async () => seen1.some((e) => e.type === "desk_hello")); // stream attached
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "nullline please" });
-	await sleep(600);
+	const sawAlive = await waitFor(async () => seen1.some((e) => e.after === "null"));
 	check("child stdout `null` / number / array lines are skipped, desk survives", await alive());
-	check("…and the events after them still reach the client", seen1.some((e) => e.type === "desk_test_alive"), JSON.stringify(seen1.map((e) => e.type)));
+	check("…and the events after them still reach the client", sawAlive, JSON.stringify(seen1.map((e) => e.type)));
 
 	// ── 3. a child event that parses but cannot be re-serialized ──
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "deepnest please" });
@@ -233,9 +252,9 @@ try {
 	// ── 10. an SSE client that disconnects mid-stream ──
 	const gone = listen(c1.id);
 	const stays = listen(c1.id);
-	await sleep(300);
+	await waitFor(async () => gone.some((e) => e.type === "desk_hello") && stays.some((e) => e.type === "desk_hello"));
 	gone.stop();
-	await sleep(300);
+	await waitFor(async () => false, 300); // let the abort reach the server
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "nullline again" });
 	check("a broadcast with a disconnected client in the fan-out does not kill the desk", await waitFor(async () => stays.some((e) => e.type === "desk_test_alive")) && (await alive()));
 	check("…the disconnected client stopped receiving", !gone.some((e) => e.after === "null"), JSON.stringify(gone.map((e) => e.type)));
@@ -243,14 +262,19 @@ try {
 	// ── 4. child stdin EPIPE ──
 	const c2 = await spawnIn(epipeCwd);
 	check("epipe child spawned", typeof c2.id === "string", JSON.stringify(c2));
-	await sleep(400);
+	await waitFor(async () => fs.existsSync(EPIPE_PID));
+	const epipePid = Number(fs.readFileSync(EPIPE_PID, "utf-8"));
 	const r2 = await Promise.race([
 		post(BASE, `/api/session/${c2.id}/rpc`, { command: { type: "get_state" } }).then((r) => r.status).catch((e) => `fetch failed: ${e.message}`),
 		sleep(8000).then(() => "TIMEOUT"),
 	]);
 	check("writing to a child with a closed stdin answers instead of killing the desk", typeof r2 === "number" && r2 >= 400, String(r2));
 	check("…desk still serving after the EPIPE", await alive());
-	check("…and the dead child is no longer running", (await live()).find((c) => c.id === c2.id)?.state !== "running");
+	// the child is STILL ALIVE (it ignores SIGTERM): it must be counted, not written off
+	const epipeRec = (await live()).find((c) => c.id === c2.id);
+	check("…a child whose stdin failed is not written off as exited while it still runs", epipeRec?.state === "exiting", JSON.stringify(epipeRec));
+	check("…it goes through the same escalation and is really killed", await waitFor(() => { try { process.kill(epipePid, 0); return false; } catch { return true; } }, 4 * GRACE), `pid ${epipePid}`);
+	check("…and only then is it dropped from the map", await waitFor(async () => !(await live()).some((c) => c.id === c2.id), 4 * GRACE), JSON.stringify(await live()));
 
 	// ── 7. DELETE has a deadline: kill, escalate, and only then stop tracking ──
 	const c3 = await spawnIn(stubbornCwd);
@@ -275,10 +299,12 @@ try {
 	server.kill();
 	await sleep(300);
 	// reap the fixture even if the desk never got to it
-	try {
-		const pid = Number(fs.readFileSync(STUBBORN_PID, "utf-8"));
-		if (pid) { process.kill(pid, "SIGKILL"); console.log(`(test reaped stubborn pid ${pid})`); }
-	} catch {}
+	for (const f of [STUBBORN_PID, EPIPE_PID]) {
+		try {
+			const pid = Number(fs.readFileSync(f, "utf-8"));
+			if (pid) { process.kill(pid, "SIGKILL"); console.log(`(test reaped pid ${pid})`); }
+		} catch {}
+	}
 	fs.rmSync(TD, { recursive: true, force: true });
 }
 process.exit(fails ? 1 : 0);

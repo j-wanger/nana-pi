@@ -15,6 +15,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,8 +29,17 @@ function resolvePlaywright() {
 }
 const { chromium } = resolvePlaywright();
 
-const DESK = Number(process.env.DESK_TEST_PORT || 4441);
-const APP = 4442;
+const freePort = () =>
+	new Promise((resolve) => {
+		const srv = net.createServer();
+		srv.listen(0, "127.0.0.1", () => {
+			const { port } = srv.address();
+			srv.close(() => resolve(port));
+		});
+	});
+// ephemeral by default so concurrent runs cannot collide
+const DESK = Number(process.env.DESK_TEST_PORT) || (await freePort());
+const APP = await freePort();
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-render-edge-"));
 const binDir = path.join(tmp, "bin"), appsDir = path.join(tmp, "apps"), cwd = path.join(tmp, "repo");

@@ -1905,10 +1905,14 @@ function spawnPopover() {
 			// extensions anyway — the box looked like a decision and wasn't one.
 			extra.approve = trustBox.checked;
 			// flags only when the set differs from what pi would load on its own
+			// (`on` is already false for project items while untrusted; the second
+			// test is belt-and-braces so an unchecked box can never send repo code —
+			// the server refuses it too)
+			const sendable = (x) => x.on && (trustBox.checked || !x.project);
 			if (res && [...res.skills, ...res.extensions].some((x) => x.on !== defaultOn(x)))
 				extra.resources = {
-					skills: res.skills.filter((x) => x.on).map((x) => x.path),
-					extensions: res.extensions.filter((x) => x.on).map((x) => x.path),
+					skills: res.skills.filter(sendable).map((x) => x.path),
+					extensions: res.extensions.filter(sendable).map((x) => x.path),
 				};
 			const cwd = cur.path;
 			closePopover();
