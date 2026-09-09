@@ -294,16 +294,35 @@ response is allowed to touch the screen, and all three are visible to anyone dri
   them on disk.** New file: `~/.pi/agent/nana-desk/stage-keys.json` (directory `0700`, file
   `0600`, written temp-file-then-rename so a reader never sees a half-written one). It holds
   `{"v":1,"sessions":{"<pi session id>":{"keys":["<hex>", …],"updatedAt":<ms>}}}` — the keys this
-  desk has issued for that session, most recent first, at most 8, keyed by the pi session header
-  `id` so renaming a session file does not lose them. What changes for a caller:
+  desk has issued for that session, most recent first, keyed by the pi session header `id` so
+  renaming a session file does not lose them. **Two eviction limits, both of which put a
+  session's older blocks back to redacted when they bite:** at most **8 keys per session** (the
+  9th drops the oldest) and at most **512 sessions** in the file (the least recently updated are
+  dropped), on top of the hygiene pass that forgets sessions with no file left under
+  `~/.pi/agent/sessions/`. Concurrent desks are safe: the read-merge-write is serialized across
+  processes by a lock file beside the store (`stage-keys.json.lock`, taken over if a crashed desk
+  left one more than 30 s old). What changes for a caller:
   - **Spawning an app session on a session this desk already knows reuses that session's most
     recent key** instead of minting a new one, so `GET /api/entries` still returns the blocks
     minted before the restart as `nana-block` rather than `nana-block-rejected`.
   - **`GET /api/entries` verifies each `nana-block` against a SET of keys** — the live child's own
     key plus every key recorded for the session it currently holds. Any-of-recorded-keys is as
     strong as the single key it replaces: a forging extension or a hand-edited session file holds
-    none of them, and this is what makes resume, restart and an in-child `switch_session` all
-    verify. Nothing became acceptable that was not signed by a key this desk issued.
+    none of them, and this is what makes resume, restart, an in-child `switch_session` and a fork
+    all verify. Nothing became acceptable that was not signed by a key this desk issued.
+    **What the check proves, exactly:** possession of a key this desk minted and wrote into its
+    own store for the session the child *says* it is holding. It is not an authenticated claim
+    about which session, app or child produced the block — session identity is not
+    cryptographically bound, and a key can be reused by any child the desk hands it to.
+  - **A fork or clone inherits the source session's recorded keys.** pi copies the source's
+    ledger entries into a new session file under a new header id, so the desk seeds the new
+    session's record from the id the same child was observed holding immediately before — its own
+    observation, never the `parentSession` text in the file. The same rule fires on
+    `new_session`, where nothing is inherited, so a fresh session's record can carry keys from
+    the session the child came from.
+  - If the child's current session cannot be established at read time (a failed `get_state`),
+    there is **no** widening at all: only the live child's own key is used, so a block signed
+    under another recorded key of that session redacts until the session can be read again.
   - **The live path is unchanged.** A block arriving on `tool_execution_end` must still be signed
     by *this* child's key and stamped by that very tool call; an older key of the same session
     does not pass there.
@@ -316,11 +335,11 @@ response is allowed to touch the screen, and all three are visible to anyone dri
     taken at face value. A child that lied would only file its own key under some other session,
     and it already controls both the blocks it signs and the entries it hands back — so there is
     nothing it could read that way that it could not read anyway.
-  - **One narrowing was traded away, deliberately: the record is per session, not per app.** If
-    two app manifests' children ever hold the same session file (only reachable by driving
-    `switch_session` from the desk), both children's keys end up recorded for it, and either
-    one's blocks then verify on that session's stage. What the signature proves widens from "this
-    app's child" to "an app child of this desk holding this session" — both sides being
+  - **One narrowing was traded away, deliberately: the record is per session, not per app.** Two
+    app manifests can name the same `session` file outright, and a child can be driven into
+    another's session with `switch_session`; either way both children's keys end up recorded for
+    that session and either one's blocks verify on its stage. What the check proves widens from
+    "this app's child" to "some app child this desk gave a key for this session" — all of them
     manifest-configured children the design already treats as inside the trust boundary.
 
 ## Known limits
@@ -356,14 +375,24 @@ is not":
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
   whose destination comes from a *request* — a context file in a picked directory, a subagent
   `.md` — do refuse a symlinked destination or `.bak` with 409 (`53d4aab`). The stage-key store
-  (`nana-desk/stage-keys.json`) follows the same policy: a link at that path is resolved and the
-  atomic temp-then-rename happens next to the real file, never replacing the link.
+  (`nana-desk/stage-keys.json`) follows the same policy: a link at that path is resolved first,
+  and everything that touches bytes — the read, the atomic temp-then-rename, the lock file and
+  the move-aside of an unreadable store — happens on the real file, never on the link.
+- **The stage-key store is synchronous, on the event loop.** Reading it, the one-time session
+  enumeration behind its hygiene pass, and every save (including up to ~2 s waiting for another
+  desk's lock) block the whole desk while they run. A hung filesystem under `~/.pi/agent` stalls
+  the process, not just the request that touched it.
+- **Ledger reads count toward the RPC cap.** `GET /api/entries` now issues two RPCs (the entries
+  and a `get_state` to establish the session), so unanswered ledger reads consume the per-child
+  pending-RPC allowance and can hold prompts off until they answer or time out. Temporary, not a
+  wedge.
 - **Stage blocks minted before 2026-09-09 stay redacted.** The desk only started writing down
   which signing key it issued for which session on that date, so a block signed under a key from
   before it has nothing that can vouch for it and `/api/entries` still returns it as
   `nana-block-rejected`. That is the provenance rule working, not a render bug. The same is true
-  of any session whose entry has aged out of the record (8 keys per session; a session with no
-  file left under `~/.pi/agent/sessions/` is forgotten when the desk next starts).
+  of any session whose entry has aged out of the record: 8 keys per session, 512 sessions in the
+  file, and a session with no file left under `~/.pi/agent/sessions/` is forgotten the first time
+  a desk opens an app.
 - **A picker left open across a session switch still acts on the new session.** Selecting a
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
   flight* when you switch applies to whichever session is selected when it lands. Narrow window,

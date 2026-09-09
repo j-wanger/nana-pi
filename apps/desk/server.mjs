@@ -215,7 +215,21 @@ function stageKeyForSpawn(session) {
 function noteStageSession(child, state) {
 	const id = typeof state?.sessionId === "string" && state.sessionId ? state.sessionId : null;
 	if (!id || !child?.stageKey) return null;
+	const prev = child.sessionId;
 	child.sessionId = id;
+	// FORK / CLONE inheritance. pi copies the source session's custom entries — signed
+	// blocks included — into a new file under a NEW header id, so blocks that verified
+	// a moment ago would go blank against an id nothing was recorded for. Seed the new
+	// id from the one THIS CHILD was observed holding immediately before; the file's
+	// own `parentSession` text is never read here, because a session file is not
+	// authority over which keys vouch for it.
+	// Deliberately over-approximate: the same rule fires on `new_session`, where
+	// nothing is inherited, so a fresh session's record can carry keys of the session
+	// the child came from. That widens by one hop inside the same class already
+	// declared in the README (a key recorded for a session is any app child of this
+	// desk that held it) and never admits a key this desk did not issue. `seed` fills
+	// blanks only — an id that already has a record is left alone.
+	if (prev && prev !== id) stageKeys.seed(id, stageKeys.keysFor(prev));
 	stageKeys.record(id, child.stageKey);
 	return id;
 }
@@ -224,17 +238,22 @@ function noteStageSession(child, state) {
 // this desk ever issued for the session the child currently holds. Any-of-recorded-
 // keys is as strong as one key for the threat model — a forging extension or a
 // hand-edited session file holds none of them — and it is what makes resume,
-// restart and an in-child switch_session all verify. If get_state cannot be reached
-// we fall back to the last id we saw and, failing that, to this child's key alone:
-// the failure direction is always "redact", never "accept".
+// restart and an in-child switch_session all verify.
+//
+// If the child's session cannot be established RIGHT NOW, there is no widening at
+// all: just this child's own key. Reusing the last id we saw would verify the
+// session the child holds *now* against the recorded keys of the one it held
+// *then* — authority it no longer demonstrably holds — which is the opposite of
+// narrowing. Redacting a real block is the acceptable direction here.
 async function ledgerKeys(child) {
 	let id = null;
 	try {
-		id = noteStageSession(child, (await sendRpc(child, { type: "get_state" }))?.data);
+		id = noteStageSession(child, (await sendRpcRaw(child, { type: "get_state" }))?.data);
 	} catch {
 		id = null;
 	}
-	const recorded = stageKeys.keysFor(id || child.sessionId || "");
+	if (!id) return child.stageKey ? [child.stageKey] : [];
+	const recorded = stageKeys.keysFor(id);
 	if (!child.stageKey) return recorded;
 	return [child.stageKey, ...recorded.filter((k) => k !== child.stageKey)];
 }
@@ -612,7 +631,34 @@ function handleChildEvent(child, obj) {
 	broadcast(child, obj);
 }
 
+// Commands that move a child to a DIFFERENT session file, under a different header
+// id. `fork` and `clone` also COPY the source session's entries into it.
+const SESSION_CHANGING = new Set(["new_session", "switch_session", "fork", "clone"]);
+
+// The RPC primitive is the chokepoint for noticing a session change: pi emits no
+// event for one, so every caller — the /rpc passthrough, the app listener, any
+// future internal one — observes it here rather than each remembering to. Waiting
+// for the next ledger read instead would leave a window in which a desk restart
+// loses a fork's inherited keys for good.
 function sendRpc(child, command) {
+	const p = sendRpcRaw(child, command);
+	if (!child.stageKey || !SESSION_CHANGING.has(command?.type)) return p;
+	return p.then(async (r) => {
+		// Best effort, and after the command has already succeeded: a state read that
+		// fails must not turn a successful fork into a failed request. The next ledger
+		// read observes it instead.
+		if (r?.success) {
+			try {
+				noteStageSession(child, (await sendRpcRaw(child, { type: "get_state" }))?.data);
+			} catch {
+				/* observed on the next ledger read */
+			}
+		}
+		return r;
+	});
+}
+
+function sendRpcRaw(child, command) {
 	if (child.state !== "running" || !child.proc.stdin.writable) return Promise.reject(new Error("session not running"));
 	// Fail fast rather than queue: every pending RPC holds a promise, a timer and the
 	// caller's request, and a client looping on /api/… (or N tabs polling stats)
