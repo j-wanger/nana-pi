@@ -144,12 +144,44 @@ sleeps became readiness handshakes.
   backpressure-aware, pending RPCs are uncapped, and an app `data` command's stdout is read whole.
   The stage's 128/256 KiB text caps bound what a *model* reads — not `details`, the ledger, or the
   transport. **Next step:** bound the buffers and the concurrency; disconnect slow consumers.
-- **STILL OPEN — [astra: medium correctness] client switching / reconnect / bash / dedup races.**
-  `apps/desk/public/app.js`. The `resync()` path is seat-confirmed: it re-reads the live-session
-  handle after the `get_messages` await with no generation check, so a session switch mid-flight
-  repaints the new pane with the old session's messages. The reconnect, bash echo-before-fetch and
-  dedup cases are astra-reported and not individually confirmed. **Next step:** session-generation
-  checks plus deterministic delayed-response / echo-first tests.
+- **FIXED `7a91f42` — [was medium correctness] client switching / reconnect / bash / dedup
+  races.** `apps/desk/public/app.js`. One mechanism: a stage generation bumped in `clearStage()`
+  (the single point every select / close / reopen passes through) and captured by every async
+  continuation that touches the pane, `L` or the editor — `resync`, the `get_state`/
+  `get_session_stats` polls, `get_commands`, the file list, the historical transcript load, the
+  bash POST, the prompt POST, `reclaimQueue`, and the SSE stream's own message and error
+  callbacks. A stale continuation returns without touching anything. Per lead:
+  - **CONFIRMED, fixed — resync after switch.** `resync()` awaited `get_messages` and called
+    `renderMessages` with no generation check; A's messages painted into B's pane.
+  - **CONFIRMED, fixed — reconnect.** Not the duplication astra described: `showDialog` is
+    id-guarded and the status/widget/queue renders clear their box first, so a replayed
+    `desk_hello` was already idempotent. The real defect is the opposite — the page did
+    **nothing** with a second hello, so the transcript silently lost every event from the
+    disconnected window and the chip stayed "disconnected" forever. A reconnect now runs exactly
+    one resync, which also restores the chip and `streaming` through `refreshState`.
+  - **CONFIRMED, fixed — bash echo-before-fetch.** `server.mjs` writes the bash POST response
+    *after* handing the command to the child, so `bash_execution_update` / `desk_bash_result`
+    can reach the page first; the handlers looked up `bash:<id>`, missed, and dropped the event
+    — losing output and leaving a card spinning forever. Events for an unknown id are now held
+    per id in arrival order and flushed when the row is created (bounded: 8 ids × 200 events).
+    Server ordering unchanged.
+  - **CONFIRMED, fixed — dedup, lost response after an accepted prompt.** If the POST's answer
+    is lost after pi echoed the message, `restore()` pushed the text back into the editor even
+    though the prompt was already running — a duplicate send waiting to happen. `restore()` now
+    no-ops when the echo has already consumed the optimistic bubble.
+  - **NOT-A-BUG — dedup, echo beats fetch.** Already closed 2026-09-02 (append-before-POST +
+    content-matched swap); now pinned without a model call.
+  - **NOT-A-BUG — dedup, two sends in flight / steer during streaming / Esc reclaim mid-send.**
+    Steer and follow-up append no optimistic bubble, the swap is content-matched rather than
+    FIFO, and a `prompt` is never queued (so it cannot be reclaimed). No duplicate or lost
+    bubble in any of them.
+
+  Tests: `apps/desk/test/session-races.e2e.mjs` — 20 browser-level checks against a stub pi, each
+  interleaving controlled by holding the exact response under test (`page.route`) and released on
+  what the page has already received, plus a TCP relay so the reconnect check destroys the real
+  SSE socket. 8 of them fail on the pre-fix page. **Still open:** a model / thinking / fork picker
+  whose RPC is already in flight when you switch sessions still applies to the new session —
+  `clearStage()` closes the popover, which narrows it to that window but does not close it.
 
 ## Extensions
 

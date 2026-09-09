@@ -221,7 +221,7 @@ not just what the server does internally.
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
   extensions inside its own cwd.
 
-Three page-level rules landed with the client-race fix (`de7d2a2`). All three are about *when* a
+Three page-level rules landed with the client-race fix (`7a91f42`). All three are about *when* a
 response is allowed to touch the screen, and all three are visible to anyone driving the page.
 
 - **An answer for a session you have left is dropped, never painted.** Selecting, closing or
