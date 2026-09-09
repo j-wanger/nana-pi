@@ -139,11 +139,33 @@ sleeps became readiness handshakes.
   **NOT-A-BUG as reported:** the `JSON.parse` guard in `apps.mjs` was already correct. The real
   killer was a manifest that *parses* to a non-object (`null`, an array, a number) — that is what
   the commit fixes.
-- **STILL OPEN — [astra: medium; high availability impact with a hostile local producer]
-  unbounded buffers.** Child stdout accumulates until a newline arrives, SSE writes are not
-  backpressure-aware, pending RPCs are uncapped, and an app `data` command's stdout is read whole.
-  The stage's 128/256 KiB text caps bound what a *model* reads — not `details`, the ledger, or the
-  transport. **Next step:** bound the buffers and the concurrency; disconnect slow consumers.
+- **FIXED `4875dd0` — [was medium; high availability impact with a hostile local producer]
+  unbounded buffers.** All four leads were confirmed line by line and capped, each a named constant
+  with a tests-only env override (the `DESK_KILL_GRACE_MS` pattern), each declared in
+  `apps/desk/README.md`. **Child stdout, 64 MiB:** an unterminated line is discarded and the
+  session is KEPT — one `desk_event_dropped` to its clients, one log line, and the RPCs in flight
+  on that child rejected, since one of them may be what the discarded line was answering and would
+  otherwise wait out its timer (600 s for a prompt). Sized against the largest legitimate line pi
+  emits — a `get_messages` response carries the whole conversation on one line, measured at
+  18.4 MiB for the biggest session on this machine. **SSE, 8 MiB per client:** a client whose write
+  buffer passes the cap is ended and its socket destroyed; `EventSource` reconnects and resyncs
+  from `desk_hello`. Disconnected, never throttled — one slow tab must not pace the fan-out.
+  (Pre-fix, measured: a client that never read held all 10 MB of a test flood in the server's write
+  buffer, still climbing.) **In-flight RPCs, 64 per child:** the next one answers 429
+  (`/rpc` and `/bash`) instead of queueing; those already in flight are untouched. **App `data`
+  stdout, 8 MiB:** SIGKILL and a 500 naming the cap, in the same shape as the timeout's 504 — the
+  timeout only ever killed on time, which a command printing at pipe speed reaches after gigabytes;
+  its stderr is now held as an 8 KiB tail. Two neighbours were checked and were already bounded:
+  `stderrTail` (2000 chars) and `readBody` (32 MiB). Pinned by
+  `apps/desk/test/buffer-caps.test.mjs` — the real server on ephemeral ports against a stub `pi`,
+  ten assertions that fail with the caps reverted.
+  **STILL OPEN — [same class] the per-child maps a child fills through its own events.**
+  `statuses`, `widgets` and `dialogs` (`handleChildEvent`, `apps/desk/server.mjs`) take one entry
+  per distinct key for the life of the session and are replayed whole in every `desk_hello`, so a
+  child emitting millions of distinct keys still grows the desk. Left out of this commit because
+  bounding them means deciding what a *dropped* status or widget means to the page — a contract
+  change, not a fifth transport cap. **Next step:** cap each map and show the page that something
+  was dropped, rather than silently losing a status.
 - **STILL OPEN — [astra: medium correctness] client switching / reconnect / bash / dedup races.**
   `apps/desk/public/app.js`. The `resync()` path is seat-confirmed: it re-reads the live-session
   handle after the `get_messages` await with no generation check, so a session switch mid-flight
