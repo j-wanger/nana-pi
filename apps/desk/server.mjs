@@ -715,21 +715,26 @@ const CONFIRM_WAIT_MS = 120;
 // waiting for it.
 const CONFIRM_BUDGET_MS = 1000;
 
-function withinBudget(p, ms) {
+function withinBudget(p, deadline) {
 	let timer = null;
-	const done = (fn) => (v) => {
-		clearTimeout(timer);
-		return fn(v);
-	};
 	return Promise.race([
 		p.then(
-			done((v) => v),
-			done((e) => {
+			(v) => {
+				clearTimeout(timer);
+				// The race bounds how long we WAIT; this bounds what we ACCEPT. A response
+				// that lands at or after the deadline can still win the race — its handler
+				// may run before the timer's — so the answer is judged against the clock
+				// too, and a late one is no answer at all.
+				if (Date.now() >= deadline) throw new Error("stage-key confirmation answered after the budget");
+				return v;
+			},
+			(e) => {
+				clearTimeout(timer);
 				throw e;
-			}),
+			},
 		),
 		new Promise((_, reject) => {
-			timer = setTimeout(() => reject(new Error("stage-key confirmation budget exhausted")), ms);
+			timer = setTimeout(() => reject(new Error("stage-key confirmation budget exhausted")), Math.max(0, deadline - Date.now()));
 		}),
 	]);
 }
@@ -763,11 +768,10 @@ async function lifecycleRpc(child, command) {
 		// budget, so a child that answers slowly costs one round trip, not three.
 		const deadline = Date.now() + CONFIRM_BUDGET_MS;
 		for (let attempt = 0; attempt < CONFIRM_TRIES; attempt++) {
-			const left = deadline - Date.now();
-			if (left <= 0) break; // no budget: do not dispatch another one
+			if (Date.now() >= deadline) break; // no budget: do not dispatch another one
 			let id = null;
 			try {
-				id = stateSessionId(await withinBudget(childState(child), left));
+				id = stateSessionId(await withinBudget(childState(child), deadline));
 			} catch {
 				/* unconfirmed, or answered too late to count */
 			}

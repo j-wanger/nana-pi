@@ -375,12 +375,15 @@ would send it twice.
     source the first has already moved away from; and while one is in flight a ledger read may
     *use* the session it observes but does not file it, so it cannot claim the destination under
     the live key alone before the fork has been accounted for. A ledger read that lands in that
-    window verifies that session against the live child's key alone for that one read, and if the
-    child exits before any later observation, that session is simply never recorded.
+    window verifies that session against the live child's key plus whatever was already recorded
+    for it, without filing the observation — so a brand-new fork's copied blocks do not verify on
+    that read, while an existing session's do. If the child exits before any later observation,
+    that session is simply never recorded.
   - **All of it happens inside the one command, or not at all.** After the fork the desk retries
     the state read that identifies the new session up to three times inside a **1000 ms budget**:
-    what is left of that budget is checked before each attempt and raced against each answer, so
-    a reply that arrives late is ignored and the command returns at the budget rather than at the
+    what is left of that budget is checked before each attempt, raced against each answer, and
+    rechecked before an answer is accepted — so a reply that lands on or after the deadline is
+    ignored even if it beats the timer, and the command returns at the budget rather than at the
     RPC's own timeout. If the destination is never confirmed, **that fork inherits nothing** —
     its copied blocks signed only by inherited keys stay redacted, while blocks signed by the
     live child's own key still verify. There is deliberately no "finish it later" flag: a child's
@@ -490,8 +493,9 @@ is not":
   before it has nothing that can vouch for it and `/api/entries` still returns it as
   `nana-block-rejected`. That is the provenance rule working, not a render bug. The same is true
   of any session whose keys have aged out of its record (8 per session), and of any session with
-  no file left under `~/.pi/agent/sessions/`, whose record is deleted the first time a desk opens
-  an app.
+  no file left under `~/.pi/agent/sessions/`, whose record the first desk to open an app deletes
+  — though only when that session enumeration succeeded and came back non-empty, and a record it
+  fails to unlink is left where it is.
 - **A picker left open across a session switch still acts on the new session.** Selecting a
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
   flight* when you switch applies to whichever session is selected when it lands. Narrow window,
