@@ -221,17 +221,23 @@ not just what the server does internally.
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
   extensions inside its own cwd.
 
-Three page-level rules landed with the client-race fix (`7a91f42`). All three are about *when* a
-response is allowed to touch the screen, and all three are visible to anyone driving the page.
+Four page-level rules landed with the client-race fix (`7a91f42`, hardened in `c8249d7`). All
+four are about *when* a response is allowed to touch the screen, and all four are visible to
+anyone driving the page.
 
 - **An answer for a session you have left is dropped, never painted.** Selecting, closing or
-  reopening a session starts a new stage generation, and every in-flight continuation carries the
-  generation it began in: a `get_messages` resync, a `get_state`/`get_session_stats` poll, a
-  `get_commands` or file-list load, a historical transcript load, a bash POST, a prompt POST and
-  every event from the previous SSE stream. A stale one returns without touching the transcript,
-  the header, the editor or the live-session handle — so a slow session A can no longer repaint,
-  rename or refill session B's pane. The old session's request may still complete on the server;
-  only its effect on the page is dropped.
+  reopening a session starts a new stage generation, and an in-flight continuation carries the
+  generation it began in. Covered: the `get_messages` resync; the `get_state` /
+  `get_session_stats` polls; the `get_commands` and file-list loads; the historical transcript
+  load; the bash POST and the prompt POST; the queue reclaim and the Esc reclaim-then-abort pair
+  (the abort carries the session Esc was pressed in, never the one you switched to); every desk
+  slash command that awaits before acting, including `/model <pattern>`, `/new`, `/clone` and
+  rename; the spawn response (the session is created and appears in the rail, but the stage you
+  chose is kept); an image whose `FileReader` finishes late; and every event and error from the
+  previous SSE stream. A stale one returns without touching the transcript, the header, the
+  editor, the attachments or the live-session handle. The old session's request may still
+  complete on the server; only its effect on the page is dropped. **Not covered:** an RPC already
+  in flight from an open model / thinking / fork picker — see Known limits.
 - **A reconnect replays state and resyncs exactly once.** The SSE stream reconnects on its own,
   and the server sends `desk_hello` on every attach. Dialogs, status chips, widgets and the queue
   are whole-snapshot replacements, so a replayed hello does not duplicate them; a *second* hello
@@ -240,10 +246,24 @@ response is allowed to touch the screen, and all three are visible to anyone dri
   not resync twice.
 - **Bash output can arrive before its row exists, and is kept.** `POST /api/session/:id/bash`
   answers *after* the server has handed the command to the child, so `bash_execution_update` and
-  `desk_bash_result` for that id can reach the page first. Such events are now held per id, in
-  arrival order, and flushed when the POST returns and the row is created. The buffer is bounded
-  (8 ids; per id 200 events and the same 20 000 characters the rendered row keeps, oldest
-  dropped) so an id whose row never appears cannot grow. Server ordering was not changed.
+  `desk_bash_result` for that id can reach the page first. Such events are held per id, in arrival
+  order, and flushed when the POST returns and the row is created. Bounds, per id: 200 events, and
+  20 000 characters counting **everything an event carries** — a streamed `delta`, a result's whole
+  captured `output`, and an error string. A single oversized text is cut on the way in; older
+  events are dropped first; at most 8 unknown ids are held at once. Server ordering was not
+  changed.
+- **A finished bash card never shows more than 20 000 characters.** A result carries the entire
+  captured output; the live streaming path only ever kept the last 20 000, and the finished render
+  now keeps the same window and reports the cut as `· truncated`, exactly like the server's own
+  truncation flag.
+
+One prompt-path rule changed with them: **an explicit rejection always returns your text to the
+editor.** A `POST …/prompt` that answers `{ok: false}` (or 409) means the prompt is not running,
+and that outranks a matching echoed user message — which can come from another tab or client on
+the same session. Only a *lost response* (the request threw, nothing came back) after a matching
+echo leaves the editor alone, because there the echo is proof pi has the message and restoring it
+would send it twice.
+
 
 ## Known limits
 
@@ -279,7 +299,12 @@ is not":
 - **A picker left open across a session switch still acts on the new session.** Selecting a
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
   flight* when you switch applies to whichever session is selected when it lands. Narrow window,
-  not closed.
+  not closed — the only continuation the stage-generation rule does not cover.
+- **A steer whose text is byte-identical to a still-pending prompt eats that prompt's bubble.**
+  The optimistic user bubble is matched to pi's echo by content (deliberately: a FIFO match let
+  another tab's echo consume ours). Send `ok` as a prompt and, before its echo arrives, `ok` again
+  as a steer, and the steer's echo swaps out the prompt's bubble — one bubble for two messages.
+  Both messages did reach pi; only the transcript is short one line, and a resync repairs it.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted.

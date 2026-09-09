@@ -176,12 +176,50 @@ sleeps became readiness handshakes.
     FIFO, and a `prompt` is never queued (so it cannot be reclaimed). No duplicate or lost
     bubble in any of them.
 
-  Tests: `apps/desk/test/session-races.e2e.mjs` — 20 browser-level checks against a stub pi, each
-  interleaving controlled by holding the exact response under test (`page.route`) and released on
-  what the page has already received, plus a TCP relay so the reconnect check destroys the real
-  SSE socket. 8 of them fail on the pre-fix page. **Still open:** a model / thinking / fork picker
-  whose RPC is already in flight when you switch sessions still applies to the new session —
-  `clearStage()` closes the popover, which narrows it to that window but does not close it.
+  Folded after an independent `gpt-5.6-sol` review (BLOCK), in `c8249d7`:
+  - **BLOCK, fixed — the Esc reclaim-then-abort pair aborted the wrong session.** `reclaimQueue()`
+    correctly returned stale, and the continuation then read the *global* handle and posted the
+    abort to the session you had switched to. Both halves now carry the generation and the id
+    captured when Esc was pressed.
+  - **BLOCK, fixed — the bash buffer bound was false.** Only a streamed `delta` counted, so a
+    buffered `desk_bash_result` retained its whole captured output and `finishBashRow` rendered it
+    whole: eight unknown ids could hold eight stdout-cap-sized results, not 20 000 characters each.
+    One per-id budget now counts `delta`, `data.output` and the error string, oversized text is cut
+    on the way in, and a finished row renders the same 20 000-character window the streaming path
+    keeps (reported as `· truncated`).
+  - **BLOCK (docs), fixed — the README stated that false bound.** Rewritten to what the code does.
+  - **SHOULD, fixed — five more continuations were not generation-bound:** `FileReader.onload`
+    (an image picked in A attached to B), the desk slash commands that await before acting
+    (`/model <pattern>` re-read the handle and set the *new* session's model), `renameSession`,
+    `exportSession` (the download was named after whatever session was selected when the blob
+    arrived — the label is now read before the request), and the spawn response (a slow spawn
+    yanked the stage back; the session is now left in the rail).
+  - **SHOULD, fixed — a reconnect during a held bash POST produced two rows.** The resync replays
+    pi's own finished record of the command, which has no RPC id; the POST then added a second
+    card and flushed into it. The POST now adopts that row when the transcript was rebuilt while
+    it waited, and drops the buffered events (history is authoritative for the same output).
+  - **SHOULD, fixed — `restore()` swallowed an explicit rejection.** A matching echo proves only
+    that *some* client's message of that text was accepted; a `{ok:false}` / 409 answer proves ours
+    was not. Explicit rejection now always returns the text to the editor; only a lost response
+    after an echo leaves it alone.
+  - **SHOULD, fixed (docs)** — the byte-identical-steer limitation and the narrowed generation
+    claim are both in `apps/desk/README.md` now.
+  - **SHOULD, fixed (tests)** — `die()` awaits browser, relay and server exit before
+    `process.exit`, an `uncaughtException`/`unhandledRejection` hook routes every exit through it
+    (a throwing route callback had leaked a desk server and its pi children), and every page drops
+    its route handlers before closing. The polling sleep is gone; negative assertions are fenced on
+    a fetch/SSE spy and then a single marked `SETTLE` window, and the file's header says so instead
+    of claiming "no sleeps". Ports stay 4441/4442 per the seat's ruling.
+
+  Tests: `apps/desk/test/session-races.e2e.mjs` — 30 browser-level checks against a stub pi, no
+  model call. Each interleaving is controlled by holding the exact response under test
+  (`page.route`, or a substituted `FileReader`) and releasing it on what the page has already
+  received, plus a TCP relay so the reconnect checks destroy the real SSE socket. 8 fail on the
+  page before `7a91f42`; 7 more fail on the page before `c8249d7`. **Still open:** a model /
+  thinking / fork picker whose RPC is already in flight when you switch sessions still applies to
+  the new session (`clearStage()` closes the popover, which narrows it to that window), and a
+  steer byte-identical to a still-pending prompt consumes that prompt's optimistic bubble. Both
+  are declared in `apps/desk/README.md`.
 
 ## Extensions
 
