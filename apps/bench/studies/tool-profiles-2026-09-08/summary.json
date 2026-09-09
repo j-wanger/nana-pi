@@ -1,0 +1,4908 @@
+{
+  "study": "tool-profiles-2026-09-08",
+  "runs": 132,
+  "fingerprint": "d0838225fad05573e42bb7141155300c2408a0a094ce2476a0cb32d11634c410",
+  "cells": [
+    {
+      "task": "code-bugfix",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 40229.33,
+        "median": 35067,
+        "p25": 34200.5,
+        "p75": 43677,
+        "iqr": 9476.5,
+        "min": 33334,
+        "max": 52287
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.120032,
+        "median": 0.097061,
+        "p25": 0.081959,
+        "p75": 0.146619,
+        "iqr": 0.06466,
+        "min": 0.06685700000000001,
+        "max": 0.19617700000000005
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.120032,
+        "median": 0.097061,
+        "p25": 0.081959,
+        "p75": 0.146619,
+        "iqr": 0.06466,
+        "min": 0.06685700000000001,
+        "max": 0.19617700000000005
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 40229.33,
+        "median": 35067,
+        "p25": 34200.5,
+        "p75": 43677,
+        "iqr": 9476.5,
+        "min": 33334,
+        "max": 52287
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 40229.33,
+        "median": 35067,
+        "p25": 34200.5,
+        "p75": 43677,
+        "iqr": 9476.5,
+        "min": 33334,
+        "max": 52287
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 40229,
+      "wallMs": {
+        "n": 3,
+        "mean": 31626.33,
+        "median": 30607,
+        "p25": 26899.5,
+        "p75": 35843.5,
+        "iqr": 8944,
+        "min": 23192,
+        "max": 41080
+      },
+      "turns": {
+        "n": 3,
+        "mean": 6.67,
+        "median": 6,
+        "p25": 6,
+        "p75": 7,
+        "iqr": 1,
+        "min": 6,
+        "max": 8
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 19072,
+      "toolCalls": {
+        "bash": 6,
+        "grep": 5,
+        "read": 3,
+        "edit": 3
+      }
+    },
+    {
+      "task": "code-bugfix",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 54201.33,
+        "median": 62355,
+        "p25": 48764.5,
+        "p75": 63715,
+        "iqr": 14950.5,
+        "min": 35174,
+        "max": 65075
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.142941,
+        "median": 0.145066,
+        "p25": 0.128143,
+        "p75": 0.158802,
+        "iqr": 0.030659,
+        "min": 0.11122000000000001,
+        "max": 0.172537
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.142941,
+        "median": 0.145066,
+        "p25": 0.128143,
+        "p75": 0.158802,
+        "iqr": 0.030659,
+        "min": 0.11122000000000001,
+        "max": 0.172537
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 54201.33,
+        "median": 62355,
+        "p25": 48764.5,
+        "p75": 63715,
+        "iqr": 14950.5,
+        "min": 35174,
+        "max": 65075
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 54201.33,
+        "median": 62355,
+        "p25": 48764.5,
+        "p75": 63715,
+        "iqr": 14950.5,
+        "min": 35174,
+        "max": 65075
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 54201,
+      "wallMs": {
+        "n": 3,
+        "mean": 33002,
+        "median": 31507,
+        "p25": 28951.5,
+        "p75": 36305,
+        "iqr": 7353.5,
+        "min": 26396,
+        "max": 41103
+      },
+      "turns": {
+        "n": 3,
+        "mean": 7.67,
+        "median": 8,
+        "p25": 7,
+        "p75": 8.5,
+        "iqr": 1.5,
+        "min": 6,
+        "max": 9
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 36864,
+      "toolCalls": {
+        "bash": 7,
+        "grep": 6,
+        "find": 2,
+        "ls": 2,
+        "read": 3,
+        "edit": 3
+      }
+    },
+    {
+      "task": "code-bugfix",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 45054,
+        "median": 41707,
+        "p25": 40184.5,
+        "p75": 48250,
+        "iqr": 8065.5,
+        "min": 38662,
+        "max": 54793
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.090373,
+        "median": 0.092328,
+        "p25": 0.083605,
+        "p75": 0.098119,
+        "iqr": 0.014514,
+        "min": 0.074882,
+        "max": 0.10391000000000002
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.090373,
+        "median": 0.092328,
+        "p25": 0.083605,
+        "p75": 0.098119,
+        "iqr": 0.014514,
+        "min": 0.074882,
+        "max": 0.10391000000000002
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 45054,
+        "median": 41707,
+        "p25": 40184.5,
+        "p75": 48250,
+        "iqr": 8065.5,
+        "min": 38662,
+        "max": 54793
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 45054,
+        "median": 41707,
+        "p25": 40184.5,
+        "p75": 48250,
+        "iqr": 8065.5,
+        "min": 38662,
+        "max": 54793
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 45054,
+      "wallMs": {
+        "n": 3,
+        "mean": 34708.33,
+        "median": 34338,
+        "p25": 32772,
+        "p75": 36459.5,
+        "iqr": 3687.5,
+        "min": 31206,
+        "max": 38581
+      },
+      "turns": {
+        "n": 3,
+        "mean": 7.33,
+        "median": 8,
+        "p25": 7,
+        "p75": 8,
+        "iqr": 1,
+        "min": 6,
+        "max": 8
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 32384,
+      "toolCalls": {
+        "bash": 14,
+        "read": 5,
+        "edit": 3
+      }
+    },
+    {
+      "task": "code-bugfix",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 59210.67,
+        "median": 51569,
+        "p25": 51139.5,
+        "p75": 63461,
+        "iqr": 12321.5,
+        "min": 50710,
+        "max": 75353
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.115432,
+        "median": 0.10877,
+        "p25": 0.105646,
+        "p75": 0.121887,
+        "iqr": 0.016241,
+        "min": 0.102522,
+        "max": 0.135003
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.115432,
+        "median": 0.10877,
+        "p25": 0.105646,
+        "p75": 0.121887,
+        "iqr": 0.016241,
+        "min": 0.102522,
+        "max": 0.135003
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 59210.67,
+        "median": 51569,
+        "p25": 51139.5,
+        "p75": 63461,
+        "iqr": 12321.5,
+        "min": 50710,
+        "max": 75353
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 59210.67,
+        "median": 51569,
+        "p25": 51139.5,
+        "p75": 63461,
+        "iqr": 12321.5,
+        "min": 50710,
+        "max": 75353
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 59211,
+      "wallMs": {
+        "n": 3,
+        "mean": 29775.67,
+        "median": 30355,
+        "p25": 28464.5,
+        "p75": 31376.5,
+        "iqr": 2912,
+        "min": 26574,
+        "max": 32398
+      },
+      "turns": {
+        "n": 3,
+        "mean": 6.33,
+        "median": 6,
+        "p25": 6,
+        "p75": 6.5,
+        "iqr": 0.5,
+        "min": 6,
+        "max": 7
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 35584,
+      "toolCalls": {
+        "bash": 6,
+        "grep": 4,
+        "read": 3,
+        "edit": 3,
+        "find": 2
+      }
+    },
+    {
+      "task": "code-callsites",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3343,
+        "median": 3366,
+        "p25": 3281,
+        "p75": 3416.5,
+        "iqr": 135.5,
+        "min": 3196,
+        "max": 3467
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.013004,
+        "median": 0.012624,
+        "p25": 0.012172,
+        "p75": 0.013647,
+        "iqr": 0.001475,
+        "min": 0.011719,
+        "max": 0.014669000000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.013004,
+        "median": 0.012624,
+        "p25": 0.012172,
+        "p75": 0.013647,
+        "iqr": 0.001475,
+        "min": 0.011719,
+        "max": 0.014669000000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3343,
+        "median": 3366,
+        "p25": 3281,
+        "p75": 3416.5,
+        "iqr": 135.5,
+        "min": 3196,
+        "max": 3467
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3343,
+        "median": 3366,
+        "p25": 3281,
+        "p75": 3416.5,
+        "iqr": 135.5,
+        "min": 3196,
+        "max": 3467
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3343,
+      "wallMs": {
+        "n": 3,
+        "mean": 10248.67,
+        "median": 8910,
+        "p25": 8750,
+        "p75": 11078,
+        "iqr": 2328,
+        "min": 8590,
+        "max": 13246
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 1408,
+      "toolCalls": {
+        "bash": 2,
+        "grep": 1
+      }
+    },
+    {
+      "task": "code-callsites",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3418,
+        "median": 3388,
+        "p25": 3377,
+        "p75": 3444,
+        "iqr": 67,
+        "min": 3366,
+        "max": 3500
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.019286,
+        "median": 0.020865,
+        "p25": 0.017492,
+        "p75": 0.02187,
+        "iqr": 0.004378,
+        "min": 0.014119,
+        "max": 0.022875
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.019286,
+        "median": 0.020865,
+        "p25": 0.017492,
+        "p75": 0.02187,
+        "iqr": 0.004378,
+        "min": 0.014119,
+        "max": 0.022875
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3418,
+        "median": 3388,
+        "p25": 3377,
+        "p75": 3444,
+        "iqr": 67,
+        "min": 3366,
+        "max": 3500
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3418,
+        "median": 3388,
+        "p25": 3377,
+        "p75": 3444,
+        "iqr": 67,
+        "min": 3366,
+        "max": 3500
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3418,
+      "wallMs": {
+        "n": 3,
+        "mean": 13889.67,
+        "median": 13501,
+        "p25": 13280,
+        "p75": 14305,
+        "iqr": 1025,
+        "min": 13059,
+        "max": 15109
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-callsites",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3068,
+        "median": 2542,
+        "p25": 2511,
+        "p75": 3362,
+        "iqr": 851,
+        "min": 2480,
+        "max": 4182
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.017354,
+        "median": 0.015125,
+        "p25": 0.013464,
+        "p75": 0.02013,
+        "iqr": 0.006667,
+        "min": 0.011802,
+        "max": 0.025135
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.017354,
+        "median": 0.015125,
+        "p25": 0.013464,
+        "p75": 0.02013,
+        "iqr": 0.006667,
+        "min": 0.011802,
+        "max": 0.025135
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3068,
+        "median": 2542,
+        "p25": 2511,
+        "p75": 3362,
+        "iqr": 851,
+        "min": 2480,
+        "max": 4182
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3068,
+        "median": 2542,
+        "p25": 2511,
+        "p75": 3362,
+        "iqr": 851,
+        "min": 2480,
+        "max": 4182
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3068,
+      "wallMs": {
+        "n": 3,
+        "mean": 12852.33,
+        "median": 12507,
+        "p25": 11783,
+        "p75": 13749,
+        "iqr": 1966,
+        "min": 11059,
+        "max": 14991
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2.33,
+        "median": 2,
+        "p25": 2,
+        "p75": 2.5,
+        "iqr": 0.5,
+        "min": 2,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 4
+      }
+    },
+    {
+      "task": "code-callsites",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 10432.33,
+        "median": 9037,
+        "p25": 8911.5,
+        "p75": 11255.5,
+        "iqr": 2344,
+        "min": 8786,
+        "max": 13474
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.015158,
+        "median": 0.015302,
+        "p25": 0.013009,
+        "p75": 0.017378,
+        "iqr": 0.004369,
+        "min": 0.010716,
+        "max": 0.019455
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.015158,
+        "median": 0.015302,
+        "p25": 0.013009,
+        "p75": 0.017378,
+        "iqr": 0.004369,
+        "min": 0.010716,
+        "max": 0.019455
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 10432.33,
+        "median": 9037,
+        "p25": 8911.5,
+        "p75": 11255.5,
+        "iqr": 2344,
+        "min": 8786,
+        "max": 13474
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 10432.33,
+        "median": 9037,
+        "p25": 8911.5,
+        "p75": 11255.5,
+        "iqr": 2344,
+        "min": 8786,
+        "max": 13474
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 10432,
+      "wallMs": {
+        "n": 3,
+        "mean": 12458.33,
+        "median": 12037,
+        "p25": 11785,
+        "p75": 12921,
+        "iqr": 1136,
+        "min": 11533,
+        "max": 13805
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2.33,
+        "median": 2,
+        "p25": 2,
+        "p75": 2.5,
+        "iqr": 0.5,
+        "min": 2,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "bash": 3,
+        "grep": 1
+      }
+    },
+    {
+      "task": "code-define-large",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3163.67,
+        "median": 3163,
+        "p25": 3163,
+        "p75": 3164,
+        "iqr": 1,
+        "min": 3163,
+        "max": 3165
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.016768,
+        "median": 0.016765,
+        "p25": 0.016765,
+        "p75": 0.01677,
+        "iqr": 0.000005,
+        "min": 0.016765000000000002,
+        "max": 0.016774999999999998
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.016768,
+        "median": 0.016765,
+        "p25": 0.016765,
+        "p75": 0.01677,
+        "iqr": 0.000005,
+        "min": 0.016765000000000002,
+        "max": 0.016774999999999998
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3163.67,
+        "median": 3163,
+        "p25": 3163,
+        "p75": 3164,
+        "iqr": 1,
+        "min": 3163,
+        "max": 3165
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3163.67,
+        "median": 3163,
+        "p25": 3163,
+        "p75": 3164,
+        "iqr": 1,
+        "min": 3163,
+        "max": 3165
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3164,
+      "wallMs": {
+        "n": 3,
+        "mean": 8807.33,
+        "median": 8673,
+        "p25": 8207,
+        "p75": 9340.5,
+        "iqr": 1133.5,
+        "min": 7741,
+        "max": 10008
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 3,
+        "warm": 0
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-define-large",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3207,
+        "median": 3207,
+        "p25": 3206,
+        "p75": 3208,
+        "iqr": 2,
+        "min": 3205,
+        "max": 3209
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.012761,
+        "median": 0.010659,
+        "p25": 0.010654,
+        "p75": 0.013817,
+        "iqr": 0.003163,
+        "min": 0.010649,
+        "max": 0.016975
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.012761,
+        "median": 0.010659,
+        "p25": 0.010654,
+        "p75": 0.013817,
+        "iqr": 0.003163,
+        "min": 0.010649,
+        "max": 0.016975
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3207,
+        "median": 3207,
+        "p25": 3206,
+        "p75": 3208,
+        "iqr": 2,
+        "min": 3205,
+        "max": 3209
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3207,
+        "median": 3207,
+        "p25": 3206,
+        "p75": 3208,
+        "iqr": 2,
+        "min": 3205,
+        "max": 3209
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3207,
+      "wallMs": {
+        "n": 3,
+        "mean": 8205.33,
+        "median": 8053,
+        "p25": 7988.5,
+        "p75": 8346,
+        "iqr": 357.5,
+        "min": 7924,
+        "max": 8639
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 1408,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-define-large",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 2405.67,
+        "median": 2400,
+        "p25": 2398.5,
+        "p75": 2410,
+        "iqr": 11.5,
+        "min": 2397,
+        "max": 2420
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.013245,
+        "median": 0.01335,
+        "p25": 0.013175,
+        "p75": 0.013368,
+        "iqr": 0.000192,
+        "min": 0.013000000000000001,
+        "max": 0.013385000000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.013245,
+        "median": 0.01335,
+        "p25": 0.013175,
+        "p75": 0.013368,
+        "iqr": 0.000192,
+        "min": 0.013000000000000001,
+        "max": 0.013385000000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 2405.67,
+        "median": 2400,
+        "p25": 2398.5,
+        "p75": 2410,
+        "iqr": 11.5,
+        "min": 2397,
+        "max": 2420
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 2405.67,
+        "median": 2400,
+        "p25": 2398.5,
+        "p75": 2410,
+        "iqr": 11.5,
+        "min": 2397,
+        "max": 2420
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 2406,
+      "wallMs": {
+        "n": 3,
+        "mean": 9285.67,
+        "median": 9043,
+        "p25": 8739.5,
+        "p75": 9710.5,
+        "iqr": 971,
+        "min": 8436,
+        "max": 10378
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 3,
+        "warm": 0
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-define-large",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 8629,
+        "median": 8629,
+        "p25": 8628,
+        "p75": 8630,
+        "iqr": 2,
+        "min": 8627,
+        "max": 8631
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.013375,
+        "median": 0.007241,
+        "p25": 0.007231,
+        "p75": 0.016452,
+        "iqr": 0.009221,
+        "min": 0.007221,
+        "max": 0.025663000000000002
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.013375,
+        "median": 0.007241,
+        "p25": 0.007231,
+        "p75": 0.016452,
+        "iqr": 0.009221,
+        "min": 0.007221,
+        "max": 0.025663000000000002
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 8629,
+        "median": 8629,
+        "p25": 8628,
+        "p75": 8630,
+        "iqr": 2,
+        "min": 8627,
+        "max": 8631
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 8629,
+        "median": 8629,
+        "p25": 8628,
+        "p75": 8630,
+        "iqr": 2,
+        "min": 8627,
+        "max": 8631
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 8629,
+      "wallMs": {
+        "n": 3,
+        "mean": 8082.67,
+        "median": 8413,
+        "p25": 7911.5,
+        "p75": 8419,
+        "iqr": 507.5,
+        "min": 7410,
+        "max": 8425
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-define-small",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 5997,
+        "median": 5997,
+        "p25": 5997,
+        "p75": 5997,
+        "iqr": 0,
+        "min": 5997,
+        "max": 5997
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.028823,
+        "median": 0.030935,
+        "p25": 0.027767,
+        "p75": 0.030935,
+        "iqr": 0.003168,
+        "min": 0.024599000000000003,
+        "max": 0.030935000000000004
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.028823,
+        "median": 0.030935,
+        "p25": 0.027767,
+        "p75": 0.030935,
+        "iqr": 0.003168,
+        "min": 0.024599000000000003,
+        "max": 0.030935000000000004
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 5997,
+        "median": 5997,
+        "p25": 5997,
+        "p75": 5997,
+        "iqr": 0,
+        "min": 5997,
+        "max": 5997
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 5997,
+        "median": 5997,
+        "p25": 5997,
+        "p75": 5997,
+        "iqr": 0,
+        "min": 5997,
+        "max": 5997
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 5997,
+      "wallMs": {
+        "n": 3,
+        "mean": 8908.67,
+        "median": 8212,
+        "p25": 7931,
+        "p75": 9538,
+        "iqr": 1607,
+        "min": 7650,
+        "max": 10864
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-define-small",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 6039.67,
+        "median": 6039,
+        "p25": 6039,
+        "p75": 6040,
+        "iqr": 1,
+        "min": 6039,
+        "max": 6041
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.026924,
+        "median": 0.024819,
+        "p25": 0.024814,
+        "p75": 0.027982,
+        "iqr": 0.003168,
+        "min": 0.024809000000000005,
+        "max": 0.031145
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.026924,
+        "median": 0.024819,
+        "p25": 0.024814,
+        "p75": 0.027982,
+        "iqr": 0.003168,
+        "min": 0.024809000000000005,
+        "max": 0.031145
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 6039.67,
+        "median": 6039,
+        "p25": 6039,
+        "p75": 6040,
+        "iqr": 1,
+        "min": 6039,
+        "max": 6041
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 6039.67,
+        "median": 6039,
+        "p25": 6039,
+        "p75": 6040,
+        "iqr": 1,
+        "min": 6039,
+        "max": 6041
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 6040,
+      "wallMs": {
+        "n": 3,
+        "mean": 8174.33,
+        "median": 8160,
+        "p25": 8041,
+        "p75": 8300.5,
+        "iqr": 259.5,
+        "min": 7922,
+        "max": 8441
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 1408,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-define-small",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 5290.67,
+        "median": 5292,
+        "p25": 5284,
+        "p75": 5298,
+        "iqr": 14,
+        "min": 5276,
+        "max": 5304
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.027712,
+        "median": 0.027735,
+        "p25": 0.027595,
+        "p75": 0.02784,
+        "iqr": 0.000245,
+        "min": 0.027455,
+        "max": 0.027945
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.027712,
+        "median": 0.027735,
+        "p25": 0.027595,
+        "p75": 0.02784,
+        "iqr": 0.000245,
+        "min": 0.027455,
+        "max": 0.027945
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 5290.67,
+        "median": 5292,
+        "p25": 5284,
+        "p75": 5298,
+        "iqr": 14,
+        "min": 5276,
+        "max": 5304
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 5290.67,
+        "median": 5292,
+        "p25": 5284,
+        "p75": 5298,
+        "iqr": 14,
+        "min": 5276,
+        "max": 5304
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 5291,
+      "wallMs": {
+        "n": 3,
+        "mean": 8905,
+        "median": 8760,
+        "p25": 8698.5,
+        "p75": 9039,
+        "iqr": 340.5,
+        "min": 8637,
+        "max": 9318
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 3,
+        "warm": 0
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-define-small",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 11469,
+        "median": 11463,
+        "p25": 11462,
+        "p75": 11473,
+        "iqr": 11,
+        "min": 11461,
+        "max": 11483
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.027658,
+        "median": 0.021401,
+        "p25": 0.021396,
+        "p75": 0.030792,
+        "iqr": 0.009396,
+        "min": 0.021391000000000004,
+        "max": 0.04018300000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.027658,
+        "median": 0.021401,
+        "p25": 0.021396,
+        "p75": 0.030792,
+        "iqr": 0.009396,
+        "min": 0.021391000000000004,
+        "max": 0.04018300000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 11469,
+        "median": 11463,
+        "p25": 11462,
+        "p75": 11473,
+        "iqr": 11,
+        "min": 11461,
+        "max": 11483
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 11469,
+        "median": 11463,
+        "p25": 11462,
+        "p75": 11473,
+        "iqr": 11,
+        "min": 11461,
+        "max": 11483
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 11469,
+      "wallMs": {
+        "n": 3,
+        "mean": 9455.67,
+        "median": 9629,
+        "p25": 8718,
+        "p75": 10280,
+        "iqr": 1562,
+        "min": 7807,
+        "max": 10931
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "grep": 3
+      }
+    },
+    {
+      "task": "code-exports",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3614.67,
+        "median": 3614,
+        "p25": 3614,
+        "p75": 3615,
+        "iqr": 1,
+        "min": 3614,
+        "max": 3616
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.014774,
+        "median": 0.012669,
+        "p25": 0.012664,
+        "p75": 0.015832,
+        "iqr": 0.003168,
+        "min": 0.012659,
+        "max": 0.018995
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.014774,
+        "median": 0.012669,
+        "p25": 0.012664,
+        "p75": 0.015832,
+        "iqr": 0.003168,
+        "min": 0.012659,
+        "max": 0.018995
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3614.67,
+        "median": 3614,
+        "p25": 3614,
+        "p75": 3615,
+        "iqr": 1,
+        "min": 3614,
+        "max": 3616
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3614.67,
+        "median": 3614,
+        "p25": 3614,
+        "p75": 3615,
+        "iqr": 1,
+        "min": 3614,
+        "max": 3616
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3615,
+      "wallMs": {
+        "n": 3,
+        "mean": 7655.33,
+        "median": 7835,
+        "p25": 7525.5,
+        "p75": 7875,
+        "iqr": 349.5,
+        "min": 7216,
+        "max": 7915
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 1408,
+      "toolCalls": {
+        "read": 3
+      }
+    },
+    {
+      "task": "code-exports",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3657.33,
+        "median": 3656,
+        "p25": 3656,
+        "p75": 3658,
+        "iqr": 2,
+        "min": 3656,
+        "max": 3660
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.0171,
+        "median": 0.019205,
+        "p25": 0.016047,
+        "p75": 0.019205,
+        "iqr": 0.003158,
+        "min": 0.012889000000000001,
+        "max": 0.019205
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.0171,
+        "median": 0.019205,
+        "p25": 0.016047,
+        "p75": 0.019205,
+        "iqr": 0.003158,
+        "min": 0.012889000000000001,
+        "max": 0.019205
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3657.33,
+        "median": 3656,
+        "p25": 3656,
+        "p75": 3658,
+        "iqr": 2,
+        "min": 3656,
+        "max": 3660
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3657.33,
+        "median": 3656,
+        "p25": 3656,
+        "p75": 3658,
+        "iqr": 2,
+        "min": 3656,
+        "max": 3660
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3657,
+      "wallMs": {
+        "n": 3,
+        "mean": 7818,
+        "median": 7478,
+        "p25": 7408,
+        "p75": 8058,
+        "iqr": 650,
+        "min": 7338,
+        "max": 8638
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "read": 3
+      }
+    },
+    {
+      "task": "code-exports",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 2852.67,
+        "median": 2846,
+        "p25": 2846,
+        "p75": 2856,
+        "iqr": 10,
+        "min": 2846,
+        "max": 2866
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.013736,
+        "median": 0.015155,
+        "p25": 0.012851,
+        "p75": 0.01533,
+        "iqr": 0.002479,
+        "min": 0.010547,
+        "max": 0.015505000000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.013736,
+        "median": 0.015155,
+        "p25": 0.012851,
+        "p75": 0.01533,
+        "iqr": 0.002479,
+        "min": 0.010547,
+        "max": 0.015505000000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 2852.67,
+        "median": 2846,
+        "p25": 2846,
+        "p75": 2856,
+        "iqr": 10,
+        "min": 2846,
+        "max": 2866
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 2852.67,
+        "median": 2846,
+        "p25": 2846,
+        "p75": 2856,
+        "iqr": 10,
+        "min": 2846,
+        "max": 2866
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 2853,
+      "wallMs": {
+        "n": 3,
+        "mean": 8505,
+        "median": 8324,
+        "p25": 7967,
+        "p75": 8952.5,
+        "iqr": 985.5,
+        "min": 7610,
+        "max": 9581
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "read": 3
+      }
+    },
+    {
+      "task": "code-exports",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 9079.33,
+        "median": 9080,
+        "p25": 9079,
+        "p75": 9080,
+        "iqr": 1,
+        "min": 9078,
+        "max": 9080
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.01061,
+        "median": 0.009461,
+        "p25": 0.009456,
+        "p75": 0.011189,
+        "iqr": 0.001733,
+        "min": 0.009451,
+        "max": 0.012917000000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.01061,
+        "median": 0.009461,
+        "p25": 0.009456,
+        "p75": 0.011189,
+        "iqr": 0.001733,
+        "min": 0.009451,
+        "max": 0.012917000000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 9079.33,
+        "median": 9080,
+        "p25": 9079,
+        "p75": 9080,
+        "iqr": 1,
+        "min": 9078,
+        "max": 9080
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 9079.33,
+        "median": 9080,
+        "p25": 9079,
+        "p75": 9080,
+        "iqr": 1,
+        "min": 9078,
+        "max": 9080
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 9079,
+      "wallMs": {
+        "n": 3,
+        "mean": 8308,
+        "median": 8318,
+        "p25": 8110,
+        "p75": 8511,
+        "iqr": 401,
+        "min": 7902,
+        "max": 8704
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "read": 3
+      }
+    },
+    {
+      "task": "code-glob-count",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 4765,
+        "median": 4763,
+        "p25": 4762,
+        "p75": 4767,
+        "iqr": 5,
+        "min": 4761,
+        "max": 4771
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.019639,
+        "median": 0.019604,
+        "p25": 0.016506,
+        "p75": 0.022755,
+        "iqr": 0.006249,
+        "min": 0.013408,
+        "max": 0.025905
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.019639,
+        "median": 0.019604,
+        "p25": 0.016506,
+        "p75": 0.022755,
+        "iqr": 0.006249,
+        "min": 0.013408,
+        "max": 0.025905
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 4765,
+        "median": 4763,
+        "p25": 4762,
+        "p75": 4767,
+        "iqr": 5,
+        "min": 4761,
+        "max": 4771
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 4765,
+        "median": 4763,
+        "p25": 4762,
+        "p75": 4767,
+        "iqr": 5,
+        "min": 4761,
+        "max": 4771
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 4765,
+      "wallMs": {
+        "n": 3,
+        "mean": 14005.33,
+        "median": 12855,
+        "p25": 12700,
+        "p75": 14735.5,
+        "iqr": 2035.5,
+        "min": 12545,
+        "max": 16616
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3,
+        "median": 3,
+        "p25": 3,
+        "p75": 3,
+        "iqr": 0,
+        "min": 3,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 1408,
+      "toolCalls": {
+        "find": 3,
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-glob-count",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 4837.67,
+        "median": 4829,
+        "p25": 4825.5,
+        "p75": 4845.5,
+        "iqr": 20,
+        "min": 4822,
+        "max": 4862
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.018024,
+        "median": 0.013673,
+        "p25": 0.013593,
+        "p75": 0.020279,
+        "iqr": 0.006686,
+        "min": 0.013513000000000002,
+        "max": 0.026885000000000006
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.018024,
+        "median": 0.013673,
+        "p25": 0.013593,
+        "p75": 0.020279,
+        "iqr": 0.006686,
+        "min": 0.013513000000000002,
+        "max": 0.026885000000000006
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 4837.67,
+        "median": 4829,
+        "p25": 4825.5,
+        "p75": 4845.5,
+        "iqr": 20,
+        "min": 4822,
+        "max": 4862
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 4837.67,
+        "median": 4829,
+        "p25": 4825.5,
+        "p75": 4845.5,
+        "iqr": 20,
+        "min": 4822,
+        "max": 4862
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 4838,
+      "wallMs": {
+        "n": 3,
+        "mean": 12603,
+        "median": 12610,
+        "p25": 11719.5,
+        "p75": 13490,
+        "iqr": 1770.5,
+        "min": 10829,
+        "max": 14370
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3,
+        "median": 3,
+        "p25": 3,
+        "p75": 3,
+        "iqr": 0,
+        "min": 3,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 2816,
+      "toolCalls": {
+        "find": 3,
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-glob-count",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 2334.67,
+        "median": 2334,
+        "p25": 2334,
+        "p75": 2335,
+        "iqr": 1,
+        "min": 2334,
+        "max": 2336
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.011212,
+        "median": 0.012745,
+        "p25": 0.010441,
+        "p75": 0.01275,
+        "iqr": 0.002309,
+        "min": 0.008137,
+        "max": 0.012755000000000002
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.011212,
+        "median": 0.012745,
+        "p25": 0.010441,
+        "p75": 0.01275,
+        "iqr": 0.002309,
+        "min": 0.008137,
+        "max": 0.012755000000000002
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 2334.67,
+        "median": 2334,
+        "p25": 2334,
+        "p75": 2335,
+        "iqr": 1,
+        "min": 2334,
+        "max": 2336
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 2334.67,
+        "median": 2334,
+        "p25": 2334,
+        "p75": 2335,
+        "iqr": 1,
+        "min": 2334,
+        "max": 2336
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 2335,
+      "wallMs": {
+        "n": 3,
+        "mean": 8658.67,
+        "median": 8045,
+        "p25": 7922.5,
+        "p75": 9088,
+        "iqr": 1165.5,
+        "min": 7800,
+        "max": 10131
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-glob-count",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 12957,
+        "median": 12955,
+        "p25": 12954.5,
+        "p75": 12958.5,
+        "iqr": 4,
+        "min": 12954,
+        "max": 12962
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.025029,
+        "median": 0.030006,
+        "p25": 0.022508,
+        "p75": 0.030039,
+        "iqr": 0.007531,
+        "min": 0.01501,
+        "max": 0.030071
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.025029,
+        "median": 0.030006,
+        "p25": 0.022508,
+        "p75": 0.030039,
+        "iqr": 0.007531,
+        "min": 0.01501,
+        "max": 0.030071
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 12957,
+        "median": 12955,
+        "p25": 12954.5,
+        "p75": 12958.5,
+        "iqr": 4,
+        "min": 12954,
+        "max": 12962
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 12957,
+        "median": 12955,
+        "p25": 12954.5,
+        "p75": 12958.5,
+        "iqr": 4,
+        "min": 12954,
+        "max": 12962
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 12957,
+      "wallMs": {
+        "n": 3,
+        "mean": 13328.33,
+        "median": 13387,
+        "p25": 13232.5,
+        "p75": 13453.5,
+        "iqr": 221,
+        "min": 13078,
+        "max": 13520
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3,
+        "median": 3,
+        "p25": 3,
+        "p75": 3,
+        "iqr": 0,
+        "min": 3,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "find": 3,
+        "bash": 3
+      }
+    },
+    {
+      "task": "code-guard",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 65579.67,
+        "median": 64430,
+        "p25": 62046,
+        "p75": 68538.5,
+        "iqr": 6492.5,
+        "min": 59662,
+        "max": 72647
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.185246,
+        "median": 0.20498,
+        "p25": 0.167642,
+        "p75": 0.212718,
+        "iqr": 0.045077,
+        "min": 0.130303,
+        "max": 0.22045600000000004
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.185246,
+        "median": 0.20498,
+        "p25": 0.167642,
+        "p75": 0.212718,
+        "iqr": 0.045077,
+        "min": 0.130303,
+        "max": 0.22045600000000004
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 65579.67,
+        "median": 64430,
+        "p25": 62046,
+        "p75": 68538.5,
+        "iqr": 6492.5,
+        "min": 59662,
+        "max": 72647
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 65579.67,
+        "median": 64430,
+        "p25": 62046,
+        "p75": 68538.5,
+        "iqr": 6492.5,
+        "min": 59662,
+        "max": 72647
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 65580,
+      "wallMs": {
+        "n": 3,
+        "mean": 45993.33,
+        "median": 49479,
+        "p25": 43712.5,
+        "p75": 50017,
+        "iqr": 6304.5,
+        "min": 37946,
+        "max": 50555
+      },
+      "turns": {
+        "n": 3,
+        "mean": 6.33,
+        "median": 6,
+        "p25": 6,
+        "p75": 6.5,
+        "iqr": 0.5,
+        "min": 6,
+        "max": 7
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 39040,
+      "toolCalls": {
+        "read": 6,
+        "edit": 3,
+        "write": 3,
+        "bash": 7,
+        "ls": 2
+      }
+    },
+    {
+      "task": "code-guard",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 65434.67,
+        "median": 65055,
+        "p25": 64887,
+        "p75": 65792.5,
+        "iqr": 905.5,
+        "min": 64719,
+        "max": 66530
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.170664,
+        "median": 0.183306,
+        "p25": 0.15617,
+        "p75": 0.19148,
+        "iqr": 0.03531,
+        "min": 0.129033,
+        "max": 0.199654
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.170664,
+        "median": 0.183306,
+        "p25": 0.15617,
+        "p75": 0.19148,
+        "iqr": 0.03531,
+        "min": 0.129033,
+        "max": 0.199654
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 65434.67,
+        "median": 65055,
+        "p25": 64887,
+        "p75": 65792.5,
+        "iqr": 905.5,
+        "min": 64719,
+        "max": 66530
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 65434.67,
+        "median": 65055,
+        "p25": 64887,
+        "p75": 65792.5,
+        "iqr": 905.5,
+        "min": 64719,
+        "max": 66530
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 65435,
+      "wallMs": {
+        "n": 3,
+        "mean": 37271.67,
+        "median": 32673,
+        "p25": 31311,
+        "p75": 40933,
+        "iqr": 9622,
+        "min": 29949,
+        "max": 49193
+      },
+      "turns": {
+        "n": 3,
+        "mean": 5.67,
+        "median": 5,
+        "p25": 5,
+        "p75": 6,
+        "iqr": 1,
+        "min": 5,
+        "max": 7
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 37632,
+      "toolCalls": {
+        "read": 6,
+        "ls": 1,
+        "edit": 3,
+        "write": 3,
+        "bash": 6
+      }
+    },
+    {
+      "task": "code-guard",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 66906.67,
+        "median": 60225,
+        "p25": 58479,
+        "p75": 71993.5,
+        "iqr": 13514.5,
+        "min": 56733,
+        "max": 83762
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.164831,
+        "median": 0.164403,
+        "p25": 0.142304,
+        "p75": 0.187145,
+        "iqr": 0.044841,
+        "min": 0.120204,
+        "max": 0.20988600000000004
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.164831,
+        "median": 0.164403,
+        "p25": 0.142304,
+        "p75": 0.187145,
+        "iqr": 0.044841,
+        "min": 0.120204,
+        "max": 0.20988600000000004
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 66906.67,
+        "median": 60225,
+        "p25": 58479,
+        "p75": 71993.5,
+        "iqr": 13514.5,
+        "min": 56733,
+        "max": 83762
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 66906.67,
+        "median": 60225,
+        "p25": 58479,
+        "p75": 71993.5,
+        "iqr": 13514.5,
+        "min": 56733,
+        "max": 83762
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 66907,
+      "wallMs": {
+        "n": 3,
+        "mean": 42699,
+        "median": 42301,
+        "p25": 39353,
+        "p75": 45846,
+        "iqr": 6493,
+        "min": 36405,
+        "max": 49391
+      },
+      "turns": {
+        "n": 3,
+        "mean": 6.33,
+        "median": 6,
+        "p25": 6,
+        "p75": 6.5,
+        "iqr": 0.5,
+        "min": 6,
+        "max": 7
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 44288,
+      "toolCalls": {
+        "read": 6,
+        "bash": 11,
+        "edit": 3,
+        "write": 3
+      }
+    },
+    {
+      "task": "code-guard",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 72310,
+        "median": 75548,
+        "p25": 70619,
+        "p75": 75620,
+        "iqr": 5001,
+        "min": 65690,
+        "max": 75692
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.182808,
+        "median": 0.146496,
+        "p25": 0.14527,
+        "p75": 0.20219,
+        "iqr": 0.05692,
+        "min": 0.144044,
+        "max": 0.257884
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.182808,
+        "median": 0.146496,
+        "p25": 0.14527,
+        "p75": 0.20219,
+        "iqr": 0.05692,
+        "min": 0.144044,
+        "max": 0.257884
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 72310,
+        "median": 75548,
+        "p25": 70619,
+        "p75": 75620,
+        "iqr": 5001,
+        "min": 65690,
+        "max": 75692
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 72310,
+        "median": 75548,
+        "p25": 70619,
+        "p75": 75620,
+        "iqr": 5001,
+        "min": 65690,
+        "max": 75692
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 72310,
+      "wallMs": {
+        "n": 3,
+        "mean": 49413.67,
+        "median": 47899,
+        "p25": 45525,
+        "p75": 52545,
+        "iqr": 7020,
+        "min": 43151,
+        "max": 57191
+      },
+      "turns": {
+        "n": 3,
+        "mean": 6,
+        "median": 6,
+        "p25": 6,
+        "p75": 6,
+        "iqr": 0,
+        "min": 6,
+        "max": 6
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 45312,
+      "toolCalls": {
+        "read": 6,
+        "edit": 3,
+        "write": 3,
+        "bash": 9,
+        "ls": 1
+      }
+    },
+    {
+      "task": "code-imports",
+      "family": "code",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 5157.67,
+        "median": 5831,
+        "p25": 4797.5,
+        "p75": 5854.5,
+        "iqr": 1057,
+        "min": 3764,
+        "max": 5878
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.026934,
+        "median": 0.028352,
+        "p25": 0.024356,
+        "p75": 0.030222,
+        "iqr": 0.005867,
+        "min": 0.020359000000000002,
+        "max": 0.032092
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.026934,
+        "median": 0.028352,
+        "p25": 0.024356,
+        "p75": 0.030222,
+        "iqr": 0.005867,
+        "min": 0.020359000000000002,
+        "max": 0.032092
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 5157.67,
+        "median": 5831,
+        "p25": 4797.5,
+        "p75": 5854.5,
+        "iqr": 1057,
+        "min": 3764,
+        "max": 5878
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 5157.67,
+        "median": 5831,
+        "p25": 4797.5,
+        "p75": 5854.5,
+        "iqr": 1057,
+        "min": 3764,
+        "max": 5878
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 5158,
+      "wallMs": {
+        "n": 3,
+        "mean": 20176.67,
+        "median": 19996,
+        "p25": 18259.5,
+        "p75": 22003.5,
+        "iqr": 3744,
+        "min": 16523,
+        "max": 24011
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2.67,
+        "median": 3,
+        "p25": 2.5,
+        "p75": 3,
+        "iqr": 0.5,
+        "min": 2,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 1664,
+      "toolCalls": {
+        "grep": 4,
+        "bash": 1
+      }
+    },
+    {
+      "task": "code-imports",
+      "family": "code",
+      "profile": "lean-code-hinted",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 6757,
+        "median": 8231,
+        "p25": 5963.5,
+        "p75": 8287.5,
+        "iqr": 2324,
+        "min": 3696,
+        "max": 8344
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.037239,
+        "median": 0.040957,
+        "p25": 0.032369,
+        "p75": 0.043969,
+        "iqr": 0.0116,
+        "min": 0.023780000000000003,
+        "max": 0.04698
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.037239,
+        "median": 0.040957,
+        "p25": 0.032369,
+        "p75": 0.043969,
+        "iqr": 0.0116,
+        "min": 0.023780000000000003,
+        "max": 0.04698
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 6757,
+        "median": 8231,
+        "p25": 5963.5,
+        "p75": 8287.5,
+        "iqr": 2324,
+        "min": 3696,
+        "max": 8344
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 6757,
+        "median": 8231,
+        "p25": 5963.5,
+        "p75": 8287.5,
+        "iqr": 2324,
+        "min": 3696,
+        "max": 8344
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 6757,
+      "wallMs": {
+        "n": 3,
+        "mean": 18125,
+        "median": 19694,
+        "p25": 17084.5,
+        "p75": 19950,
+        "iqr": 2865.5,
+        "min": 14475,
+        "max": 20206
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3.33,
+        "median": 4,
+        "p25": 3,
+        "p75": 4,
+        "iqr": 1,
+        "min": 2,
+        "max": 4
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "grep": 5,
+        "read": 2
+      }
+    },
+    {
+      "task": "code-imports",
+      "family": "code",
+      "profile": "pi-defaults",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 4619.33,
+        "median": 4616,
+        "p25": 4551.5,
+        "p75": 4685.5,
+        "iqr": 134,
+        "min": 4487,
+        "max": 4755
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.029486,
+        "median": 0.031655,
+        "p25": 0.027941,
+        "p75": 0.032115,
+        "iqr": 0.004174,
+        "min": 0.024227000000000005,
+        "max": 0.03257500000000001
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.029486,
+        "median": 0.031655,
+        "p25": 0.027941,
+        "p75": 0.032115,
+        "iqr": 0.004174,
+        "min": 0.024227000000000005,
+        "max": 0.03257500000000001
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 4619.33,
+        "median": 4616,
+        "p25": 4551.5,
+        "p75": 4685.5,
+        "iqr": 134,
+        "min": 4487,
+        "max": 4755
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 4619.33,
+        "median": 4616,
+        "p25": 4551.5,
+        "p75": 4685.5,
+        "iqr": 134,
+        "min": 4487,
+        "max": 4755
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 4619,
+      "wallMs": {
+        "n": 3,
+        "mean": 20021.67,
+        "median": 19017,
+        "p25": 18443,
+        "p75": 21098,
+        "iqr": 2655,
+        "min": 17869,
+        "max": 23179
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3,
+        "median": 3,
+        "p25": 3,
+        "p75": 3,
+        "iqr": 0,
+        "min": 3,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 6
+      }
+    },
+    {
+      "task": "code-imports",
+      "family": "code",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 24868.67,
+        "median": 24250,
+        "p25": 21792.5,
+        "p75": 27635.5,
+        "iqr": 5843,
+        "min": 19335,
+        "max": 31021
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.052742,
+        "median": 0.059445,
+        "p25": 0.048721,
+        "p75": 0.060114,
+        "iqr": 0.011393,
+        "min": 0.037997,
+        "max": 0.060783
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.052742,
+        "median": 0.059445,
+        "p25": 0.048721,
+        "p75": 0.060114,
+        "iqr": 0.011393,
+        "min": 0.037997,
+        "max": 0.060783
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 24868.67,
+        "median": 24250,
+        "p25": 21792.5,
+        "p75": 27635.5,
+        "iqr": 5843,
+        "min": 19335,
+        "max": 31021
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 24868.67,
+        "median": 24250,
+        "p25": 21792.5,
+        "p75": 27635.5,
+        "iqr": 5843,
+        "min": 19335,
+        "max": 31021
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 24869,
+      "wallMs": {
+        "n": 3,
+        "mean": 35727.67,
+        "median": 32579,
+        "p25": 32230,
+        "p75": 37651,
+        "iqr": 5421,
+        "min": 31881,
+        "max": 42723
+      },
+      "turns": {
+        "n": 3,
+        "mean": 5,
+        "median": 5,
+        "p25": 4.5,
+        "p75": 5.5,
+        "iqr": 1,
+        "min": 4,
+        "max": 6
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 16640,
+      "toolCalls": {
+        "grep": 4,
+        "bash": 7,
+        "read": 1
+      }
+    },
+    {
+      "task": "res-doc-phrase",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 1532.67,
+        "median": 1533,
+        "p25": 1532.5,
+        "p75": 1533,
+        "iqr": 0.5,
+        "min": 1532,
+        "max": 1533
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.007813,
+        "median": 0.007815,
+        "p25": 0.007813,
+        "p75": 0.007815,
+        "iqr": 0.000003,
+        "min": 0.00781,
+        "max": 0.007815
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.007813,
+        "median": 0.007815,
+        "p25": 0.007813,
+        "p75": 0.007815,
+        "iqr": 0.000003,
+        "min": 0.00781,
+        "max": 0.007815
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 1532.67,
+        "median": 1533,
+        "p25": 1532.5,
+        "p75": 1533,
+        "iqr": 0.5,
+        "min": 1532,
+        "max": 1533
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 1532.67,
+        "median": 1533,
+        "p25": 1532.5,
+        "p75": 1533,
+        "iqr": 0.5,
+        "min": 1532,
+        "max": 1533
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 1533,
+      "wallMs": {
+        "n": 3,
+        "mean": 5794.33,
+        "median": 5731,
+        "p25": 5720,
+        "p75": 5837,
+        "iqr": 117,
+        "min": 5709,
+        "max": 5943
+      },
+      "turns": {
+        "n": 3,
+        "mean": 1,
+        "median": 1,
+        "p25": 1,
+        "p75": 1,
+        "iqr": 0,
+        "min": 1,
+        "max": 1
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 3,
+        "warm": 0
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {}
+    },
+    {
+      "task": "res-doc-phrase",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 4287,
+        "median": 4280,
+        "p25": 4272.5,
+        "p75": 4298,
+        "iqr": 25.5,
+        "min": 4265,
+        "max": 4316
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.009864,
+        "median": 0.004598,
+        "p25": 0.004058,
+        "p75": 0.013037,
+        "iqr": 0.008979,
+        "min": 0.003518,
+        "max": 0.021475
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.009864,
+        "median": 0.004598,
+        "p25": 0.004058,
+        "p75": 0.013037,
+        "iqr": 0.008979,
+        "min": 0.003518,
+        "max": 0.021475
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 4287,
+        "median": 4280,
+        "p25": 4272.5,
+        "p75": 4298,
+        "iqr": 25.5,
+        "min": 4265,
+        "max": 4316
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 4287,
+        "median": 4280,
+        "p25": 4272.5,
+        "p75": 4298,
+        "iqr": 25.5,
+        "min": 4265,
+        "max": 4316
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 4287,
+      "wallMs": {
+        "n": 3,
+        "mean": 6999,
+        "median": 6576,
+        "p25": 6550.5,
+        "p75": 7236,
+        "iqr": 685.5,
+        "min": 6525,
+        "max": 7896
+      },
+      "turns": {
+        "n": 3,
+        "mean": 1,
+        "median": 1,
+        "p25": 1,
+        "p75": 1,
+        "iqr": 0,
+        "min": 1,
+        "max": 1
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 1,
+        "warm": 2
+      },
+      "cacheReadMedian": 4096,
+      "toolCalls": {}
+    },
+    {
+      "task": "res-first-version-with-dep",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 7001.67,
+        "median": 7606,
+        "p25": 6682,
+        "p75": 7623.5,
+        "iqr": 941.5,
+        "min": 5758,
+        "max": 7641
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.030932,
+        "median": 0.032085,
+        "p25": 0.028089,
+        "p75": 0.034352,
+        "iqr": 0.006263,
+        "min": 0.024092000000000002,
+        "max": 0.036619
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.030932,
+        "median": 0.032085,
+        "p25": 0.028089,
+        "p75": 0.034352,
+        "iqr": 0.006263,
+        "min": 0.024092000000000002,
+        "max": 0.036619
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 7001.67,
+        "median": 7606,
+        "p25": 6682,
+        "p75": 7623.5,
+        "iqr": 941.5,
+        "min": 5758,
+        "max": 7641
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 7001.67,
+        "median": 7606,
+        "p25": 6682,
+        "p75": 7623.5,
+        "iqr": 941.5,
+        "min": 5758,
+        "max": 7641
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 7002,
+      "wallMs": {
+        "n": 3,
+        "mean": 17869,
+        "median": 19400,
+        "p25": 16865,
+        "p75": 19638.5,
+        "iqr": 2773.5,
+        "min": 14330,
+        "max": 19877
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3,
+        "median": 3,
+        "p25": 3,
+        "p75": 3,
+        "iqr": 0,
+        "min": 3,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 2560,
+      "toolCalls": {
+        "bash": 6
+      }
+    },
+    {
+      "task": "res-first-version-with-dep",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 36508,
+        "median": 36646,
+        "p25": 25300.5,
+        "p75": 47784.5,
+        "iqr": 22484,
+        "min": 13955,
+        "max": 58923
+      },
+      "cost": null,
+      "costUnpriced": 1,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.07283,
+        "median": 0.0847,
+        "p25": 0.054391,
+        "p75": 0.097203,
+        "iqr": 0.042812,
+        "min": 0.024083,
+        "max": 0.10970600000000003
+      },
+      "costUnknownReasons": [
+        "unmeasured nested spend (no-network-observed)"
+      ],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 36508,
+        "median": 36646,
+        "p25": 25300.5,
+        "p75": 47784.5,
+        "iqr": 22484,
+        "min": 13955,
+        "max": 58923
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 36508,
+        "median": 36646,
+        "p25": 25300.5,
+        "p75": 47784.5,
+        "iqr": 22484,
+        "min": 13955,
+        "max": 58923
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 1,
+      "spendPerSuccess": 36508,
+      "wallMs": {
+        "n": 3,
+        "mean": 18973,
+        "median": 18139,
+        "p25": 17029,
+        "p75": 20500,
+        "iqr": 3471,
+        "min": 15919,
+        "max": 22861
+      },
+      "turns": {
+        "n": 3,
+        "mean": 3.33,
+        "median": 3,
+        "p25": 3,
+        "p75": 3.5,
+        "iqr": 0.5,
+        "min": 3,
+        "max": 4
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 23040,
+      "toolCalls": {
+        "fetch_content": 2,
+        "bash": 4,
+        "get_search_content": 1
+      }
+    },
+    {
+      "task": "res-npm-latest",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3136,
+        "median": 3136,
+        "p25": 3133,
+        "p75": 3139,
+        "iqr": 6,
+        "min": 3130,
+        "max": 3142
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.01491,
+        "median": 0.01703,
+        "p25": 0.013797,
+        "p75": 0.017083,
+        "iqr": 0.003286,
+        "min": 0.010564,
+        "max": 0.017134999999999997
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.01491,
+        "median": 0.01703,
+        "p25": 0.013797,
+        "p75": 0.017083,
+        "iqr": 0.003286,
+        "min": 0.010564,
+        "max": 0.017134999999999997
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3136,
+        "median": 3136,
+        "p25": 3133,
+        "p75": 3139,
+        "iqr": 6,
+        "min": 3130,
+        "max": 3142
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3136,
+        "median": 3136,
+        "p25": 3133,
+        "p75": 3139,
+        "iqr": 6,
+        "min": 3130,
+        "max": 3142
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3136,
+      "wallMs": {
+        "n": 3,
+        "mean": 10169.67,
+        "median": 10748,
+        "p25": 9805,
+        "p75": 10823.5,
+        "iqr": 1018.5,
+        "min": 8862,
+        "max": 10899
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "res-npm-latest",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 16369,
+        "median": 20238,
+        "p25": 14416.5,
+        "p75": 20256,
+        "iqr": 5839.5,
+        "min": 8595,
+        "max": 20274
+      },
+      "cost": null,
+      "costUnpriced": 1,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.047358,
+        "median": 0.065301,
+        "p25": 0.036356,
+        "p75": 0.067332,
+        "iqr": 0.030976,
+        "min": 0.007411000000000001,
+        "max": 0.06936200000000001
+      },
+      "costUnknownReasons": [
+        "unmeasured nested spend (websocket-transport-unobservable)"
+      ],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 16369,
+        "median": 20238,
+        "p25": 14416.5,
+        "p75": 20256,
+        "iqr": 5839.5,
+        "min": 8595,
+        "max": 20274
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 16369,
+        "median": 20238,
+        "p25": 14416.5,
+        "p75": 20256,
+        "iqr": 5839.5,
+        "min": 8595,
+        "max": 20274
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 1,
+      "spendPerSuccess": 16369,
+      "wallMs": {
+        "n": 3,
+        "mean": 10389.67,
+        "median": 10638,
+        "p25": 9392,
+        "p75": 11511.5,
+        "iqr": 2119.5,
+        "min": 8146,
+        "max": 12385
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "fetch_content": 3
+      }
+    },
+    {
+      "task": "res-npm-pinned-license",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 2640.67,
+        "median": 3147,
+        "p25": 2360.5,
+        "p75": 3174,
+        "iqr": 813.5,
+        "min": 1574,
+        "max": 3201
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.015137,
+        "median": 0.01741,
+        "p25": 0.01354,
+        "p75": 0.01787,
+        "iqr": 0.00433,
+        "min": 0.00967,
+        "max": 0.018330000000000003
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.015137,
+        "median": 0.01741,
+        "p25": 0.01354,
+        "p75": 0.01787,
+        "iqr": 0.00433,
+        "min": 0.00967,
+        "max": 0.018330000000000003
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 2640.67,
+        "median": 3147,
+        "p25": 2360.5,
+        "p75": 3174,
+        "iqr": 813.5,
+        "min": 1574,
+        "max": 3201
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 2640.67,
+        "median": 3147,
+        "p25": 2360.5,
+        "p75": 3174,
+        "iqr": 813.5,
+        "min": 1574,
+        "max": 3201
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 2641,
+      "wallMs": {
+        "n": 3,
+        "mean": 9760.33,
+        "median": 9896,
+        "p25": 9174,
+        "p75": 10414.5,
+        "iqr": 1240.5,
+        "min": 8452,
+        "max": 10933
+      },
+      "turns": {
+        "n": 3,
+        "mean": 1.67,
+        "median": 2,
+        "p25": 1.5,
+        "p75": 2,
+        "iqr": 0.5,
+        "min": 1,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 3,
+        "warm": 0
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 2
+      }
+    },
+    {
+      "task": "res-npm-pinned-license",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 8619,
+        "median": 8607,
+        "p25": 8603,
+        "p75": 8629,
+        "iqr": 26,
+        "min": 8599,
+        "max": 8651
+      },
+      "cost": null,
+      "costUnpriced": 1,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.01415,
+        "median": 0.008591,
+        "p25": 0.008124,
+        "p75": 0.017397,
+        "iqr": 0.009274,
+        "min": 0.0076560000000000005,
+        "max": 0.026203
+      },
+      "costUnknownReasons": [
+        "unmeasured nested spend (websocket-transport-unobservable)"
+      ],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 8619,
+        "median": 8607,
+        "p25": 8603,
+        "p75": 8629,
+        "iqr": 26,
+        "min": 8599,
+        "max": 8651
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 8619,
+        "median": 8607,
+        "p25": 8603,
+        "p75": 8629,
+        "iqr": 26,
+        "min": 8599,
+        "max": 8651
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 1,
+      "spendPerSuccess": 8619,
+      "wallMs": {
+        "n": 3,
+        "mean": 10964.33,
+        "median": 11023,
+        "p25": 10100,
+        "p75": 11858,
+        "iqr": 1758,
+        "min": 9177,
+        "max": 12693
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 8192,
+      "toolCalls": {
+        "bash": 2,
+        "fetch_content": 1
+      }
+    },
+    {
+      "task": "res-npm-pinned-shasum",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3197.33,
+        "median": 3196,
+        "p25": 3196,
+        "p75": 3198,
+        "iqr": 2,
+        "min": 3196,
+        "max": 3200
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.0158,
+        "median": 0.017905,
+        "p25": 0.014737,
+        "p75": 0.017915,
+        "iqr": 0.003178,
+        "min": 0.011569000000000001,
+        "max": 0.017925000000000003
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.0158,
+        "median": 0.017905,
+        "p25": 0.014737,
+        "p75": 0.017915,
+        "iqr": 0.003178,
+        "min": 0.011569000000000001,
+        "max": 0.017925000000000003
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3197.33,
+        "median": 3196,
+        "p25": 3196,
+        "p75": 3198,
+        "iqr": 2,
+        "min": 3196,
+        "max": 3200
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3197.33,
+        "median": 3196,
+        "p25": 3196,
+        "p75": 3198,
+        "iqr": 2,
+        "min": 3196,
+        "max": 3200
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3197,
+      "wallMs": {
+        "n": 3,
+        "mean": 11013.33,
+        "median": 10441,
+        "p25": 10208,
+        "p75": 11532.5,
+        "iqr": 1324.5,
+        "min": 9975,
+        "max": 12624
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "res-npm-pinned-shasum",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 9494,
+        "median": 9494,
+        "p25": 9493,
+        "p75": 9495,
+        "iqr": 2,
+        "min": 9492,
+        "max": 9496
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.024894,
+        "median": 0.031003,
+        "p25": 0.021805,
+        "p75": 0.031038,
+        "iqr": 0.009233,
+        "min": 0.012606000000000001,
+        "max": 0.031073000000000003
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.024894,
+        "median": 0.031003,
+        "p25": 0.021805,
+        "p75": 0.031038,
+        "iqr": 0.009233,
+        "min": 0.012606000000000001,
+        "max": 0.031073000000000003
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 9494,
+        "median": 9494,
+        "p25": 9493,
+        "p75": 9495,
+        "iqr": 2,
+        "min": 9492,
+        "max": 9496
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 9494,
+        "median": 9494,
+        "p25": 9493,
+        "p75": 9495,
+        "iqr": 2,
+        "min": 9492,
+        "max": 9496
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 9494,
+      "wallMs": {
+        "n": 3,
+        "mean": 12569.33,
+        "median": 10394,
+        "p25": 10052,
+        "p75": 13999,
+        "iqr": 3947,
+        "min": 9710,
+        "max": 17604
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 4096,
+      "toolCalls": {
+        "fetch_content": 3
+      }
+    },
+    {
+      "task": "res-npm-version-count",
+      "family": "research",
+      "profile": "lean-code",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 3184.67,
+        "median": 3196,
+        "p25": 3175,
+        "p75": 3200,
+        "iqr": 25,
+        "min": 3154,
+        "max": 3204
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.015786,
+        "median": 0.018105,
+        "p25": 0.014557,
+        "p75": 0.018175,
+        "iqr": 0.003618,
+        "min": 0.011009,
+        "max": 0.018245000000000004
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.015786,
+        "median": 0.018105,
+        "p25": 0.014557,
+        "p75": 0.018175,
+        "iqr": 0.003618,
+        "min": 0.011009,
+        "max": 0.018245000000000004
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 3184.67,
+        "median": 3196,
+        "p25": 3175,
+        "p75": 3200,
+        "iqr": 25,
+        "min": 3154,
+        "max": 3204
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 3184.67,
+        "median": 3196,
+        "p25": 3175,
+        "p75": 3200,
+        "iqr": 25,
+        "min": 3154,
+        "max": 3204
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 3185,
+      "wallMs": {
+        "n": 3,
+        "mean": 10463,
+        "median": 10776,
+        "p25": 9626.5,
+        "p75": 11456,
+        "iqr": 1829.5,
+        "min": 8477,
+        "max": 12136
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2,
+        "median": 2,
+        "p25": 2,
+        "p75": 2,
+        "iqr": 0,
+        "min": 2,
+        "max": 2
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 2,
+        "warm": 1
+      },
+      "cacheReadMedian": 0,
+      "toolCalls": {
+        "bash": 3
+      }
+    },
+    {
+      "task": "res-npm-version-count",
+      "family": "research",
+      "profile": "research",
+      "n": 3,
+      "decided": 3,
+      "successes": 3,
+      "successRate": 1,
+      "states": {
+        "ok": 3
+      },
+      "spend": {
+        "n": 3,
+        "mean": 30904.67,
+        "median": 42036,
+        "p25": 25337,
+        "p75": 42038,
+        "iqr": 16701,
+        "min": 8638,
+        "max": 42040
+      },
+      "cost": {
+        "n": 3,
+        "mean": 0.065131,
+        "median": 0.091845,
+        "p25": 0.05001,
+        "p75": 0.093608,
+        "iqr": 0.043598,
+        "min": 0.008176,
+        "max": 0.095371
+      },
+      "costUnpriced": 0,
+      "observedCost": {
+        "n": 3,
+        "mean": 0.065131,
+        "median": 0.091845,
+        "p25": 0.05001,
+        "p75": 0.093608,
+        "iqr": 0.043598,
+        "min": 0.008176,
+        "max": 0.095371
+      },
+      "costUnknownReasons": [],
+      "spendOnSuccess": {
+        "n": 3,
+        "mean": 30904.67,
+        "median": 42036,
+        "p25": 25337,
+        "p75": 42038,
+        "iqr": 16701,
+        "min": 8638,
+        "max": 42040
+      },
+      "ownTokens": {
+        "n": 3,
+        "mean": 30904.67,
+        "median": 42036,
+        "p25": 25337,
+        "p75": 42038,
+        "iqr": 16701,
+        "min": 8638,
+        "max": 42040
+      },
+      "nestedTokens": {
+        "n": 3,
+        "mean": 0,
+        "median": 0,
+        "p25": 0,
+        "p75": 0,
+        "iqr": 0,
+        "min": 0,
+        "max": 0
+      },
+      "nestedUnknown": 0,
+      "spendPerSuccess": 30905,
+      "wallMs": {
+        "n": 3,
+        "mean": 13765,
+        "median": 15716,
+        "p25": 12600,
+        "p75": 15905.5,
+        "iqr": 3305.5,
+        "min": 9484,
+        "max": 16095
+      },
+      "turns": {
+        "n": 3,
+        "mean": 2.67,
+        "median": 3,
+        "p25": 2.5,
+        "p75": 3,
+        "iqr": 0.5,
+        "min": 2,
+        "max": 3
+      },
+      "retries": 0,
+      "cache": {
+        "cold": 0,
+        "warm": 3
+      },
+      "cacheReadMedian": 26112,
+      "toolCalls": {
+        "fetch_content": 2,
+        "bash": 3
+      }
+    }
+  ],
+  "byFamily": [
+    {
+      "family": "code",
+      "profiles": [
+        "lean-code",
+        "lean-code-hinted",
+        "pi-defaults",
+        "research"
+      ],
+      "tasks": [
+        "code-bugfix",
+        "code-callsites",
+        "code-define-large",
+        "code-define-small",
+        "code-exports",
+        "code-glob-count",
+        "code-guard",
+        "code-imports"
+      ],
+      "shared": [
+        "code-bugfix",
+        "code-callsites",
+        "code-define-large",
+        "code-define-small",
+        "code-exports",
+        "code-glob-count",
+        "code-guard",
+        "code-imports"
+      ],
+      "excluded": [],
+      "rows": [
+        {
+          "profile": "lean-code",
+          "sharedTasks": 8,
+          "decided": 24,
+          "successes": 24,
+          "perTaskSuccess": {
+            "code-bugfix": "3/3",
+            "code-callsites": "3/3",
+            "code-define-large": "3/3",
+            "code-define-small": "3/3",
+            "code-exports": "3/3",
+            "code-glob-count": "3/3",
+            "code-guard": "3/3",
+            "code-imports": "3/3"
+          },
+          "medianOfTaskMedians": 5297,
+          "totalCost": 0.42299,
+          "totalObservedCost": 0.42299,
+          "totalOfTaskMedians": 126231,
+          "nestedUnknown": 0,
+          "retries": 0,
+          "wallMedian": 10882.5,
+          "cache": {
+            "cold": 7,
+            "warm": 17
+          },
+          "toolCalls": {
+            "bash": 19,
+            "grep": 16,
+            "read": 12,
+            "edit": 6,
+            "find": 3,
+            "write": 3,
+            "ls": 2
+          }
+        },
+        {
+          "profile": "lean-code-hinted",
+          "sharedTasks": 8,
+          "decided": 24,
+          "successes": 24,
+          "perTaskSuccess": {
+            "code-bugfix": "3/3",
+            "code-callsites": "3/3",
+            "code-define-large": "3/3",
+            "code-define-small": "3/3",
+            "code-exports": "3/3",
+            "code-glob-count": "3/3",
+            "code-guard": "3/3",
+            "code-imports": "3/3"
+          },
+          "medianOfTaskMedians": 5434,
+          "totalCost": 0.45855,
+          "totalObservedCost": 0.45855,
+          "totalOfTaskMedians": 156760,
+          "nestedUnknown": 0,
+          "retries": 0,
+          "wallMedian": 13055.5,
+          "cache": {
+            "cold": 9,
+            "warm": 15
+          },
+          "toolCalls": {
+            "bash": 19,
+            "grep": 17,
+            "find": 5,
+            "ls": 3,
+            "read": 14,
+            "edit": 6,
+            "write": 3
+          }
+        },
+        {
+          "profile": "pi-defaults",
+          "sharedTasks": 8,
+          "decided": 24,
+          "successes": 24,
+          "perTaskSuccess": {
+            "code-bugfix": "3/3",
+            "code-callsites": "3/3",
+            "code-define-large": "3/3",
+            "code-define-small": "3/3",
+            "code-exports": "3/3",
+            "code-glob-count": "3/3",
+            "code-guard": "3/3",
+            "code-imports": "3/3"
+          },
+          "medianOfTaskMedians": 3731,
+          "totalCost": 0.372496,
+          "totalObservedCost": 0.372496,
+          "totalOfTaskMedians": 121962,
+          "nestedUnknown": 0,
+          "retries": 0,
+          "wallMedian": 10775,
+          "cache": {
+            "cold": 14,
+            "warm": 10
+          },
+          "toolCalls": {
+            "bash": 44,
+            "read": 14,
+            "edit": 6,
+            "write": 3
+          }
+        },
+        {
+          "profile": "research",
+          "sharedTasks": 8,
+          "decided": 24,
+          "successes": 24,
+          "perTaskSuccess": {
+            "code-bugfix": "3/3",
+            "code-callsites": "3/3",
+            "code-define-large": "3/3",
+            "code-define-small": "3/3",
+            "code-exports": "3/3",
+            "code-glob-count": "3/3",
+            "code-guard": "3/3",
+            "code-imports": "3/3"
+          },
+          "medianOfTaskMedians": 12209,
+          "totalCost": 0.398122,
+          "totalObservedCost": 0.398122,
+          "totalOfTaskMedians": 202531,
+          "nestedUnknown": 0,
+          "retries": 0,
+          "wallMedian": 12712,
+          "cache": {
+            "cold": 0,
+            "warm": 24
+          },
+          "toolCalls": {
+            "bash": 28,
+            "grep": 15,
+            "read": 13,
+            "edit": 6,
+            "find": 5,
+            "write": 3,
+            "ls": 1
+          }
+        }
+      ]
+    },
+    {
+      "family": "research",
+      "profiles": [
+        "lean-code",
+        "research"
+      ],
+      "tasks": [
+        "res-doc-phrase",
+        "res-first-version-with-dep",
+        "res-npm-latest",
+        "res-npm-pinned-license",
+        "res-npm-pinned-shasum",
+        "res-npm-version-count"
+      ],
+      "shared": [
+        "res-doc-phrase",
+        "res-first-version-with-dep",
+        "res-npm-latest",
+        "res-npm-pinned-license",
+        "res-npm-pinned-shasum",
+        "res-npm-version-count"
+      ],
+      "excluded": [],
+      "rows": [
+        {
+          "profile": "lean-code",
+          "sharedTasks": 6,
+          "decided": 18,
+          "successes": 18,
+          "perTaskSuccess": {
+            "res-doc-phrase": "3/3",
+            "res-first-version-with-dep": "3/3",
+            "res-npm-latest": "3/3",
+            "res-npm-pinned-license": "3/3",
+            "res-npm-pinned-shasum": "3/3",
+            "res-npm-version-count": "3/3"
+          },
+          "medianOfTaskMedians": 3171.5,
+          "totalCost": 0.11035,
+          "totalObservedCost": 0.11035,
+          "totalOfTaskMedians": 21814,
+          "nestedUnknown": 0,
+          "retries": 0,
+          "wallMedian": 10594.5,
+          "cache": {
+            "cold": 12,
+            "warm": 6
+          },
+          "toolCalls": {
+            "bash": 17
+          }
+        },
+        {
+          "profile": "research",
+          "sharedTasks": 6,
+          "decided": 18,
+          "successes": 18,
+          "perTaskSuccess": {
+            "res-doc-phrase": "3/3",
+            "res-first-version-with-dep": "3/3",
+            "res-npm-latest": "3/3",
+            "res-npm-pinned-license": "3/3",
+            "res-npm-pinned-shasum": "3/3",
+            "res-npm-version-count": "3/3"
+          },
+          "medianOfTaskMedians": 14866,
+          "totalCost": null,
+          "totalObservedCost": 0.286038,
+          "totalOfTaskMedians": 121301,
+          "nestedUnknown": 3,
+          "retries": 0,
+          "wallMedian": 10830.5,
+          "cache": {
+            "cold": 1,
+            "warm": 17
+          },
+          "toolCalls": {
+            "fetch_content": 11,
+            "bash": 9,
+            "get_search_content": 1
+          }
+        }
+      ]
+    }
+  ],
+  "integrity": {
+    "duplicates": [],
+    "missing": [],
+    "records": 132
+  }
+}
