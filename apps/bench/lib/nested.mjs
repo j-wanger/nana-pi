@@ -16,6 +16,13 @@
 //      one; it must report the measured tokens AND unknown:true.
 //   5. SILENCE IS NOT ZERO — a watched tool that ran while we saw no network at all is unknown,
 //      not free. A cache hit and a transport we cannot observe are indistinguishable here.
+//   6. PARTIAL COVERAGE IS NOT COVERAGE — a window can contain one path we measured and another we
+//      structurally cannot see, and it must then report BOTH the tokens and unknown. Concretely:
+//      pi's Codex API speaks over a WEBSOCKET (`pi-ai/dist/api/openai-codex-responses.js` has 95
+//      WebSocket references and zero `fetch(` calls), so anything routed through pi-ai's
+//      `complete`/`completeSimple` — pi-web-access's summary step, for one — never reaches a fetch
+//      wrapper, while that extension's own hand-rolled HTTP search request does. Measuring the
+//      second and reporting the first as nothing is the failure mode this guards.
 
 /** A pi-ai `Usage` with the token fields zeroed — pi's public field names, deliberately. */
 export const ZERO = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 });
@@ -101,8 +108,10 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 	let unknown = false;
 	let unknownReason = null;
 	let skipped = 0; // LLM requests seen OUTSIDE a tool window — i.e. pi's own model calls
-	let observed = 0; // ALL requests seen inside a window, LLM-shaped or not
+	let observed = 0; // ALL requests seen inside the OPEN window, LLM-shaped or not
+	let observedFinal = 0; // what the window that just closed had seen — what the snapshot reports
 	const models = new Set();
+	const unobservedPaths = new Set(); // model work the tool reported that we could not measure
 
 	// An empty watch list means "watch every tool"; open and close must agree on this.
 	const isWatched = (toolName) => watched.size === 0 || watched.has(toolName);
@@ -117,7 +126,16 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 		unknown = false;
 		unknownReason = null;
 		observed = 0;
+		observedFinal = 0;
 		models.clear();
+		unobservedPaths.clear();
+	};
+	// Window-scoped state must clear at every window CLOSE, not only when a snapshot is emitted:
+	// a window that produced no snapshot (only non-LLM traffic) used to leave `observed` set, so
+	// the NEXT window looked observed and its silence went unflagged.
+	const endWindow = () => {
+		observedFinal = observed;
+		observed = 0;
 	};
 
 	return {
@@ -141,8 +159,48 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 			// was free: a cache hit and a transport we cannot see look identical from here, and
 			// "unmeasured" must never be reported as zero. Observed in the wild — one of two
 			// pi-web-access searches returned an LLM-style summary with no intercepted request.
-			if (depth === 0 && observed === 0) markUnknown("no-network-observed");
+			if (depth === 0) {
+				if (observed === 0) markUnknown("no-network-observed");
+				endWindow();
+			}
 			return depth;
+		},
+		/**
+		 * A model call we can SEE happening but cannot measure — e.g. pi's Codex WebSocket
+		 * transport, which no fetch wrapper can observe. Counts as observed traffic (so the
+		 * silence rule does not also fire) and marks the window unknown.
+		 */
+		noteUnobservable(kind = "unobservable-transport") {
+			if (depth === 0) return false;
+			observed++;
+			markUnknown(kind);
+			return true;
+		},
+		/**
+		 * Read the tool's OWN report of what it did. pi-web-access records each phase it ran as
+		 * `{phase, model, fallbackUsed}` somewhere in its details; a phase that names a model we
+		 * never measured is spend we missed. This is what catches a measured search sitting beside
+		 * an unmeasured summary in the same window — where the silence rule cannot help, because
+		 * the window was not silent.
+		 */
+		notePaths(details) {
+			const found = [];
+			const seen = new Set();
+			const walk = (o, depthLeft) => {
+				if (!o || typeof o !== "object" || depthLeft < 0 || seen.has(o)) return;
+				seen.add(o);
+				if (typeof o.phase === "string" && typeof o.model === "string" && o.fallbackUsed !== true) {
+					const id = o.model.includes("/") ? o.model.slice(o.model.indexOf("/") + 1) : o.model;
+					if (!models.has(id) && !models.has(o.model)) found.push({ phase: o.phase, model: o.model });
+				}
+				for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depthLeft - 1);
+			};
+			walk(details, 6);
+			for (const f of found) {
+				unobservedPaths.add(`${f.phase}:${f.model}`);
+				markUnknown(`unobserved-path:${f.phase}`);
+			}
+			return found;
 		},
 		/**
 		 * Register an intercepted request. Returns null when it must NOT be counted — outside a
@@ -194,7 +252,10 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 		 * nothing to report — no measured call AND nothing unknown.
 		 */
 		snapshot(toolName = null) {
-			if (calls === 0 && !unknown) return null;
+			if (calls === 0 && !unknown) {
+				endWindow();
+				return null;
+			}
 			const out = {
 				// cost is left at zero here on purpose: the sidecar cannot know the nested model's
 				// rates. lib/usage.mjs prices it afterwards with pi's calculateCost, or records
@@ -205,10 +266,13 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 					models: [...models],
 					unknown, // independent of whether some usage was measured
 					unknownReason,
-					observedRequests: observed, // ALL network seen in the window, LLM or not
+					observedRequests: observedFinal || observed, // ALL network seen in the window, LLM or not
+					// Model work the tool SAID it did that we could not measure. Non-empty means
+					// the token figure for this window is a lower bound, not a total.
+					unobservedPaths: [...unobservedPaths],
 					attributedTo: toolName,
 					skippedOwnCalls: skipped,
-					note: "measured at the fetch boundary by apps/bench/ext/bench-nested-usage.ts while a watched tool was executing; per-tool attribution is approximate under parallel tool calls, the run total is exact",
+					note: "OBSERVED spend, measured at the fetch boundary by apps/bench/ext/bench-nested-usage.ts while a watched tool was executing. Per-tool attribution is approximate under parallel tool calls; a run total is exact only when unknown is false and unobservedPaths is empty.",
 				},
 			};
 			reset();

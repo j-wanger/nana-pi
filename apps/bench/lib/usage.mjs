@@ -26,7 +26,7 @@
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const ZERO_COST = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 });
 /** An empty pi-ai `Usage`. Same field names as pi's public type, deliberately. */
-export const emptyUsage = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: ZERO_COST() });
+export const emptyUsage = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cacheWrite1h: 0, reasoning: 0, totalTokens: 0, cost: ZERO_COST() });
 
 /**
  * Field-wise sum of pi-ai `Usage` objects. OURS, because pi exports no summing helper — the one
@@ -39,6 +39,10 @@ export function addUsage(acc, usage) {
 	acc.output += num(usage.output);
 	acc.cacheRead += num(usage.cacheRead);
 	acc.cacheWrite += num(usage.cacheWrite);
+	// Optional public fields (docs: `Usage.cacheWrite1h` is the 1h-retention subset of cacheWrite;
+	// `reasoning` is a subset of output). Carried so nothing pi reports is dropped on the floor.
+	acc.cacheWrite1h = num(acc.cacheWrite1h) + num(usage.cacheWrite1h);
+	acc.reasoning = num(acc.reasoning) + num(usage.reasoning);
 	acc.totalTokens += num(usage.totalTokens);
 	for (const k of ["input", "output", "cacheRead", "cacheWrite", "total"]) acc.cost[k] += num(usage.cost?.[k]);
 	return true;
@@ -48,6 +52,23 @@ export function addUsage(acc, usage) {
 export const totalTokens = (u) => num(u?.totalTokens);
 /** pi's own cost total, summed. `null` when nothing priced it, never a guessed 0. */
 export const costTotal = (u) => num(u?.cost?.total);
+
+/**
+ * THE one cost helper. Both the runner and the aggregator call this, so they cannot disagree about
+ * what a record cost — they used to: the runner wrote a numeric `cost` of 0 for an unpriceable
+ * nested call, and the aggregator trusted that number and reported money for a record the runner
+ * itself considered unpriced.
+ *
+ * Returns `null` when ANY part of the run went unpriced. A number means the whole run is priced —
+ * never a total that quietly omits a piece.
+ */
+export function costOfRecord(r) {
+	if (!r) return null;
+	if (r.cost === null) return null; // the writer already said it could not price this
+	if (totalTokens(r.nestedTokens) > 0 && r.nestedCost == null) return null;
+	if (typeof r.cost === "number") return r.cost;
+	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
+}
 
 const textOf = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c?.type === "text" && typeof c.text === "string").map((c) => c.text).join("") : "");
 const toolCallsOf = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c?.type === "toolCall") : []);
@@ -66,6 +87,9 @@ export function parseStream(text, { pricer = null } = {}) {
 	const extensionErrors = [];
 	const retryEvents = [];
 	const nestedModels = new Set();
+	// Nested usage kept PER MODEL, because pricing is per model: pooling it and pricing the pool
+	// with whichever model happened to be first is wrong the moment a tool uses two.
+	const nestedByModel = new Map();
 	let turns = 0;
 	let badLines = 0;
 	let agentEnded = 0;
@@ -139,6 +163,12 @@ export function parseStream(text, { pricer = null } = {}) {
 					if (addUsage(nested, m.usage)) {
 						nestedMessages++;
 						nestedCalls += num(bn?.calls) || 1;
+						const seen = (bn?.models ?? []).filter(Boolean);
+						// One model named: that bucket. Several (or none): a bucket we refuse to
+						// price, because we cannot say which rates apply to which tokens.
+						const key = seen.length === 1 ? seen[0] : seen.length > 1 ? `ambiguous(${seen.join("+")})` : "unknown-model";
+						if (!nestedByModel.has(key)) nestedByModel.set(key, emptyUsage());
+						addUsage(nestedByModel.get(key), m.usage);
 					}
 					// `unknown` is INDEPENDENT of whether some usage was also measured: one window
 					// can hold a measured call and an unmeasurable one.
@@ -161,19 +191,35 @@ export function parseStream(text, { pricer = null } = {}) {
 		}
 	}
 
-	// The sidecar cannot price the nested model, so it reports zero cost. Price it here with pi's
-	// own calculateCost; without a pricer or a known model, cost stays null WITH a reason.
+	// The sidecar cannot price the nested model, so it reports zero cost. Price each MODEL bucket
+	// here with pi's own calculateCost and sum. Any bucket we cannot price makes the whole nested
+	// cost null WITH a reason — a partial total would understate C's spend, which is the one number
+	// this study must not get wrong.
 	let nestedCost = nested.cost;
 	let nestedCostReason = null;
+	const nestedCostByModel = {};
 	if (nested.totalTokens > 0 && nested.cost.total === 0) {
-		const model = [...nestedModels][0] ?? null;
 		if (!pricer) {
 			nestedCost = null;
 			nestedCostReason = "no pricer supplied (pi's calculateCost was not loaded)";
 		} else {
-			const priced = pricer(nested, { model, provider: ownProvider });
-			nestedCost = priced.cost;
-			nestedCostReason = priced.reason;
+			const summed = ZERO_COST();
+			const unpriced = [];
+			for (const [key, bucket] of nestedByModel) {
+				const slash = key.indexOf("/");
+				const provider = slash > 0 ? key.slice(0, slash) : ownProvider;
+				const model = key.startsWith("ambiguous(") || key === "unknown-model" ? null : slash > 0 ? key.slice(slash + 1) : key;
+				const priced = model ? pricer(bucket, { model, provider }) : { cost: null, reason: `cannot attribute ${bucket.totalTokens} tokens to one model (${key})` };
+				nestedCostByModel[key] = priced.cost ? priced.cost.total : null;
+				if (!priced.cost) unpriced.push(`${key}: ${priced.reason}`);
+				else for (const k of ["input", "output", "cacheRead", "cacheWrite", "total"]) summed[k] += num(priced.cost[k]);
+			}
+			if (unpriced.length) {
+				nestedCost = null;
+				nestedCostReason = unpriced.join("; ");
+			} else {
+				nestedCost = summed;
+			}
 		}
 	}
 
@@ -191,8 +237,10 @@ export function parseStream(text, { pricer = null } = {}) {
 		settled,
 		tokens, // pi-ai Usage — the run's OWN model calls
 		nested, // pi-ai Usage — what its tools spent
-		nestedCost, // pi's calculateCost applied to `nested`, or null with a reason
+		nestedCost, // pi's calculateCost applied per model bucket and summed, or null with a reason
 		nestedCostReason,
+		nestedCostByModel,
+		nestedByModel: Object.fromEntries([...nestedByModel].map(([k, v]) => [k, v.totalTokens])),
 		nestedModels: [...nestedModels],
 		nestedCalls,
 		nestedMessages,

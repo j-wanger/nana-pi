@@ -10,6 +10,17 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { lineDiff } from "./fixture.mjs";
+
+const SENTINEL = path.join(path.dirname(fileURLToPath(import.meta.url)), "harness-sentinel.cjs");
+
+/**
+ * Tokens that must never appear on a line the model ADDED to a graded source file. Every one is a
+ * way to manufacture the evidence instead of the behaviour: force an exit status, print fake
+ * assertions, or reach outside the module under test.
+ */
+export const DENY_ADDED = ["process.exit", "process.exitCode", "process.reallyExit", "process.abort", "process.on", "console.", "stdout.write", "stderr.write", "require(", "import(", "eval(", "new Function", "child_process", "fs.", "node:fs"];
 
 const ok = (pass, detail) => ({ pass, detail });
 const graderError = (detail) => ({ pass: false, graderError: true, detail });
@@ -37,11 +48,11 @@ export function extractJson(text) {
 // JSON array can be compared as one — which also rules out passing by over-listing.
 const walk = (obj, dotted) => (!dotted || dotted === "$" ? obj : String(dotted).split(".").reduce((acc, k) => (acc == null ? acc : acc[k]), obj));
 
-function runArgv(argv, { cwd, timeoutMs = 120000 } = {}) {
+function runArgv(argv, { cwd, timeoutMs = 120000, env } = {}) {
 	// shell:false always — argv goes to the OS verbatim on darwin and win32 alike, so there are
 	// no quoting rules to get wrong and no bash-only constructs. The cost: `.cmd`/`.bat` shims
 	// (npm, npx) are NOT invocable; use `node` (a real executable) instead.
-	const r = spawnSync(argv[0], argv.slice(1), { cwd, timeout: timeoutMs, encoding: "utf8", windowsHide: true });
+	const r = spawnSync(argv[0], argv.slice(1), { cwd, timeout: timeoutMs, encoding: "utf8", windowsHide: true, ...(env ? { env } : {}) });
 	const errMsg = r.error ? String(r.error.message) : null;
 	// INFRASTRUCTURE failure vs a program that ran and failed. A grader that could not be
 	// spawned, or was killed by a signal or a timeout, says NOTHING about the model — recording
@@ -89,6 +100,35 @@ export function fetchKey(c, ctx) {
 	if (c.reject && new RegExp(c.reject).test(key)) return { error: `oracle returned the sentinel ${JSON.stringify(key)} — the pinned source changed` };
 	if (c.schema && !new RegExp(c.schema).test(key)) return { error: `oracle output ${JSON.stringify(key.slice(0, 80))} does not match the expected shape /${c.schema}/` };
 	return { key };
+}
+
+/**
+ * Run a command under the trusted sentinel, copied in from OUTSIDE the fixture every time so the
+ * model cannot reach it. Returns the raw result plus the sentinel's own completion marker — the
+ * marker, not the exit code, is what says the process ran to the end.
+ */
+function runUnderSentinel(cmdArgv, { cwd, trust = [], timeoutMs }) {
+	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "bench-sentinel-"));
+	try {
+		const sentinel = path.join(tmp, "harness-sentinel.cjs");
+		fs.copyFileSync(SENTINEL, sentinel);
+		const markerPath = path.join(tmp, "marker.json");
+		const argv = [process.execPath, "--require", sentinel, ...cmdArgv];
+		const r = runArgv(argv, {
+			cwd,
+			timeoutMs,
+			env: { ...process.env, BENCH_SENTINEL_OUT: markerPath, BENCH_SENTINEL_TRUST: JSON.stringify(trust.map((rel) => path.resolve(cwd, rel))) },
+		});
+		let marker = null;
+		try {
+			marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
+		} catch {
+			marker = null;
+		}
+		return { r, marker, infra: r.infra ? infraDetail(argv, r) : null };
+	} finally {
+		fs.rmSync(tmp, { recursive: true, force: true });
+	}
 }
 
 const CHECKERS = {
@@ -184,7 +224,41 @@ const CHECKERS = {
 	},
 
 	/**
-	 * { type: "changed-paths", allow: [glob], protect: [glob] }
+	 * { type: "trusted-suite", argv, trust: [relpath], passLines, cwd?, timeoutMs? }
+	 *
+	 * Counting stdout is worthless when the code being graded can print the evidence. So the suite
+	 * runs under `node --require <sentinel>` — copied in from OUTSIDE the fixture at check time, so
+	 * the model cannot touch it. The sentinel makes `process.exit` throw, attributes every write to
+	 * the file that made it, and counts PASS/FAIL only from the files in `trust`. A PASS printed by
+	 * the source under test is forgery, and fails the check by name.
+	 */
+	"trusted-suite"(c, ctx) {
+		const cwd = c.cwd ? path.resolve(ctx.dir, c.cwd) : ctx.dir;
+		if (!cwd) return graderError("trusted-suite needs a fixture dir");
+		const run = runUnderSentinel(c.argv ?? [], { cwd, trust: c.trust ?? [], timeoutMs: c.timeoutMs });
+		{
+			const { r, marker: m, infra } = run;
+			if (infra) return graderError(infra);
+			if (!m) {
+				return ok(false, `the suite left no completion marker (exit ${r.status}) — it did not run to the end: ${(r.stderr || r.stdout || "").split("\n").slice(-4).join(" | ").slice(0, 300)}`);
+			}
+			if (m.exitAttempts?.length) {
+				const a = m.exitAttempts[0];
+				return ok(false, `${a.name}() was called from ${a.from ? path.basename(a.from) : "unknown"} — a graded suite may not decide its own exit status`);
+			}
+			if (m.untrustedPass > 0) return ok(false, `${m.untrustedPass} PASS line(s) were printed by ${m.forgedBy.join(", ") || "untrusted code"}, not by the test file — forged evidence`);
+			if (m.fail > 0) return ok(false, `${m.fail} FAIL line(s) reported by the suite`);
+			if (r.status !== 0) return ok(false, `the suite ran to completion but exited ${r.status}`);
+			if (c.passLines !== undefined && m.trustedPass !== c.passLines) {
+				return ok(false, `the suite printed ${m.trustedPass} trusted PASS lines, expected ${c.passLines} — it did not run every assertion`);
+			}
+			return ok(true, `trusted harness: ${m.trustedPass} PASS from ${(c.trust ?? []).length} trusted file(s), 0 FAIL, no exit interference`);
+		}
+	},
+
+	/**
+	 * { type: "changed-paths", allow: [glob], protect: [glob], withinLines: {path:[from,to]},
+	 *   denyAdded?: bool|[tokens] }
 	 * Diffs the workspace against the snapshot the harness took after mutations and before the
 	 * model ran. Anything changed/added/removed outside `allow` fails; anything matching
 	 * `protect` must be byte-identical. This is what stops "make the suite pass" from being
@@ -206,7 +280,40 @@ const CHECKERS = {
 		for (const g of c.protect ?? []) {
 			for (const [p, sha] of ctx.baseline) if (globMatch(g, p) && now.get(p) !== sha) return ok(false, `protected file changed: ${p}`);
 		}
-		return ok(true, changed.length ? `only allowed paths changed (${changed.length})` : "workspace unchanged");
+
+		// DIFF SHAPE. An allowlisted file is still only allowed to change WHERE the task says the
+		// work is, and an added line may not carry the tokens that manufacture evidence.
+		const deny = c.denyAdded === true ? DENY_ADDED : Array.isArray(c.denyAdded) ? c.denyAdded : null;
+		const ranges = c.withinLines ?? {};
+		if (deny || Object.keys(ranges).length) {
+			if (!ctx.preRun) return graderError("withinLines/denyAdded need the pre-run file contents");
+			for (const [rel, before] of ctx.preRun) {
+				const abs = path.resolve(ctx.dir, rel);
+				if (!fs.existsSync(abs)) continue;
+				const after = fs.readFileSync(abs, "utf8");
+				if (after === before) continue;
+				const d = lineDiff(before, after);
+				if (deny) {
+					for (const a of d.added) {
+						const hit = deny.find((t) => a.text.includes(t));
+						if (hit) return ok(false, `${rel}:${a.line} adds a forbidden construct ${JSON.stringify(hit)} — that manufactures evidence rather than behaviour: ${a.text.trim().slice(0, 90)}`);
+					}
+				}
+				const range = ranges[rel];
+				if (range) {
+					// Insertions shift later lines, so the window is allowed to grow by however
+					// many lines were added inside it.
+					const [from, to] = range;
+					const slack = d.added.length;
+					const outside = [
+						...d.added.filter((a) => a.line < from || a.line > to + slack).map((a) => `added line ${a.line}`),
+						...d.removed.filter((x) => x.line < from || x.line > to).map((x) => `removed line ${x.line}`),
+					];
+					if (outside.length) return ok(false, `${rel}: change outside the declared range ${from}-${to}: ${outside.slice(0, 4).join(", ")}`);
+				}
+			}
+		}
+		return ok(true, changed.length ? `only allowed paths changed (${changed.length}), inside the declared shape` : "workspace unchanged");
 	},
 
 	/**
@@ -227,6 +334,21 @@ const CHECKERS = {
 				fs.copyFileSync(src, path.resolve(tmp, rel));
 			}
 			for (const argv of c.commands ?? []) {
+				// With `trust`, the reverted run goes through the SENTINEL, so we can tell a test
+				// that RAN and decided to fail from one that died on module load or forced a
+				// status — astra: a regex alone is not tamper-proof evidence.
+				if (c.trust) {
+					const { r: sr, marker, infra } = runUnderSentinel(argv.slice(1), { cwd: tmp, trust: c.trust, timeoutMs: c.timeoutMs });
+					if (infra) return graderError(`revert-and-fail could not determine anything: ${infra}`);
+					if (!marker) return ok(false, `with ${(c.restore ?? []).join(", ")} reverted the test did not run to completion (no marker, exit ${sr.status}) — a module-load error is not evidence that it detects the missing behaviour`);
+					if (marker.exitAttempts?.length) return ok(false, "the added test forced an exit status from untrusted code");
+					const failed = marker.fail > 0 || (marker.trustedExit && marker.trustedExit.code !== 0) || sr.status !== 0;
+					if (!failed) return ok(false, `${argv.join(" ")} still passes with ${(c.restore ?? []).join(", ")} reverted — the added test does not detect the missing behaviour`);
+					if (marker.fail === 0 && !(marker.trustedExit && marker.trustedExit.code !== 0)) {
+						return ok(false, `with ${(c.restore ?? []).join(", ")} reverted the process exited ${sr.status} but the test itself reported no failure — that is a crash, not a detected regression`);
+					}
+					continue;
+				}
 				const r = runArgv(argv, { cwd: tmp, timeoutMs: c.timeoutMs });
 				// A GENUINE assertion failure only. A spawn failure, a signal or a timeout is the
 				// harness failing, and accepting it as "the test detected the bug" would let any

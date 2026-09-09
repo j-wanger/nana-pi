@@ -135,17 +135,20 @@ export async function fileSha(p) {
 }
 
 /**
- * Read completed tuples AND repair a torn tail.
- * A kill mid-append leaves half a JSON object with no trailing newline; appending onto that
- * produces a line no parser can read and, worse, destroys the NEXT record too. We move the torn
- * bytes to results.quarantine.jsonl and truncate back to the last newline before anyone appends.
+ * Read a JSONL append log AND repair a torn tail — the same discipline for EVERY append log the
+ * bench keeps (results, ledger, keys), because they all get killed mid-write.
+ *
+ * A kill mid-append leaves half a JSON object with no trailing newline. Skipping it on read is not
+ * enough: the next append concatenates onto those bytes and destroys that record too. So the torn
+ * bytes are quarantined and the file is truncated back to the last newline BEFORE anyone appends.
+ * A complete object that merely lost its newline is data — it is kept and the newline restored.
  */
-export async function readResults(resultsPath, { repair = true } = {}) {
+export async function readJsonl(file, { repair = true } = {}) {
 	let raw;
 	try {
-		raw = await fs.readFile(resultsPath, "utf8");
+		raw = await fs.readFile(file, "utf8");
 	} catch {
-		return { records: [], done: new Set(), quarantined: 0, fingerprints: new Set() };
+		return { rows: [], quarantined: 0 };
 	}
 	let body = raw;
 	let torn = "";
@@ -153,7 +156,7 @@ export async function readResults(resultsPath, { repair = true } = {}) {
 		const cut = body.lastIndexOf("\n");
 		torn = cut < 0 ? body : body.slice(cut + 1);
 		try {
-			JSON.parse(torn); // a complete object that merely lacks its newline: keep it, add the newline
+			JSON.parse(torn); // complete, just missing its newline
 			body = `${body}\n`;
 			torn = "";
 		} catch {
@@ -161,25 +164,31 @@ export async function readResults(resultsPath, { repair = true } = {}) {
 		}
 	}
 	if (repair && (torn || body !== raw)) {
-		if (torn) await fs.appendFile(`${resultsPath}.quarantine`, `${new Date().toISOString()} torn-tail ${JSON.stringify(torn)}\n`);
-		await fs.writeFile(resultsPath, body);
+		if (torn) await fs.appendFile(`${file}.quarantine`, `${new Date().toISOString()} torn-tail ${JSON.stringify(torn)}\n`);
+		await fs.writeFile(file, body);
 	}
-	const records = [];
-	const done = new Set();
-	const fingerprints = new Set();
+	const rows = [];
 	for (const line of body.split("\n")) {
 		if (!line.trim()) continue;
-		let r;
 		try {
-			r = JSON.parse(line);
+			rows.push(JSON.parse(line));
 		} catch {
-			continue;
+			/* a mid-file corruption: skip the line, keep the rest */
 		}
-		records.push(r);
+	}
+	return { rows, quarantined: torn ? 1 : 0 };
+}
+
+/** Completed tuples, their fingerprints, and a repaired append boundary. */
+export async function readResults(resultsPath, opts = {}) {
+	const { rows, quarantined } = await readJsonl(resultsPath, opts);
+	const done = new Set();
+	const fingerprints = new Set();
+	for (const r of rows) {
 		done.add(tupleKey(r));
 		if (r.fingerprint) fingerprints.add(r.fingerprint);
 	}
-	return { records, done, quarantined: torn ? 1 : 0, fingerprints };
+	return { records: rows, done, quarantined, fingerprints };
 }
 
 /** Refuse to extend a results file that belongs to a different experiment. */

@@ -104,11 +104,21 @@ list its tools, because RPC cannot confirm tool *registration*.
     one unmeasurable one reports both.
   - **Silence is not zero.** A watched tool that ran while *no* request reached the interceptor is
     `unknown: "no-network-observed"`, not free — a cache hit and a transport we cannot observe look
-    identical from here. This is not hypothetical: in the diagnostic run
-    (`apps/bench/studies/_nested-verify/`) one of two `web_search` calls returned an LLM-style
-    summary with no intercepted request. **Expect this to flag real C runs, and therefore to veto
-    C's cost comparison, until that path is understood.** That is the honest state, not a defect to
-    be relaxed away.
+    identical from here.
+  - **The coverage hole, now named.** pi's Codex API speaks over a **WebSocket**
+    (`pi-ai/dist/api/openai-codex-responses.js`: 95 WebSocket references, zero `fetch(` calls), so
+    anything routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper.
+    pi-web-access's *search* step does its own hand-rolled HTTP POST and IS visible; its *summary*
+    step goes through pi-ai and is NOT. In the diagnostic run both tool results reported a
+    `summary-model` phase on `openai-codex/gpt-5.6-luna` whose tokens were never counted — and the
+    window was not silent, so the silence rule could not catch it. Two mechanisms now do: the
+    sidecar wraps `globalThis.WebSocket` and marks a window unknown when a model connection opens
+    inside it, and it reads the tool's own `{phase, model}` report and marks unknown any phase whose
+    model was never measured.
+  - **Therefore: 16,289 tokens in that trace is OBSERVED spend, not proven total spend**, and every
+    number this study reports for C is labelled the same way. A C cell carrying `nestedUnknown`
+    makes C's cost clauses unevaluable — see step 0 of the decision procedure. That is a diagnostic
+    limitation, not evidence against C.
   - *Limits:* per-tool attribution is approximate under parallel tool calls (the run total is
     exact). Any C cell with `nestedUnknown` vetoes C's cost comparison — see the decision rule.
 - Completion: `agent_end` is **not** terminal — "may still be followed by retry, compaction, or
@@ -198,62 +208,88 @@ review was right that it estimates neither the edits nor nested web work. The pl
 `maxTotalTokens: 3,500,000`, `maxWallMs: 6 h`, and an abort after 3 consecutive harness/grader
 failures rather than filling the remaining cells.
 
-## Decision rule (decidable at N=3, fixed before any data)
+## Decision rule — ONE procedure, evaluated in order, exactly one verdict
 
-**Definitions.** Per comparison, on **shared tasks** (tasks both arms ran):
+**Quantities.** Per comparison, on **shared tasks** (tasks both arms ran):
 `D(t,p)` = decided runs (state `ok` or `fail`; grader, run and blocked errors are excluded);
-`S(t,p)` = successes; **`R(t,p) = S/D` is the success RATE** — rates, not raw counts, because
+`S(t,p)` = successes; **`R(t,p) = S/D` is the success RATE** — rates, never raw counts, because
 3/3 against 2/2 is not an observed correctness difference.
-`M(t,p)` = median spend (own + nested) over decided runs; `Total(p) = Σ_{t∈T} M(t,p)`;
-`MR(p)` = mean of `R(t,p)` over `T`.
-A task is **sufficient** only when `D ≥ 2` for *both* arms; `T` is the set of sufficient tasks.
-`Wins(B)` = #{t∈T : R(t,B) > R(t,A)}, `Losses(B)` = #{t∈T : R(t,B) < R(t,A)}.
+`M(t,p)` = median **observed spend** (own + nested tokens; "observed" because nested coverage is
+not proven complete — see Measurement) over decided runs;
+`Total(p) = Σ_{t∈T} M(t,p)`; `MR(p)` = mean of `R(t,p)` over `T`.
+A task is **sufficient** only when `D ≥ 2` for *both* arms. `T` = the sufficient shared tasks.
+`Wins(X)` = #{t∈T : R(t,X) > R(t,Y)}, `Losses(X)` = #{t∈T : R(t,X) < R(t,Y)}.
 
-**Exactly one verdict.** The rules are evaluated in this order and the FIRST match is the verdict;
-no later rule can also apply.
+Run the steps in order. **The first step that yields a verdict is the verdict**; no later step can
+also apply, and no comparison may be reported under two labels.
 
-0. **UNKNOWN-SPEND VETO** (cost only). If any run in either arm has `nestedUnknown`, every
-   cost-based clause below is treated as unsatisfied for that comparison, and a verdict that would
-   have rested on cost becomes INSUFFICIENT DATA instead. We do not adopt, or reject, on spend we
-   did not measure.
-1. **INSUFFICIENT DATA** if `|T| < 6` of the 8 code tasks (`< 4` of the 6 research tasks). Report
-   which tasks were insufficient and why (all runs undecided, oracle failures, timeouts).
-2. **REGRESSION** if any of: `MR(B) < MR(A) − 0.05`; `Losses(B) > Wins(B)`;
-   `Total(B) > 1.15 × Total(A)`; or `∃t∈T : M(t,B) > 1.5 × M(t,A)`.
-3. **IMPROVEMENT MEASURED** if `MR(B) > MR(A)`, or `Total(B) ≤ 0.85 × Total(A)` with
-   `MR(B) ≥ MR(A)`.
-4. **NON-REGRESSION ACCEPTED** — explicitly *not* a win — if `MR(B) ≥ MR(A) − 0.05`,
-   `Total(B) ≤ 1.15 × Total(A)`, and `M(t,B) ≤ 1.15 × M(t,A)` on at least 75% of `T`.
-5. **INCONCLUSIVE** otherwise.
+**Step 0 — unknown spend.** If any run in either arm has `nestedUnknown`, every **cost** clause
+below is unevaluable for this comparison. Do not treat unknown as zero, and do not fall through to
+a cost clause "counterfactually". What survives is exactly this: the **correctness-only** verdicts
+of steps 2 and 3 — a regression or an improvement established *purely* by success rates. If the
+comparison would otherwise have turned on cost, its verdict is **INSUFFICIENT DATA (cost
+unmeasured)** and it stops there.
 
-`Total` is a sum of per-task medians precisely so that two expensive edit tasks cannot hide behind
-six cheap navigation wins; the 1.5× per-task clause in rule 2 stops the reverse, a single ruinous
-task being averaged away.
+**Step 1 — sufficiency.** If `|T| < 6` of the 8 code tasks (`< 4` of the 6 research tasks), the
+verdict is **INSUFFICIENT DATA**. Name every insufficient task and why (all runs undecided, oracle
+failures, timeouts).
 
-**B′ versus B** (same machinery, same order): prefer B′ only under IMPROVEMENT with the tighter
-threshold — `MR(B′) > MR(B)`, or `Total(B′) ≤ 0.90 × Total(B)` with `MR(B′) ≥ MR(B)`. Otherwise
-keep B: fewer moving parts wins ties.
+**Step 2 — REGRESSION.** Any one of:
+- rate: `MR(X) < MR(Y) − 0.05`, or `Losses(X) > Wins(X)`;
+- cost (skipped under step 0): `Total(X) > 1.15 × Total(Y)`, or `∃t∈T : M(t,X) > 1.5 × M(t,Y)`.
 
-**C.** Two separate comparisons, both after the veto in rule 0.
-- *Research (C vs B):* adopt C for research work if `MR(C) ≥ MR(B)` and `Wins(C) − Losses(C) ≥ 2`,
-  **or** `MR(C) ≥ MR(B)` with `Total(C) ≤ 0.85 × Total(B)`. Equal quality at materially lower cost
-  is a legitimate win; the earlier success-only threshold wrongly excluded it.
-- *Code (C vs B):* C becomes the DEFAULT profile only if the code comparison is not a REGRESSION by
-  rules 1-5. This is now measurable because C runs the code family.
+Cost regression is checked **regardless of wins**: two task wins bought with doubled spend is a
+regression, not an improvement.
 
-**Extending to N=5.** Evaluated **once, after rep 2 completes** (every scheduled run recorded, or
-the study stopped), and **before** any verdict above is computed. Trigger: across the three
-comparisons (B vs A code, B′ vs B code, C vs B research), if **3 or more tasks are insufficient**,
-extend. Procedure: set `repeats: 5` in `study.json`. `repeats` is deliberately **not** part of the
-study fingerprint, so this extends rather than invalidates: `schedule.json` is rewritten in place
-with the same seed, the runner asserts the first 132 runs are byte-identical, and resume executes
-only the 88 added. Never extend selectively, never per task, never after inspecting comparative
-outcomes.
+**Step 3 — IMPROVEMENT MEASURED.** `MR(X) > MR(Y)` (correctness-only, survives step 0), or
+`Total(X) ≤ 0.85 × Total(Y)` with `MR(X) ≥ MR(Y)`.
 
-**Falsification.** Materially worse correctness or cost for B on these tasks contradicts the
-brief's operational recommendation *for this workload*. **Equal results show nothing positive**:
-they do not demonstrate the modest win the brief expects, and they do not rule out benefits on work
-this study does not contain. IQR is reported for shape; it is not an equivalence test.
+**Step 4 — NON-REGRESSION ACCEPTED** — explicitly *not* a win, and an **affirmative** finding that
+requires all of: `MR(X) ≥ MR(Y) − 0.05`, `Total(X) ≤ 1.15 × Total(Y)`, and
+`M(t,X) ≤ 1.15 × M(t,Y)` on at least 75% of `T`.
+
+**Step 5 — INCONCLUSIVE.**
+
+`Total` is a sum of per-task medians so two expensive edit tasks cannot hide behind six cheap
+navigation wins; the 1.5× per-task clause stops the reverse.
+
+### The three comparisons
+
+1. **B vs A, code family.** The procedure above, X = B, Y = A.
+2. **B′ vs B, code family.** The procedure above, then: prefer B′ **only** on IMPROVEMENT, and only
+   with the tighter threshold `Total(B′) ≤ 0.90 × Total(B)` when the improvement is cost-based.
+   Otherwise keep B — fewer moving parts wins ties.
+3. **C, both families.** Run the procedure twice: C vs B on research, and C vs B on code.
+   - **C for research work** requires the research verdict to be IMPROVEMENT, **and** additionally
+     either `Wins(C) − Losses(C) ≥ 2` or `Total(C) ≤ 0.85 × Total(B)`. A research **cost
+     regression** disqualifies C even when it wins tasks.
+   - **C as the default profile** additionally requires the code verdict to be an affirmative
+     **NON-REGRESSION ACCEPTED or IMPROVEMENT**. INSUFFICIENT DATA and INCONCLUSIVE do **not**
+     qualify: absence of evidence of harm is not evidence of safety.
+   - Under step 0 (any `nestedUnknown` in a C arm) C's cost clauses are unevaluable, so C can be
+     adopted only on a correctness-only IMPROVEMENT, and never as the default profile.
+
+### Extending to N=5
+
+Evaluated **once, after rep 2 completes**, and **before** any verdict above is computed. Trigger:
+count the **distinct task IDs** that are insufficient in *any* of the three comparisons — a code
+task insufficient in both B-vs-A and B′-vs-B counts **once**. If that count is **≥ 3**, extend.
+
+Procedure: set `repeats: 5` in `study.json`. `repeats` is not part of the fingerprint, so this
+extends rather than invalidates: `schedule.json` is rewritten with the same seed, the runner asserts
+the first 132 runs keep their positions, and resume executes only the 88 added.
+
+**A systemic-failure stop or a budget stop never authorizes more repetitions.** Those mean the
+harness or the budget failed, not that the data is thin; resuming or extending after one requires an
+explicit human clearance recorded in the session log. Never extend selectively, never per task,
+never after inspecting comparative outcomes.
+
+### Falsification
+
+Materially worse correctness or observed cost for B on these tasks contradicts the brief's
+operational recommendation *for this workload*. **Equal results show nothing positive**: they do not
+demonstrate the modest win the brief expects, and they do not rule out benefits on work this study
+does not contain. IQR is reported for shape; it is not an equivalence test.
 
 ## Threats to validity
 
@@ -271,11 +307,13 @@ this study does not contain. IQR is reported for shape; it is not an equivalence
    scoping assumes pi never issues a model request while a tool is executing; `skippedOwnCalls` is
    recorded per run so that assumption is checkable against the evidence rather than trusted.
 7. **One machine, one provider, one model.** Nothing here generalises to other models or to Windows.
-7b. **Nested-usage coverage is proven for one path, not all of them.** One real nested Responses
-   request was measured exactly and reconciled against the raw stream (own 7,780 + nested 8,509 =
-   spend 16,289; nested model `gpt-5.6-terra` ≠ own model `gpt-5.6-sol`). A second `web_search` in
-   the same run produced a summary with no observable request. Until that is explained, C's spend
-   is a lower bound with an explicit flag, never a total.
+7b. **Nested-usage coverage is proven for one path, and explicitly NOT for another.** One real
+   nested Responses request was measured exactly and reconciled against the raw stream (own 7,780 +
+   nested 8,509 = **observed** spend 16,289; nested model `gpt-5.6-terra` ≠ own model
+   `gpt-5.6-sol`). The summary calls on `gpt-5.6-luna` in the same run were NOT measured, because
+   pi's Codex transport is a WebSocket. Both detectors added since are unit-tested but have not yet
+   been seen firing on a live run. Every C spend figure is a **lower bound with an explicit flag**,
+   never a total.
 8. **`code-guard`** verifies the added test detects the missing guard — it exits 0 with the guard
    and nonzero without it — but it does not verify the test is well written, and a silent nonzero
    exit is accepted because the prompt never asked for a particular output format.

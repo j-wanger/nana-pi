@@ -126,6 +126,56 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	r.note("https://duckduckgo.com/html?q=chalk"); // real traffic, just not an LLM endpoint
 	r.closeWindow("web_search");
 	check("a tool that made only NON-LLM requests is genuinely free (no flag)", r.snapshot("web_search") === null);
+	// The leak astra reproduced: that window emitted no snapshot, so `observed` was never reset and
+	// the NEXT window looked observed — its silence went unflagged.
+	r.openWindow("web_search");
+	r.closeWindow("web_search");
+	const next = r.snapshot("web_search");
+	check("…and the NEXT window's silence is still flagged (no leak across windows)", next !== null && next.details.unknownReason === "no-network-observed", JSON.stringify(next?.details?.unknownReason));
+}
+// ── 6. PARTIAL COVERAGE: a measured path beside one we structurally cannot see ────────────────
+// pi's Codex API speaks over a WebSocket, so a nested call through pi-ai's complete() never
+// reaches a fetch wrapper. Measuring the search and reporting the summary as nothing is the exact
+// failure this guards; the window is NOT silent, so the silence rule cannot help.
+{
+	const r = createRecorder({ watch: ["web_search"] });
+	r.openWindow("web_search");
+	r.resolve(r.note(CODEX), sse([completed(U(3000, 100), "gpt-5.6-terra")]));
+	const found = r.notePaths({ summary: { phase: "summary-model", model: "openai-codex/gpt-5.6-luna", fallbackUsed: false } });
+	r.closeWindow("web_search");
+	const snap = r.snapshot("web_search");
+	check("a model phase we never measured is detected from the tool's own report", found.length === 1 && found[0].model === "openai-codex/gpt-5.6-luna");
+	check("…the measured tokens are still reported", snap.usage.totalTokens === 3100, String(snap.usage.totalTokens));
+	check("…AND the window is unknown, despite having measured traffic", snap.details.unknown === true && snap.details.unknownReason === "unobserved-path:summary-model");
+	check("…naming the path, so a reviewer can go and fix coverage", snap.details.unobservedPaths.includes("summary-model:openai-codex/gpt-5.6-luna"));
+}
+{
+	const r = createRecorder({ watch: ["web_search"] });
+	r.openWindow("web_search");
+	r.resolve(r.note(CODEX), sse([completed(U(10, 5), "gpt-5.6-luna")]));
+	r.notePaths({ summary: { phase: "summary-model", model: "openai-codex/gpt-5.6-luna", fallbackUsed: false } });
+	r.closeWindow("web_search");
+	check("a phase whose model WAS measured is not flagged", r.snapshot("web_search").details.unknown === false);
+}
+{
+	const r = createRecorder({ watch: ["web_search"] });
+	r.openWindow("web_search");
+	r.resolve(r.note(CODEX), sse([completed(U(10, 5))]));
+	r.notePaths({ summary: { phase: "fallback", model: "openai-codex/gpt-5.6-luna", fallbackUsed: true } });
+	r.closeWindow("web_search");
+	check("a FALLBACK summary made no model call, so it is not flagged", r.snapshot("web_search").details.unknown === false);
+}
+{
+	// A WebSocket model connection inside a window: we cannot read the frames, but we can refuse
+	// to call the window free.
+	const r = createRecorder({ watch: ["web_search"] });
+	r.openWindow("web_search");
+	check("a WebSocket model connection outside a window is ignored", createRecorder({ watch: ["web_search"] }).noteUnobservable("ws") === false);
+	r.noteUnobservable("websocket-transport-unobservable");
+	r.closeWindow("web_search");
+	const snap = r.snapshot("web_search");
+	check("a WebSocket model connection inside a window marks it unknown", snap.details.unknown === true && snap.details.unknownReason === "websocket-transport-unobservable");
+	check("…and counts as observed traffic, so the silence rule does not double-report", snap.details.observedRequests === 1, String(snap.details.observedRequests));
 }
 {
 	const r = createRecorder({ watch: ["web_search"] });
@@ -181,5 +231,30 @@ check("stream: unknown with no measured usage stays 0 tokens + flagged", totalTo
 
 const sample = parseStream(read("sample-stream.jsonl"));
 check("a legacy tool-usage record still lands in `nested`, not `tokens`", totalTokens(sample.tokens) === 4240 && totalTokens(sample.nested) === 10);
+
+// ── nested usage is bucketed PER MODEL and priced per model ───────────────────────────────────
+{
+	const twoModels = [
+		JSON.stringify({ type: "session", version: 3, id: "x", timestamp: "t", cwd: "/tmp" }),
+		JSON.stringify({ type: "turn_start" }),
+		JSON.stringify({ type: "tool_execution_start", toolCallId: "a", toolName: "web_search", args: {} }),
+		JSON.stringify({ type: "message_end", message: { role: "toolResult", toolCallId: "a", toolName: "web_search", content: [], isError: false, usage: { input: 100, output: 10, cacheRead: 0, cacheWrite: 0, totalTokens: 110, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, details: { benchNested: { calls: 1, models: ["gpt-5.6-terra"], unknown: false } } } }),
+		JSON.stringify({ type: "tool_execution_start", toolCallId: "b", toolName: "web_search", args: {} }),
+		JSON.stringify({ type: "message_end", message: { role: "toolResult", toolCallId: "b", toolName: "web_search", content: [], isError: false, usage: { input: 200, output: 20, cacheRead: 0, cacheWrite: 0, totalTokens: 220, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, details: { benchNested: { calls: 1, models: ["gpt-5.6-luna"], unknown: false } } } }),
+		JSON.stringify({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "done" }], provider: "openai-codex", model: "gpt-5.6-sol", usage: { input: 5, output: 5, cacheRead: 0, cacheWrite: 0, totalTokens: 10, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: "stop" } }),
+		JSON.stringify({ type: "agent_end", messages: [] }),
+		JSON.stringify({ type: "agent_settled" }),
+	].join("\n");
+	const rates = { "gpt-5.6-terra": 1, "gpt-5.6-luna": 10 };
+	const pricer = (u, { model }) => (rates[model] ? { cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: u.totalTokens * rates[model] }, reason: null } : { cost: null, reason: `unknown ${model}` });
+	const p = parseStream(twoModels, { pricer });
+	check("two nested models are bucketed separately", JSON.stringify(p.nestedByModel) === JSON.stringify({ "gpt-5.6-terra": 110, "gpt-5.6-luna": 220 }), JSON.stringify(p.nestedByModel));
+	// Pooling and pricing with the FIRST model would give 330×1 = 330; per-bucket gives the truth.
+	check("each bucket is priced with ITS OWN model, not the first one seen", p.nestedCost.total === 110 * 1 + 220 * 10, String(p.nestedCost.total));
+	check("the per-model breakdown is reported", p.nestedCostByModel["gpt-5.6-luna"] === 2200);
+	const partial = parseStream(twoModels, { pricer: (u, { model }) => (model === "gpt-5.6-terra" ? { cost: { total: 110 }, reason: null } : { cost: null, reason: "no catalog entry" }) });
+	check("if ANY bucket is unpriceable the whole nested cost is null", partial.nestedCost === null);
+	check("…with the reason naming the bucket", /gpt-5\.6-luna/.test(partial.nestedCostReason ?? ""), String(partial.nestedCostReason));
+}
 
 process.exit(fails ? 1 : 0);

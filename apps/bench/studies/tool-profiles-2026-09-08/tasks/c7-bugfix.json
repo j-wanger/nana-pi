@@ -13,30 +13,54 @@
 	],
 	"keyDerivation": {
 		"command": "apply the mutation, then: node packages/nana-stage/tests/blocks.test.mjs",
-		"output": "mutated: exit 1, 111 PASS + 1 FAIL. Pristine: exit 0, 112 PASS, 0 FAIL. `passLines: 112` is that pristine count."
+		"output": "mutated: exit 1, 111 PASS + 1 FAIL. Pristine: exit 0, 112 PASS, 0 FAIL, every PASS printed by the test file itself. `passLines: 112` is that trusted count."
 	},
 	"check": {
 		"type": "all",
 		"checks": [
 			{
 				"type": "changed-paths",
-				"allow": ["packages/nana-stage/lib/blocks.mjs"],
-				"protect": ["packages/nana-stage/tests/**"],
-				"note": "the fix must be the fix: not an edit to the suite, not a change to an unrelated module"
+				"allow": [
+					"packages/nana-stage/lib/blocks.mjs"
+				],
+				"protect": [
+					"packages/nana-stage/tests/**"
+				],
+				"withinLines": {
+					"packages/nana-stage/lib/blocks.mjs": [
+						150,
+						153
+					]
+				},
+				"denyAdded": true,
+				"note": "Layers 1 and 2 of the anti-forgery rule: the change must fall inside fmtNum's declared line range, and no ADDED line may introduce process.exit/console./require( etc. Those tokens do not fix rounding; they manufacture evidence."
 			},
 			{
 				"type": "file",
 				"path": "packages/nana-stage/lib/blocks.mjs",
 				"notContains": "parseFloat(n.toFixed(1))",
-				"note": "the DECLARED defect must actually be gone. Only its absence is required — a different but correct rewrite of fmtNum is still allowed, so this does not dictate the fix."
+				"note": "the DECLARED defect must actually be gone. Only its absence is required, so a different correct rewrite of fmtNum is still allowed."
 			},
 			{
-				"type": "suite",
-				"argv": ["node", "packages/nana-stage/tests/blocks.test.mjs"],
+				"type": "trusted-suite",
+				"argv": [
+					"packages/nana-stage/tests/blocks.test.mjs"
+				],
+				"trust": [
+					"packages/nana-stage/tests/blocks.test.mjs"
+				],
 				"passLines": 112,
-				"forbid": "^FAIL ",
-				"note": "exit 0 alone proves nothing: `process.exit(0)` inside blocks.mjs — a file this task ALLOWS the model to edit — makes the suite exit 0 having asserted nothing. Requiring the pristine count of PASS lines is externally observed completion."
+				"note": "Layer 3: the suite runs under a sentinel copied in from OUTSIDE the fixture. process.exit throws, and PASS lines are counted only when the TEST FILE printed them — 112 PASS lines fabricated by blocks.mjs are forgery, not a pass."
 			}
 		]
+	},
+	"declaredSite": {
+		"file": "packages/nana-stage/lib/blocks.mjs",
+		"function": "fmtNum",
+		"lines": [
+			150,
+			153
+		],
+		"note": "fmtNum spans lines 150-153 of the pinned fixture; the mutation is on 152. The fix must live inside that function."
 	}
 }

@@ -117,6 +117,15 @@ carry it). `nestedUnknown` is independent of whether some usage was also measure
 from here. `observedRequests` (all traffic in the window, LLM or not) is recorded so a reviewer can
 tell "this tool made no model call" from "we saw nothing at all".
 
+**Partial coverage is not coverage.** pi's Codex API speaks over a **WebSocket**
+(`pi-ai/dist/api/openai-codex-responses.js` — 95 WebSocket references, zero `fetch(` calls), so any
+nested call routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper, while
+an extension's own hand-rolled HTTP request does. Measuring one and reporting the other as nothing
+is the failure this guards: the sidecar wraps `globalThis.WebSocket` and flags a window in which a
+model connection opens, and it reads the tool's own `{phase, model}` report and flags any phase
+whose model was never measured. Consequently **every nested figure is OBSERVED spend, not proven
+total spend** — `spend` is a lower bound whenever `nestedUnknown` is set.
+
 Remaining limit, recorded rather than papered over: per-tool attribution is approximate under
 parallel tool calls; the run total is exact.
 
@@ -137,8 +146,9 @@ parallel tool calls; the run total is exact.
 - **Resume** skips tuples already in `results.jsonl`, **including failed and grader-error ones**,
   precisely so resuming cannot quietly become retrying. To re-measure a tuple, delete its line.
 - **Torn tail.** A kill mid-append leaves half a JSON object with no newline. The reader moves
-  those bytes to `results.jsonl.quarantine` and restores the newline boundary *before* anything
-  appends, so the damage stays at one record.
+  those bytes to `<file>.quarantine` and restores the newline boundary *before* anything appends,
+  so the damage stays at one record — applied to **every** append log the bench keeps
+  (`results.jsonl`, `ledger.jsonl`, `keys.jsonl`), because they all get killed mid-write.
 
 ## Before it spends
 
@@ -151,13 +161,20 @@ parallel tool calls; the run total is exact.
 3. **Registration probe, one call per extension profile** — asks the model to list its tools and
    aborts if the declared extension tools are missing. A file that exists proves it loaded; only
    this proves the tools registered.
-4. **Budget stops** — `maxTotalTokens` and `maxWallMs` in `study.json`. The budget is a persisted
-   ledger (`ledger.jsonl`): probe tokens *and* probe wall time survive a restart, and a recorded
-   successful registration probe is never repeated. A study carrying unmeasured nested spend is
-   reported as **not fully accounted** rather than as a total.
+4. **Budget stops** — `maxTotalTokens` and `maxWallMs` in `study.json`, kept in a persisted ledger
+   (`ledger.jsonl`): probe tokens *and* probe wall time survive a restart, a recorded successful
+   registration probe is never repeated, and the budget is rechecked **after** a probe, not only
+   between graded runs.
+   These are **between-run thresholds, not hard ceilings.** A run already in flight can carry the
+   study past them; wall time excludes grading; and a study carrying unmeasured nested spend is
+   reported as **not fully accounted**, so the token figure is a lower bound. What the runner can
+   do, and does: refuse to start another run, and cap each child's timeout by the wall allowance
+   that remains.
 5. **Systemic-failure stop** — 3 consecutive non-model failures abort the study. That includes
    `run-error` (auth, spawn, timeout), which otherwise burns the whole schedule 300 seconds at a
-   time. A child that cannot be confirmed dead stops the study immediately.
+   time. The streak is **restored from the trailing records on resume**, so restarting does not
+   clear it. A child that cannot be confirmed dead — checked across the whole process group, not
+   just the leader pid — stops the study immediately, probes included.
 
 ## Evidence
 
@@ -267,8 +284,9 @@ and are never counted as the model's own edits.
 | `json-path` | the reply parses as JSON (``` fences tolerated) and `path` equals `value`; `path:"$"` is the root, `unordered:true` compares as a set |
 | `command` | every `commands: [[argv…]]` exits 0, run inside the fixture copy |
 | `suite` | a test suite exits 0 **and** prints its pristine number of `PASS` lines with none of `forbid` — exit status alone never proves a suite ran |
+| `trusted-suite` | the suite runs under a **sentinel** copied in from outside the fixture: untrusted code cannot call `process.exit`, and `PASS`/`FAIL` lines are attributed by call stack so only the *test file* can produce evidence. Counting stdout is worthless when the code being graded can print it |
 | `file` | `exists` / `contains` / `containsCode` (comment-blind) / `notContains` / `sha256` |
-| `changed-paths` | everything the model changed matches `allow`, and nothing matching `protect` moved |
+| `changed-paths` | everything the model changed matches `allow`, nothing matching `protect` moved, changes fall inside the declared `withinLines` range, and no ADDED line introduces a `denyAdded` token (`process.exit`, `console.`, `require(`, …) |
 | `revert-and-fail` | with `restore` reverted from the pinned fixture, `commands` **run to completion and exit nonzero** — i.e. the added test actually detects the missing behaviour. A spawn failure or a timeout is a grader error, never "detection" |
 | `live-key` | a command run at bench time yields the key; `expect` pins an immutable value and makes the command a tripwire; `schema`/`reject` validate it |
 | `all` | every child passes |
@@ -315,9 +333,10 @@ lib/checkers.mjs    the deterministic checkers, and the grader-error boundary
 lib/fixture.mjs     hash / verify / materialize / mutate a fixture, + a unified diff (also a CLI)
 lib/plan.mjs        study fingerprint, seeded block schedule, resume + torn-tail quarantine
 lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateCost/ModelRuntime
+lib/harness-sentinel.cjs  the trusted grading harness: blocks exits, attributes PASS lines by stack
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               ten test files, no model calls
+test/               eleven test files, no model calls (including a stub-child integration test)
 studies/            one directory per study
 ```

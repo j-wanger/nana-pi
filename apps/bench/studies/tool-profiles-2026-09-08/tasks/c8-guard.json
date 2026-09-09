@@ -3,42 +3,101 @@
 	"family": "code",
 	"timeoutMs": 420000,
 	"prompt": "In `packages/nana-stage/lib/blocks.mjs`, the exported function `clampText(text, maxBytes, what)` currently trusts its `maxBytes` argument. Add a guard so that it throws a `TypeError` when `maxBytes` is not a positive integer (0, negatives, non-integers and non-numbers must all throw); a valid positive integer must keep working exactly as before. Then add a NEW test file at `packages/nana-stage/tests/clamp-guard.test.mjs` that exercises the guard and exits with status 0 when the guard is correct — it must genuinely fail if the guard is absent. `node packages/nana-stage/tests/blocks.test.mjs` must still exit 0, and you must not edit it. Change no other files. Reply with ONLY the word DONE.",
-	"assets": [{ "from": "assets/clamp-guard-probe.mjs", "to": "_bench/clamp-guard-probe.mjs" }],
+	"assets": [
+		{
+			"from": "assets/clamp-guard-probe.mjs",
+			"to": "_bench/clamp-guard-probe.mjs"
+		}
+	],
 	"note": "The probe is copied in only AFTER the model has exited, so it can neither be read nor edited. It states the same contract the prompt states, and prints 13 PASS lines when the guard is correct.",
 	"keyDerivation": {
 		"command": "node packages/nana-stage/tests/blocks.test.mjs ; node _bench/clamp-guard-probe.mjs",
-		"output": "pristine suite: 112 PASS, exit 0 (unchanged by a correct guard). Probe with a correct guard: 13 PASS, exit 0; without it: 3 PASS, exit 1."
+		"output": "pristine suite: 112 trusted PASS, exit 0 (unchanged by a correct guard). Probe with a correct guard: 13 PASS, exit 0; without it: 3 PASS + FAIL lines."
 	},
 	"check": {
 		"type": "all",
 		"checks": [
-			{ "type": "file", "path": "packages/nana-stage/tests/clamp-guard.test.mjs", "exists": true, "containsCode": "clampText(" },
+			{
+				"type": "file",
+				"path": "packages/nana-stage/tests/clamp-guard.test.mjs",
+				"exists": true,
+				"containsCode": "clampText("
+			},
 			{
 				"type": "changed-paths",
-				"allow": ["packages/nana-stage/lib/blocks.mjs", "packages/nana-stage/tests/clamp-guard.test.mjs"],
-				"protect": ["packages/nana-stage/tests/**"]
+				"allow": [
+					"packages/nana-stage/lib/blocks.mjs",
+					"packages/nana-stage/tests/clamp-guard.test.mjs"
+				],
+				"protect": [
+					"packages/nana-stage/tests/**"
+				],
+				"withinLines": {
+					"packages/nana-stage/lib/blocks.mjs": [
+						176,
+						192
+					]
+				},
+				"denyAdded": true,
+				"note": "the guard must go in clampText, and no added line in the source may touch process/console/require — the new test file is exempt from the shape rule because writing a test IS the task."
 			},
 			{
-				"type": "suite",
-				"argv": ["node", "packages/nana-stage/tests/blocks.test.mjs"],
+				"type": "trusted-suite",
+				"argv": [
+					"packages/nana-stage/tests/blocks.test.mjs"
+				],
+				"trust": [
+					"packages/nana-stage/tests/blocks.test.mjs"
+				],
 				"passLines": 112,
-				"forbid": "^FAIL ",
-				"note": "kills the early-exit route: an exit(0) in blocks.mjs would make this suite, the model's test AND the probe all appear green while asserting nothing."
+				"note": "the existing suite must still run every assertion, counted only from the test file the model may not edit"
 			},
 			{
-				"type": "suite",
-				"argv": ["node", "_bench/clamp-guard-probe.mjs"],
+				"type": "trusted-suite",
+				"argv": [
+					"_bench/clamp-guard-probe.mjs"
+				],
+				"trust": [
+					"_bench/clamp-guard-probe.mjs"
+				],
 				"passLines": 13,
-				"forbid": "^FAIL ",
-				"note": "the guard must actually behave as specified, observed by bench-owned code"
+				"note": "the bench-owned probe, under the same sentinel: 13 trusted PASS lines only if the guard genuinely behaves"
 			},
-			{ "type": "command", "commands": [["node", "packages/nana-stage/tests/clamp-guard.test.mjs"]] },
+			{
+				"type": "trusted-suite",
+				"argv": [
+					"packages/nana-stage/tests/clamp-guard.test.mjs"
+				],
+				"trust": [
+					"packages/nana-stage/tests/clamp-guard.test.mjs"
+				],
+				"note": "the model's own test must run to completion under the sentinel and report no FAIL — no passLines, because the prompt never fixed a count"
+			},
 			{
 				"type": "revert-and-fail",
-				"restore": ["packages/nana-stage/lib/blocks.mjs"],
-				"commands": [["node", "packages/nana-stage/tests/clamp-guard.test.mjs"]],
-				"note": "with the guard reverted to the pinned fixture, their test MUST fail — and must fail by RUNNING and exiting nonzero, not by failing to spawn"
+				"restore": [
+					"packages/nana-stage/lib/blocks.mjs"
+				],
+				"commands": [
+					[
+						"node",
+						"packages/nana-stage/tests/clamp-guard.test.mjs"
+					]
+				],
+				"note": "with the guard reverted to the pinned fixture their test must fail BY RUNNING: the sentinel's completion marker distinguishes a test that ran and reported a failure from one that died on module load or forced a status. A regex on stderr is not tamper-proof evidence.",
+				"trust": [
+					"packages/nana-stage/tests/clamp-guard.test.mjs"
+				]
 			}
 		]
+	},
+	"declaredSite": {
+		"file": "packages/nana-stage/lib/blocks.mjs",
+		"function": "clampText",
+		"lines": [
+			176,
+			192
+		],
+		"note": "clampText spans lines 176-192 of the pinned fixture; the guard belongs at its head. The only other file that may change is the new test."
 	}
 }

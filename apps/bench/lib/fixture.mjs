@@ -176,3 +176,30 @@ function compactHunks(lines, context = 3) {
 	}
 	return out;
 }
+
+/**
+ * A structured line diff (same LCS as `unifiedDiff`). Returns the ADDED lines with their position
+ * in the new file and the REMOVED lines with their position in the old one — which is what a
+ * diff-shape rule needs: "the change must live inside this function", and "these tokens must not
+ * appear on any line the model added".
+ */
+export function lineDiff(before, after) {
+	const A = String(before ?? "").split("\n");
+	const B = String(after ?? "").split("\n");
+	const L = Array.from({ length: A.length + 1 }, () => new Uint32Array(B.length + 1));
+	for (let i = A.length - 1; i >= 0; i--) {
+		for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+	}
+	const added = [];
+	const removed = [];
+	let i = 0;
+	let j = 0;
+	while (i < A.length && j < B.length) {
+		if (A[i] === B[j]) { i++; j++; }
+		else if (L[i + 1][j] >= L[i][j + 1]) removed.push({ line: i + 1, text: A[i++] });
+		else added.push({ line: j + 1, text: B[j++] });
+	}
+	while (i < A.length) removed.push({ line: i + 1, text: A[i++] });
+	while (j < B.length) added.push({ line: j + 1, text: B[j++] });
+	return { added, removed };
+}

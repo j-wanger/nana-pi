@@ -177,8 +177,17 @@ export async function loadPiExports({ piBin = process.env.PI_BENCH_ENTRY, import
  * defaults plus the cached `models-store.json` in the agent dir. A model the offline catalog does
  * not know is priced `null` WITH a reason — never guessed, and never silently zero.
  */
-export async function createPricer(piExports, { provider } = {}) {
-	const runtime = await piExports.ModelRuntime.create({ allowModelNetwork: false });
+export async function createPricer(piExports, { provider, agentDir = process.env.PI_CODING_AGENT_DIR } = {}) {
+	// Point the runtime at the PREPARED agent dir explicitly rather than letting it consult
+	// whatever config dir this process happens to inherit: the catalog that prices a run must be
+	// the same one the measured children resolved their model from.
+	const opts = { allowModelNetwork: false };
+	if (agentDir) {
+		opts.configDir = agentDir;
+		opts.modelsPath = path.join(agentDir, "models.json");
+		opts.modelsStorePath = path.join(agentDir, "models-store.json");
+	}
+	const runtime = await piExports.ModelRuntime.create(opts);
 	return function priceUsage(usage, { model, provider: prov = provider } = {}) {
 		if (!usage || !model) return { cost: null, reason: "no-model-id" };
 		for (const p of [prov, "openai-codex", "openai", "anthropic", "google"].filter(Boolean)) {

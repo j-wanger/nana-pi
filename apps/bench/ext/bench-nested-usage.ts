@@ -11,11 +11,18 @@
 // without editing pi-web-access, keeping its content hash equal to the upstream tarball, and we
 // catch every provider path rather than the one function we happened to read.
 //
-// SCOPE (the correctness rule): pi's OWN Codex transport also uses `globalThis.fetch`. Counting
-// those would add the run's own model calls a second time as "nested". So a request is only
-// counted while a WATCHED tool is executing — the window opened by `tool_call` and closed by
-// `tool_result`. pi issues its model requests from the agent loop, never from inside a tool's
-// execute(), so the window separates the two cleanly.
+// SCOPE: a request is only counted while a WATCHED tool is executing — the window opened by
+// `tool_call` and closed by `tool_result`. pi issues its model requests from the agent loop, never
+// from inside a tool's execute(), so the window separates a tool's spend from the run's own.
+//
+// COVERAGE, and its known hole: pi's Codex API speaks over a **WebSocket**
+// (`pi-ai/dist/api/openai-codex-responses.js` — 95 WebSocket references, zero `fetch(` calls).
+// So anything routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper.
+// pi-web-access's search step does its own hand-rolled HTTP POST and IS visible; its summary step
+// goes through pi-ai and is NOT. Measuring one and reporting the other as nothing is the exact
+// failure this file now refuses to commit: we (1) notice WebSocket model connections opened inside
+// a window and mark the window unknown, and (2) read the tool's own report of which phases it ran
+// on which model, and mark unknown any phase whose model we never measured.
 //
 // All accounting logic lives in ../lib/nested.mjs so it is unit-testable without pi.
 // This file is only the wiring, and every handler is total: a `tool_call` handler that throws
@@ -24,6 +31,8 @@
 import { createRecorder } from "../lib/nested.mjs";
 
 const WATCH = ["web_search", "fetch_content", "source_check", "get_search_content"];
+/** Hosts whose WebSocket traffic is a model call we cannot read. */
+const WS_LLM_HOST = /(chatgpt\.com|openai\.com|anthropic\.com|googleapis\.com)/i;
 const DRAIN_MS = 5000;
 /** The runner greps stderr for this and flags the record. Keep it in sync with run.mjs. */
 export const UNATTACHED_MARKER = "bench-nested-usage: UNATTACHED";
@@ -67,6 +76,31 @@ globalThis.fetch = async function benchInstrumentedFetch(input: any, init?: any)
 	return res;
 };
 
+// pi's Codex transport is a WebSocket, so a model call can happen inside a tool window with no
+// fetch at all. We cannot read those frames — reverse-engineering an undocumented wire format to
+// bill it would be worse than admitting the gap — but we CAN see the connection open and refuse to
+// call the window free.
+const OriginalWebSocket = (globalThis as any).WebSocket;
+if (typeof OriginalWebSocket === "function") {
+	function BenchWebSocket(this: any, url: any, ...rest: any[]) {
+		try {
+			if (WS_LLM_HOST.test(String(url))) recorder.noteUnobservable("websocket-transport-unobservable");
+		} catch {
+			/* instrumentation must never break the call it is watching */
+		}
+		return new OriginalWebSocket(url, ...rest);
+	}
+	BenchWebSocket.prototype = OriginalWebSocket.prototype;
+	for (const k of ["CONNECTING", "OPEN", "CLOSING", "CLOSED"]) {
+		try {
+			(BenchWebSocket as any)[k] = OriginalWebSocket[k];
+		} catch {
+			/* read-only constant: skip */
+		}
+	}
+	(globalThis as any).WebSocket = BenchWebSocket;
+}
+
 async function drain() {
 	// Wait for outstanding body reads BEFORE deciding there is nothing to report — otherwise a
 	// last tool's usage lands after its own tool_result and is lost with no later result to carry
@@ -94,6 +128,14 @@ export default function activate(pi: any) {
 		try {
 			const name = event?.toolName;
 			await drain();
+			// The tool's OWN report of what it ran, before the window closes: a phase naming a
+			// model we never measured is spend we missed, and the window is not silent, so nothing
+			// else would catch it.
+			try {
+				recorder.notePaths(event?.details);
+			} catch {
+				/* a malformed details object must not block the tool */
+			}
 			recorder.closeWindow(name);
 			const snap = recorder.snapshot(name ?? null);
 			if (!snap) return undefined;

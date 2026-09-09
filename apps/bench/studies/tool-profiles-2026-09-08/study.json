@@ -29,8 +29,9 @@
 	"pinnedSha": {
 		"ext:research:0": "afa4d45481b0451ce85fadde6f89a112bc141d714cc164819dd835af320de8a9",
 		"lock:research:0": "1bdb0d75a9c68e87efba7b7249b8f45397d07c94ed09fc8b07f902874568306b",
-		"ext:sidecar": "3205b944cc1a05c07533afb6314e98a964ca520f70beb4500f4ef3fdbf003f93",
-		"ext:sidecar-lib": "ba1abcc8e768420829916ea292c5a2f7dbf4fda8e66869b9d74b7bbf44c4b216"
+		"ext:sidecar": "3eb3842239944edd8b6ae70b0cc614d068937bffa5b8bde2b4f2b1fc0282a330",
+		"ext:sidecar-lib": "acb142cc93588d2e03f14f3b10adc215cb8f638197d15cdc2d2b43126d456b48",
+		"harness-sentinel": "26e93fa6c1ed0d6fd56741c1454d7cf6b29e9aa60c3e8c1af79c1f9dc7211b18"
 	},
 	"fixture": {
 		"dir": "fixture",
@@ -123,5 +124,6 @@
 			]
 		}
 	],
-	"sidecarLib": "../../lib/nested.mjs"
+	"sidecarLib": "../../lib/nested.mjs",
+	"sentinel": "../../lib/harness-sentinel.cjs"
 }

@@ -5,7 +5,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { budgetFrom, costOf, readKeys, readLedger, shouldStopForKill, spendOf, systemicStreak, SYSTEMIC_LIMIT } from "../run.mjs";
+import { budgetFrom, costOf, readKeys, readLedger, shouldStopForKill, spendOf, systemicStreak, SYSTEMIC_LIMIT, treeAlive } from "../run.mjs";
+import { spawn } from "node:child_process";
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -24,10 +25,40 @@ check("a passing run resets the streak", streak(["run-error", "run-error", "ok",
 check("a FAILING but decided run also resets it (that is a measurement, not a fault)", streak(["run-error", "run-error", "fail", "run-error"]) === 1);
 check("two non-model failures do not trip it", streak(["run-error", "blocked"]) < SYSTEMIC_LIMIT);
 
+// ── the streak SURVIVES a restart ────────────────────────────────────────────────────────────
+// It used to reset to 0 on resume, so three failures in a row stopped mattering the moment the
+// operator restarted the runner — exactly when they matter most.
+const restoredStreak = (records) => {
+	let n = 0;
+	for (const r of [...records].reverse()) {
+		if (r.state === "ok" || r.state === "fail") break;
+		n++;
+	}
+	return n;
+};
+check("a trailing run of non-model failures is restored on resume", restoredStreak([{ state: "ok" }, { state: "run-error" }, { state: "run-error" }, { state: "grader-error" }]) === 3);
+check("…and stops the study immediately at the limit", restoredStreak([{ state: "run-error" }, { state: "run-error" }, { state: "run-error" }]) >= SYSTEMIC_LIMIT);
+check("a decided run in the tail clears it", restoredStreak([{ state: "run-error" }, { state: "run-error" }, { state: "fail" }]) === 0);
+check("an empty results file has no streak", restoredStreak([]) === 0);
+
 // ── unconfirmed kill ─────────────────────────────────────────────────────────────────────────
 check("a child that could not be confirmed dead stops the study", shouldStopForKill({ killedCleanly: false }) === true);
 check("a confirmed kill does not", shouldStopForKill({ killedCleanly: true }) === false);
 check("a run where nothing was killed does not", shouldStopForKill({ killedCleanly: null }) === false);
+
+// Kill confirmation must look at the whole tree, not just the leader: a surviving grandchild is
+// what keeps burning quota.
+{
+	check("treeAlive says false for a pid that never existed", treeAlive(0x7ffffff0) === false);
+	check("treeAlive says false for a null pid", treeAlive(null) === false);
+	const child = spawn(process.execPath, ["-e", "setInterval(()=>{},1000)"], { stdio: "ignore", detached: process.platform !== "win32" });
+	await new Promise((r) => setTimeout(r, 200));
+	check("treeAlive sees a live child", treeAlive(child.pid) === true);
+	if (process.platform !== "win32") process.kill(-child.pid, "SIGKILL");
+	else child.kill("SIGKILL");
+	for (let i = 0; i < 50 && treeAlive(child.pid); i++) await new Promise((r) => setTimeout(r, 50));
+	check("treeAlive sees the group die", treeAlive(child.pid) === false);
+}
 
 // ── spend, counted exactly once ──────────────────────────────────────────────────────────────
 // Usage is pi-ai shaped: totalTokens is pi's own field, not a bucket sum of ours.
@@ -90,6 +121,15 @@ try {
 	check("a snapshotted oracle FAILURE is reloaded too", keys.get("res-doc-phrase|1").error === "HTTP 503");
 	check("…so the second arm cannot quietly refetch a different key", keys.get("res-doc-phrase|1").key === undefined);
 	check("an unseen block has no entry, and will be fetched once", keys.get("res-npm-latest|1") === undefined);
+
+	// The keys log gets the same torn-tail repair as results.jsonl and the ledger.
+	const kf = path.join(dir, "keys.jsonl");
+	await fs.appendFile(kf, '{"block":"torn|9","key":"x');
+	const repaired = await readKeys(dir);
+	check("keys: a torn tail is dropped", repaired.get("torn|9") === undefined);
+	check("keys: …and the file is repaired to a newline boundary", (await fs.readFile(kf, "utf8")).endsWith("\n"));
+	await fs.appendFile(kf, `${JSON.stringify({ block: "after|0", key: "kept" })}\n`);
+	check("keys: …so the NEXT append survives", (await readKeys(dir)).get("after|0").key === "kept");
 } finally {
 	await fs.rm(dir, { recursive: true, force: true });
 }

@@ -12,6 +12,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { costOfRecord } from "./lib/usage.mjs";
 
 const q = (sorted, p) => {
 	if (!sorted.length) return null;
@@ -39,13 +40,8 @@ export function stats(values, digits = 2) {
 // pi-ai `Usage` carries its own authoritative `totalTokens`; the bucket sum is only a fallback for
 // a record written before the bench adopted pi's shape.
 const tot = (t) => (t ? (typeof t.totalTokens === "number" ? t.totalTokens : (t.in || t.input || 0) + (t.out || t.output || 0) + (t.cacheRead || 0) + (t.cacheWrite || 0)) : 0);
-/** Money, in pi's own numbers. null when any part of a run went unpriced — never a guessed 0. */
-export const costOf = (r) => {
-	if (r?.cost === null) return null;
-	if (typeof r?.cost === "number") return r.cost;
-	if (tot(r?.nestedTokens) > 0 && r?.nestedCost == null) return null;
-	return (r?.tokens?.cost?.total ?? 0) + (r?.nestedCost?.total ?? 0);
-};
+/** Money, in pi's own numbers — the SAME helper the runner writes with. */
+export { costOfRecord as costOf } from "./lib/usage.mjs";
 /**
  * A run's TRUE cost: its own model calls plus the LLM calls its tools made, counted exactly once.
  * The parser keeps the two apart (`tokens` = assistant messages, `nestedTokens` = tool-reported),
@@ -87,8 +83,8 @@ export function aggregate(records, schedule = null) {
 			spend: stats(dec.map(spendOf)),
 			// Cost is pi's `calculateCost` output, summed. A cell where any run went unpriced
 			// reports null rather than a total that quietly omits it.
-			cost: dec.length && dec.every((r) => costOf(r) != null) ? stats(dec.map((r) => costOf(r)), MONEY_DIGITS) : null,
-			costUnpriced: dec.filter((r) => costOf(r) == null).length,
+			cost: dec.length && dec.every((r) => costOfRecord(r) != null) ? stats(dec.map((r) => costOfRecord(r)), MONEY_DIGITS) : null,
+			costUnpriced: dec.filter((r) => costOfRecord(r) == null).length,
 			spendOnSuccess: stats(okRuns.map(spendOf)),
 			ownTokens: stats(dec.map((r) => r.totalTokens ?? tot(r.tokens))),
 			nestedTokens: stats(dec.map((r) => tot(r.nestedTokens))),
