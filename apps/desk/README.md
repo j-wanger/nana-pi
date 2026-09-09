@@ -288,6 +288,41 @@ response is allowed to touch the screen, and all three are visible to anyone dri
   (8 ids; per id 200 events and the same 20 000 characters the rendered row keeps, oldest
   dropped) so an id whose row never appears cannot grow. Server ordering was not changed.
 
+## Contract notes (2026-09-09 — stage signing keys)
+
+- **Stage signing keys belong to the session, not to the child, and the desk keeps a record of
+  them on disk.** New file: `~/.pi/agent/nana-desk/stage-keys.json` (directory `0700`, file
+  `0600`, written temp-file-then-rename so a reader never sees a half-written one). It holds
+  `{"v":1,"sessions":{"<pi session id>":{"keys":["<hex>", …],"updatedAt":<ms>}}}` — the keys this
+  desk has issued for that session, most recent first, at most 8, keyed by the pi session header
+  `id` so renaming a session file does not lose them. What changes for a caller:
+  - **Spawning an app session on a session this desk already knows reuses that session's most
+    recent key** instead of minting a new one, so `GET /api/entries` still returns the blocks
+    minted before the restart as `nana-block` rather than `nana-block-rejected`.
+  - **`GET /api/entries` verifies each `nana-block` against a SET of keys** — the live child's own
+    key plus every key recorded for the session it currently holds. Any-of-recorded-keys is as
+    strong as the single key it replaces: a forging extension or a hand-edited session file holds
+    none of them, and this is what makes resume, restart and an in-child `switch_session` all
+    verify. Nothing became acceptable that was not signed by a key this desk issued.
+  - **The live path is unchanged.** A block arriving on `tool_execution_end` must still be signed
+    by *this* child's key and stamped by that very tool call; an older key of the same session
+    does not pass there.
+  - **Blocks minted before this change stay redacted.** Their keys were never written down, so
+    nothing can vouch for them; there is no migration and no "accept unverifiable" fallback.
+  - The record is only consulted for app sessions, and only when the desk knows the session id
+    (from the session file's header on resume, from `get_state` afterwards). A session the desk
+    has no record for simply gets a fresh key.
+  - The session id a live child is filed under is the one the child reports through `get_state`,
+    taken at face value. A child that lied would only file its own key under some other session,
+    and it already controls both the blocks it signs and the entries it hands back — so there is
+    nothing it could read that way that it could not read anyway.
+  - **One narrowing was traded away, deliberately: the record is per session, not per app.** If
+    two app manifests' children ever hold the same session file (only reachable by driving
+    `switch_session` from the desk), both children's keys end up recorded for it, and either
+    one's blocks then verify on that session's stage. What the signature proves widens from "this
+    app's child" to "an app child of this desk holding this session" — both sides being
+    manifest-configured children the design already treats as inside the trust boundary.
+
 ## Known limits
 
 The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then
@@ -300,7 +335,11 @@ is not":
   you keeps full control-plane access: spawn a pi session in any directory, run bash in it, read
   `/api/settings` including MCP credentials. Do not port-forward it and do not proxy it. The
   Host and Origin checks added this pass stop a *browser* on another site (DNS rebinding, cross-
-  origin POSTs) from reaching it; they are not authentication.
+  origin POSTs) from reaching it; they are not authentication. Reading
+  `~/.pi/agent/nana-desk/stage-keys.json` is enough to mint stage blocks that pass the provenance
+  check for the sessions it names — the same authority the desk process already has, which is
+  why it is `0600` in a `0700` directory and why it is not a defence against a process running
+  as you.
 - **"Trust project config" is a resource policy, not a sandbox.** Unchecked now genuinely denies
   (`-na`, the UI stops offering project-local items, and the server refuses a project path), but
   any extension that *does* load runs with your full authority, and context files are still model
@@ -316,12 +355,15 @@ is not":
   and `nana-pack.json` are your own paths, and symlinking them into a dotfiles repo is a normal
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
   whose destination comes from a *request* — a context file in a picked directory, a subagent
-  `.md` — do refuse a symlinked destination or `.bak` with 409 (`53d4aab`).
-- **A restart redacts old stage blocks.** Each app session gets a fresh signing key per spawn
-  (`NANA_STAGE_KEY`), and `/api/entries` drops any `nana-block` entry not signed under the
-  current child's key. After a desk or child restart, blocks from before the restart vanish from
-  the stage. That is the provenance rule working, not a render bug — the fix is a stable
-  per-session key, never accepting unverifiable blocks.
+  `.md` — do refuse a symlinked destination or `.bak` with 409 (`53d4aab`). The stage-key store
+  (`nana-desk/stage-keys.json`) follows the same policy: a link at that path is resolved and the
+  atomic temp-then-rename happens next to the real file, never replacing the link.
+- **Stage blocks minted before 2026-09-09 stay redacted.** The desk only started writing down
+  which signing key it issued for which session on that date, so a block signed under a key from
+  before it has nothing that can vouch for it and `/api/entries` still returns it as
+  `nana-block-rejected`. That is the provenance rule working, not a render bug. The same is true
+  of any session whose entry has aged out of the record (8 keys per session; a session with no
+  file left under `~/.pi/agent/sessions/` is forgotten when the desk next starts).
 - **A picker left open across a session switch still acts on the new session.** Selecting a
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
   flight* when you switch applies to whichever session is selected when it lands. Narrow window,

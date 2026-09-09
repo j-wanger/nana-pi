@@ -39,7 +39,9 @@ fs.writeFileSync(path.join(tinyCwd, ".pi/mcp.json"), JSON.stringify({
 }));
 fs.writeFileSync(path.join(appsDir, "tiny.json"), JSON.stringify({ port: APP2, title: "edge tiny", cwd: tinyCwd, tools: TOOLS, extensions: [adapter, stage], trust: "no-approve" }));
 
-const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir }, stdio: ["ignore", "pipe", "pipe"] });
+// throwaway stage-key store: this test uses the real HOME, and the desk records a
+// signing key per session it spawns — it must not write into the operator's own store.
+const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, DESK_STAGE_KEYS: path.join(tmp, "stage-keys.json") }, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";
 server.stdout.on("data", (c) => (log += c));
 server.stderr.on("data", (c) => (log += c));
