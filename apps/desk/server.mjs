@@ -215,14 +215,31 @@ function stageKeyForSpawn(session) {
 // session, and it already controls both the blocks it signs and the entries it
 // returns — there is no read it could not already perform. Ids that name no session
 // file are dropped by the store's hygiene pass on the next desk start.
-// It NEVER seeds. Inheritance is decided only where the desk can see a whole
-// transition — `lifecycleRpc` below, which establishes the source before the command
-// that creates the new session. An observation on its own cannot tell a fork (which
+// It never decides inheritance on its own: an observation cannot tell a fork (which
 // copies the source's blocks) from a switch (which copies nothing), and the last id
-// we happened to observe is not evidence of either.
+// we happened to see is not evidence of either. It only CARRIES OUT an inheritance a
+// lifecycle transition already established and could not finish (`child.inheritFrom`).
+const stateSessionId = (state) => (typeof state?.sessionId === "string" && state.sessionId ? state.sessionId : null);
+
 function noteStageSession(child, state) {
-	const id = typeof state?.sessionId === "string" && state.sessionId ? state.sessionId : null;
+	const id = stateSessionId(state);
 	if (!id || !child?.stageKey) return null;
+	// A transition is in flight and owns the attribution. The id we are seeing may be
+	// a destination it has not finished accounting for, and filing it here under the
+	// live key alone is exactly what used to strand a fork's inherited blocks. Report
+	// it so THIS read can verify against it; write nothing down.
+	if (child.transition) return id;
+	return recordStageSession(child, id);
+}
+
+// The one place a session id is written down. `inheritFrom` is a fork or clone whose
+// source this desk CONFIRMED but whose destination it never managed to observe: the
+// first confirmed observation afterwards completes that inheritance, so a failed
+// post-fork state read costs one ledger read, not the fork's history.
+function recordStageSession(child, id) {
+	if (!id) return null; // nothing was confirmed: leave `inheritFrom` armed for the next try
+	if (child.inheritFrom && child.inheritFrom !== id) stageKeys.seed(id, stageKeys.keysFor(child.inheritFrom));
+	child.inheritFrom = null;
 	child.sessionId = id;
 	stageKeys.record(id, child.stageKey);
 	return id;
@@ -398,7 +415,8 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, app: app || null, stageKey, sessionId: null, toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		proc, cwd, app: app || null, stageKey, sessionId: null, transition: 0, inheritFrom: null, lifecycle: null,
+		toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,
@@ -657,45 +675,66 @@ const SESSION_CHANGING = new Set(["new_session", "switch_session", "fork", "clon
 // loses a fork's inherited keys for good.
 function sendRpc(child, command) {
 	if (!child.stageKey || !SESSION_CHANGING.has(command?.type)) return sendRpcRaw(child, command);
-	return lifecycleRpc(child, command);
+	// ONE transition at a time per child. Two overlapping ones interleave their state
+	// reads, and the second then captures a source the first has already moved away
+	// from. The chain absorbs rejections (`.then(run, run)` to start, and a swallowing
+	// tail) so one failed transition cannot wedge every later one.
+	const run = () => lifecycleRpc(child, command);
+	const started = (child.lifecycle || Promise.resolve()).then(run, run);
+	child.lifecycle = started.then(
+		() => {},
+		() => {},
+	);
+	return started;
 }
 
-// `child.sessionId` means "the session this child was CONFIRMED to hold". Anything
-// that leaves it unconfirmed clears it, so no later step can inherit from a
-// predecessor that may already be wrong.
+// `child.sessionId` means "the session this child was CONFIRMED to hold", so a
+// transition clears it at DISPATCH: a command that times out or comes back
+// unsuccessful can still have moved the child, and nothing may go on claiming the
+// old session. Only a successful observation restores it.
 async function lifecycleRpc(child, command) {
-	const state = async () => (await sendRpcRaw(child, { type: "get_state" }))?.data;
-	// fork/clone COPY the source session's ledger entries into a new file under a new
-	// header id, so the new session must inherit the SOURCE's keys. Establish the
-	// source from the child BEFORE the command runs: the last id we happened to
-	// observe can be stale (a switch whose observation failed), and inheriting from
-	// the wrong predecessor both blanks the real source's blocks and hands the fork
-	// authority it never had. A source we cannot confirm means no inheritance.
 	const inherits = command.type === "fork" || command.type === "clone";
-	let source = null;
-	if (inherits) {
-		try {
-			source = noteStageSession(child, await state());
-		} catch {
-			/* unconfirmed */
-		}
-		if (!source) child.sessionId = null;
-	}
-	const r = await sendRpcRaw(child, command);
-	// Only a command that actually ran can have moved the child. A state read that
-	// fails must not turn a successful fork into a failed request.
-	if (!r?.success) return r;
-	let after = null;
+	child.transition++;
+	child.sessionId = null;
+	child.inheritFrom = null; // a previous unfinished inheritance is stale now
 	try {
-		const data = await state();
-		const id = typeof data?.sessionId === "string" && data.sessionId ? data.sessionId : null;
-		if (id && inherits && source && source !== id) stageKeys.seed(id, stageKeys.keysFor(source));
-		after = noteStageSession(child, data);
-	} catch {
-		/* unconfirmed */
+		// fork/clone COPY the source session's ledger entries into a new file under a
+		// new header id, so the new session must inherit the SOURCE's keys. Establish
+		// the source from the child BEFORE the command runs: the last id we happened to
+		// observe can be stale (a switch whose observation failed), and inheriting from
+		// the wrong predecessor both blanks the real source's blocks and hands the fork
+		// authority it never had. A source we cannot confirm means no inheritance.
+		let source = null;
+		if (inherits) {
+			try {
+				source = recordStageSession(child, stateSessionId(await childState(child)));
+			} catch {
+				/* unconfirmed */
+			}
+			if (!source) child.sessionId = null;
+		}
+		const r = await sendRpcRaw(child, command);
+		// Only a command that actually ran can have moved the child.
+		if (!r?.success) return r;
+		// Arm the inheritance BEFORE the observation that would complete it: if that
+		// state read fails, the next confirmed observation finishes the job instead of
+		// the fork's history being lost.
+		child.inheritFrom = source;
+		try {
+			// A state read that fails must not turn a successful fork into a failed request.
+			recordStageSession(child, stateSessionId(await childState(child)));
+		} catch {
+			/* the next confirmed observation completes it */
+		}
+		return r;
+	} finally {
+		child.transition--;
 	}
-	if (!after) child.sessionId = null;
-	return r;
+}
+
+async function childState(child) {
+	const data = (await sendRpcRaw(child, { type: "get_state" }))?.data;
+	return data;
 }
 
 function sendRpcRaw(child, command) {

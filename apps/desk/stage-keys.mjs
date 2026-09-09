@@ -21,6 +21,13 @@
  * temp-file-plus-rename of one small file that only that session's records live in,
  * so there is nothing to merge and nothing to serialize.
  *
+ * The file is read on EVERY lookup, and a record is written as read-union-write.
+ * There is no cache: two desks are both live, and a desk that answered from its own
+ * memory redacted the other's blocks while it was still running, then overwrote its
+ * record with a stale one. What is left is a genuine race — two desks writing the
+ * same session's file in the same instant, where the later write wins and one new
+ * key is lost — and that is declared rather than locked away.
+ *
  * Keyed by the pi session header `id`, never by the file path: a session file gets
  * renamed on a title append and resumed by its new name, and the id survives that.
  *
@@ -32,9 +39,10 @@
  *     file, holds none of them.
  *   · Nothing here ever makes an unverifiable block acceptable. A session we have
  *     no record for simply gets a fresh key, and its older blocks stay redacted.
- *   · Persistence is BEST EFFORT and in-memory is authoritative for this process: a
- *     write that fails costs continuity across the next restart, never the request,
- *     and the next record for that session retries it.
+ *   · Persistence is BEST EFFORT: a write that fails costs continuity across the
+ *     next restart, never the request. The keys it could not save are held in memory
+ *     and overlaid on what the file says, and the next record for that session
+ *     retries the write.
  *   · Reading these files is enough to mint blocks that pass the check for the
  *     sessions they name — the same authority the desk process itself has — which
  *     is why they are 0600 in a 0700 directory.
@@ -74,20 +82,22 @@ export class StageKeyStore {
 		this.dir = dir; // replaced by the resolved path at first use
 		this.knownSessionIds = knownSessionIds;
 		this.log = log;
-		this.cache = new Map(); // id → [keys]; authoritative for this process
-		this.dirty = new Set(); // ids whose last write failed — retried on the next record
+		// NOT a cache. The FILE is authority, read on every call: a long-lived cache
+		// made this desk redact another desk's blocks while it was still running, and
+		// then overwrite its record with a stale one. This map holds only the keys
+		// whose own write FAILED, overlaid on what the file says so a failed save
+		// costs continuity across a restart and nothing sooner.
+		this.pending = new Map(); // id → [keys] we hold but could not persist
 		this.ready = false;
 	}
 
-	// Every key this desk has recorded for a session, most recent first.
+	// Every key this desk has recorded for a session, most recent first. Reads the
+	// file each time — the records are one short line, and being current matters more
+	// than the read: another desk may have added keys since.
 	keysFor(id) {
 		if (!ID_RE.test(id || "")) return [];
 		this.#ensureReady();
-		const cached = this.cache.get(id);
-		if (cached) return [...cached];
-		const keys = this.#readRecord(id);
-		this.cache.set(id, keys); // remembers "nothing recorded" too
-		return [...keys];
+		return union(this.pending.get(id), this.#readRecord(id));
 	}
 
 	// Record that `key` was issued for session `id`. Returns whether anything changed
@@ -95,13 +105,11 @@ export class StageKeyStore {
 	// the ledger read (which calls this on every replay) off the write path.
 	record(id, key) {
 		if (!ID_RE.test(id || "") || !KEY_RE.test(key || "")) return false;
-		const cur = this.keysFor(id);
-		if (cur.includes(key)) {
-			if (this.dirty.has(id)) this.#write(id, cur); // an earlier save failed: retry it now
-			return false;
-		}
-		this.#write(id, [key, ...cur].slice(0, KEYS_PER_SESSION));
-		return true;
+		const cur = this.keysFor(id); // re-read: never write back a stale list
+		const held = cur.includes(key);
+		if (held && !this.pending.has(id)) return false; // nothing to add, nothing owed
+		this.#write(id, held ? cur : union([key], cur));
+		return !held;
 	}
 
 	// Seed a session's record from another's. The ONE case for it: pi's fork and
@@ -110,13 +118,21 @@ export class StageKeyStore {
 	// id nothing was recorded for. The caller establishes the source by asking the
 	// child what it holds BEFORE the fork (server.mjs `lifecycleRpc`) — never from
 	// `parentSession` text in the file, which a session file is not authority for.
-	// Fills a blank only: an id that already has a record is left alone.
+	// A UNION, not "fill a blank". An overlapping ledger read can create the
+	// destination's record — with the live child's key alone — between the fork and
+	// the moment the desk confirms it, and refusing then stranded the inherited blocks
+	// for good. Adding is safe: these are keys already recorded for a source this desk
+	// CONFIRMED the child was holding, which is exactly the set the copied blocks
+	// verified under a moment earlier. Whatever is already there stays in front, so
+	// the live child's key remains the most recent.
 	seed(id, keys) {
 		if (!ID_RE.test(id || "") || !Array.isArray(keys) || !keys.length) return false;
-		if (this.keysFor(id).length) return false;
-		const valid = keys.filter((k) => KEY_RE.test(k || "")).slice(0, KEYS_PER_SESSION);
+		const valid = keys.filter((k) => KEY_RE.test(k || ""));
 		if (!valid.length) return false;
-		this.#write(id, valid);
+		const cur = this.keysFor(id);
+		const next = union(cur, valid);
+		if (next.length === cur.length) return false; // nothing new to add
+		this.#write(id, next);
 		return true;
 	}
 
@@ -193,7 +209,11 @@ export class StageKeyStore {
 		}
 		for (const f of files) {
 			if (!f.endsWith(".json")) continue; // leaves .corrupt-* and stray temps alone
-			if (known.has(f.slice(0, -5))) continue;
+			const id = f.slice(0, -5);
+			// Only a name this store could have WRITTEN is a candidate. Anything else in
+			// the directory (`operator.notes.json`, say) is someone else's file, and a
+			// hygiene pass has no business deleting it.
+			if (!ID_RE.test(id) || known.has(id)) continue;
 			try {
 				fs.unlinkSync(path.join(this.dir, f));
 			} catch {
@@ -229,11 +249,13 @@ export class StageKeyStore {
 	// keys it just issued. Atomic within the directory (temp + rename), so a reader
 	// sees either the old record or the new one.
 	#write(id, keys) {
-		this.cache.set(id, keys);
 		const file = this.#file(id);
-		const tmp = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+		let tmp = null;
 		let fd = null;
 		try {
+			// inside the try: an entropy source that throws follows the same in-memory
+			// fallback as a disk that will not take the write
+			tmp = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
 			// "wx": create it or fail. Never write through a name something else made.
 			fd = fs.openSync(tmp, "wx", 0o600);
 			fs.writeSync(fd, `${JSON.stringify({ v: 1, keys, updatedAt: Date.now() })}\n`);
@@ -241,7 +263,7 @@ export class StageKeyStore {
 			fd = null;
 			fs.chmodSync(tmp, 0o600); // explicit: the create mode is masked by the umask
 			fs.renameSync(tmp, file);
-			this.dirty.delete(id);
+			this.pending.delete(id);
 			return true;
 		} catch (e) {
 			if (fd !== null) {
@@ -251,16 +273,28 @@ export class StageKeyStore {
 					/* already closed */
 				}
 			}
-			try {
-				fs.unlinkSync(tmp);
-			} catch {
-				/* nothing to clean up */
+			if (tmp) {
+				try {
+					fs.unlinkSync(tmp);
+				} catch {
+					/* nothing to clean up */
+				}
 			}
-			this.dirty.add(id);
+			// Held in memory so this desk keeps verifying what it just issued; overlaid
+			// on the file by keysFor, and retried by the next record for this session.
+			this.pending.set(id, keys);
 			this.#warn(`stage keys: could not save ${file} (${e.message}) — held in memory for this desk only; the next record for this session retries`);
 			return false;
 		}
 	}
+}
+
+// Most-recent-first, de-duplicated, capped. `a` keeps its order and its place at the
+// front; `b` contributes only what `a` does not already have.
+function union(a, b) {
+	const out = [...(a || [])];
+	for (const k of b || []) if (!out.includes(k)) out.push(k);
+	return out.slice(0, KEYS_PER_SESSION);
 }
 
 // Shape check, not a parse convenience: anything that is not a v1 record reads as
