@@ -68,14 +68,33 @@ const t7 = tasks.find((t) => t.id === "code-bugfix");
 	check("code-bugfix: FAILS when the TEST file is edited instead", runCheck(t7.check, at).pass === false);
 	check("…and the reason names the protected path", runCheck(t7.check, at).detail.includes("tests/blocks.test.mjs"));
 
-	// GAMING 2 (astra): leave the bug and drop process.exit(0) into an imported module, so the
-	// suite exits 0 without ever asserting. The allowed-paths check is what stops this.
+	// GAMING 2 (astra round 1): leave the bug and drop process.exit(0) into an UNRELATED imported
+	// module, so the suite exits 0 without ever asserting. The allowed-paths check stops this.
 	await fs.writeFile(path.join(d, suite), orig);
 	const sign = "packages/nana-stage/lib/sign.mjs";
 	await fs.writeFile(path.join(d, sign), `process.on("exit", () => process.reallyExit(0));\n${await fs.readFile(path.join(fixtureDir, sign), "utf8")}`);
 	const gamed = runCheck(t7.check, at);
 	check("code-bugfix: FAILS when an UNRELATED imported module force-exits 0", gamed.pass === false);
 	check("…and the reason names the file it must not have touched", gamed.detail.includes("sign.mjs"), gamed.detail.slice(0, 160));
+	await fs.writeFile(path.join(d, sign), await fs.readFile(path.join(fixtureDir, sign), "utf8"));
+
+	// GAMING 3 (astra round 2): the early exit goes into the file the task ALLOWS the model to
+	// edit, so allowed-paths cannot see it. Only externally observed completion can.
+	const pristine = await fs.readFile(path.join(fixtureDir, blocks), "utf8");
+	await fs.writeFile(path.join(d, blocks), `process.exit(0);\n${broken}`);
+	const early = runCheck(t7.check, at);
+	check("code-bugfix: FAILS on `process.exit(0)` inside the ALLOWED source file", early.pass === false);
+	check("…and says the suite did not run to completion", /did not run to completion|0 PASS lines/.test(early.detail), early.detail.slice(-170));
+
+	// The sharpest version: the bug IS correctly fixed, so every other check is satisfied, and
+	// only the PASS-line count can notice that the suite stopped early.
+	await fs.writeFile(path.join(d, blocks), `process.exit(0);\n${pristine}`);
+	const earlyButFixed = runCheck(t7.check, at);
+	check("code-bugfix: an early exit is caught even when the fix itself is correct", earlyButFixed.pass === false, earlyButFixed.detail.slice(-140));
+
+	// A late force-exit lets the suite print its lines but forces status 0 — caught by `forbid`.
+	await fs.writeFile(path.join(d, blocks), `process.on("exit", () => process.reallyExit(0));\n${broken}`);
+	check("code-bugfix: FAILS on a LATE force-exit that hides one FAIL line", runCheck(t7.check, at).pass === false);
 	await fs.rm(d, { recursive: true, force: true });
 }
 
@@ -110,6 +129,17 @@ const t8 = tasks.find((t) => t.id === "code-guard");
 	await fs.writeFile(path.join(d, newTest), guardTest);
 	await fs.writeFile(path.join(d, "apps/desk/README.md"), "scribble\n");
 	check("code-guard: FAILS when an unrelated file was also changed", runCheck(t8.check, at).pass === false);
+	await fs.writeFile(path.join(d, "apps/desk/README.md"), await fs.readFile(path.join(fixtureDir, "apps/desk/README.md"), "utf8"));
+
+	// GAMING 4 (astra round 2): NO guard at all — instead `process.exit(0)` at the top of the
+	// allowed source file, which makes the existing suite, the hidden probe AND the model's own
+	// test all exit 0 having asserted nothing, and makes revert-and-fail pass too.
+	const pristineBlocks = await fs.readFile(path.join(fixtureDir, blocks), "utf8");
+	await fs.writeFile(path.join(d, blocks), `process.exit(0);\n${pristineBlocks}`);
+	await fs.writeFile(path.join(d, newTest), 'import { clampText } from "../lib/blocks.mjs";\nclampText("a", 0, "x");\nprocess.exit(0);\n');
+	const earlyExitGame = runCheck(t8.check, at);
+	check("code-guard: FAILS on `process.exit(0)` in the ALLOWED source with no guard at all", earlyExitGame.pass === false);
+	check("…caught by suite completion, not by exit status", /did not run to completion|0 PASS lines/.test(earlyExitGame.detail), earlyExitGame.detail.slice(-190));
 	await fs.rm(d, { recursive: true, force: true });
 }
 
@@ -120,12 +150,26 @@ const t8 = tasks.find((t) => t.id === "code-guard");
 	await fs.rm(d, { recursive: true, force: true });
 }
 
-// 6. content pins in study.json still match what is on disk
+// 6. content pins in study.json still match what is on disk. Everything that decides a number
+// must be pinned: the third-party extension, its lockfile, the bench sidecar AND the module the
+// sidecar's accounting actually lives in.
+const { createHash } = await import("node:crypto");
+const pinTarget = (k) => {
+	if (k === "ext:sidecar") return study.sidecarExtension;
+	if (k === "ext:sidecar-lib") return study.sidecarLib;
+	const [kind, profileName, idx] = k.split(":");
+	const ext = study.profiles.find((p) => p.name === profileName)?.extensions?.[Number(idx)];
+	return kind === "lock" ? ext?.lockfile : ext?.path;
+};
 for (const [k, want] of Object.entries(study.pinnedSha ?? {})) {
-	const rel = k === "ext:sidecar" ? study.sidecarExtension : k.startsWith("lock:") ? study.profiles.find((p) => p.name === k.split(":")[1]).extensions[Number(k.split(":")[2])].lockfile : study.profiles.find((p) => p.name === k.split(":")[1]).extensions[Number(k.split(":")[2])].path;
-	const { createHash } = await import("node:crypto");
+	const rel = pinTarget(k);
+	if (!rel) {
+		check(`pinnedSha ${k} names a file the study declares`, false, "no such declaration");
+		continue;
+	}
 	const got = createHash("sha256").update(await fs.readFile(path.resolve(studyDir, rel))).digest("hex");
 	check(`pinnedSha ${k} matches the file on disk`, got === want, `${got.slice(0, 12)} vs ${String(want).slice(0, 12)}`);
 }
+check("the sidecar's accounting module is pinned, not just the wrapper", Boolean(study.pinnedSha?.["ext:sidecar-lib"]) && Boolean(study.sidecarLib));
 
 process.exit(fails ? 1 : 0);

@@ -65,32 +65,56 @@ export const filterPlan = (runs, f = {}) =>
 	runs.filter((r) => (!f.task || r.task === f.task) && (!f.profile || r.profile === f.profile) && (f.rep == null || r.rep === f.rep));
 
 /**
- * Persist the schedule once. A later call with the same fingerprint returns the SAME order, so
- * a resumed study cannot quietly re-randomize itself; a different fingerprint is an error.
+ * Persist the schedule once, and EXTEND it in place when the study adds repetitions.
+ *
+ * `repeats` is deliberately not part of the fingerprint (see studyFingerprint): going from N=3 to
+ * N=5 adds runs, it does not change what any existing run meant. Because the seeded generator
+ * draws in rep order, regenerating with more reps reproduces the earlier reps exactly — asserted
+ * here rather than assumed, so an extension can never silently reorder work already done.
  */
 export async function loadOrCreateSchedule(studyDir, study, tasks, fingerprint, opts = {}) {
 	const file = path.join(studyDir, "schedule.json");
+	const reps = opts.reps ?? study.repeats ?? 3;
+	let prev = null;
 	try {
-		const prev = JSON.parse(await fs.readFile(file, "utf8"));
-		if (prev.fingerprint !== fingerprint) {
-			throw new Error(`schedule.json was built for fingerprint ${prev.fingerprint.slice(0, 12)}… but the study now hashes to ${fingerprint.slice(0, 12)}…\n` + `Something that changes what a run means was edited. Start a new study directory, or delete schedule.json AND results.jsonl.`);
-		}
-		return prev;
+		prev = JSON.parse(await fs.readFile(file, "utf8"));
 	} catch (e) {
 		if (e.code !== "ENOENT") throw e;
 	}
-	const sched = { fingerprint, createdAt: new Date().toISOString(), ...buildSchedule(study, tasks, opts) };
+	if (prev) {
+		if (prev.fingerprint !== fingerprint) {
+			throw new Error(`schedule.json was built for fingerprint ${prev.fingerprint.slice(0, 12)}… but the study now hashes to ${fingerprint.slice(0, 12)}…\n` + `Something that changes what a run means was edited. Start a new study directory, or delete schedule.json AND results.jsonl.`);
+		}
+		if (reps <= prev.reps) return prev;
+		const extended = buildSchedule(study, tasks, { ...opts, reps });
+		const head = extended.runs.slice(0, prev.runs.length);
+		if (JSON.stringify(head) !== JSON.stringify(prev.runs)) {
+			throw new Error(`extending to ${reps} repeats would reorder the ${prev.runs.length} runs already scheduled. Refusing: the completed part of a study must keep its order.`);
+		}
+		const next = { ...prev, reps, extendedAt: new Date().toISOString(), added: extended.runs.length - prev.runs.length, runs: extended.runs };
+		await fs.writeFile(file, `${JSON.stringify(next, null, 1)}\n`);
+		return next;
+	}
+	const sched = { fingerprint, createdAt: new Date().toISOString(), ...buildSchedule(study, tasks, { ...opts, reps }) };
 	await fs.writeFile(file, `${JSON.stringify(sched, null, 1)}\n`);
 	return sched;
 }
 
 /**
- * Everything that changes what a run MEANS. Deliberately excludes credentials, wall-clock and
- * machine paths — the same study on another machine must fingerprint the same.
+ * Keys that change how MUCH is run or where it runs, never what a run MEANS. Excluded from the
+ * fingerprint so that adding repetitions extends a study instead of invalidating it.
+ */
+export const OPERATIONAL_KEYS = ["repeats", "maxTotalTokens", "maxWallMs", "agentDir", "smokeTask", "smokeProfile", "piEntry", "pinnedPiVersion", "amendedAt"];
+
+/**
+ * Everything that changes what a run MEANS. Deliberately excludes credentials, wall-clock,
+ * machine paths and the operational keys above — the same study on another machine, run for more
+ * repetitions, must still fingerprint the same.
  */
 export async function studyFingerprint({ studyDir, study, tasks, piVersion, extraSha = {} }) {
 	const parts = [];
-	const { agentDir, ...studyForHash } = study; // agentDir is a machine path, not an experiment fact
+	const studyForHash = { ...study };
+	for (const k of OPERATIONAL_KEYS) delete studyForHash[k];
 	parts.push(`study:${sha256(JSON.stringify(studyForHash))}`);
 	for (const t of [...tasks].sort((a, b) => a.id.localeCompare(b.id))) parts.push(`task:${t.id}:${sha256(JSON.stringify(t))}`);
 	parts.push(`fixture:${study.fixture?.sha256 ?? "none"}`);

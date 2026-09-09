@@ -1,8 +1,25 @@
 # apps/bench — a reusable benchmark for the pi coding agent
 
 Runs the same tasks through different pi configurations and writes down what each one cost.
-Zero dependencies, cross-platform, `node <file>` tests. Every pi flag it emits is verified against
-the installed docs (`$(npm root -g)/@earendil-works/pi-coding-agent/docs/`), never from memory.
+Cross-platform, `node <file>` tests, no npm dependencies of its own.
+
+## Dependencies
+
+| What | Why | Version |
+|---|---|---|
+| **Node** | the whole harness | **≥ 22.19** — pi's own floor (`engines.node: ">=22.19.0"` in `@earendil-works/pi-coding-agent/package.json`), and the bench spawns pi |
+| **`@earendil-works/pi-coding-agent`, installed globally** | spawned as `pi --mode json` for every measured run, **and imported in-process** so token and cost arithmetic is pi's, not ours | **≥ 0.84.4** (`npm i -g @earendil-works/pi-coding-agent`) |
+| ↳ its bundled **`@earendil-works/pi-ai`** | `calculateCost(model, usage)` and the `Usage` type — both **root exports** (`dist/index.d.ts` → `models.ts` / `types.ts`); never a deep `dist/` path | ships inside pi 0.84.4 |
+| ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 0.84.4 |
+| **`pi-web-access`** under `apps/bench/.ext/` | profile C **only**. Reviewed, content-pinned by sha256 in `study.json`, deliberately **not vendored** into this repo | **0.28.0** — `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0` |
+| **Playwright** | — | **none.** The bench has no browser tests |
+| anything else from npm | — | **none.** Zero runtime dependencies; the ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls |
+
+Resolution reuses the pi installation the runner already found (`BENCH_PI_ROOT` overrides, and is
+*exclusive* when set). A missing install, or a pi without those root exports, is a **loud fatal
+error at startup** — a bench that quietly substitutes its own arithmetic is the drift this
+replaces. See `lib/pi-exports.mjs` for the verified export list and for the short list of things
+that are still ours because pi does not export them.
 
 ```bash
 node apps/bench/run.mjs <study-dir>            # DRY RUN (default) — the schedule + the exact argv
@@ -29,8 +46,14 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 |---|---|
 | `state` | `ok` · `fail` · `run-error` · `grader-error` · `blocked` |
 | `ok` | `true`/`false` for a decided run, **`null` when the grader or the harness failed** — those never count as model failures |
-| `tokens` / `totalTokens` | the run's own `{in, out, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
-| `nestedTokens` / `nestedCalls` / `nestedUnknown` | LLM calls an extension made on the run's behalf; `nestedUnknown` means *measured as unknown*, never 0 |
+| `tokens` / `totalTokens` | the run's OWN model calls — assistant messages only — as `{in, out, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
+| `nestedTokens` / `nestedCalls` | LLM calls an extension made on the run's behalf. Kept strictly apart from `tokens`, so `spend` adds them exactly once |
+| `spend` | `totalTokens + nestedTokens` — the run's true cost |
+| `cost` / `ownCost` / `nestedCost` | money, from pi's own `calculateCost`. `nestedCost` is `null` **with a `nestedCostReason`** when nothing could price it — never a guessed 0 |
+| `model` / `provider` / `nestedModels` | what pi actually ran, and what the nested calls were billed against (they differ: a `web_search` billed `gpt-5.6-terra` while the run used `gpt-5.6-sol`) |
+| `nestedUnknown` / `nestedUnattached` | nested spend that could not be measured (*unknown*, never 0), and whether it arrived after the last tool result |
+| `skippedOwnCalls` | LLM requests the sidecar saw OUTSIDE any tool window — i.e. pi's own calls, correctly not counted as nested. Recorded so the scoping is auditable |
+| `killedCleanly` | `null` if nothing was killed; `false` means a child could not be confirmed dead, which stops the study at once |
 | `retries` / `retryEvents` / `compactions` | counted from the stream even though both are pinned off |
 | `cacheBucket` | `cold` (`cacheRead == 0`) or `warm` — reported separately, never averaged away |
 | `wallMs`, `turns`, `toolCalls` | wall clock, `turn_start` count, `{toolName: count}` |
@@ -45,12 +68,17 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 
 - `--mode json` prints one event per line (`docs/json.md`; `docs/usage.md:175`). It is
   `--mode json`, **not** `--json`.
-- Tokens: sum `usage` over every `message_end` that carries one — `Usage` is
-  `{input, output, cacheRead, cacheWrite, totalTokens, cost}` (`docs/session-format.md:104-117`),
-  and the provider adapter *assigns* it per API call rather than accumulating
-  (`pi-ai/dist/api/openai-responses-shared.js:443-453`), with `input` excluding cached tokens
-  (line 445). `message_update.usage` is ignored — it "may remain zero when a provider only reports
-  usage at completion" (`docs/json.md:88-90`).
+- Tokens and cost are **pi's own arithmetic**. Every usage object in the stream is a pi-ai
+  `Usage` — `{input, output, cacheRead, cacheWrite, totalTokens, cost{…}}`, a public root export —
+  and the bench carries those field names verbatim, takes pi's `totalTokens` rather than
+  recomputing it from the buckets, and sums the `cost` pi already computed per message with
+  `calculateCost(model, usage)`. The only usage arithmetic still ours is a field-wise sum, because
+  pi exports no "add two Usage objects" helper. `message_update.usage` is ignored — it "may remain
+  zero when a provider only reports usage at completion" (`docs/json.md`).
+- **Money.** `cost` is a real number per run, or `null` **with a reason** when something went
+  unpriced — never a guessed 0. The sidecar cannot know a nested search model's rates, so nested
+  usage is priced afterwards via `ModelRuntime` + `calculateCost`, offline; a model outside pi's
+  offline catalog stays `null`. Summaries print `unpriced` rather than a total that omits it.
 - Tool calls: `tool_execution_start` carries `toolName` (`docs/json.md:49`).
 - **Completion**: `agent_end` is *not* terminal — "may still be followed by retry, compaction, or
   queued continuations" (`docs/rpc.md:864`). The terminal marker is `agent_settled`
@@ -67,14 +95,30 @@ An extension can call a model itself. pi-web-access, for example, issues its own
 inside `web_search` and returns only its answer — that spend would never appear in pi's accounting,
 and the profile using it would look cheaper for exactly the reason you are measuring it.
 
-`ext/bench-nested-usage.ts` is a bench-owned sidecar that rides along on any profile declaring an
-extension. It instruments `globalThis.fetch`, extracts `usage` and `model` from LLM responses, and
-attaches them to the tool result, which pi persists (`docs/extensions.md:851, 2013`). It registers
-no tools and adds no prompt text, so it cannot shift a comparison, and it modifies nothing in the
-third-party package, so that package's content hash still matches the upstream tarball.
+`ext/bench-nested-usage.ts` (accounting in `lib/nested.mjs`, both content-pinned) rides along on any
+profile declaring an extension. It instruments `globalThis.fetch`, extracts `usage` and `model` from
+LLM responses, and attaches them to the tool result, which pi persists
+(`docs/extensions.md:851, 2013`). It registers no tools and adds no prompt text, so it cannot shift
+a comparison, and it modifies nothing in the third-party package.
 
-Limits, recorded in the data rather than papered over: per-tool attribution is approximate under
-parallel tool calls (the run total is exact), and anything it cannot parse sets `nestedUnknown`.
+**Scope is the whole correctness problem.** pi's own transport uses `globalThis.fetch` too, so an
+unscoped interceptor re-counts a run's own model calls as nested. A request is counted **only while
+a watched tool is executing** — the window opened by `tool_call` and closed by `tool_result`; pi
+issues its model requests from the agent loop, never inside a tool's `execute()`. Requests outside a
+window land in `skippedOwnCalls` so the scoping can be checked against the evidence.
+
+Each intercepted request is tracked to completion and only its **terminal** SSE frame counts, once.
+An unfinished, failed, unparseable or timed-out harvest sets `nestedUnknown` — never 0 — and so does
+spend that arrives after the final tool result (announced on stderr, since no result is left to
+carry it). `nestedUnknown` is independent of whether some usage was also measured.
+
+**Silence is not zero.** A watched tool that ran while no request reached the interceptor is
+`unknown: "no-network-observed"` — a cache hit and a transport we cannot see are indistinguishable
+from here. `observedRequests` (all traffic in the window, LLM or not) is recorded so a reviewer can
+tell "this tool made no model call" from "we saw nothing at all".
+
+Remaining limit, recorded rather than papered over: per-tool attribution is approximate under
+parallel tool calls; the run total is exact.
 
 ## Ordering, identity and resume
 
@@ -86,8 +130,10 @@ parallel tool calls (the run total is exact), and anything it cannot parse sets 
 - **Study fingerprint.** A sha over `study.json`, every task file, the fixture pin, the extension
   content hashes, the pi version and the pinned settings — written to `fingerprint.txt` and onto
   every record. Resume **refuses** to append to a results file carrying a different one, so an
-  edited prompt cannot silently average two experiments. Machine-local paths are excluded, so the
-  same study fingerprints the same on another machine.
+  edited prompt cannot silently average two experiments. Machine-local paths and **operational**
+  keys are excluded (`OPERATIONAL_KEYS` in `lib/plan.mjs`: `repeats`, budgets, smoke selection, …),
+  so raising `repeats` EXTENDS a study instead of invalidating it: `schedule.json` is rewritten with
+  the same seed and the runner asserts every already-scheduled run keeps its position.
 - **Resume** skips tuples already in `results.jsonl`, **including failed and grader-error ones**,
   precisely so resuming cannot quietly become retrying. To re-measure a tuple, delete its line.
 - **Torn tail.** A kill mid-append leaves half a JSON object with no newline. The reader moves
@@ -105,9 +151,13 @@ parallel tool calls (the run total is exact), and anything it cannot parse sets 
 3. **Registration probe, one call per extension profile** — asks the model to list its tools and
    aborts if the declared extension tools are missing. A file that exists proves it loaded; only
    this proves the tools registered.
-4. **Budget stops** — `maxTotalTokens` and `maxWallMs` in `study.json`, counted across resumes.
-5. **Systemic-failure stop** — 3 consecutive grader/harness failures abort the study rather than
-   filling the remaining cells with noise.
+4. **Budget stops** — `maxTotalTokens` and `maxWallMs` in `study.json`. The budget is a persisted
+   ledger (`ledger.jsonl`): probe tokens *and* probe wall time survive a restart, and a recorded
+   successful registration probe is never repeated. A study carrying unmeasured nested spend is
+   reported as **not fully accounted** rather than as a total.
+5. **Systemic-failure stop** — 3 consecutive non-model failures abort the study. That includes
+   `run-error` (auth, spawn, timeout), which otherwise burns the whole schedule 300 seconds at a
+   time. A child that cannot be confirmed dead stops the study immediately.
 
 ## Evidence
 
@@ -130,13 +180,17 @@ what a run costs without appearing anywhere. The prepared dir pins them off, pin
 to 0 (`docs/settings.md:147`), omits `defaultTools` so `--tools` is the only thing choosing tools,
 and sets `defaultProjectTrust: "never"`.
 
-**Credentials.** A fresh config dir has no `auth.json` (`docs/providers.md:111`), so the runner
-copies it from the operator's dir before **every** run, keeping it at 0600 — upstream OAuth
-refreshes propagate immediately. Nothing is ever copied back: a token pi refreshes inside the bench
-dir is discarded, so a long study can eventually hit an auth error (recorded as `needs-key`, never
-as a wrong answer). Credentials are never logged, never hashed into the fingerprint, never written
-to a record. **If the source `auth.json` is missing the runner refuses to start**, loudly, before
-any spend.
+**Credentials are SHARED, not isolated.** A fresh config dir has no `auth.json`
+(`docs/providers.md:111`), so the bench dir's `auth.json` is a **symlink** to the operator's. Bench
+runs use the operator's login and can rotate the operator's OAuth token. Copying instead would be
+worse, not safer: an OAuth refresh rotates the refresh token server-side, so two diverging copies
+are not two credentials — a bench refresh can invalidate the operator's untouched file. One shared
+file means pi refreshes one credential under its own locking. Settings isolation is unaffected.
+Point `agentDir.sourceDir` at an independently authorised credential if a study must not touch the
+operator's login; on a platform without symlinks the runner falls back to a copy and reports which
+mode it used. Credentials are never logged, never hashed into the fingerprint, never written to a
+record. **If the source `auth.json` is missing or the link dangles the runner refuses to start**,
+loudly, before any spend.
 
 ## Defining a study
 
@@ -212,16 +266,19 @@ and are never counted as the model's own edits.
 | `exact` | the whitespace-normalised final text **equals** `value` (default `mode:"whole"`; `mode:"contains"` is opt-in, because contains-matching a number accepts 1304 for 304) |
 | `json-path` | the reply parses as JSON (``` fences tolerated) and `path` equals `value`; `path:"$"` is the root, `unordered:true` compares as a set |
 | `command` | every `commands: [[argv…]]` exits 0, run inside the fixture copy |
+| `suite` | a test suite exits 0 **and** prints its pristine number of `PASS` lines with none of `forbid` — exit status alone never proves a suite ran |
 | `file` | `exists` / `contains` / `containsCode` (comment-blind) / `notContains` / `sha256` |
 | `changed-paths` | everything the model changed matches `allow`, and nothing matching `protect` moved |
-| `revert-and-fail` | with `restore` reverted from the pinned fixture, `commands` **fail** — i.e. the added test actually detects the missing behaviour |
+| `revert-and-fail` | with `restore` reverted from the pinned fixture, `commands` **run to completion and exit nonzero** — i.e. the added test actually detects the missing behaviour. A spawn failure or a timeout is a grader error, never "detection" |
 | `live-key` | a command run at bench time yields the key; `expect` pins an immutable value and makes the command a tripwire; `schema`/`reject` validate it |
 | `all` | every child passes |
 
 Any checker can return a **grader error** instead of a failure: an unparseable pattern, a missing
-baseline, an oracle that exited nonzero or printed nothing or the wrong shape, or a pinned value
-that drifted. Those are recorded as `state: "grader-error"` with `ok: null` and are excluded from
-every success denominator.
+baseline, a grader command that could not be spawned or that timed out, an oracle that exited
+nonzero or printed nothing or the wrong shape, or a pinned value that drifted. Those are recorded as
+`state: "grader-error"` with `ok: null` and are excluded from every success denominator. In an `all`
+composite every child runs and a grader error anywhere **dominates** an ordinary failure — otherwise
+a harness fault hiding behind an earlier failure would be filed as a wrong answer.
 
 Commands run with `shell:false` on every platform, so there is no quoting to get wrong — but
 `.cmd` shims (`npm`, `npx`) are not invocable. Use `node`: `["node","-e","fetch(…)"]`.
@@ -257,8 +314,10 @@ lib/usage.mjs       --mode json stream → tokens, nested tokens, retries, compl
 lib/checkers.mjs    the deterministic checkers, and the grader-error boundary
 lib/fixture.mjs     hash / verify / materialize / mutate a fixture, + a unified diff (also a CLI)
 lib/plan.mjs        study fingerprint, seeded block schedule, resume + torn-tail quarantine
+lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateCost/ModelRuntime
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
+lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               eight test files, no model calls
+test/               ten test files, no model calls
 studies/            one directory per study
 ```

@@ -1,0 +1,44 @@
+{
+	"id": "_nested-verify",
+	"question": "DIAGNOSTIC, not a study: does the bench sidecar measure pi-web-access's nested Responses request, and exclude pi's own model calls? The profile deliberately has NO bash and NO read, so the only way to answer is web_search.",
+	"repeats": 1,
+	"seed": 1,
+	"timeoutMs": 300000,
+	"smokeTask": "verify-nested",
+	"smokeProfile": "web-only",
+	"model": {
+		"provider": "openai-codex",
+		"id": "gpt-5.6-sol",
+		"thinking": "medium"
+	},
+	"env": {
+		"PI_OFFLINE": "1"
+	},
+	"pinnedPiVersion": "0.84.4",
+	"agentDir": {
+		"dir": "~/.pi/bench-agent",
+		"sourceDir": "~/.pi/agent"
+	},
+	"sidecarExtension": "../../ext/bench-nested-usage.ts",
+	"sidecarLib": "../../lib/nested.mjs",
+	"profiles": [
+		{
+			"name": "web-only",
+			"note": "web_search ONLY \u2014 no bash, no read, no fetch_content \u2014 so the only route to an answer is the tool that makes a nested Responses request",
+			"tools": [
+				"web_search"
+			],
+			"extensions": [
+				{
+					"path": "../../.ext/pi-web-access/node_modules/pi-web-access/index.ts",
+					"tools": [
+						"web_search"
+					]
+				}
+			],
+			"families": [
+				"research"
+			]
+		}
+	]
+}

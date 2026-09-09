@@ -13,7 +13,7 @@
 	],
 	"keyDerivation": {
 		"command": "apply the mutation, then: node packages/nana-stage/tests/blocks.test.mjs",
-		"output": "exit 1, 111 PASS, 1 FAIL 'chart text: a per-series summary, not the points'; unmutated the same command exits 0"
+		"output": "mutated: exit 1, 111 PASS + 1 FAIL. Pristine: exit 0, 112 PASS, 0 FAIL. `passLines: 112` is that pristine count."
 	},
 	"check": {
 		"type": "all",
@@ -22,9 +22,21 @@
 				"type": "changed-paths",
 				"allow": ["packages/nana-stage/lib/blocks.mjs"],
 				"protect": ["packages/nana-stage/tests/**"],
-				"note": "the fix must be the fix: not an edit to the suite, not a process.exit(0) dropped into an unrelated module, not a new file the suite happens to import"
+				"note": "the fix must be the fix: not an edit to the suite, not a change to an unrelated module"
 			},
-			{ "type": "command", "commands": [["node", "packages/nana-stage/tests/blocks.test.mjs"]] }
+			{
+				"type": "file",
+				"path": "packages/nana-stage/lib/blocks.mjs",
+				"notContains": "parseFloat(n.toFixed(1))",
+				"note": "the DECLARED defect must actually be gone. Only its absence is required — a different but correct rewrite of fmtNum is still allowed, so this does not dictate the fix."
+			},
+			{
+				"type": "suite",
+				"argv": ["node", "packages/nana-stage/tests/blocks.test.mjs"],
+				"passLines": 112,
+				"forbid": "^FAIL ",
+				"note": "exit 0 alone proves nothing: `process.exit(0)` inside blocks.mjs — a file this task ALLOWS the model to edit — makes the suite exit 0 having asserted nothing. Requiring the pristine count of PASS lines is externally observed completion."
+			}
 		]
 	}
 }

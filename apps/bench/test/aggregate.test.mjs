@@ -25,8 +25,12 @@ check("p25/p75 interpolate", s.p25 === 1.75 && s.p75 === 3.25, `${s.p25}/${s.p75
 check("IQR = p75 - p25", s.iqr === 1.5, String(s.iqr));
 check("empty sample is null, not NaN", stats([]).median === null && stats([]).n === 0);
 check("non-numbers are dropped", stats([1, null, undefined, "x", 3]).n === 2);
-check("spendOf adds nested tokens to own tokens", spendOf({ totalTokens: 100, nestedTokens: { in: 900 } }) === 1000);
+check("spendOf adds nested tokens to own tokens", spendOf({ totalTokens: 100, nestedTokens: { totalTokens: 900 } }) === 1000);
 check("spendOf tolerates a record with no nested field", spendOf({ totalTokens: 100 }) === 100);
+check("spendOf prefers the runner's recorded `spend` when present", spendOf({ spend: 777, totalTokens: 100, nestedTokens: { totalTokens: 900 } }) === 777);
+// The parser now keeps own and nested APART, so this addition counts a tool's usage once — the
+// shipped fixture is astra's 1,530 + 4,810 = 6,340, which used to aggregate as 11,150.
+check("own + nested is counted exactly once", spendOf({ totalTokens: 1530, nestedTokens: { totalTokens: 4810 } }) === 6340);
 
 const agg = aggregate(records, schedule);
 const cell = (t, p) => agg.cells.find((c) => c.task === t && c.profile === p);
@@ -75,6 +79,18 @@ check("families are separated (no pooled row across workloads)", agg.byFamily.le
 check("a duplicate tuple is flagged", agg.integrity.duplicates.includes("r2|B|0"), JSON.stringify(agg.integrity.duplicates));
 check("a scheduled-but-missing tuple is flagged", agg.integrity.missing.includes("t2|A|9"), JSON.stringify(agg.integrity.missing));
 
+// ── cost, carried from pi's own arithmetic ───────────────────────────────────────────────────
+const A2 = cell("t2", "A"); // three priced runs
+check("t2/A: a fully priced cell reports cost stats", A2.cost !== null && A2.cost.median > 0, JSON.stringify(A2.cost));
+check("t2/A: nothing unpriced there", A2.costUnpriced === 0);
+const C1 = cell("r1", "C"); // one of three runs went unpriced
+check("r1/C: a cell with an UNPRICED run reports cost null, not a partial total", C1.cost === null);
+check("r1/C: …and says how many runs were unpriced", C1.costUnpriced === 1, String(C1.costUnpriced));
+check("r1/C: token spend is still reported (only money is unknown)", C1.spend.median === 1000, String(C1.spend.median));
+const rowsC = agg.byFamily.find((f) => f.family === "research").rows;
+check("a profile row with any unpriced cell reports totalCost null", rowsC.find((r) => r.profile === "C").totalCost === null);
+check("a fully priced profile row reports a money total", rowsC.find((r) => r.profile === "B").totalCost > 0, String(rowsC.find((r) => r.profile === "B").totalCost));
+
 // ── markdown ─────────────────────────────────────────────────────────────────────────────────
 const md = toMarkdown({ id: "fixture-study", baselineProfile: "A" }, agg, records);
 check("markdown reports the run count", md.includes("Runs recorded: **28**"));
@@ -85,13 +101,18 @@ check("markdown states the denominator rule", md.includes("grader errors, harnes
 check("markdown states spend includes nested tokens", md.includes("PLUS any nested LLM tokens"));
 check("markdown ratio to baseline uses spend, not own tokens", /\| t2 \| 2\.25× \(\+0\) \|/.test(md), md.split("\n").filter((l) => l.includes("×")).join(" | "));
 check("markdown flags an unmeasured nested cell", md.includes("⚠?"));
+check("markdown carries a money column", md.includes("$ median") && /\| \$0\./.test(md));
+check("markdown says `unpriced` rather than inventing a total", md.includes("unpriced(1)"), md.split("\n").filter((l) => l.includes("unpriced")).join(" | ").slice(0, 160));
+check("markdown credits pi's calculateCost for the money", md.includes("calculateCost") && md.includes("@earendil-works/pi-ai"));
 
 // ── degenerate ───────────────────────────────────────────────────────────────────────────────
 const one = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, state: "fail", ok: false, totalTokens: 5, wallMs: 1, turns: 0 }]);
 check("single failing run: spendPerSuccess is null, not Infinity", one.cells[0].spendPerSuccess === null);
 check("missing toolCalls does not throw", JSON.stringify(one.cells[0].toolCalls) === "{}");
 const legacy = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, ok: true, tokens: { in: 1, out: 2, cacheRead: 3, cacheWrite: 4 }, wallMs: 1, turns: 1 }]);
-check("a pre-state record still aggregates (ok:true counts as decided+success)", legacy.cells[0].successes === 1 && legacy.cells[0].spend.median === 10);
+check("a pre-pi-shape record still aggregates via the bucket fallback", legacy.cells[0].successes === 1 && legacy.cells[0].spend.median === 10);
+const piShaped = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, state: "ok", ok: true, tokens: { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, totalTokens: 99, cost: { total: 0.5 } }, wallMs: 1, turns: 1 }]);
+check("a pi-shaped record uses pi's authoritative totalTokens, not the bucket sum", piShaped.cells[0].spend.median === 99, String(piShaped.cells[0].spend.median));
 const allGrader = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, state: "grader-error", ok: null, totalTokens: 5, wallMs: 1 }]);
 check("a cell of nothing but grader errors has a null success rate, not 0%", allGrader.cells[0].successRate === null && allGrader.cells[0].decided === 0);
 

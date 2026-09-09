@@ -1,12 +1,14 @@
 # Study: pi tool profiles — a navigation/metadata pilot
 
-Pre-registered 2026-09-08. **Amended 2026-09-09** after an independent pre-registration review
-(verdict FIX-FIRST). Registered and not yet run: `results.jsonl` holds one **pilot smoke** run
-(`code-define-small × pi-defaults × rep 0`, fingerprint `387cd4a5…`), recorded to prove the
-prepared agent dir, the pinned settings and the measurement path. The pre-amendment smoke belongs
-to a different study definition and is kept only as a parser fixture
-(`apps/bench/test/fixtures/real-smoke-stream.jsonl`); mixing it in would average two experiments,
-which the fingerprint check now refuses outright.
+Pre-registered 2026-09-08. **Amended twice** after independent pre-registration reviews
+(2026-09-09, FIX-FIRST, then STOP). Registered and not yet run under the current fingerprint.
+
+`results.pilot-2026-09-09-partial.jsonl` + `raw.pilot-2026-09-09-partial/` hold **13 pilot records**
+from a rep-0 run stopped by Ctrl-C, under the earlier fingerprint `387cd4a5…`. They are kept and
+never deleted, but they are **not data**: the harness that produced them double-counted nested
+tokens, could be defeated by an early exit inside the file a task allows the model to edit, and
+attributed pi's own model calls as nested spend. Read them as a smoke test of the pipeline. The
+fingerprint check refuses to mix them with the amended study.
 
 ## Goal, and what this can and cannot show
 
@@ -47,11 +49,20 @@ at `~/.pi/bench-agent`, rebuilt at study start with pinned settings:
 - No `defaultTools` key: `--tools` must be the only thing choosing the tool set.
 - `defaultProjectTrust: "never"` (usage.md:126-128).
 
-`auth.json` is copied fresh from `~/.pi/agent` before **every** run, so an upstream OAuth refresh
-propagates. **Limitation:** a token pi refreshes *inside* the bench dir is discarded rather than
-written back — a benchmark should not mutate the operator's credentials. If a study outlives the
-token lifetime, runs will start failing with an auth error, which the record classifies as
-`needs-key` rather than as a wrong answer.
+**Credentials are SHARED, not isolated — say it plainly.** The bench dir's `auth.json` is a
+*symlink* to `~/.pi/agent/auth.json`. Bench runs therefore use the operator's login, consume the
+operator's subscription, and can rotate the operator's OAuth token.
+
+That is deliberate. The earlier design copied the file and claimed isolation because nothing was
+copied back — which is wrong: an OAuth refresh rotates the refresh token *server-side*, so two
+diverging copies are not two isolated credentials. A benchmark refresh could invalidate the token
+still sitting in the operator's untouched file, and re-copying the stale source afterwards would
+compound it. One shared file means pi refreshes one credential under its own locking, exactly as
+in ordinary use. Settings isolation is unaffected; only the credential is shared.
+
+If a benchmark must not be able to touch the operator's login, point `agentDir.sourceDir` at a
+directory holding an independently authorised credential. On a platform without symlinks the
+runner falls back to a copy and *reports which mode it used*, so a study never has to guess.
 
 Model pinned `--provider openai-codex --model gpt-5.6-sol --thinking medium` (usage.md:189-192);
 pi pinned to 0.84.4; `PI_OFFLINE=1`, `PI_SKIP_VERSION_CHECK=1`, `PI_TELEMETRY=0`.
@@ -70,17 +81,36 @@ list its tools, because RPC cannot confirm tool *registration*.
 - Own tokens: sum `usage` over every `message_end` carrying one (session-format.md:104-117). The
   provider adapter *assigns* usage per API call (`pi-ai/.../openai-responses-shared.js:443-453`)
   and `input` excludes cached tokens (line 445), so the four buckets are disjoint.
-- **Nested tokens.** pi-web-access issues its own OpenAI Responses request inside `web_search` and
-  returns only `{answer, results}` — that spend would never reach pi's accounting, and C would
-  look cheaper for exactly the reason we are running the study. A bench-owned sidecar extension
-  (`apps/bench/ext/bench-nested-usage.ts`) rides along on any extension-bearing profile,
-  instruments `globalThis.fetch`, and reports the nested usage on the tool result, which pi
-  persists (extensions.md:851, 2013). It registers no tools and adds no prompt text, so it cannot
-  shift the comparison. It edits nothing in pi-web-access, so that package's content hash stays
-  equal to the upstream tarball. *Limitations:* under parallel tool calls, attribution between
-  concurrent tools can be wrong (the run total is still exact), and unmeasurable usage is recorded
-  as `nestedUnknown`, **never as 0**. Any C cell with `nestedUnknown` makes C's cost comparison
-  inconclusive.
+- **Nested tokens are kept SEPARATE from own tokens.** `tokens` counts assistant messages only;
+  `nested` counts LLM work a tool reported. Spend = own + nested, added once. (The first amendment
+  put tool usage in both and reported 11,150 for a stream that cost 6,340.)
+- **Nested measurement.** pi-web-access issues its own OpenAI Responses request inside `web_search`
+  and returns only `{answer, results}` — spend that would never reach pi's accounting, making C
+  look cheaper for exactly the reason we are running the study. A bench-owned sidecar
+  (`apps/bench/ext/bench-nested-usage.ts`, logic in `lib/nested.mjs`, both content-pinned) rides
+  along on extension-bearing profiles, instruments `globalThis.fetch` and reports nested usage on
+  the tool result, which pi persists (extensions.md:851, 2013). It registers no tools and adds no
+  prompt text, and it edits nothing in pi-web-access, so that package's hash still matches upstream.
+  - **Scope.** pi's own Codex transport uses `globalThis.fetch` too, so an unscoped interceptor
+    would re-count the run's own model calls as nested. A request is counted **only while a watched
+    tool is executing** — the window opened by `tool_call` and closed by `tool_result`. pi issues
+    its model requests from the agent loop, never inside a tool's `execute()`. Requests seen
+    outside a window are counted in `skippedOwnCalls`, so the scoping is auditable per run.
+  - **Completion and dedupe.** Every intercepted request is tracked until its body is read, and
+    only the terminal SSE frame's usage counts, once. An unfinished, failed, unparseable or
+    timed-out harvest sets `nestedUnknown` — **never 0**. Spend that lands after the final tool
+    result is announced on stderr and also sets the flag.
+  - **`nestedUnknown` is independent of measured usage**: a window holding one measured call and
+    one unmeasurable one reports both.
+  - **Silence is not zero.** A watched tool that ran while *no* request reached the interceptor is
+    `unknown: "no-network-observed"`, not free — a cache hit and a transport we cannot observe look
+    identical from here. This is not hypothetical: in the diagnostic run
+    (`apps/bench/studies/_nested-verify/`) one of two `web_search` calls returned an LLM-style
+    summary with no intercepted request. **Expect this to flag real C runs, and therefore to veto
+    C's cost comparison, until that path is understood.** That is the honest state, not a defect to
+    be relaxed away.
+  - *Limits:* per-tool attribution is approximate under parallel tool calls (the run total is
+    exact). Any C cell with `nestedUnknown` vetoes C's cost comparison — see the decision rule.
 - Completion: `agent_end` is **not** terminal — "may still be followed by retry, compaction, or
   queued continuations" (rpc.md:864). A run counts as OK only with a clean process exit **and**
   `agent_settled` (rpc.md:866) **and** no tool call left without a result **and** a passing
@@ -108,14 +138,23 @@ tracked files, excluding `apps/bench`, `research/`, `docs/`, `node_modules`, `.g
 
 The two edit tasks are graded on **what changed**, not only on whether the suite is green:
 
+**Exit status never proves a suite ran.** `process.exit(0)` anywhere in the imported source — and
+`blocks.mjs` is a file both tasks ALLOW the model to edit, so an allowed-paths check cannot see it —
+makes a suite, a hidden probe and the model's own test all exit 0 having asserted nothing, and even
+lets `revert-and-fail` pass without a guard. So both tasks require **externally observed
+completion**: the pristine `PASS`-line count (112 for `blocks.test.mjs`, 13 for the guard probe)
+with no `FAIL` line. A late `process.on("exit", …)` force-exit is caught by the same two counts.
+
 - `code-bugfix`: a declared one-line mutation breaks 1 of 112 assertions. Passing requires the
-  suite to exit 0 **and** the only changed file to be `blocks.mjs`, with the whole test tree
-  byte-identical. That closes both gaming routes the review found: editing the suite, and dropping
-  `process.exit(0)` into an unrelated imported module.
-- `code-guard`: passing requires the new test file to exist, to call `clampText` **outside a
-  comment**, to exit 0, to leave the existing suite green under a bench-owned probe, to change
-  nothing but the guard site and that one new file — and to **fail** when the guard is reverted
-  from the pinned fixture. A test that asserts nothing is rejected.
+  declared defect to be **gone** (only its absence — a different but correct rewrite of `fmtNum` is
+  still allowed), the suite to complete with 112 PASS and no FAIL, and the only changed file to be
+  `blocks.mjs` with the whole test tree byte-identical.
+- `code-guard`: passing requires the new test file to exist and to call `clampText` **outside a
+  comment**; the existing suite to complete at 112 PASS; the bench probe to complete at 13 PASS
+  (i.e. the guard genuinely behaves); the model's own test to exit 0; nothing changed but the guard
+  site and that one new file; and the model's test to **fail** when the guard is reverted from the
+  pinned fixture — failing by *running and exiting nonzero*, never by failing to spawn or timing
+  out, which are grader errors.
 
 **RESEARCH family (B, C), 6 tasks**, no fixture. B has no web tools but does have `bash` (curl,
 node), so this measures dedicated web tools against shelling out, not against nothing. Answers are
@@ -131,8 +170,15 @@ docs) pin an immutable coordinate: the expected value is written down and the li
 
 r5 replaces the earlier arXiv-date task, which the review flagged as memorizable and a single
 lookup: *the earliest published version of `pi-web-access` that declares `undici` as a dependency*
-(0.20.0). The package first shipped 2026-01-27, after most training cutoffs, and the answer
-requires comparing manifests **across** versions rather than reading one field.
+(**0.20.0**, pinned). The package first shipped 2026-01-27, after most training cutoffs, and the
+answer requires comparing manifests **across** versions rather than reading one field. Ordinary new
+releases cannot change it; historical deletion or metadata edits could, so the oracle validates
+publication timestamps (every candidate must have a `time` entry, and none may predate the answer)
+and disagreement with the pin is a grader error.
+
+**One oracle fetch per comparison block.** The key is fetched at most once per (task, rep), written
+to `keys.jsonl` — successes *and* failures — and reloaded on resume, so two arms of a comparison can
+never be graded against two different fetches, and a failed oracle cannot be quietly refetched.
 
 ## Order, N, budget
 
@@ -154,41 +200,60 @@ failures rather than filling the remaining cells.
 
 ## Decision rule (decidable at N=3, fixed before any data)
 
-Definitions on **shared tasks only** (tasks every compared profile ran):
-`D(t,p)` = decided runs (ok or fail); `S(t,p)` = successes; `M(t,p)` = median spend over decided
-runs; `Total(p) = Σ_t M(t,p)`; `ΣS(p) = Σ_t S(t,p)`.
-A task with `D < 2` for either arm is **inconclusive** and is named, not silently dropped.
+**Definitions.** Per comparison, on **shared tasks** (tasks both arms ran):
+`D(t,p)` = decided runs (state `ok` or `fail`; grader, run and blocked errors are excluded);
+`S(t,p)` = successes; **`R(t,p) = S/D` is the success RATE** — rates, not raw counts, because
+3/3 against 2/2 is not an observed correctness difference.
+`M(t,p)` = median spend (own + nested) over decided runs; `Total(p) = Σ_{t∈T} M(t,p)`;
+`MR(p)` = mean of `R(t,p)` over `T`.
+A task is **sufficient** only when `D ≥ 2` for *both* arms; `T` is the set of sufficient tasks.
+`Wins(B)` = #{t∈T : R(t,B) > R(t,A)}, `Losses(B)` = #{t∈T : R(t,B) < R(t,A)}.
 
-**B versus A (code):**
-- **Improvement measured** if `ΣS(B) > ΣS(A)`, or `Total(B) ≤ 0.85 × Total(A)` with `ΣS(B) ≥ ΣS(A)`.
-- **Non-regression accepted** (weaker, and explicitly not a win) if `ΣS(B) ≥ ΣS(A)`, no shared task
-  loses more than one success, `Total(B) ≤ 1.15 × Total(A)`, and `M(B,t) ≤ 1.15 × M(A,t)` on ≥ 6 of
-  8 tasks.
-- **Regression** if `ΣS(B) < ΣS(A)`, or `Total(B) > 1.15 × Total(A)`, or any task has
-  `M(B,t) > 1.5 × M(A,t)`.
-- Otherwise **inconclusive**.
+**Exactly one verdict.** The rules are evaluated in this order and the FIRST match is the verdict;
+no later rule can also apply.
 
-`Total` is the sum of per-task medians precisely so that two expensive edits cannot hide behind six
-cheap navigation wins.
+0. **UNKNOWN-SPEND VETO** (cost only). If any run in either arm has `nestedUnknown`, every
+   cost-based clause below is treated as unsatisfied for that comparison, and a verdict that would
+   have rested on cost becomes INSUFFICIENT DATA instead. We do not adopt, or reject, on spend we
+   did not measure.
+1. **INSUFFICIENT DATA** if `|T| < 6` of the 8 code tasks (`< 4` of the 6 research tasks). Report
+   which tasks were insufficient and why (all runs undecided, oracle failures, timeouts).
+2. **REGRESSION** if any of: `MR(B) < MR(A) − 0.05`; `Losses(B) > Wins(B)`;
+   `Total(B) > 1.15 × Total(A)`; or `∃t∈T : M(t,B) > 1.5 × M(t,A)`.
+3. **IMPROVEMENT MEASURED** if `MR(B) > MR(A)`, or `Total(B) ≤ 0.85 × Total(A)` with
+   `MR(B) ≥ MR(A)`.
+4. **NON-REGRESSION ACCEPTED** — explicitly *not* a win — if `MR(B) ≥ MR(A) − 0.05`,
+   `Total(B) ≤ 1.15 × Total(A)`, and `M(t,B) ≤ 1.15 × M(t,A)` on at least 75% of `T`.
+5. **INCONCLUSIVE** otherwise.
 
-**B′ versus B:** prefer B′ only if `ΣS(B′) > ΣS(B)`, or `Total(B′) ≤ 0.90 × Total(B)` with
-`ΣS(B′) ≥ ΣS(B)`. Otherwise keep B — fewer moving parts wins ties.
+`Total` is a sum of per-task medians precisely so that two expensive edit tasks cannot hide behind
+six cheap navigation wins; the 1.5× per-task clause in rule 2 stops the reverse, a single ruinous
+task being averaged away.
 
-**C:** adopt for research if `ΣS(C) ≥ ΣS(B) + 2`, **or** `ΣS(C) ≥ ΣS(B)` with
-`Total(C) ≤ 0.85 × Total(B)` — equal quality at materially lower cost is a legitimate win, and the
-earlier success-only threshold wrongly excluded it. Adopt C as the *default* profile only if it
-also does not regress on code: `ΣS(C) ≥ ΣS(B) − 1` and `Total(C) ≤ 1.15 × Total(B)` there. **Any C
-cell with `nestedUnknown > 0` makes C's cost comparison inconclusive** — we do not adopt on
-unmeasured spend.
+**B′ versus B** (same machinery, same order): prefer B′ only under IMPROVEMENT with the tighter
+threshold — `MR(B′) > MR(B)`, or `Total(B′) ≤ 0.90 × Total(B)` with `MR(B′) ≥ MR(B)`. Otherwise
+keep B: fewer moving parts wins ties.
 
-**Extending to N=5** is decided *before* looking at any comparative outcome, on one criterion: if
-≥ 3 shared tasks are inconclusive for lack of decided runs. Never to rescue a winner.
+**C.** Two separate comparisons, both after the veto in rule 0.
+- *Research (C vs B):* adopt C for research work if `MR(C) ≥ MR(B)` and `Wins(C) − Losses(C) ≥ 2`,
+  **or** `MR(C) ≥ MR(B)` with `Total(C) ≤ 0.85 × Total(B)`. Equal quality at materially lower cost
+  is a legitimate win; the earlier success-only threshold wrongly excluded it.
+- *Code (C vs B):* C becomes the DEFAULT profile only if the code comparison is not a REGRESSION by
+  rules 1-5. This is now measurable because C runs the code family.
+
+**Extending to N=5.** Evaluated **once, after rep 2 completes** (every scheduled run recorded, or
+the study stopped), and **before** any verdict above is computed. Trigger: across the three
+comparisons (B vs A code, B′ vs B code, C vs B research), if **3 or more tasks are insufficient**,
+extend. Procedure: set `repeats: 5` in `study.json`. `repeats` is deliberately **not** part of the
+study fingerprint, so this extends rather than invalidates: `schedule.json` is rewritten in place
+with the same seed, the runner asserts the first 132 runs are byte-identical, and resume executes
+only the 88 added. Never extend selectively, never per task, never after inspecting comparative
+outcomes.
 
 **Falsification.** Materially worse correctness or cost for B on these tasks contradicts the
 brief's operational recommendation *for this workload*. **Equal results show nothing positive**:
-they do not demonstrate the modest win the brief expects, and they do not rule out benefits on
-work this study does not contain. IQR overlap is reported for shape; it is not an equivalence test
-and is not evidence that a change is worthless.
+they do not demonstrate the modest win the brief expects, and they do not rule out benefits on work
+this study does not contain. IQR is reported for shape; it is not an equivalence test.
 
 ## Threats to validity
 
@@ -202,7 +267,17 @@ and is not evidence that a change is worthless.
 5. **Format compliance ≠ capability.** "Reply with ONLY…" plus whole-answer matching conflates
    instruction-following with search skill. Prompts are identical across profiles, so it is a
    level shift, not a bias — but a profile that follows formats worse is scored unfairly.
-6. **Nested-usage attribution** is exact per run, approximate per tool under parallelism.
+6. **Nested-usage attribution** is exact per run, approximate per tool under parallelism. The
+   scoping assumes pi never issues a model request while a tool is executing; `skippedOwnCalls` is
+   recorded per run so that assumption is checkable against the evidence rather than trusted.
 7. **One machine, one provider, one model.** Nothing here generalises to other models or to Windows.
-8. **`code-guard`** verifies the added test detects the missing guard; it does not verify the test
-   is well written.
+7b. **Nested-usage coverage is proven for one path, not all of them.** One real nested Responses
+   request was measured exactly and reconciled against the raw stream (own 7,780 + nested 8,509 =
+   spend 16,289; nested model `gpt-5.6-terra` ≠ own model `gpt-5.6-sol`). A second `web_search` in
+   the same run produced a summary with no observable request. Until that is explained, C's spend
+   is a lower bound with an explicit flag, never a total.
+8. **`code-guard`** verifies the added test detects the missing guard — it exits 0 with the guard
+   and nonzero without it — but it does not verify the test is well written, and a silent nonzero
+   exit is accepted because the prompt never asked for a particular output format.
+9. **The bench shares the operator's login** (see Isolation). A study can rotate the operator's
+   OAuth token; that is a real operational cost of running it, not a hypothetical.

@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertFingerprint, buildSchedule, filterPlan, loadOrCreateSchedule, profilesFor, readResults, rng, shuffle, studyFingerprint, tupleKey } from "../lib/plan.mjs";
+import { assertFingerprint, buildSchedule, filterPlan, loadOrCreateSchedule, OPERATIONAL_KEYS, profilesFor, readResults, rng, shuffle, studyFingerprint, tupleKey } from "../lib/plan.mjs";
 import { loadStudy } from "../run.mjs";
 
 let fails = 0;
@@ -73,6 +73,20 @@ check("a changed pi version changes it", (await studyFingerprint({ ...fpArgs, pi
 check("a changed extension hash changes it", (await studyFingerprint({ ...fpArgs, extraSha: { "ext:c": "def" } })).fingerprint !== fp0);
 check("a changed fixture pin changes it", (await studyFingerprint({ ...fpArgs, study: { ...study, fixture: { sha256: "other" } } })).fingerprint !== fp0);
 check("a machine-local agentDir path does NOT change it", (await studyFingerprint({ ...fpArgs, study: { ...study, agentDir: { dir: "/somewhere/else" } } })).fingerprint === fp0);
+// N=3 → N=5 adds runs; it does not change what any existing run MEANT. If `repeats` were in the
+// fingerprint, extending a study would refuse to resume it (astra D).
+check("repeats is NOT in the fingerprint", (await studyFingerprint({ ...fpArgs, study: { ...study, repeats: 5 } })).fingerprint === fp0);
+for (const k of ["maxTotalTokens", "maxWallMs", "smokeTask", "piEntry"]) {
+	check(`operational key ${k} is not in the fingerprint`, (await studyFingerprint({ ...fpArgs, study: { ...study, [k]: "changed" } })).fingerprint === fp0);
+}
+check("but the SEED is, because it decides the order", (await studyFingerprint({ ...fpArgs, study: { ...study, seed: 8 } })).fingerprint !== fp0);
+check("OPERATIONAL_KEYS is exported so the exclusion list is reviewable", OPERATIONAL_KEYS.includes("repeats"));
+
+// Extending must reproduce the earlier reps EXACTLY, or completed work would be reordered.
+const s3 = buildSchedule(study, tasks, { reps: 3, seed: 7 }).runs;
+const s5 = buildSchedule(study, tasks, { reps: 5, seed: 7 }).runs;
+check("extending 3→5 keeps the first three reps byte-identical", JSON.stringify(s5.slice(0, s3.length)) === JSON.stringify(s3), `${s3.length} → ${s5.length}`);
+check("…and only appends reps 3 and 4", s5.slice(s3.length).every((r) => r.rep >= 3));
 check("assertFingerprint accepts a matching file", (() => { try { assertFingerprint(new Set([fp0]), fp0); return true; } catch { return false; } })());
 check("assertFingerprint REFUSES mixed experiments", (() => { try { assertFingerprint(new Set([fp0, "deadbeef"]), fp0); return false; } catch (e) { return /different experiment/.test(e.message); } })());
 check("assertFingerprint accepts an empty (fresh) file", (() => { try { assertFingerprint(new Set(), fp0); return true; } catch { return false; } })());
@@ -123,6 +137,14 @@ try {
 	let threw = null;
 	try { await loadOrCreateSchedule(dir, study, tasks, "otherfingerprint", { reps: 3, seed: 7 }); } catch (e) { threw = e.message; }
 	check("a schedule from another fingerprint is REFUSED", /was built for fingerprint/.test(threw ?? ""), threw ?? "no throw");
+
+	// N→5: the persisted schedule is EXTENDED in place, same fingerprint, same seed.
+	const s5f = await loadOrCreateSchedule(dir, study, tasks, fp0, { reps: 5, seed: 7 });
+	check("extending writes a longer schedule under the SAME fingerprint", s5f.fingerprint === fp0 && s5f.reps === 5);
+	check("…preserving every previously scheduled run in order", JSON.stringify(s5f.runs.slice(0, s1.runs.length)) === JSON.stringify(s1.runs));
+	check("…and recording how many were added", s5f.added === s5f.runs.length - s1.runs.length && s5f.added > 0, String(s5f.added));
+	const reloaded = await loadOrCreateSchedule(dir, study, tasks, fp0, { reps: 3, seed: 7 });
+	check("asking for FEWER reps afterwards does not truncate the schedule", reloaded.runs.length === s5f.runs.length);
 
 	// the shipped study
 	const shipped = await loadStudy(path.join(path.dirname(fileURLToPath(import.meta.url)), "../studies/tool-profiles-2026-09-08"));

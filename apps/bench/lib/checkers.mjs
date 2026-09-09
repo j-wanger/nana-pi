@@ -42,8 +42,17 @@ function runArgv(argv, { cwd, timeoutMs = 120000 } = {}) {
 	// no quoting rules to get wrong and no bash-only constructs. The cost: `.cmd`/`.bat` shims
 	// (npm, npx) are NOT invocable; use `node` (a real executable) instead.
 	const r = spawnSync(argv[0], argv.slice(1), { cwd, timeout: timeoutMs, encoding: "utf8", windowsHide: true });
-	return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "", error: r.error ? String(r.error.message) : null };
+	const errMsg = r.error ? String(r.error.message) : null;
+	// INFRASTRUCTURE failure vs a program that ran and failed. A grader that could not be
+	// spawned, or was killed by a signal or a timeout, says NOTHING about the model — recording
+	// it as a wrong answer invents a result.
+	const timedOut = Boolean(r.error && /ETIMEDOUT|timed? *out/i.test(errMsg ?? "")) || (r.signal != null && r.status == null && Boolean(r.error));
+	const infra = Boolean(r.error) || r.status == null;
+	return { status: r.status, signal: r.signal ?? null, stdout: r.stdout ?? "", stderr: r.stderr ?? "", error: errMsg, timedOut, infra, ran: !infra };
 }
+
+const infraDetail = (argv, r) => `could not run ${argv.join(" ")}: ${r.timedOut ? "timed out" : (r.error ?? `killed by ${r.signal}`)}`;
+const countMatches = (text, re) => String(text ?? "").split("\n").filter((l) => re.test(l)).length;
 
 /** Hash every file under a directory. Used for allowed-changed-paths. */
 export function hashTree(dir, base = dir, out = new Map()) {
@@ -123,12 +132,36 @@ const CHECKERS = {
 		if (!cwd) return graderError("command checker needs a fixture dir");
 		for (const argv of c.commands ?? []) {
 			const r = runArgv(argv, { cwd, timeoutMs: c.timeoutMs });
+			if (r.infra) return graderError(infraDetail(argv, r));
 			if (r.status !== 0) {
-				const tail = (r.stderr || r.stdout || r.error || "").split("\n").slice(-6).join(" | ").slice(0, 400);
+				const tail = (r.stderr || r.stdout || "").split("\n").slice(-6).join(" | ").slice(0, 400);
 				return ok(false, `exit ${r.status} from ${argv.join(" ")}: ${tail}`);
 			}
 		}
 		return ok(true, `${(c.commands ?? []).length} command(s) exited 0`);
+	},
+
+	/**
+	 * { type: "suite", argv, passLines, forbid?, cwd?, timeoutMs? }
+	 * Exit status alone NEVER proves a test suite ran. A `process.exit(0)` anywhere in the
+	 * imported source — including in a file the task ALLOWS the model to edit — makes a suite
+	 * exit 0 having asserted nothing. So the suite must also emit its expected number of `PASS`
+	 * lines and none of `forbid`. That is externally observed completion, not a claim.
+	 */
+	suite(c, ctx) {
+		const cwd = c.cwd ? path.resolve(ctx.dir, c.cwd) : ctx.dir;
+		if (!cwd) return graderError("suite checker needs a fixture dir");
+		const r = runArgv(c.argv ?? [], { cwd, timeoutMs: c.timeoutMs });
+		if (r.infra) return graderError(infraDetail(c.argv ?? [], r));
+		const out = `${r.stdout}\n${r.stderr}`;
+		const passes = countMatches(out, /^PASS\b/);
+		const forbidden = c.forbid ? countMatches(out, new RegExp(c.forbid)) : 0;
+		if (r.status !== 0) return ok(false, `exit ${r.status} from ${(c.argv ?? []).join(" ")} (${passes} PASS lines): ${out.split("\n").filter((l) => /^FAIL\b/.test(l)).slice(0, 3).join(" | ").slice(0, 300)}`);
+		if (forbidden) return ok(false, `${forbidden} line(s) matched the forbidden pattern /${c.forbid}/`);
+		if (c.passLines !== undefined && passes !== c.passLines) {
+			return ok(false, `the suite exited 0 but printed ${passes} PASS lines, expected ${c.passLines} — it did not run to completion (an early exit in the source will do this)`);
+		}
+		return ok(true, `suite completed: ${passes} PASS lines, exit 0`);
 	},
 
 	// { type: "file", path, exists?, contains?, containsCode?, notContains?, sha256? }
@@ -195,7 +228,22 @@ const CHECKERS = {
 			}
 			for (const argv of c.commands ?? []) {
 				const r = runArgv(argv, { cwd: tmp, timeoutMs: c.timeoutMs });
+				// A GENUINE assertion failure only. A spawn failure, a signal or a timeout is the
+				// harness failing, and accepting it as "the test detected the bug" would let any
+				// broken test pass this check.
+				if (r.infra) return graderError(`revert-and-fail could not determine anything: ${infraDetail(argv, r)}`);
 				if (r.status === 0) return ok(false, `${argv.join(" ")} still exits 0 with ${(c.restore ?? []).join(", ")} reverted — the added test does not detect the missing behaviour`);
+				const out = `${r.stdout}\n${r.stderr}`;
+				if (c.expectFail && !new RegExp(c.expectFail).test(out)) {
+					return ok(false, `exited ${r.status} with ${(c.restore ?? []).join(", ")} reverted, but its output does not match /${c.expectFail}/ — that is not an observed assertion failure`);
+				}
+				// `requireOutput` is opt-in and NOT used by the shipped study: a minimal but
+				// perfectly good test may exit(1) silently, and failing it for that would grade
+				// a style the prompt never asked for. The evidence that the test really detects
+				// the behaviour is the PAIR — it exits 0 in the un-reverted workspace (a separate
+				// `command` check) and nonzero here — plus the infra rejection above, which is
+				// what stops a spawn failure or a timeout from counting as detection.
+				if (c.requireOutput && !out.trim()) return ok(false, `exited ${r.status} silently with ${(c.restore ?? []).join(", ")} reverted — no output to show an assertion ran`);
 			}
 			return ok(true, "the added test fails against the un-fixed source, as it must");
 		} finally {
@@ -212,6 +260,10 @@ const CHECKERS = {
 	 *    block, so two profiles are never graded against two different fetches.
 	 */
 	"live-key"(c, ctx) {
+		// The block's oracle already failed: every arm of that comparison is a grader error.
+		// Refetching here would grade two arms against two different fetches — the exact thing
+		// the per-block snapshot exists to prevent.
+		if (ctx.snapshotFailed) return graderError(`oracle unavailable for this comparison block: ${ctx.snapshotFailed}`);
 		let key = ctx.snapshotKey;
 		if (key === undefined) {
 			const got = fetchKey(c, ctx);
@@ -225,17 +277,25 @@ const CHECKERS = {
 		return ok(res.pass, `key=${JSON.stringify(key)} ${res.pass ? "matched" : "NOT matched"}: ${res.detail}`);
 	},
 
-	// { type: "all", checks: [...] } — composite; every child must pass. A grader error in any
-	// child makes the whole thing a grader error.
+	/**
+	 * { type: "all", checks: [...] } — composite; every child must pass.
+	 * Every child RUNS: short-circuiting on the first ordinary failure would hide a grader error
+	 * in a later child and record a harness fault as a model failure. A grader error anywhere
+	 * dominates.
+	 */
 	all(c, ctx) {
 		const details = [];
+		let failed = false;
+		let grader = false;
 		for (const child of c.checks ?? []) {
 			const r = runCheck(child, ctx);
 			details.push(`${child.type}:${r.graderError ? "GRADER-ERROR" : r.pass ? "ok" : "FAIL"} ${r.detail}`);
-			if (r.graderError) return { pass: false, graderError: true, detail: details.join(" ;; ") };
-			if (!r.pass) return ok(false, details.join(" ;; "));
+			if (r.graderError) grader = true;
+			else if (!r.pass) failed = true;
 		}
-		return ok(true, details.join(" ;; "));
+		const detail = details.join(" ;; ");
+		if (grader) return { pass: false, graderError: true, detail };
+		return ok(!failed, detail);
 	},
 };
 

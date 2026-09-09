@@ -22,15 +22,31 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defaultBenchDir, defaultSourceDir, PINNED_SETTINGS, prepareAgentDir, refreshAuth } from "./lib/agentdir.mjs";
+import { defaultBenchDir, defaultSourceDir, PINNED_SETTINGS, prepareAgentDir, verifyAuth } from "./lib/agentdir.mjs";
 import { fetchKey, hashTree, liveKeyOf, runCheck } from "./lib/checkers.mjs";
 import { applyMutations, copyAssets, materialize, unifiedDiff, verifyFixture } from "./lib/fixture.mjs";
 import { assertFingerprint, fileSha, filterPlan, loadOrCreateSchedule, profilesFor, readResults, studyFingerprint, tupleKey } from "./lib/plan.mjs";
 import { renderRun } from "./lib/profiles.mjs";
-import { incompleteReason, parseStream, totalTokens } from "./lib/usage.mjs";
+import { createPricer, loadPiExports } from "./lib/pi-exports.mjs";
+import { costTotal, emptyUsage, incompleteReason, parseStream, totalTokens } from "./lib/usage.mjs";
 
 const KEY_ERROR = /\b(api[_ -]?key|unauthorized|invalid_api_key|authentication|401|403|not logged in|no credentials)\b/i;
-const ZERO_TOKENS = () => ({ in: 0, out: 0, cacheRead: 0, cacheWrite: 0 });
+/** Emitted on stderr by ext/bench-nested-usage.ts when nested spend outlived its tool result. */
+const UNATTACHED_MARKER = "bench-nested-usage: UNATTACHED";
+/**
+ * A run's true cost: its own model calls PLUS the LLM calls its tools made, counted ONCE.
+ * The parser keeps the two apart (`tokens` = assistant messages, `nestedTokens` = tool-reported),
+ * so this addition cannot double-count. `r.spend` is the runner's own copy of the same sum;
+ * aggregate.mjs computes it identically.
+ */
+export const spendOf = (r) => r?.spend ?? (r?.totalTokens ?? 0) + totalTokens(r?.nestedTokens);
+/** Money, in pi's own numbers. `null` when any part of the run was never priced. */
+export const costOf = (r) => {
+	if (!r) return null;
+	if (r.nestedTokens && totalTokens(r.nestedTokens) > 0 && r.nestedCost == null) return null;
+	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
+};
+
 export { filterPlan, readResults, tupleKey } from "./lib/plan.mjs";
 
 export function parseArgs(argv) {
@@ -193,10 +209,10 @@ async function prepareWorkspace({ study, studyDir, task, runDir }) {
 	return { work, notes, fixtureDir };
 }
 
-async function executeRun({ study, studyDir, task, profile, rep, block, launcher, fingerprint, snapshotKey, opts }) {
+async function executeRun({ study, studyDir, task, profile, rep, block, launcher, fingerprint, snapshotKey, snapshotFailed, opts }) {
 	const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-bench-"));
 	const base = { ts: new Date().toISOString(), fingerprint, task: task.id, family: task.family ?? null, profile: profile.name, rep, block: block ?? null };
-	const dead = (state, error) => ({ ...base, state, ok: state === "ok", tokens: ZERO_TOKENS(), totalTokens: 0, wallMs: 0, turns: 0, toolCalls: {}, exit: null, error });
+	const dead = (state, error) => ({ ...base, state, ok: state === "ok", tokens: emptyUsage(), totalTokens: 0, wallMs: 0, turns: 0, toolCalls: {}, exit: null, error });
 	try {
 		const sessionDir = path.join(runDir, "sessions");
 		await fs.mkdir(sessionDir, { recursive: true });
@@ -210,20 +226,25 @@ async function executeRun({ study, studyDir, task, profile, rep, block, launcher
 		}
 		if (blocked) return { ...dead("blocked", blocked), ok: false };
 
-		// Fresh credentials for THIS run, so an upstream OAuth refresh propagates (agentdir.mjs).
-		if (opts.agentDir) await refreshAuth({ dir: opts.agentDir, sourceDir: opts.sourceDir ?? defaultSourceDir() });
+		// The bench shares ONE credential with the operator by symlink (agentdir.mjs). Confirm it
+		// still resolves before spending, so a deleted login stops the study instead of producing
+		// a column of authentication errors that read like model failures.
+		if (opts.agentDir) await verifyAuth({ dir: opts.agentDir, sourceDir: opts.sourceDir ?? defaultSourceDir() });
 		const baseline = hashTree(work);
 		const benchPaths = (task.assets ?? []).map((a) => a.to);
 
 		const r = await runChild({ cmd: launcher.cmd, args: [...launcher.pre, ...argv], env, cwd: work, timeoutMs: task.timeoutMs ?? study.timeoutMs ?? 300000 });
-		const parsed = parseStream(r.stdout);
+		const parsed = parseStream(r.stdout, { pricer: opts.pricer });
+		// Nested spend that finished after the last tool result has no result to ride on; the
+		// sidecar announces it on stderr instead. Unmeasured spend must never read as zero.
+		const unattached = r.stderr.includes(UNATTACHED_MARKER);
 		await copyAssets(studyDir, work, task.assets); // AFTER the child: the probe is ungrabbable
 		const diffs = fixtureDir ? await workspaceDiffs(baseline, work, fixtureDir, benchPaths) : [];
 		const evidenceDir = path.join(studyDir, "raw", task.id, profile.name, `rep${rep}`);
 		await writeEvidence(evidenceDir, { stdout: r.stdout, stderr: r.stderr, argvShown, diffs });
 
 		const check = task.check
-			? runCheck(task.check, { finalText: parsed.finalText, dir: work, fixtureDir, baseline, benchPaths, snapshotKey })
+			? runCheck(task.check, { finalText: parsed.finalText, dir: work, fixtureDir, baseline, benchPaths, snapshotKey, snapshotFailed })
 			: { pass: parsed.complete, detail: "no checker declared" };
 
 		// Run health first: exit code AND terminal stream completion (rpc.md:864-866).
@@ -242,11 +263,24 @@ async function executeRun({ study, studyDir, task, profile, rep, block, launcher
 			// `ok` is the study's success metric. A grader or harness failure is NOT a model
 			// failure, so it is null here and excluded from every success denominator.
 			ok: state === "ok" ? true : state === "fail" ? false : null,
+			// pi-ai `Usage` objects verbatim (input/output/cacheRead/cacheWrite/totalTokens/cost),
+			// with pi's own totalTokens and pi's own cost — see lib/pi-exports.mjs.
 			tokens: parsed.tokens,
 			totalTokens: totalTokens(parsed.tokens),
 			nestedTokens: parsed.nested,
 			nestedCalls: parsed.nestedCalls,
-			nestedUnknown: parsed.nestedUnknown,
+			nestedModels: parsed.nestedModels,
+			nestedUnknown: parsed.nestedUnknown || unattached,
+			nestedUnknownReason: parsed.nestedUnknownReason ?? (unattached ? "unattached-after-final-tool-result" : null),
+			nestedUnattached: unattached,
+			skippedOwnCalls: parsed.skippedOwnCalls,
+			spend: totalTokens(parsed.tokens) + totalTokens(parsed.nested),
+			cost: costTotal(parsed.tokens) + (parsed.nestedCost?.total ?? 0),
+			ownCost: parsed.tokens.cost,
+			nestedCost: parsed.nestedCost,
+			nestedCostReason: parsed.nestedCostReason,
+			model: parsed.model,
+			provider: parsed.provider,
 			cacheBucket: parsed.tokens.cacheRead > 0 ? "warm" : "cold",
 			wallMs: r.wallMs,
 			turns: parsed.turns,
@@ -257,6 +291,9 @@ async function executeRun({ study, studyDir, task, profile, rep, block, launcher
 			extensionErrors: parsed.extensionErrors.slice(0, 3),
 			exit: r.exit,
 			signal: r.signal ?? null,
+			// null when nothing had to be killed; false means a child may still be alive and
+			// spending, which stops the study immediately.
+			killedCleanly: r.killedCleanly,
 			error,
 			stopReason: parsed.stopReason,
 			check: { pass: Boolean(check.pass), graderError: Boolean(check.graderError), detail: String(check.detail).slice(0, 400) },
@@ -329,15 +366,76 @@ async function registrationProbe({ study, studyDir, profile, launcher, agentDir 
 		const { argv, env, blocked } = renderRun(profile, study, { prompt, sessionDir: path.join(runDir, "s"), agentDir, studyDir });
 		if (blocked) return { ok: false, detail: blocked };
 		const r = await runChild({ cmd: launcher.cmd, args: [...launcher.pre, ...argv], env, cwd: runDir, timeoutMs: 180000 });
-		const parsed = parseStream(r.stdout);
+		const parsed = parseStream(r.stdout, { pricer: opts.pricer });
+		// Nested spend that finished after the last tool result has no result to ride on; the
+		// sidecar announces it on stderr instead. Unmeasured spend must never read as zero.
+		const unattached = r.stderr.includes(UNATTACHED_MARKER);
 		await fs.mkdir(path.join(studyDir, "raw", "_probe"), { recursive: true });
 		await fs.writeFile(path.join(studyDir, "raw", "_probe", `${profile.name}.jsonl`), r.stdout);
 		if (parsed.extensionErrors.length) return { ok: false, detail: `extension_error: ${parsed.extensionErrors[0]}` };
 		const missing = names.filter((n) => !parsed.finalText.includes(n));
-		return { ok: missing.length === 0, detail: missing.length ? `tools not registered: ${missing.join(", ")} — reply was ${JSON.stringify(parsed.finalText.slice(0, 200))}` : `all ${names.length} extension tools registered`, tokens: totalTokens(parsed.tokens) };
+		return {
+			ok: missing.length === 0,
+			detail: missing.length ? `tools not registered: ${missing.join(", ")} — reply was ${JSON.stringify(parsed.finalText.slice(0, 200))}` : `all ${names.length} extension tools registered`,
+			tokens: totalTokens(parsed.tokens) + totalTokens(parsed.nested),
+			wallMs: r.wallMs,
+		};
 	} finally {
 		await fs.rm(runDir, { recursive: true, force: true }).catch(() => {});
 	}
+}
+
+// ── stop conditions and the budget ledger (pure, so they are testable without spending) ──────
+
+/**
+ * A streak of NON-MODEL failures. Run errors count: repeated auth failures, spawn failures or
+ * timeouts would otherwise burn the whole schedule 300 seconds at a time and fill every cell with
+ * noise (astra F). Only a decided run — ok or fail — resets it.
+ */
+export const systemicStreak = (streak, rec) => (rec.state === "ok" || rec.state === "fail" ? 0 : streak + 1);
+export const SYSTEMIC_LIMIT = 3;
+
+/** A child we could not confirm dead may still be running and spending. Stop at once. */
+export const shouldStopForKill = (rec) => rec.killedCleanly === false;
+
+/**
+ * Everything spent so far: graded runs plus every probe, across invocations.
+ * `accounted` is false when any run carried nested spend we could not measure — a budget that
+ * includes an unknown is a lower bound, and must not be reported as a total.
+ */
+export function budgetFrom(records = [], ledger = []) {
+	const tokens = records.reduce((a, r) => a + spendOf(r), 0) + ledger.reduce((a, l) => a + (l.tokens ?? 0), 0);
+	const wallMs = records.reduce((a, r) => a + (r.wallMs ?? 0), 0) + ledger.reduce((a, l) => a + (l.wallMs ?? 0), 0);
+	const unknownRuns = records.filter((r) => r.nestedUnknown).length;
+	return { tokens, wallMs, unknownRuns, accounted: unknownRuns === 0 };
+}
+
+/** Spend that is not a graded run — probes — kept across invocations so a resume cannot lose it. */
+export async function readLedger(studyDir) {
+	const rows = [];
+	try {
+		for (const line of (await fs.readFile(path.join(studyDir, "ledger.jsonl"), "utf8")).split("\n")) {
+			if (!line.trim()) continue;
+			try { rows.push(JSON.parse(line)); } catch { /* skip a torn line */ }
+		}
+	} catch { /* none yet */ }
+	return rows;
+}
+const appendLedger = (studyDir, row) => fs.appendFile(path.join(studyDir, "ledger.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), ...row })}\n`);
+
+/** One oracle key per comparison block, persisted so a RESUME reuses it instead of refetching. */
+export async function readKeys(studyDir) {
+	const map = new Map();
+	try {
+		for (const line of (await fs.readFile(path.join(studyDir, "keys.jsonl"), "utf8")).split("\n")) {
+			if (!line.trim()) continue;
+			try {
+				const k = JSON.parse(line);
+				if (k.block) map.set(k.block, k);
+			} catch { /* skip a torn line */ }
+		}
+	} catch { /* none yet */ }
+	return map;
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
@@ -359,6 +457,9 @@ async function main() {
 		}
 	}
 	if (study.sidecarExtension) extraSha["ext:sidecar"] = (await fileSha(path.resolve(studyDir, study.sidecarExtension))) ?? "MISSING";
+	// The sidecar is a thin wrapper; its accounting logic lives in lib/nested.mjs, so pinning only
+	// the wrapper would leave the part that decides the numbers unpinned.
+	if (study.sidecarLib) extraSha["ext:sidecar-lib"] = (await fileSha(path.resolve(studyDir, study.sidecarLib))) ?? "MISSING";
 	// The prepared agent dir must exist BEFORE the version probe, so that probe too runs against
 	// it and not against ~/.pi/agent.
 	const agentCfg = study.agentDir ?? {};
@@ -366,7 +467,7 @@ async function main() {
 	const sourceDir = agentCfg.sourceDir ? path.resolve(agentCfg.sourceDir.replace(/^~(?=[\\/]|$)/, os.homedir())) : defaultSourceDir();
 	if (!dryRun) {
 		const prep = await prepareAgentDir({ dir: agentDir, sourceDir, settings: study.pinnedSettings ?? PINNED_SETTINGS });
-		console.log(`agent dir ${prep.dir} (seeded ${prep.seeded.join(", ")}; retry+compaction pinned off)`);
+		console.log(`agent dir ${prep.dir} (settings pinned: retry+compaction off; catalogs ${prep.seeded.join(", ") || "none"}; credential ${prep.credentialMode} → ${sourceDir}/auth.json)`);
 	}
 	const version = dryRun ? (study.pinnedPiVersion ?? "dry-run") : await piVersion(launcher, agentDir);
 	if (!dryRun && study.pinnedPiVersion && version !== study.pinnedPiVersion) {
@@ -375,6 +476,16 @@ async function main() {
 	for (const [k, v] of Object.entries(extraSha)) {
 		const pinned = study.pinnedSha?.[k];
 		if (pinned && pinned !== v) throw new Error(`${k} content changed: ${v} != pinned ${pinned}. The reviewed extension is not the one on disk.`);
+	}
+	// Borrow pi's OWN token/cost arithmetic. A bench must never silently substitute its own, so a
+	// missing install or a missing root export is fatal here, before anything is scheduled.
+	let piExports = null;
+	let pricer = null;
+	if (!dryRun) {
+		piExports = await loadPiExports({ piBin: launcher.pre[0] ?? null });
+		for (const w of piExports.warnings) console.log(`WARNING: ${w}`);
+		pricer = await createPricer(piExports, { provider: study.model?.provider });
+		console.log(`pi arithmetic: ${piExports.version} (pi-ai ${piExports.aiVersion}) — Usage + calculateCost from the package roots at ${piExports.root}`);
 	}
 	const { fingerprint, manifest } = await studyFingerprint({ studyDir, study, tasks, piVersion: version, extraSha });
 	await fs.writeFile(path.join(studyDir, "fingerprint.txt"), `${fingerprint}\n\n${manifest}`);
@@ -403,7 +514,7 @@ async function main() {
 		return;
 	}
 
-	const runOpts = { ...opts, dryRun: false, agentDir, sourceDir };
+	const runOpts = { ...opts, dryRun: false, agentDir, sourceDir, pricer };
 
 	const cleanup = () => { for (const kill of LIVE) kill(); };
 	process.on("SIGINT", () => { console.log("\ninterrupted — killing the current child; results.jsonl keeps every completed run"); cleanup(); process.exit(130); });
@@ -417,12 +528,20 @@ async function main() {
 		if (!lp.ok) throw new Error(`load probe failed for profile ${name}; refusing to spend`);
 	}
 
-	// One registration probe per extension profile that is about to spend.
-	const probed = new Set();
-	let spentTokens = prior.records.reduce((a, r) => a + (r.totalTokens ?? 0), 0);
-	let spentWall = prior.records.reduce((a, r) => a + (r.wallMs ?? 0), 0);
+	// Budget ledger: graded runs + every probe, carried across invocations. Probe spend used to
+	// vanish on restart and registration probes used to repeat once per invocation.
+	const ledger = await readLedger(studyDir);
+	const probed = new Set(ledger.filter((l) => l.kind === "registration-probe" && l.ok).map((l) => l.profile));
+	const blockKeys = await readKeys(studyDir);
+	const budget0 = budgetFrom(prior.records, ledger);
+	let spentTokens = budget0.tokens;
+	let spentWall = budget0.wallMs;
+	let unknownSpendRuns = budget0.unknownRuns;
 	let consecutiveHarness = 0;
 	let n = 0;
+	if (probed.size) console.log(`registration probe already recorded for: ${[...probed].join(", ")} (not repeating)`);
+	let spentCost = prior.records.reduce((a, r) => a + (costOf(r) ?? 0), 0);
+	console.log(`budget so far: ${spentTokens} tokens, $${spentCost.toFixed(4)}, ${Math.round(spentWall / 60000)} min${unknownSpendRuns ? ` — ${unknownSpendRuns} run(s) carry UNMEASURED nested spend, so this is a lower bound` : ""}`);
 
 	for (const item of todo) {
 		const task = tasks.find((t) => t.id === item.task);
@@ -433,50 +552,64 @@ async function main() {
 		if (study.maxWallMs && spentWall >= study.maxWallMs) { console.log(`STOP: cumulative wall budget reached (${Math.round(spentWall / 60000)} min). ${todo.length - n} runs left undone.`); break; }
 
 		if ((profile.extensions ?? []).length && !probed.has(profile.name)) {
-			probed.add(profile.name);
 			const probe = await registrationProbe({ study, studyDir, profile, launcher, agentDir });
+			probed.add(profile.name);
 			spentTokens += probe.tokens ?? 0;
+			spentWall += probe.wallMs ?? 0;
+			await appendLedger(studyDir, { kind: "registration-probe", profile: profile.name, tokens: probe.tokens ?? 0, wallMs: probe.wallMs ?? 0, ok: probe.ok, detail: probe.detail.slice(0, 200) });
 			console.log(`probe ${profile.name}: ${probe.ok ? "OK" : "FAILED"} — ${probe.detail}`);
 			if (!probe.ok) throw new Error(`registration probe failed for profile ${profile.name}; refusing to spend on a profile whose tools may not be loaded`);
 		}
 
-		// One snapshotted oracle key per comparison block, so both arms are graded identically.
+		// ONE oracle key per comparison block, fetched at most once EVER and reloaded on resume,
+		// so every arm of a comparison is graded against the same fetch. A failure is recorded
+		// too: refetching after a failure would silently reintroduce two different keys.
 		let snapshotKey;
+		let snapshotFailed;
 		const lk = liveKeyOf(task.check);
 		if (lk) {
-			const cached = BLOCK_KEYS.get(item.block);
-			if (cached !== undefined) snapshotKey = cached;
-			else {
+			let entry = blockKeys.get(item.block);
+			if (!entry) {
 				const got = fetchKey(lk, { dir: studyDir });
-				if (got.error) { console.log(`  oracle unavailable for ${item.block}: ${got.error}`); snapshotKey = undefined; }
-				else {
-					snapshotKey = got.key;
-					BLOCK_KEYS.set(item.block, got.key);
-					await fs.appendFile(path.join(studyDir, "keys.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), block: item.block, task: item.task, rep: item.rep, key: got.key })}\n`);
-				}
+				entry = got.error ? { block: item.block, task: item.task, rep: item.rep, error: got.error } : { block: item.block, task: item.task, rep: item.rep, key: got.key };
+				blockKeys.set(item.block, entry);
+				await fs.appendFile(path.join(studyDir, "keys.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), ...entry })}\n`);
+				if (got.error) console.log(`  oracle unavailable for ${item.block}: ${got.error}`);
 			}
+			snapshotKey = entry.key;
+			snapshotFailed = entry.error;
 		}
 
-		const rec = await executeRun({ study, studyDir, task, profile, rep: item.rep, block: item.block, launcher, fingerprint, snapshotKey, opts: runOpts });
+		const rec = await executeRun({ study, studyDir, task, profile, rep: item.rep, block: item.block, launcher, fingerprint, snapshotKey, snapshotFailed, opts: runOpts });
 		if (!rec) continue;
 		// Append on a guaranteed newline boundary (readResults already repaired any torn tail).
 		await fs.appendFile(resultsPath, `${JSON.stringify(rec)}\n`);
 		n++;
-		spentTokens += rec.totalTokens ?? 0;
+		spentTokens += spendOf(rec);
 		spentWall += rec.wallMs ?? 0;
+		spentCost += costOf(rec) ?? 0;
+		if (rec.nestedUnknown) unknownSpendRuns++;
 		console.log(
 			`[${n}/${todo.length}] ${rec.task} · ${rec.profile} · rep${rec.rep} → ${rec.state.toUpperCase()} ` +
 				`${rec.totalTokens ?? 0}tok${rec.nestedUnknown ? "+?" : rec.nestedCalls ? `+${totalTokens(rec.nestedTokens)}nested` : ""} ` +
-				`${Math.round((rec.wallMs ?? 0) / 100) / 10}s ${JSON.stringify(rec.toolCalls)}${rec.retries ? ` retries=${rec.retries}` : ""}${rec.error ? ` err=${rec.error.slice(0, 120)}` : ""}`,
+				`${Math.round((rec.wallMs ?? 0) / 100) / 10}s ${costOf(rec) == null ? "$?" : `$${(costOf(rec)).toFixed(4)}`} ${JSON.stringify(rec.toolCalls)}${rec.retries ? ` retries=${rec.retries}` : ""}${rec.error ? ` err=${rec.error.slice(0, 120)}` : ""}`,
 		);
 		// NO RETRY, by design: a failure is the measurement.
-		consecutiveHarness = rec.state === "grader-error" || rec.state === "blocked" ? consecutiveHarness + 1 : 0;
-		if (consecutiveHarness >= 3) { console.log(`STOP: 3 consecutive harness/grader failures. Fix the harness rather than filling the remaining cells.`); break; }
+		// A run-error IS systemic: repeated auth failures, spawn failures or timeouts would
+		// otherwise burn the whole schedule three-hundred-seconds at a time.
+		consecutiveHarness = systemicStreak(consecutiveHarness, rec);
+		if (shouldStopForKill(rec)) {
+			console.log(`STOP: a child could not be confirmed dead (pid may still be spending). Nothing further will start.`);
+			break;
+		}
+		if (consecutiveHarness >= SYSTEMIC_LIMIT) { console.log(`STOP: ${SYSTEMIC_LIMIT} consecutive non-model failures (${rec.state}). Fix the harness rather than filling the remaining cells.`); break; }
 	}
-	console.log(`\nspent ${spentTokens} tokens · ${Math.round(spentWall / 60000)} min\nresults → ${resultsPath}\nnext: node apps/bench/aggregate.mjs ${path.relative(process.cwd(), studyDir) || "."}`);
+	console.log(
+		`\nspent ${spentTokens} tokens · $${spentCost.toFixed(4)} (pi's own cost arithmetic) · ${Math.round(spentWall / 60000)} min` +
+			(unknownSpendRuns ? ` — NOT fully accounted: ${unknownSpendRuns} run(s) carry unmeasured nested spend` : " (fully accounted)") +
+			`\nresults → ${resultsPath}\nnext: node apps/bench/aggregate.mjs ${path.relative(process.cwd(), studyDir) || "."}`,
+	);
 }
-
-const BLOCK_KEYS = new Map();
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
 	main().catch((e) => { console.error(e.stack || e.message); process.exit(1); });

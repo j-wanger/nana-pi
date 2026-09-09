@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { defaultBenchDir, defaultSourceDir, PINNED_SETTINGS, prepareAgentDir, refreshAuth } from "../lib/agentdir.mjs";
+import { defaultBenchDir, defaultSourceDir, PINNED_SETTINGS, prepareAgentDir, verifyAuth } from "../lib/agentdir.mjs";
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -43,38 +43,47 @@ try {
 	await fs.writeFile(path.join(src, "AGENTS.md"), "operator instructions that must NOT reach a bench run");
 	const prep = await prepareAgentDir({ dir, sourceDir: src });
 	const written = JSON.parse(await fs.readFile(path.join(dir, "settings.json"), "utf8"));
-	check("prepared", prep.dir === dir && prep.seeded.includes("auth.json"));
+	check("prepared", prep.dir === dir && prep.seeded.includes("models.json"));
 	check("settings.json is OURS, not the operator's", written.retry.enabled === false && written.compaction.enabled === false);
 	check("the operator's defaultTools does not survive", !("defaultTools" in written));
 	check("the operator's AGENTS.md is not copied", !(await fs.stat(path.join(dir, "AGENTS.md")).catch(() => null)));
-	check("credentials were copied", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("SECRET"));
-	check("models.json copied when present", prep.seeded.includes("models.json"));
+	// The credential is SHARED, not copied: two diverging auth.json files are not isolated,
+	// because an OAuth refresh rotates the token server-side (astra, 2026-09-09).
+	check("credentials are reachable through the bench dir", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("SECRET"));
+	check("…as a SYMLINK, not a copy", prep.credentialMode === "symlink", prep.credentialMode);
+	check("…pointing at the operator's file", path.resolve(dir, await fs.readlink(path.join(dir, "auth.json"))) === path.join(src, "auth.json"));
+	check("models.json copied when present (a catalog, not a credential)", prep.seeded.includes("models.json"));
 	const mode = (p) => fs.stat(p).then((s) => s.mode & 0o777);
 	check("the dir is 0700", (await mode(dir)) === 0o700, (await mode(dir)).toString(8));
-	check("auth.json is 0600", (await mode(path.join(dir, "auth.json"))) === 0o600, (await mode(path.join(dir, "auth.json"))).toString(8));
 
 	// 3. a stale dir is rebuilt, not merged into
 	await fs.writeFile(path.join(dir, "leftover.json"), "{}");
 	await prepareAgentDir({ dir, sourceDir: src });
 	check("preparing again wipes leftovers (no state carries between studies)", !(await fs.stat(path.join(dir, "leftover.json")).catch(() => null)));
 
-	// 4. per-run refresh picks up an upstream token rotation
+	// 4. an upstream rotation is visible IMMEDIATELY — there is only one file
 	await fs.writeFile(path.join(src, "auth.json"), JSON.stringify({ "openai-codex": { type: "oauth", token: "ROTATED" } }));
-	await refreshAuth({ dir, sourceDir: src });
-	check("refreshAuth copies the CURRENT credentials", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("ROTATED"));
-	check("…and keeps 0600", (await mode(path.join(dir, "auth.json"))) === 0o600);
+	check("an upstream token rotation is seen at once (one shared file)", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("ROTATED"));
+	const v = await verifyAuth({ dir, sourceDir: src });
+	check("verifyAuth reports the shared symlink and its target", v.mode === "symlink" && v.target === path.join(src, "auth.json"));
 
-	// 5. a token pi refreshed INSIDE the bench dir is never written back upstream
-	await fs.writeFile(path.join(dir, "auth.json"), JSON.stringify({ "openai-codex": { token: "BENCH-LOCAL" } }));
-	await refreshAuth({ dir, sourceDir: src });
-	check("the bench dir never writes back to the operator's auth.json", (await fs.readFile(path.join(src, "auth.json"), "utf8")).includes("ROTATED"));
-	check("…the bench copy is simply overwritten from upstream (documented limitation)", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("ROTATED"));
+	// 5. a refresh written through the link lands in the operator's file — by design, and the
+	//    reason this is documented rather than presented as isolation
+	await fs.writeFile(path.join(dir, "auth.json"), JSON.stringify({ "openai-codex": { token: "REFRESHED-BY-BENCH" } }));
+	check("a refresh through the link updates the ONE shared credential", (await fs.readFile(path.join(src, "auth.json"), "utf8")).includes("REFRESHED-BY-BENCH"));
 
 	// 6. credentials disappearing mid-study is loud, not silent
 	await fs.rm(path.join(src, "auth.json"));
 	threw = null;
-	try { await refreshAuth({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
-	check("refreshAuth refuses to run without credentials", /refusing to run without credentials/.test(threw ?? ""), threw ?? "no throw");
+	try { await verifyAuth({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
+	check("verifyAuth refuses to run without credentials", /refusing to run without credentials/.test(threw ?? ""), threw ?? "no throw");
+	// a dangling link is just as fatal as a missing source
+	await fs.writeFile(path.join(src, "auth.json"), "{}");
+	await fs.rm(path.join(dir, "auth.json"));
+	await fs.symlink(path.join(src, "nope.json"), path.join(dir, "auth.json"));
+	threw = null;
+	try { await verifyAuth({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
+	check("a DANGLING credential symlink is refused", /missing or dangling|points at/.test(threw ?? ""), threw ?? "no throw");
 
 	// 7. the fingerprint input never carries a secret
 	const { settingsFingerprintInput } = await import("../lib/agentdir.mjs");

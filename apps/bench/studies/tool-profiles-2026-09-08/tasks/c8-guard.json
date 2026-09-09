@@ -4,7 +4,11 @@
 	"timeoutMs": 420000,
 	"prompt": "In `packages/nana-stage/lib/blocks.mjs`, the exported function `clampText(text, maxBytes, what)` currently trusts its `maxBytes` argument. Add a guard so that it throws a `TypeError` when `maxBytes` is not a positive integer (0, negatives, non-integers and non-numbers must all throw); a valid positive integer must keep working exactly as before. Then add a NEW test file at `packages/nana-stage/tests/clamp-guard.test.mjs` that exercises the guard and exits with status 0 when the guard is correct — it must genuinely fail if the guard is absent. `node packages/nana-stage/tests/blocks.test.mjs` must still exit 0, and you must not edit it. Change no other files. Reply with ONLY the word DONE.",
 	"assets": [{ "from": "assets/clamp-guard-probe.mjs", "to": "_bench/clamp-guard-probe.mjs" }],
-	"note": "The probe is copied in only AFTER the model has exited, so it can neither be read nor edited. It states the same contract the prompt states.",
+	"note": "The probe is copied in only AFTER the model has exited, so it can neither be read nor edited. It states the same contract the prompt states, and prints 13 PASS lines when the guard is correct.",
+	"keyDerivation": {
+		"command": "node packages/nana-stage/tests/blocks.test.mjs ; node _bench/clamp-guard-probe.mjs",
+		"output": "pristine suite: 112 PASS, exit 0 (unchanged by a correct guard). Probe with a correct guard: 13 PASS, exit 0; without it: 3 PASS, exit 1."
+	},
 	"check": {
 		"type": "all",
 		"checks": [
@@ -15,18 +19,25 @@
 				"protect": ["packages/nana-stage/tests/**"]
 			},
 			{
-				"type": "command",
-				"commands": [
-					["node", "packages/nana-stage/tests/clamp-guard.test.mjs"],
-					["node", "_bench/clamp-guard-probe.mjs"],
-					["node", "packages/nana-stage/tests/blocks.test.mjs"]
-				]
+				"type": "suite",
+				"argv": ["node", "packages/nana-stage/tests/blocks.test.mjs"],
+				"passLines": 112,
+				"forbid": "^FAIL ",
+				"note": "kills the early-exit route: an exit(0) in blocks.mjs would make this suite, the model's test AND the probe all appear green while asserting nothing."
 			},
+			{
+				"type": "suite",
+				"argv": ["node", "_bench/clamp-guard-probe.mjs"],
+				"passLines": 13,
+				"forbid": "^FAIL ",
+				"note": "the guard must actually behave as specified, observed by bench-owned code"
+			},
+			{ "type": "command", "commands": [["node", "packages/nana-stage/tests/clamp-guard.test.mjs"]] },
 			{
 				"type": "revert-and-fail",
 				"restore": ["packages/nana-stage/lib/blocks.mjs"],
 				"commands": [["node", "packages/nana-stage/tests/clamp-guard.test.mjs"]],
-				"note": "with the guard reverted to the pinned fixture, their test MUST fail — otherwise it asserts nothing"
+				"note": "with the guard reverted to the pinned fixture, their test MUST fail — and must fail by RUNNING and exiting nonzero, not by failing to spawn"
 			}
 		]
 	}

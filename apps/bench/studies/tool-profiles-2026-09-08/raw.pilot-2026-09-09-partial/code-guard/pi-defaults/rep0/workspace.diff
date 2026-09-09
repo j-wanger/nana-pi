@@ -1,0 +1,27 @@
+--- a/packages/nana-stage/lib/blocks.mjs
++++ b/packages/nana-stage/lib/blocks.mjs
+@@ line 174 @@
+ // shortened block. The byte bound holds even for a cap too small to hold the notice
+ // — there the cut is silent, by necessity.
+ export function clampText(text, maxBytes, what) {
++	if (!Number.isInteger(maxBytes) || maxBytes <= 0) throw new TypeError("maxBytes must be a positive integer");
+ 	const buf = new TextEncoder().encode(text);
+ 	if (buf.length <= maxBytes) return text;
+ 	// Back up to a real character boundary (a UTF-8 sequence is at most 4 bytes) by
+--- a/packages/nana-stage/tests/clamp-guard.test.mjs
++++ b/packages/nana-stage/tests/clamp-guard.test.mjs
+@@ line 1 @@
++import assert from "node:assert/strict";
++import { clampText } from "../lib/blocks.mjs";
+ 
++for (const maxBytes of [0, -1, -100, 1.5, NaN, Infinity, -Infinity, "1", null, undefined, true, 1n, {}, []]) {
++	assert.throws(
++		() => clampText("abcdef", maxBytes, "test"),
++		TypeError,
++		`expected ${String(maxBytes)} (${typeof maxBytes}) to be rejected`,
++	);
++}
++
++assert.equal(clampText("short", 10, "test"), "short");
++assert.equal(new TextEncoder().encode(clampText("ééé", 5, "test")).length <= 5, true);
++

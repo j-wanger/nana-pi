@@ -50,7 +50,24 @@ try {
 	check("command: exit 0 passes", runCheck({ type: "command", commands: [["node", "ok.mjs"]] }, at("")).pass);
 	check("command: any non-zero fails", !runCheck({ type: "command", commands: [["node", "ok.mjs"], ["node", "bad.mjs"]] }, at("")).pass);
 	check("command: failure detail names the command", runCheck({ type: "command", commands: [["node", "bad.mjs"]] }, at("")).detail.includes("bad.mjs"));
-	check("command: a missing binary fails, does not throw", !runCheck({ type: "command", commands: [["definitely-not-a-binary-xyz"]] }, at("")).pass);
+	// A grader that could not be SPAWNED says nothing about the model. Recording it as a wrong
+	// answer invents a result — this is astra's checkers.mjs:126 finding.
+	const unspawnable = runCheck({ type: "command", commands: [["definitely-not-a-binary-xyz"]] }, at(""));
+	check("command: an unspawnable grader is a GRADER error, not a model failure", unspawnable.graderError === true, unspawnable.detail.slice(0, 90));
+	fs.writeFileSync(path.join(dir, "hang.mjs"), "setInterval(()=>{},1000);\n");
+	const timedOut = runCheck({ type: "command", commands: [["node", "hang.mjs"]], timeoutMs: 700 }, at(""));
+	check("command: a timed-out grader is a GRADER error", timedOut.graderError === true, timedOut.detail.slice(0, 90));
+
+	// suite: exit status alone never proves a suite ran
+	fs.writeFileSync(path.join(dir, "suite-ok.mjs"), 'console.log("PASS a");console.log("PASS b");console.log("PASS c");\n');
+	fs.writeFileSync(path.join(dir, "suite-early.mjs"), 'process.exit(0);\nconsole.log("PASS a");\n');
+	fs.writeFileSync(path.join(dir, "suite-partial.mjs"), 'console.log("PASS a");console.log("FAIL b");process.exit(0);\n');
+	check("suite: passes on the expected PASS count", runCheck({ type: "suite", argv: ["node", "suite-ok.mjs"], passLines: 3 }, at("")).pass);
+	const early = runCheck({ type: "suite", argv: ["node", "suite-early.mjs"], passLines: 3 }, at(""));
+	check("suite: an EARLY EXIT that still exits 0 is caught", early.pass === false && !early.graderError, early.detail.slice(0, 110));
+	check("suite: a wrong PASS count is a model failure, not a grader error", runCheck({ type: "suite", argv: ["node", "suite-ok.mjs"], passLines: 4 }, at("")).graderError !== true);
+	check("suite: a forbidden line fails even at the right count", !runCheck({ type: "suite", argv: ["node", "suite-partial.mjs"], passLines: 1, forbid: "^FAIL " }, at("")).pass);
+	check("suite: an unspawnable suite is a GRADER error", runCheck({ type: "suite", argv: ["definitely-not-a-binary-xyz"], passLines: 1 }, at("")).graderError === true);
 
 	// file, including comment-blind matching
 	check("file: exists", runCheck({ type: "file", path: "hello.txt", exists: true }, at("")).pass);
@@ -82,11 +99,19 @@ try {
 	check("globMatch: * stays within a segment", globMatch("a/*.mjs", "a/b.mjs") && !globMatch("a/*.mjs", "a/b/c.mjs"));
 	check("globMatch: ** crosses segments", globMatch("a/**", "a/b/c.mjs"));
 
-	// revert-and-fail
+	// revert-and-fail — must observe a GENUINE assertion failure, not merely "not zero"
+	fs.writeFileSync(path.join(dir, "guard.test.mjs"), 'import { guarded } from "./src.mjs";\nif (!guarded) { console.log("FAIL guard missing"); process.exit(1); }\nconsole.log("PASS guard present");\n');
 	check("revert-and-fail: a real test fails once the fix is reverted", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "guard.test.mjs"]] }, at("")).pass);
 	fs.writeFileSync(path.join(dir, "vacuous.test.mjs"), "process.exit(0);\n");
 	check("revert-and-fail: a vacuous test that always passes is REJECTED", !runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "vacuous.test.mjs"]] }, at("")).pass);
 	check("revert-and-fail: restoring a file the fixture lacks is a grader error", runCheck({ type: "revert-and-fail", restore: ["nope.mjs"], commands: [["node", "vacuous.test.mjs"]] }, at("")).graderError === true);
+	// astra checkers.mjs:198 — a spawn failure or a timeout is NOT evidence the test detected anything
+	check("revert-and-fail: an unspawnable command is a GRADER error, not proof of detection", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["definitely-not-a-binary-xyz"]] }, at("")).graderError === true);
+	check("revert-and-fail: a HANGING command is a GRADER error, not proof of detection", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "hang.mjs"]], timeoutMs: 700 }, at("")).graderError === true);
+	fs.writeFileSync(path.join(dir, "silent-fail.mjs"), "process.exit(3);\n");
+	check("revert-and-fail: a silent nonzero exit is accepted by default (a minimal test may be silent)", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "silent-fail.mjs"]] }, at("")).pass);
+	check("revert-and-fail: requireOutput can demand visible evidence when a study wants it", !runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "silent-fail.mjs"]], requireOutput: true }, at("")).pass);
+	check("revert-and-fail: expectFail can demand the failure be recognisable", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "guard.test.mjs"]], expectFail: "^FAIL " }, at("")).pass);
 
 	// live-key: grader errors vs model failures
 	check("live-key: key found", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('KEY-42')"] }, at("KEY-42")).pass);
@@ -105,6 +130,14 @@ try {
 	check("all: every child must pass", runCheck({ type: "all", checks: [{ type: "exact", value: "a" }, { type: "file", path: "ok.mjs", exists: true }] }, at("a")).pass);
 	check("all: one failing child fails the whole", !runCheck({ type: "all", checks: [{ type: "exact", value: "a" }, { type: "file", path: "nope", exists: true }] }, at("a")).pass);
 	check("all: a grader error in any child propagates as a grader error", runCheck({ type: "all", checks: [{ type: "exact", value: "a" }, { type: "regex", pattern: "([" }] }, at("a")).graderError === true);
+	// astra checkers.mjs:230-237 — short-circuiting on an ordinary failure hid a LATER grader error
+	// and recorded a harness fault as a model failure.
+	const dominated = runCheck({ type: "all", checks: [{ type: "exact", value: "zzz" }, { type: "regex", pattern: "([" }] }, at("a"));
+	check("all: a grader error AFTER an ordinary failure still dominates", dominated.graderError === true, dominated.detail.slice(0, 110));
+	check("all: every child runs, so the detail reports all of them", dominated.detail.includes("exact:FAIL") && dominated.detail.includes("regex:GRADER-ERROR"));
+
+	// the block-level oracle snapshot: a failed oracle must NOT be refetched per arm
+	check("live-key: a failed block snapshot is a grader error without refetching", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('KEY')"] }, at("KEY", { snapshotFailed: "HTTP 503" })).graderError === true);
 
 	check("unknown checker type is a grader error", runCheck({ type: "vibes" }, at("x")).graderError === true);
 	check("no LLM-judge checker exists", !CHECKER_TYPES.some((t) => /judge|llm|model|rubric/i.test(t)), CHECKER_TYPES.join(","));

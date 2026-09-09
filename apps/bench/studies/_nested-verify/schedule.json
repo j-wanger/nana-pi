@@ -1,0 +1,14 @@
+{
+ "fingerprint": "d5c250cb506be8308ec467523893bf620bfcf96b47f5178ed49ab4e11ed8492d",
+ "createdAt": "2026-09-09T04:31:50.881Z",
+ "seed": 1,
+ "reps": 1,
+ "runs": [
+  {
+   "task": "verify-nested",
+   "profile": "web-only",
+   "rep": 0,
+   "block": "verify-nested|0"
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+	"id": "verify-nested",
+	"family": "research",
+	"fixture": false,
+	"prompt": "Which version of the npm package `chalk` is currently tagged `latest` on the npm registry? Reply with ONLY the version number.",
+	"check": {
+		"type": "live-key",
+		"argv": [
+			"node",
+			"-e",
+			"fetch('https://registry.npmjs.org/chalk').then(r=>r.json()).then(j=>console.log(j['dist-tags'].latest))"
+		],
+		"schema": "^\\d+\\.\\d+\\.\\d+",
+		"mode": "whole"
+	}
+}

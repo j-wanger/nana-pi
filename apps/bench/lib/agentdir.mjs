@@ -9,13 +9,23 @@
 // PI_CODING_AGENT_DIR (environment-variables.md:81) relocates the whole config dir. The cost is
 // that a fresh dir has no credentials (providers.md:111, `auth.json`), so we copy them in.
 //
-// CREDENTIAL HANDLING — the rules this file keeps:
-//   * the dir is created 0700 and auth.json 0600;
-//   * auth.json is copied FRESH from ~/.pi/agent at the start of EVERY run, so upstream OAuth
-//     refreshes propagate immediately;
-//   * nothing is ever copied BACK: a token pi refreshes inside the bench dir is discarded;
-//   * contents are never logged, never hashed into a fingerprint, never written to a record;
-//   * the dir lives outside the repo and is never committed.
+// CREDENTIAL HANDLING — the bench SHARES the operator's login; it does not copy it.
+//   `auth.json` in the bench dir is a SYMLINK to the operator's `~/.pi/agent/auth.json`.
+//
+//   Why not a copy (astra, 2026-09-09): OAuth refresh rotates the refresh token server-side. Two
+//   diverging copies of `auth.json` are therefore not isolated at all — a benchmark refresh can
+//   invalidate the token still sitting in the operator's untouched file, and re-copying the stale
+//   source afterwards compounds it. Separate files and separate locks do not separate a
+//   server-side credential. One shared file means pi refreshes ONE credential, with its own
+//   locking, exactly as it would in ordinary use.
+//
+//   The consequences, stated rather than hidden: bench runs consume the operator's subscription
+//   and can rotate the operator's token. Settings isolation is unaffected — only the credential
+//   is shared. If you need a benchmark that cannot touch the operator's login, point `sourceDir`
+//   at a dir holding an independently authorised credential.
+//
+//   Other rules: the dir is 0700; contents are never logged, never hashed into a fingerprint,
+//   never written to a record; the dir lives outside the repo and is never committed.
 
 import { constants as C } from "node:fs";
 import fs from "node:fs/promises";
@@ -38,11 +48,10 @@ export const PINNED_SETTINGS = {
 	defaultProjectTrust: "never", // usage.md:126-128 — non-interactive fallback; never trust a fixture
 };
 
-/** Files copied from the operator's agent dir. `auth.json` is refreshed every run. */
+/** Copied (not linked): catalogs, which pi may rewrite and which carry no credential. */
 const SEED_FILES = [
-	{ name: "auth.json", required: true, mode: 0o600, everyRun: true },
-	{ name: "models.json", required: false, mode: 0o600, everyRun: false },
-	{ name: "models-store.json", required: false, mode: 0o600, everyRun: false },
+	{ name: "models.json", mode: 0o600 },
+	{ name: "models-store.json", mode: 0o600 },
 ];
 
 const exists = (p) =>
@@ -76,19 +85,42 @@ export async function prepareAgentDir({ dir = defaultBenchDir(), sourceDir = def
 		await fs.chmod(path.join(dir, f.name), f.mode);
 		seeded.push(f.name);
 	}
-	return { dir, seeded, settingsPath: path.join(dir, "settings.json") };
+	// ONE credential, shared by symlink. A copy would diverge; see the header.
+	const link = path.join(dir, "auth.json");
+	let credentialMode = "symlink";
+	try {
+		await fs.symlink(authSrc, link);
+	} catch (e) {
+		// win32 without the privilege, or a filesystem with no symlinks. Fall back to a copy and
+		// SAY SO — the caller must be able to report which mode a study ran in.
+		await fs.copyFile(authSrc, link);
+		await fs.chmod(link, 0o600);
+		credentialMode = `copy (symlink unavailable: ${e.code ?? e.message})`;
+	}
+	return { dir, seeded, credentialMode, settingsPath: path.join(dir, "settings.json") };
 }
 
 /**
- * Re-copy the credential file before a single run so an upstream OAuth refresh propagates.
- * LIMITATION, stated in DESIGN.md: a token that pi refreshes INSIDE the bench dir is discarded,
- * because copying it back would write to the operator's credentials from a benchmark.
+ * Before each run: confirm the shared credential is still reachable. With a symlink there is
+ * nothing to refresh — pi reads and rotates the operator's single file — but a source that has
+ * been deleted or a link that no longer resolves must stop the study loudly rather than produce
+ * a run of authentication errors that look like model failures.
  */
-export async function refreshAuth({ dir = defaultBenchDir(), sourceDir = defaultSourceDir() } = {}) {
+export async function verifyAuth({ dir = defaultBenchDir(), sourceDir = defaultSourceDir() } = {}) {
 	const src = path.join(sourceDir, "auth.json");
 	if (!(await exists(src))) throw new Error(`bench agent dir: ${src} disappeared mid-study — refusing to run without credentials`);
-	await fs.copyFile(src, path.join(dir, "auth.json"));
-	await fs.chmod(path.join(dir, "auth.json"), 0o600);
+	const link = path.join(dir, "auth.json");
+	if (!(await exists(link))) throw new Error(`bench agent dir: ${link} is missing or dangling — refusing to run without credentials`);
+	const st = await fs.lstat(link);
+	if (st.isSymbolicLink()) {
+		const target = path.resolve(dir, await fs.readlink(link));
+		if (target !== path.resolve(src)) throw new Error(`bench agent dir: ${link} points at ${target}, not ${src}`);
+		return { mode: "symlink", target };
+	}
+	// Copy fallback (win32): keep it current, and accept the divergence risk documented above.
+	await fs.copyFile(src, link);
+	await fs.chmod(link, 0o600);
+	return { mode: "copy", target: path.resolve(src) };
 }
 
 /** Effective settings, for the study fingerprint. Never includes credentials. */

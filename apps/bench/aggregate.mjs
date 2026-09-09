@@ -20,22 +20,38 @@ const q = (sorted, p) => {
 	const hi = Math.ceil(i);
 	return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 };
-// 2 decimals: the decision rule compares medians against a 1.15x threshold, and rounding a
-// ratio to one decimal can move a borderline verdict.
-const round = (x) => (x == null ? null : Math.round(x * 100) / 100);
+// 2 decimals: the decision rule compares medians against a 1.15x threshold, and rounding a ratio
+// to one decimal can move a borderline verdict. MONEY needs more — a run costs fractions of a
+// cent, and rounding those to 2 dp reports every study as costing nothing.
+const round = (x, digits = 2) => (x == null ? null : Math.round(x * 10 ** digits) / 10 ** digits);
+export const MONEY_DIGITS = 6;
 
-export function stats(values) {
+export function stats(values, digits = 2) {
 	const v = values.filter((x) => typeof x === "number" && Number.isFinite(x)).sort((a, b) => a - b);
 	if (!v.length) return { n: 0, mean: null, median: null, p25: null, p75: null, iqr: null, min: null, max: null };
 	const mean = v.reduce((a, b) => a + b, 0) / v.length;
 	const p25 = q(v, 0.25);
 	const p75 = q(v, 0.75);
-	return { n: v.length, mean: round(mean), median: round(q(v, 0.5)), p25: round(p25), p75: round(p75), iqr: round(p75 - p25), min: v[0], max: v[v.length - 1] };
+	const r = (x) => round(x, digits);
+	return { n: v.length, mean: r(mean), median: r(q(v, 0.5)), p25: r(p25), p75: r(p75), iqr: r(p75 - p25), min: v[0], max: v[v.length - 1] };
 }
 
-const tot = (t) => (t ? (t.in || 0) + (t.out || 0) + (t.cacheRead || 0) + (t.cacheWrite || 0) : 0);
-/** Own spend plus the nested spend an extension made on the run's behalf. */
-export const spendOf = (r) => (r.totalTokens ?? tot(r.tokens)) + tot(r.nestedTokens);
+// pi-ai `Usage` carries its own authoritative `totalTokens`; the bucket sum is only a fallback for
+// a record written before the bench adopted pi's shape.
+const tot = (t) => (t ? (typeof t.totalTokens === "number" ? t.totalTokens : (t.in || t.input || 0) + (t.out || t.output || 0) + (t.cacheRead || 0) + (t.cacheWrite || 0)) : 0);
+/** Money, in pi's own numbers. null when any part of a run went unpriced — never a guessed 0. */
+export const costOf = (r) => {
+	if (r?.cost === null) return null;
+	if (typeof r?.cost === "number") return r.cost;
+	if (tot(r?.nestedTokens) > 0 && r?.nestedCost == null) return null;
+	return (r?.tokens?.cost?.total ?? 0) + (r?.nestedCost?.total ?? 0);
+};
+/**
+ * A run's TRUE cost: its own model calls plus the LLM calls its tools made, counted exactly once.
+ * The parser keeps the two apart (`tokens` = assistant messages, `nestedTokens` = tool-reported),
+ * so this addition cannot double-count; `r.spend` is the runner's own copy of the same sum.
+ */
+export const spendOf = (r) => r.spend ?? (r.totalTokens ?? tot(r.tokens)) + tot(r.nestedTokens);
 const decided = (r) => r.state === "ok" || r.state === "fail" || (r.state === undefined && typeof r.ok === "boolean");
 const succeeded = (r) => r.state === "ok" || (r.state === undefined && r.ok === true);
 
@@ -69,6 +85,10 @@ export function aggregate(records, schedule = null) {
 			successRate: dec.length ? okRuns.length / dec.length : null,
 			states,
 			spend: stats(dec.map(spendOf)),
+			// Cost is pi's `calculateCost` output, summed. A cell where any run went unpriced
+			// reports null rather than a total that quietly omits it.
+			cost: dec.length && dec.every((r) => costOf(r) != null) ? stats(dec.map((r) => costOf(r)), MONEY_DIGITS) : null,
+			costUnpriced: dec.filter((r) => costOf(r) == null).length,
 			spendOnSuccess: stats(okRuns.map(spendOf)),
 			ownTokens: stats(dec.map((r) => r.totalTokens ?? tot(r.tokens))),
 			nestedTokens: stats(dec.map((r) => tot(r.nestedTokens))),
@@ -105,6 +125,7 @@ export function aggregate(records, schedule = null) {
 				// Median of per-task medians: one number per task, so eight cheap navigation
 				// tasks cannot outvote two expensive edits by sheer run count.
 				medianOfTaskMedians: stats(mine.map((c) => c.spend.median)).median,
+				totalCost: mine.length && mine.every((c) => c.cost) ? round(mine.reduce((a, c) => a + (c.cost.median ?? 0), 0), MONEY_DIGITS) : null,
 				// Total spend guard: the sum of per-task medians. A profile that is cheap on
 				// six tasks and ruinous on two shows up HERE even when the median looks fine.
 				totalOfTaskMedians: Math.round(mine.reduce((a, c) => a + (c.spend.median ?? 0), 0)),
@@ -138,7 +159,8 @@ export function toMarkdown(study, agg, records) {
 	L.push(
 		"**Success** = the deterministic checker passed AND pi exited 0 AND the stream reached `agent_settled` with no dangling tool calls.",
 		"**Denominator** = decided runs only: grader errors, harness errors and blocked runs are reported but never counted as model failures.",
-		"**Spend** = the run's own tokens PLUS any nested LLM tokens an extension reported. No run was ever retried.",
+		"**Spend** = the run's own tokens PLUS any nested LLM tokens an extension reported, counted once. No run was ever retried.",
+		"**$** = pi's own `calculateCost` output (public `@earendil-works/pi-ai` root export), summed. A cell shows `unpriced` when any of its runs carried spend nothing could price — never a total that silently omits it.",
 		"",
 	);
 
@@ -152,9 +174,9 @@ export function toMarkdown(study, agg, records) {
 	for (const f of byFamily) {
 		L.push(`## Family \`${f.family}\` — ${f.shared.length} shared task(s)`, "");
 		if (f.excluded.length) L.push(`Excluded from the comparison (not run by every profile): ${f.excluded.join(", ")}`, "");
-		L.push("| profile | success | median of task medians | total of task medians | wall median (s) | cold/warm | retries | nested unknown | tool mix |", "|---|---:|---:|---:|---:|---:|---:|---:|---|");
+		L.push("| profile | success | median of task medians | total of task medians | total $ of task medians | wall median (s) | cold/warm | retries | nested unknown | tool mix |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 		for (const r of f.rows) {
-			L.push(`| ${r.profile} | ${r.successes}/${r.decided} (${pct(r.decided ? r.successes / r.decided : null)}) | ${r.medianOfTaskMedians ?? "—"} | ${r.totalOfTaskMedians} | ${secs(r.wallMedian)} | ${r.cache.cold}/${r.cache.warm} | ${r.retries} | ${r.nestedUnknown} | ${mix(r.toolCalls)} |`);
+			L.push(`| ${r.profile} | ${r.successes}/${r.decided} (${pct(r.decided ? r.successes / r.decided : null)}) | ${r.medianOfTaskMedians ?? "—"} | ${r.totalOfTaskMedians} | ${r.totalCost == null ? "unpriced" : `$${r.totalCost}`} | ${secs(r.wallMedian)} | ${r.cache.cold}/${r.cache.warm} | ${r.retries} | ${r.nestedUnknown} | ${mix(r.toolCalls)} |`);
 		}
 		L.push("", "Per-task successes (the decision rule reads these):", "");
 		const tasks = f.shared;
@@ -163,10 +185,10 @@ export function toMarkdown(study, agg, records) {
 		L.push("");
 	}
 
-	L.push("## Per task × profile", "", "| family | task | profile | n | states | success | spend median | IQR | spend/success | own | nested | wall (s) | turns | cacheRead med | tool mix |", "|---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+	L.push("## Per task × profile", "", "| family | task | profile | n | states | success | spend median | IQR | spend/success | $ median | own | nested | wall (s) | turns | cacheRead med | tool mix |", "|---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 	for (const c of cells) {
 		L.push(
-			`| ${c.family} | ${c.task} | ${c.profile} | ${c.n} | ${mix(c.states)} | ${c.successes}/${c.decided} | ${c.spend.median ?? "—"} | ${c.spend.iqr ?? "—"} | ${c.spendPerSuccess ?? "—"} | ` +
+			`| ${c.family} | ${c.task} | ${c.profile} | ${c.n} | ${mix(c.states)} | ${c.successes}/${c.decided} | ${c.spend.median ?? "—"} | ${c.spend.iqr ?? "—"} | ${c.spendPerSuccess ?? "—"} | ${c.cost ? `$${c.cost.median}` : `unpriced(${c.costUnpriced})`} | ` +
 				`${c.ownTokens.median ?? "—"} | ${c.nestedTokens.median ?? "—"}${c.nestedUnknown ? " ⚠?" : ""} | ${secs(c.wallMs.median)} | ${c.turns.median ?? "—"} | ${c.cacheReadMedian ?? "—"} | ${mix(c.toolCalls)} |`,
 		);
 	}
