@@ -56,7 +56,7 @@ function newLiveState(id, cwd) {
 		renderSeq: 0, // bumped by renderMessages; tells an in-flight POST the transcript was rebuilt
 		resyncRunning: false, // a get_messages is in flight
 		resyncAgain: false, // …and something asked for a fresher one while it ran
-		bashAbandoned: new Set(), // bash ids whose POST already gave up on them
+		bashAbandoned: new Map(), // bash id → command, for ids whose POST already gave up on them
 	};
 }
 
@@ -977,8 +977,9 @@ function handleEvent(e) {
 			// when it finishes (pi records it on completion). So this is the moment
 			// to re-read: without it the finished card never appears at all.
 			else if (L.bashAbandoned.has(e.id)) {
+				const command = L.bashAbandoned.get(e.id);
 				L.bashAbandoned.delete(e.id);
-				if (!e.success) toast(`bash: ${e.error || "failed"}`, "error");
+				if (!e.success) toast(`bash: ${command} — ${e.error || "failed"}`, "error");
 				resync();
 			} else bufferBashEvent(e.id, e);
 			break;
@@ -1953,8 +1954,10 @@ async function send() {
 				// event still to come is the only thing that can bring the card
 				// back, and the event handler needs to know nobody else will.
 				if (!failed) {
-					L.bashAbandoned.add(r.id);
-					while (L.bashAbandoned.size > BASH_BUFFER_IDS) L.bashAbandoned.delete(L.bashAbandoned.values().next().value);
+					L.bashAbandoned.set(r.id, command);
+					// bounded like the event buffer: past BASH_BUFFER_IDS abandoned runs the
+					// oldest is forgotten, and its terminal event will not trigger a read (README).
+					while (L.bashAbandoned.size > BASH_BUFFER_IDS) L.bashAbandoned.delete(L.bashAbandoned.keys().next().value);
 				}
 				resync();
 			}

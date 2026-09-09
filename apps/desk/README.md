@@ -323,7 +323,9 @@ screen, and all six are visible to anyone driving the page.
     finished card back, with pi's own output;
   - it was still **running**, so the read finds nothing and the pane shows no card for it yet.
     The terminal `desk_bash_result` that arrives later is the trigger: an id its POST already gave
-    up on causes **one more read**, and that is where the finished card appears. A command that
+    up on causes **one more read**, and that is where the finished card appears. The page remembers
+    at most 8 such abandoned runs (oldest forgotten first): a ninth one's terminal event triggers
+    no read, and its card appears only with the next re-read for any other reason. A command that
     never terminates leaves no card — nothing on either side knows it ran.
 
   The one thing history cannot carry is a **desk-side** failure of the request itself (a bash
@@ -515,7 +517,8 @@ is not":
 - **A bash command that never terminates, started just before the transcript was rebuilt, leaves
   no card.** The rebuild drops the page's buffer for it and pi records a run only on completion,
   so until the command ends neither side has anything to show. It reappears the moment it
-  finishes; a command that never does is never drawn.
+  finishes (if it is among the last 8 abandoned runs; older ones wait for the next re-read); a
+  command that never does is never drawn.
 - **A steer whose text is byte-identical to a still-pending prompt eats that prompt's bubble.**
   The optimistic user bubble is matched to pi's echo by content (deliberately: a FIFO match let
   another tab's echo consume ours). Send `ok` as a prompt and, before its echo arrives, `ok` again
