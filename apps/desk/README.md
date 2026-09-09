@@ -324,8 +324,8 @@ screen, and all six are visible to anyone driving the page.
   - it was still **running**, so the read finds nothing and the pane shows no card for it yet.
     The terminal `desk_bash_result` that arrives later is the trigger: an id its POST already gave
     up on causes **one more read**, and that is where the finished card appears. The page remembers
-    at most 8 such abandoned runs (oldest forgotten first): a ninth one's terminal event triggers
-    no read, and its card appears only with the next re-read for any other reason. A command that
+    at most 8 such abandoned runs: a ninth evicts the oldest, whose terminal event then triggers
+    no read, so that card appears only with the next re-read for any other reason. A command that
     never terminates leaves no card — nothing on either side knows it ran.
 
   The one thing history cannot carry is a **desk-side** failure of the request itself (a bash

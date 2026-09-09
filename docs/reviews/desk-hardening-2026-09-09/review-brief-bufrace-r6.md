@@ -1,0 +1,5 @@
+# Review brief — client-side races, ROUND 6 (two-item confirmation)
+
+Your round 5 (/private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/review-sol-bufrace-r5.md) passed B, C, E and blocked on two items: the abandoned-id failure toast lacked the command, and the 8-id abandoned bound was undeclared. The seat fixed both directly: `L.bashAbandoned` is now a Map id → command (bounded 8, oldest evicted), the toast is `bash: <command> — <error>`, and README rule five, the Known limit, and the punch-list declare the 8-run bound. Diff: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/diff-races-r6.patch; tree: /private/tmp/claude-501/-Users-jwang-nana-agent-loop/57ce8f73-0f8c-43aa-a701-395f73f0ce7d/scratchpad/wt-int (`apps/desk/public/app.js` search `bashAbandoned`; `apps/desk/README.md` ~322-332 and ~515-519; `docs/review-punchlist-2026-09-08.md` ~312-320). Verify only those two items and that nothing regressed in the touched lines.
+
+Output: per item PASS or FINDING, then exactly one line: `VERDICT: LAND` or `VERDICT: BLOCK`.

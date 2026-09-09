@@ -314,8 +314,8 @@ sleeps became readiness handshakes.
     the command is still executing finds nothing — and the terminal event arriving afterwards had
     no POST continuation left to flush it or to ask again. A terminal `desk_bash_result` for an id
     whose POST already gave up now triggers **one more read**, which is where the finished card
-    comes from; the abandoned set is bounded at 8 (a ninth run's terminal event waits for the next
-    re-read), and the failure toast carries the command. (Failing-first: the card never appeared
+    comes from; the abandoned set is bounded at 8 (a ninth evicts the oldest, whose terminal event
+    then waits for the next re-read), and the failure toast carries the command. (Failing-first: the card never appeared
     at all.)
   - **BLOCK, fixed — `resync()` was directly reentrant.** The coalescing guard sat in a wrapper the
     repair path used, while reconnect, settle and compaction called `resync()` directly and
