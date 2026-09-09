@@ -260,14 +260,16 @@ visible to anyone driving the page.
   only ever kept the last 20 000, and the finished render keeps the same window for both and
   reports the cut as `· truncated` — whether this page made the cut or the server did. Cuts never
   split a surrogate pair, so a window that opens mid-emoji starts at the next whole character.
-- **A bash row is only adopted when it is provably ours.** A rebuild of the transcript (a
-  reconnect resync) brings back pi's own finished record of a command, which carries no RPC id.
-  The in-flight POST claims that row only when exactly one new finished card for that command
-  appeared while it waited and no other POST for the same command is outstanding; a buffered
-  transport failure (a timeout, a dead child — which history does not record) is re-applied onto
-  it. Otherwise nothing is adopted and no row is built from the buffer: the page drops the buffer
-  and runs **one** repair resync, because history is the authority on what actually ran. So an
-  older identical command's card can never end up showing a newer run's output.
+- **If the transcript was rebuilt while a bash POST was in flight, history wins.** A rebuild (a
+  reconnect resync, a settled turn, a compaction) brings back pi's own record of what ran, and
+  that record carries no RPC id — nothing on the page identifies which card belongs to the POST
+  that is still out. So the page claims no card and builds none from its buffer: it drops the
+  buffered events for that id and asks history again. The one thing history cannot carry is a
+  **desk-side** failure of the request itself (a bash timeout, a child that died), which is
+  reported as a toast — `bash: <command> — <error>` — and pinned to no card. Repair reads
+  coalesce: requests that arrive while a `get_messages` is already in flight produce exactly one
+  follow-up read between them, however many asked, because a read already in flight was started
+  before they asked and cannot answer them.
 
 One prompt-path rule changed with them: **an explicit rejection always returns your text to the
 editor.** A `POST …/prompt` that answers `{ok: false}` (or 409) means the prompt is not running,
