@@ -84,10 +84,11 @@ export class StageKeyStore {
 		this.log = log;
 		// NOT a cache. The FILE is authority, read on every call: a long-lived cache
 		// made this desk redact another desk's blocks while it was still running, and
-		// then overwrite its record with a stale one. This map holds only the keys
-		// whose own write FAILED, overlaid on what the file says so a failed save
-		// costs continuity across a restart and nothing sooner.
-		this.pending = new Map(); // id → [keys] we hold but could not persist
+		// then overwrite its record with a stale one. This map holds ONLY the keys an
+		// individual write failed to save — the additions, never the whole record, or a
+		// failed write would go on hiding (and then overwriting) what another desk
+		// added afterwards.
+		this.pending = new Map(); // id → [keys] this desk issued but could not persist
 		this.ready = false;
 	}
 
@@ -105,10 +106,13 @@ export class StageKeyStore {
 	// the ledger read (which calls this on every replay) off the write path.
 	record(id, key) {
 		if (!ID_RE.test(id || "") || !KEY_RE.test(key || "")) return false;
-		const cur = this.keysFor(id); // re-read: never write back a stale list
+		this.#ensureReady();
+		const owed = this.pending.get(id) || [];
+		const disk = this.#readRecord(id); // fresh: never write back a stale list
+		const cur = union(owed, disk);
 		const held = cur.includes(key);
-		if (held && !this.pending.has(id)) return false; // nothing to add, nothing owed
-		this.#write(id, held ? cur : union([key], cur));
+		if (held && !owed.length) return false; // nothing to add, nothing owed
+		this.#write(id, held ? cur : union([key], cur), disk);
 		return !held;
 	}
 
@@ -129,10 +133,13 @@ export class StageKeyStore {
 		if (!ID_RE.test(id || "") || !Array.isArray(keys) || !keys.length) return false;
 		const valid = keys.filter((k) => KEY_RE.test(k || ""));
 		if (!valid.length) return false;
-		const cur = this.keysFor(id);
+		this.#ensureReady();
+		const owed = this.pending.get(id) || [];
+		const disk = this.#readRecord(id);
+		const cur = union(owed, disk);
 		const next = union(cur, valid);
 		if (next.length === cur.length) return false; // nothing new to add
-		this.#write(id, next);
+		this.#write(id, next, disk);
 		return true;
 	}
 
@@ -248,7 +255,9 @@ export class StageKeyStore {
 	// In-memory first, then the file: a save that fails must not cost this desk the
 	// keys it just issued. Atomic within the directory (temp + rename), so a reader
 	// sees either the old record or the new one.
-	#write(id, keys) {
+	// `disk` is what the file held when this write was composed; whatever `keys` adds
+	// on top of it is what a failure still owes.
+	#write(id, keys, disk) {
 		const file = this.#file(id);
 		let tmp = null;
 		let fd = null;
@@ -280,9 +289,10 @@ export class StageKeyStore {
 					/* nothing to clean up */
 				}
 			}
-			// Held in memory so this desk keeps verifying what it just issued; overlaid
-			// on the file by keysFor, and retried by the next record for this session.
-			this.pending.set(id, keys);
+			// Only the ADDITIONS are held: overlaid on the file by keysFor so this desk
+			// keeps verifying what it just issued, and retried by the next record for this
+			// session — without masking or overwriting what another desk adds meanwhile.
+			this.pending.set(id, keys.filter((k) => !(disk || []).includes(k)));
 			this.#warn(`stage keys: could not save ${file} (${e.message}) — held in memory for this desk only; the next record for this session retries`);
 			return false;
 		}

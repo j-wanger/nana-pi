@@ -260,10 +260,18 @@ not just what the server does internally.
     source the first has already moved away from; and while one is in flight a ledger read may
     *use* the session it observes but does not file it, so it cannot claim the destination under
     the live key alone before the fork has been accounted for. A ledger read that lands in that
-    window sees the new session's blocks redacted for that one read.
-  - **A fork whose confirmation fails recovers.** If the state read that would attribute the new
-    session fails, the desk keeps the confirmed source and completes the inheritance at the next
-    confirmed observation (the next ledger read), rather than losing the fork's history.
+    window sees the new session's blocks redacted for that one read, and if the child exits
+    before any later observation, that session is simply never recorded.
+  - **All of it happens inside the one command, or not at all.** After the fork the desk retries
+    the state read that identifies the new session up to three times over about a second; if it
+    still cannot, **that fork inherits nothing and its copied blocks stay redacted**. There is
+    deliberately no "finish it later" flag: a child's session can also change by a route the desk
+    never sees — pi runs an extension's slash command straight off a `prompt` — so a pending
+    inheritance would eventually be attached to an unrelated session.
+  - **`POST /api/session/:id/rpc` answers 429** when a child already has 8 session-changing
+    commands queued or running (`fork`, `clone`, `switch_session`, `new_session`). They are
+    serialized, so they wait; the bound stops a child that has stopped answering from
+    accumulating held requests. Slots free on every outcome, success or failure.
   - If the child's current session cannot be established at read time (a failed `get_state`),
     there is **no** widening at all: only the live child's own key is used, so a block signed
     under another recorded key of that session redacts until the session can be read again.
@@ -324,13 +332,25 @@ is not":
   writes, and the one-time session enumeration behind its hygiene pass, block the whole desk
   while they run. A hung filesystem under `~/.pi/agent` stalls the process, not just the request
   that touched it.
-- **Two desks can lose one key for the same session.** A record is read, unioned and written
-  back without a lock, so two desks doing that for the *same* session in the *same instant* leave
-  whichever wrote last; the key the other one added survives only in its memory, and once it
-  exits, blocks signed with that key redact. It takes an actual overlap of the two writes —
-  sequential writers, however far apart, each read the current file first — and it costs at most
-  one key for one session, corrupting nothing and touching no other session. This is the
-  deliberate price of having no cross-process lock.
+- **Two desks can lose keys for the same session.** A record is read, unioned and written back
+  without a lock, so two desks doing that for the *same* session in the *same instant* leave
+  whichever wrote last, and **whatever the other write was adding is gone** — usually one key,
+  but a fork's inheritance adds several at once. It takes an actual overlap of the two writes:
+  sequential writers, however far apart, each read the current file first. Only keys whose own
+  write *failed* are held in memory, so a key that was written successfully and then lost to
+  another desk's write is not retained anywhere — it disappears from the very next lookup, and
+  blocks signed with it redact from then on. Nothing is corrupted and no other session is
+  touched. This is the deliberate price of having no cross-process lock.
+- **A prompt can move the session out from under a fork.** pi executes an extension's slash
+  command straight off a `prompt`, and those can start, fork or switch a session without going
+  through the desk's own commands. One landing between a fork's source check and the fork itself
+  would attribute the inheritance to the session the child *was* in — a window of one RPC round
+  trip, and the keys it would add are still keys this desk issued. Not fixed.
+- **One failure path is not covered by a test: an RPC that runs out its wall-clock timeout.**
+  A session-changing command that times out takes the same `finally` as one that comes back
+  unsuccessful (identity cleared, queue slot freed), and the unsuccessful case is tested; the
+  30-second path is not, because there is no test-only timeout knob and adding one to the RPC
+  core is a wider change than this fix.
 - **Ledger reads and lifecycle RPCs cost extra round trips.** `GET /api/entries` issues two RPCs
   (the entries and a `get_state` to establish the session), and a `fork`/`clone` waits for a
   `get_state` before and after it. So unanswered ledger reads consume the per-child pending-RPC

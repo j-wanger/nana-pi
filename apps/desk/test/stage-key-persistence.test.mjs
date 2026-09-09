@@ -16,9 +16,12 @@
 //      under B's recorded key, an UNRESOLVED get_state falls back to this child's
 //      key alone (no stale authority), a LIVE block signed with that other key is
 //      still dropped (live path = this child's key only), a FORK of B inherits B's
-//      whole key set so its copied mixed-key blocks keep verifying, and a fork after
-//      a switch whose observation FAILED inherits from what the child actually
-//      holds, not from the stale predecessor
+//      whole key set so its copied mixed-key blocks keep verifying, a fork after a
+//      switch whose observation FAILED inherits from what the child actually holds
+//      rather than a stale predecessor, an overlapping ledger read cannot strand a
+//      fork's inheritance, queued transitions send nothing while one is held (and
+//      the 9th is refused 429), an unsuccessful fork leaves the child usable, and a
+//      fork whose confirmation fails inherits NOTHING and arms nothing
 //   4  RESTART, resume B → both keys' blocks verify (any-of-recorded-keys)
 //   5  RESTART, resume a fork whose ledger was NEVER read → still verifies, which is
 //      only true if the desk recorded the fork when it observed it
@@ -26,9 +29,10 @@
 // Plus direct StageKeyStore checks for the store properties the server path cannot
 // show deterministically: the 8-key cap, modes, a path-shaped session id refused as a
 // filename, an interrupted write, a failed save retried by the next record for that
-// session, a corrupt record costing only its own session, a pre-existing directory
-// left as the operator made it, and the existence prune (which never acts on an empty
-// enumeration).
+// session (owing only its own addition, so it neither hides nor overwrites what
+// another desk adds meanwhile), a corrupt record costing only its own session, a
+// pre-existing directory left as the operator made it, and the existence prune
+// (which never acts on an empty enumeration).
 //
 // Run: node apps/desk/test/stage-key-persistence.test.mjs   (exit 0 = all PASS)
 import { spawn } from "node:child_process";
@@ -66,6 +70,10 @@ const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub 
 const AFTER_FORK = path.join(TD, "after-fork.flag"); // "fail" | "hold:<ms>" for the state read after a fork
 const HOLD_FORK = path.join(TD, "hold-fork.flag"); // ms to delay the fork RESPONSE itself
 const TRACE = path.join(TD, "trace.jsonl"); // every command the stub received, with its arrival time
+const HOLDING = path.join(TD, "holding.flag"); // written by the stub while it is holding a response
+const RELEASE = path.join(TD, "release.flag"); // the test creates it to let a held response go
+const FAIL_FORK = path.join(TD, "fail-fork.flag"); // answer the next fork unsuccessfully
+const UNARM = path.join(TD, "unarm.flag"); // drop any leftover post-fork failure budget
 for (const d of [binDir, appsDir, cwdA, cwdB, SESSIONS]) fs.mkdirSync(d, { recursive: true });
 const extStage = path.join(TD, "nana-stage.ts");
 fs.writeFileSync(extStage, "export default function () {}\n");
@@ -89,7 +97,20 @@ function newSession() {
 	fs.writeFileSync(f, JSON.stringify({ type: "session", version: 3, id: crypto.randomUUID(), timestamp: new Date().toISOString(), cwd: process.cwd() }) + "\\n");
 	return f;
 }
-let afterFork = null; // "fail" | "hold:<ms>", armed by a fork for the next get_state
+let afterFork = null; // "fail" | "hold", armed by a fork for the next get_state
+let failFork = false; // set by STUB_FAIL_FORK: answer the next fork unsuccessfully
+// Hold a response until the test says go, and SAY that the hold is in effect: the
+// test waits for that file rather than for a timer, so the overlap it is proving is
+// a fact and not a race it hopes to win.
+function hold(cmd, data) {
+	fs.writeFileSync(process.env.STUB_HOLDING, cmd.type);
+	const tick = setInterval(() => {
+		if (!fs.existsSync(process.env.STUB_RELEASE)) return;
+		clearInterval(tick);
+		try { fs.unlinkSync(process.env.STUB_HOLDING); } catch {}
+		say({ type: "response", id: cmd.id, command: cmd.type, success: true, data: data() });
+	}, 15);
+}
 let sessionFile = flag("--session") || newSession();
 const idOf = (f) => readEntries(f)[0].id;
 let sessionId = idOf(sessionFile);
@@ -124,11 +145,17 @@ process.stdin.on("data", (c) => {
 			case "get_state": {
 				let budget = null;
 				try { budget = fs.readFileSync(process.env.STUB_NO_STATE, "utf-8").trim(); } catch { budget = null; }
-				if (afterFork === "fail") { afterFork = null; say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" }); break; }
-				if (afterFork && afterFork.startsWith("hold:")) {
-					const ms = Number(afterFork.slice(5)); afterFork = null;
-					const c = cmd;
-					setTimeout(() => say({ type: "response", id: c.id, command: c.type, success: true, data: { isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } }), ms);
+				try { fs.readFileSync(process.env.STUB_UNARM); afterFork = null; fs.unlinkSync(process.env.STUB_UNARM); } catch {}
+				if (afterFork && afterFork.startsWith("fail")) {
+					// "fail" once, or "fail:N" for the desk's whole confirmation retry budget
+					const left = (afterFork.includes(":") ? Number(afterFork.split(":")[1]) : 1) - 1;
+					afterFork = left > 0 ? "fail:" + left : null;
+					say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
+					break;
+				}
+				if (afterFork === "hold") {
+					afterFork = null;
+					hold(cmd, () => ({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }));
 					break;
 				}
 				if (budget !== null && (budget === "" || Number(budget) > 0)) {
@@ -143,6 +170,8 @@ process.stdin.on("data", (c) => {
 			// what pi's fork/clone do to the ledger: the source session's entries are COPIED
 			// into a NEW file under a NEW header id
 			case "fork": case "clone": {
+				try { fs.readFileSync(process.env.STUB_FAIL_FORK); failFork = true; fs.unlinkSync(process.env.STUB_FAIL_FORK); } catch {}
+				if (failFork) { failFork = false; say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: fork refused" }); break; }
 				const src = readEntries(sessionFile);
 				const f = path.join(path.dirname(sessionFile), "s-" + crypto.randomBytes(5).toString("hex") + ".jsonl");
 				const head = Object.assign({}, src[0], { id: crypto.randomUUID(), timestamp: new Date().toISOString() });
@@ -150,9 +179,10 @@ process.stdin.on("data", (c) => {
 				sessionFile = f; sessionId = head.id;
 				// arm an action for the state read the desk makes right after this fork
 				try { afterFork = fs.readFileSync(process.env.STUB_AFTER_FORK, "utf-8").trim(); fs.unlinkSync(process.env.STUB_AFTER_FORK); } catch {}
-				let holdFork = 0;
-				try { holdFork = Number(fs.readFileSync(process.env.STUB_HOLD_FORK, "utf-8").trim()); fs.unlinkSync(process.env.STUB_HOLD_FORK); } catch {}
-				if (holdFork > 0) { const c = cmd; setTimeout(() => say({ type: "response", id: c.id, command: c.type, success: true, data: { cancelled: false, text: "forked" } }), holdFork); }
+				let holdFork = false;
+				try { fs.readFileSync(process.env.STUB_HOLD_FORK); holdFork = true; fs.unlinkSync(process.env.STUB_HOLD_FORK); } catch {}
+				if (failFork) { failFork = false; say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: fork refused" }); break; }
+				if (holdFork) hold(cmd, () => ({ cancelled: false, text: "forked" }));
 				else ok({ cancelled: false, text: "forked" });
 				break;
 			}
@@ -200,6 +230,15 @@ const D = () => `http://127.0.0.1:${DESK}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// wait for a FACT, never for a duration
+let releaseT = 0;
+async function until(cond, what, ms = 10000) {
+	const deadline = Date.now() + ms;
+	while (!cond()) {
+		if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+		await sleep(20);
+	}
+}
 const recordFile = (id) => path.join(STORE, `${id}.json`);
 const recordOf = (id) => (fs.existsSync(recordFile(id)) ? JSON.parse(fs.readFileSync(recordFile(id), "utf-8")) : null);
 const keysOf = (id) => recordOf(id)?.keys || [];
@@ -216,6 +255,7 @@ async function startServer(run, ports) {
 			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
 			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
+			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM,
 			// explicit: an outer DESK_STAGE_KEYS would beat the temporary HOME and send
 			// this test's records into the operator's own store
 			DESK_STAGE_KEYS: STORE,
@@ -401,12 +441,17 @@ try {
 	// AN OVERLAPPING LEDGER READ MUST NOT DEFEAT THE FORK. Hold the state read the
 	// desk makes right after the fork, and slip a ledger read into that window: it
 	// observes the brand-new session, and if it files it under the live child's key
-	// alone the inheritance is stranded for good.
-	fs.writeFileSync(AFTER_FORK, "hold:900");
+	// alone the inheritance is stranded for good. No timers: the stub says when the
+	// hold is in effect, the competing read is awaited to completion inside it, and
+	// only then is the held response released.
+	fs.rmSync(RELEASE, { force: true });
+	fs.writeFileSync(AFTER_FORK, "hold");
 	const forking = rpc(s.id, { type: "fork", entryId: "x" });
-	await sleep(250); // the fork has landed; its confirmation is still held
-	ent = await get(A, "/api/entries"); // ← observes the new session mid-transition
+	await until(() => fs.existsSync(HOLDING), "the fork's confirmation to be held");
+	ent = await get(A, "/api/entries"); // ← observes the new session mid-transition, and completes
+	fs.writeFileSync(RELEASE, "");
 	await forking;
+	fs.rmSync(RELEASE, { force: true });
 	const idF = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
 	check("run 3: a ledger read that lands mid-fork does not strand the inheritance",
 		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1),
@@ -416,39 +461,61 @@ try {
 		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block",
 		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
-	// TWO LIFECYCLE RPCs MUST NOT INTERLEAVE. Hold the first fork's own response and
-	// fire a second at once: nothing of the second may reach the child until the
-	// first transition has finished, or the second captures a source the first has
-	// already moved away from.
-	fs.writeFileSync(HOLD_FORK, "700");
+	// TWO LIFECYCLE RPCs MUST NOT INTERLEAVE, AND THE QUEUE IS BOUNDED. Hold the first
+	// fork's own response; the queue cap then PROVES the competing requests were
+	// admitted and are waiting inside the server (a 429 can only come from a full
+	// queue), so releasing is safe to do only after that fact is established.
+	fs.rmSync(RELEASE, { force: true });
+	fs.writeFileSync(HOLD_FORK, "1");
 	fs.writeFileSync(TRACE, "");
-	const f1 = rpc(s.id, { type: "fork", entryId: "x" });
-	const f2 = rpc(s.id, { type: "fork", entryId: "x" });
-	await Promise.all([f1, f2]);
+	const held = rpc(s.id, { type: "fork", entryId: "x" });
+	await until(() => fs.existsSync(HOLDING), "the first fork to be held");
+	const queued = [];
+	for (let i = 0; i < 7; i++) queued.push(rpc(s.id, { type: "fork", entryId: "x" }));
+	const over = await post(D(), `/api/session/${s.id}/rpc`, { command: { type: "fork", entryId: "x" } }, D());
+	check("run 3: the lifecycle queue is bounded — one past the cap is refused at once with 429", over.status === 429, String(over.status));
+	releaseT = Date.now();
+	fs.writeFileSync(RELEASE, "");
+	await Promise.all([held, ...queued]);
+	fs.rmSync(RELEASE, { force: true });
 	const trace = fs.readFileSync(TRACE, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 	const firstFork = trace.findIndex((e) => e.type === "fork");
 	const nextAfter = trace[firstFork + 1];
-	check("run 3: a second lifecycle RPC sends nothing until the first transition completes",
-		firstFork >= 0 && nextAfter && nextAfter.t - trace[firstFork].t >= 600,
-		JSON.stringify(trace.map((e) => `${e.type}+${e.t - trace[0].t}`)));
+	check("run 3: while a transition is held, no queued transition sends anything to the child",
+		firstFork >= 0 && nextAfter && nextAfter.type === "get_state" && nextAfter.t >= releaseT,
+		JSON.stringify(trace.slice(firstFork, firstFork + 3).map((e) => e.type)));
+	const after429 = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	check("run 3: the queue's slots are released — a later lifecycle RPC still works", after429?.success === true, JSON.stringify(after429));
 
-	// A COMMAND THAT DID NOT SUCCEED ARMS NOTHING. The child is left wherever it is,
-	// and the next observation must record only its own key — no inheritance from a
-	// source the desk confirmed for a fork that never happened.
-	r = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	check("run 3: a later lifecycle RPC still works after the held pair", r?.success === true, JSON.stringify(r));
-
-	// A FAILED POST-FORK OBSERVATION IS RECOVERABLE. The desk confirmed the source
-	// before the fork; if the state read that would have attributed the destination
-	// fails, the next confirmed observation has to finish the job — otherwise the
-	// fork's whole inherited history is lost for a state read that came back empty.
-	fs.writeFileSync(AFTER_FORK, "fail");
+	// A COMMAND THAT DID NOT SUCCEED RESTORES NO IDENTITY AND ARMS NOTHING. The desk
+	// confirmed a source for it; nothing about that may survive into the next session
+	// the child is observed holding.
+	fs.writeFileSync(FAIL_FORK, "");
 	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	check("run 3: fork accepted though its confirmation failed", r?.success === true, JSON.stringify(r));
-	ent = await get(A, "/api/entries"); // the next confirmed observation completes the inheritance
-	check("run 3: a fork whose confirmation FAILED still inherits at the next confirmed observation",
-		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block",
+	check("run 3: an unsuccessful fork is reported as such", r?.success === false, JSON.stringify(r));
+	const afterFail = await rpc(s.id, { type: "switch_session", sessionPath: fileB });
+	check("run 3: ...and a lifecycle RPC after it still works", afterFail?.success === true, JSON.stringify(afterFail));
+
+	// A FORK WHOSE CONFIRMATION FAILS INHERITS NOTHING — AND LEAVES NOTHING ARMED.
+	// There is no "finish it later": a session can also change through a path the desk
+	// never sees (an extension slash command off a prompt), so a pending inheritance
+	// would eventually attach one session's keys to an unrelated one.
+	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	fs.writeFileSync(AFTER_FORK, "fail:3"); // the desk's whole confirmation budget
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	check("run 3: a fork whose confirmation fails is still reported as successful", r?.success === true, JSON.stringify(r));
+	// disarm whatever confirmation budget this desk did not use, so the reads below are
+	// ordinary ones in every version — the difference under test is inheritance, not a
+	// failing state read
+	fs.writeFileSync(UNARM, "");
+	ent = await get(A, "/api/entries"); // an ordinary observation — the only kind left
+	check("run 3: an unconfirmed fork inherits NOTHING; its copied blocks stay redacted",
+		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block-rejected",
 		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
+	const idU = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	check("run 3: ...and that session's record holds only the live child's key, never the fork's source",
+		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
+		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
@@ -537,6 +604,27 @@ try {
 	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(rec2("sidR")));
 	check("store: ...so the key survives the next restart", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sidR")[0] === kr);
 	check("store: ...and one session's failed write did not disturb another's record", fs.readFileSync(rec2("sid"), "utf-8") === before);
+
+	// A FAILED WRITE OWES ONLY ITS OWN ADDITION. If it kept the whole record it had
+	// composed, it would mask — and then overwrite — whatever another desk added
+	// while it was owing, with no simultaneity at all.
+	const other = new StageKeyStore({ dir: d2, log: () => {} });
+	const kFail = crypto.randomBytes(32).toString("hex");
+	const kOther = crypto.randomBytes(32).toString("hex");
+	// fill the record so the 8-key cap is in play: an overlay holding the WHOLE record
+	// then leaves no room for anything another desk adds
+	for (let i = 0; i < 7; i++) st.record("owe", crypto.randomBytes(32).toString("hex"));
+	fs.renameSync = () => { throw new Error("simulated transient failure"); };
+	st.record("owe", kFail);
+	fs.renameSync = realRename;
+	other.record("owe", kOther); // a second desk, strictly afterwards
+	check("store: a failed write does not hide another desk's later key", st.keysFor("owe").includes(kOther) && st.keysFor("owe").includes(kFail),
+		JSON.stringify(st.keysFor("owe").map((k) => k.slice(0, 6))));
+	st.record("owe", kFail); // the retry
+	const persisted = new StageKeyStore({ dir: d2, log: () => {} }).keysFor("owe");
+	check("store: ...and the retry persists its own key without overwriting the other desk's",
+		persisted.includes(kFail) && persisted.includes(kOther),
+		`${JSON.stringify(persisted.map((k) => k.slice(0, 6)))} fail=${kFail.slice(0, 6)} other=${kOther.slice(0, 6)}`);
 
 	// a corrupt record costs THAT session and nothing else
 	fs.writeFileSync(rec2("sid"), "{not json");
