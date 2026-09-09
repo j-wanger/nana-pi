@@ -215,24 +215,15 @@ function stageKeyForSpawn(session) {
 // session, and it already controls both the blocks it signs and the entries it
 // returns — there is no read it could not already perform. Ids that name no session
 // file are dropped by the store's hygiene pass on the next desk start.
+// It NEVER seeds. Inheritance is decided only where the desk can see a whole
+// transition — `lifecycleRpc` below, which establishes the source before the command
+// that creates the new session. An observation on its own cannot tell a fork (which
+// copies the source's blocks) from a switch (which copies nothing), and the last id
+// we happened to observe is not evidence of either.
 function noteStageSession(child, state) {
 	const id = typeof state?.sessionId === "string" && state.sessionId ? state.sessionId : null;
 	if (!id || !child?.stageKey) return null;
-	const prev = child.sessionId;
 	child.sessionId = id;
-	// FORK / CLONE inheritance. pi copies the source session's custom entries — signed
-	// blocks included — into a new file under a NEW header id, so blocks that verified
-	// a moment ago would go blank against an id nothing was recorded for. Seed the new
-	// id from the one THIS CHILD was observed holding immediately before; the file's
-	// own `parentSession` text is never read here, because a session file is not
-	// authority over which keys vouch for it.
-	// Deliberately over-approximate: the same rule fires on `new_session`, where
-	// nothing is inherited, so a fresh session's record can carry keys of the session
-	// the child came from. That widens by one hop inside the same class already
-	// declared in the README (a key recorded for a session is any app child of this
-	// desk that held it) and never admits a key this desk did not issue. `seed` fills
-	// blanks only — an id that already has a record is left alone.
-	if (prev && prev !== id) stageKeys.seed(id, stageKeys.keysFor(prev));
 	stageKeys.record(id, child.stageKey);
 	return id;
 }
@@ -665,21 +656,46 @@ const SESSION_CHANGING = new Set(["new_session", "switch_session", "fork", "clon
 // for the next ledger read instead would leave a window in which a desk restart
 // loses a fork's inherited keys for good.
 function sendRpc(child, command) {
-	const p = sendRpcRaw(child, command);
-	if (!child.stageKey || !SESSION_CHANGING.has(command?.type)) return p;
-	return p.then(async (r) => {
-		// Best effort, and after the command has already succeeded: a state read that
-		// fails must not turn a successful fork into a failed request. The next ledger
-		// read observes it instead.
-		if (r?.success) {
-			try {
-				noteStageSession(child, (await sendRpcRaw(child, { type: "get_state" }))?.data);
-			} catch {
-				/* observed on the next ledger read */
-			}
+	if (!child.stageKey || !SESSION_CHANGING.has(command?.type)) return sendRpcRaw(child, command);
+	return lifecycleRpc(child, command);
+}
+
+// `child.sessionId` means "the session this child was CONFIRMED to hold". Anything
+// that leaves it unconfirmed clears it, so no later step can inherit from a
+// predecessor that may already be wrong.
+async function lifecycleRpc(child, command) {
+	const state = async () => (await sendRpcRaw(child, { type: "get_state" }))?.data;
+	// fork/clone COPY the source session's ledger entries into a new file under a new
+	// header id, so the new session must inherit the SOURCE's keys. Establish the
+	// source from the child BEFORE the command runs: the last id we happened to
+	// observe can be stale (a switch whose observation failed), and inheriting from
+	// the wrong predecessor both blanks the real source's blocks and hands the fork
+	// authority it never had. A source we cannot confirm means no inheritance.
+	const inherits = command.type === "fork" || command.type === "clone";
+	let source = null;
+	if (inherits) {
+		try {
+			source = noteStageSession(child, await state());
+		} catch {
+			/* unconfirmed */
 		}
-		return r;
-	});
+		if (!source) child.sessionId = null;
+	}
+	const r = await sendRpcRaw(child, command);
+	// Only a command that actually ran can have moved the child. A state read that
+	// fails must not turn a successful fork into a failed request.
+	if (!r?.success) return r;
+	let after = null;
+	try {
+		const data = await state();
+		const id = typeof data?.sessionId === "string" && data.sessionId ? data.sessionId : null;
+		if (id && inherits && source && source !== id) stageKeys.seed(id, stageKeys.keysFor(source));
+		after = noteStageSession(child, data);
+	} catch {
+		/* unconfirmed */
+	}
+	if (!after) child.sessionId = null;
+	return r;
 }
 
 function sendRpcRaw(child, command) {

@@ -15,17 +15,20 @@
 //      key was issued to a DIFFERENT app child in run 1): B's own history verifies
 //      under B's recorded key, an UNRESOLVED get_state falls back to this child's
 //      key alone (no stale authority), a LIVE block signed with that other key is
-//      still dropped (live path = this child's key only), and a FORK of B inherits
-//      B's whole key set so its copied mixed-key blocks keep verifying
+//      still dropped (live path = this child's key only), a FORK of B inherits B's
+//      whole key set so its copied mixed-key blocks keep verifying, and a fork after
+//      a switch whose observation FAILED inherits from what the child actually
+//      holds, not from the stale predecessor
 //   4  RESTART, resume B → both keys' blocks verify (any-of-recorded-keys)
 //   5  RESTART, resume a fork whose ledger was NEVER read → still verifies, which is
 //      only true if the desk recorded the fork when it observed it
 //
-// Plus direct StageKeyStore checks for the file properties the server path cannot
-// show deterministically: the 8-key cap, a corrupt store, an interrupted write, a
-// failed save retried by the next record, an existing world-writable store directory
-// tightened (and a shared one left alone), two PROCESSES recording concurrently
-// losing nothing, and the existence prune's refusal to act on an empty enumeration.
+// Plus direct StageKeyStore checks for the store properties the server path cannot
+// show deterministically: the 8-key cap, modes, a path-shaped session id refused as a
+// filename, an interrupted write, a failed save retried by the next record for that
+// session, a corrupt record costing only its own session, a pre-existing directory
+// left as the operator made it, and the existence prune (which never acts on an empty
+// enumeration).
 //
 // Run: node apps/desk/test/stage-key-persistence.test.mjs   (exit 0 = all PASS)
 import { spawn } from "node:child_process";
@@ -55,8 +58,8 @@ const appsDir = path.join(TD, "apps");
 const cwdA = path.join(TD, "repo-a");
 const cwdB = path.join(TD, "repo-b");
 const SESSIONS = path.join(TD, ".pi", "agent", "sessions");
-// where the server will put its own store, given HOME=TD
-const STORE = path.join(TD, ".pi", "agent", "nana-desk", "stage-keys.json");
+// where the server will put its own store, given HOME=TD (a DIRECTORY, one file per session)
+const STORE = path.join(TD, ".pi", "agent", "nana-desk", "stage-keys");
 const OUT = path.join(TD, "stub-out.jsonl");
 const OLD_KEY = path.join(TD, "old-key.txt");
 const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub fail get_state
@@ -110,10 +113,21 @@ process.stdin.on("data", (c) => {
 		let cmd; try { cmd = JSON.parse(line); } catch { continue; }
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
-			// STUB_NO_STATE present on disk = "this child can no longer say which session it
-			// holds", while get_entries keeps working.
-			case "get_state": if (fs.existsSync(process.env.STUB_NO_STATE)) say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
-				else ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
+			// STUB_NO_STATE = "this child can no longer say which session it holds", while
+			// get_entries keeps working. Empty file = fail every time; a number = fail that
+			// many calls, then answer normally again.
+			case "get_state": {
+				let budget = null;
+				try { budget = fs.readFileSync(process.env.STUB_NO_STATE, "utf-8").trim(); } catch { budget = null; }
+				if (budget !== null && (budget === "" || Number(budget) > 0)) {
+					if (budget !== "") {
+						const left = Number(budget) - 1;
+						if (left > 0) fs.writeFileSync(process.env.STUB_NO_STATE, String(left)); else fs.unlinkSync(process.env.STUB_NO_STATE);
+					}
+					say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
+				} else ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" });
+				break;
+			}
 			// what pi's fork/clone do to the ledger: the source session's entries are COPIED
 			// into a NEW file under a NEW header id
 			case "fork": case "clone": {
@@ -169,7 +183,9 @@ const D = () => `http://127.0.0.1:${DESK}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const readStore = () => (fs.existsSync(STORE) ? JSON.parse(fs.readFileSync(STORE, "utf-8")) : null);
+const recordFile = (id) => path.join(STORE, `${id}.json`);
+const recordOf = (id) => (fs.existsSync(recordFile(id)) ? JSON.parse(fs.readFileSync(recordFile(id), "utf-8")) : null);
+const keysOf = (id) => recordOf(id)?.keys || [];
 const manifestOf = (n) => JSON.parse(fs.readFileSync(path.join(appsDir, `${n}.json`), "utf-8"));
 const setManifestSession = (n, file) => fs.writeFileSync(path.join(appsDir, `${n}.json`), JSON.stringify({ ...manifestOf(n), session: file }));
 
@@ -177,6 +193,7 @@ let server = null;
 let log = "";
 async function startServer(run, ports) {
 	log = "";
+	DESK = 0; // never match the PREVIOUS run's startup line
 	server = spawn("node", [SERVER], {
 		env: {
 			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
@@ -241,14 +258,15 @@ try {
 	const keyB1 = spawns("1", cwdB)[0].key;
 	fs.writeFileSync(OLD_KEY, keyB1);
 
-	// the key store itself
-	const store = readStore();
-	check("store: v1 shape, keyed by the pi session header id", store?.v === 1 && Array.isArray(store.sessions?.[idA]?.keys) && store.sessions[idA].keys[0] === keyA1, JSON.stringify(store).slice(0, 300));
+	// the key store itself: one file per session, named by the pi session header id
+	const rec = recordOf(idA);
+	check("store: one v1 record per session, named by the pi session header id", rec?.v === 1 && rec.keys[0] === keyA1, JSON.stringify(rec));
 	const mode = (p) => (fs.existsSync(p) ? fs.statSync(p).mode & 0o777 : null);
-	check("store: file mode 0600", mode(STORE) === 0o600, String(mode(STORE)?.toString(8)));
-	check("store: directory mode 0700", mode(path.dirname(STORE)) === 0o700, String(mode(path.dirname(STORE))?.toString(8)));
-	const storeDir = () => (fs.existsSync(path.dirname(STORE)) ? fs.readdirSync(path.dirname(STORE)) : []);
+	check("store: record mode 0600", mode(recordFile(idA)) === 0o600, String(mode(recordFile(idA))?.toString(8)));
+	check("store: directory mode 0700", mode(STORE) === 0o700, String(mode(STORE)?.toString(8)));
+	const storeDir = () => (fs.existsSync(STORE) ? fs.readdirSync(STORE) : []);
 	check("store: no temp file left behind", storeDir().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(storeDir()));
+	check("store: the two sessions got SEPARATE records", storeDir().filter((f) => f.endsWith(".json")).length === 2, JSON.stringify(storeDir()));
 
 	await stopServer();
 
@@ -272,7 +290,7 @@ try {
 	check("run 2: a block minted before the restart is STILL unredacted", be.filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(be.map((e) => [e.id, e.customType])));
 	check("run 2: a hand-forged signature is still redacted", be.find((e) => e.id === "hand1")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand1")));
 	check("run 2: a block signed under a key this desk never issued is still redacted", be.find((e) => e.id === "hand2")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand2")));
-	check("run 2: resuming reused the recorded key rather than appending a new one", readStore()?.sessions?.[idA]?.keys.length === 1, JSON.stringify(readStore()?.sessions?.[idA]));
+	check("run 2: resuming reused the recorded key rather than appending a new one", keysOf(idA).length === 1, JSON.stringify(recordOf(idA)));
 	await stopServer();
 
 	// ── run 3: the session file is RENAMED, then resumed by its new path ──
@@ -293,8 +311,8 @@ try {
 	check("run 3: after the switch, session B's own history verifies under B's recorded key",
 		be.length === 1 && be[0].customType === "nana-block", JSON.stringify(be.map((e) => e.customType)));
 	check("run 3: this child's key is now recorded under session B too (most recent first)",
-		readStore()?.sessions?.[idB]?.keys.length === 2 && readStore()?.sessions?.[idB]?.keys[0] === keyA1 && readStore()?.sessions?.[idB]?.keys[1] === keyB1,
-		JSON.stringify((readStore()?.sessions?.[idB]?.keys || []).map((k) => k.slice(0, 8))));
+		keysOf(idB).length === 2 && keysOf(idB)[0] === keyA1 && keysOf(idB)[1] === keyB1,
+		JSON.stringify(keysOf(idB).map((k) => k.slice(0, 8))));
 	// the child can no longer say WHICH session it holds: the ledger read must fall back
 	// to this child's key alone, never to the recorded keys of the session it held before
 	fs.writeFileSync(NO_STATE, "");
@@ -324,14 +342,40 @@ try {
 	check("run 3: a FORK inherits the source session's key set — mixed-key blocks all verify",
 		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => e.customType)));
 	check("run 3: the fork's record was seeded from the source, not just given this child's key",
-		JSON.stringify(readStore()?.sessions?.[idC]?.keys) === JSON.stringify([keyA1, keyB1]),
-		JSON.stringify((readStore()?.sessions?.[idC]?.keys || []).map((k) => k.slice(0, 8))));
+		JSON.stringify(keysOf(idC)) === JSON.stringify([keyA1, keyB1]),
+		JSON.stringify(keysOf(idC).map((k) => k.slice(0, 8))));
 
 	// fork AGAIN and restart WITHOUT ever reading the ledger on the new session: the
 	// record has to be written when the desk observes the fork, not at the next replay
 	r = await rpc(s.id, { type: "fork", entryId: "x" });
 	const fileD = (await rpc(s.id, { type: "get_state" }))?.data?.sessionFile;
 	check("run 3: second fork accepted", r?.success === true && typeof fileD === "string" && fileD !== fileC, String(fileD));
+
+	// THE WRONG-PREDECESSOR CASE. Move the child into session Z with the follow-up
+	// state read FAILING, then fork. The fork must inherit from Z — what the child
+	// actually holds, established by asking it before the command — and not from the
+	// last id the desk happened to observe, which is now stale.
+	const idZ = crypto.randomUUID();
+	const keyZ = crypto.randomBytes(32).toString("hex");
+	const fileZ = path.join(SESSIONS, "repo-a", `z-${idZ.slice(0, 8)}.jsonl`);
+	const rawZ = { id: "blk_z", type: "card", title: "Z", scope: "s", fields: [], slot: "main", show: true, produced_by: { tool: "t", args: {}, toolCallId: "c1", at: "z" } };
+	fs.writeFileSync(fileZ, [
+		JSON.stringify({ type: "session", version: 3, id: idZ, timestamp: new Date().toISOString(), cwd: cwdA }),
+		JSON.stringify({ id: "z1", parentId: null, type: "custom", customType: "nana-block", data: { ...rawZ, produced_by: { ...rawZ.produced_by, sig: signBlock(keyZ, rawZ) } } }),
+	].join("\n") + "\n");
+	fs.writeFileSync(recordFile(idZ), JSON.stringify({ v: 1, keys: [keyZ], updatedAt: Date.now() }));
+	fs.writeFileSync(NO_STATE, "1"); // exactly one get_state fails: the switch's own follow-up
+	r = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	check("run 3: switch into Z accepted (its follow-up state read fails)", r?.success === true, JSON.stringify(r));
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	const idE = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	check("run 3: a fork after an UNOBSERVED switch inherits from what the child actually holds, not the stale predecessor",
+		keysOf(idE).includes(keyZ) && !keysOf(idE).includes(keyB1),
+		`${JSON.stringify(keysOf(idE).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kB=${keyB1.slice(0, 8)}`);
+	ent = await get(A, "/api/entries");
+	check("run 3: ...so that fork's inherited block verifies",
+		blockEntries(ent.entries).every((e) => e.customType === "nana-block") && blockEntries(ent.entries).length === 1,
+		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
@@ -354,90 +398,73 @@ try {
 		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
 	await stopServer();
 
-	// ── the store file's own properties (direct, deterministic) ──
+	// ── the store's own properties (direct, deterministic) ──
+	// One file per session, so these are per-file properties: there is no shared
+	// document to merge, lock or lose.
 	const td2 = fs.mkdtempSync(path.join(os.tmpdir(), "stagekey-unit-"));
-	const f2 = path.join(td2, "nested", "stage-keys.json");
+	const d2 = path.join(td2, "nested", "stage-keys");
+	const rec2 = (id) => path.join(d2, `${id}.json`);
+	const ls2 = () => (fs.existsSync(d2) ? fs.readdirSync(d2) : []);
 	const keys = Array.from({ length: 9 }, () => crypto.randomBytes(32).toString("hex"));
-	let st = new StageKeyStore({ file: f2, log: () => {} });
+	let st = new StageKeyStore({ dir: d2, log: () => {} });
 	for (const k of keys) st.record("sid", k);
-	check("store: capped at 8 keys, most recent first", JSON.stringify(new StageKeyStore({ file: f2, log: () => {} }).keysFor("sid")) === JSON.stringify(keys.slice().reverse().slice(0, 8)));
+	check("store: capped at 8 keys, most recent first", JSON.stringify(new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sid")) === JSON.stringify(keys.slice().reverse().slice(0, 8)));
 	check("store: an already-recorded key is a no-op (no rewrite)", st.record("sid", keys[8]) === false);
+	check("store: a directory the desk created is 0700", (fs.statSync(d2).mode & 0o777) === 0o700, (fs.statSync(d2).mode & 0o777).toString(8));
+	check("store: each record is 0600", (fs.statSync(rec2("sid")).mode & 0o777) === 0o600, (fs.statSync(rec2("sid")).mode & 0o777).toString(8));
 
-	// an interrupted write leaves the previous file intact (temp + rename, never in place)
-	const before = fs.readFileSync(f2, "utf-8");
+	// a session id becomes a FILENAME here, so anything not name-shaped is refused
+	// rather than escaped — neither recorded nor looked up
+	check("store: a path-shaped session id is refused, not written", st.record("../escape", keys[0]) === false && !fs.existsSync(path.join(td2, "nested", "escape.json")));
+	check("store: ...and never looked up", st.keysFor("../escape").length === 0 && st.keysFor("a/b").length === 0);
+
+	// an interrupted write leaves the previous record intact (temp + rename, never in place)
+	const before = fs.readFileSync(rec2("sid"), "utf-8");
 	const realRename = fs.renameSync;
 	fs.renameSync = () => { throw new Error("simulated crash between write and rename"); };
 	let threw = false;
-	try { st.record("sid2", crypto.randomBytes(32).toString("hex")); } catch { threw = true; }
+	try { st.record("sid", crypto.randomBytes(32).toString("hex")); } catch { threw = true; }
 	fs.renameSync = realRename;
 	check("store: a write interrupted before the rename does not throw at the caller", threw === false);
-	check("store: ...and leaves the previous store byte-identical", fs.readFileSync(f2, "utf-8") === before);
-	check("store: ...and leaves no temp file behind", fs.readdirSync(path.dirname(f2)).filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(fs.readdirSync(path.dirname(f2))));
+	check("store: ...and leaves the previous record byte-identical", fs.readFileSync(rec2("sid"), "utf-8") === before);
+	check("store: ...and leaves no temp file behind", ls2().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(ls2()));
 
-	// corrupt store → moved aside, start empty, still serves
-	fs.writeFileSync(f2, "{not json");
-	st = new StageKeyStore({ file: f2, log: () => {} });
-	check("store: a corrupt store reads as empty", st.keysFor("sid").length === 0);
-	check("store: ...and the unreadable file is moved aside, not deleted", fs.readdirSync(path.dirname(f2)).some((f) => f.includes(".corrupt-")), JSON.stringify(fs.readdirSync(path.dirname(f2))));
-	const k9 = crypto.randomBytes(32).toString("hex");
-	st.record("sid3", k9);
-	check("store: ...and the next record writes a fresh, valid store", new StageKeyStore({ file: f2, log: () => {} }).keysFor("sid3")[0] === k9);
-
-	// the existence prune: drops ids with no session file, but NEVER acts on an empty
-	// enumeration (indistinguishable from "the sessions dir could not be read")
-	st = new StageKeyStore({ file: f2, log: () => {}, knownSessionIds: () => new Set() });
-	check("store: an EMPTY session enumeration prunes nothing", st.keysFor("sid3")[0] === k9);
-	st = new StageKeyStore({ file: f2, log: () => {}, knownSessionIds: () => new Set(["other"]) });
-	check("store: an id with no session file is pruned", st.keysFor("sid3").length === 0);
-	st.record("other", k9);
-	check("store: ...and a pruned id is not resurrected by the next write", new StageKeyStore({ file: f2, log: () => {} }).keysFor("sid3").length === 0);
-
-	// a save that FAILED must be retried by the next record, even one that changes
-	// nothing — otherwise the desk keeps working and loses every key at the next start
-	const f3 = path.join(td2, "retry", "stage-keys.json");
-	st = new StageKeyStore({ file: f3, log: () => {} });
+	// a save that FAILED is retried by the next record for that session, even one that
+	// changes nothing — otherwise the desk keeps working and loses the key at the next start
 	const kr = crypto.randomBytes(32).toString("hex");
 	fs.renameSync = () => { throw new Error("simulated transient failure"); };
 	st.record("sidR", kr);
 	fs.renameSync = realRename;
-	check("store: a failed save leaves nothing on disk", !fs.existsSync(f3));
-	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(f3));
-	check("store: ...so the key survives the next restart", new StageKeyStore({ file: f3, log: () => {} }).keysFor("sidR")[0] === kr);
+	check("store: a failed save leaves nothing on disk for that session", !fs.existsSync(rec2("sidR")));
+	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(rec2("sidR")));
+	check("store: ...so the key survives the next restart", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sidR")[0] === kr);
+	check("store: ...and one session's failed write did not disturb another's record", fs.readFileSync(rec2("sid"), "utf-8") === before);
 
-	// an existing store directory is tightened to 0700 — but only when it is OURS
-	const dirOwn = path.dirname(f3);
-	fs.chmodSync(dirOwn, 0o777);
-	st.record("sidR2", crypto.randomBytes(32).toString("hex"));
-	check("store: an existing world-writable store directory is tightened to 0700", (fs.statSync(dirOwn).mode & 0o777) === 0o700, (fs.statSync(dirOwn).mode & 0o777).toString(8));
-	const shared = path.join(td2, "shared");
-	fs.mkdirSync(shared, { mode: 0o777 });
-	fs.chmodSync(shared, 0o777);
-	fs.writeFileSync(path.join(shared, "someone-elses.json"), "{}");
-	new StageKeyStore({ file: path.join(shared, "stage-keys.json"), log: () => {} }).record("sidS", crypto.randomBytes(32).toString("hex"));
-	check("store: a SHARED directory is never re-permissioned out from under its other users", (fs.statSync(shared).mode & 0o777) === 0o777, (fs.statSync(shared).mode & 0o777).toString(8));
+	// a corrupt record costs THAT session and nothing else
+	fs.writeFileSync(rec2("sid"), "{not json");
+	st = new StageKeyStore({ dir: d2, log: () => {} });
+	check("store: a corrupt record reads as empty", st.keysFor("sid").length === 0);
+	check("store: ...and is moved aside, not deleted", ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
+	check("store: ...while every other session's record still reads", st.keysFor("sidR")[0] === kr);
+	const k9 = crypto.randomBytes(32).toString("hex");
+	st.record("sid3", k9);
+	check("store: ...and the next record writes a fresh, valid one", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sid3")[0] === k9);
 
-	// two PROCESSES recording at once: the read-merge-write has to be serialized across
-	// them, or each renames its own merge over the other's and one desk's issuance is gone
-	const conc = path.join(td2, "conc", "stage-keys.json");
-	const go = path.join(td2, "go");
-	const worker = path.join(td2, "worker.mjs");
-	fs.writeFileSync(worker, `
-import fs from "node:fs";
-import { StageKeyStore } from ${JSON.stringify(path.resolve(path.dirname(new URL(import.meta.url).pathname), "../stage-keys.mjs"))};
-const [file, prefix, count, go] = process.argv.slice(2);
-while (!fs.existsSync(go)) { /* barrier */ }
-const st = new StageKeyStore({ file, log: () => {} });
-for (let i = 0; i < Number(count); i++) st.record(prefix + "-" + i, (prefix.charCodeAt(0) % 10).toString(16).repeat(2) + String(i).padStart(62, "0"));
-`);
-	const N = 60;
-	const kids = ["a", "b"].map((prefix) => spawn("node", [worker, conc, prefix, String(N), go], { stdio: "ignore" }));
-	await sleep(400);
-	fs.writeFileSync(go, "");
-	await Promise.all(kids.map((k) => new Promise((r) => k.on("exit", r))));
-	const merged = JSON.parse(fs.readFileSync(conc, "utf-8")).sessions;
-	const missing = [];
-	for (const prefix of ["a", "b"]) for (let i = 0; i < N; i++) if (!merged[`${prefix}-${i}`]) missing.push(`${prefix}-${i}`);
-	check(`store: two processes recording concurrently lose nothing (${2 * N} sessions)`, missing.length === 0, `${missing.length} missing: ${missing.slice(0, 5).join(",")}`);
+	// a directory that was already there is NOT re-permissioned: it is not ours to change
+	const pre = path.join(td2, "pre-existing");
+	fs.mkdirSync(pre, { recursive: true });
+	fs.chmodSync(pre, 0o777);
+	new StageKeyStore({ dir: pre, log: () => {} }).record("sidP", crypto.randomBytes(32).toString("hex"));
+	check("store: a pre-existing store directory is left as the operator made it", (fs.statSync(pre).mode & 0o777) === 0o777, (fs.statSync(pre).mode & 0o777).toString(8));
+
+	// the existence prune: drops ids with no session file, but NEVER acts on an empty
+	// enumeration (indistinguishable from "the sessions dir could not be read")
+	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set() });
+	check("store: an EMPTY session enumeration prunes nothing", st.keysFor("sid3")[0] === k9);
+	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set(["sidR"]) });
+	check("store: an id with no session file is pruned", st.keysFor("sid3").length === 0 && !fs.existsSync(rec2("sid3")));
+	check("store: ...and a session that still exists is kept", st.keysFor("sidR")[0] === kr);
+	check("store: ...and a moved-aside record is not swept with it", ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
 
 	fs.rmSync(td2, { recursive: true, force: true });
 } catch (e) {
