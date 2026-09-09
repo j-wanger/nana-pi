@@ -212,12 +212,26 @@ sleeps became readiness handshakes.
   observation, drops the store's lifetime cache (it let one desk redact a live sibling's blocks
   and then overwrite its record — records are now read on every lookup and written
   read-union-write), stops the prune deleting files it could never have written, and pins the
-  test's store path against an inherited environment. 66 checks; with the code reverted, the
-  8 new ones fail.
-  **Open sub-items:** two desks WRITING one session's record in the same instant keep only the
-  last writer's (one key, one session — the declared price of no lock; sequential writers each
-  re-read first, so they lose nothing); a ledger read that lands while a lifecycle transition is
-  in flight sees that session's blocks redacted for that one read;
+  test's store path against an inherited environment. Round 4 (BLOCK) found that the recovery
+  hook round 3 had asked for was itself a bypass — a child's session can change through an
+  extension slash command run off a `prompt`, which the desk never sees, so a pending inheritance
+  would eventually attach one session's keys to an unrelated one. `8c0077a` removes it: a fork
+  confirms its source, runs, and confirms its destination inside the one command (three tries,
+  ~1 s) or inherits nothing. The same commit clears session identity at dispatch rather than
+  after the source check, holds only unsaved ADDITIONS in the failed-write overlay (keeping the
+  whole record masked and then overwrote another desk's later keys), bounds queued session
+  changes at 8 per child with a 429 over that, and replaces the timed overlap tests with
+  handshakes. 72 checks; with the code reverted, the 6 new ones fail.
+  **Open sub-items** (each declared in `apps/desk/README.md`): two desks WRITING one session's
+  record in the same instant keep only the last writer's, losing whatever the other write was
+  adding — one key, or a whole inheritance (sequential writers each re-read first, so they lose
+  nothing); a key lost that way is retained nowhere and redacts from the next lookup; an
+  extension slash command run off a `prompt` can move the session between a fork's source check
+  and the fork, attributing the inheritance to the previous session; a fork whose destination
+  cannot be confirmed in three tries inherits nothing; a ledger read that lands while a
+  transition is in flight sees that session's blocks redacted for that one read, and a child that
+  exits before any later observation leaves that session unrecorded; the RPC wall-clock timeout
+  path shares the tested unsuccessful-response cleanup but is not itself covered by a test;
   the record is per session, not per app, so two app children that hold the same session file
   vouch for each other's blocks; the session id a child is filed under is self-reported through
   `get_state`, so the check proves possession of a desk-issued key for the session the child
