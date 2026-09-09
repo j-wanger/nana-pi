@@ -221,6 +221,30 @@ not just what the server does internally.
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
   extensions inside its own cwd.
 
+Three page-level rules landed with the client-race fix (`de7d2a2`). All three are about *when* a
+response is allowed to touch the screen, and all three are visible to anyone driving the page.
+
+- **An answer for a session you have left is dropped, never painted.** Selecting, closing or
+  reopening a session starts a new stage generation, and every in-flight continuation carries the
+  generation it began in: a `get_messages` resync, a `get_state`/`get_session_stats` poll, a
+  `get_commands` or file-list load, a historical transcript load, a bash POST, a prompt POST and
+  every event from the previous SSE stream. A stale one returns without touching the transcript,
+  the header, the editor or the live-session handle — so a slow session A can no longer repaint,
+  rename or refill session B's pane. The old session's request may still complete on the server;
+  only its effect on the page is dropped.
+- **A reconnect replays state and resyncs exactly once.** The SSE stream reconnects on its own,
+  and the server sends `desk_hello` on every attach. Dialogs, status chips, widgets and the queue
+  are whole-snapshot replacements, so a replayed hello does not duplicate them; a *second* hello
+  on the same stage additionally triggers **one** `get_messages` resync, which is what brings back
+  the events lost while the stream was down and clears the "disconnected" chip. First attach does
+  not resync twice.
+- **Bash output can arrive before its row exists, and is kept.** `POST /api/session/:id/bash`
+  answers *after* the server has handed the command to the child, so `bash_execution_update` and
+  `desk_bash_result` for that id can reach the page first. Such events are now held per id, in
+  arrival order, and flushed when the POST returns and the row is created. The buffer is bounded
+  (8 ids; per id 200 events and the same 20 000 characters the rendered row keeps, oldest
+  dropped) so an id whose row never appears cannot grow. Server ordering was not changed.
+
 ## Known limits
 
 The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then
@@ -252,11 +276,10 @@ is not":
   current child's key. After a desk or child restart, blocks from before the restart vanish from
   the stage. That is the provenance rule working, not a render bug — the fix is a stable
   per-session key, never accepting unverifiable blocks.
-- **Client-side races remain.** Switching sessions while a `get_messages` resync is in flight can
-  repaint the new pane with the old session's messages (`public/app.js` `resync()` re-reads the
-  live-session handle after the await with no generation check); SSE reconnect, bash
-  echo-before-fetch and prompt dedup have the same shape. Reported by review; only the resync
-  path has been read line-by-line.
+- **A picker left open across a session switch still acts on the new session.** Selecting a
+  session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
+  flight* when you switch applies to whichever session is selected when it lands. Narrow window,
+  not closed.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted.
@@ -264,4 +287,7 @@ is not":
 Fixed and worth remembering: the 2026-09-02 double-rendered-user-message bug. `send()` appends
 the user bubble optimistically *before* the POST and queues it; the `message_end` handler swaps
 the queued bubble for pi's echoed user message — append-before-POST matters because the SSE echo
-can beat the fetch response. Regression check: `test/double-msg.e2e.mjs`, browser-level.
+can beat the fetch response. Regression check: `test/double-msg.e2e.mjs`, browser-level (one real
+model call), and `test/session-races.e2e.mjs`, which pins the same case plus the three rules above
+against a stub pi with no model call — it holds each response under test until the test releases
+it, so no outcome depends on timing.

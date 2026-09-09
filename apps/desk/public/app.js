@@ -27,6 +27,16 @@ let stream = null;
 let L = null; // live session state
 let statsTimer = null;
 
+// ── stage generation ──
+// The pane, `L` and the editor are ONE set of globals shared by every session,
+// so any await can land after the user has moved on. Every async continuation
+// captures the generation it started in; `stale(g)` means "the stage changed
+// under me" and the continuation returns without touching anything. One counter,
+// bumped in clearStage() — the single point every select/close/reopen goes
+// through. No per-site flags.
+let stageGen = 0;
+const stale = (g) => g !== stageGen;
+
 function newLiveState(id, cwd) {
 	return {
 		id, cwd,
@@ -41,6 +51,8 @@ function newLiveState(id, cwd) {
 		files: null,
 		retryNote: null,
 		ctxEstimate: null, // estimatedTokensAfter from the last compaction; pi reports percent:null until the next reply
+		helloSeen: false, // a SECOND desk_hello is a reconnect, not the first attach
+		pendingBashEvents: new Map(), // bash id → events that arrived before the row existed
 	};
 }
 
@@ -343,6 +355,42 @@ function bashRow(ctx, id, command) {
 	return row;
 }
 
+function appendBashDelta(row, delta) {
+	const out = row.querySelector(".bout");
+	out.hidden = false;
+	out.textContent = (out.textContent + delta).slice(-20000);
+}
+
+// The POST that creates a bash row races the child's output for it: the server
+// hands the command to the child BEFORE it writes the HTTP response (server.mjs,
+// `action === "bash"`), so a chunk — or the whole result — can reach the page
+// over SSE while `fetch(...).json()` is still resolving. Events for an id with
+// no row yet are held in arrival order and flushed when the row appears, so
+// nothing is dropped and nothing spins forever. Bounded on both axes: an id
+// whose POST never produced a row (an error, a session switch) must not grow.
+const BASH_BUFFER_IDS = 8;
+const BASH_BUFFER_EVENTS = 200;
+const BASH_BUFFER_CHARS = 20000; // the same window the rendered row keeps
+function bufferBashEvent(id, e) {
+	if (!id) return;
+	const buf = L.pendingBashEvents;
+	const list = buf.get(id) || [];
+	list.push(e);
+	let chars = list.reduce((n, x) => n + (x.delta?.length || 0), 0);
+	while (list.length > BASH_BUFFER_EVENTS || chars > BASH_BUFFER_CHARS) chars -= list.shift().delta?.length || 0;
+	buf.set(id, list);
+	while (buf.size > BASH_BUFFER_IDS) buf.delete(buf.keys().next().value);
+}
+function flushBashEvents(row, id) {
+	const list = L.pendingBashEvents.get(id);
+	if (!list) return;
+	L.pendingBashEvents.delete(id);
+	for (const e of list) {
+		if (e.type === "bash_execution_update") appendBashDelta(row, e.delta);
+		else finishBashRow(row, e.data, e.success ? undefined : e.error || "failed");
+	}
+}
+
 function finishBashRow(row, { output, exitCode, cancelled, truncated } = {}, error) {
 	const mark = row.querySelector(".mark");
 	const failed = error || cancelled || (exitCode !== 0 && exitCode !== undefined);
@@ -455,12 +503,15 @@ function setChip(state) {
 
 async function refreshState() {
 	if (!L) return;
+	const g = stageGen;
+	let s;
 	try {
-		L.state = await rpc({ type: "get_state" });
+		s = await rpc({ type: "get_state" });
 	} catch {
 		return;
 	}
-	const s = L.state;
+	if (stale(g) || !L) return; // this state describes a session we have left
+	L.state = s;
 	L.streaming = !!s.isStreaming;
 	$("sess-name").textContent = s.sessionName || "(unnamed)";
 	$("sess-file").textContent = s.sessionFile ? basename(s.sessionFile) : "(ephemeral)";
@@ -473,8 +524,10 @@ async function refreshState() {
 
 async function refreshStats() {
 	if (!L) return;
+	const g = stageGen;
 	try {
 		const d = await rpc({ type: "get_session_stats" });
+		if (stale(g) || !L) return; // these numbers belong to a session we have left
 		const cu = d.contextUsage;
 		$("foot-tokens").textContent = `in ${fmtTok(d.tokens.input)} · out ${fmtTok(d.tokens.output)} · cache ${fmtTok(d.tokens.cacheRead)}`;
 		$("foot-cost").textContent = fmtCost(d.cost);
@@ -516,10 +569,13 @@ function stopStatsPoll() {
 
 async function resync() {
 	if (!L) return;
+	const g = stageGen;
 	try {
 		const d = await rpc({ type: "get_messages" });
+		if (stale(g) || !L) return; // never paint one session's messages into another's pane
 		renderMessages(d.messages || []);
 	} catch {}
+	if (stale(g) || !L) return;
 	refreshState();
 	refreshStats();
 }
@@ -661,8 +717,10 @@ function renderQueue(q) {
 }
 
 async function reclaimQueue() {
+	const g = stageGen;
 	try {
 		const d = await rpc({ type: "clear_queue" });
+		if (stale(g)) return; // reclaimed text belongs to the session we left, not this editor
 		const texts = [...(d.steering || []), ...(d.followUp || [])];
 		if (texts.length) {
 			const input = $("input");
@@ -676,6 +734,8 @@ async function reclaimQueue() {
 
 // ── stage lifecycle ──
 function clearStage() {
+	stageGen++; // everything already in flight for the old stage is now stale
+	closePopover(); // a picker anchored to the old session would act on the new one
 	stream?.close();
 	stream = null;
 	stopStatsPoll();
@@ -696,6 +756,7 @@ function clearStage() {
 // ── live view ──
 function openLive(id, cwd) {
 	clearStage();
+	const g = stageGen;
 	selected = { kind: "live", id, cwd };
 	L = newLiveState(id, cwd);
 	$("empty").hidden = true;
@@ -705,11 +766,18 @@ function openLive(id, cwd) {
 	$("cwd-label").textContent = short(cwd);
 	setChip("…");
 
-	stream = openEventStream(`/api/session/${id}/events`, handleEvent, () => L && setChip("disconnected"));
+	// The stream outlives nothing: a closed EventSource still has an error
+	// callback and a dispatch already in the queue, and both write into whatever
+	// `L` is by then. Gate the whole transport on the generation that opened it.
+	stream = openEventStream(
+		`/api/session/${id}/events`,
+		(e) => !stale(g) && handleEvent(e),
+		() => !stale(g) && L && setChip("disconnected"),
+	);
 
 	resync();
-	rpc({ type: "get_commands" }).then((d) => (L.commands = d.commands || [])).catch(() => {});
-	fetch(`/api/session/${id}/files`).then((r) => r.json()).then((d) => (L.files = d.files || [])).catch(() => {});
+	rpc({ type: "get_commands" }).then((d) => !stale(g) && (L.commands = d.commands || [])).catch(() => {});
+	fetch(`/api/session/${id}/files`).then((r) => r.json()).then((d) => !stale(g) && (L.files = d.files || [])).catch(() => {});
 	startStatsPoll();
 	refreshRail();
 	$("input").focus();
@@ -732,12 +800,21 @@ function handleEvent(e) {
 	const pinned = isPinned(container);
 	switch (e.type) {
 		case "desk_hello": {
+			// Every render below is a whole-snapshot replacement (showDialog is
+			// id-guarded, the other three clear their box first), so a replayed
+			// hello is idempotent by construction.
 			for (const d of e.dialogs || []) showDialog(d);
 			renderStatuses(e.statuses);
 			renderWidgets(e.widgets);
 			renderQueue(e.queue);
 			if (e.title) document.title = `${e.title} — nana code`;
 			if (e.state === "exited") setChip("exited");
+			// A SECOND hello on this stage is a RECONNECT: the stream was down and
+			// every event in that window is gone for good. One resync restores the
+			// transcript and — through refreshState — the chip and `streaming`,
+			// which would otherwise sit on "disconnected" forever.
+			else if (L.helloSeen) resync();
+			L.helloSeen = true;
 			break;
 		}
 		case "agent_start":
@@ -815,16 +892,14 @@ function handleEvent(e) {
 			break;
 		case "bash_execution_update": {
 			const row = L.ctx.toolRows.get(`bash:${e.id}`);
-			if (row) {
-				const out = row.querySelector(".bout");
-				out.hidden = false;
-				out.textContent = (out.textContent + e.delta).slice(-20000);
-			}
+			if (row) appendBashDelta(row, e.delta);
+			else bufferBashEvent(e.id, e); // the POST that creates the row has not landed yet
 			break;
 		}
 		case "desk_bash_result": {
 			const row = L.ctx.toolRows.get(`bash:${e.id}`);
 			if (row) finishBashRow(row, e.data, e.success ? undefined : e.error || "failed");
+			else bufferBashEvent(e.id, e);
 			break;
 		}
 		case "queue_update":
@@ -1743,6 +1818,7 @@ async function handleDeskCommand(text) {
 // ── composer ──
 async function send() {
 	if (selected?.kind !== "live" || !L) return;
+	const g = stageGen;
 	const input = $("input");
 	const text = input.value.trim();
 	if (!text && !L.attachments.length) return;
@@ -1757,11 +1833,12 @@ async function send() {
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({ command }),
 			}).then((r) => r.json());
+			if (stale(g)) return; // the row belongs to a session we have left
 			if (r.error) return toast(r.error, "error");
-			bashRow(L.ctx, r.id, command);
+			flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
 			pin(L.ctx.container);
 		} catch (e) {
-			toast(String(e.message || e), "error");
+			if (!stale(g)) toast(String(e.message || e), "error");
 		}
 		return;
 	}
@@ -1793,6 +1870,11 @@ async function send() {
 		L.streaming = true;
 	}
 	const restore = () => {
+		if (stale(g) || !L) return; // this text belongs to a session we have left
+		// The echo already swapped this bubble, so pi HAS the message and the POST
+		// only lost its answer. Putting the text back would hand the user a second
+		// copy of a prompt that is already running.
+		if (optimistic && !L.optimisticUserEls.some((o) => o.el === optimistic)) return;
 		input.value = input.value ? `${text}\n${input.value}` : text;
 		setAttachments(savedAtt);
 		if (optimistic) {
@@ -1808,13 +1890,14 @@ async function send() {
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({ message: text, mode, ...(images.length ? { images } : {}) }),
 		}).then((r) => r.json());
+		if (stale(g)) return;
 		if (!r.ok) {
 			restore();
 			return toast(r.error || "prompt rejected", "error");
 		}
 	} catch (e) {
 		restore();
-		toast(String(e.message || e), "error");
+		if (!stale(g)) toast(String(e.message || e), "error");
 	}
 }
 
@@ -1930,12 +2013,14 @@ function applyCompletion(i) {
 // ── historical view ──
 async function openHistorical(file, cwd) {
 	clearStage();
+	const g = stageGen;
 	selected = { kind: "hist", file, cwd };
 	$("empty").hidden = true;
 	$("composer").hidden = true;
 	$("hist-head").hidden = false;
 
 	const data = await fetch(`/api/transcript?file=${encodeURIComponent(file)}`).then((r) => r.json());
+	if (stale(g)) return; // a transcript for a session we have left is never painted
 	if (data.error) {
 		$("hist-title").textContent = "error";
 		noteRow({ container: $("transcript") }, data.error, "err");
