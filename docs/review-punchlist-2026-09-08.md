@@ -271,12 +271,30 @@ sleeps became readiness handshakes.
     the rule now states no adoption, history wins, one coalesced repair read, and the
     transport-failure toast.
 
-  Tests: `apps/desk/test/session-races.e2e.mjs` — 42 browser-level checks against a stub pi, no
+  Closed after `gpt-5.6-sol` round 4 (BLOCK), in `163bab6`:
+  - **BLOCK, fixed — a run still going when the transcript was rebuilt could lose its card for
+    good.** pi records a bash run in history only when it *finishes*, so a repair read taken while
+    the command is still executing finds nothing — and the terminal event arriving afterwards had
+    no POST continuation left to flush it or to ask again. A terminal `desk_bash_result` for an id
+    whose POST already gave up now triggers **one more read**, which is where the finished card
+    comes from. (Failing-first: the card never appeared at all.)
+  - **BLOCK, fixed — `resync()` was directly reentrant.** The coalescing guard sat in a wrapper the
+    repair path used, while reconnect, settle and compaction called `resync()` directly and
+    overlapped, each clearing the shared flags. The guard moved *into* `resync()`, which is now the
+    single door, and the wrapper is gone. (Failing-first: 3 reads where 2 are correct.)
+  - **BLOCK, fixed (tests + docs)** — the test-file header still described adoption for cases 7,
+    10 and 11; `apps/desk/README.md` still implied recovery was guaranteed and stated a coalescing
+    rule stronger than the code. Both now say what the code does, including the "still running →
+    no card until the terminal event" case and the never-terminating residual.
+
+  Tests: `apps/desk/test/session-races.e2e.mjs` — 46 browser-level checks against a stub pi, no
   model call. Each interleaving is controlled by holding the exact response under test
   (`page.route`, or a substituted `FileReader`) and releasing it on what the page has already
   received, plus a TCP relay so the reconnect checks destroy the real SSE socket. 8 fail on the
   page before `7a91f42`; 7 more fail on the page before `c8249d7`; 8 more fail on the page before
-  `8afd799`; 4 more fail on the page before `c284123`. **Still open:** a model /
+  `8afd799`; 4 more fail on the page before `c284123`; 3 more fail on the page before `163bab6`.
+  **Still open:** a bash command that never terminates after a rebuild leaves no card (declared);
+  a model /
   thinking / fork picker whose RPC is already in flight when you switch sessions still applies to
   the new session (`clearStage()` closes the popover, which narrows it to that window), and a
   steer byte-identical to a still-pending prompt consumes that prompt's optimistic bubble. Both

@@ -221,9 +221,9 @@ not just what the server does internally.
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
   extensions inside its own cwd.
 
-Five page-level rules landed with the client-race fix (`7a91f42`, hardened in `c8249d7` and
-`8afd799`). All five are about *when* a response is allowed to touch the screen, and all five are
-visible to anyone driving the page.
+Six page-level rules landed with the client-race fix (`7a91f42`, hardened in `c8249d7`, `8afd799`
+and `c284123`, closed in `163bab6`). All six are about *when* a response is allowed to touch the
+screen, and all six are visible to anyone driving the page.
 
 - **An answer for a session you have left is dropped, never painted.** Selecting, closing or
   reopening a session starts a new stage generation, and an in-flight continuation carries the
@@ -261,15 +261,25 @@ visible to anyone driving the page.
   reports the cut as `· truncated` — whether this page made the cut or the server did. Cuts never
   split a surrogate pair, so a window that opens mid-emoji starts at the next whole character.
 - **If the transcript was rebuilt while a bash POST was in flight, history wins.** A rebuild (a
-  reconnect resync, a settled turn, a compaction) brings back pi's own record of what ran, and
-  that record carries no RPC id — nothing on the page identifies which card belongs to the POST
-  that is still out. So the page claims no card and builds none from its buffer: it drops the
-  buffered events for that id and asks history again. The one thing history cannot carry is a
-  **desk-side** failure of the request itself (a bash timeout, a child that died), which is
-  reported as a toast — `bash: <command> — <error>` — and pinned to no card. Repair reads
-  coalesce: requests that arrive while a `get_messages` is already in flight produce exactly one
-  follow-up read between them, however many asked, because a read already in flight was started
-  before they asked and cannot answer them.
+  reconnect resync, a settled turn, a compaction) replaces the pane with pi's own record, and that
+  record carries no RPC id — nothing on the page identifies which card belongs to the POST that is
+  still out. So the page claims no card and builds none: it **drops the buffered events for that
+  id** and re-reads history. Where the card comes from then depends on the command:
+  - it had already **finished** — pi records a run only on completion — so the read brings the
+    finished card back, with pi's own output;
+  - it was still **running**, so the read finds nothing and the pane shows no card for it yet.
+    The terminal `desk_bash_result` that arrives later is the trigger: an id its POST already gave
+    up on causes **one more read**, and that is where the finished card appears. A command that
+    never terminates leaves no card — nothing on either side knows it ran.
+
+  The one thing history cannot carry is a **desk-side** failure of the request itself (a bash
+  timeout, a child that died): it is reported as a toast — `bash: <command> — <error>` — and
+  pinned to no card.
+- **History is re-read through one door, and re-reads coalesce.** Reconnect, a settled turn, a
+  compaction, `/new`, a fork and the bash repair path all call the same routine. A read already in
+  flight was started *before* any of them asked, so it cannot answer them: they set one flag
+  between them and exactly **one** follow-up read runs when the current one finishes, however many
+  asked while it was out.
 
 One prompt-path rule changed with them: **an explicit rejection always returns your text to the
 editor.** A `POST …/prompt` that answers `{ok: false}` (or 409) means the prompt is not running,
@@ -314,6 +324,10 @@ is not":
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in
   flight* when you switch applies to whichever session is selected when it lands. Narrow window,
   not closed — the only continuation the stage-generation rule does not cover.
+- **A bash command that never terminates, started just before the transcript was rebuilt, leaves
+  no card.** The rebuild drops the page's buffer for it and pi records a run only on completion,
+  so until the command ends neither side has anything to show. It reappears the moment it
+  finishes; a command that never does is never drawn.
 - **A steer whose text is byte-identical to a still-pending prompt eats that prompt's bubble.**
   The optimistic user bubble is matched to pi's echo by content (deliberately: a FIFO match let
   another tab's echo consume ours). Send `ok` as a prompt and, before its echo arrives, `ok` again
