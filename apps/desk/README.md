@@ -229,8 +229,10 @@ not just what the server does internally.
   temp-file-then-rename so a reader never sees a half-written one:
   `{"v":1,"keys":["<hex>", …],"updatedAt":<ms>}` — the keys this desk has issued for that
   session, most recent first, at most **8** (the 9th drops the oldest, and blocks signed under a
-  dropped key go back to redacted). A session whose file is gone from `~/.pi/agent/sessions/` has
-  its record deleted the first time a desk opens an app. Records are kept per session precisely
+  dropped key go back to redacted). The first time a desk opens an app it deletes the records of
+  sessions with no file left under `~/.pi/agent/sessions/` — but only if that enumeration
+  succeeded and came back non-empty (an empty one is indistinguishable from a directory it could
+  not read), and a record it fails to unlink is simply left where it is. Records are kept per session precisely
   so there is nothing shared to merge or lock: a session id that is not name-shaped
   (`[A-Za-z0-9_-]{1,128}`) is neither recorded nor looked up, since it becomes a filename.
   Records are read from disk on every lookup and written read-union-write, so two
@@ -253,25 +255,32 @@ not just what the server does internally.
     ledger entries into a new session file under a new header id, so the desk asks the child
     which session it holds *before* running the fork and seeds the new session's record from
     that — its own observation, never the `parentSession` text in the file, and never the last id
-    it happened to see. If the source cannot be established, nothing is inherited and the fork's
-    copied blocks redact. `switch_session` and `new_session` inherit nothing, by construction.
+    it happened to see. If the source cannot be established, nothing is inherited: the fork's
+    copied blocks that were signed *only* by inherited keys redact, while any signed by the live
+    child's own key still verify. `switch_session` and `new_session` inherit nothing, by construction.
     Two things make that hold under load: lifecycle commands (`fork`, `clone`, `switch_session`,
     `new_session`) run **one at a time per child**, so a second transition cannot capture a
     source the first has already moved away from; and while one is in flight a ledger read may
     *use* the session it observes but does not file it, so it cannot claim the destination under
     the live key alone before the fork has been accounted for. A ledger read that lands in that
-    window sees the new session's blocks redacted for that one read, and if the child exits
-    before any later observation, that session is simply never recorded.
+    window verifies that session against the live child's key alone for that one read, and if the
+    child exits before any later observation, that session is simply never recorded.
   - **All of it happens inside the one command, or not at all.** After the fork the desk retries
-    the state read that identifies the new session up to three times over about a second; if it
-    still cannot, **that fork inherits nothing and its copied blocks stay redacted**. There is
-    deliberately no "finish it later" flag: a child's session can also change by a route the desk
-    never sees — pi runs an extension's slash command straight off a `prompt` — so a pending
-    inheritance would eventually be attached to an unrelated session.
-  - **`POST /api/session/:id/rpc` answers 429** when a child already has 8 session-changing
-    commands queued or running (`fork`, `clone`, `switch_session`, `new_session`). They are
-    serialized, so they wait; the bound stops a child that has stopped answering from
-    accumulating held requests. Slots free on every outcome, success or failure.
+    the state read that identifies the new session up to three times inside a **1000 ms budget**:
+    what is left of that budget is checked before each attempt and raced against each answer, so
+    a reply that arrives late is ignored and the command returns at the budget rather than at the
+    RPC's own timeout. If the destination is never confirmed, **that fork inherits nothing** —
+    its copied blocks signed only by inherited keys stay redacted, while blocks signed by the
+    live child's own key still verify. There is deliberately no "finish it later" flag: a child's
+    session can also change by a route the desk never sees — pi runs an extension's slash command
+    straight off a `prompt` — so a pending inheritance would eventually be attached to an
+    unrelated session. The desk also keeps no memory of "the session this child is in": every
+    decision asks the child in the moment, so there is no stale identity to go wrong.
+  - **`POST /api/session/:id/rpc` answers 429** when an APP child already has 8 session-changing
+    commands queued or running (`fork`, `clone`, `switch_session`, `new_session`). Only app
+    children are serialized this way — they are the ones that carry a signing key — so a plain
+    desk session's commands are unaffected by this bound. Slots free on every outcome, success or
+    failure.
   - If the child's current session cannot be established at read time (a failed `get_state`),
     there is **no** widening at all: only the live child's own key is used, so a block signed
     under another recorded key of that session redacts until the session can be read again.
@@ -307,8 +316,8 @@ is not":
   `/api/settings` including MCP credentials. Do not port-forward it and do not proxy it. The
   Host and Origin checks added this pass stop a *browser* on another site (DNS rebinding, cross-
   origin POSTs) from reaching it; they are not authentication. Reading
-  `~/.pi/agent/nana-desk/stage-keys.json` is enough to mint stage blocks that pass the provenance
-  check for the sessions it names — the same authority the desk process already has, which is
+  a record under `~/.pi/agent/nana-desk/stage-keys/<session id>.json` is enough to mint stage
+  blocks that pass the provenance check for that session — the same authority the desk process already has, which is
   why it is `0600` in a `0700` directory and why it is not a defence against a process running
   as you.
 - **"Trust project config" is a resource policy, not a sandbox.** Unchecked now genuinely denies
@@ -336,21 +345,23 @@ is not":
   without a lock, so two desks doing that for the *same* session in the *same instant* leave
   whichever wrote last, and **whatever the other write was adding is gone** — usually one key,
   but a fork's inheritance adds several at once. It takes an actual overlap of the two writes:
-  sequential writers, however far apart, each read the current file first. Only keys whose own
-  write *failed* are held in memory, so a key that was written successfully and then lost to
-  another desk's write is not retained anywhere — it disappears from the very next lookup, and
-  blocks signed with it redact from then on. Nothing is corrupted and no other session is
+  sequential writers, however far apart, each read the current file first. The *store* keeps no
+  copy of a key lost that way (only keys whose own write failed are held in memory), so it is
+  gone from the next lookup; blocks signed with it still verify for as long as it happens to be a
+  live child's own key, and redact once it is not. Nothing is corrupted and no other session is
   touched. This is the deliberate price of having no cross-process lock.
 - **A prompt can move the session out from under a fork.** pi executes an extension's slash
   command straight off a `prompt`, and those can start, fork or switch a session without going
-  through the desk's own commands. One landing between a fork's source check and the fork itself
-  would attribute the inheritance to the session the child *was* in — a window of one RPC round
-  trip, and the keys it would add are still keys this desk issued. Not fixed.
-- **One failure path is not covered by a test: an RPC that runs out its wall-clock timeout.**
-  A session-changing command that times out takes the same `finally` as one that comes back
-  unsuccessful (identity cleared, queue slot freed), and the unsuccessful case is tested; the
-  30-second path is not, because there is no test-only timeout knob and adding one to the RPC
-  core is a wider change than this fix.
+  through the desk's own commands. An extension command run from a prompt that changes the
+  session anywhere between the source check and the destination confirmation can attribute the
+  inheritance to whatever session the child then holds; only desk-issued keys are involved. Not
+  fixed.
+- **One failure path is not covered by a test: a session-changing command that runs out its
+  wall-clock timeout (60 s for `fork`/`clone`/`switch_session`/`new_session`; 30 s is the
+  ordinary RPC timeout, which is what a confirming `get_state` would use).** It takes the same
+  `finally` as one that comes back unsuccessful — queue slot freed, nothing inherited — and the
+  unsuccessful case is tested; the timeout path is not, because there is no test-only timeout
+  knob and adding one to the RPC core is a wider change than this fix.
 - **Ledger reads and lifecycle RPCs cost extra round trips.** `GET /api/entries` issues two RPCs
   (the entries and a `get_state` to establish the session), and a `fork`/`clone` waits for a
   `get_state` before and after it. So unanswered ledger reads consume the per-child pending-RPC

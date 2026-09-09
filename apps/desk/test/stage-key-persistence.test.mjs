@@ -153,6 +153,12 @@ process.stdin.on("data", (c) => {
 					say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
 					break;
 				}
+				if (afterFork && afterFork.startsWith("slow:")) {
+					const ms = Number(afterFork.slice(5)); afterFork = null;
+					const c = cmd;
+					setTimeout(() => say({ type: "response", id: c.id, command: c.type, success: true, data: { isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } }), ms);
+					break;
+				}
 				if (afterFork === "hold") {
 					afterFork = null;
 					hold(cmd, () => ({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }));
@@ -470,10 +476,18 @@ try {
 	fs.writeFileSync(TRACE, "");
 	const held = rpc(s.id, { type: "fork", entryId: "x" });
 	await until(() => fs.existsSync(HOLDING), "the first fork to be held");
-	const queued = [];
-	for (let i = 0; i < 7; i++) queued.push(rpc(s.id, { type: "fork", entryId: "x" }));
-	const over = await post(D(), `/api/session/${s.id}/rpc`, { command: { type: "fork", entryId: "x" } }, D());
-	check("run 3: the lifecycle queue is bounded — one past the cap is refused at once with 429", over.status === 429, String(over.status));
+	// eight competitors, and the release waits for ANY of them to come back 429 — the
+	// only thing that can produce one is a full queue, so that answer IS the proof
+	// that the others were admitted and are waiting inside the server
+	const statuses = [];
+	const queued = Array.from({ length: 8 }, () =>
+		post(D(), `/api/session/${s.id}/rpc`, { command: { type: "fork", entryId: "x" } }, D()).then((x) => {
+			statuses.push(x.status);
+			return x;
+		}));
+	await until(() => statuses.includes(429), "a queued session change to be refused with 429");
+	check("run 3: the lifecycle queue is bounded — past the cap a session change is refused at once with 429",
+		statuses.includes(429), JSON.stringify(statuses));
 	releaseT = Date.now();
 	fs.writeFileSync(RELEASE, "");
 	await Promise.all([held, ...queued]);
@@ -516,6 +530,18 @@ try {
 	check("run 3: ...and that session's record holds only the live child's key, never the fork's source",
 		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
 		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
+
+	// THE CONFIRMATION BUDGET IS REAL. A child that answers the confirming state read
+	// only after the budget must leave the fork unconfirmed, and the command must come
+	// back at the budget rather than at the RPC's own 30 s timeout.
+	fs.writeFileSync(AFTER_FORK, "slow:3000");
+	const t0 = Date.now();
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	const forkMs = Date.now() - t0;
+	check("run 3: a confirmation answered after the budget does not extend it", r?.success === true && forkMs < 2000, `${forkMs} ms`);
+	const idSlow = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	check("run 3: ...and that fork counts as unconfirmed, so it inherits nothing",
+		!keysOf(idSlow).includes(keyZ), `${JSON.stringify(keysOf(idSlow).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
