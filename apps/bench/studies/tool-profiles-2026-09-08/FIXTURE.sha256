@@ -1,0 +1,95 @@
+4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97  .gitignore
+29fe09bc8949f3efdd6250934daef65331be154cb0b743320be8fcebc27bd006  CLAUDE.md
+86d544a24ed013bd2dfcd45babcfe50c05e42872102ea8fdf8504f9f383bc652  README.md
+895ef54ce0b130f2f4349a0dccede124afc841da0c2a1fe2026509e97cf76c37  apps/desk/README.md
+0d4c6689683715f2cd6d1b72533f7fcc31bfa3cc9c3e04533f9fa34511db14ce  apps/desk/apps.mjs
+dd8d7ff0b6f81f15175ce49d7fcf13124098b7a9887e46b178ca1446e1245b8e  apps/desk/public/app.js
+b1ba757b15d37f6dce0495db9a7a4c5241652426d9cbe2571adf8b8b4812f62a  apps/desk/public/desk-client.mjs
+c8a109f4498dd85590c16f918e038d6e077258252bbf82ea4e6e2a40920444ce  apps/desk/public/index.html
+c52ef6946ab948a4b43f488d77d69aa6abc45123f73952a48851ece188453e67  apps/desk/public/md.js
+38e997f3162e22d1729ec1b8df28024659e19951accdf6010cf19395a5abf329  apps/desk/public/stage/index.html
+d5e0294d79db341ba0b020193623f116574ae6ff6444f2a362e7cde234c773c9  apps/desk/public/stage/stage.css
+6bdb656ccfb0229173be16c73bbfcb76f2124738ea77869706472550756eb79d  apps/desk/public/stage/stage.js
+a0716630f2eb02b82b1675ef7bcb8ed7eaca84821095f572e11b6ae9a5e01034  apps/desk/public/styles.css
+33a81b582fc1b20c676cbfa918021497f1f941ecfe4871bce132fdbaf57c445b  apps/desk/server.mjs
+66c71e7557be8afa9098cbd67b7d77ab9bf7c525502ca862de8671285fede61b  apps/desk/test/app-listener.test.mjs
+4d4c0cc6415bdb7bfc7e31c6a9bb918a7a25402dbcff03bc37d385096f6acce1  apps/desk/test/crash-paths.test.mjs
+aa7b10f28bfceb20faef970c3bb2f09a74843875b63fcbac14e9382d6bd88f85  apps/desk/test/double-msg.e2e.mjs
+bb0cfdaf7d57c61d66b02bb4d59d1eceef29b36b87750609cacf568504f32294  apps/desk/test/fixtures/no-kill-preload.cjs
+c9c40dc8c384512b38db0294d309866130a3c4c474648758d15fe28517a5a918  apps/desk/test/host-rule.test.mjs
+f305a2f47b84f2e7717d9508c0c0d7111c676aa31d23de687ab8aaf2fcffe728  apps/desk/test/origin-rule.test.mjs
+04ae29ec482880ec6bdd0ed50d764bf07794dad04cd1733c96d6e2df3250e604  apps/desk/test/rail-collapse.e2e.mjs
+dc8b47c0a8962feab4c9915d66d196afeb298fed325ab403b29c9e6a16f25f27  apps/desk/test/spawn-and-persist.test.mjs
+bcf7ea3743734626a723bb4e037b666e3957ed9cb8dd7877995c69ba2b168843  apps/desk/test/spawn-tools.e2e.mjs
+ab5a890dc0c620daba206bf41f7efbeeefdfad6630eeb9facfca0af742732c3d  apps/desk/test/stage-chain-edge.e2e.mjs
+ba641e281b4582a3e8ea58e0274f59d5feaa1da85032a91974483938c4b5a66e  apps/desk/test/stage-chain.e2e.mjs
+2eb2447118f7b1fcb6b2ba07f40d4a5ee2d25eeba5234d228567bc18bd3cd186  apps/desk/test/stage-page-edge.e2e.mjs
+620d8898dbaa80cb949bf68e3ac090a99f306408900dc4620e476d9cffbf70dc  apps/desk/test/stage-page.e2e.mjs
+55b769fbdf0ba551b8a68c0d373c3cfdeb5987f0dababc024739983dee11eb8c  apps/desk/test/stage-render-edge.e2e.mjs
+4dbb5ea3ff50b2c2627fb19d292010acb64774fb30e2b1c631726097b2ab329e  apps/desk/test/subagent-render.e2e.mjs
+fbd6791d2bcdf370b7e11cadc730baac54fe5c60dbea2d6e31a6b613cd2ac7b7  apps/desk/test/teardown-invariants.test.mjs
+ca67f4633ddcd39aee6ce7cf3c0179ece1138b0840c3ad1ced57b267325478e9  apps/desk/test/title-live.e2e.mjs
+1580d4b8f0f3be5793d149eb586ed502456b90800849fa8c78e914ac26ecd8fd  copier.yml
+bcf412479eac7c39a5c0477cbe6e2d252232e0fa0bb5c139510e1d830cac738e  package.json
+0f41ba37c4873c270c7635bf6adfa6cb0ee538c05b659601a47be7a755c2ee37  packages/nana-pack/README.md
+9454754a60e367693066bebf290edb8574cd52af0d277d2298df22a7c3f2c445  packages/nana-pack/extensions/nana-gate.ts
+16f90ecab66b1701cec72f13f5a276f49993b3fd0c9a52a5ed43cc3373e4399d  packages/nana-pack/extensions/nana-handoff.ts
+c49b618e79b49f36eabd676ea4603dbbb3c774115f62a705efa99af70f14de7c  packages/nana-pack/extensions/nana-lifecycle.ts
+6a8b02764ac0011b173ce168557d7e25c6e755cb01b459a34e04e1aa0ed029f3  packages/nana-pack/extensions/nana-notify.ts
+47d2180df0c6687e0f163336ca5279b1192f4a1638b4c5aa38e880b4cd94a116  packages/nana-pack/extensions/nana-post-edit.ts
+e0fa7e833e7bcbb3ee5953b8d79bb82563a172aabfa939ad3fd1eec8ab16cb7a  packages/nana-pack/lib/config.ts
+a205d9d854295bb9eb798af882abb57e769c6b9f9f529e479e425f1e6b15e5cf  packages/nana-pack/lib/receipts.ts
+ca5564c757568f271ffe4160aa25ddbe4aff8a5c2a41cc955cb46fbacd06edf5  packages/nana-pack/package.json
+8ce1f985f8402bb30bb7b1361e968a6447c67e686f0dcd204d51e7d7819e1fdd  packages/nana-pack/skills/adopt-py/SKILL.md
+a91fa560909d1d391bea8256f9aa9d8cf77f82ed734b11b8d22d679345998fb6  packages/nana-pack/skills/adopt-structure/SKILL.md
+45426c724433dadcac083a9e43386c4920aff1da57fcca61729335dc5d6009d8  packages/nana-pack/skills/adopt-ts/SKILL.md
+b4ea0a9e2ac1da3a7a3bd7d977eedb01fc57066861b078b294fcb25449ec09ff  packages/nana-pack/skills/py-lint/SKILL.md
+1e427f3f66fea8763117f674a0ae3137516da34be8ce182e7ee11695b8ae1340  packages/nana-pack/skills/py-review/SKILL.md
+080367b4403717a32728c4bb33a830f8ba370ba38ce605d816ea163562d1ee50  packages/nana-pack/skills/py-test/SKILL.md
+9c1df4bd7c951114047c650eca7795617285f223f9acf90712b8c5dfda7569e8  packages/nana-pack/skills/scaffold-py/SKILL.md
+b3fe7c02837db6ebb000ce8feeab16fbea743cc85ba4f4ae4c7b1d6b156b5d97  packages/nana-pack/skills/scaffold-ts/SKILL.md
+e7bce541ecfe2afb80cd0703bee7d3070051c0a977fc3652d4accd9125f0fe21  packages/nana-pack/skills/spec/SKILL.md
+b25e2dec4fda9ab8c3f37bf34b709a4d88677b90c779461082520df207ff6ab7  packages/nana-pack/tests/config-trust.test.mjs
+6031edf19a10dc6f09bf62bf1723c4829af3c161d434755e2bc03c142b8b99fb  packages/nana-pack/tests/gate-config-robustness.test.mjs
+1b85779416c556f4acd2e87b8aa85d9efc45c03b0b538f793013cf568b5f0519  packages/nana-pack/tests/gate-status.test.mjs
+d0745f4b2907d65611de69a397b5ec20bef93976f45cbe83d3bf3efb9d784618  packages/nana-pack/tests/handoff-artifact.test.mjs
+d3dace72bb227183555e16ed99fc88eab9fd9f42c23bd9f845d13685fdc0ee9e  packages/nana-pack/tests/handoff-symlink.test.mjs
+54865e99e920a3b99d38bb1a3ab3ae9033cfa22190b295cb92903a43dec5b67f  packages/nana-pack/tests/notify-fallback.test.mjs
+ed7283411409ddba90827bce0464451b4b28b6d860a9eeca43f6063646cf7319  packages/nana-pack/tests/post-edit-file-queue.test.mjs
+56fb2a2daf78adcf90da476ab403f09ab2249355ee1468881085b5fe9ae61a69  packages/nana-pack/tests/post-edit-hardening.test.mjs
+f7b8957b141db1776e4218d1ee38e8bbea9040594cd75d614a3728714b22ade8  packages/nana-pack/tests/post-edit-status.test.mjs
+ad97307c67c36737e1edbefc344f7dedc3b64ff956d0efd005b21835504991d1  packages/nana-pack/tests/receipt-binding.test.mjs
+2bcdc5f8bdb19d886db25a02ea39c81535d3f855e5ecbac4ed57185cad6c9ff2  packages/nana-stage/extensions/nana-stage.ts
+c05483b166150b76f6f2043feb9cb1a66aa8526f74a71fa24dd858d9190c8a95  packages/nana-stage/lib/blocks.mjs
+0925864be1a5c0c5e760dc574dcf16c01a42853a2d5a4581d7c492c682eefebd  packages/nana-stage/lib/sign.mjs
+a0c83dd4b1f8b393ff8f4cf824c721eab9b1427a54618812e1fad957330fb1b8  packages/nana-stage/package.json
+7ae14e1c8498926de5ad09ea71f5002999d36a9598e5083366089890b9dbcf1a  packages/nana-stage/tests/blocks.test.mjs
+eb6904979dcb42c784dda731ec58bd8ab6673c709d6665ef89244f35b009c21e  templates/_shared/working-under-nana-pi.md
+e24d14f5477c641773ac870ca9d3fd0fe50e51d97d356f81f6f249045e359ee6  templates/python/template/.copier-answers.yml.jinja
+dc2f5f8315f9db3d3290a98a0d9b56018d948b1d133dfca3b23dbc7b3928e0ef  templates/python/template/.github/workflows/ci.yml
+5c8817e0d136be0a9eb3cef49908a94279fbeb535c80f82d4ae4590863af9465  templates/python/template/.gitignore
+6637142cf184bf9b05c6ca319f4392bf2a2a1b25cf88cd316a0b4e4175cb67fd  templates/python/template/.pi/nana-pack.json
+375c419d9e0023c2a9306212a006671486257947d06632dc794e41c491133129  templates/python/template/.pre-commit-config.yaml
+ac24e0b37b592ab61f1f5edbc837944b2f6a15887d469be0405e32ce1841bab7  templates/python/template/AGENTS.md.jinja
+5d2702059c65bee6a48732dc60103c201101857ed002b28fc9ced337b33ec56d  templates/python/template/pyproject.toml.jinja
+7275d280f99682fa9c39ce265dfbd70299ad21fae66c9791f0e1e633b65b3827  templates/python/template/{% if not adopt %}README.md{% endif %}.jinja
+8e86396152db15500cdabc9a8711ae4c16cecfd028f08b36478b0960022694bc  templates/python/template/{% if not adopt %}src{% endif %}/AGENTS.md
+1719c3e1a7449f60d1fd8d73de2af1c236bc962d01a119cb118c03885ca134d2  templates/python/template/{% if not adopt %}src{% endif %}/{{package_name}}/__init__.py.jinja
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  templates/python/template/{% if not adopt %}src{% endif %}/{{package_name}}/py.typed
+8fb2f6d7a8eb592fe21d2067a15988ab3ff3887d1f69359df2bed2b8d2e8f390  templates/python/template/{% if not adopt %}tests{% endif %}/AGENTS.md
+2d2cb568e58a3ff8aafc5b54c815a981dcb5cff840fd7b31b1ff51cd6ac8f6a3  templates/python/template/{% if not adopt %}tests{% endif %}/test_smoke.py.jinja
+e24d14f5477c641773ac870ca9d3fd0fe50e51d97d356f81f6f249045e359ee6  templates/typescript/template/.copier-answers.yml.jinja
+666a2764001290a7eb254149b495339157274f00c5662ed271c950e8be3be151  templates/typescript/template/.github/workflows/ci.yml
+a07c7396b22140ebebc3bb341e2665a16e96216ba7ce91c1a2b5f651a3fdf567  templates/typescript/template/.gitignore
+63c1474d277fb330c56797c5c0286b5c20002ea1c5ca947aa39f6c7b47f32478  templates/typescript/template/.pi/nana-pack.json
+8397bd095a1359449d79f8abc02bfa0183aec8831afac2df66253802bbadfe15  templates/typescript/template/AGENTS.md.jinja
+83527e6ccd31965b9aeb2c93a6fb93829be16f1ee2ae0fac7d5746b804dba73f  templates/typescript/template/biome.json
+1ce582bfc0eb43253df02ae79c61884e6e46aea87bf043caa32912958fff9038  templates/typescript/template/package.json.jinja
+c01b61b4260110698c1c81a49a7ed15fbe057216b0b4130d891ab2a2d0fe5d6c  templates/typescript/template/tsconfig.build.json
+6442e1e43ffd99ee7ab00503a2c512fd4fcc33ce918c44ce9752182d9c91ed9c  templates/typescript/template/tsconfig.json
+b6b2ff35092d2245a427e68d6d93f6a065aecb73b822eeda59a2de681bfbf7d7  templates/typescript/template/{% if not adopt %}README.md{% endif %}.jinja
+890ca24478d3ca61b5e770abc3fd4e00def901e861b4c5b68f5bde92470ccc93  templates/typescript/template/{% if not adopt %}pnpm-workspace.yaml{% endif %}.jinja
+a9e37aba376a55338d8705695a24df97c1f3476b57862b27f50a4b2555a478f6  templates/typescript/template/{% if not adopt %}src{% endif %}/AGENTS.md
+eca8527891a6b126a2a4b420e16967c699169805d0bb1d389a513534a96d87ad  templates/typescript/template/{% if not adopt %}src{% endif %}/index.ts.jinja
+a1ec2993ef938bcb308edff0b860722b54dfecbf08bfb59d2929f524b683b486  templates/typescript/template/{% if not adopt %}tests{% endif %}/AGENTS.md
+861e00896266c97fbc9a8d3335b86d6a004bf87b7ac1bb123f83b4cf4d1e8fd4  templates/typescript/template/{% if not adopt %}tests{% endif %}/smoke.test.ts

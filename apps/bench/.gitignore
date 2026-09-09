@@ -1,0 +1,6 @@
+# Third-party extension install under content pin (study.json pinnedSha) — reviewed, not vendored.
+.ext/
+# Per-run raw evidence (streams, stderr, diffs) stays on disk, not in git. results.jsonl, keys,
+# schedule and summaries ARE committed at study close — they are the study's evidence of record.
+studies/*/raw/
+studies/*/results.jsonl.quarantine

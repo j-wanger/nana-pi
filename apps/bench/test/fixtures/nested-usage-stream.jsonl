@@ -1,0 +1,8 @@
+{"type": "session", "version": 3, "id": "n", "timestamp": "2026-09-08T12:00:00.000Z", "cwd": "/tmp"}
+{"type": "turn_start"}
+{"type": "tool_execution_start", "toolCallId": "w1", "toolName": "web_search", "args": {"query": "chalk latest"}}
+{"type": "tool_execution_end", "toolCallId": "w1", "toolName": "web_search", "result": {}, "isError": false}
+{"type": "message_end", "message": {"role": "toolResult", "toolCallId": "w1", "toolName": "web_search", "content": [{"type": "text", "text": "6.0.0"}], "usage": {"input": 3200, "output": 410, "cacheRead": 1200, "cacheWrite": 0, "totalTokens": 4810, "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0}}, "details": {"benchNested": {"calls": 1, "models": ["gpt-5.6-sol"], "unknown": false, "attributedTo": "web_search"}}, "isError": false, "timestamp": 2}}
+{"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "6.0.0"}], "provider": "openai-codex", "model": "gpt-5.6-sol", "usage": {"input": 1500, "output": 30, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 1530}, "stopReason": "stop", "timestamp": 3}}
+{"type": "agent_end", "messages": []}
+{"type": "agent_settled"}

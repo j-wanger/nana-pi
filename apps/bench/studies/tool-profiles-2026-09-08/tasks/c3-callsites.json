@@ -1,0 +1,11 @@
+{
+	"id": "code-callsites",
+	"family": "code",
+	"prompt": "Count every occurrence of the exact text `signBlock(` anywhere in this repository, then subtract the one occurrence that is the function's own definition. Reply with ONLY the resulting number.",
+	"key": "7",
+	"keyDerivation": {
+		"command": "grep -ro \"signBlock(\" . | wc -l   # 8 total, minus the definition at packages/nana-stage/lib/sign.mjs:35",
+		"output": "8 - 1 = 7"
+	},
+	"check": { "type": "regex", "pattern": "^\\s*7\\.?\\s*$" }
+}

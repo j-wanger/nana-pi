@@ -1,0 +1,12 @@
+{
+	"id": "code-define-large",
+	"family": "code",
+	"prompt": "In this repository, find where the function `assertNoSymlinkWrite` is defined. Reply with ONLY the path relative to the repository root and the line number, in the form path/to/file.ext:LINE",
+	"key": "apps/desk/server.mjs:949",
+	"note": "The definition sits in an 86 KB single file, so a read-the-whole-file strategy is expensive and a structural search is cheap. That contrast is the point of this task.",
+	"keyDerivation": {
+		"command": "grep -rn \"assertNoSymlinkWrite\" .",
+		"output": "apps/desk/server.mjs:949:function assertNoSymlinkWrite(root, file) {  ·  apps/desk/server.mjs:1858 (the sole call site)"
+	},
+	"check": { "type": "regex", "pattern": "apps/desk/server\\.mjs\\D{0,6}949\\b" }
+}

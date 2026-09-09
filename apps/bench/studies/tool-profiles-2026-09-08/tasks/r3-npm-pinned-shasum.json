@@ -1,0 +1,14 @@
+{
+	"id": "res-npm-pinned-shasum",
+	"family": "research",
+	"fixture": false,
+	"prompt": "What is the tarball SHA-1 checksum (the `dist.shasum` field) published for npm package `chalk` at version 5.3.0? Reply with ONLY the hex string.",
+	"note": "Immutable coordinate, so the expected value is PINNED here and the live command is a tripwire: if the registry ever disagrees, that is a grader error, not a wrong answer. Un-memorizable by construction.",
+	"check": {
+		"type": "live-key",
+		"expect": "67c20a7ebef70e7f3970a01f90fa210cb6860385",
+		"argv": ["node", "-e", "fetch('https://registry.npmjs.org/chalk/5.3.0').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const s=j.dist&&j.dist.shasum;if(typeof s!=='string')throw new Error('no dist.shasum');console.log(s)})"],
+		"schema": "^[0-9a-f]{40}$",
+		"mode": "whole"
+	}
+}

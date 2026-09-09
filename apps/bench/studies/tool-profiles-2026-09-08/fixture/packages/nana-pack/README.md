@@ -1,0 +1,144 @@
+# nana-pi-pack
+
+Extensions + skills making pi shippable the nana way: hook coverage, opinionated
+project scaffolding, and dev-workflow skills.
+
+## Skills (v0.4.0)
+
+| Skill | What it does |
+|---|---|
+| `scaffold-py` / `scaffold-ts` | Generate a project via copier from `github.com/j-wanger/nana-pi` (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
+| `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
+| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, and a postEdit-only starter `.pi/nana-pack.json`. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). |
+| `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
+| `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
+| `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
+
+Five extensions giving pi the hook coverage we require (Claude Code parity classes):
+
+| Extension | Hook class | Events used |
+|---|---|---|
+| `nana-gate` | Pre-tool permission gating | `tool_call` (blocking) |
+| `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
+| `nana-lifecycle` | Session lifecycle observability | `session_start/…compact…/shutdown` |
+| `nana-notify` | Outward notifications | `agent_settled` |
+| `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
+
+## Install
+
+```bash
+pi install git:github.com/j-wanger/nana-pi       # canonical — the repo-root package.json manifests this subdir
+pi install /path/to/nana-pi/packages/nana-pack   # local dev
+pi remove ...                                     # uninstall
+```
+
+## What you will see
+
+In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
+Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
+
+- **Chips** (TUI footer / desk header): `nana-pack ✓` at session start · `post-edit ✓ 2 checks · foo.ts`
+  after each checked edit (`✗ 1/2` on failure, `⏱ timeout`, `– skipped (lock|aborted)` when a check
+  could not run) · `gate ✓ 12 checked · 1 gated` — tool calls the gate inspected, and the ones it stopped on.
+- **Toasts**: post-edit check failures, handoff written/picked up/refused, context compacted.
+- **OS notification** when the agent settles and waits for you. If the OS notifier fails or hangs —
+  the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
+  you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
+  saying why. (A notifier that exits 0 after printing a *localized* PowerShell error record can still
+  slip through; the spawn/exit-code/deadline paths do not.)
+
+**Is it actually installed on this machine?** `pi install` writes to *user* settings
+(`~/.pi/agent/settings.json`) by default, so it applies everywhere; `-l` writes project settings
+instead. The runtime tell is the `nana-pack ✓` chip at session start: seeing it means the pack is
+loaded. Not seeing it is not proof of the opposite — it is also absent in print/JSON mode and if
+`nana-lifecycle` is not loaded. Check the settings file, or the journal, when the chip is missing.
+
+## Config (all optional)
+
+User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
+read live on every event — edits apply without restarting):
+
+```json
+{
+	"gate": {
+		"extraPatterns": ["\\bterraform\\s+destroy\\b"],
+		"allowPatterns": ["^git push --force-with-lease origin (?!main)"],
+		"protectedPaths": ["secrets/"]
+	},
+	"postEdit": {
+		"commands": [
+			{ "match": "\\.ts$", "run": "npx prettier --write {file}" },
+			{ "match": "\\.py$", "run": "ruff check {file}", "timeoutMs": 20000 }
+		]
+	},
+	"notify": { "enabled": true, "headless": false },
+	"journal": { "enabled": true, "path": null },
+	"handoff": { "enabled": true, "path": null },
+	"receipts": { "enabled": true, "dir": null }
+}
+```
+
+## Behavior notes
+
+- **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
+  outright. Interactively, "Block" is the default choice. Built-in patterns cover
+  `rm -rf`-family, `sudo`, force-push, `git reset --hard`/`clean -f`, `chmod 777`,
+  `dd of=/dev/`, `mkfs`, shutdown/reboot, `Remove-Item -Recurse/-Force`, plus protected
+  paths (`auth.json`, `settings.json`, `.ssh`, `.env*`) checked in commands AND edit/write targets.
+- **The gate is advisory-by-load-path** — a pi run without the extension has no gate.
+  Unattended enforcement stays at the container/sandbox layer.
+- **post-edit failures are appended to the tool result** so the model sees and fixes them;
+  successes stay out of its context and are reported by the status chip instead. `{file}` is
+  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.
+- **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
+  pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
+  `tool_result` handler, so two edits to one file in a single assistant message could race a
+  formatter's read-modify-write. Two outcomes you can see:
+  - **The queue exists but the lock cannot be taken** → the checker does **NOT** run. The
+    receipt records `status: "not_run"` (`exitCode: null`, empty `inputs`/`digest`,
+    `inputsStableDuringCheck: false`) and the model is told ``  `<command>` did not run — could
+    not lock <file> for checking: <reason> ``. A skipped check is always reported; it is never
+    reported as passing.
+  - **The queue module cannot be resolved** (running outside pi — another host, a bare test
+    harness) → the check **does** run, unserialized, and the absence is announced once per
+    process: a `postedit_file_queue_unavailable` journal line plus the warning "checks are not
+    serialized against edits".
+- **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
+  gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
+  with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
+  handler pending forever. `timeoutMs: 0` still means no deadline. The win32 tree-kill branch has
+  not been exercised on real Windows.
+- **Journal** is best-effort JSONL at `~/.pi/agent/nana-journal.jsonl` (override via
+  `journal.path`); one line per session event.
+- **Notify** never writes terminal escape codes without an attached UI, so print/RPC
+  output stays clean. Headless notifications are opt-in (`notify.headless`). A failing OS
+  notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
+  in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
+  an 8 s deadline, so a hung one fails over instead of holding the pipe open.
+- **Handoff** writes the latest compaction summary to `<cwd>/.pi/handoff.md` and
+  re-injects it into the next fresh session in that directory. Disable the writes with
+  `handoff.enabled: false`; relocate the artifact with `handoff.path` (a custom path
+  gets no sibling `.gitignore` — its git semantics are the owner's).
+- **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`) — at
+  session-start pickup, at compaction write, and for the sibling `.pi/.gitignore`. A repo can
+  commit `.pi/handoff.md`, or `.pi` itself, as a link to something like `~/.ssh/id_rsa`: pickup
+  would paste the target into the next session's system prompt and the next compaction would
+  overwrite it. What that means in practice:
+  - **Unconditional — not trust-gated.** A *trusted* project loses symlink-based handoff too.
+    If you want the artifact somewhere else, point `handoff.path` at the real destination
+    instead of linking to it.
+  - **Scope is every path component BELOW the workspace root.** Components at or above the root
+    are deliberately not checked: a workspace legitimately lives under a symlinked parent
+    (macOS `/tmp` → `/private/tmp`), and that is your filesystem, not repo-supplied. A
+    `handoff.path` pointing **outside** the workspace has no repo-controlled prefix to walk, so
+    only its final component is checked.
+  - **Refusals are loud, never silent** — a `handoff_symlink_refused` journal line
+    (`op: "read" | "write" | "gitignore"`) plus a UI warning. The `.gitignore` refusal is
+    announced on its own so the "handoff written" notice cannot imply it succeeded.
+  - **Advisory, not a security boundary, and not atomic.** The `lstat` checks are not atomic
+    with the open that follows, so a link swapped in between them is not caught; and the write
+    is a plain `writeFileSync`, not a temp-file rename, so an interrupted compaction can leave
+    a partially written handoff.
+- **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
+  per repo+checker under `~/.pi/agent/receipts`). Turn them off with
+  `receipts.enabled: false`; relocate the store with `receipts.dir`.

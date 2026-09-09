@@ -1,0 +1,14 @@
+{
+	"id": "res-npm-pinned-license",
+	"family": "research",
+	"fixture": false,
+	"prompt": "What SPDX license identifier does the npm package `protobufjs` declare at version 7.5.4? Reply with ONLY the identifier.",
+	"note": "Pinned version, pinned expected value, live command as tripwire. Chosen because the answer is NOT the guessable default (it is not MIT).",
+	"check": {
+		"type": "live-key",
+		"expect": "BSD-3-Clause",
+		"argv": ["node", "-e", "fetch('https://registry.npmjs.org/protobufjs/7.5.4').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{if(typeof j.license!=='string')throw new Error('no license');console.log(j.license)})"],
+		"schema": "^[A-Za-z0-9.+-]+$",
+		"mode": "whole"
+	}
+}

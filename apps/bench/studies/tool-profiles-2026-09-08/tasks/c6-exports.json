@@ -1,0 +1,11 @@
+{
+	"id": "code-exports",
+	"family": "code",
+	"prompt": "List every named export of the module `packages/nana-stage/lib/sign.mjs`. Reply with ONLY a JSON array of the exported names, with no other text.",
+	"key": "canonical, signBlock, verifyBlock",
+	"keyDerivation": {
+		"command": "grep -n \"^export \" packages/nana-stage/lib/sign.mjs",
+		"output": "20:export function canonical(v) {  ·  35:export function signBlock(key, block) {  ·  39:export function verifyBlock(key, block) {"
+	},
+	"check": { "type": "json-path", "path": "$", "unordered": true, "value": ["canonical", "signBlock", "verifyBlock"] }
+}

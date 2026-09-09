@@ -1,0 +1,71 @@
+{
+	"id": "tool-profiles-2026-09-08",
+	"question": "Does giving pi the grep/find/ls tools (and optionally a web-access extension) change correctness, token cost or wall time on identical tasks?",
+	"registeredAt": "2026-09-08",
+	"amendedAt": "2026-09-09 (astra pre-registration review: FIX-FIRST)",
+	"repeats": 3,
+	"seed": 20260908,
+	"timeoutMs": 300000,
+	"baselineProfile": "pi-defaults",
+	"smokeTask": "code-define-small",
+	"smokeProfile": "pi-defaults",
+	"model": { "provider": "openai-codex", "id": "gpt-5.6-sol", "thinking": "medium" },
+	"env": { "PI_OFFLINE": "1" },
+	"pinnedPiVersion": "0.84.4",
+	"maxTotalTokens": 3500000,
+	"maxWallMs": 21600000,
+	"agentDir": {
+		"dir": "~/.pi/bench-agent",
+		"sourceDir": "~/.pi/agent",
+		"note": "PREPARED config dir, outside the repo, rebuilt at study start with pinned settings (retry off, compaction off, no defaultTools). auth.json is copied fresh from sourceDir before EVERY run; nothing is ever copied back. Never committed, never logged."
+	},
+	"sidecarExtension": "../../ext/bench-nested-usage.ts",
+	"pinnedSha": {
+		"ext:research:0": "afa4d45481b0451ce85fadde6f89a112bc141d714cc164819dd835af320de8a9",
+		"lock:research:0": "1bdb0d75a9c68e87efba7b7249b8f45397d07c94ed09fc8b07f902874568306b",
+		"ext:sidecar": "058c797fab0bc5a081c892c79dad57b775ddb061231af768372a79eb67c8242d"
+	},
+	"fixture": {
+		"dir": "fixture",
+		"sha256": "bb0d0345658f82fab2665277d4a9049b3c84127cda2c440c02e8e6ee8d89db0f",
+		"source": "~/nana-pi @ 2026-09-08, tracked files only, excluding apps/bench, research/, docs/, node_modules, .git",
+		"files": 95,
+		"rebuild": "node apps/bench/lib/fixture.mjs build <nana-pi> <study>/fixture --exclude=apps/bench,research,docs,node_modules,.git"
+	},
+	"profiles": [
+		{
+			"name": "pi-defaults",
+			"note": "A — pi 0.84.4's own default active set (settings.md:226-228). grep/find/ls off, so the system prompt adds 'Use bash for file operations like ls, rg, find' (dist/core/system-prompt.js:61-69).",
+			"tools": ["read", "bash", "edit", "write"],
+			"families": ["code"]
+		},
+		{
+			"name": "lean-code",
+			"note": "B — the brief's recommendation: capped, .gitignore-aware structural search alongside bash.",
+			"tools": ["read", "grep", "find", "ls", "edit", "write", "bash"],
+			"families": ["code", "research"]
+		},
+		{
+			"name": "lean-code-hinted",
+			"note": "B' — B plus the one AGENTS.md line the brief proposes, delivered as --append-system-prompt so it is measured and not merely installed.",
+			"tools": ["read", "grep", "find", "ls", "edit", "write", "bash"],
+			"appendSystemPrompt": "Prefer grep/find/ls over bash rg/find/ls; use bash for tests, git, builds",
+			"families": ["code"]
+		},
+		{
+			"name": "research",
+			"note": "C — B plus pi-web-access 0.28.0. Runs BOTH families (astra BLOCK A): adopting C means running it on code work too, and extra tool descriptions plus extension startup can move code results even when the web tools go unused. Source-reviewed SAFE-TO-LOAD-FOR-BENCH 2026-09-08; no API key (search routes through the Codex subscription); headless forces workflow 'none' so no browser opens.",
+			"tools": ["read", "grep", "find", "ls", "edit", "write", "bash", "web_search", "source_check", "fetch_content", "get_search_content"],
+			"extensions": [
+				{
+					"path": "../../.ext/pi-web-access/node_modules/pi-web-access/index.ts",
+					"lockfile": "../../.ext/pi-web-access/package-lock.json",
+					"tools": ["web_search", "source_check", "fetch_content", "get_search_content"],
+					"note": "CONSTANT — pinned by CONTENT in pinnedSha, not just by path; the runner refuses to spend if either hash moves. node_modules must sit next to index.ts (9 runtime deps); pi's jiti loads the .ts directly."
+				}
+			],
+			"requiresEnv": [],
+			"families": ["code", "research"]
+		}
+	]
+}

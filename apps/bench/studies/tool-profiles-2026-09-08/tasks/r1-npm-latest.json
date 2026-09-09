@@ -1,0 +1,13 @@
+{
+	"id": "res-npm-latest",
+	"family": "research",
+	"fixture": false,
+	"prompt": "On the npm registry, what version of the package `chalk` is currently tagged `latest` (the `dist-tags.latest` value)? Reply with ONLY the version number.",
+	"note": "Deliberately drift-prone: the answer changes whenever chalk publishes. The key is snapshotted once per comparison block, so both arms are graded against the same fetch.",
+	"check": {
+		"type": "live-key",
+		"argv": ["node", "-e", "fetch('https://registry.npmjs.org/chalk').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const v=j['dist-tags']&&j['dist-tags'].latest;if(typeof v!=='string')throw new Error('no dist-tags.latest');console.log(v)})"],
+		"schema": "^\\d+\\.\\d+\\.\\d+",
+		"mode": "whole"
+	}
+}

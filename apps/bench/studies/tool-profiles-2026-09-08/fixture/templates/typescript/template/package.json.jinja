@@ -1,0 +1,23 @@
+{
+	"name": "{{ project_slug }}",
+	"version": "0.1.0",
+	"description": "{{ description }}",
+	"type": "module",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"test": "vitest --run",
+		"check": "pnpm typecheck && pnpm lint && pnpm test"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.0.0",
+		"@types/node": "^22.0.0",
+		"typescript": "^5.9.0",
+		"vitest": "^3.2.0"
+	}
+}

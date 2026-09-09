@@ -1,0 +1,11 @@
+{
+	"id": "code-glob-count",
+	"family": "code",
+	"prompt": "How many files under `apps/desk/test/` have a name ending in `.e2e.mjs`? Reply with ONLY the number.",
+	"key": "10",
+	"keyDerivation": {
+		"command": "find apps/desk/test -name \"*.e2e.mjs\" | wc -l",
+		"output": "10 (double-msg, rail-collapse, spawn-tools, stage-chain-edge, stage-chain, stage-page-edge, stage-page, stage-render-edge, subagent-render, title-live)"
+	},
+	"check": { "type": "regex", "pattern": "^\\s*10\\.?\\s*$" }
+}

@@ -1,0 +1,18 @@
+{
+	"postEdit": {
+		"commands": [
+			{
+				"match": "\\.(ts|tsx)$",
+				"run": "pnpm exec biome check --write {file}"
+			},
+			{
+				"match": "\\.(ts|tsx)$",
+				"run": "node -e \"const n = require('fs').readFileSync(process.argv[1], 'utf8').split('\\n').length; if (n > 300) { console.error(process.argv[1] + ': ' + n + ' lines exceeds the 300-line file cap - split it'); process.exit(1); }\" {file}"
+			},
+			{
+				"match": "\\.(ts|tsx)$",
+				"run": "pnpm exec tsc --noEmit"
+			}
+		]
+	}
+}

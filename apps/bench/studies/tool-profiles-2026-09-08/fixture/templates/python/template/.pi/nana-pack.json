@@ -1,0 +1,18 @@
+{
+  "postEdit": {
+    "commands": [
+      {
+        "match": "\\.py$",
+        "run": "uv run ruff format {file} && uv run ruff check --fix {file}"
+      },
+      {
+        "match": "\\.py$",
+        "run": "uv run python -c \"import sys; n = sum(1 for _ in open(sys.argv[1], encoding='utf-8')); sys.exit(sys.argv[1] + ': ' + str(n) + ' lines exceeds the 500-line module cap - split it' if n > 500 else 0)\" {file}"
+      },
+      {
+        "match": "\\.py$",
+        "run": "uv run mypy"
+      }
+    ]
+  }
+}

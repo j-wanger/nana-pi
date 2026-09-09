@@ -1,0 +1,15 @@
+{
+	"id": "res-doc-phrase",
+	"family": "research",
+	"fixture": false,
+	"prompt": "In the official Node.js v22.19.0 API documentation for `fs.cpSync(src, dest[, options])`, one boolean option controls whether symlinks are dereferenced and defaults to false. Name that option. Reply with ONLY the option name.",
+	"note": "Doc-phrase task. Drift is avoided by pinning to a VERSIONED docs URL (v22.19.0), which is immutable — a 'latest' page is never used. The live command re-reads that pinned page and prints DRIFT if the option stops being documented as specified; `reject` turns that into a grader error rather than grading anyone against a stale key. KNOWN THREAT (astra): the answer is memorizable, so a pass here is weak evidence of retrieval.",
+	"check": {
+		"type": "live-key",
+		"expect": "dereference",
+		"reject": "^DRIFT$",
+		"argv": ["node", "-e", "fetch('https://nodejs.org/docs/v22.19.0/api/fs.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const s=JSON.stringify(j);const i=s.indexOf('\"name\":\"cpSync\"');if(i<0)throw new Error('cpSync not found in the pinned doc');const seg=s.slice(i,i+2500);console.log(/\"name\":\"dereference\",\"type\":\"boolean\",\"default\":\"`false`\"/.test(seg)?'dereference':'DRIFT')})"],
+		"schema": "^[a-zA-Z]+$",
+		"mode": "whole"
+	}
+}

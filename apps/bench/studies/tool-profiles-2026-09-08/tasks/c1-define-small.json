@@ -1,0 +1,11 @@
+{
+	"id": "code-define-small",
+	"family": "code",
+	"prompt": "In this repository, find where the function `validateBlock` is defined. Reply with ONLY the path relative to the repository root and the line number, in the form path/to/file.ext:LINE",
+	"key": "packages/nana-stage/lib/blocks.mjs:53",
+	"keyDerivation": {
+		"command": "grep -rn \"export function validateBlock\" packages/nana-stage/lib/blocks.mjs",
+		"output": "packages/nana-stage/lib/blocks.mjs:53:export function validateBlock(b) {"
+	},
+	"check": { "type": "regex", "pattern": "packages/nana-stage/lib/blocks\\.mjs\\D{0,6}53\\b" }
+}

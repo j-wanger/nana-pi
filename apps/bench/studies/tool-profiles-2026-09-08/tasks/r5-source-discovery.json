@@ -1,0 +1,17 @@
+{
+	"id": "res-first-version-with-dep",
+	"family": "research",
+	"fixture": false,
+	"prompt": "The npm package `pi-web-access` did not always depend on `undici`. Using its published package metadata, find the EARLIEST published version of `pi-web-access` that declares `undici` in its runtime `dependencies`. Reply with ONLY that version number.",
+	"note": "Replaces the arXiv-date task, which astra flagged as memorizable and a single lookup. This one is neither: pi-web-access was first published 2026-01-27 (after most training cutoffs), and the answer requires comparing manifests ACROSS versions rather than reading one field. Deterministic and computed live.",
+	"keyDerivation": {
+		"command": "walk registry.npmjs.org/pi-web-access `versions` in `time` order, first whose dependencies contain undici",
+		"output": "0.20.0 (37 versions published between 0.4.2 on 2026-01-27 and 0.28.0 on 2026-09-05)"
+	},
+	"check": {
+		"type": "live-key",
+		"argv": ["node", "-e", "fetch('https://registry.npmjs.org/pi-web-access').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const t=j.time||{};const vs=Object.keys(j.versions||{}).filter(v=>t[v]).sort((a,b)=>new Date(t[a])-new Date(t[b]));if(!vs.length)throw new Error('no versions');for(const v of vs){if((j.versions[v].dependencies||{}).undici){console.log(v);return}}throw new Error('no version declares undici')})"],
+		"schema": "^\\d+\\.\\d+\\.\\d+",
+		"mode": "whole"
+	}
+}

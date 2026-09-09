@@ -1,0 +1,13 @@
+{
+	"id": "res-npm-version-count",
+	"family": "research",
+	"fixture": false,
+	"prompt": "How many versions of the npm package `undici` are currently listed in the registry (the number of entries in its `versions` map)? Reply with ONLY the number.",
+	"note": "Drift-prone and un-guessable. Whole-answer matching: a `contains` match would accept 1304 for a key of 304.",
+	"check": {
+		"type": "live-key",
+		"argv": ["node", "-e", "fetch('https://registry.npmjs.org/undici').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{if(!j.versions||typeof j.versions!=='object')throw new Error('no versions map');console.log(Object.keys(j.versions).length)})"],
+		"schema": "^[0-9]+$",
+		"mode": "whole"
+	}
+}

@@ -1,0 +1,800 @@
+{
+ "fingerprint": "387cd4a58d490c4840ee05cdf15089a03112b1c09b0864db952ca37edf5a1d32",
+ "createdAt": "2026-09-09T04:01:49.657Z",
+ "seed": 20260908,
+ "reps": 3,
+ "runs": [
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-bugfix|0"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-bugfix|0"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-bugfix|0"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-bugfix|0"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-guard|0"
+  },
+  {
+   "task": "code-guard",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-guard|0"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-guard|0"
+  },
+  {
+   "task": "code-guard",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-guard|0"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-npm-pinned-license|0"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-npm-pinned-license|0"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-npm-version-count|0"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-npm-version-count|0"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-first-version-with-dep|0"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-first-version-with-dep|0"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-define-small|0"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-define-small|0"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-define-small|0"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-define-small|0"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-doc-phrase|0"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-doc-phrase|0"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-define-large|0"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-define-large|0"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-define-large|0"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-define-large|0"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-npm-pinned-shasum|0"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-npm-pinned-shasum|0"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "res-npm-latest|0"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "research",
+   "rep": 0,
+   "block": "res-npm-latest|0"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-callsites|0"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-callsites|0"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-callsites|0"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-callsites|0"
+  },
+  {
+   "task": "code-exports",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-exports|0"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-exports|0"
+  },
+  {
+   "task": "code-exports",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-exports|0"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-exports|0"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-glob-count|0"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-glob-count|0"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-glob-count|0"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-glob-count|0"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code-hinted",
+   "rep": 0,
+   "block": "code-imports|0"
+  },
+  {
+   "task": "code-imports",
+   "profile": "research",
+   "rep": 0,
+   "block": "code-imports|0"
+  },
+  {
+   "task": "code-imports",
+   "profile": "pi-defaults",
+   "rep": 0,
+   "block": "code-imports|0"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code",
+   "rep": 0,
+   "block": "code-imports|0"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-exports|1"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-exports|1"
+  },
+  {
+   "task": "code-exports",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-exports|1"
+  },
+  {
+   "task": "code-exports",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-exports|1"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-bugfix|1"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-bugfix|1"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-bugfix|1"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-bugfix|1"
+  },
+  {
+   "task": "code-imports",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-imports|1"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-imports|1"
+  },
+  {
+   "task": "code-imports",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-imports|1"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-imports|1"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-npm-latest|1"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-npm-latest|1"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-first-version-with-dep|1"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-first-version-with-dep|1"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-npm-pinned-license|1"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-npm-pinned-license|1"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-npm-version-count|1"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-npm-version-count|1"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-define-large|1"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-define-large|1"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-define-large|1"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-define-large|1"
+  },
+  {
+   "task": "code-guard",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-guard|1"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-guard|1"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-guard|1"
+  },
+  {
+   "task": "code-guard",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-guard|1"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-define-small|1"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-define-small|1"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-define-small|1"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-define-small|1"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-npm-pinned-shasum|1"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-npm-pinned-shasum|1"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-glob-count|1"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-glob-count|1"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-glob-count|1"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-glob-count|1"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code-hinted",
+   "rep": 1,
+   "block": "code-callsites|1"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "pi-defaults",
+   "rep": 1,
+   "block": "code-callsites|1"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "research",
+   "rep": 1,
+   "block": "code-callsites|1"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "code-callsites|1"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "research",
+   "rep": 1,
+   "block": "res-doc-phrase|1"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "lean-code",
+   "rep": 1,
+   "block": "res-doc-phrase|1"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-npm-version-count|2"
+  },
+  {
+   "task": "res-npm-version-count",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-npm-version-count|2"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-npm-latest|2"
+  },
+  {
+   "task": "res-npm-latest",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-npm-latest|2"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-bugfix|2"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-bugfix|2"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-bugfix|2"
+  },
+  {
+   "task": "code-bugfix",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-bugfix|2"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-define-small|2"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-define-small|2"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-define-small|2"
+  },
+  {
+   "task": "code-define-small",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-define-small|2"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-npm-pinned-license|2"
+  },
+  {
+   "task": "res-npm-pinned-license",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-npm-pinned-license|2"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-glob-count|2"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-glob-count|2"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-glob-count|2"
+  },
+  {
+   "task": "code-glob-count",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-glob-count|2"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-first-version-with-dep|2"
+  },
+  {
+   "task": "res-first-version-with-dep",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-first-version-with-dep|2"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-npm-pinned-shasum|2"
+  },
+  {
+   "task": "res-npm-pinned-shasum",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-npm-pinned-shasum|2"
+  },
+  {
+   "task": "code-imports",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-imports|2"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-imports|2"
+  },
+  {
+   "task": "code-imports",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-imports|2"
+  },
+  {
+   "task": "code-imports",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-imports|2"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-callsites|2"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-callsites|2"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-callsites|2"
+  },
+  {
+   "task": "code-callsites",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-callsites|2"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "research",
+   "rep": 2,
+   "block": "res-doc-phrase|2"
+  },
+  {
+   "task": "res-doc-phrase",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "res-doc-phrase|2"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-exports|2"
+  },
+  {
+   "task": "code-exports",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-exports|2"
+  },
+  {
+   "task": "code-exports",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-exports|2"
+  },
+  {
+   "task": "code-exports",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-exports|2"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-define-large|2"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-define-large|2"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-define-large|2"
+  },
+  {
+   "task": "code-define-large",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-define-large|2"
+  },
+  {
+   "task": "code-guard",
+   "profile": "research",
+   "rep": 2,
+   "block": "code-guard|2"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code",
+   "rep": 2,
+   "block": "code-guard|2"
+  },
+  {
+   "task": "code-guard",
+   "profile": "pi-defaults",
+   "rep": 2,
+   "block": "code-guard|2"
+  },
+  {
+   "task": "code-guard",
+   "profile": "lean-code-hinted",
+   "rep": 2,
+   "block": "code-guard|2"
+  }
+ ]
+}

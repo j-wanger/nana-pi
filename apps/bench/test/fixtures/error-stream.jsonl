@@ -1,0 +1,5 @@
+{"type": "session", "version": 3, "id": "e", "timestamp": "2026-09-08T12:00:00.000Z", "cwd": "/tmp/work"}
+{"type": "turn_start"}
+{"type": "message_end", "message": {"role": "assistant", "content": [], "provider": "openai-codex", "model": "gpt-5.6-sol", "usage": {"input": 10, "output": 0, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 10}, "stopReason": "error", "errorMessage": "401 unauthorized: invalid api key", "timestamp": 1}}
+{"type": "agent_end", "messages": []}
+{"type": "agent_settled"}

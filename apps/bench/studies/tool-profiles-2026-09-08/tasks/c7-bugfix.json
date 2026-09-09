@@ -1,0 +1,30 @@
+{
+	"id": "code-bugfix",
+	"family": "code",
+	"timeoutMs": 420000,
+	"prompt": "Running `node packages/nana-stage/tests/blocks.test.mjs` in this repository currently fails one assertion. A single line of source code is wrong. Find it, fix it so the whole suite passes, and change nothing except that one source file. Do not edit anything under `packages/nana-stage/tests/`. When you are done, reply with ONLY the path of the file you changed.",
+	"mutations": [
+		{
+			"file": "packages/nana-stage/lib/blocks.mjs",
+			"find": "parseFloat(n.toFixed(2))",
+			"replace": "parseFloat(n.toFixed(1))",
+			"note": "fmtNum rounds to 1 decimal instead of 2 — breaks exactly one assertion ('chart text: a per-series summary, not the points'), 111 others still pass"
+		}
+	],
+	"keyDerivation": {
+		"command": "apply the mutation, then: node packages/nana-stage/tests/blocks.test.mjs",
+		"output": "exit 1, 111 PASS, 1 FAIL 'chart text: a per-series summary, not the points'; unmutated the same command exits 0"
+	},
+	"check": {
+		"type": "all",
+		"checks": [
+			{
+				"type": "changed-paths",
+				"allow": ["packages/nana-stage/lib/blocks.mjs"],
+				"protect": ["packages/nana-stage/tests/**"],
+				"note": "the fix must be the fix: not an edit to the suite, not a process.exit(0) dropped into an unrelated module, not a new file the suite happens to import"
+			},
+			{ "type": "command", "commands": [["node", "packages/nana-stage/tests/blocks.test.mjs"]] }
+		]
+	}
+}

@@ -20,9 +20,6 @@ Sibling repo to `~/nana-agent-loop`.
   via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `apps/desk/` — nana code, a zero-dependency local browser dashboard over pi sessions.
-- `apps/bench/` — a reusable benchmark for pi itself: run the same tasks through different
-  tool/prompt profiles and record tokens, wall time, tool-call mix and deterministic
-  correctness. Studies live in `apps/bench/studies/`; see `apps/bench/README.md`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 

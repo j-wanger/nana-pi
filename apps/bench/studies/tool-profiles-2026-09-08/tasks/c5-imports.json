@@ -1,0 +1,23 @@
+{
+	"id": "code-imports",
+	"family": "code",
+	"prompt": "Find every file in this repository that contains an `import ... from` statement whose module specifier ends with `blocks.mjs`. Reply with ONLY a JSON array of those file paths, relative to the repository root, with no other text.",
+	"key": "6 files",
+	"keyDerivation": {
+		"command": "grep -rn \"from \\\"[^\\\"]*blocks\\.mjs\\\"\\|from '[^']*blocks\\.mjs'\" .",
+		"output": "apps/desk/public/stage/stage.js:5 · apps/desk/test/app-listener.test.mjs:9 · apps/desk/test/stage-chain-edge.e2e.mjs:15 · apps/desk/test/stage-chain.e2e.mjs:14 · packages/nana-stage/extensions/nana-stage.ts:18 · packages/nana-stage/tests/blocks.test.mjs:7"
+	},
+	"check": {
+		"type": "json-path",
+		"path": "$",
+		"unordered": true,
+		"value": [
+			"apps/desk/public/stage/stage.js",
+			"apps/desk/test/app-listener.test.mjs",
+			"apps/desk/test/stage-chain-edge.e2e.mjs",
+			"apps/desk/test/stage-chain.e2e.mjs",
+			"packages/nana-stage/extensions/nana-stage.ts",
+			"packages/nana-stage/tests/blocks.test.mjs"
+		]
+	}
+}

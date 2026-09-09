@@ -1,0 +1,5 @@
+{"type": "session", "version": 3, "id": "t", "timestamp": "2026-09-08T12:00:00.000Z", "cwd": "/tmp"}
+{"type": "turn_start"}
+{"type": "tool_execution_start", "toolCallId": "d1", "toolName": "bash", "args": {}}
+{"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "blocks.mjs:53"}, {"type": "toolCall", "id": "d1", "name": "bash", "arguments": {}}], "provider": "openai-codex", "model": "gpt-5.6-sol", "usage": {"input": 900, "output": 20, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 920}, "stopReason": "toolUse", "timestamp": 1}}
+{"type": "agent_end", "messages": []}
