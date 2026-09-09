@@ -224,17 +224,16 @@ not just what the server does internally.
 ## Contract notes (2026-09-09)
 
 - **Stage signing keys belong to the session, not to the child, and the desk keeps a record of
-  them on disk.** New file: `~/.pi/agent/nana-desk/stage-keys.json` (directory `0700`, file
-  `0600`, written temp-file-then-rename so a reader never sees a half-written one). It holds
-  `{"v":1,"sessions":{"<pi session id>":{"keys":["<hex>", …],"updatedAt":<ms>}}}` — the keys this
-  desk has issued for that session, most recent first, keyed by the pi session header `id` so
-  renaming a session file does not lose them. **Two eviction limits, both of which put a
-  session's older blocks back to redacted when they bite:** at most **8 keys per session** (the
-  9th drops the oldest) and at most **512 sessions** in the file (the least recently updated are
-  dropped), on top of the hygiene pass that forgets sessions with no file left under
-  `~/.pi/agent/sessions/`. Concurrent desks are safe: the read-merge-write is serialized across
-  processes by a lock file beside the store (`stage-keys.json.lock`, taken over if a crashed desk
-  left one more than 30 s old). What changes for a caller:
+  them on disk.** New directory: `~/.pi/agent/nana-desk/stage-keys/` (`0700` when the desk
+  creates it), holding **one file per session**, `<pi session id>.json` (`0600`), written
+  temp-file-then-rename so a reader never sees a half-written one:
+  `{"v":1,"keys":["<hex>", …],"updatedAt":<ms>}` — the keys this desk has issued for that
+  session, most recent first, at most **8** (the 9th drops the oldest, and blocks signed under a
+  dropped key go back to redacted). A session whose file is gone from `~/.pi/agent/sessions/` has
+  its record deleted the first time a desk opens an app. Records are kept per session precisely
+  so there is nothing shared to merge or lock: a session id that is not name-shaped
+  (`[A-Za-z0-9_-]{1,128}`) is neither recorded nor looked up, since it becomes a filename.
+  What changes for a caller:
   - **Spawning an app session on a session this desk already knows reuses that session's most
     recent key** instead of minting a new one, so `GET /api/entries` still returns the blocks
     minted before the restart as `nana-block` rather than `nana-block-rejected`.
@@ -243,16 +242,18 @@ not just what the server does internally.
     strong as the single key it replaces: a forging extension or a hand-edited session file holds
     none of them, and this is what makes resume, restart, an in-child `switch_session` and a fork
     all verify. Nothing became acceptable that was not signed by a key this desk issued.
-    **What the check proves, exactly:** possession of a key this desk minted and wrote into its
-    own store for the session the child *says* it is holding. It is not an authenticated claim
-    about which session, app or child produced the block — session identity is not
-    cryptographically bound, and a key can be reused by any child the desk hands it to.
+    **What the check proves, exactly:** possession of a key this desk minted and recorded for the
+    session the child *says* it is holding. It is not an authenticated claim about which session,
+    app or child produced the block — session identity is not cryptographically bound, and a key
+    can be reused by any child the desk hands it to. Persistence is **best effort**: a key whose
+    save failed still verifies for this desk (it is held in memory and the next record for that
+    session retries the write), but is gone after a restart.
   - **A fork or clone inherits the source session's recorded keys.** pi copies the source's
-    ledger entries into a new session file under a new header id, so the desk seeds the new
-    session's record from the id the same child was observed holding immediately before — its own
-    observation, never the `parentSession` text in the file. The same rule fires on
-    `new_session`, where nothing is inherited, so a fresh session's record can carry keys from
-    the session the child came from.
+    ledger entries into a new session file under a new header id, so the desk asks the child
+    which session it holds *before* running the fork and seeds the new session's record from
+    that — its own observation, never the `parentSession` text in the file, and never the last id
+    it happened to see. If the source cannot be established, nothing is inherited and the fork's
+    copied blocks redact. `switch_session` and `new_session` inherit nothing, by construction.
   - If the child's current session cannot be established at read time (a failed `get_state`),
     there is **no** widening at all: only the live child's own key is used, so a block signed
     under another recorded key of that session redacts until the session can be read again.
@@ -305,24 +306,31 @@ is not":
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
   whose destination comes from a *request* — a context file in a picked directory, a subagent
   `.md` — do refuse a symlinked destination or `.bak` with 409 (`53d4aab`). The stage-key store
-  (`nana-desk/stage-keys.json`) follows the same policy: a link at that path is resolved first,
-  and everything that touches bytes — the read, the atomic temp-then-rename, the lock file and
-  the move-aside of an unreadable store — happens on the real file, never on the link.
-- **The stage-key store is synchronous, on the event loop.** Reading it, the one-time session
-  enumeration behind its hygiene pass, and every save (including up to ~2 s waiting for another
-  desk's lock) block the whole desk while they run. A hung filesystem under `~/.pi/agent` stalls
-  the process, not just the request that touched it.
-- **Ledger reads count toward the RPC cap.** `GET /api/entries` now issues two RPCs (the entries
-  and a `get_state` to establish the session), so unanswered ledger reads consume the per-child
-  pending-RPC allowance and can hold prompts off until they answer or time out. Temporary, not a
-  wedge.
+  follows the same policy at the DIRECTORY level: a symlinked `nana-desk/stage-keys` is resolved
+  once at first use and every record is then read, written and moved aside inside the resolved
+  directory. A directory the desk did not create is never re-permissioned — if it is looser than
+  `0700` the desk says so once and leaves it alone.
+- **The stage-key store is synchronous, on the event loop.** Its small per-session reads and
+  writes, and the one-time session enumeration behind its hygiene pass, block the whole desk
+  while they run. A hung filesystem under `~/.pi/agent` stalls the process, not just the request
+  that touched it.
+- **Two desks can lose one key for the same session.** Each record is one file written with a
+  plain rename, so two desks that record *different new* keys for the *same* session at the same
+  instant leave whichever wrote last; the other key survives only in that desk's memory, and
+  after it exits, blocks signed with it redact. Nothing is corrupted and no other session is
+  affected. This is the deliberate price of having no cross-process lock.
+- **Ledger reads and lifecycle RPCs cost extra round trips.** `GET /api/entries` issues two RPCs
+  (the entries and a `get_state` to establish the session), and a `fork`/`clone` waits for a
+  `get_state` before and after it. So unanswered ledger reads consume the per-child pending-RPC
+  allowance and can hold prompts off until they answer or time out, and a lifecycle command
+  completes a round trip or two later than it used to. Temporary, not a wedge.
 - **Stage blocks minted before 2026-09-09 stay redacted.** The desk only started writing down
   which signing key it issued for which session on that date, so a block signed under a key from
   before it has nothing that can vouch for it and `/api/entries` still returns it as
   `nana-block-rejected`. That is the provenance rule working, not a render bug. The same is true
-  of any session whose entry has aged out of the record: 8 keys per session, 512 sessions in the
-  file, and a session with no file left under `~/.pi/agent/sessions/` is forgotten the first time
-  a desk opens an app.
+  of any session whose keys have aged out of its record (8 per session), and of any session with
+  no file left under `~/.pi/agent/sessions/`, whose record is deleted the first time a desk opens
+  an app.
 - **Client-side races remain.** Switching sessions while a `get_messages` resync is in flight can
   repaint the new pane with the old session's messages (`public/app.js` `resync()` re-reads the
   live-session handle after the await with no generation check); SSE reconnect, bash
