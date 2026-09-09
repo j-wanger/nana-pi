@@ -221,17 +221,27 @@ sleeps became readiness handshakes.
   after the source check, holds only unsaved ADDITIONS in the failed-write overlay (keeping the
   whole record masked and then overwrote another desk's later keys), bounds queued session
   changes at 8 per child with a 429 over that, and replaces the timed overlap tests with
-  handshakes. 72 checks; with the code reverted, the 6 new ones fail.
+  handshakes. 72 checks; with the code reverted, the 6 new ones fail. Round 5 (BLOCK) found no
+  provenance hole and no regression, but the confirmation budget was advertised rather than
+  enforced — every attempt still carried the 30 s RPC timeout — and seven doc sentences outran
+  the code. `fda7c66` makes the budget real (checked before each attempt, raced against each
+  answer, a late answer ignored), deletes the desk's last remembered session identity as dead
+  state (nothing read it, so its invariant could not be observed — better removed than asserted),
+  releases the queue handshake only on a real 429, and corrects every doc sentence. 74 checks.
   **Open sub-items** (each declared in `apps/desk/README.md`): two desks WRITING one session's
   record in the same instant keep only the last writer's, losing whatever the other write was
   adding — one key, or a whole inheritance (sequential writers each re-read first, so they lose
-  nothing); a key lost that way is retained nowhere and redacts from the next lookup; an
-  extension slash command run off a `prompt` can move the session between a fork's source check
-  and the fork, attributing the inheritance to the previous session; a fork whose destination
-  cannot be confirmed in three tries inherits nothing; a ledger read that lands while a
-  transition is in flight sees that session's blocks redacted for that one read, and a child that
-  exits before any later observation leaves that session unrecorded; the RPC wall-clock timeout
-  path shares the tested unsuccessful-response cleanup but is not itself covered by a test;
+  nothing); the STORE keeps no copy of a key lost that way, so it is gone from the next lookup —
+  blocks signed with it verify only for as long as it is some live child's own key; an extension
+  command run from a prompt that changes the session anywhere between the source check and the
+  destination confirmation can attribute the inheritance to whatever session the child then holds
+  (only desk-issued keys are involved); a fork whose destination cannot be confirmed within a
+  1000 ms budget (three tries, the budget checked before each and raced against each answer)
+  inherits nothing, so its copied blocks signed only by inherited keys stay redacted; a ledger
+  read that lands while a transition is in flight verifies that session against the live child's
+  key alone for that one read, and a child that exits before any later observation leaves that
+  session unrecorded; the 60 s wall-clock timeout path for a session-changing command shares the
+  tested unsuccessful-response cleanup but is not itself covered by a test;
   the record is per session, not per app, so two app children that hold the same session file
   vouch for each other's blocks; the session id a child is filed under is self-reported through
   `get_state`, so the check proves possession of a desk-issued key for the session the child
