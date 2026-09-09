@@ -227,7 +227,16 @@ sleeps became readiness handshakes.
   the code. `fda7c66` makes the budget real (checked before each attempt, raced against each
   answer, a late answer ignored), deletes the desk's last remembered session identity as dead
   state (nothing read it, so its invariant could not be observed — better removed than asserted),
-  releases the queue handshake only on a real 429, and corrects every doc sentence. 74 checks.
+  releases the queue handshake only on a real 429, and corrects every doc sentence. Round 6
+  returned PASS on provenance and on the identity subtraction, with three small items: the budget
+  bounded waiting but not acceptance (a response landing on the deadline could still win the race
+  and seed), the budget test's inheritance assertion did not discriminate, and three sentences
+  still overstated. `0dceeba` closes them — the absolute deadline is rechecked after the await
+  before an id is accepted, the test forks from a session whose key would show a wrong seed and
+  waits for the stub's acknowledgement of the late answer, and the three sentences are corrected.
+  75 checks. Its new deadline-boundary case pins the outcome but is not a reliable failure-first
+  discriminator: which of the timer and the response the event loop reaches first is not the
+  test's to schedule (it caught the pre-fix code once in three runs).
   **Open sub-items** (each declared in `apps/desk/README.md`): two desks WRITING one session's
   record in the same instant keep only the last writer's, losing whatever the other write was
   adding — one key, or a whole inheritance (sequential writers each re-read first, so they lose
