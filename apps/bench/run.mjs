@@ -28,7 +28,7 @@ import { applyMutations, copyAssets, materialize, unifiedDiff, verifyFixture } f
 import { assertFingerprint, fileSha, filterPlan, loadOrCreateSchedule, profilesFor, readJsonl, readResults, studyFingerprint, tupleKey } from "./lib/plan.mjs";
 import { renderRun } from "./lib/profiles.mjs";
 import { createPricer, loadPiExports } from "./lib/pi-exports.mjs";
-import { costOfRecord, costTotal, emptyUsage, incompleteReason, parseStream, totalTokens } from "./lib/usage.mjs";
+import { costOfRecord, costTotal, emptyUsage, incompleteReason, observedCostOfRecord, parseStream, totalTokens } from "./lib/usage.mjs";
 
 const KEY_ERROR = /\b(api[_ -]?key|unauthorized|invalid_api_key|authentication|401|403|not logged in|no credentials)\b/i;
 /** Emitted on stderr by ext/bench-nested-usage.ts when nested spend outlived its tool result. */
@@ -42,6 +42,12 @@ const UNATTACHED_MARKER = "bench-nested-usage: UNATTACHED";
 export const spendOf = (r) => r?.spend ?? (r?.totalTokens ?? 0) + totalTokens(r?.nestedTokens);
 /** Money, in pi's own numbers — the SHARED helper, so runner and aggregator cannot disagree. */
 export const costOf = costOfRecord;
+/**
+ * The PRICED part of a run, as an explicit lower bound. The budget spends this rather than
+ * `costOf(...) ?? 0`, because a run with unmeasured nested spend still cost known money for its own
+ * calls: treating it as $0 makes the running total smaller than what has already been paid.
+ */
+export const observedCostOf = (r) => observedCostOfRecord(r) ?? 0;
 
 export { filterPlan, readResults, tupleKey } from "./lib/plan.mjs";
 
@@ -117,6 +123,9 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 		const child = spawn(cmd, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32", windowsHide: true });
 		const pid = child.pid;
 		let killedCleanly = null;
+		// The live entry carries the PID as well as the kill, so an interrupt can CONFIRM the tree is
+		// gone instead of assuming the signal landed.
+		const entry = { pid, kill: () => signalTree(pid, "SIGKILL") };
 		const finish = async (exit, signal) => {
 			if (settled) return;
 			settled = true;
@@ -126,6 +135,9 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 				for (let i = 0; i < 100 && treeAlive(pid); i++) await new Promise((r) => setTimeout(r, 100));
 				killedCleanly = !treeAlive(pid);
 			}
+			// Drop it from LIVE: a finished pid can be REUSED, and treeAlive on a recycled pid would
+			// report a survivor that has nothing to do with this study.
+			LIVE.delete(entry);
 			resolve({ exit, signal, stdout: out, stderr: err, wallMs: Date.now() - t0, timedOut, killedCleanly, pid });
 		};
 		const timer = setTimeout(() => {
@@ -137,23 +149,120 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 				setTimeout(() => finish(null, "SIGKILL"), 1000).unref();
 			}, graceMs).unref();
 		}, timeoutMs);
-		if (onBuffer) onBuffer(() => out);
 		child.stdout.on("data", (d) => { out += d; });
 		child.stderr.on("data", (d) => { err += d; });
 		child.on("error", (e) => { err += `\nspawn error: ${e.message}`; finish(null, null); });
 		child.on("close", (code, signal) => finish(code, signal));
-		LIVE.add(() => signalTree(pid, "SIGKILL"));
+		LIVE.add(entry);
+		// Live readers, so an interrupt can write down what the child had already produced. Handed out
+		// AFTER the listeners are attached, so a salvage always reads the same buffers they fill.
+		if (onBuffer) onBuffer({ stdout: () => out, stderr: () => err });
 	});
 }
 
-/** Children to kill if the operator interrupts us. */
+/** Children to kill if the operator interrupts us, as `{ pid, kill }`. */
 const LIVE = new Set();
 /**
- * Salvage callbacks for runs in flight. On SIGINT each returns a record for the paid-but-unfinished
- * child — its buffered stream, its measured partial spend — so an interrupt costs the study its
- * result, never its accounting.
+ * Salvage callbacks for PAID operations in flight, keyed so they can be released one at a time.
+ * Each returns `{ path, record, evidence }` for a paid-but-unfinished child — its buffered stream,
+ * its measured partial spend — so an interrupt costs the study its result, never its accounting.
+ *
+ * LIFETIME, and why it is not "until the child exits" (astra round 5, B): the child completing is
+ * not the point at which the spend is safe. Asset copying, diffing, evidence writing and the results
+ * append all happen after it, and an interrupt in that window used to lose an already-paid run. A
+ * callback therefore stays registered until the APPEND IS ACKNOWLEDGED, which is `runPlan`'s job.
  */
-const INFLIGHT = new Set();
+const INFLIGHT = new Map();
+/** The key a run's salvage is registered under — the same tuple identity `results.jsonl` uses. */
+export const inflightRunKey = (task, profile, rep) => `${task}|${profile}|${rep}`;
+/** The key a registration probe's salvage is registered under. */
+export const inflightProbeKey = (profile) => `probe:${profile}`;
+/** Called once the record is durably appended: from here on an interrupt has nothing to salvage. */
+export const releaseInflight = (key) => INFLIGHT.delete(key);
+/** For tests: what the runner would still write down if it were interrupted right now. */
+export const inflightKeys = () => [...INFLIGHT.keys()];
+
+/**
+ * CTRL-C, done properly. The old handler signalled the children and exited on the next line, which
+ * threw away whatever was still in the pipes, never confirmed the tree was dead, and wrote no
+ * evidence for the run it was abandoning (astra round 5, B). The order here is the order that keeps
+ * a paid child accounted for:
+ *   1. signal the whole process group of every live child;
+ *   2. DRAIN, briefly and boundedly — the bytes the child wrote before it died are still coming;
+ *   3. CONFIRM termination across the group, boundedly, so `killedCleanly` is measured not assumed;
+ *   4. persist, for each paid operation in flight, the raw live buffer AS EVIDENCE and then the
+ *      partial record (`run-error: interrupted`, tokens as measured so far, `nestedUnknown`), to the
+ *      log that operation belongs to — `results.jsonl` for a run, `ledger.jsonl` for a probe.
+ * Only then may the process exit. Exported so tests can drive it without a real signal.
+ */
+export async function handleInterrupt({ resultsPath, log = console.log, drainMs = 1200, confirmMs = 1500 } = {}) {
+	const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+	const children = [...LIVE];
+	for (const c of children) c.kill();
+	if (children.length) await nap(drainMs); // bounded: an interrupt must not become a hang
+	let alive = children.filter((c) => treeAlive(c.pid));
+	const deadline = Date.now() + confirmMs;
+	while (alive.length && Date.now() < deadline) {
+		await nap(100);
+		alive = alive.filter((c) => treeAlive(c.pid));
+	}
+	// null when nothing had to be killed; false means a child may still be alive and spending.
+	const killedCleanly = children.length ? alive.length === 0 : null;
+	const persisted = [];
+	for (const [key, salvage] of [...INFLIGHT]) {
+		let s = null;
+		try {
+			s = salvage({ killedCleanly });
+		} catch (e) {
+			log(`could not build the interrupted record for ${key}: ${e.message}`);
+			continue;
+		}
+		if (!s) continue;
+		// EVIDENCE FIRST, in its own try: a failed evidence write must not cost us the record.
+		if (s.evidence) {
+			try {
+				fsSync.mkdirSync(s.evidence.dir, { recursive: true });
+				fsSync.writeFileSync(path.join(s.evidence.dir, "stream.jsonl"), s.evidence.stdout ?? "");
+				fsSync.writeFileSync(path.join(s.evidence.dir, "stderr.txt"), s.evidence.stderr ?? "");
+				if (s.evidence.argvShown) fsSync.writeFileSync(path.join(s.evidence.dir, "argv.txt"), `${s.evidence.argvShown}\n`);
+			} catch (e) {
+				log(`could not write the interrupted run's evidence for ${key}: ${e.message}`);
+			}
+		}
+		try {
+			fsSync.appendFileSync(s.path ?? resultsPath, `${JSON.stringify(s.record)}\n`);
+			persisted.push({ key, path: s.path ?? resultsPath, record: s.record });
+			INFLIGHT.delete(key);
+		} catch (e) {
+			log(`could not persist the interrupted ${key}: ${e.message}`);
+		}
+	}
+	if (killedCleanly === false) log(`WARNING: ${alive.length} child process group(s) could not be confirmed dead: ${alive.map((c) => c.pid).join(", ")}`);
+	log(`interrupted — ${persisted.length} paid operation(s) written down with their partial spend${killedCleanly === null ? "" : killedCleanly ? "; every child confirmed dead" : ""}`);
+	return { persisted, killedCleanly, alive: alive.map((c) => c.pid) };
+}
+
+/**
+ * Wire Ctrl-C to `handleInterrupt`, once. `exit` is injectable so a test can drive the REAL handler
+ * (`process.emit("SIGINT")`) without taking the test process down with it.
+ */
+export function installInterruptHandler({ resultsPath, studyDir, log = console.log, exit = (code) => process.exit(code) }) {
+	let running = false;
+	const handler = async () => {
+		if (running) return; // a second Ctrl-C must not interleave two salvage passes
+		running = true;
+		log("\ninterrupted — killing the current child and recording its partial spend");
+		try {
+			await handleInterrupt({ resultsPath: resultsPath ?? path.join(studyDir ?? ".", "results.jsonl"), log });
+		} catch (e) {
+			log(`could not complete the interrupt salvage: ${e.message}`);
+		} finally {
+			exit(130);
+		}
+	};
+	process.on("SIGINT", handler);
+	return handler;
+}
 
 /** Locate the pi CLI without a shell. Running `node <cli.js>` is the stable form. */
 export function resolvePiLauncher(study = {}) {
@@ -270,42 +379,60 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			preRun.set(rel, await fs.readFile(path.join(work, rel), "utf8"));
 		}
 
-		// Salvage hook: if the operator interrupts us mid-child, this is what gets written down.
-		const salvage = (buffered) => () => {
-			const p = parseStream(buffered(), { pricer: opts.pricer });
+		const evidenceDir = path.join(studyDir, "raw", task.id, profile.name, `rep${rep}`);
+		// Salvage hook: if the operator interrupts us — mid-child, mid-postprocessing or mid-append —
+		// this is the record AND the evidence that get written down. It reads `measured` once the child
+		// has finished, so the numbers are the ones the run actually produced rather than a re-parse.
+		const startedAt = Date.now();
+		const salvage = (readers) => ({ killedCleanly = null } = {}) => {
+			const stdout = readers.stdout();
+			const stderr = readers.stderr();
+			const m =
+				measured ??
+				(() => {
+					const p = parseStream(stdout, { pricer: opts.pricer });
+					return { tokens: p.tokens, nestedTokens: p.nested, turns: p.turns, toolCalls: p.toolCalls };
+				})();
 			return {
-				...base,
-				state: "run-error",
-				ok: null,
-				error: "interrupted (SIGINT) — partial spend recorded, result discarded",
-				tokens: p.tokens,
-				totalTokens: totalTokens(p.tokens),
-				nestedTokens: p.nested,
-				nestedUnknown: true,
-				nestedUnknownReason: "run interrupted before the stream completed",
-				spend: totalTokens(p.tokens) + totalTokens(p.nested),
-				cost: null,
-				costReason: "interrupted",
-				wallMs: null,
-				turns: p.turns,
-				toolCalls: p.toolCalls,
-				exit: null,
-				killedCleanly: null,
+				path: opts.resultsPath ?? path.join(studyDir, "results.jsonl"),
+				evidence: { dir: evidenceDir, stdout, stderr, argvShown },
+				record: {
+					...base,
+					state: "run-error",
+					ok: null,
+					error: "interrupted (SIGINT) — partial spend recorded, result discarded",
+					tokens: m.tokens,
+					totalTokens: totalTokens(m.tokens),
+					nestedTokens: m.nestedTokens,
+					// UNKNOWN, always: the stream was cut off, so no nested figure here is a total.
+					nestedUnknown: true,
+					nestedUnknownReason: "run interrupted before the stream completed",
+					spend: totalTokens(m.tokens) + totalTokens(m.nestedTokens),
+					cost: null,
+					costReason: "interrupted before the run could be priced",
+					wallMs: Date.now() - startedAt,
+					turns: m.turns,
+					toolCalls: m.toolCalls,
+					exit: null,
+					signal: null,
+					killedCleanly,
+					interrupted: true,
+					evidence: path.relative(studyDir, evidenceDir),
+				},
 			};
 		};
-		let hook = null;
+		const runKey = inflightRunKey(task.id, profile.name, rep);
 		const r = await runChild({
 			cmd: launcher.cmd,
 			args: [...launcher.pre, ...argv],
 			env,
 			cwd: work,
 			timeoutMs: opts.timeoutMs ?? task.timeoutMs ?? study.timeoutMs ?? 300000,
-			onBuffer: (read) => {
-				hook = salvage(read);
-				INFLIGHT.add(hook);
-			},
+			onBuffer: (readers) => INFLIGHT.set(runKey, salvage(readers)),
 		});
-		if (hook) INFLIGHT.delete(hook);
+		// NOT released here. The run is paid for and still unrecorded; `runPlan` releases the hook the
+		// moment the results append is acknowledged — that window is where an interrupt used to lose a
+		// paid run entirely (astra round 5, B).
 		const parsed = parseStream(r.stdout, { pricer: opts.pricer });
 		// The stderr-only UNATTACHED marker has to be folded in BEFORE `measured` is built, or a
 		// postprocessing failure would preserve the spend while losing its unknown status.
@@ -327,9 +454,10 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			killedCleanly: r.killedCleanly,
 		};
 		const unattached = unattachedEarly;
+		// One name for "some part of this run's spend is not measured", used by every cost field below.
+		const unknownSpend = parsed.nestedUnknown || unattached;
 		await copyAssets(studyDir, work, task.assets); // AFTER the child: the probe is ungrabbable
 		const diffs = fixtureDir ? await workspaceDiffs(baseline, work, fixtureDir, benchPaths) : [];
-		const evidenceDir = path.join(studyDir, "raw", task.id, profile.name, `rep${rep}`);
 		await writeEvidence(evidenceDir, { stdout: r.stdout, stderr: r.stderr, argvShown, diffs });
 
 		const check = task.check
@@ -364,11 +492,21 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			nestedUnattached: unattached,
 			skippedOwnCalls: parsed.skippedOwnCalls,
 			spend: totalTokens(parsed.tokens) + totalTokens(parsed.nested),
-			// NULL, not 0, when any part went unpriced — the aggregator reads this field directly.
-			cost: parsed.nestedCost == null && totalTokens(parsed.nested) > 0 ? null : costTotal(parsed.tokens) + (parsed.nestedCost?.total ?? 0),
-			costReason: parsed.nestedCostReason,
+			// NULL, not 0, whenever ANY part of the run went unmeasured or unpriced — including a run
+			// flagged `nestedUnknown`. The record used to write a NUMBER there and let the reader's
+			// helper correct it, so the persisted line contradicted the contract the README advertises
+			// (astra round 5, C). The writer decides; the helper only agrees.
+			cost: unknownSpend || (parsed.nestedCost == null && totalTokens(parsed.nested) > 0) ? null : costTotal(parsed.tokens) + (parsed.nestedCost?.total ?? 0),
+			costReason: unknownSpend
+				? `unmeasured nested spend (${parsed.nestedUnknownReason ?? (unattached ? "unattached-after-final-tool-result" : "unknown")})`
+				: parsed.nestedCost == null && totalTokens(parsed.nested) > 0
+					? (parsed.nestedCostReason ?? "nested spend not priced")
+					: null,
 			ownCost: parsed.tokens.cost,
 			nestedCost: parsed.nestedCost,
+			// The nested buckets that DID price, kept separately: when one model is unpriceable
+			// `nestedCost` is null, and the observed lower bound must still include the others.
+			pricedNestedCost: parsed.pricedNestedCost,
 			nestedCostReason: parsed.nestedCostReason,
 			nestedCostByModel: parsed.nestedCostByModel,
 			nestedByModel: parsed.nestedByModel,
@@ -428,8 +566,7 @@ export async function loadProbe({ study, studyDir, profile, launcher, agentDir }
 			let out = "";
 			let err = "";
 			const t = setTimeout(() => child.kill("SIGKILL"), 120000);
-			if (onBuffer) onBuffer(() => out);
-		child.stdout.on("data", (d) => { out += d; });
+			child.stdout.on("data", (d) => { out += d; });
 			child.stderr.on("data", (d) => { err += d; });
 			child.on("close", () => { clearTimeout(t); resolve({ out, err }); });
 			child.stdin.end('{"type":"get_state"}\n');
@@ -470,7 +607,44 @@ export async function registrationProbe({ study, studyDir, profile, launcher, ag
 		const { argv, env, blocked } = renderRun(profile, study, { prompt, sessionDir: path.join(runDir, "s"), agentDir, studyDir });
 		if (blocked) return { ...blank, ok: false, detail: blocked };
 
-		const r = await runChild({ cmd: launcher.cmd, args: [...launcher.pre, ...argv], env, cwd: runDir, timeoutMs });
+		// A probe is a PAID child too, so it gets the same salvage hook a graded run gets: an interrupt
+		// during the registration probe used to kill it and exit with its spend unledgered (astra
+		// round 5, B). Released by `runPlan` once the ledger append is acknowledged.
+		const evidenceDir = path.join(studyDir, "raw", "_probe", profile.name);
+		const startedAt = Date.now();
+		const salvage = (readers) => ({ killedCleanly = null } = {}) => {
+			const stdout = readers.stdout();
+			const stderr = readers.stderr();
+			const p = parseStream(stdout, { pricer });
+			return {
+				path: path.join(studyDir, "ledger.jsonl"),
+				evidence: { dir: evidenceDir, stdout, stderr, argvShown: `${launcher.cmd} ${[...launcher.pre, ...argv].join(" ")}` },
+				record: {
+					kind: "registration-probe",
+					profile: profile.name,
+					tokens: totalTokens(p.tokens) + totalTokens(p.nested),
+					// No price on a truncated stream, and no claim that the tools registered.
+					cost: null,
+					costReason: "interrupted before the probe could be priced",
+					wallMs: Date.now() - startedAt,
+					ok: false,
+					interrupted: true,
+					killedCleanly,
+					nestedUnknown: true,
+					evidence: path.relative(studyDir, evidenceDir),
+					detail: "interrupted (SIGINT) before the probe could be judged — partial spend recorded",
+				},
+			};
+		};
+		const probeKey = inflightProbeKey(profile.name);
+		const r = await runChild({
+			cmd: launcher.cmd,
+			args: [...launcher.pre, ...argv],
+			env,
+			cwd: runDir,
+			timeoutMs,
+			onBuffer: (readers) => INFLIGHT.set(probeKey, salvage(readers)),
+		});
 		const parsed = parseStream(r.stdout, { pricer });
 		measured = {
 			ok: false,
@@ -483,7 +657,6 @@ export async function registrationProbe({ study, studyDir, profile, launcher, ag
 			exit: r.exit,
 		};
 		// Evidence FIRST, and never let a write failure lose the numbers.
-		const evidenceDir = path.join(studyDir, "raw", "_probe", profile.name);
 		try {
 			await fs.mkdir(evidenceDir, { recursive: true });
 			await fs.writeFile(path.join(evidenceDir, "stream.jsonl"), r.stdout);
@@ -635,22 +808,7 @@ async function main() {
 
 	const runOpts = { ...opts, dryRun: false, agentDir, sourceDir, pricer };
 
-	// Ctrl-C: kill the child, then WRITE DOWN what it had already cost. Exiting straight after the
-	// signal threw away the buffered stream and the partial spend of a run that was genuinely paid
-	// for — the record now says `run-error: interrupted` and carries its tokens.
-	process.on("SIGINT", () => {
-		console.log("\ninterrupted — killing the current child and recording its partial spend");
-		for (const kill of LIVE) kill();
-		try {
-			for (const salvage of INFLIGHT) {
-				const rec = salvage();
-				if (rec) fsSync.appendFileSync(resultsPath, `${JSON.stringify(rec)}\n`);
-			}
-		} catch (e) {
-			console.error(`could not persist the interrupted run: ${e.message}`);
-		}
-		process.exit(130);
-	});
+	installInterruptHandler({ resultsPath, studyDir });
 
 	// Zero-token pre-flight for every profile about to run: extensions load, model resolves,
 	// pinned settings are in force. Free, so there is no reason to skip it.
@@ -706,8 +864,12 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 	const remainingWall = () => (study.maxWallMs ? study.maxWallMs - spentWall : Infinity);
 	const childTimeout = (want) => Math.min(want, remainingWall());
 	const overBudget = () => (study.maxTotalTokens && spentTokens >= study.maxTotalTokens) || remainingWall() < MIN_USEFUL_MS;
-	let spentCost = priorRecords.reduce((a, r) => a + (costOf(r) ?? 0), 0) + ledger.reduce((a, l) => a + (l.cost ?? 0), 0);
-	log(`budget so far: ${spentTokens} tokens, $${spentCost.toFixed(4)}, ${Math.round(spentWall / 60000)} min${unknownSpendRuns ? ` — ${unknownSpendRuns} run(s) carry UNMEASURED nested spend, so this is a lower bound` : ""}`);
+	// OBSERVED cost, not `costOf(...) ?? 0`: a run whose nested spend could not be measured still
+	// spent real, priced dollars on its own calls, and dropping them made the budget read LOWER than
+	// what had already been paid (astra round 5, C). The figure is a lower bound whenever
+	// `unknownSpendRuns` is nonzero, and every line that prints it says so.
+	let spentCost = priorRecords.reduce((a, r) => a + observedCostOf(r), 0) + ledger.reduce((a, l) => a + (l.cost ?? 0), 0);
+	log(`budget so far: ${spentTokens} tokens, $${spentCost.toFixed(4)}${unknownSpendRuns ? " observed" : ""}, ${Math.round(spentWall / 60000)} min${unknownSpendRuns ? ` — ${unknownSpendRuns} run(s) carry UNMEASURED nested spend, so both figures are lower bounds` : ""}`);
 
 	for (const item of todo) {
 		const task = tasks.find((t) => t.id === item.task);
@@ -741,6 +903,9 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 			} catch (e) {
 				throw new Error(`could not record the ${profile.name} registration probe (${probe.tokens} tokens already spent): ${e.message}. Refusing to spend anything further — fix the ledger, then resume.`);
 			}
+			// ACKNOWLEDGED. Only now is the probe's spend safe from an interrupt, so only now does the
+			// salvage hook come off.
+			releaseInflight(inflightProbeKey(profile.name));
 			if (probe.evidenceError) throw new Error(`the ${profile.name} registration probe ran but its evidence could not be written (${probe.evidenceError}); refusing to spend further without an audit trail`);
 			spentTokens += probe.tokens ?? 0;
 			spentWall += probe.wallMs ?? 0;
@@ -772,7 +937,7 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 			snapshotFailed = entry.error;
 		}
 
-		const rec = await runFn({ study, studyDir, task, profile, rep: item.rep, block: item.block, launcher, fingerprint, snapshotKey, snapshotFailed, opts: { ...runOpts, timeoutMs: childTimeout(task.timeoutMs ?? study.timeoutMs ?? 300000) } });
+		const rec = await runFn({ study, studyDir, task, profile, rep: item.rep, block: item.block, launcher, fingerprint, snapshotKey, snapshotFailed, opts: { ...runOpts, resultsPath, timeoutMs: childTimeout(task.timeoutMs ?? study.timeoutMs ?? 300000) } });
 		if (!rec) continue;
 		// Append on a guaranteed newline boundary (readResults already repaired any torn tail).
 		// FAIL CLOSED for the same reason as the probe: an unrecorded paid run is lost spend.
@@ -781,10 +946,13 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 		} catch (e) {
 			throw new Error(`could not record a completed run (${spendOf(rec)} tokens already spent): ${e.message}. Refusing to spend anything further.`);
 		}
+		// ACKNOWLEDGED — see the salvage hook in executeRun. Until this line an interrupt still owes
+		// the study a record for this run.
+		releaseInflight(inflightRunKey(item.task, item.profile, item.rep));
 		n++;
 		spentTokens += spendOf(rec);
 		spentWall += rec.wallMs ?? 0;
-		spentCost += costOf(rec) ?? 0;
+		spentCost += observedCostOf(rec);
 		if (rec.nestedUnknown) unknownSpendRuns++;
 		log(
 			`[${n}/${todo.length}] ${rec.task} · ${rec.profile} · rep${rec.rep} → ${rec.state.toUpperCase()} ` +
@@ -802,7 +970,7 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 		if (consecutiveHarness >= SYSTEMIC_LIMIT) { log(`STOP: ${SYSTEMIC_LIMIT} consecutive non-model failures (${rec.state}). Fix the harness rather than filling the remaining cells.`); break; }
 	}
 	log(
-		`\nspent ${spentTokens} tokens · $${spentCost.toFixed(4)} (pi's own cost arithmetic) · ${Math.round(spentWall / 60000)} min` +
+		`\nspent ${spentTokens} tokens · $${spentCost.toFixed(4)}${unknownSpendRuns ? " observed" : ""} (pi's own cost arithmetic) · ${Math.round(spentWall / 60000)} min` +
 			(unknownSpendRuns ? ` — NOT fully accounted: ${unknownSpendRuns} run(s) carry unmeasured nested spend` : " (fully accounted)") +
 			`\nresults → ${resultsPath}\nnext: node apps/bench/aggregate.mjs ${path.relative(process.cwd(), studyDir) || "."}`,
 	);

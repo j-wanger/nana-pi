@@ -76,11 +76,16 @@ export function costOfRecord(r) {
 /**
  * The priced part of a run, as an explicit LOWER BOUND. Separately named so nobody can mistake it
  * for a total: it is what `costOfRecord` would have returned had nothing been unknown.
+ *
+ * MIXED PRICING. When one nested model bucket cannot be priced, `nestedCost` is null for the whole
+ * run — correctly, because a partial total would understate it. The buckets that DID price are kept
+ * separately as `pricedNestedCost`, and the lower bound uses them: dropping known dollars because a
+ * DIFFERENT model was unpriceable understates the bound too (astra round 5, C).
  */
 export function observedCostOfRecord(r) {
 	if (!r) return 0;
 	if (typeof r.cost === "number") return r.cost;
-	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
+	return costTotal(r.tokens) + (r.nestedCost?.total ?? r.pricedNestedCost?.total ?? 0);
 }
 
 /** Why a record has no cost, for the reader who wants to know. */
@@ -226,10 +231,13 @@ export function parseStream(text, { pricer = null } = {}) {
 	// this study must not get wrong.
 	let nestedCost = nested.cost;
 	let nestedCostReason = null;
+	// The buckets we COULD price, retained even when another bucket makes `nestedCost` null.
+	let pricedNestedCost = nested.cost;
 	const nestedCostByModel = {};
 	if (nested.totalTokens > 0 && nested.cost.total === 0) {
 		if (!pricer) {
 			nestedCost = null;
+			pricedNestedCost = null;
 			nestedCostReason = "no pricer supplied (pi's calculateCost was not loaded)";
 		} else {
 			const summed = ZERO_COST();
@@ -243,6 +251,7 @@ export function parseStream(text, { pricer = null } = {}) {
 				if (!priced.cost) unpriced.push(`${key}: ${priced.reason}`);
 				else for (const k of ["input", "output", "cacheRead", "cacheWrite", "total"]) summed[k] += num(priced.cost[k]);
 			}
+			pricedNestedCost = summed;
 			if (unpriced.length) {
 				nestedCost = null;
 				nestedCostReason = unpriced.join("; ");
@@ -267,6 +276,8 @@ export function parseStream(text, { pricer = null } = {}) {
 		tokens, // pi-ai Usage — the run's OWN model calls
 		nested, // pi-ai Usage — what its tools spent
 		nestedCost, // pi's calculateCost applied per model bucket and summed, or null with a reason
+		// The same arithmetic over only the buckets that priced — a LOWER BOUND, never a total.
+		pricedNestedCost,
 		nestedCostReason,
 		nestedCostByModel,
 		nestedByModel: Object.fromEntries([...nestedByModel].map(([k, v]) => [k, v.totalTokens])),

@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { addUsage, costTotal, emptyUsage, incompleteReason, parseStream, totalTokens } from "../lib/usage.mjs";
+import { addUsage, costOfRecord, costTotal, costUnknownReason, emptyUsage, incompleteReason, observedCostOfRecord, parseStream, totalTokens } from "../lib/usage.mjs";
 import { loadPiExports, PI_MIN_VERSION, REQUIRED_PI_AI } from "../lib/pi-exports.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -128,6 +128,84 @@ check("a pricer supplies the nested cost", priced.nestedCost.total === 3);
 const unpriceable = parseStream(read("nested-usage-stream.jsonl"), { pricer: () => ({ cost: null, reason: "model x is not in pi's offline catalog" }) });
 check("an unpriceable nested model stays null with pi's reason", unpriceable.nestedCost === null && /offline catalog/.test(unpriceable.nestedCostReason));
 check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels.includes("gpt-5.6-sol"), JSON.stringify(nestedNoPricer.nestedModels));
+
+// ── MIXED pricing: one bucket prices, another does not (astra round 5, C) ─────────────────────
+// `nestedCost` must go null for the whole run — a partial total would understate it. But the
+// buckets that DID price are real, known dollars, and the observed LOWER BOUND has to keep them:
+// dropping them because a different model was unpriceable understates the bound instead.
+{
+	const mixedStream = [
+		{ type: "session", version: 3, id: "mix", timestamp: "2026-09-09T00:00:00.000Z", cwd: "/tmp" },
+		{ type: "turn_start" },
+		{ type: "tool_execution_start", toolCallId: "w1", toolName: "web_search", args: {} },
+		{
+			type: "message_end",
+			message: {
+				role: "toolResult",
+				toolCallId: "w1",
+				toolName: "web_search",
+				content: [],
+				isError: false,
+				timestamp: 2,
+				usage: { input: 3000, output: 200, cacheRead: 0, cacheWrite: 0, totalTokens: 3200, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+				details: {
+					benchNested: {
+						calls: 2,
+						models: ["gpt-5.6-terra", "gpt-5.6-luna"],
+						byModel: {
+							"openai-codex/gpt-5.6-terra": { input: 2000, output: 100, cacheRead: 0, cacheWrite: 0, totalTokens: 2100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+							"openai-codex/gpt-5.6-luna": { input: 1000, output: 100, cacheRead: 0, cacheWrite: 0, totalTokens: 1100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+						},
+					},
+				},
+			},
+		},
+		{
+			type: "message_end",
+			message: {
+				role: "assistant",
+				content: [{ type: "text", text: "done" }],
+				provider: "openai-codex",
+				model: "gpt-5.6-sol",
+				usage: { input: 500, output: 20, cacheRead: 0, cacheWrite: 0, totalTokens: 520, cost: { input: 0.005, output: 0.001, cacheRead: 0, cacheWrite: 0, total: 0.006 } },
+				stopReason: "stop",
+				timestamp: 3,
+			},
+		},
+		{ type: "agent_end", messages: [] },
+		{ type: "agent_settled" },
+	]
+		.map((l) => JSON.stringify(l))
+		.join("\n");
+	// terra prices at $0.04; luna is not in the offline catalog.
+	const halfPricer = (_u, { model }) =>
+		model === "gpt-5.6-terra"
+			? { cost: { input: 0.03, output: 0.01, cacheRead: 0, cacheWrite: 0, total: 0.04 }, reason: null }
+			: { cost: null, reason: `${model} is not in pi's offline catalog` };
+	const mixed = parseStream(mixedStream, { pricer: halfPricer });
+	check("mixed pricing: nestedCost is null for the whole run", mixed.nestedCost === null);
+	check("mixed pricing: …naming the bucket that could not be priced", /gpt-5\.6-luna is not in pi's offline catalog/.test(mixed.nestedCostReason ?? ""), String(mixed.nestedCostReason));
+	check("mixed pricing: the priced buckets are RETAINED separately", mixed.pricedNestedCost?.total === 0.04, JSON.stringify(mixed.pricedNestedCost));
+	check("mixed pricing: per-model costs record which one is unknown", mixed.nestedCostByModel["openai-codex/gpt-5.6-terra"] === 0.04 && mixed.nestedCostByModel["openai-codex/gpt-5.6-luna"] === null, JSON.stringify(mixed.nestedCostByModel));
+	// The record the runner would persist for that run.
+	const rec = {
+		tokens: mixed.tokens,
+		nestedTokens: mixed.nested,
+		nestedUnknown: mixed.nestedUnknown,
+		cost: null,
+		costReason: mixed.nestedCostReason,
+		nestedCost: mixed.nestedCost,
+		pricedNestedCost: mixed.pricedNestedCost,
+	};
+	check("mixed pricing: the run has no total cost", costOfRecord(rec) === null);
+	check("mixed pricing: …but its observed lower bound keeps own + priced nested", Math.abs(observedCostOfRecord(rec) - 0.046) < 1e-9, String(observedCostOfRecord(rec)));
+	check("mixed pricing: …and the reason is readable", typeof costUnknownReason(rec) === "string" && costUnknownReason(rec).length > 0, String(costUnknownReason(rec)));
+	// UNKNOWN nested spend is a different condition from "unpriced", and both null the total.
+	const unknownRec = { tokens: mixed.tokens, nestedTokens: mixed.nested, nestedUnknown: true, nestedUnknownReason: "no-network-observed", cost: null, pricedNestedCost: mixed.pricedNestedCost };
+	check("unknown nested spend: no total cost", costOfRecord(unknownRec) === null);
+	check("unknown nested spend: the observed bound is STILL the known dollars, not 0", Math.abs(observedCostOfRecord(unknownRec) - 0.046) < 1e-9, String(observedCostOfRecord(unknownRec)));
+	check("unknown nested spend: the reason names the unmeasured part", /unmeasured nested spend/.test(costUnknownReason(unknownRec) ?? ""), String(costUnknownReason(unknownRec)));
+}
 
 // ── startup export check: a bench must FAIL rather than substitute its own arithmetic ──────────
 {

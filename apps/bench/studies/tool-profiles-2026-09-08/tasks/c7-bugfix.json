@@ -13,7 +13,8 @@
 	],
 	"keyDerivation": {
 		"command": "node -e \"import('./packages/nana-stage/lib/blocks.mjs').then(m=>console.log(m.fmtNum(0.5761), m.fmtNum(-2.345)))\"  in the pristine fixture, and again after the mutation",
-		"output": "pristine: 0.5761 → \"0.58\", -2.345 → \"-2.35\". Mutated (toFixed(1)): \"0.6\", \"-2.3\". Those two probes discriminate; the rest guard against a fix that breaks other cases."
+		"output": "pristine: 0.5761 → \"0.58\", -2.345 → \"-2.35\". Mutated (toFixed(1)): \"0.6\", \"-2.3\". Those two probes discriminate; the rest guard against a fix that breaks other cases.",
+		"probeDerivation": "Every `equals` above was recorded by RUNNING the pristine fixture function, not reasoned out: `cd studies/tool-profiles-2026-09-08/fixture && node --input-type=module -e \"const m = await import('./packages/nana-stage/lib/blocks.mjs'); for (const a of [-0, -1e21, '3.140', NaN, '']) console.log(JSON.stringify(m.fmtNum(a)));\"` → \"0\", \"-1e+21\", \"3.140\", \"NaN\", \"\". The first two probes discriminate the mutation; the rest are guards against a fix that breaks another case."
 	},
 	"check": {
 		"type": "all",
@@ -109,6 +110,55 @@
 							}
 						],
 						"includes": "## t"
+					},
+					{
+						"name": "fmtNum(-0) is \"0\", not \"-0\"",
+						"export": "fmtNum",
+						"args": [
+							{
+								"$": "-0"
+							}
+						],
+						"equals": "0",
+						"derivation": "pristine fmtNum(-0) → \"0\" (Number.isInteger(-0) is true, String(-0) is \"0\"). The -0 escape exists because JSON.stringify(-0) is \"0\", so a literal in this file would silently become +0."
+					},
+					{
+						"name": "fmtNum(-1e21) keeps exponential form",
+						"export": "fmtNum",
+						"args": [
+							-1e+21
+						],
+						"equals": "-1e+21",
+						"derivation": "pristine fmtNum(-1e21) → \"-1e+21\" (an integer value, so String(n) with no toFixed). Guards the negative twin of the existing 1e21 probe."
+					},
+					{
+						"name": "fmtNum(\"3.140\") passes a non-number through untouched",
+						"export": "fmtNum",
+						"args": [
+							"3.140"
+						],
+						"equals": "3.140",
+						"derivation": "pristine fmtNum(\"3.140\") → \"3.140\" (Number.isFinite does not coerce, so the string is returned by String(n) with its trailing zero intact). A fix that starts coercing inputs breaks here."
+					},
+					{
+						"name": "fmtNum(NaN) is stringified",
+						"export": "fmtNum",
+						"args": [
+							{
+								"$": "NaN"
+							}
+						],
+						"equals": "NaN",
+						"derivation": "pristine fmtNum(NaN) → \"NaN\" (not finite → String(n))."
+					},
+					{
+						"name": "fmtNum(\"\") stays the empty string",
+						"export": "fmtNum",
+						"args": [
+							""
+						],
+						"equals": "",
+						"derivation": "pristine fmtNum(\"\") → \"\" (Number.isFinite(\"\") is false → String(\"\")). A guard that treats \"\" as 0 would return \"0\" here."
 					}
 				]
 			},

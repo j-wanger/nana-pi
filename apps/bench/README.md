@@ -13,7 +13,7 @@ Cross-platform, `node <file>` tests, no npm dependencies of its own.
 | ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 0.84.4 |
 | **`pi-web-access`** under `apps/bench/.ext/` | profile C **only**. Reviewed, content-pinned by sha256 in `study.json`, deliberately **not vendored** into this repo | **0.28.0** — `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0` |
 | **Playwright** | — | **none.** The bench has no browser tests |
-| anything else from npm | — | **none.** Zero runtime dependencies; the ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls |
+| anything else from npm | — | **none.** Zero runtime dependencies; the `test/*.test.mjs` files are zero-dep `node <file>` runs with no model calls |
 
 Resolution reuses the pi installation the runner already found (`BENCH_PI_ROOT` overrides, and is
 *exclusive* when set). A missing install, or a pi without those root exports, is a **loud fatal
@@ -33,10 +33,14 @@ node apps/bench/test/plan.test.mjs             # each test: exit 0 = all PASS
 `--go` is mandatory for real spend: with no flag the runner only prints. `--keep` leaves each run's
 temp workspace in place (evidence is saved either way).
 
-**Interrupting:** Ctrl-C kills the current child (and its process group) and exits 130. Every run
-already appended to `results.jsonl` is kept and will be skipped on the next `--go`; the run that
-was in flight is simply not recorded, and will be re-run. That is the whole guarantee — there is no
-graceful drain and no partial-run salvage.
+**Interrupting:** Ctrl-C signals the current child (and its process group), then — before exiting
+130 — drains what the child had already written with a bounded wait, confirms the whole group is
+dead, and writes down both the raw live stream (as evidence) and a `run-error: interrupted` record
+carrying the tokens measured so far, `cost: null` and `nestedUnknown`. A paid child in flight
+therefore costs the study its RESULT, never its accounting. The same holds for the paid registration
+probe, whose partial spend lands in `ledger.jsonl` marked `ok: false`, so a resume re-runs it instead
+of trusting it. Runs already appended to `results.jsonl` are kept and skipped on the next `--go`; an
+interrupted tuple is recorded as undecided and will be re-run only if its line is deleted.
 
 ## What it measures
 
@@ -49,7 +53,7 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 | `tokens` / `totalTokens` | the run's OWN model calls — assistant messages only — as `{in, out, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
 | `nestedTokens` / `nestedCalls` | LLM calls an extension made on the run's behalf. Kept strictly apart from `tokens`, so `spend` adds them exactly once |
 | `spend` | `totalTokens + nestedTokens` — the run's true cost |
-| `cost` / `ownCost` / `nestedCost` | money, from pi's own `calculateCost`. `null` **with a reason** whenever any part of the run was unmeasured or unpriced — including any run flagged `nestedUnknown`. The priced part is available separately as an explicit lower bound, never as a total |
+| `cost` / `ownCost` / `nestedCost` / `pricedNestedCost` | money, from pi's own `calculateCost`. `cost` is `null` **with a reason** whenever any part of the run was unmeasured or unpriced — including any run flagged `nestedUnknown` — and the RECORD says so, rather than leaving the reader's helper to correct it. The priced part is available separately as an explicit lower bound, never as a total: `pricedNestedCost` keeps the nested buckets that DID price when another model made `nestedCost` null, and the budget spends that bound so known dollars are not counted as zero |
 | `model` / `provider` / `nestedModels` | what pi actually ran, and what the nested calls were billed against (they differ: a `web_search` billed `gpt-5.6-terra` while the run used `gpt-5.6-sol`) |
 | `nestedUnknown` / `nestedUnattached` | nested spend that could not be measured (*unknown*, never 0), and whether it arrived after the last tool result |
 | `skippedOwnCalls` | LLM requests the sidecar saw OUTSIDE any tool window — i.e. pi's own calls, correctly not counted as nested. Recorded so the scoping is auditable |
@@ -140,19 +144,32 @@ and no denylist closes that class.
 So `eval-module` grades behaviour in a separate process:
 
 1. the parent invents a 32-byte nonce and hands it, with the probe spec, over **file descriptor 4**
-   — not argv, not the environment;
+   — not argv, not the environment — and **unlinks the backing file before spawning**, so the nonce
+   is not sitting in `os.tmpdir()` for a module that runs as the same user to read;
 2. `lib/eval-module.mjs` (outside the fixture, content-pinned in `study.json`) consumes and closes
-   fd 4 and captures every function it will need — `fs.writeSync`, `createHmac`, `JSON.stringify`,
-   the error constructors — **before importing anything**;
-3. it imports the module and calls the named exports, comparing returned **primitives** with `===`,
-   or requiring a thrown error class; nothing goes through stdout or an overridable prototype method
-   on a value the module produced;
-4. it writes ONE line to fd 3: the JSON verdict plus `HMAC-SHA256(nonce, json)`.
+   fd 4 and captures every function it will need — `fs.writeSync`, `createHmac` **and
+   `Hmac.prototype.update`/`digest`**, `Object.keys`, `Object.getPrototypeOf`, `Reflect.apply`,
+   `Buffer.byteLength`, the error **prototypes** — **before importing anything**;
+3. it imports the module and calls the named exports through captured `Reflect.apply`, comparing
+   returned **primitives** with `===` (a non-primitive return is rejected explicitly, before the
+   comparison), or requiring a thrown error class — decided by walking the thrown value's prototype
+   chain, never by `.name` or `instanceof`; nothing goes through stdout or an overridable prototype
+   method on a value the module produced;
+4. it serialises the verdict with a **hand-rolled serialiser over captured primitives only** — no
+   `JSON.stringify`, because the original still calls an inherited `Object.prototype.toJSON`, which
+   is how a reviewer signed a passing verdict for a wrong answer — and writes ONE line to fd 3: that
+   JSON plus `HMAC-SHA256(nonce, json)`.
 
-The parent ignores exit status and stdout entirely and accepts only a line whose HMAC verifies. The
-module may write to fd 3, monkeypatch `fs.writeSync`, replace `JSON.stringify` — it cannot forge the
-signature, because the nonce is unreachable by the time it runs. **No signed verdict is a failure,
-never a pass**, and a hang is a grader error.
+The parent ignores exit status and stdout entirely and accepts **exactly one** line whose HMAC
+verifies: two valid lines mean the nonce leaked, which is a grader error rather than a choice between
+two stories. It also validates the verdict's shape and its probe count against the spec it sent. The
+module may write to fd 3, monkeypatch `fs.writeSync`, replace `JSON.stringify`, patch
+`Array.prototype`, `TextEncoder.prototype`, `Hmac.prototype` or `Error.prototype.name` — it cannot
+forge the signature, and it cannot change what the signature covers. **No signed verdict is a
+failure, never a pass.** An UNFINISHED evaluation is a **grader error**, not a failure: a module that
+exits during import, or a top-level `await` that never settles (Node exits 13 before any timeout),
+tells us nothing about the behaviour asked for. A hang is a grader error too, by the parent's
+spawn timeout.
 
 **Threat model.** In scope: everything the module can do from inside its own process — tampering
 with globals, prototypes, stdout, exit status, fd 3, the filesystem. Out of scope: scanning this
@@ -162,8 +179,11 @@ evaluated and returns correct values only then — returning correct values *is*
 asked for, and `withinLines` bounds where such a branch could hide.
 
 `spawnSync` cannot feed an anonymous pipe on a non-stdin descriptor, so fd 4 is backed by a 0600
-temp file removed as soon as the child exits. The property that matters is unchanged: the nonce is
-consumed and the descriptor closed before untrusted code runs.
+temp file — **unlinked before the child is spawned**, which keeps the bytes reachable through the
+parent's open descriptor and removes them from every pathname. Mode 0600 was never isolation here:
+the module runs as the same user and could read the file. The property that matters is unchanged and
+now actually holds: the nonce is consumed, the descriptor closed, and the path gone before untrusted
+code runs.
 
 ## Ordering, identity and resume
 
@@ -378,6 +398,7 @@ lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               eleven test files, no model calls (including a stub-child integration test)
+test/               thirteen test files, no model calls (stub-child integration + orchestration +
+                    an adversarial matrix against the trusted evaluator)
 studies/            one directory per study
 ```

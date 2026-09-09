@@ -105,9 +105,15 @@ list its tools, because RPC cannot confirm tool *registration*.
   - **Silence is not zero.** A watched tool that ran while *no* request reached the interceptor is
     `unknown: "no-network-observed"`, not free — a cache hit and a transport we cannot observe look
     identical from here.
-  - **The coverage hole, now named.** pi's Codex API speaks over a **WebSocket**
-    (`pi-ai/dist/api/openai-codex-responses.js`: 95 WebSocket references, zero `fetch(` calls), so
-    anything routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper.
+  - **The coverage hole, now named.** pi's Codex API speaks over a **WebSocket by default**
+    (`pi-ai/dist/api/openai-codex-responses.js`: 95 WebSocket references; it obtains
+    `globalThis.WebSocket` at connection time and constructs it), so a nested call on that path never
+    reaches a fetch wrapper. It is **not fetch-free**: the same adapter falls back to SSE over
+    `(options?.fetch ?? globalThis.fetch)` (same file, one call site — re-checked against the
+    installed 0.84.4 on 2026-09-09), and that fallback path IS visible to the sidecar's wrapper.
+    What is invisible is the WebSocket default, which is what the traffic actually used. So:
+    anything routed through pi-ai's `complete`/`completeSimple` over the WebSocket transport is
+    unmeasured, and the SSE fallback is measured like any other fetch.
     pi-web-access's *search* step does its own hand-rolled HTTP POST and IS visible; its *summary*
     step goes through pi-ai and is NOT. In the diagnostic run both tool results reported a
     `summary-model` phase on `openai-codex/gpt-5.6-luna` whose tokens were never counted — and the
@@ -159,19 +165,29 @@ So correctness is decided by **behaviour, in a trusted process the module cannot
 The probe values were derived from the pristine fixture at design time and are recorded in the task.
 
 - `code-bugfix`: a declared one-line mutation makes `fmtNum` round to one decimal. The verdict is
-  eight behaviour probes on `fmtNum` — `0.5761 → "0.58"` and `-2.345 → "-2.35"` discriminate, the
-  rest guard against a fix that breaks integers, `Infinity`, float noise or exponentials — plus
-  `withinLines` (the change must live in lines 150-153, `fmtNum`'s span) and the protected test tree.
-  The existing suite's `PASS` count is kept as a **non-authoritative** "did you break anything else"
-  signal, explicitly not a verdict.
-- `code-guard`: the verdict is eight behaviour probes on `clampText` — five invalid inputs must throw
-  `TypeError`, short text must be returned unchanged, long text must be clamped to the byte cap and
-  announce the cut — plus `withinLines` for the guard site, a new test file that exists and
-  references `clampText` outside a comment, and `revert-and-fail` as **best-effort evidence** that
-  the model's own test detects the missing guard: with the guard reverted it must run and end badly
-  by **any ordinary failure mode**, a bare `node:assert` throw included. (Requiring a `FAIL` line or
-  a trusted nonzero exit rejected perfectly good `assert.throws` tests; the prompt never asked for a
-  reporting convention.) The trusted evaluator, not the model's test, is the correctness verdict.
+  **thirteen** behaviour probes on `fmtNum` — `0.5761 → "0.58"` and `-2.345 → "-2.35"` discriminate,
+  the rest guard against a fix that breaks integers, `Infinity`, float noise, exponentials, **signed
+  zero (`-0 → "0"`), large negative exponentials (`-1e21 → "-1e+21"`) or non-numbers (`"3.140"`,
+  `NaN`, `""` are passed through untouched)** — plus `withinLines` (the change must live in lines
+  150-153, `fmtNum`'s span) and the protected test tree. Every expected value was recorded by RUNNING
+  the pristine fixture function, and `test/study-tasks.test.mjs` re-derives all of them from the
+  pinned fixture so a guessed value cannot survive. The existing suite's `PASS` count is kept as a
+  **non-authoritative** "did you break anything else" signal, explicitly not a verdict.
+- `code-guard`: the verdict is **nineteen** behaviour probes on `clampText` — **eleven** invalid caps
+  must throw `TypeError` (0, negative, non-integer, string, null, **NaN, Infinity, undefined, `true`,
+  `false`, and 0 with EMPTY text, which is what forces the guard ahead of the function's early
+  return**), and the valid cases pin pristine behaviour exactly: short text unchanged, long text
+  clamped to the byte cap and announcing the cut, **cap 1, a very large cap, empty text, and
+  multibyte truncation with its exact content (`"日本語テキスト"` at 12 bytes → `"日本語テ"`, at 11
+  bytes → `"日本語"`)**. Around them: `withinLines` for the guard site, a new test file that exists
+  and references `clampText` outside a comment, **that same test RUN against the fixed source, where
+  it must exit 0**, and `revert-and-fail` as **best-effort evidence** that it detects the missing
+  guard — with the guard reverted it must run and end badly by **any ordinary failure mode**, a bare
+  `node:assert` throw included. (Requiring a `FAIL` line or a trusted nonzero exit rejected perfectly
+  good `assert.throws` tests; the prompt never asked for a reporting convention.) The two runs are a
+  PAIR and both halves are required: with only the reverted run, a correct guard shipped with a test
+  that fails unconditionally — or does not parse — passed the whole grader. The trusted evaluator,
+  not the model's test, is still the correctness verdict.
 
 **RESEARCH family (B, C), 6 tasks**, no fixture. B has no web tools but does have `bash` (curl,
 node), so this measures dedicated web tools against shelling out, not against nothing. Answers are

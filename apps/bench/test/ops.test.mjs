@@ -5,7 +5,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { budgetFrom, costOf, readKeys, readLedger, shouldStopForKill, spendOf, systemicStreak, SYSTEMIC_LIMIT, treeAlive } from "../run.mjs";
+import { budgetFrom, costOf, observedCostOf, readKeys, readLedger, shouldStopForKill, spendOf, systemicStreak, SYSTEMIC_LIMIT, treeAlive } from "../run.mjs";
 import { spawn } from "node:child_process";
 
 let fails = 0;
@@ -73,6 +73,20 @@ check("costOf adds own cost and nested cost", Math.abs(costOf(priced) - 0.03) < 
 check("costOf is null when nested spend went unpriced", costOf({ tokens: { totalTokens: 100, cost: { total: 0.01 } }, nestedTokens: { totalTokens: 50 }, nestedCost: null }) === null);
 check("costOf is a real number when there was no nested spend", Math.abs(costOf({ tokens: { totalTokens: 100, cost: { total: 0.01 } } }) - 0.01) < 1e-9);
 check("costOf of nothing is null, not 0", costOf(null) === null);
+// THE BUDGET's money is the OBSERVED bound, not `costOf(...) ?? 0` (astra round 5, C): a run whose
+// nested spend could not be measured still spent known dollars on its own calls, and counting those
+// as zero made the running total read LOWER than what had already been paid.
+{
+	const unknownRun = { state: "ok", spend: 660, wallMs: 10, tokens: { totalTokens: 520, cost: { total: 0.006 } }, nestedTokens: { totalTokens: 140 }, nestedUnknown: true, cost: null, pricedNestedCost: { total: 0.04 } };
+	check("an unknown-spend run has no total cost", costOf(unknownRun) === null);
+	check("…but the budget still counts the dollars it DOES know", Math.abs(observedCostOf(unknownRun) - 0.046) < 1e-9, String(observedCostOf(unknownRun)));
+	check("…and a priced run is unchanged by that helper", Math.abs(observedCostOf({ cost: 0.02 }) - 0.02) < 1e-9);
+	check("…and nothing is 0, not NaN", observedCostOf(null) === 0);
+	// The token side of the same rule: a run carrying unknown nested spend makes the whole budget a
+	// lower bound, and `budgetFrom` says so rather than reporting a total.
+	const b = budgetFrom([unknownRun], []);
+	check("the budget reports itself NOT fully accounted", b.accounted === false && b.unknownRuns === 1, JSON.stringify(b));
+}
 
 // ── budget ledger ────────────────────────────────────────────────────────────────────────────
 const runs = [

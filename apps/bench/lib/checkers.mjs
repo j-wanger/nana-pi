@@ -96,41 +96,71 @@ export function fetchKey(c, ctx) {
 }
 
 /**
+ * THE VERDICT-SELECTION POLICY, as one testable function.
+ *
+ * A verdict is a line `<json>\t<hex hmac>`; the HMAC must verify under the nonce this run invented.
+ * EXACTLY ONE such line is accepted. Unsigned and malformed lines are ignored (the module is free to
+ * write whatever it likes to fd 3), but TWO valid lines cannot both be the evaluator's single
+ * signed verdict — that means the nonce leaked, and picking one of them would be choosing which
+ * story to believe. Fail closed instead.
+ */
+export function selectSignedVerdict(fd3Text, nonce) {
+	const signed = [];
+	for (const line of String(fd3Text ?? "").split("\n")) {
+		const tab = line.lastIndexOf("\t");
+		if (tab < 0) continue;
+		const json = line.slice(0, tab);
+		const sig = line.slice(tab + 1).trim();
+		const want = createHmac("sha256", nonce).update(json).digest("hex");
+		if (sig.length !== want.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(want))) continue;
+		signed.push(json);
+	}
+	if (signed.length > 1) return { ambiguous: signed.length };
+	if (!signed.length) return { verdict: null };
+	try {
+		return { verdict: JSON.parse(signed[0]) };
+	} catch (e) {
+		// Our evaluator's hand-rolled serialiser cannot emit this; if it ever does, that is a grader
+		// fault and must not be scored as the model's.
+		return { malformed: `a signed verdict did not parse as JSON (${e.message})` };
+	}
+}
+
+/**
  * Grade BEHAVIOUR in a separate process, with a nonce the module cannot reach.
  *
  * The parent invents a random nonce, hands it plus the probe spec to lib/eval-module.mjs over file
  * descriptor 4 (never argv, never the environment), and accepts only a verdict line whose
  * HMAC-SHA256 verifies under that nonce. Exit status and stdout are ignored entirely, because both
  * belong to the code being graded. See lib/eval-module.mjs for the threat model.
+ *
+ * TWO properties this function owns, both of which were missing (astra round 5, A1/A2):
+ *  1. the spec file is UNLINKED before the child is spawned. `spawnSync` cannot feed an anonymous
+ *     pipe on a non-stdin descriptor, so fd 4 has to be backed by a file — but a 0600 file in
+ *     os.tmpdir() is readable by the very process being graded, which runs as the same user. It
+ *     could glob `bench-eval-*​/spec.json`, read the nonce and sign anything. Unlinking keeps the
+ *     bytes reachable through OUR open descriptor and removes them from every pathname.
+ *  2. EXACTLY ONE signed line is a verdict. Taking the first HMAC-valid line made "more than one
+ *     valid verdict" a silent selection rather than the contradiction it is; two valid lines now
+ *     mean the signing key leaked, which is a grader error, never a pass.
  */
 function evaluateModule({ cwd, module: modulePath, probes, timeoutMs }) {
 	const nonce = randomBytes(32).toString("hex");
-	const specFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "bench-eval-")), "spec.json");
+	const specDir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-eval-"));
+	const specFile = path.join(specDir, "spec.json");
 	let fd = null;
 	try {
 		fs.writeFileSync(specFile, JSON.stringify({ nonce, module: pathToFileURL(path.resolve(cwd, modulePath)).href, probes }), { mode: 0o600 });
 		fd = fs.openSync(specFile, "r");
-		// spawnSync cannot feed an anonymous pipe on a non-stdin fd, so fd 4 is backed by a 0600
-		// temp file that is unlinked the moment the child exits. The security property is the same:
-		// the evaluator consumes and closes fd 4 before importing anything, so by the time untrusted
-		// code runs the nonce is not reachable from any descriptor, argument or variable it can see.
+		// UNLINK BEFORE SPAWNING. The descriptor keeps the contents readable for the evaluator; the
+		// path no longer exists, so the untrusted module cannot read the nonce off the filesystem.
+		fs.unlinkSync(specFile);
 		const r = spawnSync(process.execPath, [EVALUATOR], { cwd, timeout: timeoutMs ?? 120000, encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe", "pipe", fd] });
 		const errMsg = r.error ? String(r.error.message) : null;
 		if (r.error || r.signal) return { infra: `the trusted evaluator could not run: ${errMsg ?? `killed by ${r.signal}`}` };
-		for (const line of String(r.output?.[3] ?? "").split("\n")) {
-			const tab = line.lastIndexOf("\t");
-			if (tab < 0) continue;
-			const json = line.slice(0, tab);
-			const sig = line.slice(tab + 1).trim();
-			const want = createHmac("sha256", nonce).update(json).digest("hex");
-			if (sig.length !== want.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(want))) continue;
-			try {
-				return { verdict: JSON.parse(json) };
-			} catch {
-				/* a signed but unparseable verdict cannot happen from our evaluator; keep looking */
-			}
-		}
-		return { verdict: null, stderr: String(r.stderr ?? "").split("\n").slice(-4).join(" | ").slice(0, 300) };
+		// Blank tail lines carry nothing but noise into the record's detail.
+		const stderr = String(r.stderr ?? "").split("\n").map((l) => l.trim()).filter(Boolean).slice(-4).join(" | ").slice(0, 300);
+		return { ...selectSignedVerdict(String(r.output?.[3] ?? ""), nonce), stderr };
 	} finally {
 		if (fd !== null) {
 			try {
@@ -139,8 +169,51 @@ function evaluateModule({ cwd, module: modulePath, probes, timeoutMs }) {
 				/* already closed */
 			}
 		}
-		fs.rmSync(path.dirname(specFile), { recursive: true, force: true });
+		fs.rmSync(specDir, { recursive: true, force: true });
 	}
+}
+
+/**
+ * THE VERDICT-ACCEPTANCE POLICY, as one testable function: what a signed verdict has to say before
+ * it counts, and which failures belong to the GRADER rather than to the model.
+ *
+ *  * no signed verdict → an ordinary FAILURE (the module did not let the evaluator finish);
+ *  * a module that does not import → an ordinary FAILURE (that is the model's code);
+ *  * anything else the evaluator could not do — an unfinished evaluation, a verdict of the wrong
+ *    shape, a probe count that does not match the spec, an invalid probe spec, two valid
+ *    signatures — is a GRADER error: it says nothing about the behaviour that was asked for.
+ */
+export function judgeVerdict(res, probes = []) {
+	if (res.infra) return graderError(res.infra);
+	if (res.ambiguous) return graderError(`${res.ambiguous} HMAC-valid verdict lines arrived; exactly one is the contract, so the signing nonce leaked — ambiguous verdict`);
+	if (res.malformed) return graderError(res.malformed);
+	if (!res.verdict) return ok(false, `no signed verdict from the trusted evaluator — the module did not let it finish${res.stderr?.trim() ? `: ${res.stderr.trim()}` : ""}`);
+	const v = res.verdict;
+	// SHAPE first: a verdict that is not the object we sign is not a verdict.
+	if (typeof v !== "object" || v === null || Array.isArray(v)) return graderError("the signed verdict is not an object");
+	if (v.importError) return ok(false, `the module does not import: ${v.importError}`);
+	if (!probes.length) return graderError("the evaluator ran no probes");
+	if (v.specError) return graderError(`the probe spec is wrong, not the module: ${v.specError}`);
+	if (!Array.isArray(v.probes)) return graderError("the signed verdict carries no probe array");
+	// An UNFINISHED evaluation is a grader error, never a model failure: a top-level await that never
+	// settles makes Node exit 13 BEFORE any timeout, and a module that exits during import produces
+	// the same partial verdict. Neither is evidence about the behaviour asked for. The parent's spawn
+	// timeout remains the watchdog for a module that never exits at all.
+	//
+	// EXCEPT when the partial verdict already contains a FAILING probe. Then wrong behaviour was
+	// observed and signed before the evaluation died, and calling that a harness fault would let a
+	// module trade a failure for an exclusion by killing the process after its first bad answer.
+	if (v.complete !== true) {
+		const observed = v.probes.filter((p) => p?.pass !== true);
+		if (observed.length) {
+			return ok(false, `${observed.length} behaviour probe(s) had already failed when the evaluation died: ${observed.slice(0, 3).map((p) => `${p?.name} — ${p?.detail}`).join("; ")}`);
+		}
+		return graderError(`the trusted evaluator did not finish — an incomplete evaluation (${v.probes.length}/${probes.length} probes reported, none failing) is not a verdict${res.stderr?.trim() ? `: ${res.stderr.trim()}` : ""}`);
+	}
+	if (v.probes.length !== probes.length) return graderError(`the evaluator reported ${v.probes.length} probe result(s) for ${probes.length} declared probe(s)`);
+	const failed = v.probes.filter((p) => !p?.pass);
+	if (failed.length) return ok(false, `${failed.length}/${v.probes.length} behaviour probe(s) failed: ${failed.slice(0, 3).map((p) => `${p?.name} — ${p?.detail}`).join("; ")}`);
+	return ok(true, `${v.probes.length}/${v.probes.length} behaviour probes passed under the trusted evaluator (signed verdict)`);
 }
 
 const CHECKERS = {
@@ -245,16 +318,8 @@ const CHECKERS = {
 	 */
 	"eval-module"(c, ctx) {
 		if (!ctx.dir) return graderError("eval-module needs a fixture dir");
-		const res = evaluateModule({ cwd: ctx.dir, module: c.module, probes: c.probes ?? [], timeoutMs: c.timeoutMs });
-		if (res.infra) return graderError(res.infra);
-		if (!res.verdict) return ok(false, `no signed verdict from the trusted evaluator — the module did not let it finish${res.stderr ? `: ${res.stderr}` : ""}`);
-		const v = res.verdict;
-		if (v.importError) return ok(false, `the module does not import: ${v.importError}`);
-		if (!v.complete) return ok(false, "the trusted evaluator did not finish — the module ended the process during import");
-		const failed = (v.probes ?? []).filter((p) => !p.pass);
-		if (!(v.probes ?? []).length) return graderError("the evaluator ran no probes");
-		if (failed.length) return ok(false, `${failed.length}/${v.probes.length} behaviour probe(s) failed: ${failed.slice(0, 3).map((p) => `${p.name} — ${p.detail}`).join("; ")}`);
-		return ok(true, `${v.probes.length}/${v.probes.length} behaviour probes passed under the trusted evaluator (signed verdict)`);
+		const probes = c.probes ?? [];
+		return judgeVerdict(evaluateModule({ cwd: ctx.dir, module: c.module, probes, timeoutMs: c.timeoutMs }), probes);
 	},
 
 	/**

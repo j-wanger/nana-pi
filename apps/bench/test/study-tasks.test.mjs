@@ -5,7 +5,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { hashTree, runCheck } from "../lib/checkers.mjs";
 import { applyMutations, copyAssets, materialize, verifyFixture } from "../lib/fixture.mjs";
 import { loadStudy, shapedPaths } from "../run.mjs";
@@ -158,6 +158,63 @@ for (const [label, srcFn, testBody, expect] of [
 	const r = runCheck(t8.check, ctx);
 	check("c8: REJECTS a vacuous test that passes with or without the guard", r.pass === false);
 	check("c8: …saying the test does not detect the missing behaviour", /does not detect the missing behaviour/.test(r.detail), r.detail.slice(-140));
+	await fs.rm(d, { recursive: true, force: true });
+}
+
+// E2 (astra round 5): the model's own new test has to RUN AND EXIT 0 against the source it fixed.
+// The only run of that file left in the task was the REVERTED one, where failing is the point — so a
+// correct guard plus a test that fails unconditionally, or one that does not even parse, passed the
+// whole grader. Both are verified failures here.
+for (const [label, testBody] of [
+	["a new test that fails unconditionally", 'import assert from "node:assert/strict";\nimport { clampText } from "../lib/blocks.mjs";\nassert.equal(clampText("hi", 100, "x"), "NOT hi");\n'],
+	["a new test that does not parse", 'import { clampText } from "../lib/blocks.mjs";\nclampText("a", 1, "x"\n'],
+	["a new test that throws on import", 'import { clampText } from "../lib/blocks.mjs";\nthrow new Error("clampText( boom");\n'],
+]) {
+	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
+	await edit(d, blocks, (t) => t.replace("export function clampText(text, maxBytes, what) {", GUARD));
+	await fs.writeFile(path.join(d, NEWTEST), testBody);
+	const r = runCheck(t8.check, ctx);
+	check(`c8: REJECTS a CORRECT guard shipped with ${label}`, r.pass === false, r.detail.slice(-150));
+	check("c8: …because the new test was run against the FIXED source and did not exit 0", /command:FAIL/.test(r.detail), r.detail.slice(-150));
+	await fs.rm(d, { recursive: true, force: true });
+}
+{
+	// …and the pair is still a PAIR: the positive run must not be satisfiable by a vacuous test.
+	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
+	await edit(d, blocks, (t) => t.replace("export function clampText(text, maxBytes, what) {", GUARD));
+	await fs.writeFile(path.join(d, NEWTEST), ASSERT_TEST);
+	const r = runCheck(t8.check, ctx);
+	check("c8: an honest guard with an honest test passes BOTH halves of the pair", r.pass === true && /command:ok/.test(r.detail) && /revert-and-fail:ok/.test(r.detail), r.detail.slice(-150));
+	await fs.rm(d, { recursive: true, force: true });
+}
+
+// The probe sets, and the rule that every value in them is derived rather than guessed.
+const probesOf = (t) => t.check.checks.find((c) => c.type === "eval-module").probes;
+const argShapes = (t) => probesOf(t).map((p) => JSON.stringify(p.args));
+check("c7 probes the signed-zero, large-exponent and non-number corners", ["-0", "-1e+21", '"3.140"', "NaN", '""'].every((needle) => argShapes(t7).some((a) => a.includes(needle.replace(/"/g, '\\"')) || a.includes(needle))), argShapes(t7).join(" "));
+check("c7: -0 travels as the escape, because JSON.stringify(-0) is \"0\"", argShapes(t7).some((a) => a.includes('{"$":"-0"}')));
+for (const [cls, shape] of [["NaN", '{"$":"NaN"}'], ["Infinity", '{"$":"Infinity"}'], ["undefined", '{"$":"undefined"}'], ["true", "true"], ["false", "false"]]) {
+	check(`c8 rejects ${cls} as a cap`, probesOf(t8).some((p) => p.throws === "TypeError" && JSON.stringify(p.args).includes(shape)), "");
+}
+check("c8 guards BEFORE the early return (empty text, invalid cap)", probesOf(t8).some((p) => p.throws === "TypeError" && JSON.stringify(p.args) === '["",0,"probe"]'));
+check("c8 pins cap 1, a very large cap, empty text and exact multibyte content", ['["hi",1,"probe"]', '["hi",2147483647,"probe"]', '["",10,"probe"]', '["日本語テキスト",12,"probe"]'].every((a) => argShapes(t8).includes(a)), argShapes(t8).join(" "));
+check("every added probe records how its expected value was derived", [t7, t8].every((t) => probesOf(t).filter((p) => p.derivation).length >= 5) && [t7, t8].every((t) => typeof t.keyDerivation.probeDerivation === "string"));
+// The derivations are only worth anything if they match the PRISTINE fixture, so re-derive them.
+{
+	const d = await fresh("bench-derive-");
+	const mod = await import(pathToFileURL(path.join(d, blocks)).href);
+	// -0 and NaN both stringify to something else through JSON, and a probe label that lies about
+	// which value was checked defeats the point of re-deriving it.
+	const shown = (v) => (typeof v === "number" && (Object.is(v, -0) || !Number.isFinite(v)) ? (Object.is(v, -0) ? "-0" : String(v)) : JSON.stringify(v));
+	for (const t of [t7, t8]) {
+		for (const p of probesOf(t)) {
+			if (!p.derivation || p.throws) continue; // a `throws` probe describes the FIXED source, not the pristine one
+			const args = p.args.map((a) => (a && typeof a === "object" && a.$ ? { "-0": -0, NaN: Number.NaN, Infinity: Number.POSITIVE_INFINITY, undefined: undefined }[a.$] : a));
+			let got;
+			try { got = mod[p.export](...args); } catch (e) { got = `threw ${e.constructor.name}`; }
+			check(`${t.id}: pristine ${p.export}(${args.map(shown).join(", ")}) really is ${shown(p.equals)}`, Object.is(got, p.equals), `got ${shown(got)}`);
+		}
+	}
 	await fs.rm(d, { recursive: true, force: true });
 }
 

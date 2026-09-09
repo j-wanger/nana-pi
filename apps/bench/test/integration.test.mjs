@@ -8,7 +8,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { executeRun, readLedger, registrationProbe, runPlan, spendOf } from "../run.mjs";
+import { costOf, executeRun, observedCostOf, readLedger, registrationProbe, runPlan, spendOf } from "../run.mjs";
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -23,14 +23,26 @@ const stub = (name, body) => {
 };
 
 /** A stub `pi --mode json`: emits a canned event stream, ignores its argv entirely. */
-const streamOf = ({ text, tokens = 100, tool = null }) => {
+const streamOf = ({ text, tokens = 100, tool = null, nestedUnknown = false }) => {
 	const lines = [
 		{ type: "session", version: 3, id: "stub", timestamp: "2026-09-09T00:00:00.000Z", cwd: "/tmp" },
 		{ type: "turn_start" },
 	];
 	if (tool) {
 		lines.push({ type: "tool_execution_start", toolCallId: "t1", toolName: tool, args: {} });
-		lines.push({ type: "message_end", message: { role: "toolResult", toolCallId: "t1", toolName: tool, content: [], isError: false, timestamp: 2 } });
+		lines.push({
+			type: "message_end",
+			message: {
+				role: "toolResult",
+				toolCallId: "t1",
+				toolName: tool,
+				content: [],
+				isError: false,
+				timestamp: 2,
+				// A tool whose window saw NO measurable request: unknown spend, never 0.
+				...(nestedUnknown ? { details: { benchNested: { calls: 1, models: [], unknown: true, unknownReason: "no-network-observed" } } } : {}),
+			},
+		});
 	}
 	lines.push({
 		type: "message_end",
@@ -162,6 +174,25 @@ try {
 		check("executeRun: …and the child's measured spend is PRESERVED, not zeroed", spendOf(rec) === 910, String(spendOf(rec)));
 		check("executeRun: …with the token count named in the error", /already spent 910 tokens/.test(rec.error ?? ""), rec.error ?? "");
 		check("executeRun: …and wall time preserved", rec.wallMs > 0, String(rec.wallMs));
+	}
+
+	// ── 8b. executeRun: an unknown-spend run must PERSIST cost:null with a reason ──────────────
+	// astra round 5, C: the record wrote a NUMBER for `cost` whenever the nested token count happened
+	// to be 0, even with `nestedUnknown` set — a "silence is not zero" tool window is exactly that
+	// case. The reader's helper corrected it, so the persisted line contradicted the contract the
+	// README advertises. Verified at 9784d58: cost 0.0012, costReason null, nestedUnknown true.
+	{
+		const dir = await freshStudyDir("run-unknown-cost");
+		const bin = await stub("run-unknown.mjs", emitScript(streamOf({ text: "the answer", tokens: 100, tool: "web_search", nestedUnknown: true })));
+		const rec = await executeRun({
+			study, studyDir: dir, task, profile: profileFor(bin), rep: 0, block: "stub-task|0",
+			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+		});
+		check("executeRun: an unmeasured tool window flags the run", rec.state === "ok" && rec.nestedUnknown === true, `${rec.state} ${rec.nestedUnknown}`);
+		check("executeRun: …and the RECORD ITSELF carries cost null, not a number", rec.cost === null, JSON.stringify(rec.cost));
+		check("executeRun: …with a reason naming the unmeasured spend", /unmeasured nested spend \(no-network-observed\)/.test(rec.costReason ?? ""), String(rec.costReason));
+		check("executeRun: …while the priced part survives as an explicit lower bound", Math.abs(observedCostOf(rec) - 0.0012) < 1e-9, String(observedCostOf(rec)));
+		check("executeRun: …and the shared helper agrees there is no total", costOf(rec) === null);
 	}
 
 	// ── 9. executeRun: a timeout is a run-error with the partial spend recorded ────────────────

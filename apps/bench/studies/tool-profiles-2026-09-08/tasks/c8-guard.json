@@ -12,7 +12,8 @@
 	"note": "The probe is copied in only AFTER the model has exited, so it can neither be read nor edited. It states the same contract the prompt states, and prints 13 PASS lines when the guard is correct.",
 	"keyDerivation": {
 		"command": "pristine: clampText('hi',100,'x') → 'hi'; clampText('x'*5000,200,'x') → 200 bytes incl. 'truncated at 200 bytes'",
-		"output": "with a correct guard, clampText(text, 0|-1|1.5|'10'|null|NaN, what) throws TypeError and valid input behaves exactly as before."
+		"output": "with a correct guard, clampText(text, 0|-1|1.5|'10'|null|NaN, what) throws TypeError and valid input behaves exactly as before.",
+		"probeDerivation": "Every `equals` above was recorded by RUNNING the pristine fixture function: `cd studies/tool-profiles-2026-09-08/fixture && node --input-type=module -e \"const m = await import('./packages/nana-stage/lib/blocks.mjs'); for (const [t, c] of [['hi',1],['hi',2147483647],['',10],['日本語テキスト',12],['日本語テキスト',11]]) console.log(JSON.stringify(m.clampText(t, c, 'probe')));\"` → \"h\", \"hi\", \"\", \"日本語テ\", \"日本語\". The invalid-cap probes are derived from the PROMPT (0, negatives, non-integers and non-numbers must all throw TypeError) and each records what the pristine, unguarded function does instead."
 	},
 	"check": {
 		"type": "all",
@@ -122,6 +123,133 @@
 							"probe"
 						],
 						"includes": "truncated at 200 bytes"
+					},
+					{
+						"name": "NaN maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							{
+								"$": "NaN"
+							},
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "NaN is not an integer, so a guard written as `Number.isInteger(maxBytes) && maxBytes > 0` rejects it — but a guard written as a remainder or comparison test (`maxBytes % 1 === 0`, `!(maxBytes < 1)`) ACCEPTS NaN and then silently returns the whole text. Pristine: no throw."
+					},
+					{
+						"name": "Infinity maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							{
+								"$": "Infinity"
+							},
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "Infinity is not an integer either, and passes any `> 0` test. Pristine: no throw (buf.length <= Infinity, returns the text)."
+					},
+					{
+						"name": "undefined maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							{
+								"$": "undefined"
+							},
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "the prompt says non-numbers must all throw. Pristine: no throw (buf.length <= undefined is false, so it falls into the truncation path)."
+					},
+					{
+						"name": "true maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							true,
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "a boolean is a non-number that coerces to 1, so an unguarded comparison treats `true` as a 1-byte cap. Pristine: no throw."
+					},
+					{
+						"name": "false maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							false,
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "coerces to 0 — the same class as the explicit 0 probe, reached by a different route. Pristine: no throw."
+					},
+					{
+						"name": "empty text with an invalid cap still throws",
+						"export": "clampText",
+						"args": [
+							"",
+							0,
+							"probe"
+						],
+						"throws": "TypeError",
+						"derivation": "pristine clampText(\"\", 0, \"probe\") returns \"\" because 0 <= 0 takes the early return. A guard placed AFTER that early return therefore never fires here — this probe is what forces it to the head of the function."
+					},
+					{
+						"name": "cap 1 truncates to one byte",
+						"export": "clampText",
+						"args": [
+							"hi",
+							1,
+							"probe"
+						],
+						"equals": "h",
+						"derivation": "pristine clampText(\"hi\", 1, \"probe\") → \"h\": 2 bytes > 1, the notice does not fit in 1 byte (room < 0), so the documented silent cut applies. A valid positive integer must keep behaving exactly as before, so this is pinned to the pristine value."
+					},
+					{
+						"name": "a very large cap returns the text unchanged",
+						"export": "clampText",
+						"args": [
+							"hi",
+							2147483647,
+							"probe"
+						],
+						"equals": "hi",
+						"derivation": "pristine clampText(\"hi\", 2147483647, \"probe\") → \"hi\". 2147483647 is a positive integer, so a guard that rejects large caps (an arbitrary upper bound) fails here."
+					},
+					{
+						"name": "empty text with a valid cap returns \"\"",
+						"export": "clampText",
+						"args": [
+							"",
+							10,
+							"probe"
+						],
+						"equals": "",
+						"derivation": "pristine clampText(\"\", 10, \"probe\") → \"\" (0 bytes <= 10). Confirms the new guard did not turn the empty-string case into a throw for VALID caps."
+					},
+					{
+						"name": "multibyte truncation cuts on a character boundary",
+						"export": "clampText",
+						"args": [
+							"日本語テキスト",
+							12,
+							"probe"
+						],
+						"equals": "日本語テ",
+						"derivation": "pristine clampText(\"日本語テキスト\", 12, \"probe\") → \"日本語テ\" — 7 chars x 3 bytes = 21 bytes, the notice does not fit in 12, and 12 bytes is exactly 4 characters. EXACT content, so a truncation that merely fits the cap does not pass."
+					},
+					{
+						"name": "multibyte truncation backs off a split sequence",
+						"export": "clampText",
+						"args": [
+							"日本語テキスト",
+							11,
+							"probe"
+						],
+						"equals": "日本語",
+						"derivation": "pristine clampText(\"日本語テキスト\", 11, \"probe\") → \"日本語\" (9 bytes): 11 bytes would split the fourth character, so the strict decoder backs up to 9. This is the branch the byte-cap probes alone never reach."
 					}
 				]
 			},
@@ -131,6 +259,16 @@
 				"exists": true,
 				"containsCode": "clampText(",
 				"note": "the model must have written ONE new test file that actually references clampText outside a comment"
+			},
+			{
+				"type": "command",
+				"commands": [
+					[
+						"node",
+						"packages/nana-stage/tests/clamp-guard.test.mjs"
+					]
+				],
+				"note": "THE POSITIVE HALF of the detection pair, restored (astra round 5, E2): the model's own new test has to RUN AND EXIT 0 against the source it just fixed. Without it a correct guard plus a test that fails unconditionally — or does not even parse — passed the grader, because the only other run of that file was the reverted one, where failing is what we WANT. Verified: both of those now fail here. A spawn failure is a grader error, not a model failure."
 			},
 			{
 				"type": "revert-and-fail",

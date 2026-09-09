@@ -31,7 +31,7 @@
 		"lock:research:0": "1bdb0d75a9c68e87efba7b7249b8f45397d07c94ed09fc8b07f902874568306b",
 		"ext:sidecar": "b85294d5256bbab182cf7c8bc6c77c7ee99ad30e504ebeb3f07500ddd884873c",
 		"ext:sidecar-lib": "b4e1907c1f51a1c980e22198c8f97ceeaaa61cebc3d966a23db0e1cfbe031ad7",
-		"trusted-evaluator": "fcf3503e73c664e15d627cd67fdf6862cac57d538badbcf2911bf5f581f010b3"
+		"trusted-evaluator": "f37e90f096803ac74b515d493f9c73ed7fa0fdb906e67a261980103e2d93cac5"
 	},
 	"fixture": {
 		"dir": "fixture",
