@@ -14,7 +14,8 @@ Briefs: `brief-common.md` + `brief-{buffers,races,stagekey}.md` (round 1); `revi
 | races | sol r4 | BLOCK | terminal event after a rebuild has no continuation to flush it; `resync()` reentrant |
 | races | sol r5 | BLOCK | abandoned-run toast lacked the command; 8-run bound undeclared (seat fixed directly) |
 | races | sol r6 | BLOCK | one wording slip (ninth vs oldest evicted) — seat fixed |
-| races | sol r7 | see file | confirmation |
+| races | sol r7 | BLOCK | punch-list phrase ("waits for the next re-read" vs "triggers no read") — seat aligned |
+| races | sol r8 | **LAND** | confirmation |
 | stagekey | astra r1 | BLOCK | concurrent desks lose issuance records (single file, no lock); fork loses inherited blocks |
 | stagekey | astra r2 | BLOCK | the lock's retry branch can freeze the whole desk; missed observation seeds the wrong predecessor → **lock store REMOVED, per-session files** |
 | stagekey | astra r3 | BLOCK | overlapping ledger read strands fork seeding; prune deletes non-record json; lifetime cache broadens the residual |
