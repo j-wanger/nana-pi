@@ -202,10 +202,22 @@ sleeps became readiness handshakes.
   code is deleted. `eeb1135` also fixes round 2's other BLOCK: a fork inherited whatever id the
   desk last happened to observe, which a failed observation could leave stale, so it now
   establishes the source by asking the child *before* the fork runs, and a source it cannot
-  confirm means no inheritance. Both were pinned failure-first (54 checks; with only the
-  round-2 server logic restored, the two new ones fail and the other 52 pass).
-  **Open sub-items:** two desks recording different new keys for the same session at the same
-  instant keep only the last writer's (one key, one session — the declared price of no lock);
+  confirm means no inheritance. Both were pinned failure-first. Round 3 (BLOCK) then found that
+  an overlapping ledger read could file a fork's destination under the live child's key before
+  the desk confirmed it, so seeding refused and the inherited blocks redacted permanently;
+  `7d8e2be` serializes lifecycle transitions per child, stops an in-flight transition's
+  observations from being written down, and makes seeding a union rather than a fill-a-blank.
+  The same commit clears session identity at dispatch (a timed-out or unsuccessful command can
+  still have moved the child), recovers a fork whose confirmation failed at the next confirmed
+  observation, drops the store's lifetime cache (it let one desk redact a live sibling's blocks
+  and then overwrite its record — records are now read on every lookup and written
+  read-union-write), stops the prune deleting files it could never have written, and pins the
+  test's store path against an inherited environment. 66 checks; with the code reverted, the
+  8 new ones fail.
+  **Open sub-items:** two desks WRITING one session's record in the same instant keep only the
+  last writer's (one key, one session — the declared price of no lock; sequential writers each
+  re-read first, so they lose nothing); a ledger read that lands while a lifecycle transition is
+  in flight sees that session's blocks redacted for that one read;
   the record is per session, not per app, so two app children that hold the same session file
   vouch for each other's blocks; the session id a child is filed under is self-reported through
   `get_state`, so the check proves possession of a desk-issued key for the session the child
