@@ -54,8 +54,8 @@ function newLiveState(id, cwd) {
 		helloSeen: false, // a SECOND desk_hello is a reconnect, not the first attach
 		pendingBashEvents: new Map(), // bash id → events that arrived before the row existed
 		renderSeq: 0, // bumped by renderMessages; tells an in-flight POST the transcript was rebuilt
-		resyncQueued: false, // one repair resync at a time
-		bashInFlight: new Map(), // command → number of bash POSTs awaiting a response
+		resyncRunning: false, // a get_messages is in flight
+		resyncAgain: false, // …and something asked for a fresher one while it ran
 	};
 }
 
@@ -355,33 +355,17 @@ function bashRow(ctx, id, command) {
 		if (id) ctx.toolRows.set(`bash:${id}`, row);
 	}
 	row.querySelector(".bcmd").textContent = `! ${command}`;
-	row.dataset.bcmd = command;
-	if (id) row.dataset.bashId = id;
 	return row;
 }
 
-// A reconnect resync can rebuild the transcript while a bash POST is still in
-// flight, and pi's own record of that command comes back with it — already
-// FINISHED and with no RPC id, which is the key rows are stored under. Claiming
-// it beats adding a second card for the same command — but ONLY when it is
-// provably ours. Counting FINISHED cards for this command before the POST and
-// again after is what makes that provable: exactly one new one means the render
-// brought back our execution. Same-command cards are otherwise indistinguishable,
-// and picking the wrong one is NOT invisible — a different run's output, exit
-// code and error would appear under this command.
-const finishedBashCards = (ctx, command) =>
-	[...ctx.container.querySelectorAll(".bash-card")].filter(
-		(r) => r.dataset.bcmd === command && !r.querySelector(".mark")?.classList.contains("spin"),
-	);
-// The newly rendered history cards are the unclaimed ones (a rebuild drops every
-// live row we had keyed).
-const unclaimedBashCards = (ctx, command) => finishedBashCards(ctx, command).filter((r) => !r.dataset.bashId);
-
-// One resync repairs whatever we could not attribute; several ambiguous ids in
-// the same turn must not each fire one. renderMessages/resync clear the flag.
+// Ask history again. A resync already in flight was started BEFORE this request
+// and cannot be trusted to answer it, so requests that arrive while one runs
+// coalesce into exactly one follow-up — however many of them there are.
 function scheduleResync() {
-	if (L.resyncQueued) return;
-	L.resyncQueued = true;
+	if (L.resyncRunning) {
+		L.resyncAgain = true;
+		return;
+	}
 	resync();
 }
 
@@ -656,13 +640,16 @@ function stopStatsPoll() {
 async function resync() {
 	if (!L) return;
 	const g = stageGen;
+	L.resyncRunning = true;
+	L.resyncAgain = false; // this call answers everything asked for before now
 	try {
 		const d = await rpc({ type: "get_messages" });
 		if (stale(g) || !L) return; // never paint one session's messages into another's pane
 		renderMessages(d.messages || []);
 	} catch {}
 	if (stale(g) || !L) return;
-	L.resyncQueued = false;
+	L.resyncRunning = false;
+	if (L.resyncAgain) return resync(); // asked for while this one was in flight
 	refreshState();
 	refreshStats();
 }
@@ -1929,12 +1916,6 @@ async function send() {
 		const command = text.slice(1).trim();
 		input.value = "";
 		const seq = L.renderSeq;
-		// what the transcript already showed for this command, and how many other
-		// POSTs for the same command are outstanding — both needed to tell OUR
-		// execution apart from an older identical one after a rebuild
-		const finishedBefore = finishedBashCards(L.ctx, command).length;
-		const flight = L.bashInFlight;
-		flight.set(command, (flight.get(command) || 0) + 1);
 		try {
 			const r = await fetch(`/api/session/${L.id}/bash`, {
 				method: "POST",
@@ -1947,35 +1928,24 @@ async function send() {
 				// nothing rebuilt the transcript: this row is ours to create
 				flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
 			} else {
-				const candidates = unclaimedBashCards(L.ctx, command);
-				const appeared = finishedBashCards(L.ctx, command).length - finishedBefore;
-				const others = (flight.get(command) || 1) - 1; // besides this one
+				// The transcript was rebuilt while this POST was in flight. Nothing
+				// on the page identifies which card is this run's — pi's history
+				// carries no RPC id, and same-command cards are indistinguishable —
+				// so the page claims none and builds none. History is authoritative
+				// for what ran: drop the buffer and ask it again.
 				const buffered = L.pendingBashEvents.get(r.id) || [];
 				L.pendingBashEvents.delete(r.id);
-				if (appeared === 1 && others === 0 && candidates.length) {
-					// exactly one finished card for this command appeared while we
-					// waited and nothing else could have produced it: it is ours
-					const adopted = candidates[candidates.length - 1];
-					adopted.dataset.bashId = r.id;
-					L.ctx.toolRows.set(`bash:${r.id}`, adopted);
-					// history records the run, not a transport failure (a timeout, a
-					// dead child). Put a buffered failure back on the row.
-					const failed = [...buffered].reverse().find((e) => e.type === "desk_bash_result" && !e.success);
-					if (failed) finishBashRow(adopted, failed.data, failed.error || "failed");
-				} else {
-					// We cannot say which card is ours. Adopting the wrong one shows
-					// another run under this command; building one from the buffer
-					// duplicates a card history already holds. Let history settle it.
-					scheduleResync();
-				}
+				// …except a DESK-side failure (a bash timeout, a dead child), which
+				// is about the request, not the run, so history cannot carry it. It
+				// is said out loud instead of being pinned to a card we cannot
+				// identify.
+				const failed = [...buffered].reverse().find((e) => e.type === "desk_bash_result" && !e.success);
+				if (failed) toast(`bash: ${command} — ${failed.error || "failed"}`, "error");
+				scheduleResync();
 			}
 			pin(L.ctx.container);
 		} catch (e) {
 			if (!stale(g)) toast(String(e.message || e), "error");
-		} finally {
-			const n = (flight.get(command) || 1) - 1;
-			if (n > 0) flight.set(command, n);
-			else flight.delete(command);
 		}
 		return;
 	}
