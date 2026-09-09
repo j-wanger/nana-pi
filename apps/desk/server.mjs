@@ -53,6 +53,7 @@
 import { exec, execFile, spawn } from "node:child_process";
 import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
 import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
+import { StageKeyStore } from "./stage-keys.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -142,6 +143,74 @@ const RPC_TIMEOUTS = {
 // ── RPC children ──
 const children = new Map(); // id → child record
 let nextId = 1;
+
+// The desk's record of which stage signing keys it issued for which pi session
+// (stage-keys.mjs). Its hygiene pass reuses the desk's OWN session enumeration —
+// uncapped, because listSessions' 15-per-directory cap is a rail for the UI and
+// dropping a key for a session that merely fell off that list would put the stage
+// back where this change found it.
+const stageKeys = new StageKeyStore({
+	knownSessionIds: () => new Set(listSessions({ perDir: Infinity }).flatMap((g) => g.sessions.map((s) => s.id))),
+});
+
+// The key an app child signs with. Keys belong to the SESSION, not to the child:
+// a resume looks up the most recent key this desk issued for that session (by the
+// pi header id — rename-proof, unlike the file path) so blocks minted before a
+// restart still verify on the ledger read. A session we have no record for gets a
+// fresh key; nothing here ever makes an unverifiable block acceptable.
+function stageKeyForSpawn(session) {
+	let id = null;
+	// A session file we cannot read the header of is not a reason to refuse the
+	// spawn: it just means we have no record to look up, so the child gets a fresh
+	// key and that session's older blocks stay redacted.
+	try {
+		if (session) id = readSessionMeta(session)?.id || null;
+	} catch (e) {
+		console.error(`stage keys: cannot read the session header of ${session} (${e.message}) — minting a fresh key`);
+	}
+	const recorded = id ? stageKeys.keysFor(id)[0] : null;
+	if (recorded) return recorded;
+	const key = randomBytes(32).toString("hex");
+	if (id) stageKeys.record(id, key);
+	return key;
+}
+
+// pi emits no "the session changed" event, so the desk learns a child's session id
+// the only way it can: from `get_state`. That happens after spawn (apps.mjs) and on
+// every ledger read, which is what makes an in-child new_session / switch_session /
+// fork land in the right session's record without a new event type.
+//
+// The id is SELF-REPORTED by the child, and deliberately taken at face value: a
+// child that lied about it would only get its own key recorded under some other
+// session, and it already controls both the blocks it signs and the entries it
+// returns — there is no read it could not already perform. Ids that name no session
+// file are dropped by the store's hygiene pass on the next desk start.
+function noteStageSession(child, state) {
+	const id = typeof state?.sessionId === "string" && state.sessionId ? state.sessionId : null;
+	if (!id || !child?.stageKey) return null;
+	child.sessionId = id;
+	stageKeys.record(id, child.stageKey);
+	return id;
+}
+
+// The key set the LEDGER read verifies against: this child's own key plus every key
+// this desk ever issued for the session the child currently holds. Any-of-recorded-
+// keys is as strong as one key for the threat model — a forging extension or a
+// hand-edited session file holds none of them — and it is what makes resume,
+// restart and an in-child switch_session all verify. If get_state cannot be reached
+// we fall back to the last id we saw and, failing that, to this child's key alone:
+// the failure direction is always "redact", never "accept".
+async function ledgerKeys(child) {
+	let id = null;
+	try {
+		id = noteStageSession(child, (await sendRpc(child, { type: "get_state" }))?.data);
+	} catch {
+		id = null;
+	}
+	const recorded = stageKeys.keysFor(id || child.sessionId || "");
+	if (!child.stageKey) return recorded;
+	return [child.stageKey, ...recorded.filter((k) => k !== child.stageKey)];
+}
 
 // SSE plumbing that CANNOT throw. broadcast() runs inside the child's stdout
 // EventEmitter callback, where a throw is not a failed request — it is the whole
@@ -244,9 +313,11 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	// referencing `"%VAR%"` on the line makes cmd itself substitute them: one
 	// non-recursive expansion, so spaces, `&`, and literal `%` in values are all
 	// inert. (Plain manual quoting can't do that — cmd expands %…% inside quotes.)
-	// App sessions get a per-child provenance key: nana-stage signs every block with
-	// it and this server refuses unsigned blocks (handleChildEvent, /api/entries).
-	const stageKey = app ? randomBytes(32).toString("hex") : null;
+	// App sessions get a provenance key: nana-stage signs every block with it and this
+	// server refuses unsigned blocks (handleChildEvent, /api/entries). The key is the
+	// SESSION's, not the child's — a resume reuses the one this desk already issued
+	// for that session, so the session's earlier blocks keep verifying.
+	const stageKey = app ? stageKeyForSpawn(session) : null;
 	const envMore = stageKey ? { NANA_STAGE_KEY: stageKey } : {};
 	// App sessions are told which tools they must have; nana-stage (when loaded) reports
 	// "waiting" → "ready" / "missing: …" on the RPC status channel (statusKey nana-tools).
@@ -271,7 +342,7 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, app: app || null, stageKey, toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
+		proc, cwd, app: app || null, stageKey, sessionId: null, toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,
@@ -633,7 +704,11 @@ function readSessionMeta(file) {
 	return { cwd: header.cwd, id: header.id, title, name };
 }
 
-function listSessions() {
+// perDir bounds how many session files each directory contributes — 15 is the rail
+// the UI shows. The stage-key hygiene pass asks for all of them: it decides which
+// recorded keys to forget, and a session merely absent from a 15-row rail still
+// exists.
+function listSessions({ perDir = 15 } = {}) {
 	const groups = [];
 	let dirs = [];
 	try {
@@ -653,7 +728,7 @@ function listSessions() {
 					return { full, mtime: fs.statSync(full).mtimeMs };
 				})
 				.sort((a, b) => b.mtime - a.mtime)
-				.slice(0, 15);
+				.slice(0, perDir);
 		} catch {
 			continue;
 		}
@@ -1994,7 +2069,7 @@ const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "ag
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 startAppListeners({
 	manifests: loadManifests(APPS_DIR),
-	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv },
+	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession },
 	dirs: {
 		stage: path.join(PUBLIC, "stage"),
 		public: PUBLIC,

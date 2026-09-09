@@ -54,8 +54,13 @@ const ENTRY_TYPE = "nana-block";
 // REDACT, never delete: an entry is a node in the session tree (id/parentId), and
 // a forged one may sit in the ancestry of valid later entries. Dropping it would
 // sever the path and blank a valid stage. The payload is replaced instead.
-function verifiedEntries(key, entries) {
-	return entries.map((e) => (e && e.type === "custom" && e.customType === ENTRY_TYPE && !verifyBlock(key, e.data)
+//
+// `keys` is the LEDGER key set (server.mjs `ledgerKeys`): this child's key plus
+// every key the desk recorded for the session it currently holds. An entry that
+// matches none of them is redacted — an empty set redacts everything, which is the
+// direction a failure has to fall.
+function verifiedEntries(keys, entries) {
+	return entries.map((e) => (e && e.type === "custom" && e.customType === ENTRY_TYPE && !keys.some((k) => verifyBlock(k, e.data))
 		? { ...e, customType: "nana-block-rejected", data: { rejected: "unsigned or forged nana-block entry", id: e.data?.id ?? null } }
 		: e));
 }
@@ -241,6 +246,10 @@ async function spawnForApp(app, deps) {
 	const child = deps.children.get(id);
 	try {
 		const r = await deps.sendRpc(child, { type: "get_state" });
+		// Record the child's stage key against the session it actually opened, before
+		// any block is minted: a desk that dies before the first ledger read must still
+		// be able to verify what this child signed.
+		deps.noteStageSession(child, r?.data);
 		const f = r?.data?.sessionFile;
 		if (isStr(f) && f !== m.session) writeManifestSession(m, f);
 	} catch (e) {
@@ -353,12 +362,22 @@ async function handle(app, req, res, deps, files) {
 		}
 		if (p === "/api/entries" && req.method === "GET") {
 			const since = url.searchParams.get("since");
-			const r = await sendRpc(child, since ? { type: "get_entries", since } : { type: "get_entries" });
+			// CONCURRENT, not serial: resolving the key set costs its own get_state RPC
+			// (server.mjs `ledgerKeys`), and running it after get_entries would add that
+			// round trip — and a second RPC timeout — to every ledger read. `ledgerKeys`
+			// never rejects, so Promise.all here cannot lose the entries.
+			const [keys, r] = await Promise.all([
+				deps.ledgerKeys(child),
+				sendRpc(child, since ? { type: "get_entries", since } : { type: "get_entries" }),
+			]);
 			if (!r.success) return json(res, 500, { error: r.error });
 			// The provenance tooth, ledger path: a nana-block entry without a valid
-			// signature under this child's key (forged by another extension, or a
-			// hand-edited session file) is dropped before the page sees it.
-			return json(res, 200, { ...r.data, entries: verifiedEntries(child.stageKey || "", r.data.entries || []) });
+			// signature under one of the keys the desk issued for this session (forged
+			// by another extension, or a hand-edited session file) is redacted before
+			// the page sees it. Blocks minted before a restart verify here — under an
+			// older key of the same session — while the LIVE path stays this child's
+			// key alone.
+			return json(res, 200, { ...r.data, entries: verifiedEntries(keys, r.data.entries || []) });
 		}
 		json(res, 404, { error: "not found" });
 	} catch (e) {
