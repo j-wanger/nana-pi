@@ -36,7 +36,11 @@ temp workspace in place (evidence is saved either way).
 **Interrupting:** Ctrl-C signals the current child (and its process group), then — before exiting
 130 — drains what the child had already written with a bounded wait, confirms the whole group is
 dead, and writes down both the raw live stream (as evidence) and a `run-error: interrupted` record
-carrying the tokens measured so far, `cost: null` and `nestedUnknown`. A paid child in flight
+carrying the tokens measured so far, `cost: null` and `nestedUnknown`. **Exactly one record per
+tuple, by construction:** from the instant an interrupt begins the salvage owns the in-flight
+record and the normal completion path will not append, so the outcome no longer depends on whether
+postprocessing happened to finish inside the drain window — which used to yield either a truncated
+stream priced as a total, or two rows for one run. A paid child in flight
 therefore costs the study its RESULT, never its accounting. The same holds for the paid registration
 probe, whose partial spend lands in `ledger.jsonl` marked `ok: false`, so a resume re-runs it instead
 of trusting it. Runs already appended to `results.jsonl` are kept and skipped on the next `--go`; an
@@ -158,7 +162,15 @@ So `eval-module` grades behaviour in a separate process:
 4. it serialises the verdict with a **hand-rolled serialiser over captured primitives only** — no
    `JSON.stringify`, because the original still calls an inherited `Object.prototype.toJSON`, which
    is how a reviewer signed a passing verdict for a wrong answer — and writes ONE line to fd 3: that
-   JSON plus `HMAC-SHA256(nonce, json)`.
+   JSON plus `HMAC-SHA256(nonce, json)`, signed with a **key built as a Buffer before the import**.
+   That last detail is not decoration: `createHmac("sha256", <string>)` routes the key through
+   `Buffer.from`, which is a writable property rather than a primordial, so a module that hooks it is
+   handed the nonce at signing time — a reviewer used exactly that to sign a passing verdict for a
+   wrong answer. A Buffer key takes Node's ArrayBufferView branch instead. What the post-import path
+   touches is not argued, it is **measured**: a test wraps every writable function property on
+   `Buffer`, `Buffer.prototype`, `String/Number/Array/Object/Function/Error/TextEncoder/Uint8Array`
+   prototypes, `Object`, `Array`, `Reflect`, `JSON` and `process`, and asserts the evaluator reaches
+   **none** of them between the import and the signature.
 
 The parent ignores exit status and stdout entirely and accepts **exactly one** line whose HMAC
 verifies: two valid lines mean the nonce leaked, which is a grader error rather than a choice between
@@ -241,7 +253,10 @@ code runs.
 
 Every run — not just kept ones — writes `<study>/raw/<task>/<profile>/rep<N>/`:
 `stream.jsonl` (the raw event stream), `stderr.txt`, `argv.txt`, and `workspace.diff` (a zero-dep
-unified diff of everything the model changed in the fixture copy). Snapshotted oracle keys are
+unified diff of everything the model changed in the fixture copy — taken against **what the model
+started from**, i.e. the fixture with the task's planted mutations applied. Against the pristine
+fixture instead, a correct fix that reverts a planted bug produced an empty diff for the very runs a
+reviewer most wants to read). Snapshotted oracle keys are
 appended to `keys.jsonl` with a timestamp and the block they graded.
 
 ## Isolation, and why
@@ -398,7 +413,8 @@ lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               thirteen test files, no model calls (stub-child integration + orchestration +
-                    an adversarial matrix against the trusted evaluator)
+test/               thirteen test files, no model calls (stub-child integration + every
+                    orchestration path incl. a real-fixture run + an adversarial matrix against
+                    the trusted evaluator)
 studies/            one directory per study
 ```

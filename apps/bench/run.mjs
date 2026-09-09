@@ -177,10 +177,46 @@ const INFLIGHT = new Map();
 export const inflightRunKey = (task, profile, rep) => `${task}|${profile}|${rep}`;
 /** The key a registration probe's salvage is registered under. */
 export const inflightProbeKey = (profile) => `probe:${profile}`;
+/**
+ * Keys whose append has ALREADY STARTED. An interrupt that lands mid-append must not also salvage
+ * them: the append is in flight precisely because the operation completed on its own, so its normal
+ * record is the truthful one. (Guarding only BEFORE the append leaves this last sliver open, and it
+ * is the one ordering where the normal record is the right answer.)
+ */
+const APPENDING = new Set();
+const markAppending = (key) => APPENDING.add(key);
+/** The append did NOT happen after all, so an interrupt owes this operation a record again. */
+const unmarkAppending = (key) => APPENDING.delete(key);
 /** Called once the record is durably appended: from here on an interrupt has nothing to salvage. */
-export const releaseInflight = (key) => INFLIGHT.delete(key);
+export const releaseInflight = (key) => {
+	APPENDING.delete(key);
+	return INFLIGHT.delete(key);
+};
 /** For tests: what the runner would still write down if it were interrupted right now. */
 export const inflightKeys = () => [...INFLIGHT.keys()];
+
+/**
+ * ONE RECORD PER TUPLE, BY CONSTRUCTION. Once an interrupt has begun, the salvage OWNS the record for
+ * every operation still in flight, and the normal completion path must not append.
+ *
+ * Without this flag the drain window is a race (Fable, round 6), and both outcomes are wrong:
+ *   * postprocessing FASTER than the drain — the normal path won and wrote `pi exited null (SIGKILL)`
+ *     with a NUMERIC cost and `nestedUnknown: false`, pricing a truncated stream as a total;
+ *   * postprocessing SLOWER — the salvage wrote first and the normal path appended a SECOND row for
+ *     the same tuple, which double-counts the spend in every budget.
+ * The flag is sticky: production exits 130 immediately after the salvage and never resumes.
+ */
+let interrupting = false;
+/** Has an interrupt taken ownership of the in-flight records? */
+export const isInterrupting = () => interrupting;
+/**
+ * TESTS ONLY. Production never clears this — the process exits. A test that drives `handleInterrupt`
+ * in-process must clear it, or every later `runPlan` in the same process would yield to an interrupt
+ * that is long over.
+ */
+export const resetInterruptForTests = () => {
+	interrupting = false;
+};
 
 /**
  * CTRL-C, done properly. The old handler signalled the children and exited on the next line, which
@@ -196,6 +232,9 @@ export const inflightKeys = () => [...INFLIGHT.keys()];
  * Only then may the process exit. Exported so tests can drive it without a real signal.
  */
 export async function handleInterrupt({ resultsPath, log = console.log, drainMs = 1200, confirmMs = 1500 } = {}) {
+	// FIRST, before the signal: from this instant the normal path must not append anything, or it
+	// races the salvage for the same tuple.
+	interrupting = true;
 	const nap = (ms) => new Promise((r) => setTimeout(r, ms));
 	const children = [...LIVE];
 	for (const c of children) c.kill();
@@ -210,6 +249,8 @@ export async function handleInterrupt({ resultsPath, log = console.log, drainMs 
 	const killedCleanly = children.length ? alive.length === 0 : null;
 	const persisted = [];
 	for (const [key, salvage] of [...INFLIGHT]) {
+		// Its append is already running: that record is on its way to disk and is the honest one.
+		if (APPENDING.has(key)) continue;
 		let s = null;
 		try {
 			s = salvage({ killedCleanly });
@@ -302,14 +343,21 @@ async function writeEvidence(dir, { stdout, stderr, argvShown, diffs }) {
 	if (diffs?.length) await fs.writeFile(path.join(dir, "workspace.diff"), `${diffs.join("\n")}\n`);
 }
 
-async function workspaceDiffs(baseline, work, fixtureDir, benchPaths) {
+/**
+ * What the model changed, diffed against WHAT IT STARTED FROM — the fixture plus the task's planted
+ * mutations, not the pristine fixture. Using the pristine copy made the modal success case produce an
+ * EMPTY diff: `code-bugfix` plants `toFixed(1)`, a correct fix restores `toFixed(2)`, the workspace
+ * then equals the pristine fixture, and the evidence for the run said "nothing changed" while
+ * `changedFiles` said 1. `mutated` carries the post-mutation content of every file a mutation touched.
+ */
+async function workspaceDiffs(baseline, work, fixtureDir, benchPaths, mutated = new Map()) {
 	const now = hashTree(work);
 	const bench = new Set(benchPaths ?? []);
 	const out = [];
 	for (const [rel, sha] of now) {
 		if (bench.has(rel) || baseline.get(rel) === sha) continue;
 		const after = await fs.readFile(path.join(work, rel), "utf8").catch(() => "<binary or unreadable>");
-		const before = baseline.has(rel) ? await fs.readFile(path.join(fixtureDir, rel), "utf8").catch(() => "") : "";
+		const before = mutated.has(rel) ? mutated.get(rel) : baseline.has(rel) ? await fs.readFile(path.join(fixtureDir, rel), "utf8").catch(() => "") : "";
 		out.push(unifiedDiff(before, after, rel));
 	}
 	for (const rel of baseline.keys()) if (!now.has(rel)) out.push(`--- a/${rel}\n+++ /dev/null\n@@ deleted @@`);
@@ -333,14 +381,22 @@ async function prepareWorkspace({ study, studyDir, task, runDir }) {
 	await fs.mkdir(work, { recursive: true });
 	const notes = [];
 	let fixtureDir = null;
+	// The post-mutation bytes of every file the task planted a bug in: that, not the pristine fixture,
+	// is what the model starts from, and therefore what its diff must be taken against.
+	const mutated = new Map();
 	if (task.fixture !== false) {
 		fixtureDir = path.resolve(studyDir, study.fixture.dir);
 		const v = await verifyFixture(fixtureDir, study.fixture.sha256);
 		if (!v.ok) throw new Error(`fixture drift: sha ${v.sha} != pinned ${study.fixture.sha256}\n  ${v.drift.join("\n  ")}`);
 		await materialize(fixtureDir, work);
 		notes.push(...(await applyMutations(work, task.mutations)));
+		for (const m of task.mutations ?? []) {
+			if (mutated.has(m.file)) continue;
+			mutated.set(m.file, await fs.readFile(path.join(work, m.file), "utf8").catch(() => null));
+		}
+		for (const [rel, body] of [...mutated]) if (body === null) mutated.delete(rel);
 	}
-	return { work, notes, fixtureDir };
+	return { work, notes, fixtureDir, mutated };
 }
 
 export async function executeRun({ study, studyDir, task, profile, rep, block, launcher, fingerprint, snapshotKey, snapshotFailed, opts }) {
@@ -354,7 +410,7 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 	try {
 		const sessionDir = path.join(runDir, "sessions");
 		await fs.mkdir(sessionDir, { recursive: true });
-		const { work, notes, fixtureDir } = await prepareWorkspace({ study, studyDir, task, runDir });
+		const { work, notes, fixtureDir, mutated } = await prepareWorkspace({ study, studyDir, task, runDir });
 		const { argv, env, blocked } = renderRun(profile, study, { prompt: task.prompt, sessionDir, agentDir: opts.agentDir, studyDir });
 		const argvShown = `${launcher.cmd} ${[...launcher.pre, ...argv].map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ")}`;
 
@@ -428,7 +484,12 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			env,
 			cwd: work,
 			timeoutMs: opts.timeoutMs ?? task.timeoutMs ?? study.timeoutMs ?? 300000,
-			onBuffer: (readers) => INFLIGHT.set(runKey, salvage(readers)),
+			onBuffer: (readers) => {
+				// A fresh child for this tuple: any leftover "its append started" mark from an earlier
+				// attempt is stale, and leaving it would make the salvage skip a paid run.
+				unmarkAppending(runKey);
+				INFLIGHT.set(runKey, salvage(readers));
+			},
 		});
 		// NOT released here. The run is paid for and still unrecorded; `runPlan` releases the hook the
 		// moment the results append is acknowledged — that window is where an interrupt used to lose a
@@ -457,7 +518,7 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 		// One name for "some part of this run's spend is not measured", used by every cost field below.
 		const unknownSpend = parsed.nestedUnknown || unattached;
 		await copyAssets(studyDir, work, task.assets); // AFTER the child: the probe is ungrabbable
-		const diffs = fixtureDir ? await workspaceDiffs(baseline, work, fixtureDir, benchPaths) : [];
+		const diffs = fixtureDir ? await workspaceDiffs(baseline, work, fixtureDir, benchPaths, mutated) : [];
 		await writeEvidence(evidenceDir, { stdout: r.stdout, stderr: r.stderr, argvShown, diffs });
 
 		const check = task.check
@@ -643,7 +704,10 @@ export async function registrationProbe({ study, studyDir, profile, launcher, ag
 			env,
 			cwd: runDir,
 			timeoutMs,
-			onBuffer: (readers) => INFLIGHT.set(probeKey, salvage(readers)),
+			onBuffer: (readers) => {
+				unmarkAppending(probeKey);
+				INFLIGHT.set(probeKey, salvage(readers));
+			},
 		});
 		const parsed = parseStream(r.stdout, { pricer });
 		measured = {
@@ -887,6 +951,9 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 			// FAIL CLOSED. If the probe's spend cannot be recorded durably, nothing further may be
 			// paid for: a resume would pay for this probe again and its tokens would be missing from
 			// every budget. "NOT recorded, continuing" was the bug.
+			// The interrupt owns this probe's ledger row now (its salvage hook is still registered).
+			if (interrupting) return;
+			markAppending(inflightProbeKey(profile.name));
 			try {
 				await ledgerFn(studyDir, {
 					kind: "registration-probe",
@@ -901,6 +968,7 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 					detail: String(probe.detail).slice(0, 200),
 				});
 			} catch (e) {
+				unmarkAppending(inflightProbeKey(profile.name));
 				throw new Error(`could not record the ${profile.name} registration probe (${probe.tokens} tokens already spent): ${e.message}. Refusing to spend anything further — fix the ledger, then resume.`);
 			}
 			// ACKNOWLEDGED. Only now is the probe's spend safe from an interrupt, so only now does the
@@ -939,11 +1007,18 @@ export async function runPlan({ study, studyDir, tasks, todo, launcher, fingerpr
 
 		const rec = await runFn({ study, studyDir, task, profile, rep: item.rep, block: item.block, launcher, fingerprint, snapshotKey, snapshotFailed, opts: { ...runOpts, resultsPath, timeoutMs: childTimeout(task.timeoutMs ?? study.timeoutMs ?? 300000) } });
 		if (!rec) continue;
+		// The interrupt owns this run's record now — its salvage hook is still registered, and it
+		// writes the `run-error: interrupted` line with `cost: null` and `nestedUnknown`. Appending
+		// here as well would either overwrite that story with a priced, truncated one or duplicate the
+		// tuple, depending on which side of the drain window we happen to be on.
+		if (interrupting) return;
+		markAppending(inflightRunKey(item.task, item.profile, item.rep));
 		// Append on a guaranteed newline boundary (readResults already repaired any torn tail).
 		// FAIL CLOSED for the same reason as the probe: an unrecorded paid run is lost spend.
 		try {
 			await resultFn(resultsPath, rec);
 		} catch (e) {
+			unmarkAppending(inflightRunKey(item.task, item.profile, item.rep));
 			throw new Error(`could not record a completed run (${spendOf(rec)} tokens already spent): ${e.message}. Refusing to spend anything further.`);
 		}
 		// ACKNOWLEDGED — see the salvage hook in executeRun. Until this line an interrupt still owes

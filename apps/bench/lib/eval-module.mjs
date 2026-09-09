@@ -68,6 +68,7 @@ const ownKeys = Object.keys;
 const getProto = Object.getPrototypeOf;
 const reflectApply = Reflect.apply;
 const bufAlloc = Buffer.alloc;
+const bufFrom = Buffer.from;
 const byteLengthOf = Buffer.byteLength;
 const fromCharCode = String.fromCharCode;
 const addListener = process.on.bind(process);
@@ -133,6 +134,21 @@ const NONCE = spec?.nonce ?? null;
 const MODULE = spec?.module ?? null;
 const PROBES = isArray(spec?.probes) ? spec.probes : [];
 spec = null; // drop the last easy reference to the nonce string container
+/**
+ * THE SIGNING KEY, AS A BUFFER, BUILT HERE — before anything untrusted is imported.
+ *
+ * `createHmac("sha256", <string>)` is not safe to call later: Node routes a STRING key through
+ * `prepareSecretKey` → `getArrayBufferOrView` → **`Buffer.from(key, encoding)`**, and `Buffer.from`
+ * is a plain writable property on the global `Buffer`, not a primordial. A module that replaces it
+ * is handed the nonce at signing time — after the probes ran, before the verdict is signed — and
+ * Fable did exactly that: hook `Buffer.from`, sign a forged all-pass verdict, write it to fd 3, then
+ * throw so our own `emit` never writes. HEAD returned `pass: true` for `twice(n) => n * 3`.
+ *
+ * A Buffer key takes the `isArrayBufferView` branch instead, with no JS-visible call at all
+ * (verified: with a Buffer key, a Buffer payload and `digest("hex")`, `Buffer.from` is called zero
+ * times). The nonce string itself is never passed to anything after the import.
+ */
+const NONCE_KEY = typeof NONCE === "string" ? bufFrom(NONCE, "utf8") : null;
 
 // ── verdict serialisation: captured primitives only, no prototype method on any value ─────────
 const HEX = "0123456789abcdef";
@@ -187,13 +203,22 @@ function serialize(v) {
 
 let sent = false;
 function emit(verdict) {
-	if (sent || !NONCE) return;
+	if (sent || !NONCE_KEY) return;
 	sent = true;
-	const json = serialize(verdict);
-	const h = hmac("sha256", NONCE);
-	hmacUpdate(h, json);
-	const sig = hmacDigest(h, "hex");
+	// The WHOLE body is guarded: if any of this throws — a module can still make `serialize` see a
+	// hostile value, or break something we did not capture — the parent sees no signed verdict and
+	// fails closed. Letting the throw escape would leave a forged line as the only line on fd 3.
 	try {
+		const json = serialize(verdict);
+		// Buffer key (never the nonce string) and a Buffer payload (never the string-with-encoding
+		// path): both take Node's ArrayBufferView branch, which reaches no writable property.
+		const h = hmac("sha256", NONCE_KEY);
+		// The PAYLOAD stays a string with an EXPLICIT encoding. Measured, not assumed: with a Buffer
+		// key, `update(<string>, "utf8")` and `digest("hex")` reach no writable property at all, while
+		// converting the payload with `Buffer.from(json, "utf8")` reaches `Buffer.prototype.utf8Write`
+		// — a writable property, and one more surface than this needs.
+		hmacUpdate(h, json, "utf8");
+		const sig = hmacDigest(h, "hex");
 		writeSync(3, `${json}\t${sig}\n`);
 	} catch {
 		/* the parent will see no signed verdict and fail closed */

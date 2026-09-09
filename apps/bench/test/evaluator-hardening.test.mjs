@@ -116,6 +116,27 @@ try {
 				'  return np({ probes: np([probe]), expected: 1, complete: true, importError: null, specError: null, node: "forged" });\n' +
 				"};\n",
 		],
+		[
+			// VERIFIED live at 09e6f4b: `createHmac("sha256", <string>)` routes the key through
+			// `Buffer.from` (a writable property, not a primordial), so hooking it hands the module the
+			// nonce at signing time. Fable's module signs a forged all-pass verdict, writes it to fd 3
+			// and then throws, so the evaluator's own emit never writes and the forgery is the ONLY
+			// signed line. The key is now a Buffer built before the import; this hook never fires.
+			"a Buffer.from hook harvesting the nonce out of createHmac (Fable's forgery)",
+			'import fsb from "node:fs";\nimport { createHmac as chB } from "node:crypto";\n' +
+				"const origFrom = Buffer.from;\n" +
+				"Buffer.from = function (...a) {\n" +
+				'  if (typeof a[0] === "string" && a[0].length === 64 && /^[0-9a-f]+$/.test(a[0])) {\n' +
+				"    const nonce = a[0];\n" +
+				"    Buffer.from = origFrom;\n" +
+				'    const forged = JSON.stringify({ probes: [{ name: "twice(4)", pass: true, detail: "equal" }], expected: 1, complete: true, importError: null, specError: null, node: process.version });\n' +
+				'    const sig = chB("sha256", nonce).update(forged).digest("hex");\n' +
+				'    fsb.writeSync(3, forged + "\\t" + sig + "\\n");\n' +
+				'    throw new Error("boom");\n' +
+				"  }\n" +
+				"  return origFrom.apply(this, a);\n" +
+				"};\n",
+		],
 		["a patched Array.prototype.map", 'Array.prototype.map = function () { return [{ name: "twice(4)", pass: true, detail: "equal" }]; };\n'],
 		["a patched Array.prototype.push", "Array.prototype.push = function () { return 1; };\n"],
 		["a patched Array.prototype[Symbol.iterator] (argument spreading)", "Array.prototype[Symbol.iterator] = function* () { yield 4; };\n"],
@@ -163,6 +184,61 @@ try {
 	const fakeEncode = evalOf("fake-encode.mjs", [{ name: "pad ≤ 10 bytes", export: "pad", args: [], byteLengthAtMost: 10 }]);
 	check("A3: a patched TextEncoder cannot shrink a byte-length probe", rejected(fakeEncode), fakeEncode.detail.slice(0, 120));
 	check("A3: …and the real byte count is reported", /50 bytes, limit 10/.test(fakeEncode.detail), fakeEncode.detail.slice(0, 120));
+
+	// ── A3 (mechanical). WHICH writable properties does the post-import path actually reach? ─────
+	// The patch matrix above tests the surfaces we thought of; this one ENUMERATES them. The module
+	// wraps every writable, configurable function property on the globals the evaluator could plausibly
+	// touch, and records the ones reached while control is OUTSIDE the module — i.e. by the evaluator
+	// itself, between and after the probes. The answer must be NONE: one such reach is exactly how the
+	// `Buffer.from` forgery worked, and it is the check that would have caught it without knowing to
+	// look. (`Buffer.from(json, "utf8")` for the payload used to add `Buffer.prototype.utf8Write` here,
+	// which is why the payload is a string with an explicit encoding.)
+	write(
+		"writable-sweep.mjs",
+		'import fsSpy from "node:fs";\n' +
+			"const writeFileSync = fsSpy.writeFileSync;\n" +
+			"const applyOrig = Reflect.apply;\nconst construct = Reflect.construct;\nconst ownKeys = Reflect.ownKeys;\n" +
+			"const getDesc = Object.getOwnPropertyDescriptor;\nconst defineProp = Object.defineProperty;\n" +
+			"const log = [];\nlet armed = false;\nlet inside = false;\n" +
+			"const targets = [[\"Buffer\", Buffer], [\"Buffer.prototype\", Buffer.prototype], [\"String.prototype\", String.prototype], [\"Number.prototype\", Number.prototype], [\"Object\", Object], [\"Object.prototype\", Object.prototype], [\"Array\", Array], [\"Array.prototype\", Array.prototype], [\"Function.prototype\", Function.prototype], [\"Reflect\", Reflect], [\"JSON\", JSON], [\"Error.prototype\", Error.prototype], [\"TextEncoder.prototype\", TextEncoder.prototype], [\"Uint8Array.prototype\", Uint8Array.prototype], [\"TypedArray.prototype\", Object.getPrototypeOf(Uint8Array.prototype)], [\"process\", process]];\n" +
+			'const skip = new Set(["constructor", "__proto__", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "call", "apply", "bind", "defineProperty", "getOwnPropertyDescriptor", "ownKeys"]);\n' +
+			"for (const [label, obj] of targets) {\n" +
+			"  for (const key of ownKeys(obj)) {\n" +
+			'    if (typeof key !== "string" || skip.has(key)) continue;\n' +
+			"    const d = getDesc(obj, key);\n" +
+			'    if (!d || typeof d.value !== "function" || !d.writable || !d.configurable) continue;\n' +
+			'    const orig = d.value;\n    const name = label + "." + key;\n' +
+			"    const w = function (...a) {\n" +
+			"      if (armed && !inside) { inside = true; log[log.length] = name; inside = false; }\n" +
+			"      return new.target ? construct(orig, a, new.target) : applyOrig(orig, this, a);\n" +
+			"    };\n" +
+			"    try { defineProp(obj, key, { ...d, value: w }); } catch {}\n" +
+			"  }\n" +
+			"}\n" +
+			'process.on("exit", () => { try { writeFileSync(new URL("./sweep-calls.json", import.meta.url), JSON.stringify([...new Set(log)])); } catch {} });\n' +
+			"const outside = (fn) => (...a) => { armed = false; try { return fn(...a); } finally { armed = true; } };\n" +
+			"export const twice = outside((n) => n * 2);\n" +
+			'export const boom = outside(() => { throw new TypeError("x"); });\n' +
+			'export const pad = outside(() => "x".repeat(50));\n' +
+			'export const label = outside(() => "héllo ≤ x");\n' +
+			"export const echo = outside((v) => v);\n",
+	);
+	try {
+		fs.unlinkSync(path.join(dir, "sweep-calls.json"));
+	} catch {
+		/* first run */
+	}
+	const sweep = evalOf("writable-sweep.mjs", [
+		{ name: "twice(4)", export: "twice", args: [4], equals: 8 },
+		{ name: "boom", export: "boom", args: [], throws: "TypeError" },
+		{ name: "pad bytes", export: "pad", args: [], byteLengthAtMost: 60 },
+		{ name: "pad includes", export: "pad", args: [], includes: "xx" },
+		{ name: "non-ascii detail", export: "label", args: [], equals: "héllo ≤ x" },
+		{ name: "materialised arg", export: "echo", args: [{ $: "longText", n: 4 }], equals: "xxxx" },
+	]);
+	check("A3 sweep: the evaluator still grades correctly with every writable global wrapped", sweep.pass === true, sweep.detail.slice(0, 140));
+	const reached = JSON.parse(fs.readFileSync(path.join(dir, "sweep-calls.json"), "utf8"));
+	check("A3 sweep: …and reaches NO user-writable function property after the import", reached.length === 0, JSON.stringify(reached).slice(0, 200));
 
 	// ── A4. non-primitive returns are rejected EXPLICITLY, before `===` ──────────────────────────
 	for (const [label, body, pattern] of [

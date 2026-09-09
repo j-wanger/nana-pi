@@ -16,6 +16,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { hashDir } from "../lib/fixture.mjs";
 import {
 	executeRun,
 	handleInterrupt,
@@ -27,6 +29,7 @@ import {
 	readLedger,
 	registrationProbe,
 	releaseInflight,
+	resetInterruptForTests,
 	runPlan,
 	spendOf,
 } from "../run.mjs";
@@ -213,6 +216,7 @@ try {
 		const again = await handleInterrupt({ resultsPath, log: () => {}, drainMs: 50, confirmMs: 50 });
 		check("interrupt/child: …a second pass persists nothing", again.persisted.length === 0 && (await readJsonl(resultsPath)).length === 1);
 		await running.catch(() => {}); // the killed child resolves as a run-error; we already have the salvage
+		resetInterruptForTests();
 	}
 
 	// ── 4. INTERRUPTION: after the child, during postprocessing ──────────────────────────────────
@@ -233,6 +237,8 @@ try {
 		check("interrupt/postprocessing: …still flagged unknown-spend and unpriced", rows[0].nestedUnknown === true && rows[0].cost === null);
 		check("interrupt/postprocessing: …with nothing alive to kill", out.killedCleanly === null, String(out.killedCleanly));
 		check("interrupt/postprocessing: …and the evidence retained", (await fs.readFile(path.join(dir, rows[0].evidence, "stream.jsonl"), "utf8")).includes("agent_settled"));
+		releaseInflight(inflightRunKey("t1", "research", 0));
+		resetInterruptForTests();
 	}
 
 	// ── 5. INTERRUPTION: during the results append, and the REAL append implementations ──────────
@@ -269,10 +275,60 @@ try {
 			},
 		});
 		const rows = await readJsonl(resultsPath);
-		check("interrupt/append: an interrupt inside the append still salvages the run", interruptOut?.persisted.length === 1, JSON.stringify(interruptOut?.persisted.map((x) => x.key)));
-		check("interrupt/append: …the salvaged record carries the spend and the unknown flag", rows[0].state === "run-error" && rows[0].totalTokens === 310 && rows[0].nestedUnknown === true, JSON.stringify([rows[0].state, rows[0].totalTokens]));
-		check("interrupt/append: …and it went to the SAME results file the runner appends to", rows.length === 2 && rows[1].state === "ok", String(rows.length));
+		// The append had ALREADY STARTED, which means the child finished on its own — so the normal
+		// record is the truthful one and the salvage must stand aside. Exactly one row either way.
+		check("interrupt/append: an interrupt DURING the append does not also salvage", interruptOut?.persisted.length === 0, JSON.stringify(interruptOut?.persisted.map((x) => x.key)));
+		check("interrupt/append: …exactly one row for the tuple", rows.length === 1, String(rows.length));
+		check("interrupt/append: …and it is the completed run's own record", rows[0].state === "ok" && rows[0].totalTokens === 310, JSON.stringify([rows[0].state, rows[0].totalTokens]));
 		releaseInflight(inflightRunKey("t1", "research", 0));
+		resetInterruptForTests();
+	}
+
+	// ── 5b. THE DRAIN RACE, both orderings, with PRODUCTION defaults ──────────────────────────────
+	// Fable, round 6: the 1200 ms drain made the outcome depend on how long postprocessing took.
+	// Faster than the drain and the normal path won, writing `pi exited null (SIGKILL)` with a
+	// NUMERIC cost and `nestedUnknown: false` — a truncated stream priced as a total. Slower, and BOTH
+	// records landed for one tuple, double-counting the spend in every budget. The `interrupting` flag
+	// makes the salvage the owner from the instant the interrupt begins.
+	for (const [label, checkerMs] of [
+		["postprocessing FASTER than the drain", 300],
+		["postprocessing SLOWER than the drain", 2500],
+	]) {
+		const dir = await freshStudyDir(`race-${checkerMs}`);
+		const resultsPath = path.join(dir, "results.jsonl");
+		const marker = path.join(dir, "wrote");
+		const bin = await stub(`race-${checkerMs}.mjs`, partialThenHang(streamOf({ text: "half", tokens: 100 }).split("\n").slice(0, 4).join("\n"), marker));
+		// No extensions: the registration probe is not what is under test here, and a stub child that
+		// hangs would make it the slowest thing in the file.
+		const profile = plainProfile;
+		// A checker that BLOCKS for `checkerMs` — a `suite` or `eval-module` spawnSync does exactly this.
+		const blocking = { id: "t1", family: "research", fixture: false, prompt: "p", check: { type: "command", commands: [["node", "-e", `const t=Date.now();while(Date.now()-t<${checkerMs}){}`]] } };
+		const plan = runPlan({
+			study: { ...study, profiles: [profile] },
+			studyDir: dir,
+			tasks: [blocking],
+			todo: [{ task: "t1", profile: profile.name, rep: 0, block: "t1|0" }],
+			launcher: { cmd: process.execPath, pre: [bin] },
+			fingerprint: "fp",
+			agentDir: null,
+			pricer: null,
+			resultsPath,
+			runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+			priorRecords: [],
+			deps: { ledger: [], blockKeys: new Map(), log: () => {} },
+		});
+		await waitFor(async () => inflightKeys().includes(inflightRunKey("t1", profile.name, 0)));
+		await wrote(marker);
+		// PRODUCTION defaults, deliberately: the bug lived in the relationship between them.
+		const out = await handleInterrupt({ resultsPath, log: () => {} });
+		await plan.catch(() => {});
+		const rows = await readJsonl(resultsPath);
+		check(`race/${label}: exactly ONE row for the tuple`, rows.length === 1, `${rows.length}: ${JSON.stringify(rows.map((r) => [r.state, r.cost, r.nestedUnknown]))}`);
+		check(`race/${label}: …and it is the interrupted record`, rows[0].interrupted === true && rows[0].state === "run-error", JSON.stringify([rows[0].state, rows[0].interrupted]));
+		check(`race/${label}: …with no price on a truncated stream`, rows[0].cost === null && rows[0].nestedUnknown === true, JSON.stringify([rows[0].cost, rows[0].nestedUnknown]));
+		check(`race/${label}: …salvaged exactly once`, out.persisted.length === 1, String(out.persisted.length));
+		releaseInflight(inflightRunKey("t1", profile.name, 0));
+		resetInterruptForTests();
 	}
 
 	// ── 6. INTERRUPTION during the registration probe: the ledger, not the results file ───────────
@@ -294,6 +350,7 @@ try {
 		check("interrupt/probe: no results line was written for a probe", await fs.readFile(path.join(dir, "results.jsonl"), "utf8").then(() => false).catch(() => true));
 		await running.catch(() => {});
 		releaseInflight(inflightProbeKey("research"));
+		resetInterruptForTests();
 	}
 
 	// ── 7. the REAL appendLedger and appendResult on the happy path ───────────────────────────────
@@ -337,6 +394,7 @@ try {
 		// and an interrupt after all that has nothing left to salvage
 		const out = await handleInterrupt({ resultsPath, log: () => {}, drainMs: 20, confirmMs: 20 });
 		check("real appends: …so an interrupt afterwards writes nothing", out.persisted.length === 0 && (await readJsonl(resultsPath)).length === 2);
+		resetInterruptForTests();
 	}
 
 	// ── 8. a results-append FAILURE stops the study, with the real appendResult ───────────────────
@@ -382,6 +440,50 @@ try {
 		check("append failure: …and no further paid child starts", runs === 1, `runs=${runs}`);
 	}
 
+	// ── 8b. a FAILED append leaves the run salvageable by an interrupt ────────────────────────────
+	// The append is marked in flight so an interrupt does not duplicate it; if it then fails, that
+	// mark has to come off, or the record would be owed by nobody.
+	{
+		const dir = await freshStudyDir("append-fails-salvage");
+		const resultsPath = path.join(dir, "results.jsonl");
+		const bin = await stub("append-fails-salvage.mjs", emitScript(streamOf({ text: "the answer", tokens: 500 })));
+		const profile = extProfile(bin);
+		let error = null;
+		try {
+			await runPlan({
+				study: { ...study, profiles: [profile] },
+				studyDir: dir,
+				tasks: [task],
+				todo: [{ task: "t1", profile: profile.name, rep: 0, block: "t1|0" }],
+				launcher: { cmd: process.execPath, pre: [bin] },
+				fingerprint: "fp",
+				agentDir: null,
+				pricer: null,
+				resultsPath,
+				runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+				priorRecords: [],
+				deps: {
+					ledger: [],
+					blockKeys: new Map(),
+					log: () => {},
+					registrationProbe: async () => ({ ok: true, detail: "stub", tokens: 0, cost: 0, wallMs: 0, killedCleanly: null, timedOut: false, evidence: "raw/_probe/x" }),
+					appendLedger: async () => {},
+					appendResult: async () => {
+						throw new Error("ENOSPC: simulated results append failure");
+					},
+				},
+			});
+		} catch (e) {
+			error = e.message;
+		}
+		check("append failure/salvage: the study stops on the failed append", /could not record a completed run \(510 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 120));
+		const out = await handleInterrupt({ resultsPath, log: () => {}, drainMs: 50, confirmMs: 50 });
+		const rows = await readJsonl(resultsPath);
+		check("append failure/salvage: an interrupt afterwards STILL writes the run down", out.persisted.length === 1 && rows.length === 1, JSON.stringify([out.persisted.length, rows.length]));
+		check("append failure/salvage: …as an interrupted, unpriced record", rows[0].interrupted === true && rows[0].cost === null, JSON.stringify([rows[0].interrupted, rows[0].cost]));
+		resetInterruptForTests();
+	}
+
 	// ── 9. the SIGINT wiring itself, driven through process.emit ──────────────────────────────────
 	// installInterruptHandler is what main() calls; driving the handler it registers proves the wiring
 	// as well as the salvage, without a real signal killing this test process.
@@ -412,6 +514,111 @@ try {
 		process.removeListener("SIGINT", handler);
 		await running.catch(() => {});
 		releaseInflight(inflightRunKey("t1", "research", 0));
+		resetInterruptForTests();
+	}
+
+	// ── 10. executeRun over a REAL FIXTURE: the wiring no other test drives ──────────────────────
+	// Fable, round 6: every executeRun test used `fixture: false`, so `prepareWorkspace` →
+	// `verifyFixture` → `materialize` → `applyMutations` → the `preRun` capture → `workspaceDiffs` →
+	// `writeEvidence(…, diffs)` existed only as pieces, with `study-tasks.test.mjs` hand-building the
+	// checker ctx that `run.mjs` builds in production. That is the test-the-stub seam: the two could
+	// drift and both suites would stay green.
+	{
+		const dir = await freshStudyDir("fixture-run");
+		const fixtureDir = path.join(dir, "fixture");
+		await fs.mkdir(path.join(fixtureDir, "lib"), { recursive: true });
+		await fs.writeFile(path.join(fixtureDir, "lib/calc.mjs"), "export const half = (n) => n / 3;\nexport const other = () => 1;\n");
+		await fs.writeFile(path.join(fixtureDir, "README.md"), "# tiny fixture\n");
+		const { sha, manifest } = await hashDir(fixtureDir);
+		await fs.writeFile(path.join(dir, "FIXTURE.sha256"), manifest);
+		await fs.mkdir(path.join(dir, "assets"), { recursive: true });
+		await fs.writeFile(path.join(dir, "assets/probe.mjs"), "export const probe = true;\n");
+		const fixtureStudy = { ...study, fixture: { dir: "fixture", sha256: sha } };
+		const fixtureTask = {
+			id: "fx",
+			family: "research",
+			prompt: "p",
+			mutations: [{ file: "lib/calc.mjs", find: "n / 3", replace: "n / 4", note: "the planted bug" }],
+			assets: [{ from: "assets/probe.mjs", to: "_bench/probe.mjs" }],
+			check: {
+				type: "all",
+				checks: [
+					{ type: "changed-paths", allow: ["lib/calc.mjs"], protect: ["README.md"], withinLines: { "lib/calc.mjs": [1, 1] } },
+					{ type: "file", path: "lib/calc.mjs", contains: "n / 2" },
+					{ type: "file", path: "_bench/probe.mjs", exists: true },
+				],
+			},
+		};
+		// The stub child does what a model would: report whether the bench probe is visible to it
+		// (it must NOT be), then fix the planted bug in its own cwd — the materialised workspace.
+		const bin = await stub(
+			"fixture-child.mjs",
+			'import fs from "node:fs";\n' +
+				'const seen = fs.existsSync("_bench/probe.mjs") ? "asset-VISIBLE-to-the-model" : "asset-absent-while-the-model-ran";\n' +
+				'const src = fs.readFileSync("lib/calc.mjs", "utf8");\n' +
+				'fs.writeFileSync("lib/calc.mjs", src.replace("n / 4", "n / 2"));\n' +
+				`process.stdout.write(${JSON.stringify(streamOf({ text: "SENTINEL", tokens: 200 }))}.replace("SENTINEL", seen));\n` +
+				"process.exit(0);\n",
+		);
+		const rec = await executeRun({
+			study: fixtureStudy, studyDir: dir, task: fixtureTask, profile: extProfile(bin), rep: 0, block: "fx|0",
+			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+		});
+		releaseInflight(inflightRunKey("fx", "research", 0));
+		check("fixture run: the pinned fixture verified, materialised and mutated", rec.state === "ok" && rec.mutations?.length === 1, `${rec.state} ${rec.error ?? ""} ${JSON.stringify(rec.mutations)}`);
+		check("fixture run: the checker ran against the REAL ctx run.mjs builds", rec.check.pass === true && /changed-paths:ok/.test(rec.check.detail), rec.check.detail.slice(0, 160));
+		check("fixture run: …including the withinLines shape rule on the model's edit", /inside the declared shape/.test(rec.check.detail), rec.check.detail.slice(0, 160));
+		check("fixture run: exactly one changed file is counted", rec.changedFiles === 1, String(rec.changedFiles));
+		const diff = await fs.readFile(path.join(dir, rec.evidence, "workspace.diff"), "utf8");
+		// The diff is against WHAT THE MODEL STARTED FROM (fixture + planted mutation), so the removed
+		// line is the planted bug `n / 4`, not the pristine `n / 3`. Diffing against the pristine copy
+		// made a correct fix that reverts the mutation produce an EMPTY diff — see the c7 case below.
+		check("fixture run: the workspace diff is written as evidence", /lib\/calc\.mjs/.test(diff) && /-export const half = \(n\) => n \/ 4;/.test(diff) && /\+export const half = \(n\) => n \/ 2;/.test(diff), diff.split("\n").slice(0, 8).join(" | ").slice(0, 200));
+		check("fixture run: the bench asset was copied in AFTER the child exited", /asset-absent-while-the-model-ran/.test(rec.finalText), rec.finalText.slice(0, 60));
+		check("fixture run: …and is on disk for the grader, not counted as the model's edit", (await fs.readFile(path.join(dir, rec.evidence, "stream.jsonl"), "utf8")).includes("asset-absent") && rec.changedFiles === 1);
+		// …and the pin is load-bearing: a drifted fixture stops the run instead of grading it.
+		await fs.writeFile(path.join(fixtureDir, "README.md"), "# tampered\n");
+		const drifted = await executeRun({
+			study: fixtureStudy, studyDir: dir, task: { ...fixtureTask, id: "fx2" }, profile: extProfile(bin), rep: 0, block: "fx2|0",
+			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+		});
+		check("fixture run: a drifted fixture is a grader error, never a graded run", drifted.state === "grader-error" && /fixture drift/.test(drifted.error ?? ""), (drifted.error ?? "").slice(0, 120));
+		check("fixture run: …and no paid child was spawned for it", drifted.totalTokens === 0, String(drifted.totalTokens));
+	}
+
+	// ── 11. the same wiring against the SHIPPED study fixture and the SHIPPED c7 task ─────────────
+	// The tiny fixture above proves the mechanism; this proves the mechanism carries the real task.
+	{
+		const studyDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../studies/tool-profiles-2026-09-08");
+		const { study: realStudy, tasks: realTasks } = await import("../run.mjs").then((m) => m.loadStudy(studyDir));
+		const t7 = realTasks.find((t) => t.id === "code-bugfix");
+		const outDir = await freshStudyDir("real-fixture-run");
+		// A stub child that applies the honest one-line fix, then prints a normal stream.
+		const bin = await stub(
+			"real-fixture-child.mjs",
+			'import fs from "node:fs";\n' +
+				'const p = "packages/nana-stage/lib/blocks.mjs";\n' +
+				'fs.writeFileSync(p, fs.readFileSync(p, "utf8").replace("parseFloat(n.toFixed(1))", "parseFloat(n.toFixed(2))"));\n' +
+				`process.stdout.write(${JSON.stringify(streamOf({ text: "packages/nana-stage/lib/blocks.mjs", tokens: 300 }))});\n` +
+				"process.exit(0);\n",
+		);
+		const rec = await executeRun({
+			study: { ...realStudy, fixture: realStudy.fixture }, studyDir, task: t7, profile: extProfile(bin), rep: 0, block: "code-bugfix|0",
+			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp",
+			// evidence goes to a scratch dir, so running the tests never writes into the shipped study
+			opts: { dryRun: false, keep: false, agentDir: null, pricer: null, resultsPath: path.join(outDir, "results.jsonl") },
+		});
+		releaseInflight(inflightRunKey("code-bugfix", "research", 0));
+		check("shipped c7 through executeRun: the honest one-line fix is graded ok", rec.state === "ok" && rec.ok === true, `${rec.state} ${rec.error ?? ""} ${rec.check?.detail?.slice(0, 200) ?? ""}`);
+		check("shipped c7: …by the trusted evaluator, all 13 probes", /13\/13 behaviour probes passed/.test(rec.check.detail), rec.check.detail.slice(0, 200));
+		check("shipped c7: …with the existing suite still green and one file changed", /suite:ok/.test(rec.check.detail) && rec.changedFiles === 1, `${rec.changedFiles}`);
+		// THE EVIDENCE A REVIEWER READS. A correct c7 fix reverts the planted mutation, so the workspace
+		// ends up byte-identical to the pristine fixture — and the diff against that fixture was EMPTY
+		// (header, no hunks) for every successful run. Rep 0's checklist says "inspect both edit diffs";
+		// this is the assertion that there is something to inspect.
+		const c7diff = await fs.readFile(path.join(studyDir, rec.evidence, "workspace.diff"), "utf8");
+		check("shipped c7: the workspace diff SHOWS the fix rather than being empty", /-\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(1\)\)\);/.test(c7diff) && /\+\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(2\)\)\);/.test(c7diff), c7diff.split("\n").filter((l) => /^[-+]/.test(l)).slice(0, 4).join(" | ").slice(0, 200));
+		await fs.rm(path.join(studyDir, "raw", "code-bugfix"), { recursive: true, force: true });
 	}
 
 	check("EVERY orchestration path was driven: nothing is left registered", inflightKeys().length === 0, inflightKeys().join(","));

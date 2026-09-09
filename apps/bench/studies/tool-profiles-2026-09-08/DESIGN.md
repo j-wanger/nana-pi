@@ -187,7 +187,9 @@ The probe values were derived from the pristine fixture at design time and are r
   good `assert.throws` tests; the prompt never asked for a reporting convention.) The two runs are a
   PAIR and both halves are required: with only the reverted run, a correct guard shipped with a test
   that fails unconditionally — or does not parse — passed the whole grader. The trusted evaluator,
-  not the model's test, is still the correctness verdict.
+  not the model's test, is still the correctness verdict. (The bench-owned probe asset this task used
+  to copy in was removed: no checker ever ran it, and the behaviour probes now cover every contract it
+  asserted — a second producer of the same evidence is worse than none.)
 
 **RESEARCH family (B, C), 6 tasks**, no fixture. B has no web tools but does have `bash` (curl,
 node), so this measures dedicated web tools against shelling out, not against nothing. Answers are
