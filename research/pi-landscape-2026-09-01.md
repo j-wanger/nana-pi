@@ -232,3 +232,128 @@ deterministic gates at boundaries fit naturally.
   `steps[].model`), so RPC clients (the desk) cannot reach TUI parity here — the data
   exists in the run dir's `status.json` but is not published. Upstream ask: add
   `model`/`tokens` to the snapshot node (fits the 32KB cap easily).
+
+
+---
+
+## Addendum 2026-09-09 — the pi lineup beyond pi-coding-agent
+
+# Should nana-pi use more of the pi lineup? (2026-09-09)
+
+Sources: installed pi 0.84.4, npm registry, `github.com/earendil-works/pi`. Claims are
+**[V]erified** with a path/URL or marked **[I]nferred**. Dated addendum to
+`research/pi-landscape-2026-09-01.md` §2 — that family map is **stale**: it lists six packages;
+the monorepo ships eleven, and `pi-web-ui` has left it.
+
+## 1. Inventory
+
+`packages/` dirs [V] `api.github.com/repos/earendil-works/pi/contents/packages`. npm latest for
+the line is **0.85.1 (2026-09-05)** [V] dist-tags — we run 0.84.4. "In our tree" = present under
+the installed pi's `node_modules/@earendil-works/` [V].
+
+| Package (npm `@earendil-works/*`) | What it is | npm latest | In our tree? | Signal |
+|---|---|---|---|---|
+| `pi-coding-agent` | CLI/TUI agent, bin `pi`; also the SDK + `./client` entry | 0.85.1 | yes (root, 0.84.4) | active, weekly |
+| `pi-agent-core` | Agent runtime, tools, session state | 0.85.1 | yes, transitive | active |
+| `pi-ai` | Multi-provider LLM SDK, unified `Usage` + `calculateCost` | 0.85.1 | yes, transitive | active |
+| `pi-tui` | Terminal UI, differential rendering | 0.85.1 | yes, transitive | active |
+| `pi-telemetry` | Vendor-neutral telemetry contracts | 0.85.1 | yes, transitive | active |
+| `pi-protocol` | CBOR wire protocol for remote sessions | 0.85.1 | yes, transitive | new (0.84.0+), experimental |
+| `pi-client` | Transport-neutral client for remote sessions (unix socket) | 0.85.1 | yes, transitive | new, experimental |
+| `pi-server` | Local server hosting durable sessions + multi-attach | 0.85.1 | **no** | new, self-described "experimental" |
+| `chord` | App-composition runtime (services, replicated state, RPC, plugins) | 0.85.1 | **no** | substrate under server/client |
+| `pi-session-backend-sqlite-node` | SQLite session backend for pi-agent-core | 0.85.1 | **no** | new |
+| `pi-evals` | Internal eval harness | unpublished (`private: true`) | no | internal |
+| `pi-web-ui` | Web chat *component library* | 0.75.3 (2026-05) | no | **orphaned**: `packages/web-ui` 404s on main |
+
+## 2. What nana-pi hand-rolls that pi ships
+
+**(a) Session JSONL parsing — real overlap, public API.** `apps/desk/server.mjs:551`
+`readSessionMeta` (65 KB head + 32 KB tail heuristic), `:598` `listSessions`, `:638`
+`parseTranscript` (per-line `JSON.parse`, hand-rolled `parentId` walk with a cycle guard). pi
+exports `parseSessionEntries`, `migrateSessionEntries`, `CURRENT_SESSION_VERSION`,
+`SessionManager`, `SessionEntry`, `SessionTreeNode` from the **root public export** [V]
+`dist/index.d.ts`. Buys: entry-format migration we do not do today — the desk ignores
+`CURRENT_SESSION_VERSION`, so a format bump silently mis-renders old files [I: drift class, not
+an observed bug]. Costs: importing it pulls `@anthropic-ai/sdk`, `@aws-sdk/client-bedrock-runtime`
+and `@google/genai` via pi-ai [V] pi-ai `package.json`, and the desk is documented
+zero-dependency (`apps/desk/README.md:3`).
+
+**(b) RPC child driving — overlap, but pi's class does not fit.** `server.mjs:162` `spawnChild`,
+`:264` strict-LF JSONL framing, `:456` `sendRpc` pending/timeout map ≈ pi's exported `RpcClient`.
+Two verified blockers: no `extension_ui_response` path (`grep extension_ui`
+`dist/modes/rpc/rpc-client.js` → 0 hits), so a nana-gate escalation would hang; and it spawns
+`node <cliPath ?? "dist/cli.js">` (`rpc-client.js:31,42`) with no global-bin resolution. Also
+absent from `docs/rpc.md` [V grep] — exported but undocumented. **Do not adopt the class.** Its
+*types* (`RpcCommand`, `RpcResponse`, `RpcExtensionUIRequest/Response`, `JsonAgentSessionEvent`)
+are public and would pin the desk's hardcoded allowlist (`server.mjs:115`) to upstream — but the
+desk is plain `.mjs`, so that needs JSDoc + `checkJs`.
+
+**(c) Usage/cost math — best value-per-line.** `apps/bench/lib/usage.mjs:28-35,171` sums four
+buckets by hand and never reports cost. pi-ai's `Usage` already carries a computed `cost` object
+[V] `pi-ai/dist/types.d.ts:265-286` plus `calculateCost(model, usage)` [V]
+`pi-ai/dist/models.d.ts:192`; pi-coding-agent exports `calculateContextTokens`,
+`getLastAssistantUsage`, `estimateTokens` [V] `compaction.d.ts:38,42,62`. `usage.mjs:9` already
+cites pi-ai *internal dist line numbers* as its spec — the coupling exists, as a comment rather
+than an import.
+
+**(d) No overlap.** `desk-client.mjs:77` `renderDiff` and `public/md.js` are DOM-targeted; pi's
+`generateDiffString` and pi-tui are terminal-targeted. `nana-stage/lib/blocks.mjs:283,302`
+resembles `pi-coding-agent/client`'s transcript reducers, but those consume pi-protocol
+`TranscriptItem`/`SessionSnapshot` from the CBOR service, not session JSONL — not a drop-in
+[V] `dist/client/transcript.d.ts`.
+
+## 3. New capabilities worth considering
+
+**`pi-server` + `pi-client` + `pi-protocol` (+`chord`).** A durable session service over a unix
+socket with multi-presentation attach: one long-lived session, many clients, reconnect without
+losing state. That attacks three of the desk's own "known limits" — max 4 children, "a restart
+redacts old stage blocks", "the running desk is whatever was on disk when it started". Shape: a
+host process owns sessions; the desk becomes a `PiClient` browser bridge, not a subprocess parent.
+Caveats, all verified: the README says "experimental Pi service protocol"; 0.84.3 already shipped
+a breaking change to `RemoteSession.sessions` [V] CHANGELOG; and there is **no `pi serve` CLI** in
+the 0.84.4 bundle [V grep `PiServer|listen(`] — you host it yourself.
+
+**`pi-session-backend-sqlite-node`.** Sessions in SQLite instead of a JSONL tree. Turns the
+desk's directory scan + byte-window heuristic into a query, and is the natural store for
+nana-agent-loop's journal and an AML case ledger.
+
+**`pi-ai` standalone.** For AML-agent grading and bench graders that need an LLM but not an agent
+loop: one provider-neutral client with cost accounting, no pi process. Cheapest new adoption.
+
+**Low value:** `pi-tui` (the desk covers status surfaces); `chord` (take transitively via
+pi-server, never directly). **Not packages but relevant** [V org listing]: `gondolin` (2118★) is
+the microvm sandbox the landscape doc §3a says unattended enforcement needs.
+
+## 4. Three candidates
+
+**(a) Stay as-is.** Only `pi-coding-agent`, spawned as a binary; desk stays zero-dep. Gains: no
+version coupling to a project shipping weekly. Costs: we keep re-deriving session parsing and
+usage math; the session-format drift class stays open. Blast radius: none.
+
+**(b) Adopt pi's *data* surfaces, keep spawning the binary.** `Usage`/`calculateCost` in bench,
+`parseSessionEntries`/`migrateSessionEntries` in the desk's read path; keep our own child driver.
+Gains: real per-run cost, migration for free, ~150 lines deleted. Costs: the desk's zero-dep
+claim ends; pi-ai drags three vendor SDKs. Blast radius: desk read path + bench metrics — non-gate
+and reversible. First slice: bench only (`apps/bench/lib/usage.mjs`), where no zero-dep promise
+is at stake.
+
+**(c) (b) + `pi-server`/`pi-client`.** Re-found the desk on the durable session service.
+Gains: multi-attach, survives restarts, stage-key limitation gone. Costs: an experimental protocol
+that has already broken once, plus hosting a server pi ships no CLI for. Blast radius: the whole
+desk lifecycle. First slice: a throwaway spike proving a `pi-server` host + `RemoteSession`
+round-trip with nana-gate loaded.
+
+**Pick: (b), starting with bench.** It removes duplicated math and buys cost data we don't have,
+at a cost that is one `npm i` and fully reversible — while (c) bets the desk's lifecycle on a
+protocol upstream itself labels experimental.
+
+---
+
+**Paste summary**
+
+1. The lineup is 11 packages, not the 6 our landscape doc records; `pi-server`, `pi-client`, `pi-protocol`, `chord` and a SQLite session backend are new and published (0.85.1; we run 0.84.4).
+2. We already ship 5 transitively; `pi-web-ui` is dead (frozen 0.75.3, gone from the monorepo) — there is no first-party web toolkit to adopt.
+3. Real duplication is narrow: session-JSONL parsing (`server.mjs:551/598/638`) and token math (`bench/lib/usage.mjs`) — pi exports both publicly, `cost` included.
+4. Pi's `RpcClient` cannot replace the desk's child driver: no `extension_ui_response` handler (nana-gate escalations would hang), no global-bin resolution.
+5. Recommendation (b): adopt pi's data types in bench first, then the desk's read path; leave the experimental `pi-server` stack a spike, not a commitment.
