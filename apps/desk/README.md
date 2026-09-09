@@ -223,9 +223,11 @@ not just what the server does internally.
 
 ## Contract notes (2026-09-09 — four buffer caps)
 
-Nothing the desk holds on behalf of a local producer grows without a ceiling any more. A pi
-child, an extension inside it, an app `data` command or a browser tab that stops reading can
-all push more at this process than it can hold, and the desk is one process holding *every*
+The four ways a local producer pushes data *through* this process — the transport buffers and
+the request concurrency — now have ceilings. (Not everything the desk holds: the per-session
+maps a child fills and a session export are still unbounded, both under "Known limits" below.)
+A pi child, an extension inside it, an app `data` command or a browser tab that stops reading
+can all push more at this process than it can hold, and the desk is one process holding *every*
 live session — so each of these used to be a whole-desk outage. Four caps, all named constants
 at the top of `apps/desk/server.mjs` (`apps.mjs` for the last), each overridable by an env var
 that exists for the tests, the way `DESK_KILL_GRACE_MS` does:
@@ -236,17 +238,22 @@ that exists for the tests, the way `DESK_KILL_GRACE_MS` does:
   session. Clients on that session get one `desk_event_dropped` saying so (the existing event
   type), the desk logs it once, and **every RPC in flight on that child is rejected**, because
   one of them may be what the discarded line was answering and it would otherwise sit on its
-  timer — up to ten minutes for a prompt — with no answer coming. The number is ~3.5× the
+  timer — up to ten minutes for a prompt — with no answer coming. This holds whether the
+  oversized line arrives in pieces or all at once with its newline attached: both are checked, so
+  a producer cannot slip a big line past by sending it in one write. The number is ~3.5× the
   biggest legitimate line pi produces: a `get_messages` response carries the whole conversation
   on one line, measured at 18.4 MiB for the largest session on this machine, and everything else
-  is far smaller (pi truncates tool output at 50 KiB, nana-stage at 128/256 KiB).
+  is far smaller (pi truncates tool output at 50 KiB, nana-stage at 128/256 KiB). It counts
+  characters, not bytes.
 - **Per SSE client: 8 MiB of unread output** (`DESK_SSE_BUFFER_CAP`). A tab that stops reading
-  used to accumulate in the server's write buffer for that one socket with nothing to stop it
+  used to accumulate in Node's write queue for that one response with nothing to stop it
   (measured: 12 MB after 200 events, still climbing). Now that client's response is **ended and
   its socket dropped**; the browser's `EventSource` reconnects on its own and gets a fresh
   `desk_hello` snapshot, which is the normal way back in — the desk never replays event buffers.
   A slow tab is **disconnected and resynced, never throttled**: one tab must not pace the fan-out
-  for the others, and the other clients on that session see no interruption.
+  for the others, and the other clients on that session see no interruption. The 8 MiB is what
+  *this process* retains for that client; the kernel's own send buffer fills first and is not
+  counted, so the real lag before a drop is a little more than the number says.
 - **In-flight RPCs per session: 64** (`DESK_MAX_PENDING_RPC`). Above that, a new one **fails
   fast** — `POST /api/session/:id/rpc` (and `/bash`) answers **429** with
   `too many in-flight requests for this session (64)`, and an internal caller gets a rejected
@@ -254,7 +261,11 @@ that exists for the tests, the way `DESK_KILL_GRACE_MS` does:
   timers. The cap is on concurrency, not on a rate: once they drain, the next request is fine.
 - **An app `data` command's stdout: 8 MiB** (`DESK_DATA_OUTPUT_CAP`). Its output has to be read
   whole (it is one JSON document), and the 20 s timeout only killed on *time* — a command
-  printing at pipe speed reached gigabytes first. Past the cap the process is **SIGKILLed** and
+  printing at pipe speed reached gigabytes first. Past the cap the process is **killed through
+  the same tree-kill the desk uses for a session** — on Windows that is `taskkill /T /F`, so a
+  `data` command's own descendants go with it (untested: this repo is developed on macOS); on
+  macOS and Linux it signals the named process only, the same descendant limit the session
+  lifecycle already has — and
   the request answers **500**, `data output exceeded cap (8388608 bytes)`, in the same shape as
   the timeout's 504. Its stderr is now held as an 8 KiB tail (the reported tail was already only
   the last 600 characters, so nothing a caller sees changes).
@@ -283,9 +294,12 @@ is not":
   capped (above), but the maps a child fills through its own events are not: every distinct
   `setStatus` key, `setWidget` key and unanswered dialog id is kept for the life of the session
   (`handleChildEvent` in `server.mjs`) and every one of them is sent to each new client in
-  `desk_hello`. A child emitting millions of distinct keys still grows this process. Bounding
-  them needs a decision about what a *dropped* status or widget means to the page, which the
-  buffer caps did not have to make.
+  `desk_hello`. A child emitting millions of distinct keys still grows this process. And once
+  that snapshot alone exceeds the SSE cap, every reconnect is dropped on its own `desk_hello`, so
+  the tab reconnects, is dropped and reconnects again — the session becomes unwatchable rather
+  than merely slow (there is no client-side retry cap). Bounding the maps needs a decision about
+  what a *dropped* status or widget means to the page, which the buffer caps did not have to
+  make.
 - **`~/.pi/agent/*.json` saves still follow symlinks, on purpose.** `settings.json`, `mcp.json`
   and `nana-pack.json` are your own paths, and symlinking them into a dotfiles repo is a normal
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
