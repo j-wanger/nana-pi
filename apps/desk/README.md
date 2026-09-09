@@ -275,9 +275,9 @@ stderr (`stderrTail`, last 2000 characters) and request bodies (`readBody`, 32 M
 
 ## Contract notes (2026-09-09 — page races)
 
-Four page-level rules landed with the client-race fix (`7a91f42`, hardened in `c8249d7`). All
-four are about *when* a response is allowed to touch the screen, and all four are visible to
-anyone driving the page.
+Five page-level rules landed with the client-race fix (`7a91f42`, hardened in `c8249d7` and
+`8afd799`). All five are about *when* a response is allowed to touch the screen, and all five are
+visible to anyone driving the page.
 
 - **An answer for a session you have left is dropped, never painted.** Selecting, closing or
   reopening a session starts a new stage generation, and an in-flight continuation carries the
@@ -289,9 +289,11 @@ anyone driving the page.
   rename; the spawn response (the session is created and appears in the rail, but the stage you
   chose is kept); an image whose `FileReader` finishes late; and every event and error from the
   previous SSE stream. A stale one returns without touching the transcript, the header, the
-  editor, the attachments or the live-session handle. The old session's request may still
-  complete on the server; only its effect on the page is dropped. **Not covered:** an RPC already
-  in flight from an open model / thinking / fork picker — see Known limits.
+  editor, the attachments or the live-session handle — **and paints no toast**, success or error:
+  a command that fails for the session you left says nothing on the one you moved to. The old
+  session's request may still complete on the server; only its effect on the page is dropped.
+  **Not covered:** an RPC already in flight from an open model / thinking / fork picker — see
+  Known limits.
 - **A reconnect replays state and resyncs exactly once.** The SSE stream reconnects on its own,
   and the server sends `desk_hello` on every attach. Dialogs, status chips, widgets and the queue
   are whole-snapshot replacements, so a replayed hello does not duplicate them; a *second* hello
@@ -302,14 +304,24 @@ anyone driving the page.
   answers *after* the server has handed the command to the child, so `bash_execution_update` and
   `desk_bash_result` for that id can reach the page first. Such events are held per id, in arrival
   order, and flushed when the POST returns and the row is created. Bounds, per id: 200 events, and
-  20 000 characters counting **everything an event carries** — a streamed `delta`, a result's whole
-  captured `output`, and an error string. A single oversized text is cut on the way in; older
-  events are dropped first; at most 8 unknown ids are held at once. Server ordering was not
-  changed.
-- **A finished bash card never shows more than 20 000 characters.** A result carries the entire
-  captured output; the live streaming path only ever kept the last 20 000, and the finished render
-  now keeps the same window and reports the cut as `· truncated`, exactly like the server's own
-  truncation flag.
+  20 000 characters counting **every text an event carries** — a streamed `delta`, a result's whole
+  captured `output`, and its error string, which share one budget within an event (the error is
+  allocated first, so a huge output cannot starve it). Anything over is cut on the way in, so no
+  single event can exceed the budget; then older events are dropped first; at most 8 unknown ids
+  are held at once. Server ordering was not changed.
+- **A finished bash card never shows more than 20 000 characters, of output or of error.** Both a
+  result's captured output and its error string are unbounded on the wire; the live streaming path
+  only ever kept the last 20 000, and the finished render keeps the same window for both and
+  reports the cut as `· truncated` — whether this page made the cut or the server did. Cuts never
+  split a surrogate pair, so a window that opens mid-emoji starts at the next whole character.
+- **A bash row is only adopted when it is provably ours.** A rebuild of the transcript (a
+  reconnect resync) brings back pi's own finished record of a command, which carries no RPC id.
+  The in-flight POST claims that row only when exactly one new finished card for that command
+  appeared while it waited and no other POST for the same command is outstanding; a buffered
+  transport failure (a timeout, a dead child — which history does not record) is re-applied onto
+  it. Otherwise nothing is adopted and no row is built from the buffer: the page drops the buffer
+  and runs **one** repair resync, because history is the authority on what actually ran. So an
+  older identical command's card can never end up showing a newer run's output.
 
 One prompt-path rule changed with them: **an explicit rejection always returns your text to the
 editor.** A `POST …/prompt` that answers `{ok: false}` (or 409) means the prompt is not running,

@@ -248,11 +248,46 @@ sleeps became readiness handshakes.
     a fetch/SSE spy and then a single marked `SETTLE` window, and the file's header says so instead
     of claiming "no sleeps". Ports stay 4441/4442 per the seat's ruling.
 
-  Tests: `apps/desk/test/session-races.e2e.mjs` — 30 browser-level checks against a stub pi, no
+  Folded again after `gpt-5.6-sol` round 2 (BLOCK), in `8afd799`:
+  - **BLOCK, fixed — adoption could claim an OLDER identical command's card.** `renderSeq` proved
+    only that *some* rebuild happened. With a finished `!twice` already in history and a second
+    `!twice` still running, an unrelated resync made the returning POST claim the old card, drop
+    its buffer, and never create its own row — and the running command's later output then landed
+    on the old run's card (reproduced: `FIRST-RUN\nSECOND-RUN`). Adoption now requires that
+    exactly **one new** finished card for that command appeared since the POST started and that no
+    other POST for the same command is outstanding. When it is ambiguous the page adopts nothing,
+    builds nothing from the buffer, and runs exactly **one** repair resync — history is the
+    authority. The comment claiming a wrong pick was invisible is gone; it was false.
+  - **SHOULD, fixed — adoption dropped a buffered transport failure.** `bashExecution` history
+    records the run (exit 0), not a `desk_bash_result` that failed at the transport (a timeout, a
+    dead child), so the visible failure vanished. A buffered terminal failure is re-applied to the
+    adopted row.
+  - **BLOCK, fixed — the single-budget claim was still false.** `clipBashEvent` never clipped
+    `error`, returned after clipping one field, and `bufferBashEvent` kept one event even over
+    budget; `finishBashRow` then rendered the whole error. All of an event's texts now share one
+    remaining budget (error allocated first), every field is clipped, the retain-one escape is
+    gone, and the error render is capped and marked `· truncated` like output. A 50 000-character
+    error was retained and rendered whole before; it is 20 000 now.
+  - **SHOULD, fixed — the cut could split a UTF-16 surrogate pair.** `slice(-20000)` opened on a
+    lone low surrogate (reproduced: `U+DE00`). The cut steps one code unit in when it would split
+    a pair.
+  - **SHOULD, fixed — stale slash/spawn continuations still painted toasts.** `/model` was
+    unguarded after its second await, every command rejection catch was unguarded, and
+    `spawnSession` handled `r.error` before checking staleness. `stale(g)` now gates every awaited
+    response and every catch, and `spawnSession` does the stale-success rail refresh before any
+    response UI.
+  - **SHOULD, fixed (tests) — `die()` raced the server against 5 s and exited anyway.** The server
+    is spawned `detached` (its own process group); teardown sends SIGTERM to the group, and if it
+    has not gone by the deadline sends SIGKILL to the group and **awaits** the exit before cleanup.
+  - **BLOCK/SHOULD (docs), fixed** — the bash bound and the generation claim in
+    `apps/desk/README.md` and here now state what the code enforces.
+
+  Tests: `apps/desk/test/session-races.e2e.mjs` — 40 browser-level checks against a stub pi, no
   model call. Each interleaving is controlled by holding the exact response under test
   (`page.route`, or a substituted `FileReader`) and releasing it on what the page has already
   received, plus a TCP relay so the reconnect checks destroy the real SSE socket. 8 fail on the
-  page before `7a91f42`; 7 more fail on the page before `c8249d7`. **Still open:** a model /
+  page before `7a91f42`; 7 more fail on the page before `c8249d7`; 8 more fail on the page before
+  `8afd799`. **Still open:** a model /
   thinking / fork picker whose RPC is already in flight when you switch sessions still applies to
   the new session (`clearStage()` closes the popover, which narrows it to that window), and a
   steer byte-identical to a still-pending prompt consumes that prompt's optimistic bubble. Both

@@ -54,6 +54,8 @@ function newLiveState(id, cwd) {
 		helloSeen: false, // a SECOND desk_hello is a reconnect, not the first attach
 		pendingBashEvents: new Map(), // bash id → events that arrived before the row existed
 		renderSeq: 0, // bumped by renderMessages; tells an in-flight POST the transcript was rebuilt
+		resyncQueued: false, // one repair resync at a time
+		bashInFlight: new Map(), // command → number of bash POSTs awaiting a response
 	};
 }
 
@@ -360,22 +362,45 @@ function bashRow(ctx, id, command) {
 
 // A reconnect resync can rebuild the transcript while a bash POST is still in
 // flight, and pi's own record of that command comes back with it — already
-// FINISHED and with no RPC id, which is the key rows are stored under. Claim
-// that row rather than adding a second card for the same command. Newest match
-// wins; two identical commands in one transcript render the same thing either
-// way, so picking the wrong one is invisible.
-function adoptHistoryBashRow(ctx, command) {
-	const rows = [...ctx.container.querySelectorAll(".bash-card")].filter(
-		(r) => r.dataset.bcmd === command && !r.dataset.bashId && !r.querySelector(".mark")?.classList.contains("spin"),
+// FINISHED and with no RPC id, which is the key rows are stored under. Claiming
+// it beats adding a second card for the same command — but ONLY when it is
+// provably ours. Counting FINISHED cards for this command before the POST and
+// again after is what makes that provable: exactly one new one means the render
+// brought back our execution. Same-command cards are otherwise indistinguishable,
+// and picking the wrong one is NOT invisible — a different run's output, exit
+// code and error would appear under this command.
+const finishedBashCards = (ctx, command) =>
+	[...ctx.container.querySelectorAll(".bash-card")].filter(
+		(r) => r.dataset.bcmd === command && !r.querySelector(".mark")?.classList.contains("spin"),
 	);
-	return rows.length ? rows[rows.length - 1] : null;
+// The newly rendered history cards are the unclaimed ones (a rebuild drops every
+// live row we had keyed).
+const unclaimedBashCards = (ctx, command) => finishedBashCards(ctx, command).filter((r) => !r.dataset.bashId);
+
+// One resync repairs whatever we could not attribute; several ambiguous ids in
+// the same turn must not each fire one. renderMessages/resync clear the flag.
+function scheduleResync() {
+	if (L.resyncQueued) return;
+	L.resyncQueued = true;
+	resync();
 }
 
 // One window for everything a bash card holds or shows: the streamed tail, a
-// buffered event's retained text, and a finished result's rendered output. The
-// number means the same thing in all three places.
+// buffered event's retained text, and a finished result's rendered output and
+// error. The number means the same thing in all four places.
 const BASH_CHARS = 20000;
-const tail = (s) => (s.length > BASH_CHARS ? s.slice(-BASH_CHARS) : s);
+// Cutting a string by code units can land BETWEEN the two halves of an astral
+// character (an emoji), leaving a lone surrogate that renders as U+FFFD. Step
+// one unit further in when the cut starts on a low surrogate.
+function tailTo(s, n) {
+	if (n <= 0) return "";
+	if (s.length <= n) return s;
+	let i = s.length - n;
+	const c = s.charCodeAt(i);
+	if (c >= 0xdc00 && c <= 0xdfff) i++;
+	return s.slice(i);
+}
+const tail = (s) => tailTo(s, BASH_CHARS);
 
 function appendBashDelta(row, delta) {
 	const out = row.querySelector(".bout");
@@ -398,18 +423,39 @@ const BASH_BUFFER_EVENTS = 200;
 // stdout-cap-sized results. Oversized text is cut on the way IN, so one event
 // can never exceed the budget on its own.
 const bashEventChars = (e) => (e.delta?.length || 0) + (e.data?.output?.length || 0) + String(e.error || "").length;
+// The texts inside ONE event SHARE the budget — whatever the error keeps, the
+// output cannot also keep — and every field is clipped, not the first one found.
+// The error is allocated first: it is short and it is the actionable text, so a
+// huge output must never starve it.
 function clipBashEvent(e) {
-	if (e.delta?.length > BASH_CHARS) return { ...e, delta: tail(e.delta) };
-	if (e.data?.output?.length > BASH_CHARS) return { ...e, data: { ...e.data, output: tail(e.data.output), truncated: true } };
-	return e;
+	let left = BASH_CHARS;
+	let cut = false;
+	const fit = (v) => {
+		const str = String(v ?? "");
+		const kept = tailTo(str, left);
+		if (kept.length < str.length) cut = true;
+		left -= kept.length;
+		return kept;
+	};
+	if (bashEventChars(e) <= BASH_CHARS) return e;
+	const out = { ...e };
+	if (e.error !== undefined && e.error !== null) out.error = fit(e.error);
+	if (e.data?.output !== undefined) out.data = { ...e.data, output: fit(e.data.output) };
+	if (e.delta !== undefined) out.delta = fit(e.delta);
+	// carry the fact of the cut on the event itself: `data.truncated` is the
+	// channel finishBashRow already reads, and a failed result may have no `data`
+	// at all — that is how an oversized ERROR lost its marker.
+	if (cut) out.data = { ...(out.data || {}), truncated: true };
+	return out;
 }
 function bufferBashEvent(id, e) {
 	if (!id) return;
 	const buf = L.pendingBashEvents;
 	const list = buf.get(id) || [];
 	list.push(clipBashEvent(e));
+	// clipping guarantees one event fits, so this never empties the list
 	let chars = list.reduce((n, x) => n + bashEventChars(x), 0);
-	while (list.length > BASH_BUFFER_EVENTS || (chars > BASH_CHARS && list.length > 1)) chars -= bashEventChars(list.shift());
+	while (list.length && (list.length > BASH_BUFFER_EVENTS || chars > BASH_CHARS)) chars -= bashEventChars(list.shift());
 	buf.set(id, list);
 	while (buf.size > BASH_BUFFER_IDS) buf.delete(buf.keys().next().value);
 }
@@ -428,20 +474,23 @@ function finishBashRow(row, { output, exitCode, cancelled, truncated } = {}, err
 	const failed = error || cancelled || (exitCode !== 0 && exitCode !== undefined);
 	mark.className = `mark ${failed ? "bad" : "ok"}`;
 	mark.textContent = failed ? "✗" : "✓";
-	// A result carries the WHOLE captured output; the streaming path already keeps
-	// only the last BASH_CHARS, so render the same window here rather than putting
-	// an unbounded string in the DOM. A cut we made is reported like the server's.
-	const cut = output !== undefined && output.length > BASH_CHARS;
+	// A result carries the WHOLE captured output, and an error string is just as
+	// unbounded; the streaming path only ever keeps the last BASH_CHARS, so render
+	// the same window for both rather than putting an unbounded string in the DOM.
+	// A cut we made is reported like the server's own truncation flag.
+	const errStr = error ? String(error) : "";
+	const errCut = errStr.length > BASH_CHARS;
+	const outCut = output !== undefined && output.length > BASH_CHARS;
 	if (output !== undefined) {
 		const out = row.querySelector(".bout");
 		out.hidden = !output;
 		out.textContent = tail(output);
 	}
 	row.querySelector(".bexit").textContent = error
-		? String(error)
+		? `${tail(errStr)}${errCut || truncated ? " · truncated" : ""}`
 		: cancelled
 			? "cancelled"
-			: `exit ${exitCode}${truncated || cut ? " · truncated" : ""}`;
+			: `exit ${exitCode}${truncated || outCut ? " · truncated" : ""}`;
 }
 
 function noteRow(ctx, text, cls = "") {
@@ -613,6 +662,7 @@ async function resync() {
 		renderMessages(d.messages || []);
 	} catch {}
 	if (stale(g) || !L) return;
+	L.resyncQueued = false;
 	refreshState();
 	refreshStats();
 }
@@ -1750,7 +1800,7 @@ async function renameSession() {
 		refreshState();
 		refreshRail();
 	} catch (e) {
-		toast(String(e.message || e), "error");
+		if (!stale(g)) toast(String(e.message || e), "error");
 	}
 }
 
@@ -1805,10 +1855,11 @@ async function handleDeskCommand(text) {
 					if (stale(g)) return true; // set_model would target the session we switched to
 					if (!hit) return toast(`no model matches "${rest}"`, "warning"), true;
 					await rpc({ type: "set_model", provider: hit.provider, modelId: hit.id });
+					if (stale(g)) return true;
 					toast(`model → ${hit.provider}/${hit.id}`);
 					refreshState();
 				} catch (e) {
-					toast(String(e.message || e), "error");
+					if (!stale(g)) toast(String(e.message || e), "error");
 				}
 			}
 			return true;
@@ -1817,14 +1868,14 @@ async function handleDeskCommand(text) {
 			else
 				rpc({ type: "set_thinking_level", level: rest.trim() })
 					.then(() => !stale(g) && (toast(`thinking → ${rest.trim()}`), refreshState()))
-					.catch((e) => toast(String(e.message || e), "error"));
+					.catch((e) => !stale(g) && toast(String(e.message || e), "error"));
 			return true;
 		case "compact":
 			toast("compacting…");
-			rpc({ type: "compact", ...(rest ? { customInstructions: rest } : {}) }).catch((e) => toast(String(e.message || e), "error"));
+			rpc({ type: "compact", ...(rest ? { customInstructions: rest } : {}) }).catch((e) => !stale(g) && toast(String(e.message || e), "error"));
 			return true;
 		case "name":
-			if (rest) rpc({ type: "set_session_name", name: rest.trim() }).then(() => !stale(g) && (refreshState(), refreshRail())).catch((e) => toast(String(e), "error"));
+			if (rest) rpc({ type: "set_session_name", name: rest.trim() }).then(() => !stale(g) && (refreshState(), refreshRail())).catch((e) => !stale(g) && toast(String(e), "error"));
 			else renameSession();
 			return true;
 		case "new":
@@ -1836,7 +1887,7 @@ async function handleDeskCommand(text) {
 					resync();
 					refreshRail();
 				})
-				.catch((e) => toast(String(e.message || e), "error"));
+				.catch((e) => !stale(g) && toast(String(e.message || e), "error"));
 			return true;
 		case "fork":
 			forkPicker();
@@ -1850,7 +1901,7 @@ async function handleDeskCommand(text) {
 					refreshState();
 					refreshRail();
 				})
-				.catch((e) => toast(String(e.message || e), "error"));
+				.catch((e) => !stale(g) && toast(String(e.message || e), "error"));
 			return true;
 		case "export":
 			exportSession();
@@ -1878,6 +1929,12 @@ async function send() {
 		const command = text.slice(1).trim();
 		input.value = "";
 		const seq = L.renderSeq;
+		// what the transcript already showed for this command, and how many other
+		// POSTs for the same command are outstanding — both needed to tell OUR
+		// execution apart from an older identical one after a rebuild
+		const finishedBefore = finishedBashCards(L.ctx, command).length;
+		const flight = L.bashInFlight;
+		flight.set(command, (flight.get(command) || 0) + 1);
 		try {
 			const r = await fetch(`/api/session/${L.id}/bash`, {
 				method: "POST",
@@ -1886,19 +1943,39 @@ async function send() {
 			}).then((r) => r.json());
 			if (stale(g)) return; // the row belongs to a session we have left
 			if (r.error) return toast(r.error, "error");
-			const adopted = L.renderSeq !== seq ? adoptHistoryBashRow(L.ctx, command) : null;
-			if (adopted) {
-				// The transcript was rebuilt while we waited and already holds pi's
-				// own finished record of this command. Key it by the id so later
-				// events find it, and drop the buffer: history is authoritative for
-				// the same output, and replaying deltas into it would double them.
-				adopted.dataset.bashId = r.id;
-				L.ctx.toolRows.set(`bash:${r.id}`, adopted);
+			if (L.renderSeq === seq) {
+				// nothing rebuilt the transcript: this row is ours to create
+				flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
+			} else {
+				const candidates = unclaimedBashCards(L.ctx, command);
+				const appeared = finishedBashCards(L.ctx, command).length - finishedBefore;
+				const others = (flight.get(command) || 1) - 1; // besides this one
+				const buffered = L.pendingBashEvents.get(r.id) || [];
 				L.pendingBashEvents.delete(r.id);
-			} else flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
+				if (appeared === 1 && others === 0 && candidates.length) {
+					// exactly one finished card for this command appeared while we
+					// waited and nothing else could have produced it: it is ours
+					const adopted = candidates[candidates.length - 1];
+					adopted.dataset.bashId = r.id;
+					L.ctx.toolRows.set(`bash:${r.id}`, adopted);
+					// history records the run, not a transport failure (a timeout, a
+					// dead child). Put a buffered failure back on the row.
+					const failed = [...buffered].reverse().find((e) => e.type === "desk_bash_result" && !e.success);
+					if (failed) finishBashRow(adopted, failed.data, failed.error || "failed");
+				} else {
+					// We cannot say which card is ours. Adopting the wrong one shows
+					// another run under this command; building one from the buffer
+					// duplicates a card history already holds. Let history settle it.
+					scheduleResync();
+				}
+			}
 			pin(L.ctx.container);
 		} catch (e) {
 			if (!stale(g)) toast(String(e.message || e), "error");
+		} finally {
+			const n = (flight.get(command) || 1) - 1;
+			if (n > 0) flight.set(command, n);
+			else flight.delete(command);
 		}
 		return;
 	}
@@ -2148,10 +2225,15 @@ async function spawnSession(cwd, sessionFile, extra) {
 		headers: { "content-type": "application/json" },
 		body: JSON.stringify(body),
 	}).then((r) => r.json());
+	// You picked another stage while this spawn was in flight. On success the
+	// session exists and belongs in the rail, but stealing the stage back would
+	// undo your choice; on failure the toast belongs to a stage you have left.
+	// Either way nothing else here may paint.
+	if (stale(g)) {
+		if (!r.error) refreshRail();
+		return;
+	}
 	if (r.error) return toast(r.error, "error");
-	// You picked another stage while this spawn was in flight: the session exists
-	// and is in the rail, but stealing the stage back would undo your choice.
-	if (stale(g)) return refreshRail();
 	openLive(r.id, cwd);
 }
 
