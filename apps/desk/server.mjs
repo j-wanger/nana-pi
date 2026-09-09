@@ -122,6 +122,33 @@ const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public")
 const MAX_CHILDREN = 4;
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
 
+// ── bounded buffers ──
+// The desk is ONE process holding every live session, so an accumulation with no
+// ceiling is a whole-desk outage, not a failed request. Every place a LOCAL producer
+// (a pi child, an extension inside it, an app `data` command, a browser tab that
+// stops reading) can push into this process has a cap. The env overrides follow the
+// existing tests-only pattern (DESK_KILL_GRACE_MS, DESK_DATA_TIMEOUT_MS).
+//
+// Unterminated child stdout. pi's largest LEGITIMATE line is a `get_messages`
+// response, which carries the whole conversation on one line: measured at 18.4 MiB
+// for the biggest session on this machine (19 MB of JSONL). Everything else is far
+// smaller — pi truncates tool output at 50 KiB (its DEFAULT_MAX_BYTES) and nana-stage
+// at 128/256 KiB. 64 MiB is ~3.5× the largest real line, and 4 children can hold at
+// most 256 MiB of half-read lines between them. Measured in decoded CHARACTERS (the
+// buffer is a string by then); for JSONL, which is ASCII apart from message text,
+// that is within a whisker of bytes and never under-counts what a byte cap would
+// allow through.
+const STDOUT_LINE_CAP = Number(process.env.DESK_STDOUT_LINE_CAP) || 64 * 1024 * 1024;
+// Per SSE client, how much may sit in the kernel + the response's own write buffer
+// before we give up on that client. Sized against the largest single event a healthy
+// tab has to swallow (a signed stage block, 256 KiB) with ~30× headroom, so only a
+// tab that has genuinely stopped reading reaches it.
+const SSE_CLIENT_BUFFER_CAP = Number(process.env.DESK_SSE_BUFFER_CAP) || 8 * 1024 * 1024;
+// In-flight RPCs per child. The desk itself issues a handful per tab (history resync,
+// stats, file list); 64 leaves room for many tabs on one session and still bounds what
+// a caller looping on /api/… can pin in memory (each pending RPC holds a timer).
+const MAX_PENDING_RPC = Number(process.env.DESK_MAX_PENDING_RPC) || 64;
+
 // RPC commands a client may send through /rpc. prompt/steer/follow_up/abort/bash and
 // extension_ui_response have dedicated endpoints so desk bookkeeping stays consistent.
 const RPC_ALLOWED = new Set([
@@ -165,6 +192,22 @@ function sseWrite(res, line) {
 	try {
 		if (res.destroyed || res.writableEnded || !res.writable) return false;
 		res.write(line);
+		// Backpressure: `write` returning false only says "slow down", and there is no
+		// slowing down here — the events come from a child we do not control, and
+		// holding them per client is the unbounded buffer. A client that has stopped
+		// reading piles up in its socket's write buffer instead (measured: 12 MB after
+		// 200 64 KiB writes to a paused reader, still climbing). Past the cap we drop
+		// THAT client: end it and destroy the socket so the buffer is released now
+		// rather than at some future FIN. The browser's EventSource reconnects and
+		// gets a fresh desk_hello snapshot — the desk never replays event buffers, so
+		// a resync is the normal way back in. Slow tabs are disconnected, never
+		// throttled: one tab must not pace the whole fan-out.
+		if (res.writableLength > SSE_CLIENT_BUFFER_CAP) {
+			console.error(`nana code: SSE client over cap — dropped with ${res.writableLength} bytes buffered (cap ${SSE_CLIENT_BUFFER_CAP}); it will reconnect and resync`);
+			try { res.end(); } catch {}
+			try { res.destroy(); } catch {}
+			return false;
+		}
 		return true;
 	} catch {
 		return false;
@@ -287,12 +330,18 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	// the signature over a stage block. It holds the partial bytes instead.
 	const decoder = new StringDecoder("utf-8");
 	let pending = "";
+	let droppingLine = false; // discarding the rest of a line that went over the cap
 	proc.stdout.on("data", (chunk) => {
 		pending += decoder.write(chunk);
 		let nl;
 		while ((nl = pending.indexOf("\n")) >= 0) {
 			const line = pending.slice(0, nl).replace(/\r$/, "");
 			pending = pending.slice(nl + 1);
+			// this newline terminates a line we already threw away: resume with the next
+			if (droppingLine) {
+				droppingLine = false;
+				continue;
+			}
 			if (!line) continue;
 			let obj;
 			try {
@@ -309,6 +358,26 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 				handleChildEvent(child, obj);
 			} catch (e) {
 				console.error(`session ${id}: dropped a child event (${obj?.type}): ${e?.message || e}`);
+			}
+		}
+		// What is left has no newline in it yet. A child that never sends one — a
+		// runaway serializer, an extension printing a loop, a hostile local producer —
+		// otherwise grows this string until the desk dies, taking every OTHER session
+		// with it. Throw the partial line away and keep the child: a pathological line
+		// must not cost the user the session. The RPCs in flight are rejected because
+		// one of them may have been what that line was answering, and they would
+		// otherwise sit on their timers (600 s for a prompt) with no answer coming.
+		if (pending.length > STDOUT_LINE_CAP) {
+			pending = "";
+			if (!droppingLine) {
+				droppingLine = true;
+				console.error(`session ${id}: child stdout line over cap (${STDOUT_LINE_CAP} chars) — discarded, session kept`);
+				broadcast(child, { type: "desk_event_dropped", eventType: null, reason: `child stdout line exceeded ${STDOUT_LINE_CAP} characters and was discarded` });
+				for (const [, p] of child.pending) {
+					clearTimeout(p.timer);
+					p.reject(new Error(`child stdout line exceeded ${STDOUT_LINE_CAP} characters — a response may have been discarded`));
+				}
+				child.pending.clear();
 			}
 		}
 	});
@@ -474,6 +543,12 @@ function handleChildEvent(child, obj) {
 
 function sendRpc(child, command) {
 	if (child.state !== "running" || !child.proc.stdin.writable) return Promise.reject(new Error("session not running"));
+	// Fail fast rather than queue: every pending RPC holds a promise, a timer and the
+	// caller's request, and a client looping on /api/… (or N tabs polling stats)
+	// against a child that has stopped answering grows this map with nothing to bound
+	// it but the timers. Refusing the new one is recoverable; running out of memory
+	// takes every session down. The RPCs already in flight are untouched.
+	if (child.pending.size >= MAX_PENDING_RPC) return Promise.reject(httpError(429, `too many in-flight requests for this session (${MAX_PENDING_RPC})`));
 	const id = `desk-${child.nextRpc++}`;
 	const timeoutMs = RPC_TIMEOUTS[command.type] ?? 30000;
 	return new Promise((resolve, reject) => {
@@ -1746,6 +1821,8 @@ const server = http.createServer(async (req, res) => {
 				const body = await readBody(req);
 				const command = String(body.command || "");
 				if (!command) return json(res, 400, { error: "empty command" });
+				// this route fills child.pending itself, so it needs the same cap sendRpc has
+				if (child.pending.size >= MAX_PENDING_RPC) return json(res, 429, { error: `too many in-flight requests for this session (${MAX_PENDING_RPC})` });
 				const rpcId = `desk-${child.nextRpc++}`;
 				const timer = setTimeout(() => {
 					if (child.pending.delete(rpcId))

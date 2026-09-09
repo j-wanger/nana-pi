@@ -183,17 +183,36 @@ export function startAppListeners({ manifests, deps, dirs }) {
 	return servers;
 }
 
+// A `data` command's stdout has to be read whole — it is one JSON document — so the
+// only ceiling is a byte cap. The timeout kills on TIME, which a command printing at
+// full pipe speed reaches only after gigabytes. The cap is sized for page state a
+// browser will actually parse; stderr is only ever reported as a tail, so it is held
+// as one.
+const DATA_OUTPUT_CAP = Number(process.env.DESK_DATA_OUTPUT_CAP) || 8 * 1024 * 1024;
+const DATA_STDERR_TAIL = 8 * 1024;
 function runData(argv, cwd, env) {
 	return new Promise((resolve) => {
-		let out = "", err = "";
+		let out = "", err = "", outBytes = 0, overCap = false;
 		const proc = spawn(argv[0], argv.slice(1), { cwd, stdio: ["ignore", "pipe", "pipe"], env });
 		const ms = Number(process.env.DESK_DATA_TIMEOUT_MS) || 20000; // env: tests only
 		const timer = setTimeout(() => { proc.kill("SIGKILL"); resolve({ status: 504, body: { error: `data command timed out (${ms} ms)` } }); }, ms);
-		proc.stdout.on("data", (c) => (out += c));
-		proc.stderr.on("data", (c) => (err += c));
+		proc.stdout.on("data", (c) => {
+			if (overCap) return;
+			outBytes += c.length; // a Buffer: the real byte count, not the decoded length
+			out += c;
+			if (outBytes > DATA_OUTPUT_CAP) {
+				overCap = true;
+				out = ""; // release it now, not at close
+				clearTimeout(timer);
+				proc.kill("SIGKILL");
+				resolve({ status: 500, body: { error: `data output exceeded cap (${DATA_OUTPUT_CAP} bytes)` } });
+			}
+		});
+		proc.stderr.on("data", (c) => (err = (err + c).slice(-DATA_STDERR_TAIL)));
 		proc.on("error", (e) => { clearTimeout(timer); resolve({ status: 500, body: { error: `data command failed to start: ${e.message}` } }); });
 		proc.on("close", (code) => {
 			clearTimeout(timer);
+			if (overCap) return; // already answered; this is the SIGKILL landing
 			if (code !== 0) return resolve({ status: 500, body: { error: `data command exit ${code}`, stderr: err.slice(-600) } });
 			try { resolve({ status: 200, body: JSON.parse(out) }); } catch { resolve({ status: 500, body: { error: "data command did not print JSON", stdout: out.slice(-300) } }); }
 		});

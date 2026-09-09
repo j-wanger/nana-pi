@@ -221,6 +221,47 @@ not just what the server does internally.
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
   extensions inside its own cwd.
 
+## Contract notes (2026-09-09 — four buffer caps)
+
+Nothing the desk holds on behalf of a local producer grows without a ceiling any more. A pi
+child, an extension inside it, an app `data` command or a browser tab that stops reading can
+all push more at this process than it can hold, and the desk is one process holding *every*
+live session — so each of these used to be a whole-desk outage. Four caps, all named constants
+at the top of `apps/desk/server.mjs` (`apps.mjs` for the last), each overridable by an env var
+that exists for the tests, the way `DESK_KILL_GRACE_MS` does:
+
+- **A child's stdout line: 64 MiB** (`DESK_STDOUT_LINE_CAP`). Events arrive as one JSON object
+  per line, so text with no newline in it has to be held. Past the cap the desk **throws that
+  partial line away and keeps the session running** — a pathological line must not cost you the
+  session. Clients on that session get one `desk_event_dropped` saying so (the existing event
+  type), the desk logs it once, and **every RPC in flight on that child is rejected**, because
+  one of them may be what the discarded line was answering and it would otherwise sit on its
+  timer — up to ten minutes for a prompt — with no answer coming. The number is ~3.5× the
+  biggest legitimate line pi produces: a `get_messages` response carries the whole conversation
+  on one line, measured at 18.4 MiB for the largest session on this machine, and everything else
+  is far smaller (pi truncates tool output at 50 KiB, nana-stage at 128/256 KiB).
+- **Per SSE client: 8 MiB of unread output** (`DESK_SSE_BUFFER_CAP`). A tab that stops reading
+  used to accumulate in the server's write buffer for that one socket with nothing to stop it
+  (measured: 12 MB after 200 events, still climbing). Now that client's response is **ended and
+  its socket dropped**; the browser's `EventSource` reconnects on its own and gets a fresh
+  `desk_hello` snapshot, which is the normal way back in — the desk never replays event buffers.
+  A slow tab is **disconnected and resynced, never throttled**: one tab must not pace the fan-out
+  for the others, and the other clients on that session see no interruption.
+- **In-flight RPCs per session: 64** (`DESK_MAX_PENDING_RPC`). Above that, a new one **fails
+  fast** — `POST /api/session/:id/rpc` (and `/bash`) answers **429** with
+  `too many in-flight requests for this session (64)`, and an internal caller gets a rejected
+  promise — instead of being queued. Requests already in flight are untouched and keep their own
+  timers. The cap is on concurrency, not on a rate: once they drain, the next request is fine.
+- **An app `data` command's stdout: 8 MiB** (`DESK_DATA_OUTPUT_CAP`). Its output has to be read
+  whole (it is one JSON document), and the 20 s timeout only killed on *time* — a command
+  printing at pipe speed reached gigabytes first. Past the cap the process is **SIGKILLed** and
+  the request answers **500**, `data output exceeded cap (8388608 bytes)`, in the same shape as
+  the timeout's 504. Its stderr is now held as an 8 KiB tail (the reported tail was already only
+  the last 600 characters, so nothing a caller sees changes).
+
+Two accumulations on these paths were checked and were **already bounded**: a child's captured
+stderr (`stderrTail`, last 2000 characters) and request bodies (`readBody`, 32 MiB).
+
 ## Known limits
 
 The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then
@@ -238,10 +279,13 @@ is not":
   (`-na`, the UI stops offering project-local items, and the server refuses a project path), but
   any extension that *does* load runs with your full authority, and context files are still model
   input.
-- **Buffers are unbounded.** A child's stdout accumulates until a newline arrives, SSE writes are
-  not backpressure-aware, pending RPCs are uncapped, and an app `data` command's stdout is read
-  whole. The stage's 128/256 KiB caps bound what a *model* reads, not what this server holds in
-  memory — a runaway or hostile local producer can exhaust it.
+- **A child can still grow the desk's per-session bookkeeping.** The four transport buffers are
+  capped (above), but the maps a child fills through its own events are not: every distinct
+  `setStatus` key, `setWidget` key and unanswered dialog id is kept for the life of the session
+  (`handleChildEvent` in `server.mjs`) and every one of them is sent to each new client in
+  `desk_hello`. A child emitting millions of distinct keys still grows this process. Bounding
+  them needs a decision about what a *dropped* status or widget means to the page, which the
+  buffer caps did not have to make.
 - **`~/.pi/agent/*.json` saves still follow symlinks, on purpose.** `settings.json`, `mcp.json`
   and `nana-pack.json` are your own paths, and symlinking them into a dotfiles repo is a normal
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
