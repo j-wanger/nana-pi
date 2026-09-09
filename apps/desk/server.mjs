@@ -135,15 +135,18 @@ const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
 // for the biggest session on this machine (19 MB of JSONL). Everything else is far
 // smaller — pi truncates tool output at 50 KiB (its DEFAULT_MAX_BYTES) and nana-stage
 // at 128/256 KiB. 64 MiB is ~3.5× the largest real line, and 4 children can hold at
-// most 256 MiB of half-read lines between them. Measured in decoded CHARACTERS (the
-// buffer is a string by then); for JSONL, which is ASCII apart from message text,
-// that is within a whisker of bytes and never under-counts what a byte cap would
-// allow through.
+// most ~512 MiB of half-read lines between them (a JS string is UTF-16: two bytes
+// per character). The cap counts decoded CHARACTERS — the buffer is a string by
+// then; for JSONL, which is ASCII apart from message text, that is within a whisker
+// of bytes and never under-counts what a byte cap would allow through.
 const STDOUT_LINE_CAP = Number(process.env.DESK_STDOUT_LINE_CAP) || 64 * 1024 * 1024;
-// Per SSE client, how much may sit in the kernel + the response's own write buffer
-// before we give up on that client. Sized against the largest single event a healthy
-// tab has to swallow (a signed stage block, 256 KiB) with ~30× headroom, so only a
-// tab that has genuinely stopped reading reaches it.
+// Per SSE client: how much this process is willing to RETAIN for one client that is
+// not draining. `res.writableLength` is Node's own queued-but-unwritten bytes for
+// that response — the kernel's send buffer (a few hundred KB on loopback) fills
+// first and is not counted here, so the real lag before a drop is a little larger.
+// Sized against the largest single event a healthy tab has to swallow (a signed
+// stage block, 256 KiB) with ~30× headroom, so only a tab that has genuinely
+// stopped reading reaches it.
 const SSE_CLIENT_BUFFER_CAP = Number(process.env.DESK_SSE_BUFFER_CAP) || 8 * 1024 * 1024;
 // In-flight RPCs per child. The desk itself issues a handful per tab (history resync,
 // stats, file list); 64 leaves room for many tabs on one session and still bounds what
@@ -283,9 +286,9 @@ function sseWrite(res, line) {
 		// Backpressure: `write` returning false only says "slow down", and there is no
 		// slowing down here — the events come from a child we do not control, and
 		// holding them per client is the unbounded buffer. A client that has stopped
-		// reading piles up in its socket's write buffer instead (measured: 12 MB after
-		// 200 64 KiB writes to a paused reader, still climbing). Past the cap we drop
-		// THAT client: end it and destroy the socket so the buffer is released now
+		// reading piles up in Node's write queue for that response instead (measured:
+		// 12 MB after 200 64 KiB writes to a paused reader, still climbing). Past the
+		// cap we drop THAT client: end it and destroy the socket so it is released now
 		// rather than at some future FIN. The browser's EventSource reconnects and
 		// gets a fresh desk_hello snapshot — the desk never replays event buffers, so
 		// a resync is the normal way back in. Slow tabs are disconnected, never
@@ -421,6 +424,20 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	const decoder = new StringDecoder("utf-8");
 	let pending = "";
 	let droppingLine = false; // discarding the rest of a line that went over the cap
+	// Over-cap line: report it ONCE and settle the callers. The RPCs in flight are
+	// rejected because one of them may have been what that line was answering, and
+	// they would otherwise sit on their timers (600 s for a prompt) with no answer
+	// coming. The child is KEPT: a pathological line must not cost the user the
+	// session.
+	const dropOverCapLine = () => {
+		console.error(`session ${id}: child stdout line over cap (${STDOUT_LINE_CAP} chars) — discarded, session kept`);
+		broadcast(child, { type: "desk_event_dropped", eventType: null, reason: `child stdout line exceeded ${STDOUT_LINE_CAP} characters and was discarded` });
+		for (const [, p] of child.pending) {
+			clearTimeout(p.timer);
+			p.reject(new Error(`child stdout line exceeded ${STDOUT_LINE_CAP} characters — a response may have been discarded`));
+		}
+		child.pending.clear();
+	};
 	proc.stdout.on("data", (chunk) => {
 		pending += decoder.write(chunk);
 		let nl;
@@ -433,6 +450,15 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 				continue;
 			}
 			if (!line) continue;
+			// A COMPLETE line can be over the cap too — the chunk that pushed the buffer
+			// past it can carry the newline as well, and then the remainder check below
+			// never sees it. Without this, "past the cap is discarded" was false for
+			// exactly the case where the producer sends its whole oversized line at once:
+			// it reached JSON.parse and was broadcast like any other event.
+			if (line.length > STDOUT_LINE_CAP) {
+				dropOverCapLine();
+				continue;
+			}
 			let obj;
 			try {
 				obj = JSON.parse(line);
@@ -453,21 +479,13 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 		// What is left has no newline in it yet. A child that never sends one — a
 		// runaway serializer, an extension printing a loop, a hostile local producer —
 		// otherwise grows this string until the desk dies, taking every OTHER session
-		// with it. Throw the partial line away and keep the child: a pathological line
-		// must not cost the user the session. The RPCs in flight are rejected because
-		// one of them may have been what that line was answering, and they would
-		// otherwise sit on their timers (600 s for a prompt) with no answer coming.
+		// with it. Throw the partial line away and keep discarding until its newline
+		// finally arrives (droppingLine), so the report happens once per bad line.
 		if (pending.length > STDOUT_LINE_CAP) {
 			pending = "";
 			if (!droppingLine) {
 				droppingLine = true;
-				console.error(`session ${id}: child stdout line over cap (${STDOUT_LINE_CAP} chars) — discarded, session kept`);
-				broadcast(child, { type: "desk_event_dropped", eventType: null, reason: `child stdout line exceeded ${STDOUT_LINE_CAP} characters and was discarded` });
-				for (const [, p] of child.pending) {
-					clearTimeout(p.timer);
-					p.reject(new Error(`child stdout line exceeded ${STDOUT_LINE_CAP} characters — a response may have been discarded`));
-				}
-				child.pending.clear();
+				dropOverCapLine();
 			}
 		}
 	});
@@ -524,12 +542,18 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	return id;
 }
 
+// The ONE way this process kills something it spawned. win32 shell-mode spawn: proc
+// is the cmd.exe wrapper — kill the whole tree or the real program is orphaned.
+// taskkill /f is already the forceful form, so a SIGTERM→SIGKILL escalation is a
+// no-op there and harmless to repeat. (The win32 branch is untested here: this
+// machine is darwin. On POSIX this kills the named process only — descendants that
+// outlive their parent are a known limit of the desk's lifecycle, not new here.)
+function killTree(proc, signal = "SIGTERM") {
+	if (process.platform === "win32") execFile("taskkill", ["/pid", String(proc.pid), "/t", "/f"], () => {});
+	else proc.kill(signal);
+}
 function killChild(child, signal = "SIGTERM") {
-	// win32 shell-mode spawn: proc is the cmd.exe wrapper — kill the whole tree
-	// or pi itself is orphaned. taskkill /f is already the forceful form, so the
-	// escalation below is a no-op there and harmless to repeat.
-	if (process.platform === "win32") execFile("taskkill", ["/pid", String(child.proc.pid), "/t", "/f"], () => {});
-	else child.proc.kill(signal);
+	killTree(child.proc, signal);
 }
 
 // How long a killed child gets to exit before SIGKILL, and again before the desk
@@ -1916,7 +1940,10 @@ const server = http.createServer(async (req, res) => {
 				// guarded: a client that vanished between the request and here must not
 				// throw inside this route, and must not join the fan-out
 				if (!sseWrite(res, sseLine(hello))) return;
-				if (child.exitNote) sseWrite(res, sseLine(child.exitNote));
+				// the SECOND write is guarded too: a response the cap already ended must
+				// not join the fan-out, and the close listener below is registered after
+				// this point
+				if (child.exitNote && !sseWrite(res, sseLine(child.exitNote))) return;
 				child.clients.add(res);
 				res.on("close", () => child.clients.delete(res));
 				return;
@@ -2192,7 +2219,7 @@ const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "ag
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 startAppListeners({
 	manifests: loadManifests(APPS_DIR),
-	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession },
+	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession, killTree },
 	dirs: {
 		stage: path.join(PUBLIC, "stage"),
 		public: PUBLIC,

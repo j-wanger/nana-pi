@@ -195,12 +195,17 @@ export function startAppListeners({ manifests, deps, dirs }) {
 // as one.
 const DATA_OUTPUT_CAP = Number(process.env.DESK_DATA_OUTPUT_CAP) || 8 * 1024 * 1024;
 const DATA_STDERR_TAIL = 8 * 1024;
-function runData(argv, cwd, env) {
+// `killTree` is the desk's own lifecycle kill (server.mjs, passed in through deps):
+// on win32 the child is a cmd.exe wrapper, so a bare kill leaves the real command —
+// and anything it started that inherited this stdout — running. Both exits here go
+// through it. The plain kill stays as the fallback for a caller that did not pass one.
+function runData(argv, cwd, env, killTree) {
 	return new Promise((resolve) => {
 		let out = "", err = "", outBytes = 0, overCap = false;
 		const proc = spawn(argv[0], argv.slice(1), { cwd, stdio: ["ignore", "pipe", "pipe"], env });
+		const kill = () => (killTree ? killTree(proc, "SIGKILL") : proc.kill("SIGKILL"));
 		const ms = Number(process.env.DESK_DATA_TIMEOUT_MS) || 20000; // env: tests only
-		const timer = setTimeout(() => { proc.kill("SIGKILL"); resolve({ status: 504, body: { error: `data command timed out (${ms} ms)` } }); }, ms);
+		const timer = setTimeout(() => { kill(); resolve({ status: 504, body: { error: `data command timed out (${ms} ms)` } }); }, ms);
 		proc.stdout.on("data", (c) => {
 			if (overCap) return;
 			outBytes += c.length; // a Buffer: the real byte count, not the decoded length
@@ -209,7 +214,7 @@ function runData(argv, cwd, env) {
 				overCap = true;
 				out = ""; // release it now, not at close
 				clearTimeout(timer);
-				proc.kill("SIGKILL");
+				kill();
 				resolve({ status: 500, body: { error: `data output exceeded cap (${DATA_OUTPUT_CAP} bytes)` } });
 			}
 		});
@@ -326,7 +331,7 @@ async function handle(app, req, res, deps, files) {
 			// Fixed argv from the manifest; the query string is ignored. The command's
 			// stdout must be one JSON document. Failures are reported, never guessed.
 			// same PATH fix-up the pi child gets (service managers ship a minimal PATH)
-			const r = await runData(argv, m.cwd, deps.childEnv ? deps.childEnv() : process.env);
+			const r = await runData(argv, m.cwd, deps.childEnv ? deps.childEnv() : process.env, deps.killTree);
 			return json(res, r.status, r.body);
 		}
 		if (p === "/api/session" && req.method === "GET") {
@@ -358,7 +363,8 @@ async function handle(app, req, res, deps, files) {
 			// guarded, same as the desk listener: a client that vanished between the
 			// request and here must not throw inside this route
 			if (!sseWrite(res, sseLine(hello))) return;
-			if (child.exitNote) sseWrite(res, sseLine(child.exitNote));
+			// guarded too: a response the SSE cap already ended must not join the fan-out
+			if (child.exitNote && !sseWrite(res, sseLine(child.exitNote))) return;
 			child.clients.add(res);
 			res.on("close", () => child.clients.delete(res));
 			return;

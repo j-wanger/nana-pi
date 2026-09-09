@@ -10,6 +10,9 @@
 // Every case FAILS on the pre-fix code:
 //   1. a child stdout line 2× the cap with no newline — pre-fix: `pending` grows
 //      forever; the RPC whose response it was hangs until its 600 s timer
+//   1b. a COMPLETE line one character over the cap, newline and all — pre-fix the
+//      remainder check never sees it, so it is parsed and broadcast like any other
+//      event and "past the cap is discarded" is false (sol review, finding A)
 //   2. an SSE client that never reads while the child floods — pre-fix: the write
 //      buffer for that one socket grows without bound (measured: 12 MB after 200
 //      64 KiB writes, and still climbing) and nothing disconnects it
@@ -62,11 +65,13 @@ const appsDir = path.join(TD, "apps");
 const plainCwd = path.join(TD, "repo-plain");
 const slowCwd = path.join(TD, "repo-slow");
 const appCwd = path.join(TD, "repo-app");
-for (const d of [binDir, appsDir, plainCwd, slowCwd, appCwd, path.join(TD, ".pi", "agent", "sessions")]) fs.mkdirSync(d, { recursive: true });
+const pidDir = path.join(TD, "pids");
+for (const d of [binDir, appsDir, plainCwd, slowCwd, appCwd, pidDir, path.join(TD, ".pi", "agent", "sessions")]) fs.mkdirSync(d, { recursive: true });
 const DATA_PID = path.join(TD, "data-pid");
 
 // ── stub pi: behaviour by cwd (slow) and by prompt text (bigline / flood) ──
 const STUB = `#!/usr/bin/env node
+require("node:fs").writeFileSync(${JSON.stringify(pidDir)} + "/" + process.pid, "");
 const slow = /repo-slow/.test(process.cwd());
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
 let buf = "";
@@ -86,6 +91,13 @@ process.stdin.on("data", (c) => {
 			process.stdout.write("x".repeat(${2 * LINE_CAP}));   // one line, no newline
 			process.stdout.write("\\n");                          // …terminated at last
 			say({ type: "desk_test_alive", after: "bigline" });
+		} else if (cmd.type === "prompt" && /bigcomplete/.test(cmd.message || "")) {
+			ok({});
+			// a VALID event exactly one char over the cap, written WITH its newline: the
+			// chunk that crosses the cap is the one that terminates the line
+			const head = '{"type":"desk_test_big","pad":"', tailp = '"}';
+			process.stdout.write(head + "q".repeat(${LINE_CAP} + 1 - head.length - tailp.length) + tailp + "\\n");
+			say({ type: "desk_test_alive", after: "bigcomplete" });
 		} else if (cmd.type === "prompt" && /flood/.test(cmd.message || "")) {
 			ok({});
 			const blob = "y".repeat(64 * 1024);
@@ -120,15 +132,15 @@ const server = spawn("node", [SERVER], {
 let log = "";
 server.stdout.on("data", (c) => (log += c));
 server.stderr.on("data", (c) => (log += c));
-let deskExit = null;
-server.on("exit", (code) => (deskExit = code));
+let deskExit = null, deskExited = false; // a signal exit reports code null: track both
+server.on("exit", (code, signal) => { deskExit = code ?? signal; deskExited = true; });
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const post = (base, p, body) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
 const alive = async () => {
-	if (deskExit !== null) return false;
+	if (deskExited) return false;
 	try { return (await fetch(`${BASE}/api/live`, { signal: AbortSignal.timeout(4000) })).status === 200; } catch { return false; }
 };
 const live = () => fetch(`${BASE}/api/live`).then((r) => r.json());
@@ -136,6 +148,8 @@ const spawnIn = (cwd) => post(BASE, "/api/spawn", { cwd }).then((r) => r.json())
 const waitFor = async (fn, ms = 8000) => { for (let i = 0; i < ms / 100; i++) { if (await fn()) return true; await sleep(100); } return false; };
 const gone = (pid) => { try { process.kill(pid, 0); return false; } catch (e) { return e?.code === "ESRCH"; } };
 
+// every client this test opens, so teardown can close them all
+const openClients = [];
 // a well-behaved SSE client: reads everything, keeps the frames it saw
 const listen = (id) => {
 	const seen = [];
@@ -154,6 +168,7 @@ const listen = (id) => {
 			}
 		}
 	}).catch(() => {});
+	openClients.push(seen);
 	return seen;
 };
 // the hostile one: a raw socket that asks for the stream and then never reads a byte.
@@ -170,6 +185,7 @@ const deafClient = (id) => {
 	// ended the response instead of holding the stream open and buffering.
 	st.drain = () => { s.on("data", (c) => (st.bytes += c.length)); s.resume(); };
 	st.destroy = () => s.destroy();
+	openClients.push(st);
 	return st;
 };
 
@@ -198,6 +214,15 @@ try {
 	check("…and the child is still running (a bad line does not cost the session)", (await live()).find((c) => c.id === c1.id)?.state === "running", JSON.stringify(await live()));
 	const still = await post(BASE, `/api/session/${c1.id}/rpc`, { command: { type: "get_state" } });
 	check("…and the session still answers RPCs afterwards", still.status === 200, String(still.status));
+
+	// ── 1b. a COMPLETE line one character over the cap, newline and all ──────────
+	// The remainder check alone never sees this one: the chunk that pushes the buffer
+	// past the cap is the same chunk that terminates the line, so it used to be parsed
+	// and broadcast like any other event.
+	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "bigcomplete please" });
+	check("…a terminated line over the cap is dropped too, not parsed and broadcast", await waitFor(async () => seen1.some((e) => e.type === "desk_test_alive" && e.after === "bigcomplete")) && !seen1.some((e) => e.type === "desk_test_big"), JSON.stringify(seen1.map((e) => e.type)));
+	check("…and its clients are told about that one as well", seen1.filter((e) => e.type === "desk_event_dropped" && /stdout line/.test(String(e.reason))).length === 2, String(seen1.filter((e) => e.type === "desk_event_dropped").length));
+	check("…the child survives it too", (await live()).find((c) => c.id === c1.id)?.state === "running", JSON.stringify(await live()));
 	seen1.stop();
 
 	// ── 2. an SSE client that never reads ────────────────────────────────────────
@@ -251,9 +276,28 @@ try {
 } catch (e) {
 	check(`harness error: ${e?.stack || e}`, false);
 } finally {
-	try { server.kill("SIGKILL"); } catch {}
-	try { if (fs.existsSync(DATA_PID)) process.kill(Number(fs.readFileSync(DATA_PID, "utf-8")), "SIGKILL"); } catch {}
-	await sleep(300);
+	// Teardown is an ASSERTION, not a cleanup: a test that leaves pi stubs or the desk
+	// running poisons whatever runs next (and hides a lifecycle bug of its own). Close
+	// the clients, end every session through the real route, wait for the server's own
+	// exit, and only then prove no recorded pid is still alive.
+	for (const c of openClients) { try { c.stop ? c.stop() : c.destroy(); } catch {} }
+	try {
+		for (const c of await fetch(`${BASE}/api/live`).then((r) => r.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" }).catch(() => {});
+	} catch {}
+	const exited = new Promise((r) => (deskExited ? r() : server.once("exit", r)));
+	try { server.kill("SIGTERM"); } catch {}
+	await Promise.race([exited, sleep(8000)]);
+	if (!deskExited) {
+		try { server.kill("SIGKILL"); } catch {}
+		await Promise.race([exited, sleep(3000)]);
+	}
+	check("the desk process really exited on teardown", deskExited, `exit=${deskExit}`);
+	const pids = (fs.existsSync(pidDir) ? fs.readdirSync(pidDir) : []).map(Number).filter(Boolean);
+	if (fs.existsSync(DATA_PID)) pids.push(Number(fs.readFileSync(DATA_PID, "utf-8")));
+	const survivors = [];
+	for (const pid of pids) if (!(await waitFor(async () => gone(pid), 6000))) survivors.push(pid);
+	check(`every spawned process is gone (${pids.length} recorded)`, survivors.length === 0, `still alive: ${survivors.join(", ")}`);
+	for (const pid of survivors) { try { process.kill(pid, "SIGKILL"); } catch {} } // never leave one behind
 	fs.rmSync(TD, { recursive: true, force: true });
 }
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");

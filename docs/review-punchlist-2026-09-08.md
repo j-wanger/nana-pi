@@ -139,16 +139,20 @@ sleeps became readiness handshakes.
   **NOT-A-BUG as reported:** the `JSON.parse` guard in `apps.mjs` was already correct. The real
   killer was a manifest that *parses* to a non-object (`null`, an array, a number) — that is what
   the commit fixes.
-- **FIXED `4875dd0` — [was medium; high availability impact with a hostile local producer]
+- **FIXED `4875dd0` + `f8f26bc` — [was medium; high availability impact with a hostile local producer]
   unbounded buffers.** All four leads were confirmed line by line and capped, each a named constant
   with a tests-only env override (the `DESK_KILL_GRACE_MS` pattern), each declared in
-  `apps/desk/README.md`. **Child stdout, 64 MiB:** an unterminated line is discarded and the
+  `apps/desk/README.md`. **Child stdout, 64 MiB:** an over-cap line is discarded and the
   session is KEPT — one `desk_event_dropped` to its clients, one log line, and the RPCs in flight
   on that child rejected, since one of them may be what the discarded line was answering and would
   otherwise wait out its timer (600 s for a prompt). Sized against the largest legitimate line pi
   emits — a `get_messages` response carries the whole conversation on one line, measured at
-  18.4 MiB for the biggest session on this machine. **SSE, 8 MiB per client:** a client whose write
-  buffer passes the cap is ended and its socket destroyed; `EventSource` reconnects and resyncs
+  18.4 MiB for the biggest session on this machine. It counts characters, not bytes, and covers
+  a line that arrives in pieces AND one that arrives whole with its newline attached — the second
+  case was missed in `4875dd0` (the cap was tested only on the unterminated remainder, so a
+  producer that wrote its whole oversized line at once still reached `JSON.parse`) and closed in
+  `f8f26bc`. **SSE, 8 MiB per client:** a client whose retained write queue passes the cap is
+  ended and its socket destroyed; `EventSource` reconnects and resyncs
   from `desk_hello`. Disconnected, never throttled — one slow tab must not pace the fan-out.
   (Pre-fix, measured: a client that never read held all 10 MB of a test flood in the server's write
   buffer, still climbing.) **In-flight RPCs, 64 per child:** the next one answers 429
@@ -158,11 +162,22 @@ sleeps became readiness handshakes.
   its stderr is now held as an 8 KiB tail. Two neighbours were checked and were already bounded:
   `stderrTail` (2000 chars) and `readBody` (32 MiB). Pinned by
   `apps/desk/test/buffer-caps.test.mjs` — the real server on ephemeral ports against a stub `pi`,
-  ten assertions that fail with the caps reverted.
+  ten assertions that fail with the caps reverted, plus two more that fail on `4875dd0` for the
+  terminated-line case. **`f8f26bc` also folds the rest of the gpt-5.6-sol r1 review of this
+  lane:** the `desk_hello`/`exitNote` route guards its second SSE write before joining the
+  fan-out (confirmed as unguarded, but not reachable as a retained dead client — both writes are
+  synchronous and the close listener still evicts, so it lands as consistency with no test that
+  can tell the two apart); the app `data` kill goes through the desk's own `killTree`
+  (`taskkill /T /F` on win32, untested — this machine is darwin; POSIX behaviour unchanged); the
+  test's teardown now ends every session, awaits the desk's exit and asserts every recorded pid
+  is gone. Its RPC-cap finding (C) passed unchanged.
   **STILL OPEN — [same class] the per-child maps a child fills through its own events.**
   `statuses`, `widgets` and `dialogs` (`handleChildEvent`, `apps/desk/server.mjs`) take one entry
   per distinct key for the life of the session and are replayed whole in every `desk_hello`, so a
-  child emitting millions of distinct keys still grows the desk. Left out of this commit because
+  child emitting millions of distinct keys still grows the desk — and once that snapshot alone
+  exceeds the SSE cap, every reconnect is dropped on its own hello and the session becomes
+  unwatchable rather than merely slow (no client-side retry cap; declared in the README, not
+  fixed). Left out of these commits because
   bounding them means deciding what a *dropped* status or widget means to the page — a contract
   change, not a fifth transport cap. **Next step:** cap each map and show the page that something
   was dropped, rather than silently losing a status.
