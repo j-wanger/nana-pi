@@ -4,9 +4,16 @@
 //
 // Every interleaving here is CONTROLLED, not timed: `page.route()` holds the
 // exact response under test until the test releases it, and the release point is
-// a condition on what the page has already received (an SSE spy installed by
-// `addInitScript`, which sees each event in the same dispatch as the app's own
-// handler, before it). No sleeps decide any outcome.
+// a condition on what the page has already received — an SSE spy and a fetch
+// spy installed by `addInitScript`. The SSE spy's listener is registered in the
+// EventSource constructor, so it sees each event in the same dispatch as (and
+// just before) app.js's own handler; the fetch spy resolves before the app's
+// own `.then` chain on the same response. Ordering is therefore never a race.
+// A NEGATIVE assertion ("A never appeared") additionally needs the losing
+// continuation to have had its turn: each one first waits for that response to
+// be consumed (the fetch spy), then a short bounded settle window. Those settle
+// windows are the only waits in this file, they are marked `SETTLE`, and no
+// POSITIVE outcome depends on one.
 //
 //   1. switch mid-resync — A's `get_messages` is held, the user selects B,
 //      then A's answer is released: B's pane must still show only B.
@@ -23,7 +30,19 @@
 //      echoed the message → the text must NOT be pushed back into the editor;
 //      (c) a genuine rejection with no echo → the text IS restored and the
 //      optimistic bubble removed; (d) a prompt rejected after a session switch
-//      must not restore A's text into B's editor.
+//      must not restore A's text into B's editor; (e) an EXPLICIT rejection that
+//      arrives after a matching echo still restores — the server answering
+//      "refused" outranks an echo that may be another client's.
+//   5. Esc — reclaim then abort: the abort must carry the session Esc was
+//      pressed in, never the one you switched to while clear_queue was pending.
+//   6. bash result over the retention window — buffered and rendered clipped.
+//   7. reconnect while a bash POST is held: pi's own finished record of the
+//      command comes back in the resync; the POST must adopt that row, not add
+//      a second card.
+//   8. a spawn whose response lands after you picked another stage must not
+//      yank the stage back to the session it created.
+//   9. an image whose FileReader finishes after a switch must not attach to the
+//      session you moved to.
 //
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/session-races.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
@@ -69,6 +88,7 @@ setTimeout(() => {
 	if (MARK === "charlie") say({ type: "extension_ui_request", id: "ui-hold", method: "confirm", title: "hold me" });
 	say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "k1", statusText: "chip-" + MARK });
 }, 30);
+const bashes = []; // finished bash executions, replayed by get_messages like pi does
 let buf = "";
 process.stdin.on("data", (c) => {
 	buf += c; let nl;
@@ -79,18 +99,28 @@ process.stdin.on("data", (c) => {
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
 			case "get_state": ok({ isStreaming: false, isCompacting: false, sessionName: MARK, sessionFile: null, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
-			case "get_messages": ok({ messages: [{ role: "user", content: [{ type: "text", text: "marker-" + MARK }] }] }); break;
+			case "get_messages": ok({ messages: [{ role: "user", content: [{ type: "text", text: "marker-" + MARK }] }, ...bashes] }); break;
 			case "get_session_stats": ok({ tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, cost: 0, totalMessages: 1, contextUsage: null }); break;
 			case "get_commands": ok({ commands: [] }); break;
 			case "clear_queue": ok({ steering: [], followUp: [] }); break;
 			// bash: stream a chunk and answer IMMEDIATELY — the server writes its
 			// HTTP response only after handing us the command, so both of these can
 			// beat the POST to the page
-			case "bash":
+			case "bash": {
+				if (/^big/.test(cmd.command)) {
+					const big = "x".repeat(50000);
+					bashes.push({ role: "bashExecution", command: cmd.command, output: big, exitCode: 0 });
+					say({ type: "response", id: cmd.id, success: true, data: { output: big, exitCode: 0 } });
+					break;
+				}
 				say({ type: "bash_execution_update", id: cmd.id, delta: "chunk-one\\n" });
 				say({ type: "bash_execution_update", id: cmd.id, delta: "chunk-two\\n" });
+				// pi records the finished command in its own history too, which is
+				// what a resync replays
+				bashes.push({ role: "bashExecution", command: cmd.command, output: "chunk-one\\nchunk-two\\n", exitCode: 0 });
 				say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
 				break;
+			}
 			// prompt: echo the user message back the way pi does
 			case "prompt":
 				say({ type: "message_end", message: { role: "user", content: [{ type: "text", text: cmd.message }] } });
@@ -115,7 +145,32 @@ server.stderr.on("data", (c) => (log += c));
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
 let browser;
-const die = (code) => { browser?.close().catch(() => {}); relay.close(); killSse(); server.kill(); fs.rmSync(tmp, { recursive: true, force: true }); process.exit(code); };
+// Awaited teardown: the next test file must not race this server's port release.
+const die = async (code) => {
+	try { await browser?.close(); } catch {}
+	killSse();
+	await new Promise((r) => relay.close(r));
+	if (server.exitCode === null && server.signalCode === null) {
+		const gone = new Promise((r) => server.once("exit", r));
+		server.kill();
+		await Promise.race([gone, new Promise((r) => setTimeout(r, 5000))]);
+	}
+	fs.rmSync(tmp, { recursive: true, force: true });
+	process.exit(code);
+};
+
+// A route callback that throws (a page closed under it, a wait that expires)
+// would otherwise take the process down BEFORE die() runs — leaking this test's
+// desk server and its pi children into the machine. Route every exit through die.
+let dying = false;
+for (const ev of ["uncaughtException", "unhandledRejection"]) {
+	process.on(ev, (e) => {
+		if (dying) return;
+		dying = true;
+		console.error(`E2E ${ev}:`, e?.message || e);
+		die(3);
+	});
+}
 
 // Records every SSE event the page's own EventSource delivers. The listener is
 // registered inside the constructor, so it runs BEFORE app.js's `.onmessage`
@@ -126,7 +181,13 @@ const Native = window.EventSource;
 window.EventSource = class extends Native {
 	constructor(...a) { super(...a); this.addEventListener("message", (ev) => { try { window.__sse.push(JSON.parse(ev.data)); } catch {} }); }
 };
+// Every response the page receives, recorded before app.js's own .then runs on
+// it: "this response has been delivered" is then a fact, not a guess.
+window.__fetched = [];
+const nativeFetch = window.fetch;
+window.fetch = (...a) => nativeFetch(...a).then((r) => { window.__fetched.push(String(r.url)); return r; });
 `;
+const SETTLE = 400; // see the header: bounded window before a negative assertion only
 
 // ── TCP relay in front of the desk, so the reconnect check can destroy the SSE
 // socket at a chosen moment (nothing in the browser or in Playwright can end an
@@ -155,6 +216,12 @@ const killSse = () => { for (const s of [...sseSockets]) { sseSockets.delete(s);
 const spawnSession = (cwd, name) =>
 	fetch(`${BASE}/api/spawn`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cwd, name }) }).then((r) => r.json());
 
+// Drop route handlers BEFORE closing: a handler still parked on a wait would
+// throw TargetClosedError into the process.
+const closePage = async (page) => {
+	await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+	await page.close();
+};
 const newPage = async (ctx) => {
 	const page = await ctx.newPage();
 	await page.addInitScript(SSE_SPY);
@@ -168,6 +235,19 @@ const openByMark = async (page, mark) => {
 	await page.waitForSelector("#input", { state: "visible", timeout: 5000 });
 };
 const rpcType = (route) => { try { return route.request().postDataJSON()?.command?.type; } catch { return null; } };
+// The transcript replays pi's earlier bash history, so a check must name the
+// card it means rather than taking the first or the last one.
+const bashCard = (page, command) => page.evaluate((c) => {
+	const cards = [...document.querySelectorAll(".bash-card")].filter((r) => r.querySelector(".bcmd").textContent === `! ${c}`);
+	const card = cards[cards.length - 1];
+	return {
+		n: cards.length,
+		total: document.querySelectorAll(".bash-card").length,
+		out: card?.querySelector(".bout")?.textContent ?? null,
+		mark: card?.querySelector(".mark")?.textContent ?? null,
+		exit: card?.querySelector(".bexit")?.textContent ?? null,
+	};
+}, command);
 
 try {
 	for (let i = 0; i < 60; i++) {
@@ -200,10 +280,14 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await openByMark(page, "bravo");
 		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
+		const rpcUrl = `/api/session/${a.id}/rpc`;
+		const seen = await page.evaluate((u) => window.__fetched.filter((x) => x.includes(u)).length, rpcUrl);
 		release();
-		// give the released continuation every chance to paint before we look
-		await page.waitForFunction(() => document.querySelectorAll("#transcript .msg.user").length >= 1);
-		await page.waitForTimeout(500);
+		// fence: A's held answer has been DELIVERED to the page, so its
+		// continuation has run or is one microtask away — then SETTLE
+		await page.waitForFunction(
+			([u, n]) => window.__fetched.filter((x) => x.includes(u)).length > n, [rpcUrl, seen], { timeout: 10000 });
+		await page.waitForTimeout(SETTLE);
 		const t = await page.evaluate(() => ({
 			text: document.querySelector("#transcript").textContent,
 			users: document.querySelectorAll("#transcript .msg.user").length,
@@ -213,7 +297,7 @@ try {
 		check("switch mid-resync: the old session's messages never appear", !t.text.includes("marker-alpha"), t.text.slice(0, 120));
 		check("switch mid-resync: exactly one user bubble", t.users === 1, String(t.users));
 		check("switch mid-resync: the header still names the new session", t.name === "bravo", t.name);
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 2. reconnect ───────────────────────────────────────────────────────────
@@ -238,7 +322,11 @@ try {
 		await page.waitForFunction(() => document.getElementById("chip")?.textContent === "disconnected", null, { timeout: 20000 });
 		// the reconnect is the SECOND desk_hello on this page
 		await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
-		await page.waitForTimeout(1000); // let every hello-driven continuation land
+		// the resync this hello triggers is a positive fact: wait for the chip it
+		// restores, then SETTLE before counting (the count is a negative claim:
+		// "no SECOND resync")
+		await page.waitForFunction(() => document.getElementById("chip")?.textContent === "idle", null, { timeout: 15000 });
+		await page.waitForTimeout(SETTLE);
 
 		const r = await page.evaluate(() => ({
 			dialogs: document.querySelectorAll("#dialogs .dialog").length,
@@ -253,7 +341,7 @@ try {
 		check("reconnect: exactly one transcript bubble", r.users === 1, String(r.users));
 		check("reconnect: exactly one extra get_messages", getMessages - before === 1, `${getMessages - before}`);
 		check("reconnect: the chip recovers from disconnected", r.chip === "idle", String(r.chip));
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 3. bash: the child's output beats the POST that creates the row ────────
@@ -271,21 +359,13 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "!echo hi");
 		await page.press("#input", "Enter");
-		await page.waitForSelector(".bash-card", { timeout: 20000 });
-		await page.waitForTimeout(500);
-		const r = await page.evaluate(() => {
-			const cards = [...document.querySelectorAll(".bash-card")];
-			return {
-				n: cards.length,
-				out: cards[0]?.querySelector(".bout")?.textContent || "",
-				mark: cards[0]?.querySelector(".mark")?.textContent || "",
-				exit: cards[0]?.querySelector(".bexit")?.textContent || "",
-			};
-		});
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
+		await page.waitForTimeout(SETTLE); // "exactly one row" is a negative claim
+		const r = await bashCard(page, "echo hi");
 		check("bash echo-first: exactly one row", r.n === 1, String(r.n));
 		check("bash echo-first: output kept, in order", r.out === "chunk-one\nchunk-two\n", JSON.stringify(r.out));
 		check("bash echo-first: the row is finished, not spinning", r.mark === "✓" && r.exit === "exit 0", `${r.mark} ${r.exit}`);
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 4a. prompt: the echo beats the fetch → one bubble ──────────────────────
@@ -302,10 +382,11 @@ try {
 		await page.fill("#input", "hello there");
 		await page.press("#input", "Enter");
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "message_end"), null, { timeout: 20000 });
-		await page.waitForTimeout(500);
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/prompt")), null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE); // "exactly one bubble" is a negative claim
 		const n = await page.evaluate(() => [...document.querySelectorAll("#transcript .msg.user")].filter((e) => e.textContent.includes("hello there")).length);
 		check("prompt echo-beats-fetch: exactly one bubble", n === 1, String(n));
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 4b. prompt: the response is LOST after pi already echoed ───────────────
@@ -322,14 +403,16 @@ try {
 		await page.fill("#input", "accepted but unanswered");
 		await page.press("#input", "Enter");
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "message_end"), null, { timeout: 20000 });
-		await page.waitForTimeout(700);
+		// the POST is aborted, so nothing positive marks the rejection landing:
+		// SETTLE is the fence for "the editor was NOT refilled"
+		await page.waitForTimeout(SETTLE * 2);
 		const r = await page.evaluate(() => ({
 			bubbles: [...document.querySelectorAll("#transcript .msg.user")].filter((e) => e.textContent.includes("accepted but unanswered")).length,
 			input: document.getElementById("input").value,
 		}));
 		check("prompt lost-response: exactly one bubble", r.bubbles === 1, String(r.bubbles));
 		check("prompt lost-response: the accepted text is NOT pushed back into the editor", r.input === "", JSON.stringify(r.input));
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 4c. prompt: a genuine rejection still restores the text ────────────────
@@ -349,14 +432,17 @@ try {
 		}));
 		check("prompt rejected: the text is restored to the editor", r.input === "will be refused", JSON.stringify(r.input));
 		check("prompt rejected: the optimistic bubble is removed", r.bubbles === 0, String(r.bubbles));
-		await page.close();
+		await closePage(page);
 	}
 
 	// ── 4d. prompt rejected AFTER a session switch ─────────────────────────────
 	{
 		const page = await newPage(ctx);
 		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
 		await page.route(`**/api/session/${a.id}/prompt`, async (route) => {
+			entered();
 			await new Promise((r) => (release = r));
 			return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ ok: false, error: "nope" }) });
 		});
@@ -365,24 +451,204 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "alpha text");
 		await page.press("#input", "Enter");
-		for (let i = 0; i < 100 && !release; i++) await page.waitForTimeout(100); // the POST is in the route handler
-		if (!release) throw new Error("the prompt POST was never intercepted");
+		await intercepted; // the POST is now parked in the route handler
 		await openByMark(page, "bravo");
 		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
 		release();
-		await page.waitForTimeout(700);
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/prompt")), null, { timeout: 10000 });
+		await page.waitForTimeout(SETTLE);
 		const r = await page.evaluate(() => ({
 			input: document.getElementById("input").value,
 			text: document.querySelector("#transcript").textContent,
 		}));
 		check("prompt rejected after a switch: the old text is not restored into the new editor", r.input === "", JSON.stringify(r.input));
 		check("prompt rejected after a switch: the new pane is untouched", r.text.includes("marker-bravo") && !r.text.includes("alpha text"), r.text.slice(0, 120));
-		await page.close();
+		await closePage(page);
+	}
+
+	// ── 4e. an EXPLICIT rejection that arrives after a matching echo ───────────
+	// The echo proves only that SOME client's message of that text was accepted;
+	// the server answering "refused" proves ours was not. The text must come back.
+	{
+		const page = await newPage(ctx);
+		const MSG = "explicitly refused";
+		await page.route(`**/api/session/${a.id}/prompt`, async (route) => {
+			await route.fetch(); // the child gets it and echoes
+			await page.waitForFunction((m) => window.__sse.some((e) => e.type === "message_end" && e.message?.role === "user" && e.message.content?.[0]?.text === m), MSG, { timeout: 15000 });
+			return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ ok: false, error: "nope" }) });
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", MSG);
+		await page.press("#input", "Enter");
+		await page.waitForFunction((m) => document.getElementById("input").value === m, MSG, { timeout: 15000 }).catch(() => {});
+		const r = await page.evaluate((m) => ({
+			input: document.getElementById("input").value,
+			bubbles: [...document.querySelectorAll("#transcript .msg.user")].filter((e) => e.textContent.includes(m)).length,
+		}), MSG);
+		check("prompt explicitly rejected after an echo: the text is restored", r.input === MSG, JSON.stringify(r.input));
+		check("prompt explicitly rejected after an echo: the echoed bubble is left alone", r.bubbles === 1, String(r.bubbles));
+		await closePage(page);
+	}
+
+	// ── 5. Esc: reclaim, then abort the session Esc was pressed in ─────────────
+	{
+		const page = await newPage(ctx);
+		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
+		const aborts = {};
+		await page.route("**/api/session/*/abort", (route) => {
+			const m = route.request().url().match(/\/api\/session\/(\w+)\/abort/);
+			if (m) aborts[m[1]] = (aborts[m[1]] || 0) + 1;
+			return route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+		});
+		await page.route(`**/api/session/${a.id}/rpc`, async (route) => {
+			if (rpcType(route) === "clear_queue") {
+				const resp = await route.fetch();
+				entered();
+				await new Promise((r) => (release = r)); // hold A's reclaim
+				return route.fulfill({ response: resp });
+			}
+			return route.continue();
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.press("#input", "Escape");
+		await intercepted; // Esc is now parked on A's clear_queue
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
+		const rpcUrl = `/api/session/${a.id}/rpc`;
+		const seen = await page.evaluate((u) => window.__fetched.filter((x) => x.includes(u)).length, rpcUrl);
+		release();
+		await page.waitForFunction(([u, n]) => window.__fetched.filter((x) => x.includes(u)).length > n, [rpcUrl, seen], { timeout: 10000 });
+		await page.waitForTimeout(SETTLE); // "no abort for B" is a negative claim
+		check("Esc mid-reclaim: the session you switched to is never aborted", !aborts[b.id], String(aborts[b.id] || 0));
+		await closePage(page);
+	}
+
+	// ── 6. a bash result larger than the retention window ──────────────────────
+	{
+		const page = await newPage(ctx);
+		await page.route(`**/api/session/${a.id}/bash`, async (route) => {
+			const resp = await route.fetch();
+			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
+			return route.fulfill({ response: resp }); // the result was buffered, not rendered
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!big output");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
+		await page.waitForTimeout(SETTLE);
+		const r = await bashCard(page, "big output");
+		check("buffered oversized result: retained and rendered within the window", r.out?.length === 20000, String(r.out?.length));
+		check("buffered oversized result: the cut is reported", /truncated/.test(r.exit || ""), String(r.exit));
+		await closePage(page);
+	}
+
+	// ── 7. reconnect while the bash POST is held → adopt, do not add a row ─────
+	// Through the relay: the resync the reconnect triggers brings back pi's own
+	// FINISHED record of the command (no RPC id) while the POST is still parked.
+	{
+		const page = await newPage(ctx);
+		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
+			const resp = await route.fetch();
+			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
+			killSse();
+			await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
+			// the resync brought pi's own finished record of this command back
+			await page.waitForFunction(() => document.querySelectorAll(".bash-card").length === 1, null, { timeout: 20000 });
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(RELAY);
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!echo hi");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 40000 });
+		await page.waitForTimeout(SETTLE); // "exactly one card" is a negative claim
+		const r = await bashCard(page, "echo hi");
+		check("bash + reconnect: exactly one row, not a duplicate", r.n === 1 && r.total === 1, `${r.n}/${r.total}`);
+		check("bash + reconnect: the adopted row keeps the output once", r.out === "chunk-one\nchunk-two\n", JSON.stringify(r.out));
+		check("bash + reconnect: the adopted row is finished", /exit 0/.test(r.exit || ""), String(r.exit));
+		await closePage(page);
+	}
+
+	// ── 8. a spawn whose response lands after you picked another stage ─────────
+	{
+		const page = await newPage(ctx);
+		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
+		await page.route("**/api/spawn", async (route) => {
+			const resp = await route.fetch(); // the session really is created
+			entered();
+			await new Promise((r) => (release = r));
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		const railBefore = await page.evaluate(() => document.querySelectorAll("#live-list .live-row").length);
+		await page.click("#btn-spawn");
+		await page.waitForSelector("#popover .path-row input", { timeout: 10000 });
+		await page.waitForFunction(() => document.querySelector("#popover .path-row input")?.value?.length > 0, null, { timeout: 15000 });
+		await page.click('#popover button:text-is("Open here")');
+		await intercepted; // the spawn POST is parked
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
+		release();
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/api/spawn")), null, { timeout: 15000 });
+		await page.waitForFunction((n) => document.querySelectorAll("#live-list .live-row").length > n, railBefore, { timeout: 30000 });
+		await page.waitForTimeout(SETTLE); // "the stage did NOT change" is a negative claim
+		const r = await page.evaluate(() => ({
+			name: document.getElementById("sess-name").textContent,
+			text: document.querySelector("#transcript").textContent,
+		}));
+		check("late spawn response: the stage you chose is kept", r.name === "bravo" && r.text.includes("marker-bravo"), `${r.name} · ${r.text.slice(0, 60)}`);
+		await closePage(page);
+	}
+
+	// ── 9. an image whose FileReader finishes after a session switch ───────────
+	// FileReader is the transport here, so the test substitutes it the way
+	// page.route substitutes fetch: the app's own addImageFile still runs, and
+	// the test decides when onload fires.
+	{
+		const page = await ctx.newPage();
+		await page.addInitScript(SSE_SPY);
+		await page.addInitScript(`
+			window.__fr = [];
+			window.FileReader = class {
+				readAsDataURL() { window.__fr.push(() => { this.result = "data:image/png;base64,AAAA"; this.onload?.(); }); }
+			};
+			window.__fireFr = () => { for (const f of window.__fr.splice(0)) f(); };
+		`);
+		page.on("pageerror", (e) => { console.log("FAIL page error:", e.message); fails++; });
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.evaluate(() => {
+			const dt = new DataTransfer();
+			dt.items.add(new File([new Uint8Array([1, 2, 3])], "shot.png", { type: "image/png" }));
+			document.getElementById("composer").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+		});
+		await page.waitForFunction(() => window.__fr.length === 1, null, { timeout: 10000 });
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
+		await page.evaluate(() => window.__fireFr());
+		await page.waitForTimeout(SETTLE); // "no attachment on B" is a negative claim
+		const n = await page.evaluate(() => document.querySelectorAll("#attachments .att-chip").length);
+		check("late image read: the attachment does not land on the session you switched to", n === 0, String(n));
+		await closePage(page);
 	}
 
 	console.log(fails ? `${fails} FAILED` : "ALL PASS");
-	die(fails ? 1 : 0);
+	await die(fails ? 1 : 0);
 } catch (e) {
 	console.error("E2E error:", e.message, "\n--- server log ---\n", log.slice(-3000));
-	die(3);
+	await die(3);
 }
