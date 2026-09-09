@@ -11,18 +11,12 @@
 	],
 	"note": "The probe is copied in only AFTER the model has exited, so it can neither be read nor edited. It states the same contract the prompt states, and prints 13 PASS lines when the guard is correct.",
 	"keyDerivation": {
-		"command": "node packages/nana-stage/tests/blocks.test.mjs ; node _bench/clamp-guard-probe.mjs",
-		"output": "pristine suite: 112 trusted PASS, exit 0 (unchanged by a correct guard). Probe with a correct guard: 13 PASS, exit 0; without it: 3 PASS + FAIL lines."
+		"command": "pristine: clampText('hi',100,'x') → 'hi'; clampText('x'*5000,200,'x') → 200 bytes incl. 'truncated at 200 bytes'",
+		"output": "with a correct guard, clampText(text, 0|-1|1.5|'10'|null|NaN, what) throws TypeError and valid input behaves exactly as before."
 	},
 	"check": {
 		"type": "all",
 		"checks": [
-			{
-				"type": "file",
-				"path": "packages/nana-stage/tests/clamp-guard.test.mjs",
-				"exists": true,
-				"containsCode": "clampText("
-			},
 			{
 				"type": "changed-paths",
 				"allow": [
@@ -38,40 +32,105 @@
 						192
 					]
 				},
-				"denyAdded": true,
-				"note": "the guard must go in clampText, and no added line in the source may touch process/console/require — the new test file is exempt from the shape rule because writing a test IS the task."
+				"note": "the guard must go in clampText; the new test file is exempt from the shape rule because writing a test IS the task"
 			},
 			{
-				"type": "trusted-suite",
-				"argv": [
-					"packages/nana-stage/tests/blocks.test.mjs"
-				],
-				"trust": [
-					"packages/nana-stage/tests/blocks.test.mjs"
-				],
-				"passLines": 112,
-				"note": "the existing suite must still run every assertion, counted only from the test file the model may not edit"
+				"type": "eval-module",
+				"module": "packages/nana-stage/lib/blocks.mjs",
+				"note": "THE authoritative verdict: the guard's behaviour, evaluated in a trusted process.",
+				"probes": [
+					{
+						"name": "maxBytes 0 throws TypeError",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							0,
+							"probe"
+						],
+						"throws": "TypeError"
+					},
+					{
+						"name": "negative maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							-1,
+							"probe"
+						],
+						"throws": "TypeError"
+					},
+					{
+						"name": "non-integer maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							1.5,
+							"probe"
+						],
+						"throws": "TypeError"
+					},
+					{
+						"name": "string maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							"10",
+							"probe"
+						],
+						"throws": "TypeError"
+					},
+					{
+						"name": "null maxBytes throws",
+						"export": "clampText",
+						"args": [
+							"hello world",
+							null,
+							"probe"
+						],
+						"throws": "TypeError"
+					},
+					{
+						"name": "short text is returned unchanged",
+						"export": "clampText",
+						"args": [
+							"hi",
+							100,
+							"probe"
+						],
+						"equals": "hi"
+					},
+					{
+						"name": "long text is clamped to the byte cap",
+						"export": "clampText",
+						"args": [
+							{
+								"$": "longText"
+							},
+							200,
+							"probe"
+						],
+						"byteLengthAtMost": 200
+					},
+					{
+						"name": "a clamped string announces the cut",
+						"export": "clampText",
+						"args": [
+							{
+								"$": "longText"
+							},
+							200,
+							"probe"
+						],
+						"includes": "truncated at 200 bytes"
+					}
+				]
 			},
 			{
-				"type": "trusted-suite",
-				"argv": [
-					"_bench/clamp-guard-probe.mjs"
-				],
-				"trust": [
-					"_bench/clamp-guard-probe.mjs"
-				],
-				"passLines": 13,
-				"note": "the bench-owned probe, under the same sentinel: 13 trusted PASS lines only if the guard genuinely behaves"
-			},
-			{
-				"type": "trusted-suite",
-				"argv": [
-					"packages/nana-stage/tests/clamp-guard.test.mjs"
-				],
-				"trust": [
-					"packages/nana-stage/tests/clamp-guard.test.mjs"
-				],
-				"note": "the model's own test must run to completion under the sentinel and report no FAIL — no passLines, because the prompt never fixed a count"
+				"type": "file",
+				"path": "packages/nana-stage/tests/clamp-guard.test.mjs",
+				"exists": true,
+				"containsCode": "clampText(",
+				"note": "the model must have written ONE new test file that actually references clampText outside a comment"
 			},
 			{
 				"type": "revert-and-fail",
@@ -84,10 +143,17 @@
 						"packages/nana-stage/tests/clamp-guard.test.mjs"
 					]
 				],
-				"note": "with the guard reverted to the pinned fixture their test must fail BY RUNNING: the sentinel's completion marker distinguishes a test that ran and reported a failure from one that died on module load or forced a status. A regex on stderr is not tamper-proof evidence.",
-				"trust": [
-					"packages/nana-stage/tests/clamp-guard.test.mjs"
-				]
+				"note": "best-effort EVIDENCE that the model's own test detects the missing guard: with the guard reverted it must RUN and end badly, by any ordinary failure mode — a bare node:assert throw counts. The trusted evaluator above, not this, is the correctness verdict."
+			},
+			{
+				"type": "suite",
+				"argv": [
+					"node",
+					"packages/nana-stage/tests/blocks.test.mjs"
+				],
+				"passLines": 112,
+				"forbid": "^FAIL ",
+				"note": "SECONDARY, non-authoritative: the pre-existing suite still runs green"
 			}
 		]
 	},

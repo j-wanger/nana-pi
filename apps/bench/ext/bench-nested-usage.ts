@@ -15,14 +15,16 @@
 // `tool_call` and closed by `tool_result`. pi issues its model requests from the agent loop, never
 // from inside a tool's execute(), so the window separates a tool's spend from the run's own.
 //
-// COVERAGE, and its known hole: pi's Codex API speaks over a **WebSocket**
-// (`pi-ai/dist/api/openai-codex-responses.js` — 95 WebSocket references, zero `fetch(` calls).
-// So anything routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper.
-// pi-web-access's search step does its own hand-rolled HTTP POST and IS visible; its summary step
-// goes through pi-ai and is NOT. Measuring one and reporting the other as nothing is the exact
-// failure this file now refuses to commit: we (1) notice WebSocket model connections opened inside
-// a window and mark the window unknown, and (2) read the tool's own report of which phases it ran
-// on which model, and mark unknown any phase whose model we never measured.
+// COVERAGE, and its known hole. pi's Codex API speaks over a **WebSocket** by default
+// (`pi-ai/dist/api/openai-codex-responses.js` obtains `globalThis.WebSocket` at connection time and
+// constructs it) — so a nested call on that path never reaches a fetch wrapper. It is NOT
+// fetch-free, though: the same adapter has an SSE fallback through `options.fetch ?? globalThis.fetch`
+// (around line 265), and THAT path our wrapper does see. pi-web-access's search step makes its own
+// hand-rolled HTTP POST and is visible; its summary step goes through pi-ai's `complete()` and, on
+// the WebSocket default, is not. Measuring one and reporting the other as nothing is the failure
+// this file refuses to commit: we (1) notice WebSocket model connections opened inside a window and
+// mark the window unknown, and (2) read the tool's own report of which phases it ran on which model,
+// and mark unknown any phase whose model we never measured.
 //
 // All accounting logic lives in ../lib/nested.mjs so it is unit-testable without pi.
 // This file is only the wiring, and every handler is total: a `tool_call` handler that throws

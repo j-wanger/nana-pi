@@ -12,8 +12,8 @@
 		}
 	],
 	"keyDerivation": {
-		"command": "apply the mutation, then: node packages/nana-stage/tests/blocks.test.mjs",
-		"output": "mutated: exit 1, 111 PASS + 1 FAIL. Pristine: exit 0, 112 PASS, 0 FAIL, every PASS printed by the test file itself. `passLines: 112` is that trusted count."
+		"command": "node -e \"import('./packages/nana-stage/lib/blocks.mjs').then(m=>console.log(m.fmtNum(0.5761), m.fmtNum(-2.345)))\"  in the pristine fixture, and again after the mutation",
+		"output": "pristine: 0.5761 → \"0.58\", -2.345 → \"-2.35\". Mutated (toFixed(1)): \"0.6\", \"-2.3\". Those two probes discriminate; the rest guard against a fix that breaks other cases."
 	},
 	"check": {
 		"type": "all",
@@ -32,25 +32,95 @@
 						153
 					]
 				},
-				"denyAdded": true,
-				"note": "Layers 1 and 2 of the anti-forgery rule: the change must fall inside fmtNum's declared line range, and no ADDED line may introduce process.exit/console./require( etc. Those tokens do not fix rounding; they manufacture evidence."
+				"note": "the change must fall inside fmtNum's declared line range. The token denylist that used to sit here has been REMOVED: a reviewer forged a pass from entirely inside these lines using process['exit'] and stdout['write'], so the denylist was theatre. Correctness is now decided by behaviour, not by what the source is allowed to contain."
 			},
 			{
-				"type": "file",
-				"path": "packages/nana-stage/lib/blocks.mjs",
-				"notContains": "parseFloat(n.toFixed(1))",
-				"note": "the DECLARED defect must actually be gone. Only its absence is required, so a different correct rewrite of fmtNum is still allowed."
+				"type": "eval-module",
+				"module": "packages/nana-stage/lib/blocks.mjs",
+				"note": "THE authoritative verdict. A separate trusted process calls fmtNum and compares returned primitives; it ignores stdout and exit status entirely, and accepts only an HMAC-signed verdict keyed by a nonce the module cannot reach.",
+				"probes": [
+					{
+						"name": "fmtNum(0.5761) rounds to 2 decimals",
+						"export": "fmtNum",
+						"args": [
+							0.5761
+						],
+						"equals": "0.58"
+					},
+					{
+						"name": "fmtNum(-2.345) rounds to 2 decimals",
+						"export": "fmtNum",
+						"args": [
+							-2.345
+						],
+						"equals": "-2.35"
+					},
+					{
+						"name": "fmtNum(25) stays an integer",
+						"export": "fmtNum",
+						"args": [
+							25
+						],
+						"equals": "25"
+					},
+					{
+						"name": "fmtNum(3.1) keeps one decimal",
+						"export": "fmtNum",
+						"args": [
+							3.1
+						],
+						"equals": "3.1"
+					},
+					{
+						"name": "fmtNum(0.1+0.2) drops float noise",
+						"export": "fmtNum",
+						"args": [
+							0.30000000000000004
+						],
+						"equals": "0.3"
+					},
+					{
+						"name": "fmtNum(1e21) is left alone",
+						"export": "fmtNum",
+						"args": [
+							1e+21
+						],
+						"equals": "1e+21"
+					},
+					{
+						"name": "fmtNum(Infinity) is stringified",
+						"export": "fmtNum",
+						"args": [
+							{
+								"$": "Infinity"
+							}
+						],
+						"equals": "Infinity"
+					},
+					{
+						"name": "renderBlockText still exists",
+						"export": "renderBlockText",
+						"args": [
+							{
+								"title": "t",
+								"scope": "s",
+								"type": "card",
+								"fields": []
+							}
+						],
+						"includes": "## t"
+					}
+				]
 			},
 			{
-				"type": "trusted-suite",
+				"type": "suite",
 				"argv": [
-					"packages/nana-stage/tests/blocks.test.mjs"
-				],
-				"trust": [
+					"node",
 					"packages/nana-stage/tests/blocks.test.mjs"
 				],
 				"passLines": 112,
-				"note": "Layer 3: the suite runs under a sentinel copied in from OUTSIDE the fixture. process.exit throws, and PASS lines are counted only when the TEST FILE printed them — 112 PASS lines fabricated by blocks.mjs are forgery, not a pass."
+				"forbid": "^FAIL ",
+				"note": "SECONDARY, non-authoritative: did the existing suite still run and stay green? Its stdout is forgeable by the allowed source, so it is a smoke signal beside the trusted evaluator, never the verdict."
 			}
 		]
 	},

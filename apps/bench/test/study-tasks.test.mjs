@@ -77,17 +77,37 @@ check("code-guard declares its guard site too", t8.declaredSite?.function === "c
 	check("c7: PASSES on the honest one-line fix", runCheck(t7.check, ctx).pass === true, runCheck(t7.check, ctx).detail.slice(-120));
 	await fs.rm(d, { recursive: true, force: true });
 }
+// The forgery matrix. Each shape must be REJECTED — and the reason matters, because "rejected for
+// the wrong reason" is how a checker looks strong while grading something else.
 for (const [label, mutateSrc, expect] of [
-	["112 forged PASS lines + exit 0 from the ALLOWED source", (t) => `for (let i = 0; i < 112; i++) console.log("PASS forged " + i);\nprocess.exit(0);\n${t}`, /exit\(\) was called from blocks\.mjs|forbidden construct/],
-	["a late force-exit that hides a FAIL", (t) => `process.on("exit", () => process.reallyExit(0));\n${t}`, /forbidden construct|FAIL line|exit/],
-	["a correct fix PLUS one forged PASS inside the function", (t) => t.replace("export function fmtNum(n) {", 'export function fmtNum(n) {\n\tconsole.log("PASS sneaky");').replace("parseFloat(n.toFixed(1))", "parseFloat(n.toFixed(2))"), /forbidden construct|printed by blocks\.mjs/],
+	["112 forged PASS lines + exit 0 from the ALLOWED source", (t) => `for (let i = 0; i < 112; i++) console.log("PASS forged " + i);\nprocess.exit(0);\n${t}`, /outside the declared range|did not finish|behaviour probe/],
+	[
+		"astra's exact forgery: bug kept, stdout/exit/prepareStackTrace tampered, all inside fmtNum",
+		(t) =>
+			t.replace(
+				"export function fmtNum(n) {\n\tif (!Number.isFinite(n)) return String(n);\n\treturn Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(1)));",
+				'export function fmtNum(n) {\n\tconst p = process, w = p.stdout["write"].bind(p.stdout);\n\tError.prepareStackTrace = () => "";\n\tfor (let i = 0; i < 112; i++) w("PASS forged " + i + "\\n");\n\tp["exit"](0);\n\tif (!Number.isFinite(n)) return String(n);\n\treturn Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(1)));',
+			),
+		/did not finish|behaviour probe/,
+	],
+	["a whitespace-only change that keeps the bug", (t) => t.replace("\treturn Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(1)));", "\treturn Number.isInteger(n)\n\t\t? String(n)\n\t\t: String(parseFloat( n.toFixed( 1 ) ));"), /behaviour probe/],
+	["a module that writes a forged verdict to fd 3", (t) => `import fs from "node:fs";\ntry { fs.writeSync(3, JSON.stringify({ probes: [{ name: "x", pass: true }], complete: true }) + "\\t" + "0".repeat(64) + "\\n"); } catch {}\n${t}`, /outside the declared range|behaviour probe/],
 	["a correct fix PLUS an unrelated edit elsewhere in the allowed file", (t) => t.replace("parseFloat(n.toFixed(1))", "parseFloat(n.toFixed(2))").replace("export const MAX_TABLE_ROWS = 500;", "export const MAX_TABLE_ROWS = 500; // touched"), /outside the declared range/],
 ]) {
 	const { d, ctx } = await withCtx(t7);
 	await edit(d, blocks, mutateSrc);
 	const r = runCheck(t7.check, ctx);
 	check(`c7: REJECTS ${label}`, r.pass === false);
-	check(`c7: …for the right reason`, expect.test(r.detail), r.detail.slice(-150));
+	check("c7: …for the right reason", expect.test(r.detail), r.detail.slice(-160));
+	await fs.rm(d, { recursive: true, force: true });
+}
+{
+	// A module that monkeypatches everything it can reach, then actually fixes the bug, must PASS:
+	// the evaluator captured what it needs before importing.
+	const { d, ctx } = await withCtx(t7);
+	await edit(d, blocks, (t) => `import fs from "node:fs";\nfs.writeSync = () => { throw new Error("blocked"); };\nJSON.stringify = () => "{}";\n${t.replace("parseFloat(n.toFixed(1))", "parseFloat(n.toFixed(2))")}`);
+	const r = runCheck(t7.check.checks.find((c) => c.type === "eval-module"), ctx);
+	check("c7: a module that tampers with fs/JSON then FIXES the bug still passes the evaluator", r.pass === true, r.detail.slice(0, 130));
 	await fs.rm(d, { recursive: true, force: true });
 }
 {
@@ -104,42 +124,40 @@ for (const [label, mutateSrc, expect] of [
 // ── c8 ────────────────────────────────────────────────────────────────────────────────────────
 const GUARD = 'export function clampText(text, maxBytes, what) {\n\tif (!Number.isInteger(maxBytes) || maxBytes <= 0) throw new TypeError("clampText: maxBytes must be a positive integer");';
 const NEWTEST = "packages/nana-stage/tests/clamp-guard.test.mjs";
-const REAL_TEST =
-	'import { clampText } from "../lib/blocks.mjs";\nlet fails = 0;\nconst check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };\n' +
-	'const throws = (v) => { try { clampText("abc", v, "x"); return false; } catch (e) { return e instanceof TypeError; } };\n' +
-	'for (const bad of [0, -1, 1.5, "10", null]) check("rejects " + String(bad), throws(bad));\ncheck("keeps working", clampText("hi", 100, "x") === "hi");\nprocess.exit(fails ? 1 : 0);\n';
+// A perfectly ordinary node:assert test. astra's point: this is what a competent model writes, and
+// the previous checker rejected it for not printing a FAIL line.
+const ASSERT_TEST =
+	'import assert from "node:assert/strict";\nimport { clampText } from "../lib/blocks.mjs";\n' +
+	'assert.throws(() => clampText("abc", 0, "x"), TypeError);\nassert.throws(() => clampText("abc", -1, "x"), TypeError);\nassert.equal(clampText("hi", 100, "x"), "hi");\n';
 {
 	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
 	check("c8: FAILS when nothing was done", runCheck(t8.check, ctx).pass === false);
 	await edit(d, blocks, (t) => t.replace("export function clampText(text, maxBytes, what) {", GUARD));
-	await fs.writeFile(path.join(d, NEWTEST), REAL_TEST);
+	await fs.writeFile(path.join(d, NEWTEST), ASSERT_TEST);
 	const good = runCheck(t8.check, ctx);
-	check("c8: PASSES with an honest guard and a real test", good.pass === true, good.detail.slice(-150));
+	check("c8: PASSES with an honest guard and a plain node:assert test", good.pass === true, good.detail.slice(-160));
 	await fs.rm(d, { recursive: true, force: true });
 }
-{
+for (const [label, srcFn, testBody, expect] of [
+	["a guard that throws the WRONG error class", (t) => t.replace("export function clampText(text, maxBytes, what) {", 'export function clampText(text, maxBytes, what) {\n\tif (!Number.isInteger(maxBytes) || maxBytes <= 0) throw new RangeError("bad");'), 'import assert from "node:assert/strict";\nimport { clampText } from "../lib/blocks.mjs";\nassert.throws(() => clampText("abc", 0, "x"));\n', /threw RangeError, expected TypeError/],
+	["a guard that also breaks valid behaviour", (t) => t.replace("export function clampText(text, maxBytes, what) {", 'export function clampText(text, maxBytes, what) {\n\tif (!Number.isInteger(maxBytes) || maxBytes <= 0) throw new TypeError("x");\n\treturn "";'), ASSERT_TEST, /behaviour probe|PASS lines/],
+	["no guard at all, plus forged PASS lines and an exit from the allowed source", (t) => `for (let i = 0; i < 112; i++) console.log("PASS forged " + i);\nprocess.exit(0);\n${t}`, 'import { clampText } from "../lib/blocks.mjs";\nclampText("a", 1, "x");\n', /outside the declared range|did not finish|behaviour probe/],
+]) {
 	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
-	await edit(d, blocks, (t) => `for (let i = 0; i < 112; i++) console.log("PASS forged " + i);\nprocess.exit(0);\n${t}`);
-	await fs.writeFile(path.join(d, NEWTEST), 'import { clampText } from "../lib/blocks.mjs";\nclampText("a", 1, "x");\n');
+	await edit(d, blocks, srcFn);
+	await fs.writeFile(path.join(d, NEWTEST), testBody);
 	const r = runCheck(t8.check, ctx);
-	check("c8: REJECTS no guard + forged PASS/exit from the allowed source", r.pass === false, r.detail.slice(-130));
-	await fs.rm(d, { recursive: true, force: true });
-}
-{
-	// astra's trick: the test fails after revert only because an import disappears
-	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
-	await edit(d, blocks, (t) => t.replace("export function clampText(text, maxBytes, what) {", `export const GUARD_MARKER = 1;\n${GUARD}`));
-	await fs.writeFile(path.join(d, NEWTEST), 'import { GUARD_MARKER } from "../lib/blocks.mjs";\nif (GUARD_MARKER !== 1) throw new Error("x");\nconsole.log("PASS marker");\nprocess.exit(0);\n');
-	const r = runCheck(t8.check, ctx);
-	check("c8: REJECTS a test that only fails on IMPORT after the revert", r.pass === false);
-	check("c8: …calling it a crash, not a detected regression", /crash, not a detected regression|outside the declared range/.test(r.detail), r.detail.slice(-150));
+	check(`c8: REJECTS ${label}`, r.pass === false);
+	check("c8: …for the right reason", expect.test(r.detail), r.detail.slice(-170));
 	await fs.rm(d, { recursive: true, force: true });
 }
 {
 	const { d, ctx } = await withCtx(t8, { mutate: false, assets: true });
 	await edit(d, blocks, (t) => t.replace("export function clampText(text, maxBytes, what) {", GUARD));
-	await fs.writeFile(path.join(d, NEWTEST), 'import { clampText } from "../lib/blocks.mjs";\nconsole.log("PASS nothing");\nprocess.exit(0);\n');
-	check("c8: REJECTS a vacuous test that passes with or without the guard", runCheck(t8.check, ctx).pass === false);
+	await fs.writeFile(path.join(d, NEWTEST), 'import { clampText } from "../lib/blocks.mjs";\nclampText("hi", 10, "x");\n');
+	const r = runCheck(t8.check, ctx);
+	check("c8: REJECTS a vacuous test that passes with or without the guard", r.pass === false);
+	check("c8: …saying the test does not detect the missing behaviour", /does not detect the missing behaviour/.test(r.detail), r.detail.slice(-140));
 	await fs.rm(d, { recursive: true, force: true });
 }
 
@@ -157,7 +175,7 @@ const { createHash } = await import("node:crypto");
 const pinTarget = (k) => {
 	if (k === "ext:sidecar") return study.sidecarExtension;
 	if (k === "ext:sidecar-lib") return study.sidecarLib;
-	if (k === "harness-sentinel") return study.sentinel;
+	if (k === "trusted-evaluator") return study.evaluator;
 	const [kind, profileName, idx] = k.split(":");
 	const ext = study.profiles.find((p) => p.name === profileName)?.extensions?.[Number(idx)];
 	return kind === "lock" ? ext?.lockfile : ext?.path;
@@ -172,6 +190,6 @@ for (const [k, want] of Object.entries(study.pinnedSha ?? {})) {
 	check(`pinnedSha ${k} matches the file on disk`, got === want, `${got.slice(0, 12)} vs ${String(want).slice(0, 12)}`);
 }
 check("the sidecar's accounting module is pinned, not just the wrapper", Boolean(study.pinnedSha?.["ext:sidecar-lib"]) && Boolean(study.sidecarLib));
-check("the trusted grading sentinel is pinned too", Boolean(study.pinnedSha?.["harness-sentinel"]) && Boolean(study.sentinel));
+check("the trusted evaluator is pinned too", Boolean(study.pinnedSha?.["trusted-evaluator"]) && Boolean(study.evaluator));
 
 process.exit(fails ? 1 : 0);

@@ -12,7 +12,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { costOfRecord } from "./lib/usage.mjs";
+import { costOfRecord, costUnknownReason, observedCostOfRecord } from "./lib/usage.mjs";
 
 const q = (sorted, p) => {
 	if (!sorted.length) return null;
@@ -85,6 +85,10 @@ export function aggregate(records, schedule = null) {
 			// reports null rather than a total that quietly omits it.
 			cost: dec.length && dec.every((r) => costOfRecord(r) != null) ? stats(dec.map((r) => costOfRecord(r)), MONEY_DIGITS) : null,
 			costUnpriced: dec.filter((r) => costOfRecord(r) == null).length,
+			// The priced part, explicitly a LOWER BOUND, so a cell with unknown spend still says
+			// something honest instead of nothing.
+			observedCost: stats(dec.map((r) => observedCostOfRecord(r)), MONEY_DIGITS),
+			costUnknownReasons: [...new Set(dec.map((r) => costUnknownReason(r)).filter(Boolean))].slice(0, 3),
 			spendOnSuccess: stats(okRuns.map(spendOf)),
 			ownTokens: stats(dec.map((r) => r.totalTokens ?? tot(r.tokens))),
 			nestedTokens: stats(dec.map((r) => tot(r.nestedTokens))),
@@ -122,6 +126,7 @@ export function aggregate(records, schedule = null) {
 				// tasks cannot outvote two expensive edits by sheer run count.
 				medianOfTaskMedians: stats(mine.map((c) => c.spend.median)).median,
 				totalCost: mine.length && mine.every((c) => c.cost) ? round(mine.reduce((a, c) => a + (c.cost.median ?? 0), 0), MONEY_DIGITS) : null,
+				totalObservedCost: round(mine.reduce((a, c) => a + (c.observedCost.median ?? 0), 0), MONEY_DIGITS),
 				// Total spend guard: the sum of per-task medians. A profile that is cheap on
 				// six tasks and ruinous on two shows up HERE even when the median looks fine.
 				totalOfTaskMedians: Math.round(mine.reduce((a, c) => a + (c.spend.median ?? 0), 0)),
@@ -156,7 +161,7 @@ export function toMarkdown(study, agg, records) {
 		"**Success** = the deterministic checker passed AND pi exited 0 AND the stream reached `agent_settled` with no dangling tool calls.",
 		"**Denominator** = decided runs only: grader errors, harness errors and blocked runs are reported but never counted as model failures.",
 		"**Spend** = the run's own tokens PLUS any nested LLM tokens an extension reported, counted once. No run was ever retried.",
-		"**$** = pi's own `calculateCost` output (public `@earendil-works/pi-ai` root export), summed. A cell shows `unpriced` when any of its runs carried spend nothing could price — never a total that silently omits it.",
+		"**$** = pi's own `calculateCost` output (public `@earendil-works/pi-ai` root export), summed. A cell shows **unknown** when any of its runs carried spend nothing could measure or price; the `≥` figure beside it is the priced part, an explicit LOWER BOUND, never a total.",
 		"",
 	);
 
@@ -170,9 +175,9 @@ export function toMarkdown(study, agg, records) {
 	for (const f of byFamily) {
 		L.push(`## Family \`${f.family}\` — ${f.shared.length} shared task(s)`, "");
 		if (f.excluded.length) L.push(`Excluded from the comparison (not run by every profile): ${f.excluded.join(", ")}`, "");
-		L.push("| profile | success | median of task medians | total of task medians | total $ of task medians | wall median (s) | cold/warm | retries | nested unknown | tool mix |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+		L.push("| profile | success | median of task medians | total of task medians | total $ (unknown ⇒ observed ≥) | wall median (s) | cold/warm | retries | nested unknown | tool mix |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 		for (const r of f.rows) {
-			L.push(`| ${r.profile} | ${r.successes}/${r.decided} (${pct(r.decided ? r.successes / r.decided : null)}) | ${r.medianOfTaskMedians ?? "—"} | ${r.totalOfTaskMedians} | ${r.totalCost == null ? "unpriced" : `$${r.totalCost}`} | ${secs(r.wallMedian)} | ${r.cache.cold}/${r.cache.warm} | ${r.retries} | ${r.nestedUnknown} | ${mix(r.toolCalls)} |`);
+			L.push(`| ${r.profile} | ${r.successes}/${r.decided} (${pct(r.decided ? r.successes / r.decided : null)}) | ${r.medianOfTaskMedians ?? "—"} | ${r.totalOfTaskMedians} | ${r.totalCost == null ? `unknown (observed ≥ $${r.totalObservedCost})` : `$${r.totalCost}`} | ${secs(r.wallMedian)} | ${r.cache.cold}/${r.cache.warm} | ${r.retries} | ${r.nestedUnknown} | ${mix(r.toolCalls)} |`);
 		}
 		L.push("", "Per-task successes (the decision rule reads these):", "");
 		const tasks = f.shared;
@@ -184,7 +189,7 @@ export function toMarkdown(study, agg, records) {
 	L.push("## Per task × profile", "", "| family | task | profile | n | states | success | spend median | IQR | spend/success | $ median | own | nested | wall (s) | turns | cacheRead med | tool mix |", "|---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 	for (const c of cells) {
 		L.push(
-			`| ${c.family} | ${c.task} | ${c.profile} | ${c.n} | ${mix(c.states)} | ${c.successes}/${c.decided} | ${c.spend.median ?? "—"} | ${c.spend.iqr ?? "—"} | ${c.spendPerSuccess ?? "—"} | ${c.cost ? `$${c.cost.median}` : `unpriced(${c.costUnpriced})`} | ` +
+			`| ${c.family} | ${c.task} | ${c.profile} | ${c.n} | ${mix(c.states)} | ${c.successes}/${c.decided} | ${c.spend.median ?? "—"} | ${c.spend.iqr ?? "—"} | ${c.spendPerSuccess ?? "—"} | ${c.cost ? `$${c.cost.median}` : `unknown ≥$${c.observedCost.median ?? 0}`} | ` +
 				`${c.ownTokens.median ?? "—"} | ${c.nestedTokens.median ?? "—"}${c.nestedUnknown ? " ⚠?" : ""} | ${secs(c.wallMs.median)} | ${c.turns.median ?? "—"} | ${c.cacheReadMedian ?? "—"} | ${mix(c.toolCalls)} |`,
 		);
 	}

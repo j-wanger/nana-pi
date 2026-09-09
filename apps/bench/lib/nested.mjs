@@ -104,6 +104,9 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 	let seq = 0;
 	const pending = new Map(); // id -> {startedAt}
 	let acc = ZERO();
+	// Per-model buckets kept THROUGH the window, so a tool that used two models is priced per
+	// bucket instead of becoming unpriceable (astra E: the sidecar used to pool the window).
+	const byModel = new Map();
 	let calls = 0;
 	let unknown = false;
 	let unknownReason = null;
@@ -122,6 +125,7 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 	};
 	const reset = () => {
 		acc = ZERO();
+		byModel.clear();
 		calls = 0;
 		unknown = false;
 		unknownReason = null;
@@ -226,11 +230,15 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 				markUnknown("unparseable-body");
 				return false;
 			}
-			acc.input += hit.usage.input;
-			acc.output += hit.usage.output;
-			acc.cacheRead += hit.usage.cacheRead;
-			acc.cacheWrite += hit.usage.cacheWrite;
-			acc.totalTokens += hit.usage.totalTokens;
+			const key = hit.model || "unknown-model";
+			if (!byModel.has(key)) byModel.set(key, ZERO());
+			for (const [target, add] of [[acc, hit.usage], [byModel.get(key), hit.usage]]) {
+				target.input += add.input;
+				target.output += add.output;
+				target.cacheRead += add.cacheRead;
+				target.cacheWrite += add.cacheWrite;
+				target.totalTokens += add.totalTokens;
+			}
 			if (hit.model) models.add(hit.model);
 			calls++;
 			return true;
@@ -267,6 +275,8 @@ export function createRecorder({ watch = [], now = () => Date.now() } = {}) {
 					unknown, // independent of whether some usage was measured
 					unknownReason,
 					observedRequests: observedFinal || observed, // ALL network seen in the window, LLM or not
+					// usage PER MODEL, so the parent prices each bucket with its own rates
+					byModel: Object.fromEntries([...byModel].map(([k, v]) => [k, { ...v }])),
 					// Model work the tool SAID it did that we could not measure. Non-empty means
 					// the token figure for this window is a lower bound, not a total.
 					unobservedPaths: [...unobservedPaths],

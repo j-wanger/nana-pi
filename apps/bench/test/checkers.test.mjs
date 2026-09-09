@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { CHECKER_TYPES, DENY_ADDED, globMatch, hashTree, liveKeyOf, runCheck, stripComments } from "../lib/checkers.mjs";
+import { CHECKER_TYPES, globMatch, hashTree, liveKeyOf, runCheck, stripComments } from "../lib/checkers.mjs";
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -81,25 +81,40 @@ try {
 	check("stripComments removes // and /* */", stripComments("a // x\n/* y */ b").trim().replace(/\s+/g, " ") === "a b");
 	check("stripComments keeps a URL's //", stripComments("const u = 'https://x';").includes("https://x"));
 
-	// ── trusted-suite: the code under test may not manufacture its own evidence ─────────────────
-	fs.writeFileSync(path.join(dir, "honest.test.mjs"), 'console.log("PASS one");console.log("PASS two");process.exit(0);\n');
-	fs.writeFileSync(path.join(dir, "forger.mjs"), 'for (let i = 0; i < 5; i++) console.log("PASS forged " + i);\n');
-	fs.writeFileSync(path.join(dir, "importing.test.mjs"), 'import "./forger.mjs";\nconsole.log("PASS real");\nprocess.exit(0);\n');
-	fs.writeFileSync(path.join(dir, "exiter.mjs"), "process.exit(0);\n");
-	fs.writeFileSync(path.join(dir, "early.test.mjs"), 'import "./exiter.mjs";\nconsole.log("PASS never");\n');
-	fs.writeFileSync(path.join(dir, "failing.test.mjs"), 'console.log("PASS one");console.log("FAIL two");process.exit(1);\n');
-	check("trusted-suite: an honest suite passes at its declared count", runCheck({ type: "trusted-suite", argv: ["honest.test.mjs"], trust: ["honest.test.mjs"], passLines: 2 }, at("")).pass);
-	const forged = runCheck({ type: "trusted-suite", argv: ["importing.test.mjs"], trust: ["importing.test.mjs"], passLines: 6 }, at(""));
-	check("trusted-suite: PASS lines printed by the code under test are FORGERY, not passes", forged.pass === false);
-	check("trusted-suite: …and the forger is named", /forger\.mjs/.test(forged.detail), forged.detail.slice(0, 130));
-	const exited = runCheck({ type: "trusted-suite", argv: ["early.test.mjs"], trust: ["early.test.mjs"], passLines: 1 }, at(""));
-	check("trusted-suite: process.exit from untrusted code is refused", exited.pass === false && /may not decide its own exit status/.test(exited.detail), exited.detail.slice(0, 120));
-	check("trusted-suite: a FAIL line fails the suite", !runCheck({ type: "trusted-suite", argv: ["failing.test.mjs"], trust: ["failing.test.mjs"], passLines: 1 }, at("")).pass);
-	check("trusted-suite: a short count fails (the suite stopped early)", !runCheck({ type: "trusted-suite", argv: ["honest.test.mjs"], trust: ["honest.test.mjs"], passLines: 99 }, at("")).pass);
-	check("trusted-suite: the TRUSTED test may still set its own exit status", runCheck({ type: "trusted-suite", argv: ["honest.test.mjs"], trust: ["honest.test.mjs"], passLines: 2 }, at("")).pass);
-	check("trusted-suite: an unspawnable suite is a grader error", runCheck({ type: "trusted-suite", argv: ["no-such-file.mjs"], trust: [], passLines: 1 }, at("")).graderError !== true ? runCheck({ type: "trusted-suite", argv: ["no-such-file.mjs"], trust: [], passLines: 1 }, at("")).pass === false : true);
+	// ── eval-module: grade BEHAVIOUR in a trusted process, with a nonce the module cannot reach ──
+	fs.writeFileSync(path.join(dir, "good.mjs"), "export const twice = (n) => n * 2;\nexport const boom = () => { throw new TypeError('nope'); };\n");
+	fs.writeFileSync(path.join(dir, "bad.mjs"), "export const twice = (n) => n * 3;\n");
+	fs.writeFileSync(path.join(dir, "exiting.mjs"), "process.exit(0);\nexport const twice = (n) => n * 2;\n");
+	fs.writeFileSync(path.join(dir, "broken.mjs"), "this is not valid javascript {{{\n");
+	// A module that forges a signed-looking verdict on fd 3 and tampers with everything it can.
+	fs.writeFileSync(
+		path.join(dir, "forging.mjs"),
+		'import fs from "node:fs";\n' +
+			'const forged = JSON.stringify({ probes: [{ name: "x", pass: true, detail: "ok" }], complete: true, importError: null });\n' +
+			'try { fs.writeSync(3, forged + "\\t" + "0".repeat(64) + "\\n"); } catch {}\n' +
+			"fs.writeSync = () => { throw new Error('blocked'); };\nJSON.stringify = () => '{}';\n" +
+			"export const twice = (n) => n * 3;\n",
+	);
+	const probes = [{ name: "twice(4)", export: "twice", args: [4], equals: 8 }];
+	check("eval-module: correct behaviour passes", runCheck({ type: "eval-module", module: "good.mjs", probes }, at("")).pass);
+	const wrong = runCheck({ type: "eval-module", module: "bad.mjs", probes }, at(""));
+	check("eval-module: wrong behaviour fails, naming the value", wrong.pass === false && /got 12, want 8/.test(wrong.detail), wrong.detail.slice(0, 120));
+	const exited = runCheck({ type: "eval-module", module: "exiting.mjs", probes }, at(""));
+	check("eval-module: a module that exits during import cannot pass", exited.pass === false, exited.detail.slice(0, 120));
+	const forging = runCheck({ type: "eval-module", module: "forging.mjs", probes }, at(""));
+	check("eval-module: a FORGED verdict on fd 3 is rejected (bad HMAC)", forging.pass === false);
+	check("eval-module: …and the real verdict still reports the wrong behaviour", /got 12, want 8/.test(forging.detail), forging.detail.slice(0, 130));
+	check("eval-module: tampering with fs/JSON after import does not stop the verdict", forging.detail.includes("probe"));
+	const brk = runCheck({ type: "eval-module", module: "broken.mjs", probes }, at(""));
+	check("eval-module: a module that will not import fails (not a grader error)", brk.pass === false && brk.graderError !== true && /does not import/.test(brk.detail), brk.detail.slice(0, 110));
+	check("eval-module: a throws probe passes on the right class", runCheck({ type: "eval-module", module: "good.mjs", probes: [{ name: "boom", export: "boom", args: [], throws: "TypeError" }] }, at("")).pass);
+	check("eval-module: a throws probe fails on the wrong class", !runCheck({ type: "eval-module", module: "good.mjs", probes: [{ name: "boom", export: "boom", args: [], throws: "RangeError" }] }, at("")).pass);
+	check("eval-module: a missing export fails", !runCheck({ type: "eval-module", module: "good.mjs", probes: [{ name: "nope", export: "nope", args: [], equals: 1 }] }, at("")).pass);
+	check("eval-module: no probes is a grader error, not a pass", runCheck({ type: "eval-module", module: "good.mjs", probes: [] }, at("")).graderError === true);
+	fs.writeFileSync(path.join(dir, "hanging.mjs"), "const t = Date.now();\nwhile (Date.now() - t < 30000) {}\nexport const twice = (n) => n * 2;\n");
+	check("eval-module: a hanging module is a GRADER error, never a pass", runCheck({ type: "eval-module", module: "hanging.mjs", probes, timeoutMs: 1200 }, at("")).graderError === true);
 
-	// changed-paths
+	// changed-paths	// changed-paths
 	const baseline = hashTree(dir);
 	fs.writeFileSync(path.join(dir, "hello.txt"), "alpha beta gamma\n");
 	check("changed-paths: an allowed edit passes", runCheck({ type: "changed-paths", allow: ["hello.txt"] }, at("", { baseline })).pass);
@@ -122,12 +137,12 @@ try {
 		const before = ["line1", "line2", "function target() {", "\treturn 1;", "}", "line6"].join("\n");
 		const inRange = before.replace("\treturn 1;", "\treturn 2;");
 		const outOfRange = before.replace("line6", "line6 // touched");
-		const sneaky = before.replace("\treturn 1;", '\tconsole.log("PASS forged");\n\treturn 2;');
+		const extraLines = before.replace("\treturn 1;", "\tconst tmp = 1;\n\treturn 2;");
 		const mk = (content) => {
 			fs.writeFileSync(path.join(dir, "target.mjs"), content);
 			return { finalText: "", dir, baseline: hashTree(dir), preRun: new Map([["target.mjs", before]]) };
 		};
-		const rule = { type: "changed-paths", allow: ["**"], withinLines: { "target.mjs": [3, 5] }, denyAdded: true };
+		const rule = { type: "changed-paths", allow: ["**"], withinLines: { "target.mjs": [3, 5] } };
 		fs.writeFileSync(path.join(dir, "target.mjs"), before);
 		const base = hashTree(dir);
 		const ctxFor = (content) => {
@@ -137,11 +152,11 @@ try {
 		check("withinLines: a change inside the declared function passes", runCheck(rule, ctxFor(inRange)).pass);
 		const out = runCheck(rule, ctxFor(outOfRange));
 		check("withinLines: a change outside it is rejected", out.pass === false && /outside the declared range/.test(out.detail), out.detail.slice(0, 120));
-		const den = runCheck(rule, ctxFor(sneaky));
-		check("denyAdded: an added console. line is rejected", den.pass === false && /forbidden construct/.test(den.detail), den.detail.slice(0, 130));
-		check("denyAdded: the offending token is named", /console\./.test(den.detail));
-		check("denyAdded: only ADDED lines are scanned (an untouched file with those tokens is fine)", runCheck({ type: "changed-paths", allow: ["**"], denyAdded: true }, ctxFor(before)).pass);
+		check("withinLines: an insertion inside the range is allowed to shift later lines", runCheck(rule, ctxFor(extraLines)).pass, runCheck(rule, ctxFor(extraLines)).detail.slice(0, 110));
 		check("withinLines without pre-run content is a grader error, not a pass", runCheck(rule, { finalText: "", dir, baseline: base }).graderError === true);
+		// The token denylist is deliberately gone: it was bypassable from inside the allowed lines,
+		// so it implied protection it did not give. Behaviour evaluation replaced it.
+		check("a denylist is no longer part of the shape rule", !("DENY_ADDED" in (await import("../lib/checkers.mjs"))));
 		fs.writeFileSync(path.join(dir, "target.mjs"), before);
 	}
 
@@ -186,7 +201,8 @@ try {
 	check("live-key: a failed block snapshot is a grader error without refetching", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('KEY')"] }, at("KEY", { snapshotFailed: "HTTP 503" })).graderError === true);
 
 	check("unknown checker type is a grader error", runCheck({ type: "vibes" }, at("x")).graderError === true);
-	check("the denylist covers every evidence-manufacturing construct", ["process.exit", "console.", "require(", "child_process", "eval("].every((t) => DENY_ADDED.includes(t)), DENY_ADDED.join(","));
+	check("the forgeable trusted-suite checker is gone", !CHECKER_TYPES.includes("trusted-suite"));
+	check("behaviour evaluation replaced it", CHECKER_TYPES.includes("eval-module"));
 	check("no LLM-judge checker exists", !CHECKER_TYPES.some((t) => /judge|llm|model|rubric/i.test(t)), CHECKER_TYPES.join(","));
 	check("liveKeyOf finds the single live key inside an `all`", liveKeyOf({ type: "all", checks: [{ type: "file" }, { type: "live-key", argv: [] }] })?.type === "live-key");
 	check("liveKeyOf returns null when there is none", liveKeyOf({ type: "all", checks: [{ type: "file" }] }) === null);

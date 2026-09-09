@@ -29,9 +29,9 @@
 	"pinnedSha": {
 		"ext:research:0": "afa4d45481b0451ce85fadde6f89a112bc141d714cc164819dd835af320de8a9",
 		"lock:research:0": "1bdb0d75a9c68e87efba7b7249b8f45397d07c94ed09fc8b07f902874568306b",
-		"ext:sidecar": "3eb3842239944edd8b6ae70b0cc614d068937bffa5b8bde2b4f2b1fc0282a330",
-		"ext:sidecar-lib": "acb142cc93588d2e03f14f3b10adc215cb8f638197d15cdc2d2b43126d456b48",
-		"harness-sentinel": "26e93fa6c1ed0d6fd56741c1454d7cf6b29e9aa60c3e8c1af79c1f9dc7211b18"
+		"ext:sidecar": "b85294d5256bbab182cf7c8bc6c77c7ee99ad30e504ebeb3f07500ddd884873c",
+		"ext:sidecar-lib": "b4e1907c1f51a1c980e22198c8f97ceeaaa61cebc3d966a23db0e1cfbe031ad7",
+		"trusted-evaluator": "fcf3503e73c664e15d627cd67fdf6862cac57d538badbcf2911bf5f581f010b3"
 	},
 	"fixture": {
 		"dir": "fixture",
@@ -125,5 +125,5 @@
 		}
 	],
 	"sidecarLib": "../../lib/nested.mjs",
-	"sentinel": "../../lib/harness-sentinel.cjs"
+	"evaluator": "../../lib/eval-module.mjs"
 }

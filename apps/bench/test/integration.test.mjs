@@ -8,7 +8,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { executeRun, readLedger, registrationProbe, spendOf } from "../run.mjs";
+import { executeRun, readLedger, registrationProbe, runPlan, spendOf } from "../run.mjs";
 
 let fails = 0;
 const check = (n, ok, extra = "") => {
@@ -175,6 +175,105 @@ try {
 		check("executeRun: a timeout is a run-error", rec.state === "run-error" && /timeout/.test(rec.error ?? ""), rec.error ?? "");
 		check("executeRun: …the partial spend is still counted", spendOf(rec) === 310, String(spendOf(rec)));
 		check("executeRun: …and the kill is confirmed", rec.killedCleanly === true, String(rec.killedCleanly));
+	}
+	// ── 10. THE PRODUCTION ORCHESTRATION PATH ─────────────────────────────────────────────────
+	// astra: the earlier tests called registrationProbe and then appended synthetic ledger rows
+	// separately, so the main loop's failure path was never covered — and it failed OPEN, printing
+	// "NOT recorded" and continuing to spend. These drive `runPlan` itself.
+	const orchestration = async ({ ledgerFails = false, probeOk = true, runs = 2 } = {}) => {
+		const dir = await freshStudyDir(`orch-${Math.random().toString(36).slice(2, 8)}`);
+		const bin = await stub(`orch-${Math.random().toString(36).slice(2, 8)}.mjs`, emitScript(streamOf({ text: "the answer" })));
+		const profile = profileFor(bin);
+		const calls = { probes: 0, runs: 0, ledger: 0, results: 0 };
+		const study2 = { ...study, profiles: [profile], timeoutMs: 30000 };
+		const tasks = [{ id: "t1", family: "research", fixture: false, prompt: "p", check: { type: "exact", value: "the answer" } }];
+		const todo = Array.from({ length: runs }, (_, i) => ({ task: "t1", profile: profile.name, rep: i, block: `t1|${i}` }));
+		let error = null;
+		try {
+			await runPlan({
+				study: study2,
+				studyDir: dir,
+				tasks,
+				todo,
+				launcher: { cmd: process.execPath, pre: [bin] },
+				fingerprint: "fp",
+				agentDir: null,
+				pricer: null,
+				resultsPath: path.join(dir, "results.jsonl"),
+				runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+				priorRecords: [],
+				deps: {
+					ledger: [],
+					blockKeys: new Map(),
+					log: () => {},
+					registrationProbe: async () => {
+						calls.probes++;
+						return { ok: probeOk, detail: probeOk ? "all registered" : "tools missing", tokens: 700, cost: 0.004, wallMs: 900, killedCleanly: null, timedOut: false, evidence: "raw/_probe/x" };
+					},
+					appendLedger: async () => {
+						calls.ledger++;
+						if (ledgerFails) throw new Error("ENOSPC: simulated ledger failure");
+					},
+					executeRun: async (a) => {
+						calls.runs++;
+						return { ts: "t", fingerprint: "fp", task: a.task.id, profile: a.profile.name, rep: a.rep, state: "ok", ok: true, totalTokens: 100, spend: 100, wallMs: 10, turns: 1, toolCalls: {}, tokens: { totalTokens: 100, cost: { total: 0.001 } } };
+					},
+					appendResult: async () => {
+						calls.results++;
+					},
+				},
+			});
+		} catch (e) {
+			error = e.message;
+		}
+		await fs.rm(dir, { recursive: true, force: true });
+		return { calls, error };
+	};
+
+	{
+		const { calls, error } = await orchestration({});
+		check("orchestration: the happy path probes once and runs every tuple", error === null && calls.probes === 1 && calls.runs === 2, `${error ?? ""} ${JSON.stringify(calls)}`);
+		check("orchestration: …and records the probe in the ledger before spending again", calls.ledger === 1);
+		check("orchestration: …and records every completed run", calls.results === 2);
+	}
+	{
+		// THE defect: a failed ledger append used to print a warning and keep spending.
+		const { calls, error } = await orchestration({ ledgerFails: true });
+		check("orchestration: a FAILED ledger append STOPS the study", error !== null, error ?? "no error");
+		check("orchestration: …saying the probe's spend could not be recorded", /could not record the .* registration probe \(700 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 130));
+		check("orchestration: …and NO further paid child is spawned", calls.runs === 0, `runs=${calls.runs}`);
+		check("orchestration: …and it does not silently retry the probe", calls.probes === 1);
+	}
+	{
+		const { calls, error } = await orchestration({ probeOk: false });
+		check("orchestration: a failed probe stops the study before any graded run", error !== null && calls.runs === 0, `${error ?? ""} runs=${calls.runs}`);
+		check("orchestration: …but its spend was recorded first", calls.ledger === 1);
+	}
+
+	// ── 11. remaining-wall capping has no floor ────────────────────────────────────────────────
+	{
+		const dir = await freshStudyDir("wall");
+		const bin = await stub("wall.mjs", emitScript(streamOf({ text: "the answer" })));
+		const profile = profileFor(bin);
+		let ran = 0;
+		const study3 = { ...study, profiles: [profile], timeoutMs: 300000, maxWallMs: 5000 };
+		await runPlan({
+			study: study3,
+			studyDir: dir,
+			tasks: [{ id: "t1", family: "research", fixture: false, prompt: "p", check: { type: "exact", value: "x" } }],
+			todo: [{ task: "t1", profile: profile.name, rep: 0, block: "t1|0" }],
+			launcher: { cmd: process.execPath, pre: [bin] },
+			fingerprint: "fp",
+			agentDir: null,
+			pricer: null,
+			resultsPath: path.join(dir, "results.jsonl"),
+			runOpts: { dryRun: false, keep: false, agentDir: null, pricer: null },
+			// 4.9 s of a 5 s allowance already spent: less than a useful slice remains.
+			priorRecords: [{ state: "ok", spend: 0, wallMs: 4900 }],
+			deps: { ledger: [], blockKeys: new Map(), log: () => {}, executeRun: async () => { ran++; return null; }, appendResult: async () => {} },
+		});
+		check("wall cap: with almost no allowance left, the study STOPS instead of granting 30s", ran === 0, `ran=${ran}`);
+		await fs.rm(dir, { recursive: true, force: true });
 	}
 } finally {
 	await fs.rm(root, { recursive: true, force: true });

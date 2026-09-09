@@ -6,7 +6,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { aggregate, spendOf, stats, toMarkdown } from "../aggregate.mjs";
+import { aggregate, costOf, spendOf, stats, toMarkdown } from "../aggregate.mjs";
+import { observedCostOfRecord } from "../lib/usage.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const records = fs.readFileSync(path.join(here, "fixtures", "results-fixed.jsonl"), "utf8").split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
@@ -86,6 +87,11 @@ check("t2/A: nothing unpriced there", A2.costUnpriced === 0);
 const C1 = cell("r1", "C"); // one of three runs went unpriced
 check("r1/C: a cell with an UNPRICED run reports cost null, not a partial total", C1.cost === null);
 check("r1/C: …and says how many runs were unpriced", C1.costUnpriced === 1, String(C1.costUnpriced));
+check("r1/C: …and still reports the priced part as an explicit lower bound", C1.observedCost.median > 0, String(C1.observedCost.median));
+check("r1/C: …with a reason a reader can act on", C1.costUnknownReasons.length > 0, JSON.stringify(C1.costUnknownReasons));
+// astra E: costOfRecord ignored nestedUnknown and returned money for an unknown-spend record.
+check("a record flagged nestedUnknown has NO cost, whatever its cost field says", costOf({ cost: 0.01, nestedUnknown: true }) === null);
+check("…but its observed cost is still available, separately named", observedCostOfRecord({ cost: 0.01, nestedUnknown: true }) === 0.01);
 check("r1/C: token spend is still reported (only money is unknown)", C1.spend.median === 1000, String(C1.spend.median));
 const rowsC = agg.byFamily.find((f) => f.family === "research").rows;
 check("a profile row with any unpriced cell reports totalCost null", rowsC.find((r) => r.profile === "C").totalCost === null);
@@ -102,7 +108,9 @@ check("markdown states spend includes nested tokens", md.includes("PLUS any nest
 check("markdown ratio to baseline uses spend, not own tokens", /\| t2 \| 2\.25× \(\+0\) \|/.test(md), md.split("\n").filter((l) => l.includes("×")).join(" | "));
 check("markdown flags an unmeasured nested cell", md.includes("⚠?"));
 check("markdown carries a money column", md.includes("$ median") && /\| \$0\./.test(md));
-check("markdown says `unpriced` rather than inventing a total", md.includes("unpriced(1)"), md.split("\n").filter((l) => l.includes("unpriced")).join(" | ").slice(0, 160));
+check("markdown says `unknown` rather than inventing a total", md.includes("unknown ≥$"), md.split("\n").filter((l) => l.includes("unknown")).join(" | ").slice(0, 170));
+check("markdown gives the observed lower bound beside it", /unknown ≥\$\d/.test(md));
+check("markdown calls the lower bound a lower bound", md.includes("LOWER BOUND"));
 check("markdown credits pi's calculateCost for the money", md.includes("calculateCost") && md.includes("@earendil-works/pi-ai"));
 
 // ── degenerate ───────────────────────────────────────────────────────────────────────────────

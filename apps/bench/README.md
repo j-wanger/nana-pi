@@ -49,7 +49,7 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 | `tokens` / `totalTokens` | the run's OWN model calls — assistant messages only — as `{in, out, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
 | `nestedTokens` / `nestedCalls` | LLM calls an extension made on the run's behalf. Kept strictly apart from `tokens`, so `spend` adds them exactly once |
 | `spend` | `totalTokens + nestedTokens` — the run's true cost |
-| `cost` / `ownCost` / `nestedCost` | money, from pi's own `calculateCost`. `nestedCost` is `null` **with a `nestedCostReason`** when nothing could price it — never a guessed 0 |
+| `cost` / `ownCost` / `nestedCost` | money, from pi's own `calculateCost`. `null` **with a reason** whenever any part of the run was unmeasured or unpriced — including any run flagged `nestedUnknown`. The priced part is available separately as an explicit lower bound, never as a total |
 | `model` / `provider` / `nestedModels` | what pi actually ran, and what the nested calls were billed against (they differ: a `web_search` billed `gpt-5.6-terra` while the run used `gpt-5.6-sol`) |
 | `nestedUnknown` / `nestedUnattached` | nested spend that could not be measured (*unknown*, never 0), and whether it arrived after the last tool result |
 | `skippedOwnCalls` | LLM requests the sidecar saw OUTSIDE any tool window — i.e. pi's own calls, correctly not counted as nested. Recorded so the scoping is auditable |
@@ -129,6 +129,42 @@ total spend** — `spend` is a lower bound whenever `nestedUnknown` is set.
 Remaining limit, recorded rather than papered over: per-tool attribution is approximate under
 parallel tool calls; the run total is exact.
 
+## Grading an edit task: behaviour, not evidence
+
+Counting a suite's `PASS` lines cannot work when the task lets the model edit a source file: that
+file can print 112 fabricated PASS lines, force exit 0, and even fabricate a trusted stack frame
+with `Error.prepareStackTrace`. A reviewer did exactly that, from entirely inside the lines the task
+permits. **No same-process trust claim survives sharing mutable globals with the code under test**,
+and no denylist closes that class.
+
+So `eval-module` grades behaviour in a separate process:
+
+1. the parent invents a 32-byte nonce and hands it, with the probe spec, over **file descriptor 4**
+   — not argv, not the environment;
+2. `lib/eval-module.mjs` (outside the fixture, content-pinned in `study.json`) consumes and closes
+   fd 4 and captures every function it will need — `fs.writeSync`, `createHmac`, `JSON.stringify`,
+   the error constructors — **before importing anything**;
+3. it imports the module and calls the named exports, comparing returned **primitives** with `===`,
+   or requiring a thrown error class; nothing goes through stdout or an overridable prototype method
+   on a value the module produced;
+4. it writes ONE line to fd 3: the JSON verdict plus `HMAC-SHA256(nonce, json)`.
+
+The parent ignores exit status and stdout entirely and accepts only a line whose HMAC verifies. The
+module may write to fd 3, monkeypatch `fs.writeSync`, replace `JSON.stringify` — it cannot forge the
+signature, because the nonce is unreachable by the time it runs. **No signed verdict is a failure,
+never a pass**, and a hang is a grader error.
+
+**Threat model.** In scope: everything the module can do from inside its own process — tampering
+with globals, prototypes, stdout, exit status, fd 3, the filesystem. Out of scope: scanning this
+process's memory for the nonce (Node offers no in-process isolation against that; closing it needs a
+separate privilege domain). Also out of scope, and deliberately so: a module that detects it is being
+evaluated and returns correct values only then — returning correct values *is* the behaviour being
+asked for, and `withinLines` bounds where such a branch could hide.
+
+`spawnSync` cannot feed an anonymous pipe on a non-stdin descriptor, so fd 4 is backed by a 0600
+temp file removed as soon as the child exits. The property that matters is unchanged: the nonce is
+consumed and the descriptor closed before untrusted code runs.
+
 ## Ordering, identity and resume
 
 - **Seeded randomized block schedule.** A block is one `(task, rep)` holding every eligible
@@ -169,7 +205,12 @@ parallel tool calls; the run total is exact.
    study past them; wall time excludes grading; and a study carrying unmeasured nested spend is
    reported as **not fully accounted**, so the token figure is a lower bound. What the runner can
    do, and does: refuse to start another run, and cap each child's timeout by the wall allowance
-   that remains.
+   that remains — with **no floor**, so when less than a useful slice is left the study stops with a
+   budget verdict instead of being granted time the budget does not have.
+6. **Fail-closed persistence** — if a probe's ledger line or its evidence cannot be written, the
+   study **stops**: an unrecorded paid child would be paid for twice and missing from every budget.
+   Ctrl-C likewise writes the in-flight child's buffered stream and partial spend as a
+   `run-error: interrupted` record before exiting.
 5. **Systemic-failure stop** — 3 consecutive non-model failures abort the study. That includes
    `run-error` (auth, spawn, timeout), which otherwise burns the whole schedule 300 seconds at a
    time. The streak is **restored from the trailing records on resume**, so restarting does not
@@ -283,10 +324,10 @@ and are never counted as the model's own edits.
 | `exact` | the whitespace-normalised final text **equals** `value` (default `mode:"whole"`; `mode:"contains"` is opt-in, because contains-matching a number accepts 1304 for 304) |
 | `json-path` | the reply parses as JSON (``` fences tolerated) and `path` equals `value`; `path:"$"` is the root, `unordered:true` compares as a set |
 | `command` | every `commands: [[argv…]]` exits 0, run inside the fixture copy |
-| `suite` | a test suite exits 0 **and** prints its pristine number of `PASS` lines with none of `forbid` — exit status alone never proves a suite ran |
-| `trusted-suite` | the suite runs under a **sentinel** copied in from outside the fixture: untrusted code cannot call `process.exit`, and `PASS`/`FAIL` lines are attributed by call stack so only the *test file* can produce evidence. Counting stdout is worthless when the code being graded can print it |
+| `suite` | a test suite exits 0 and prints its pristine number of `PASS` lines with none of `forbid`. **Non-authoritative** — the code under test can print whatever it likes, so this is a "did you break the existing suite" smoke signal beside `eval-module`, never a verdict |
+| `eval-module` | **the authoritative verdict for an edit task.** A trusted evaluator in a separate process calls named exports and compares returned primitives / required error classes. See below |
 | `file` | `exists` / `contains` / `containsCode` (comment-blind) / `notContains` / `sha256` |
-| `changed-paths` | everything the model changed matches `allow`, nothing matching `protect` moved, changes fall inside the declared `withinLines` range, and no ADDED line introduces a `denyAdded` token (`process.exit`, `console.`, `require(`, …) |
+| `changed-paths` | everything the model changed matches `allow`, nothing matching `protect` moved, and changes fall inside the declared `withinLines` range. (A token denylist on added lines was removed: it was bypassable from inside the allowed lines, so it implied protection it did not give) |
 | `revert-and-fail` | with `restore` reverted from the pinned fixture, `commands` **run to completion and exit nonzero** — i.e. the added test actually detects the missing behaviour. A spawn failure or a timeout is a grader error, never "detection" |
 | `live-key` | a command run at bench time yields the key; `expect` pins an immutable value and makes the command a tripwire; `schema`/`reject` validate it |
 | `all` | every child passes |
@@ -333,7 +374,7 @@ lib/checkers.mjs    the deterministic checkers, and the grader-error boundary
 lib/fixture.mjs     hash / verify / materialize / mutate a fixture, + a unified diff (also a CLI)
 lib/plan.mjs        study fingerprint, seeded block schedule, resume + torn-tail quarantine
 lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateCost/ModelRuntime
-lib/harness-sentinel.cjs  the trusted grading harness: blocks exits, attributes PASS lines by stack
+lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict over fd 3
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
 ext/                bench-owned pi extensions (the nested-usage sidecar)

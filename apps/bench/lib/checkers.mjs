@@ -6,21 +6,14 @@
 // recorded as a wrong answer. The runner turns that into its own record state.
 
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { lineDiff } from "./fixture.mjs";
 
-const SENTINEL = path.join(path.dirname(fileURLToPath(import.meta.url)), "harness-sentinel.cjs");
-
-/**
- * Tokens that must never appear on a line the model ADDED to a graded source file. Every one is a
- * way to manufacture the evidence instead of the behaviour: force an exit status, print fake
- * assertions, or reach outside the module under test.
- */
-export const DENY_ADDED = ["process.exit", "process.exitCode", "process.reallyExit", "process.abort", "process.on", "console.", "stdout.write", "stderr.write", "require(", "import(", "eval(", "new Function", "child_process", "fs.", "node:fs"];
+const EVALUATOR = path.join(path.dirname(fileURLToPath(import.meta.url)), "eval-module.mjs");
 
 const ok = (pass, detail) => ({ pass, detail });
 const graderError = (detail) => ({ pass: false, graderError: true, detail });
@@ -103,31 +96,50 @@ export function fetchKey(c, ctx) {
 }
 
 /**
- * Run a command under the trusted sentinel, copied in from OUTSIDE the fixture every time so the
- * model cannot reach it. Returns the raw result plus the sentinel's own completion marker — the
- * marker, not the exit code, is what says the process ran to the end.
+ * Grade BEHAVIOUR in a separate process, with a nonce the module cannot reach.
+ *
+ * The parent invents a random nonce, hands it plus the probe spec to lib/eval-module.mjs over file
+ * descriptor 4 (never argv, never the environment), and accepts only a verdict line whose
+ * HMAC-SHA256 verifies under that nonce. Exit status and stdout are ignored entirely, because both
+ * belong to the code being graded. See lib/eval-module.mjs for the threat model.
  */
-function runUnderSentinel(cmdArgv, { cwd, trust = [], timeoutMs }) {
-	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "bench-sentinel-"));
+function evaluateModule({ cwd, module: modulePath, probes, timeoutMs }) {
+	const nonce = randomBytes(32).toString("hex");
+	const specFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "bench-eval-")), "spec.json");
+	let fd = null;
 	try {
-		const sentinel = path.join(tmp, "harness-sentinel.cjs");
-		fs.copyFileSync(SENTINEL, sentinel);
-		const markerPath = path.join(tmp, "marker.json");
-		const argv = [process.execPath, "--require", sentinel, ...cmdArgv];
-		const r = runArgv(argv, {
-			cwd,
-			timeoutMs,
-			env: { ...process.env, BENCH_SENTINEL_OUT: markerPath, BENCH_SENTINEL_TRUST: JSON.stringify(trust.map((rel) => path.resolve(cwd, rel))) },
-		});
-		let marker = null;
-		try {
-			marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
-		} catch {
-			marker = null;
+		fs.writeFileSync(specFile, JSON.stringify({ nonce, module: pathToFileURL(path.resolve(cwd, modulePath)).href, probes }), { mode: 0o600 });
+		fd = fs.openSync(specFile, "r");
+		// spawnSync cannot feed an anonymous pipe on a non-stdin fd, so fd 4 is backed by a 0600
+		// temp file that is unlinked the moment the child exits. The security property is the same:
+		// the evaluator consumes and closes fd 4 before importing anything, so by the time untrusted
+		// code runs the nonce is not reachable from any descriptor, argument or variable it can see.
+		const r = spawnSync(process.execPath, [EVALUATOR], { cwd, timeout: timeoutMs ?? 120000, encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe", "pipe", fd] });
+		const errMsg = r.error ? String(r.error.message) : null;
+		if (r.error || r.signal) return { infra: `the trusted evaluator could not run: ${errMsg ?? `killed by ${r.signal}`}` };
+		for (const line of String(r.output?.[3] ?? "").split("\n")) {
+			const tab = line.lastIndexOf("\t");
+			if (tab < 0) continue;
+			const json = line.slice(0, tab);
+			const sig = line.slice(tab + 1).trim();
+			const want = createHmac("sha256", nonce).update(json).digest("hex");
+			if (sig.length !== want.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(want))) continue;
+			try {
+				return { verdict: JSON.parse(json) };
+			} catch {
+				/* a signed but unparseable verdict cannot happen from our evaluator; keep looking */
+			}
 		}
-		return { r, marker, infra: r.infra ? infraDetail(argv, r) : null };
+		return { verdict: null, stderr: String(r.stderr ?? "").split("\n").slice(-4).join(" | ").slice(0, 300) };
 	} finally {
-		fs.rmSync(tmp, { recursive: true, force: true });
+		if (fd !== null) {
+			try {
+				fs.closeSync(fd);
+			} catch {
+				/* already closed */
+			}
+		}
+		fs.rmSync(path.dirname(specFile), { recursive: true, force: true });
 	}
 }
 
@@ -224,41 +236,34 @@ const CHECKERS = {
 	},
 
 	/**
-	 * { type: "trusted-suite", argv, trust: [relpath], passLines, cwd?, timeoutMs? }
+	 * { type: "eval-module", module, probes: [...], timeoutMs? }
 	 *
-	 * Counting stdout is worthless when the code being graded can print the evidence. So the suite
-	 * runs under `node --require <sentinel>` — copied in from OUTSIDE the fixture at check time, so
-	 * the model cannot touch it. The sentinel makes `process.exit` throw, attributes every write to
-	 * the file that made it, and counts PASS/FAIL only from the files in `trust`. A PASS printed by
-	 * the source under test is forgery, and fails the check by name.
+	 * The authoritative correctness verdict for an edit task. Each probe calls a named export with
+	 * given arguments and compares the returned primitive (`equals`), or requires a thrown error
+	 * class (`throws`), or checks a byte length / substring — all inside a trusted process, with no
+	 * dependence on anything the module prints or on the status it exits with.
 	 */
-	"trusted-suite"(c, ctx) {
-		const cwd = c.cwd ? path.resolve(ctx.dir, c.cwd) : ctx.dir;
-		if (!cwd) return graderError("trusted-suite needs a fixture dir");
-		const run = runUnderSentinel(c.argv ?? [], { cwd, trust: c.trust ?? [], timeoutMs: c.timeoutMs });
-		{
-			const { r, marker: m, infra } = run;
-			if (infra) return graderError(infra);
-			if (!m) {
-				return ok(false, `the suite left no completion marker (exit ${r.status}) — it did not run to the end: ${(r.stderr || r.stdout || "").split("\n").slice(-4).join(" | ").slice(0, 300)}`);
-			}
-			if (m.exitAttempts?.length) {
-				const a = m.exitAttempts[0];
-				return ok(false, `${a.name}() was called from ${a.from ? path.basename(a.from) : "unknown"} — a graded suite may not decide its own exit status`);
-			}
-			if (m.untrustedPass > 0) return ok(false, `${m.untrustedPass} PASS line(s) were printed by ${m.forgedBy.join(", ") || "untrusted code"}, not by the test file — forged evidence`);
-			if (m.fail > 0) return ok(false, `${m.fail} FAIL line(s) reported by the suite`);
-			if (r.status !== 0) return ok(false, `the suite ran to completion but exited ${r.status}`);
-			if (c.passLines !== undefined && m.trustedPass !== c.passLines) {
-				return ok(false, `the suite printed ${m.trustedPass} trusted PASS lines, expected ${c.passLines} — it did not run every assertion`);
-			}
-			return ok(true, `trusted harness: ${m.trustedPass} PASS from ${(c.trust ?? []).length} trusted file(s), 0 FAIL, no exit interference`);
-		}
+	"eval-module"(c, ctx) {
+		if (!ctx.dir) return graderError("eval-module needs a fixture dir");
+		const res = evaluateModule({ cwd: ctx.dir, module: c.module, probes: c.probes ?? [], timeoutMs: c.timeoutMs });
+		if (res.infra) return graderError(res.infra);
+		if (!res.verdict) return ok(false, `no signed verdict from the trusted evaluator — the module did not let it finish${res.stderr ? `: ${res.stderr}` : ""}`);
+		const v = res.verdict;
+		if (v.importError) return ok(false, `the module does not import: ${v.importError}`);
+		if (!v.complete) return ok(false, "the trusted evaluator did not finish — the module ended the process during import");
+		const failed = (v.probes ?? []).filter((p) => !p.pass);
+		if (!(v.probes ?? []).length) return graderError("the evaluator ran no probes");
+		if (failed.length) return ok(false, `${failed.length}/${v.probes.length} behaviour probe(s) failed: ${failed.slice(0, 3).map((p) => `${p.name} — ${p.detail}`).join("; ")}`);
+		return ok(true, `${v.probes.length}/${v.probes.length} behaviour probes passed under the trusted evaluator (signed verdict)`);
 	},
 
 	/**
-	 * { type: "changed-paths", allow: [glob], protect: [glob], withinLines: {path:[from,to]},
-	 *   denyAdded?: bool|[tokens] }
+	 * { type: "changed-paths", allow: [glob], protect: [glob], withinLines: {path:[from,to]} }
+	 *
+	 * `denyAdded` (a token denylist on added lines) was REMOVED: a reviewer forged a passing verdict
+	 * from entirely inside the allowed lines using `process['exit']` and `stdout['write']`, which no
+	 * literal denylist catches. It bought nothing and implied protection it did not provide.
+	 * Correctness now comes from `eval-module`, which grades behaviour instead of source text.
 	 * Diffs the workspace against the snapshot the harness took after mutations and before the
 	 * model ran. Anything changed/added/removed outside `allow` fails; anything matching
 	 * `protect` must be byte-identical. This is what stops "make the suite pass" from being
@@ -282,23 +287,16 @@ const CHECKERS = {
 		}
 
 		// DIFF SHAPE. An allowlisted file is still only allowed to change WHERE the task says the
-		// work is, and an added line may not carry the tokens that manufacture evidence.
-		const deny = c.denyAdded === true ? DENY_ADDED : Array.isArray(c.denyAdded) ? c.denyAdded : null;
+		// work is. This bounds where a change can hide; it does not pretend to police what it does.
 		const ranges = c.withinLines ?? {};
-		if (deny || Object.keys(ranges).length) {
-			if (!ctx.preRun) return graderError("withinLines/denyAdded need the pre-run file contents");
+		if (Object.keys(ranges).length) {
+			if (!ctx.preRun) return graderError("withinLines needs the pre-run file contents");
 			for (const [rel, before] of ctx.preRun) {
 				const abs = path.resolve(ctx.dir, rel);
 				if (!fs.existsSync(abs)) continue;
 				const after = fs.readFileSync(abs, "utf8");
 				if (after === before) continue;
 				const d = lineDiff(before, after);
-				if (deny) {
-					for (const a of d.added) {
-						const hit = deny.find((t) => a.text.includes(t));
-						if (hit) return ok(false, `${rel}:${a.line} adds a forbidden construct ${JSON.stringify(hit)} — that manufactures evidence rather than behaviour: ${a.text.trim().slice(0, 90)}`);
-					}
-				}
 				const range = ranges[rel];
 				if (range) {
 					// Insertions shift later lines, so the window is allowed to grow by however
@@ -334,25 +332,12 @@ const CHECKERS = {
 				fs.copyFileSync(src, path.resolve(tmp, rel));
 			}
 			for (const argv of c.commands ?? []) {
-				// With `trust`, the reverted run goes through the SENTINEL, so we can tell a test
-				// that RAN and decided to fail from one that died on module load or forced a
-				// status — astra: a regex alone is not tamper-proof evidence.
-				if (c.trust) {
-					const { r: sr, marker, infra } = runUnderSentinel(argv.slice(1), { cwd: tmp, trust: c.trust, timeoutMs: c.timeoutMs });
-					if (infra) return graderError(`revert-and-fail could not determine anything: ${infra}`);
-					if (!marker) return ok(false, `with ${(c.restore ?? []).join(", ")} reverted the test did not run to completion (no marker, exit ${sr.status}) — a module-load error is not evidence that it detects the missing behaviour`);
-					if (marker.exitAttempts?.length) return ok(false, "the added test forced an exit status from untrusted code");
-					const failed = marker.fail > 0 || (marker.trustedExit && marker.trustedExit.code !== 0) || sr.status !== 0;
-					if (!failed) return ok(false, `${argv.join(" ")} still passes with ${(c.restore ?? []).join(", ")} reverted — the added test does not detect the missing behaviour`);
-					if (marker.fail === 0 && !(marker.trustedExit && marker.trustedExit.code !== 0)) {
-						return ok(false, `with ${(c.restore ?? []).join(", ")} reverted the process exited ${sr.status} but the test itself reported no failure — that is a crash, not a detected regression`);
-					}
-					continue;
-				}
 				const r = runArgv(argv, { cwd: tmp, timeoutMs: c.timeoutMs });
-				// A GENUINE assertion failure only. A spawn failure, a signal or a timeout is the
-				// harness failing, and accepting it as "the test detected the bug" would let any
-				// broken test pass this check.
+				// The test must RUN and end badly. A spawn failure, a signal or a timeout is the
+				// harness failing, not detection. But ANY ordinary failure mode counts — a bare
+				// `node:assert` throw, a nonzero exit, a rejected promise — because the prompt asks
+				// for a test, not for a particular reporting convention. (astra: requiring a `FAIL`
+				// line or a trusted nonzero exit rejected perfectly good assert.throws tests.)
 				if (r.infra) return graderError(`revert-and-fail could not determine anything: ${infraDetail(argv, r)}`);
 				if (r.status === 0) return ok(false, `${argv.join(" ")} still exits 0 with ${(c.restore ?? []).join(", ")} reverted — the added test does not detect the missing behaviour`);
 				const out = `${r.stdout}\n${r.stderr}`;

@@ -64,10 +64,30 @@ export const costTotal = (u) => num(u?.cost?.total);
  */
 export function costOfRecord(r) {
 	if (!r) return null;
+	// UNKNOWN nested spend means the run's cost is unknown, full stop. Returning the priced part
+	// would be a total that silently omits a piece — the helper promises the opposite.
+	if (r.nestedUnknown) return null;
 	if (r.cost === null) return null; // the writer already said it could not price this
 	if (totalTokens(r.nestedTokens) > 0 && r.nestedCost == null) return null;
 	if (typeof r.cost === "number") return r.cost;
 	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
+}
+
+/**
+ * The priced part of a run, as an explicit LOWER BOUND. Separately named so nobody can mistake it
+ * for a total: it is what `costOfRecord` would have returned had nothing been unknown.
+ */
+export function observedCostOfRecord(r) {
+	if (!r) return 0;
+	if (typeof r.cost === "number") return r.cost;
+	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
+}
+
+/** Why a record has no cost, for the reader who wants to know. */
+export function costUnknownReason(r) {
+	if (!r || costOfRecord(r) != null) return null;
+	if (r.nestedUnknown) return r.nestedUnknownReason ? `unmeasured nested spend (${r.nestedUnknownReason})` : "unmeasured nested spend";
+	return r.nestedCostReason ?? r.costReason ?? "not priced";
 }
 
 const textOf = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c?.type === "text" && typeof c.text === "string").map((c) => c.text).join("") : "");
@@ -163,12 +183,21 @@ export function parseStream(text, { pricer = null } = {}) {
 					if (addUsage(nested, m.usage)) {
 						nestedMessages++;
 						nestedCalls += num(bn?.calls) || 1;
-						const seen = (bn?.models ?? []).filter(Boolean);
-						// One model named: that bucket. Several (or none): a bucket we refuse to
-						// price, because we cannot say which rates apply to which tokens.
-						const key = seen.length === 1 ? seen[0] : seen.length > 1 ? `ambiguous(${seen.join("+")})` : "unknown-model";
-						if (!nestedByModel.has(key)) nestedByModel.set(key, emptyUsage());
-						addUsage(nestedByModel.get(key), m.usage);
+						// The sidecar reports usage PER MODEL, so a multi-model window is priced per
+						// bucket rather than written off as unattributable. Older records that only
+						// carry `models[]` fall back to the single-model case.
+						const buckets = bn?.byModel && typeof bn.byModel === "object" ? Object.entries(bn.byModel) : null;
+						if (buckets?.length) {
+							for (const [key, u] of buckets) {
+								if (!nestedByModel.has(key)) nestedByModel.set(key, emptyUsage());
+								addUsage(nestedByModel.get(key), u);
+							}
+						} else {
+							const seen = (bn?.models ?? []).filter(Boolean);
+							const key = seen.length === 1 ? seen[0] : seen.length > 1 ? `ambiguous(${seen.join("+")})` : "unknown-model";
+							if (!nestedByModel.has(key)) nestedByModel.set(key, emptyUsage());
+							addUsage(nestedByModel.get(key), m.usage);
+						}
 					}
 					// `unknown` is INDEPENDENT of whether some usage was also measured: one window
 					// can hold a measured call and an unmeasurable one.

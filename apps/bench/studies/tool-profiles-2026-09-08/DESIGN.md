@@ -148,23 +148,30 @@ tracked files, excluding `apps/bench`, `research/`, `docs/`, `node_modules`, `.g
 
 The two edit tasks are graded on **what changed**, not only on whether the suite is green:
 
-**Exit status never proves a suite ran.** `process.exit(0)` anywhere in the imported source — and
-`blocks.mjs` is a file both tasks ALLOW the model to edit, so an allowed-paths check cannot see it —
-makes a suite, a hidden probe and the model's own test all exit 0 having asserted nothing, and even
-lets `revert-and-fail` pass without a guard. So both tasks require **externally observed
-completion**: the pristine `PASS`-line count (112 for `blocks.test.mjs`, 13 for the guard probe)
-with no `FAIL` line. A late `process.on("exit", …)` force-exit is caught by the same two counts.
+**Nothing the model can print or exit with is evidence.** These tasks let the model edit a source
+file, and a reviewer used exactly that to forge a pass from entirely inside the permitted lines: 112
+fabricated `PASS` lines via `process.stdout['write']`, a forced status via `process['exit']`, and a
+fake trusted stack frame via `Error.prepareStackTrace`, all while keeping the bug. Counting output
+and blocking exits are same-process trust claims, and no denylist closes that class.
 
-- `code-bugfix`: a declared one-line mutation breaks 1 of 112 assertions. Passing requires the
-  declared defect to be **gone** (only its absence — a different but correct rewrite of `fmtNum` is
-  still allowed), the suite to complete with 112 PASS and no FAIL, and the only changed file to be
-  `blocks.mjs` with the whole test tree byte-identical.
-- `code-guard`: passing requires the new test file to exist and to call `clampText` **outside a
-  comment**; the existing suite to complete at 112 PASS; the bench probe to complete at 13 PASS
-  (i.e. the guard genuinely behaves); the model's own test to exit 0; nothing changed but the guard
-  site and that one new file; and the model's test to **fail** when the guard is reverted from the
-  pinned fixture — failing by *running and exiting nonzero*, never by failing to spawn or timing
-  out, which are grader errors.
+So correctness is decided by **behaviour, in a trusted process the module cannot reach** — the
+`eval-module` checker (see Measurement in `apps/bench/README.md` for the mechanism and threat model).
+The probe values were derived from the pristine fixture at design time and are recorded in the task.
+
+- `code-bugfix`: a declared one-line mutation makes `fmtNum` round to one decimal. The verdict is
+  eight behaviour probes on `fmtNum` — `0.5761 → "0.58"` and `-2.345 → "-2.35"` discriminate, the
+  rest guard against a fix that breaks integers, `Infinity`, float noise or exponentials — plus
+  `withinLines` (the change must live in lines 150-153, `fmtNum`'s span) and the protected test tree.
+  The existing suite's `PASS` count is kept as a **non-authoritative** "did you break anything else"
+  signal, explicitly not a verdict.
+- `code-guard`: the verdict is eight behaviour probes on `clampText` — five invalid inputs must throw
+  `TypeError`, short text must be returned unchanged, long text must be clamped to the byte cap and
+  announce the cut — plus `withinLines` for the guard site, a new test file that exists and
+  references `clampText` outside a comment, and `revert-and-fail` as **best-effort evidence** that
+  the model's own test detects the missing guard: with the guard reverted it must run and end badly
+  by **any ordinary failure mode**, a bare `node:assert` throw included. (Requiring a `FAIL` line or
+  a trusted nonzero exit rejected perfectly good `assert.throws` tests; the prompt never asked for a
+  reporting convention.) The trusted evaluator, not the model's test, is the correctness verdict.
 
 **RESEARCH family (B, C), 6 tasks**, no fixture. B has no web tools but does have `bash` (curl,
 node), so this measures dedicated web tools against shelling out, not against nothing. Answers are
