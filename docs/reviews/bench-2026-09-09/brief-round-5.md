@@ -1,0 +1,23 @@
+# Review brief — nana-pi apps/bench, astra GO/NO-GO (fifth look) at HEAD 9784d58
+
+Your fourth review (NO-GO: A and D PASS; B sentinel forgery; C probe ledger fail-open; E pricing wiring) is at /private/tmp/claude-501/-Users-jwang-nana-agent-loop/bench-work/review-astra-bench4.md. The maintainer changed the DESIGN for B rather than patching it, and the worker folded C and E. Committed as 9784d58 (`git -C ~/nana-pi show --stat HEAD` + message). Decide whether replicate 0 may start. Read-only; no model spend; never run run.mjs with --go/--smoke. Do not re-open A or D unless this fold regressed them.
+
+## What changed
+B. Edit-task correctness = `eval-module`: trusted evaluator process (lib/eval-module.mjs, content-pinned); parent passes 32-byte nonce + probe spec + module path over fd 4 (argv carries only the evaluator; nothing in env); evaluator reads+closes fd 4 and captures fs.writeSync / createHmac / JSON.stringify / Number.isNaN / TextEncoder / String.prototype.indexOf / error constructors BEFORE the dynamic import of the fixture module; probes call named exports and compare returned primitives with === (or thrown class / byte length / substring), never via stdout or a prototype method on a module-produced value; one verdict line to fd 3 = JSON + HMAC-SHA256(nonce, json), verified with timingSafeEqual; exit status/stdout ignored; no signed verdict = fail; hang = grader-error. harness-sentinel.cjs, trusted-suite, denyAdded, notContains removed; withinLines kept; `suite` demoted to a non-authoritative signal; revert-and-fail accepts any ordinary failure mode (plain node:assert throw counts).
+C. runPlan extracted (DI): failed ledger/result append THROWS naming spent tokens, no further paid child; orchestration tests inject a failing append and assert runs === 0; SIGINT salvages live buffer + partial spend as `run-error: interrupted`; UNATTACHED flag folded before `measured`; no 30s floor (too little wall = budget stop).
+E. createPricer(agentDir) → prepared catalogs; costOfRecord null + costUnknownReason when nestedUnknown; observedCostOfRecord as named lower bound; aggregate prints "unknown ≥$x"; sidecar keeps per-model buckets (details.byModel) priced per bucket.
+
+## Read
+- ~/nana-pi/apps/bench/lib/eval-module.mjs, lib/checkers.mjs (eval-module, withinLines, revert-and-fail, suite), run.mjs (runPlan, SIGINT salvage, ledger/result append), lib/usage.mjs (costOfRecord/observedCostOfRecord), ext/bench-nested-usage.ts (byModel), aggregate.mjs
+- studies/tool-profiles-2026-09-08/{tasks/c7-bugfix.json, c8-guard.json, DESIGN.md (evaluator threat model + "narrow not forgeable" caveat), study.json (pins)}
+- tests: checkers.test.mjs (adversarial matrix), integration.test.mjs (runPlan with failing append), study-tasks.test.mjs, aggregate.test.mjs
+
+## Dimensions
+A. Evaluator robustness (a software-testing question about a benchmark grader, not a security exercise): state which of these ISOLATION PROPERTIES the implementation actually guarantees, with file:line — (1) the nonce is unreachable to the module under test after fd 4 is closed; (2) the parent accepts exactly one verdict line and defines which one when several arrive (first / last / the only HMAC-valid one); (3) the captured references (fs.writeSync, createHmac, JSON.stringify, error constructors) are the originals and the verdict object is built from plain data so prototype changes in the module cannot alter it; (4) returned values are type-checked as primitives before the === comparison; (5) a never-resolving import is a grader-error via the timeout. For any property NOT guaranteed, describe the gap as a test-coverage finding with the minimal fix. Then assess the c7/c8 probe sets as a SPECIFICATION: name any input class (e.g. -0, very large negatives, string arguments, NaN, empty string) that a wrong fix could satisfy the probes on, and propose the missing probe.
+B. Fail-closed persistence: any remaining path where a paid call is not persisted before the next paid child (probe → ledger → next run; results append; SIGINT salvage ordering); does runPlan's DI test exercise the real appendLedger implementation at least once (not only the injected failing one)?
+C. Pricing: agentDir wiring correct; null/observed lower bound consistent in run record, aggregate cell, profile row, and DESIGN.md's decision procedure (unknown-spend step reads the right field)?
+D. Regression check on A/D from round 4 (nested detectors, decision procedure) — untouched or improved?
+E. Anything NEW introduced.
+F. Rep-0 checklist (≤6 field checks), restated briefly for the maintainer.
+
+End with ≤5 maintainer lines and exactly one line: `VERDICT: GO` or `VERDICT: NO-GO`.
