@@ -233,7 +233,8 @@ not just what the server does internally.
   its record deleted the first time a desk opens an app. Records are kept per session precisely
   so there is nothing shared to merge or lock: a session id that is not name-shaped
   (`[A-Za-z0-9_-]{1,128}`) is neither recorded nor looked up, since it becomes a filename.
-  What changes for a caller:
+  Records are read from disk on every lookup and written read-union-write, so two
+  live desks always see each other's keys. What changes for a caller:
   - **Spawning an app session on a session this desk already knows reuses that session's most
     recent key** instead of minting a new one, so `GET /api/entries` still returns the blocks
     minted before the restart as `nana-block` rather than `nana-block-rejected`.
@@ -254,6 +255,15 @@ not just what the server does internally.
     that — its own observation, never the `parentSession` text in the file, and never the last id
     it happened to see. If the source cannot be established, nothing is inherited and the fork's
     copied blocks redact. `switch_session` and `new_session` inherit nothing, by construction.
+    Two things make that hold under load: lifecycle commands (`fork`, `clone`, `switch_session`,
+    `new_session`) run **one at a time per child**, so a second transition cannot capture a
+    source the first has already moved away from; and while one is in flight a ledger read may
+    *use* the session it observes but does not file it, so it cannot claim the destination under
+    the live key alone before the fork has been accounted for. A ledger read that lands in that
+    window sees the new session's blocks redacted for that one read.
+  - **A fork whose confirmation fails recovers.** If the state read that would attribute the new
+    session fails, the desk keeps the confirmed source and completes the inheritance at the next
+    confirmed observation (the next ledger read), rather than losing the fork's history.
   - If the child's current session cannot be established at read time (a failed `get_state`),
     there is **no** widening at all: only the live child's own key is used, so a block signed
     under another recorded key of that session redacts until the session can be read again.
@@ -314,11 +324,13 @@ is not":
   writes, and the one-time session enumeration behind its hygiene pass, block the whole desk
   while they run. A hung filesystem under `~/.pi/agent` stalls the process, not just the request
   that touched it.
-- **Two desks can lose one key for the same session.** Each record is one file written with a
-  plain rename, so two desks that record *different new* keys for the *same* session at the same
-  instant leave whichever wrote last; the other key survives only in that desk's memory, and
-  after it exits, blocks signed with it redact. Nothing is corrupted and no other session is
-  affected. This is the deliberate price of having no cross-process lock.
+- **Two desks can lose one key for the same session.** A record is read, unioned and written
+  back without a lock, so two desks doing that for the *same* session in the *same instant* leave
+  whichever wrote last; the key the other one added survives only in its memory, and once it
+  exits, blocks signed with that key redact. It takes an actual overlap of the two writes —
+  sequential writers, however far apart, each read the current file first — and it costs at most
+  one key for one session, corrupting nothing and touching no other session. This is the
+  deliberate price of having no cross-process lock.
 - **Ledger reads and lifecycle RPCs cost extra round trips.** `GET /api/entries` issues two RPCs
   (the entries and a `get_state` to establish the session), and a `fork`/`clone` waits for a
   `get_state` before and after it. So unanswered ledger reads consume the per-child pending-RPC
