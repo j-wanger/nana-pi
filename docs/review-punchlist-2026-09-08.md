@@ -282,12 +282,38 @@ sleeps became readiness handshakes.
   - **BLOCK/SHOULD (docs), fixed** — the bash bound and the generation claim in
     `apps/desk/README.md` and here now state what the code enforces.
 
-  Tests: `apps/desk/test/session-races.e2e.mjs` — 40 browser-level checks against a stub pi, no
+  Folded again after `gpt-5.6-sol` round 3 (BLOCK), in `c284123` — this time by **subtraction**:
+  - **BLOCK, fixed by removal — count-based adoption could not prove provenance.** A one-card
+    increase does not identify a run: a compaction, a branch or new-session rewrite, another
+    client, or a run from a previous stage generation can each introduce one unrelated
+    same-command card, and returning to a session resets the in-flight bookkeeping the rule leaned
+    on. Two rounds of patching the count did not close it, so the whole mechanism is gone —
+    `adoptHistoryBashRow`, the finished-card counting, the per-command in-flight map and the
+    `data-bcmd`/`data-bash-id` marks. New rule: if the transcript was rebuilt while the POST was
+    in flight, the page claims no card and builds none from its buffer; it drops the buffer and
+    asks history again. When nothing was rebuilt, behaviour is unchanged (create the row, flush
+    the buffer).
+  - **BLOCK, fixed — a buffered transport failure was written onto an unidentified card.** It is
+    now surfaced as a toast, `bash: <command> — <error>`, pinned to no card. (Failing-first: the
+    pre-fold page marked a history card `✗` and raised no toast.)
+  - **BLOCK, fixed — repair resyncs did not coalesce.** The old flag was cleared when a resync
+    finished, so a second ambiguous POST arriving after that started a second repair. A resync
+    already in flight was started *before* a request arrived and cannot answer it, so such
+    requests now set one "again" flag and exactly one follow-up runs after the current read
+    completes. (Failing-first: 3 reads where 2 are correct.)
+  - **SHOULD, fixed (tests)** — no positive assertion waits on a delay any more; each waits for
+    its own DOM or counter condition. `SETTLE` now appears only before negative claims, which is
+    what the file header says.
+  - **BLOCK (docs), fixed** — "provably ours" and "never" are gone from `apps/desk/README.md`;
+    the rule now states no adoption, history wins, one coalesced repair read, and the
+    transport-failure toast.
+
+  Tests: `apps/desk/test/session-races.e2e.mjs` — 42 browser-level checks against a stub pi, no
   model call. Each interleaving is controlled by holding the exact response under test
   (`page.route`, or a substituted `FileReader`) and releasing it on what the page has already
   received, plus a TCP relay so the reconnect checks destroy the real SSE socket. 8 fail on the
   page before `7a91f42`; 7 more fail on the page before `c8249d7`; 8 more fail on the page before
-  `8afd799`. **Still open:** a model /
+  `8afd799`; 4 more fail on the page before `c284123`. **Still open:** a model /
   thinking / fork picker whose RPC is already in flight when you switch sessions still applies to
   the new session (`clearStage()` closes the popover, which narrows it to that window), and a
   steer byte-identical to a still-pending prompt consumes that prompt's optimistic bubble. Both

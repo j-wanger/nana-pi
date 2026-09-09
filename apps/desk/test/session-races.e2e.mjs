@@ -50,6 +50,8 @@
 //  12. an oversized error is bounded and reported, like an oversized output.
 //  13. the retention window never opens on half a surrogate pair.
 //  14. a stale slash-command rejection paints no toast.
+//  15. repair resyncs asked for while one is running coalesce into exactly one
+//      follow-up, however many asked.
 //
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/session-races.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
@@ -131,6 +133,15 @@ process.stdin.on("data", (c) => {
 				if (/^poke/.test(cmd.command)) {
 					if (pendingTwice) say({ type: "bash_execution_update", id: pendingTwice, delta: "SECOND-RUN\\n" });
 					say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
+					break;
+				}
+				// never answers, never reaches history: a run still in flight
+				if (/^hold/.test(cmd.command)) break;
+				// makes the page resync the way a finished turn does
+				if (/^settle/.test(cmd.command)) {
+					bashes.push({ role: "bashExecution", command: cmd.command, output: "", exitCode: 0 });
+					say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
+					say({ type: "agent_settled" });
 					break;
 				}
 				// history records the RUN (exit 0); the transport fails separately
@@ -414,7 +425,8 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "!echo hi");
 		await page.press("#input", "Enter");
-		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
+		// positive: the finished card for THIS command exists. No delay decides it.
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((c) => c.querySelector(".bcmd").textContent === "! echo hi" && c.querySelector(".bexit").textContent), null, { timeout: 25000 });
 		await page.waitForTimeout(SETTLE); // "exactly one row" is a negative claim
 		const r = await bashCard(page, "echo hi");
 		check("bash echo-first: exactly one row", r.n === 1, String(r.n));
@@ -511,7 +523,7 @@ try {
 		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
 		release();
 		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/prompt")), null, { timeout: 10000 });
-		await page.waitForTimeout(SETTLE);
+		await page.waitForTimeout(SETTLE); // both claims below are negative
 		const r = await page.evaluate(() => ({
 			input: document.getElementById("input").value,
 			text: document.querySelector("#transcript").textContent,
@@ -597,19 +609,25 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "!big output");
 		await page.press("#input", "Enter");
-		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
-		await page.waitForTimeout(SETTLE);
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((c) => c.querySelector(".bcmd").textContent === "! big output" && c.querySelector(".bexit").textContent), null, { timeout: 25000 });
 		const r = await bashCard(page, "big output");
 		check("buffered oversized result: retained and rendered within the window", r.out?.length === 20000, String(r.out?.length));
 		check("buffered oversized result: the cut is reported", /truncated/.test(r.exit || ""), String(r.exit));
 		await closePage(page);
 	}
 
-	// ── 7. reconnect while the bash POST is held → adopt, do not add a row ─────
+	// ── 7. reconnect while the bash POST is held → history wins, no row built ──
 	// Through the relay: the resync the reconnect triggers brings back pi's own
-	// FINISHED record of the command (no RPC id) while the POST is still parked.
+	// FINISHED record of the command while the POST is still parked. The page
+	// must not build a second card from its buffer — it drops it and re-reads.
 	{
 		const page = await newPage(ctx);
+		let getMessages = 0;
+		let before = 0;
+		await page.route(`**/api/session/${b.id}/rpc`, async (route) => {
+			if (rpcType(route) === "get_messages") getMessages++;
+			try { await route.continue(); } catch {}
+		});
 		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
 			const resp = await route.fetch();
 			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
@@ -617,6 +635,7 @@ try {
 			await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
 			// the resync brought pi's own finished record of this command back
 			await page.waitForFunction(() => document.querySelectorAll(".bash-card").length === 1, null, { timeout: 20000 });
+			before = getMessages; // count the repair resync only, from the release on
 			return route.fulfill({ response: resp });
 		});
 		await page.goto(RELAY);
@@ -625,11 +644,14 @@ try {
 		await page.fill("#input", "!echo hi");
 		await page.press("#input", "Enter");
 		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 40000 });
-		await page.waitForTimeout(SETTLE); // "exactly one card" is a negative claim
+		// the repair resync is the positive fact to wait on; SETTLE then guards the
+		// negative ones ("no second card", "no second repair")
+		for (let i = 0; i < 400 && getMessages === before; i++) await page.waitForTimeout(50);
+		await page.waitForTimeout(SETTLE);
 		const r = await bashCard(page, "echo hi");
-		check("bash + reconnect: exactly one row, not a duplicate", r.n === 1 && r.total === 1, `${r.n}/${r.total}`);
-		check("bash + reconnect: the adopted row keeps the output once", r.out === "chunk-one\nchunk-two\n", JSON.stringify(r.out));
-		check("bash + reconnect: the adopted row is finished", /exit 0/.test(r.exit || ""), String(r.exit));
+		check("bash + reconnect: exactly one row, from history", r.n === 1 && r.total === 1, `${r.n}/${r.total}`);
+		check("bash + reconnect: history's output stands, once", r.out === "chunk-one\nchunk-two\n", JSON.stringify(r.out));
+		check("bash + reconnect: one repair resync", getMessages - before === 1, String(getMessages - before));
 		await closePage(page);
 	}
 
@@ -701,11 +723,11 @@ try {
 		await closePage(page);
 	}
 
-	// ── 10. an identical OLDER card must never be adopted ─────────────────────
+	// ── 10. a rebuilt transcript never gets the running command's output ──────
 	// History holds a finished run of this command; a SECOND run of it is still
 	// going (it never reaches history) when an unrelated resync rebuilds the
-	// transcript. "A render happened" is not proof the card that came back is
-	// ours: adopting it puts the running command's output on the old run's card.
+	// transcript. No card on the page can be identified as the running run's, so
+	// none is claimed — its later output must not land on the old run's card.
 	{
 		const page = await newPage(ctx);
 		let getMessages = 0;
@@ -746,23 +768,25 @@ try {
 		const before = getMessages;
 		release();
 		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 20000 });
-		await page.waitForTimeout(SETTLE * 3); // the repair resync, then SETTLE
+		for (let i = 0; i < 400 && getMessages === before; i++) await page.waitForTimeout(50); // the repair resync
+		await page.waitForTimeout(SETTLE); // "and no second repair" is a negative claim
 		// now make the still-running command speak
 		await page.fill("#input", "!poke");
 		await page.press("#input", "Enter");
 		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => /! poke/.test(r.textContent)), null, { timeout: 20000 });
-		await page.waitForTimeout(SETTLE);
+		await page.waitForTimeout(SETTLE); // every claim below is negative
 		const r = await bashCard(page, "twice");
-		check("ambiguous adoption: the running command's output never lands on the older card", !/SECOND-RUN/.test(r.out || ""), JSON.stringify(r.out));
-		check("ambiguous adoption: no duplicate card for the command", r.n === 1, String(r.n));
-		check("ambiguous adoption: exactly one repair resync", getMessages - before === 1, String(getMessages - before));
+		check("rebuilt transcript: the running command's output never lands on the older card", !/SECOND-RUN/.test(r.out || ""), JSON.stringify(r.out));
+		check("rebuilt transcript: no duplicate card for the command", r.n === 1, String(r.n));
+		check("rebuilt transcript: exactly one repair resync", getMessages - before === 1, String(getMessages - before));
 		await closePage(page);
 	}
 
-	// ── 11. adoption must keep a buffered transport failure ───────────────────
+	// ── 11. a buffered transport failure is SAID, not pinned to a card ────────
 	// History records the RUN (exit 0). A `desk_bash_result` that failed at the
-	// transport (a timeout, a dead child) has no counterpart there, so adopting
-	// the history row must re-apply it or the visible failure is lost.
+	// desk (a timeout, a dead child) is about the request, not the run, and no
+	// card on the page can be identified as this run's — so it is surfaced as a
+	// toast and no card is marked failed.
 	{
 		const page = await newPage(ctx);
 		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
@@ -778,11 +802,16 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "!failing now");
 		await page.press("#input", "Enter");
-		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 40000 });
-		await page.waitForTimeout(SETTLE);
+		// positive: the toast appears. No delay decides it — and a missing one is
+		// an assertion failure below, not an aborted file.
+		await page.waitForFunction(() => /bash timeout/.test(document.getElementById("toasts").textContent), null, { timeout: 40000 }).catch(() => {});
+		await page.waitForTimeout(SETTLE); // the card claims below are negative
 		const r = await bashCard(page, "failing now");
-		check("adoption keeps the failure: the row is marked failed", r.mark === "✗", String(r.mark));
-		check("adoption keeps the failure: the error is shown", /bash timeout/.test(r.exit || ""), String(r.exit));
+		const toasts = await page.evaluate(() => [...document.querySelectorAll("#toasts .toast")].map((t) => t.textContent));
+		check("buffered failure: exactly one toast naming the command and the error",
+			toasts.filter((t) => /^bash: failing now — bash timeout$/.test(t)).length === 1, JSON.stringify(toasts));
+		check("buffered failure: no card is marked failed", r.mark === "✓", String(r.mark));
+		check("buffered failure: no duplicate row for the command", r.n === 1, `${r.n}/${r.total}`);
 		await closePage(page);
 	}
 
@@ -799,8 +828,7 @@ try {
 		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
 		await page.fill("#input", "!bigerr now");
 		await page.press("#input", "Enter");
-		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
-		await page.waitForTimeout(SETTLE);
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((c) => c.querySelector(".bcmd").textContent === "! bigerr now" && c.querySelector(".bexit").textContent), null, { timeout: 25000 });
 		const r = await bashCard(page, "bigerr now");
 		const errLen = (r.exit || "").replace(" · truncated", "").length;
 		check("buffered oversized error: retained and rendered within the window", errLen === 20000, String(errLen));
@@ -851,6 +879,75 @@ try {
 		await page.waitForTimeout(SETTLE * 2); // "no toast appeared" is a negative claim
 		const t = await page.evaluate(() => document.getElementById("toasts").textContent);
 		check("stale command rejection: nothing is painted on the session you switched to", !t.includes("boom-stale-toast"), JSON.stringify(t.slice(0, 80)));
+		await closePage(page);
+	}
+
+	// ── 15. repair resyncs coalesce around a running one ──────────────────────
+	// Two POSTs come back while a resync is already in flight. That resync began
+	// BEFORE either of them asked, so it cannot answer them — but the two of them
+	// together are worth exactly ONE follow-up, not one each.
+	{
+		const page = await newPage(ctx);
+		let gm = 0;
+		let holdGm = false;
+		let gmParked = null;
+		let releaseGm = null;
+		await page.route(`**/api/session/${a.id}/rpc`, async (route) => {
+			if (rpcType(route) !== "get_messages") return route.continue();
+			gm++;
+			if (!holdGm) return route.continue();
+			holdGm = false;
+			const resp = await route.fetch();
+			gmParked();
+			await new Promise((r) => (releaseGm = r));
+			return route.fulfill({ response: resp });
+		});
+		const parked = [];
+		await page.route(`**/api/session/${a.id}/bash`, async (route) => {
+			if (!/"command":"hold/.test(route.request().postData() || "")) return route.continue();
+			const resp = await route.fetch();
+			await new Promise((r) => parked.push(r));
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		for (const cmd of ["!hold1", "!hold2"]) {
+			await page.fill("#input", cmd);
+			await page.press("#input", "Enter");
+		}
+		for (let i = 0; i < 200 && parked.length < 2; i++) await page.waitForTimeout(50);
+		if (parked.length < 2) throw new Error("both bash POSTs never parked");
+
+		// a COMPLETED resync first, so both parked POSTs are in the rebuilt-transcript case
+		const seen = gm;
+		await page.fill("#input", "!settle a");
+		await page.press("#input", "Enter");
+		for (let i = 0; i < 400 && gm === seen; i++) await page.waitForTimeout(50);
+		// the card can only come from history now, which proves the render landed
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((c) => c.querySelector(".bcmd").textContent === "! settle a"), null, { timeout: 20000 });
+		// let anything this phase started finish before the window opens
+		for (let last = -1; last !== gm; ) { last = gm; await page.waitForTimeout(SETTLE); } // quiesce
+
+		// now a resync that STAYS in flight
+		const base = gm;
+		const parkedGm = new Promise((r) => (gmParked = r));
+		holdGm = true;
+		await page.fill("#input", "!settle b");
+		await page.press("#input", "Enter");
+		await parkedGm;
+
+		parked.shift()(); // first POST returns: asks for a repair while one runs
+		await page.waitForFunction(() => window.__fetched.filter((u) => u.includes("/bash")).length >= 3, null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE); // let an unwanted extra resync start if it is going to
+		parked.shift()(); // second POST returns: the same request again
+		await page.waitForFunction(() => window.__fetched.filter((u) => u.includes("/bash")).length >= 4, null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE); // again: give a wrong extra read time to start
+		releaseGm();
+		// positive: the one coalesced follow-up runs
+		for (let i = 0; i < 400 && gm - base < 2; i++) await page.waitForTimeout(50);
+		await page.waitForTimeout(SETTLE); // "and no more than that" is a negative claim
+		check("repair resyncs coalesce: the running resync plus exactly one follow-up", gm - base === 2, String(gm - base));
 		await closePage(page);
 	}
 
