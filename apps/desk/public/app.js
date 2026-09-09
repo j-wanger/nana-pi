@@ -56,6 +56,7 @@ function newLiveState(id, cwd) {
 		renderSeq: 0, // bumped by renderMessages; tells an in-flight POST the transcript was rebuilt
 		resyncRunning: false, // a get_messages is in flight
 		resyncAgain: false, // …and something asked for a fresher one while it ran
+		bashAbandoned: new Set(), // bash ids whose POST already gave up on them
 	};
 }
 
@@ -358,17 +359,6 @@ function bashRow(ctx, id, command) {
 	return row;
 }
 
-// Ask history again. A resync already in flight was started BEFORE this request
-// and cannot be trusted to answer it, so requests that arrive while one runs
-// coalesce into exactly one follow-up — however many of them there are.
-function scheduleResync() {
-	if (L.resyncRunning) {
-		L.resyncAgain = true;
-		return;
-	}
-	resync();
-}
-
 // One window for everything a bash card holds or shows: the streamed tail, a
 // buffered event's retained text, and a finished result's rendered output and
 // error. The number means the same thing in all four places.
@@ -637,8 +627,16 @@ function stopStatsPoll() {
 	statsTimer = null;
 }
 
+// The ONE way to re-read history — reconnect, settled turn, compaction, fork,
+// /new and the bash repair path all come through here. A read already in flight
+// was started BEFORE this call asked, so it cannot answer it; every such caller
+// coalesces into a single follow-up, however many of them there are.
 async function resync() {
 	if (!L) return;
+	if (L.resyncRunning) {
+		L.resyncAgain = true;
+		return;
+	}
 	const g = stageGen;
 	L.resyncRunning = true;
 	L.resyncAgain = false; // this call answers everything asked for before now
@@ -967,13 +965,22 @@ function handleEvent(e) {
 		case "bash_execution_update": {
 			const row = L.ctx.toolRows.get(`bash:${e.id}`);
 			if (row) appendBashDelta(row, e.delta);
+			else if (L.bashAbandoned.has(e.id)) break; // nobody is coming to flush it
 			else bufferBashEvent(e.id, e); // the POST that creates the row has not landed yet
 			break;
 		}
 		case "desk_bash_result": {
 			const row = L.ctx.toolRows.get(`bash:${e.id}`);
 			if (row) finishBashRow(row, e.data, e.success ? undefined : e.error || "failed");
-			else bufferBashEvent(e.id, e);
+			// An id its POST already gave up on has no continuation left to flush
+			// this or to ask history again — and history only gains the run NOW,
+			// when it finishes (pi records it on completion). So this is the moment
+			// to re-read: without it the finished card never appears at all.
+			else if (L.bashAbandoned.has(e.id)) {
+				L.bashAbandoned.delete(e.id);
+				if (!e.success) toast(`bash: ${e.error || "failed"}`, "error");
+				resync();
+			} else bufferBashEvent(e.id, e);
 			break;
 		}
 		case "queue_update":
@@ -1941,7 +1948,15 @@ async function send() {
 				// identify.
 				const failed = [...buffered].reverse().find((e) => e.type === "desk_bash_result" && !e.success);
 				if (failed) toast(`bash: ${command} — ${failed.error || "failed"}`, "error");
-				scheduleResync();
+				// Remember the id. If the command was still RUNNING, history has no
+				// record of it yet and the read below finds nothing; the terminal
+				// event still to come is the only thing that can bring the card
+				// back, and the event handler needs to know nobody else will.
+				if (!failed) {
+					L.bashAbandoned.add(r.id);
+					while (L.bashAbandoned.size > BASH_BUFFER_IDS) L.bashAbandoned.delete(L.bashAbandoned.values().next().value);
+				}
+				resync();
 			}
 			pin(L.ctx.container);
 		} catch (e) {

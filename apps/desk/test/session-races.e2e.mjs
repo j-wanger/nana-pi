@@ -36,22 +36,27 @@
 //   5. Esc — reclaim then abort: the abort must carry the session Esc was
 //      pressed in, never the one you switched to while clear_queue was pending.
 //   6. bash result over the retention window — buffered and rendered clipped.
-//   7. reconnect while a bash POST is held: pi's own finished record of the
-//      command comes back in the resync; the POST must adopt that row, not add
-//      a second card.
+//   7. reconnect while a bash POST is held: the transcript is rebuilt under it,
+//      so the POST claims no card and builds none from its buffer — it drops the
+//      buffer and re-reads history once, which is where the card comes from.
 //   8. a spawn whose response lands after you picked another stage must not
 //      yank the stage back to the session it created.
 //   9. an image whose FileReader finishes after a switch must not attach to the
 //      session you moved to.
-//  10. an identical OLDER history card is never adopted — "a render happened" is
-//      not proof the card that came back is ours.
-//  11. adopting a history row re-applies a buffered TRANSPORT failure, which
-//      history does not record.
+//  10. a rebuilt transcript is never claimed: a still-running command's later
+//      output must not land on an older identical command's card.
+//  11. a buffered DESK-side failure (bash timeout, dead child) — which history
+//      cannot record — is said as a toast and pinned to no card.
 //  12. an oversized error is bounded and reported, like an oversized output.
 //  13. the retention window never opens on half a surrogate pair.
 //  14. a stale slash-command rejection paints no toast.
-//  15. repair resyncs asked for while one is running coalesce into exactly one
+//  15. repair reads asked for while one is running coalesce into exactly one
 //      follow-up, however many asked.
+//  16. the same coalescing holds for DIRECT callers of the read (a settled turn,
+//      a reconnect), not only the repair path.
+//  17. a command still RUNNING when the transcript is rebuilt: history has no
+//      record of it yet, so the read finds nothing — the terminal event that
+//      arrives later is what brings the finished card back.
 //
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/session-races.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
@@ -100,6 +105,7 @@ setTimeout(() => {
 const bashes = []; // finished bash executions, replayed by get_messages like pi does
 let twiceDone = false;   // the twice command completes ONCE, then only ever runs
 let pendingTwice = null; // the id of that second, never-answered run
+let lingering = null;    // a run in flight, completed on demand
 let buf = "";
 process.stdin.on("data", (c) => {
 	buf += c; let nl;
@@ -137,6 +143,18 @@ process.stdin.on("data", (c) => {
 				}
 				// never answers, never reaches history: a run still in flight
 				if (/^hold/.test(cmd.command)) break;
+				// lingers like a long command, then completes on demand — pi records
+				// a run in history only when it FINISHES
+				if (/^linger/.test(cmd.command)) { lingering = { id: cmd.id, command: cmd.command }; break; }
+				if (/^finish/.test(cmd.command)) {
+					if (lingering) {
+						bashes.push({ role: "bashExecution", command: lingering.command, output: "LINGER-DONE\\n", exitCode: 0 });
+						say({ type: "response", id: lingering.id, success: true, data: { output: "LINGER-DONE\\n", exitCode: 0 } });
+						lingering = null;
+					}
+					say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
+					break;
+				}
 				// makes the page resync the way a finished turn does
 				if (/^settle/.test(cmd.command)) {
 					bashes.push({ role: "bashExecution", command: cmd.command, output: "", exitCode: 0 });
@@ -948,6 +966,94 @@ try {
 		for (let i = 0; i < 400 && gm - base < 2; i++) await page.waitForTimeout(50);
 		await page.waitForTimeout(SETTLE); // "and no more than that" is a negative claim
 		check("repair resyncs coalesce: the running resync plus exactly one follow-up", gm - base === 2, String(gm - base));
+		await closePage(page);
+	}
+
+	// ── 16. DIRECT callers of the read coalesce too ───────────────────────────
+	// The repair path is not the only caller: a settled turn, a reconnect and a
+	// compaction all re-read history. Two of them arriving while a read is parked
+	// are worth one follow-up between them, not one each.
+	{
+		const page = await newPage(ctx);
+		let gm = 0;
+		let holdGm = false;
+		let gmParked = null;
+		let releaseGm = null;
+		await page.route(`**/api/session/${b.id}/rpc`, async (route) => {
+			if (rpcType(route) !== "get_messages") return route.continue();
+			gm++;
+			if (!holdGm) return route.continue();
+			holdGm = false;
+			const resp = await route.fetch();
+			gmParked();
+			await new Promise((r) => (releaseGm = r));
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(BASE);
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		for (let last = -1; last !== gm; ) { last = gm; await page.waitForTimeout(SETTLE); } // quiesce
+
+		const base = gm;
+		const parkedGm = new Promise((r) => (gmParked = r));
+		holdGm = true;
+		await page.fill("#input", "!settle p");
+		await page.press("#input", "Enter");
+		await parkedGm; // that turn's read is now stuck in the route
+
+		// two more settled turns while it is stuck: two DIRECT resync() calls
+		for (const cmd of ["!settle q", "!settle r"]) {
+			await page.fill("#input", cmd);
+			await page.press("#input", "Enter");
+			await page.waitForFunction((c) => window.__sse.some((e) => e.type === "agent_settled") && document.getElementById("input").value === "", c, { timeout: 20000 });
+			await page.waitForTimeout(SETTLE); // let a wrong extra read start if it is going to
+		}
+		releaseGm();
+		for (let i = 0; i < 400 && gm - base < 2; i++) await page.waitForTimeout(50); // the follow-up
+		await page.waitForTimeout(SETTLE); // "and no more than that" is a negative claim
+		check("direct callers coalesce: the parked read plus exactly one follow-up", gm - base === 2, String(gm - base));
+		await closePage(page);
+	}
+
+	// ── 17. a command still RUNNING when the transcript is rebuilt ────────────
+	// pi records a run in history only when it finishes, so the repair read finds
+	// nothing. The terminal event that arrives afterwards has no POST left to
+	// flush it — it must trigger the read that finally shows the card.
+	{
+		const page = await newPage(ctx);
+		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
+		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
+			if (!/"command":"linger/.test(route.request().postData() || "")) return route.continue();
+			const resp = await route.fetch();
+			entered();
+			await new Promise((r) => (release = r));
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(RELAY);
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!linger a while");
+		await page.press("#input", "Enter");
+		await intercepted; // the POST is parked and the command is still running
+
+		killSse();
+		await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/rpc")), null, { timeout: 20000 });
+		release();
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE); // the rebuild branch ran: no card exists yet
+		const mid = await bashCard(page, "linger a while");
+		check("still-running rebuild: history has nothing yet, so no card yet", mid.n === 0, String(mid.n));
+
+		// now the command finishes: the terminal event is the only thing left
+		await page.fill("#input", "!finish it");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => r.querySelector(".bcmd").textContent === "! linger a while" && r.querySelector(".bexit").textContent), null, { timeout: 25000 }).catch(() => {});
+		const r = await bashCard(page, "linger a while");
+		check("still-running rebuild: the finished card appears after the terminal event", r.n === 1, String(r.n));
+		check("still-running rebuild: it carries the run's output", r.out === "LINGER-DONE\n", JSON.stringify(r.out));
 		await closePage(page);
 	}
 
