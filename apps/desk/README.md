@@ -376,8 +376,10 @@ would send it twice.
     *use* the session it observes but does not file it, so it cannot claim the destination under
     the live key alone before the fork has been accounted for. A ledger read that lands in that
     window verifies that session against the live child's key plus whatever was already recorded
-    for it, without filing the observation — so a brand-new fork's copied blocks do not verify on
-    that read, while an existing session's do. If the child exits before any later observation,
+    for it, without filing the observation — so on that read a brand-new fork's copied blocks
+    signed only by inherited keys do not verify until those keys are recorded, while copied blocks
+    signed by the live child's key, and an existing session's blocks, still do. If the child exits
+    before any later observation,
     that session is simply never recorded.
   - **All of it happens inside the one command, or not at all.** After the fork the desk retries
     the state read that identifies the new session up to three times inside a **1000 ms budget**:
