@@ -178,12 +178,24 @@ sleeps became readiness handshakes.
   at 80 columns (a wider cell still prints whole), and the rendering is capped at 128 KiB per block
   / 256 KiB per result, cut on a UTF-8 boundary with an announced truncation marker. Declared in
   `docs/agent-frontend-design-2026-09-04.md` §3.1.
-- **STILL OPEN — [astra: medium continuity] stage signing key is recreated per spawn.** Each app
-  session gets a fresh `NANA_STAGE_KEY`, and `/api/entries` drops blocks not signed under the
-  current child's key, so a desk or child restart redacts previously valid ledger blocks.
-  `58645c5` shipped a design note only, no code. **Next step:** design stable per-session key
-  ownership and storage — never "fix" it by accepting unverifiable blocks. Named as a known limit
-  in `apps/desk/README.md` so a restart's blank stage is not read as a render regression.
+- **FIXED `fdbaace` — [was medium continuity] stage signing key was recreated per spawn.**
+  Confirmed line-by-line: the key was minted in `spawnChild` and kept only on the in-memory child
+  record, while `nana-stage` writes every signed block into the session file — so a restart or a
+  resume handed the new child a key nothing on disk was signed with and `/api/entries` redacted
+  the session's whole history. Fixed by making the key the SESSION's: the desk records what it
+  issued in `~/.pi/agent/nana-desk/stage-keys.json` (0700 dir, 0600 file, temp-then-rename, keyed
+  by the pi session header id so a title-append rename does not lose it), a resume reuses that
+  session's most recent key, and the LEDGER read verifies against `{child key} ∪ {keys recorded
+  for the session the child holds}`. The live `tool_execution_end` path is unchanged — this
+  child's key alone — and nothing unverifiable became acceptable: blocks signed before this
+  landed stay redacted, a forged signature and a never-issued key still redact.
+  `test/stage-key-persistence.test.mjs` (30 checks) pins it; with the wiring reverted 10 fail,
+  the headline being a pre-restart block coming back as `nana-block-rejected`.
+  **Open sub-items:** the record is per session, not per app, so two app children that hold the
+  same session file vouch for each other's blocks (declared in `apps/desk/README.md`); the
+  session id a live child is filed under is self-reported through `get_state`; and the first app
+  spawn of a desk pays a one-time session-header scan (~0.3 s over 556 files here) for the
+  store's existence prune.
 
 ## Coherence / docs
 
