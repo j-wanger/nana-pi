@@ -43,6 +43,13 @@
 //      yank the stage back to the session it created.
 //   9. an image whose FileReader finishes after a switch must not attach to the
 //      session you moved to.
+//  10. an identical OLDER history card is never adopted — "a render happened" is
+//      not proof the card that came back is ours.
+//  11. adopting a history row re-applies a buffered TRANSPORT failure, which
+//      history does not record.
+//  12. an oversized error is bounded and reported, like an oversized output.
+//  13. the retention window never opens on half a surrogate pair.
+//  14. a stale slash-command rejection paints no toast.
 //
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/session-races.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
@@ -89,6 +96,8 @@ setTimeout(() => {
 	say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "k1", statusText: "chip-" + MARK });
 }, 30);
 const bashes = []; // finished bash executions, replayed by get_messages like pi does
+let twiceDone = false;   // the twice command completes ONCE, then only ever runs
+let pendingTwice = null; // the id of that second, never-answered run
 let buf = "";
 process.stdin.on("data", (c) => {
 	buf += c; let nl;
@@ -107,6 +116,39 @@ process.stdin.on("data", (c) => {
 			// HTTP response only after handing us the command, so both of these can
 			// beat the POST to the page
 			case "bash": {
+				// one command that finishes ONCE and afterwards only ever runs: the
+				// second execution never reaches history, which is what makes an
+				// identical older card unattributable
+				if (/^twice/.test(cmd.command)) {
+					if (twiceDone) { pendingTwice = cmd.id; break; }
+					twiceDone = true;
+					say({ type: "bash_execution_update", id: cmd.id, delta: "FIRST-RUN\\n" });
+					bashes.push({ role: "bashExecution", command: cmd.command, output: "FIRST-RUN\\n", exitCode: 0 });
+					say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
+					break;
+				}
+				// makes the still-running second twice produce output on demand
+				if (/^poke/.test(cmd.command)) {
+					if (pendingTwice) say({ type: "bash_execution_update", id: pendingTwice, delta: "SECOND-RUN\\n" });
+					say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
+					break;
+				}
+				// history records the RUN (exit 0); the transport fails separately
+				if (/^failing/.test(cmd.command)) {
+					bashes.push({ role: "bashExecution", command: cmd.command, output: "partial\\n", exitCode: 0 });
+					say({ type: "response", id: cmd.id, success: false, error: "bash timeout" });
+					break;
+				}
+				if (/^bigerr/.test(cmd.command)) {
+					say({ type: "response", id: cmd.id, success: false, error: "e".repeat(50000) });
+					break;
+				}
+				if (/^emoji/.test(cmd.command)) {
+					// 25 000 astral characters plus one BMP char: the 20 000-unit cut
+					// lands between the halves of a surrogate pair
+					say({ type: "response", id: cmd.id, success: true, data: { output: "\u{1F600}".repeat(25000) + "A", exitCode: 0 } });
+					break;
+				}
 				if (/^big/.test(cmd.command)) {
 					const big = "x".repeat(50000);
 					bashes.push({ role: "bashExecution", command: cmd.command, output: big, exitCode: 0 });
@@ -134,10 +176,17 @@ process.stdin.on("end", () => process.exit(0));
 `;
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
+// detached: its own process GROUP, so teardown can signal the desk AND the pi
+// children it spawned — a SIGKILL to the desk alone orphans them (it never gets
+// to run its own shutdown).
 const server = spawn("node", [SERVER], {
 	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, HOME: tmp, DESK_PORT: String(DESK), DESK_APPS_DIR: path.join(tmp, "no-apps"), PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
+	detached: true,
 });
+const signalTree = (sig) => {
+	try { process.kill(-server.pid, sig); } catch { try { server.kill(sig); } catch {} }
+};
 let log = "";
 server.stdout.on("data", (c) => (log += c));
 server.stderr.on("data", (c) => (log += c));
@@ -151,9 +200,15 @@ const die = async (code) => {
 	killSse();
 	await new Promise((r) => relay.close(r));
 	if (server.exitCode === null && server.signalCode === null) {
-		const gone = new Promise((r) => server.once("exit", r));
-		server.kill();
-		await Promise.race([gone, new Promise((r) => setTimeout(r, 5000))]);
+		const gone = new Promise((r) => server.once("exit", () => r("exit")));
+		signalTree("SIGTERM");
+		// SIGTERM lets the desk tear its children down; if it will not go, SIGKILL
+		// the whole group and WAIT for the exit — exiting on a timeout is what
+		// orphans a desk and its pi children.
+		if ((await Promise.race([gone, new Promise((r) => setTimeout(() => r("timeout"), 5000))])) === "timeout") {
+			signalTree("SIGKILL");
+			await gone;
+		}
 	}
 	fs.rmSync(tmp, { recursive: true, force: true });
 	process.exit(code);
@@ -643,6 +698,159 @@ try {
 		await page.waitForTimeout(SETTLE); // "no attachment on B" is a negative claim
 		const n = await page.evaluate(() => document.querySelectorAll("#attachments .att-chip").length);
 		check("late image read: the attachment does not land on the session you switched to", n === 0, String(n));
+		await closePage(page);
+	}
+
+	// ── 10. an identical OLDER card must never be adopted ─────────────────────
+	// History holds a finished run of this command; a SECOND run of it is still
+	// going (it never reaches history) when an unrelated resync rebuilds the
+	// transcript. "A render happened" is not proof the card that came back is
+	// ours: adopting it puts the running command's output on the old run's card.
+	{
+		const page = await newPage(ctx);
+		let getMessages = 0;
+		await page.route(`**/api/session/${c.id}/rpc`, async (route) => {
+			if (rpcType(route) === "get_messages") getMessages++;
+			try { await route.continue(); } catch {}
+		});
+		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
+		let holdNext = false;
+		await page.route(`**/api/session/${c.id}/bash`, async (route) => {
+			if (!holdNext) return route.continue();
+			holdNext = false;
+			const resp = await route.fetch();
+			entered();
+			await new Promise((r) => (release = r));
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(RELAY);
+		await openByMark(page, "charlie");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		// dismiss charlie's dialog: it covers the composer
+		await page.click("#dialogs .dialog .dialog-opt.quiet");
+		// 1st run finishes and enters history
+		await page.fill("#input", "!twice");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => /FIRST-RUN/.test(r.textContent)), null, { timeout: 20000 });
+		// 2nd run: held POST, and it never finishes on the child
+		holdNext = true;
+		await page.fill("#input", "!twice");
+		await page.press("#input", "Enter");
+		await intercepted;
+		// an unrelated rebuild: the reconnect resync replays only the FIRST run
+		killSse();
+		await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
+		await page.waitForFunction(() => document.querySelectorAll(".bash-card").length === 1, null, { timeout: 20000 });
+		const before = getMessages;
+		release();
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE * 3); // the repair resync, then SETTLE
+		// now make the still-running command speak
+		await page.fill("#input", "!poke");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => /! poke/.test(r.textContent)), null, { timeout: 20000 });
+		await page.waitForTimeout(SETTLE);
+		const r = await bashCard(page, "twice");
+		check("ambiguous adoption: the running command's output never lands on the older card", !/SECOND-RUN/.test(r.out || ""), JSON.stringify(r.out));
+		check("ambiguous adoption: no duplicate card for the command", r.n === 1, String(r.n));
+		check("ambiguous adoption: exactly one repair resync", getMessages - before === 1, String(getMessages - before));
+		await closePage(page);
+	}
+
+	// ── 11. adoption must keep a buffered transport failure ───────────────────
+	// History records the RUN (exit 0). A `desk_bash_result` that failed at the
+	// transport (a timeout, a dead child) has no counterpart there, so adopting
+	// the history row must re-apply it or the visible failure is lost.
+	{
+		const page = await newPage(ctx);
+		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
+			const resp = await route.fetch();
+			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
+			killSse();
+			await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
+			await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => /! failing/.test(r.textContent)), null, { timeout: 20000 });
+			return route.fulfill({ response: resp });
+		});
+		await page.goto(RELAY);
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!failing now");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 40000 });
+		await page.waitForTimeout(SETTLE);
+		const r = await bashCard(page, "failing now");
+		check("adoption keeps the failure: the row is marked failed", r.mark === "✗", String(r.mark));
+		check("adoption keeps the failure: the error is shown", /bash timeout/.test(r.exit || ""), String(r.exit));
+		await closePage(page);
+	}
+
+	// ── 12. an oversized ERROR is bounded like output is ───────────────────────
+	{
+		const page = await newPage(ctx);
+		await page.route(`**/api/session/${a.id}/bash`, async (route) => {
+			const resp = await route.fetch();
+			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
+			return route.fulfill({ response: resp }); // the failure was buffered, not rendered
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!bigerr now");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 25000 });
+		await page.waitForTimeout(SETTLE);
+		const r = await bashCard(page, "bigerr now");
+		const errLen = (r.exit || "").replace(" · truncated", "").length;
+		check("buffered oversized error: retained and rendered within the window", errLen === 20000, String(errLen));
+		check("buffered oversized error: the cut is reported", / · truncated$/.test(r.exit || ""), String(r.exit).slice(-20));
+		await closePage(page);
+	}
+
+	// ── 13. the cut never splits a surrogate pair ─────────────────────────────
+	{
+		const page = await newPage(ctx);
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "!emoji wall");
+		await page.press("#input", "Enter");
+		await page.waitForFunction(() => [...document.querySelectorAll(".bash-card")].some((r) => /! emoji wall/.test(r.textContent) && r.querySelector(".bexit").textContent), null, { timeout: 25000 });
+		const r = await bashCard(page, "emoji wall");
+		const first = (r.out || "").charCodeAt(0);
+		check("surrogate-safe cut: the window does not open on half a character", !(first >= 0xdc00 && first <= 0xdfff), `U+${first.toString(16)}`);
+		check("surrogate-safe cut: still within the window", (r.out || "").length <= 20000, String((r.out || "").length));
+		await closePage(page);
+	}
+
+	// ── 14. a stale command rejection paints nothing ──────────────────────────
+	{
+		const page = await newPage(ctx);
+		let release = null;
+		let entered = null;
+		const intercepted = new Promise((r) => (entered = r));
+		await page.route(`**/api/session/${a.id}/rpc`, async (route) => {
+			if (rpcType(route) === "get_available_models") {
+				entered();
+				await new Promise((r) => (release = r));
+				return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ error: "boom-stale-toast" }) });
+			}
+			return route.continue();
+		});
+		await page.goto(BASE);
+		await openByMark(page, "alpha");
+		await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_hello"));
+		await page.fill("#input", "/model sonnet");
+		await page.press("#input", "Enter");
+		await intercepted;
+		await openByMark(page, "bravo");
+		await page.waitForFunction(() => document.querySelector("#transcript")?.textContent.includes("marker-bravo"), null, { timeout: 10000 });
+		release();
+		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/rpc")), null, { timeout: 10000 });
+		await page.waitForTimeout(SETTLE * 2); // "no toast appeared" is a negative claim
+		const t = await page.evaluate(() => document.getElementById("toasts").textContent);
+		check("stale command rejection: nothing is painted on the session you switched to", !t.includes("boom-stale-toast"), JSON.stringify(t.slice(0, 80)));
 		await closePage(page);
 	}
 
