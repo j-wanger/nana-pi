@@ -13,14 +13,19 @@
 //   3  rename A's file, resume by the NEW path → still verified (keyed by the pi
 //      session header id, not the path); then switch_session into session B (whose
 //      key was issued to a DIFFERENT app child in run 1): B's own history verifies
-//      under B's recorded key, a LIVE block signed with that other key is still
-//      dropped (live path = this child's key only), and this child's key is
-//      recorded under B
+//      under B's recorded key, an UNRESOLVED get_state falls back to this child's
+//      key alone (no stale authority), a LIVE block signed with that other key is
+//      still dropped (live path = this child's key only), and a FORK of B inherits
+//      B's whole key set so its copied mixed-key blocks keep verifying
 //   4  RESTART, resume B → both keys' blocks verify (any-of-recorded-keys)
+//   5  RESTART, resume a fork whose ledger was NEVER read → still verifies, which is
+//      only true if the desk recorded the fork when it observed it
 //
 // Plus direct StageKeyStore checks for the file properties the server path cannot
-// show deterministically: the 8-key cap, a corrupt store, an interrupted write, and
-// the existence prune's refusal to act on an empty session enumeration.
+// show deterministically: the 8-key cap, a corrupt store, an interrupted write, a
+// failed save retried by the next record, an existing world-writable store directory
+// tightened (and a shared one left alone), two PROCESSES recording concurrently
+// losing nothing, and the existence prune's refusal to act on an empty enumeration.
 //
 // Run: node apps/desk/test/stage-key-persistence.test.mjs   (exit 0 = all PASS)
 import { spawn } from "node:child_process";
@@ -32,8 +37,13 @@ import { signBlock } from "../../../packages/nana-stage/lib/sign.mjs";
 import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 import { StageKeyStore } from "../stage-keys.mjs";
 
-const DESK = Number(process.env.DESK_TEST_PORT || 4441);
-const PA = 4442, PB = 4443;
+// The desk port is DYNAMIC (DESK_PORT=0, read back from the startup line) so it can
+// never collide with another test's. App ports come from a manifest and must be
+// fixed before the server starts: 4452/4453, the first free pair — nothing else
+// under apps/desk/test uses 445x (in use elsewhere: 4381-4383, 4391, 4401-4413,
+// 4421-4423, 4431-4432, 4441-4443).
+const PA = 4452, PB = 4453;
+let DESK = 0;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // stub `pi` first on PATH → name the real package explicitly, or the desk refuses
 // to start rather than guess which install to parse sessions with.
@@ -49,6 +59,7 @@ const SESSIONS = path.join(TD, ".pi", "agent", "sessions");
 const STORE = path.join(TD, ".pi", "agent", "nana-desk", "stage-keys.json");
 const OUT = path.join(TD, "stub-out.jsonl");
 const OLD_KEY = path.join(TD, "old-key.txt");
+const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub fail get_state
 for (const d of [binDir, appsDir, cwdA, cwdB, SESSIONS]) fs.mkdirSync(d, { recursive: true });
 const extStage = path.join(TD, "nana-stage.ts");
 fs.writeFileSync(extStage, "export default function () {}\n");
@@ -99,7 +110,21 @@ process.stdin.on("data", (c) => {
 		let cmd; try { cmd = JSON.parse(line); } catch { continue; }
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
-			case "get_state": ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
+			// STUB_NO_STATE present on disk = "this child can no longer say which session it
+			// holds", while get_entries keeps working.
+			case "get_state": if (fs.existsSync(process.env.STUB_NO_STATE)) say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
+				else ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
+			// what pi's fork/clone do to the ledger: the source session's entries are COPIED
+			// into a NEW file under a NEW header id
+			case "fork": case "clone": {
+				const src = readEntries(sessionFile);
+				const f = path.join(path.dirname(sessionFile), "s-" + crypto.randomBytes(5).toString("hex") + ".jsonl");
+				const head = Object.assign({}, src[0], { id: crypto.randomUUID(), timestamp: new Date().toISOString() });
+				fs.writeFileSync(f, [head].concat(src.slice(1)).map((e) => JSON.stringify(e)).join("\\n") + "\\n");
+				sessionFile = f; sessionId = head.id;
+				ok({ cancelled: false, text: "forked" });
+				break;
+			}
 			case "get_entries": ready.then(() => {
 				const es = readEntries(sessionFile).filter((e) => e.type !== "session");
 				ok({ entries: es, leafId: es.length ? es.at(-1).id : null, since: cmd.since || null });
@@ -139,7 +164,8 @@ fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cw
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`, D = `http://127.0.0.1:${DESK}`;
+const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`;
+const D = () => `http://127.0.0.1:${DESK}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -153,8 +179,8 @@ async function startServer(run, ports) {
 	log = "";
 	server = spawn("node", [SERVER], {
 		env: {
-			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir,
-			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run,
+			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
+			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
@@ -162,7 +188,11 @@ async function startServer(run, ports) {
 	server.stdout.on("data", (c) => (log += c));
 	server.stderr.on("data", (c) => (log += c));
 	for (let i = 0; i < 60; i++) {
-		try { for (const p of ports) await fetch(p + "/api/manifest"); return; } catch { await sleep(250); }
+		// the desk prints the port it actually bound; the app listeners come up after it
+		const m = log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
+		if (m) DESK = Number(m[1]);
+		try { if (DESK) { for (const p of ports) await fetch(p + "/api/manifest"); return; } } catch { /* not up yet */ }
+		await sleep(250);
 	}
 	throw new Error(`run ${run}: app listeners never came up: ${log}`);
 }
@@ -186,6 +216,7 @@ async function promptAndCollect(base, message) {
 	const line = text.split("\n").find((l) => l.startsWith("data: ") && /tool_execution_end/.test(l));
 	return line ? JSON.parse(line.slice(6)).result.details.blocks : null;
 }
+const rpc = (id, command) => post(D(), `/api/session/${id}/rpc`, { command }, D()).then((r) => r.json());
 const blockEntries = (entries) => entries.filter((e) => e.type === "custom" && String(e.customType).startsWith("nana-block"));
 // what the stub recorded about each spawn: which run, which cwd, which key it was handed
 const spawns = (run, cwd) => fs.readFileSync(OUT, "utf-8").trim().split("\n").map((l) => JSON.parse(l))
@@ -255,7 +286,7 @@ try {
 		blockEntries(ent.entries).filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
 	// switch_session into B — a session whose key was issued to the OTHER child
-	let r = await post(D, `/api/session/${s.id}/rpc`, { command: { type: "switch_session", sessionPath: fileB } }, D);
+	let r = await post(D(), `/api/session/${s.id}/rpc`, { command: { type: "switch_session", sessionPath: fileB } }, D());
 	check("run 3: switch_session accepted", r.status === 200 && (await r.json()).success === true, String(r.status));
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
@@ -264,10 +295,43 @@ try {
 	check("run 3: this child's key is now recorded under session B too (most recent first)",
 		readStore()?.sessions?.[idB]?.keys.length === 2 && readStore()?.sessions?.[idB]?.keys[0] === keyA1 && readStore()?.sessions?.[idB]?.keys[1] === keyB1,
 		JSON.stringify((readStore()?.sessions?.[idB]?.keys || []).map((k) => k.slice(0, 8))));
+	// the child can no longer say WHICH session it holds: the ledger read must fall back
+	// to this child's key alone, never to the recorded keys of the session it held before
+	fs.writeFileSync(NO_STATE, "");
+	ent = await get(A, "/api/entries");
+	be = blockEntries(ent.entries);
+	check("run 3: an unresolved get_state drops the recorded-key widening entirely (no stale authority)",
+		be.length === 1 && be[0].customType === "nana-block-rejected", JSON.stringify(be.map((e) => e.customType)));
+	fs.rmSync(NO_STATE);
+	ent = await get(A, "/api/entries");
+	check("run 3: ...and it verifies again as soon as the session can be established",
+		blockEntries(ent.entries)[0].customType === "nana-block", JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
+
 	live = await promptAndCollect(A, "oldblock please");
 	check("run 3: LIVE path unchanged — a block signed with a recorded but FOREIGN key is dropped", Array.isArray(live) && live.length === 0, JSON.stringify(live));
 	live = await promptAndCollect(A, "make a block");
 	check("run 3: LIVE path still passes this child's own block", live?.length === 1, JSON.stringify(live));
+
+	// FORK: pi copies the source session's entries — signed blocks and all — into a new
+	// file with a NEW header id. B's blocks were signed under TWO different keys; both
+	// must keep verifying in the fork.
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	check("run 3: fork accepted", r?.success === true, JSON.stringify(r));
+	const fileC = (await rpc(s.id, { type: "get_state" }))?.data?.sessionFile;
+	const idC = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	ent = await get(A, "/api/entries");
+	be = blockEntries(ent.entries);
+	check("run 3: a FORK inherits the source session's key set — mixed-key blocks all verify",
+		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => e.customType)));
+	check("run 3: the fork's record was seeded from the source, not just given this child's key",
+		JSON.stringify(readStore()?.sessions?.[idC]?.keys) === JSON.stringify([keyA1, keyB1]),
+		JSON.stringify((readStore()?.sessions?.[idC]?.keys || []).map((k) => k.slice(0, 8))));
+
+	// fork AGAIN and restart WITHOUT ever reading the ledger on the new session: the
+	// record has to be written when the desk observes the fork, not at the next replay
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	const fileD = (await rpc(s.id, { type: "get_state" }))?.data?.sessionFile;
+	check("run 3: second fork accepted", r?.success === true && typeof fileD === "string" && fileD !== fileC, String(fileD));
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
@@ -277,6 +341,16 @@ try {
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
 	check("run 4: every block of session B verifies, across BOTH keys the desk issued for it",
+		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
+	await stopServer();
+
+	// ── run 5: resume the fork nobody ever read the ledger of ──
+	setManifestSession("alpha", fileD);
+	await startServer("5", [A, B]);
+	await post(A, "/api/session", {}).then((r) => r.json());
+	ent = await get(A, "/api/entries");
+	be = blockEntries(ent.entries);
+	check("run 5: a fork resumed after a restart, with no ledger read in between, still verifies both keys",
 		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
 	await stopServer();
 
@@ -317,6 +391,54 @@ try {
 	check("store: an id with no session file is pruned", st.keysFor("sid3").length === 0);
 	st.record("other", k9);
 	check("store: ...and a pruned id is not resurrected by the next write", new StageKeyStore({ file: f2, log: () => {} }).keysFor("sid3").length === 0);
+
+	// a save that FAILED must be retried by the next record, even one that changes
+	// nothing — otherwise the desk keeps working and loses every key at the next start
+	const f3 = path.join(td2, "retry", "stage-keys.json");
+	st = new StageKeyStore({ file: f3, log: () => {} });
+	const kr = crypto.randomBytes(32).toString("hex");
+	fs.renameSync = () => { throw new Error("simulated transient failure"); };
+	st.record("sidR", kr);
+	fs.renameSync = realRename;
+	check("store: a failed save leaves nothing on disk", !fs.existsSync(f3));
+	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(f3));
+	check("store: ...so the key survives the next restart", new StageKeyStore({ file: f3, log: () => {} }).keysFor("sidR")[0] === kr);
+
+	// an existing store directory is tightened to 0700 — but only when it is OURS
+	const dirOwn = path.dirname(f3);
+	fs.chmodSync(dirOwn, 0o777);
+	st.record("sidR2", crypto.randomBytes(32).toString("hex"));
+	check("store: an existing world-writable store directory is tightened to 0700", (fs.statSync(dirOwn).mode & 0o777) === 0o700, (fs.statSync(dirOwn).mode & 0o777).toString(8));
+	const shared = path.join(td2, "shared");
+	fs.mkdirSync(shared, { mode: 0o777 });
+	fs.chmodSync(shared, 0o777);
+	fs.writeFileSync(path.join(shared, "someone-elses.json"), "{}");
+	new StageKeyStore({ file: path.join(shared, "stage-keys.json"), log: () => {} }).record("sidS", crypto.randomBytes(32).toString("hex"));
+	check("store: a SHARED directory is never re-permissioned out from under its other users", (fs.statSync(shared).mode & 0o777) === 0o777, (fs.statSync(shared).mode & 0o777).toString(8));
+
+	// two PROCESSES recording at once: the read-merge-write has to be serialized across
+	// them, or each renames its own merge over the other's and one desk's issuance is gone
+	const conc = path.join(td2, "conc", "stage-keys.json");
+	const go = path.join(td2, "go");
+	const worker = path.join(td2, "worker.mjs");
+	fs.writeFileSync(worker, `
+import fs from "node:fs";
+import { StageKeyStore } from ${JSON.stringify(path.resolve(path.dirname(new URL(import.meta.url).pathname), "../stage-keys.mjs"))};
+const [file, prefix, count, go] = process.argv.slice(2);
+while (!fs.existsSync(go)) { /* barrier */ }
+const st = new StageKeyStore({ file, log: () => {} });
+for (let i = 0; i < Number(count); i++) st.record(prefix + "-" + i, (prefix.charCodeAt(0) % 10).toString(16).repeat(2) + String(i).padStart(62, "0"));
+`);
+	const N = 60;
+	const kids = ["a", "b"].map((prefix) => spawn("node", [worker, conc, prefix, String(N), go], { stdio: "ignore" }));
+	await sleep(400);
+	fs.writeFileSync(go, "");
+	await Promise.all(kids.map((k) => new Promise((r) => k.on("exit", r))));
+	const merged = JSON.parse(fs.readFileSync(conc, "utf-8")).sessions;
+	const missing = [];
+	for (const prefix of ["a", "b"]) for (let i = 0; i < N; i++) if (!merged[`${prefix}-${i}`]) missing.push(`${prefix}-${i}`);
+	check(`store: two processes recording concurrently lose nothing (${2 * N} sessions)`, missing.length === 0, `${missing.length} missing: ${missing.slice(0, 5).join(",")}`);
+
 	fs.rmSync(td2, { recursive: true, force: true });
 } catch (e) {
 	console.error("HARNESS ERROR", e, log.slice(-3000));
