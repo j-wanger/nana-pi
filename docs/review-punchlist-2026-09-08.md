@@ -191,25 +191,28 @@ sleeps became readiness handshakes.
   landed stay redacted, a forged signature and a never-issued key still redact.
   `test/stage-key-persistence.test.mjs` (45 checks) pins it; with the wiring reverted 10 fail,
   the headline being a pre-restart block coming back as `nana-block-rejected`.
-  A **gpt-6-astra** review of that commit returned BLOCK on two continuity defects plus four
-  SHOULDs; `e917780` folds all six, each pinned failure-first (8 new checks, all failing with
-  `e917780`'s code reverted): concurrent desks lost each other's issuance because the
-  read-merge-write was not serialized (now one cross-process lock file around the whole
-  transaction, stale-takeover at 30 s); a fork or clone lost its inherited blocks because pi
-  copies the source's entries under a new header id (now seeded from the id the same child was
-  observed holding, and observed at the RPC that moved it rather than at the next ledger read);
-  a failed `get_state` verified with the previous session's keys (now no widening at all — the
-  child's own key only); a failed save was never retried; an existing world-writable store
-  directory was never tightened; and the test's fixed desk port collided with
-  `session-races.e2e.mjs` (now dynamic).
-  **Open sub-items:** the record is per session, not per app, so two app children that hold the
-  same session file vouch for each other's blocks, and the same seeding rule fires on
-  `new_session` where nothing is inherited (both declared in `apps/desk/README.md`); the session
-  id a live child is filed under is self-reported through `get_state`, so the check proves
-  possession of a desk-issued key for the session the child REPORTS, not authenticated session
-  origin; continuity is bounded by 8 keys per session and 512 sessions; the store's reads,
-  writes and lock wait are synchronous on the event loop; and the first app spawn of a desk pays
-  a one-time session-header scan (~0.3 s over 556 files here) for the existence prune.
+  Two **gpt-6-astra** rounds followed. Round 1 (BLOCK) found that concurrent desks lost each
+  other's issuance, that a fork lost its inherited blocks, and four SHOULDs; `e917780` folded all
+  six. Round 2 (BLOCK) then found that the *fix* for the first — a shared store behind an
+  advisory lock — had grown a retry branch that could freeze the whole desk, plus a takeover
+  race, dangling-symlink recovery and an ownership heuristic. The seat's call was to **subtract**
+  rather than fold again: `eeb1135` replaces the shared file with **one record per session**
+  (`~/.pi/agent/nana-desk/stage-keys/<session id>.json`, 0600 in a 0700 directory), which has
+  nothing to merge and therefore needs no lock — every line of locking, merging and stale-takeover
+  code is deleted. `eeb1135` also fixes round 2's other BLOCK: a fork inherited whatever id the
+  desk last happened to observe, which a failed observation could leave stale, so it now
+  establishes the source by asking the child *before* the fork runs, and a source it cannot
+  confirm means no inheritance. Both were pinned failure-first (54 checks; with only the
+  round-2 server logic restored, the two new ones fail and the other 52 pass).
+  **Open sub-items:** two desks recording different new keys for the same session at the same
+  instant keep only the last writer's (one key, one session — the declared price of no lock);
+  the record is per session, not per app, so two app children that hold the same session file
+  vouch for each other's blocks; the session id a child is filed under is self-reported through
+  `get_state`, so the check proves possession of a desk-issued key for the session the child
+  REPORTS, not authenticated session origin; persistence is best effort (a key whose save failed
+  verifies for that desk only); continuity is bounded by 8 keys per session; the store's reads
+  and writes are synchronous on the event loop; and the first app spawn of a desk pays a one-time
+  session-header scan (~0.3 s over 556 files here) for the existence prune.
 
 ## Coherence / docs
 
