@@ -18,10 +18,16 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 const PORT = process.env.DESK_TEST_PORT || 4383;
 const BASE = `http://127.0.0.1:${PORT}`;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-title-e2e-"));
 const DERIVED = "Stub Derived Title";
 
@@ -66,7 +72,7 @@ fs.mkdirSync(binDir);
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, HOME: TD, DESK_PORT: String(PORT), PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(PORT), PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 const die = (code) => { server.kill(); fs.rmSync(TD, { recursive: true, force: true }); process.exit(code); };

@@ -19,12 +19,27 @@ Sibling repo to `~/nana-agent-loop`.
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
   via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
-- `apps/desk/` — nana code, a zero-dependency local browser dashboard over pi sessions.
+- `apps/desk/` — nana code, a local browser dashboard over pi sessions: no npm dependencies
+  of its own, but it requires the installed pi (spawned AND imported — see `apps/desk/README.md`).
 - `apps/bench/` — a reusable benchmark for pi itself: run the same tasks through different
   tool/prompt profiles and record tokens, wall time, tool-call mix and deterministic
   correctness. Studies live in `apps/bench/studies/`; see `apps/bench/README.md`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
+
+## Dependencies
+
+Nothing in this repo is published to npm and nothing here has a lockfile.
+Dependencies vary by component; a globally installed pi is the common requirement for
+the pi-hosted ones. Per component:
+
+| Component | Runtime | Dev / test |
+|---|---|---|
+| `apps/desk/` (nana code) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally** — spawned as `pi --mode rpc` per live session AND imported in-process for session parsing (`parseSessionEntries`, `migrateSessionEntries`, `CURRENT_SESSION_VERSION`). Enforced at startup: below 0.84.4, or when the package cannot be tied to the `pi` the desk spawns, it refuses to start. No npm dependencies of its own. | Playwright 1.61.1 (`playwright`/`playwright-core`, root `node_modules`) for the `test/*.e2e.mjs` browser tests only; `PW_ROOT` points at it if it lives elsewhere. `test/*.test.mjs` are zero-dep `node <file>` runs. Details: `apps/desk/README.md`. |
+| `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; the ones that load a real extension skip themselves when pi is not installed globally. |
+| `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
+| `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
+| `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
 
 ## Install — the whole experience ships from this repo
 
@@ -51,7 +66,8 @@ pi install git:github.com/j-wanger/nana-pi        # add -l for project-local
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# 3. nana code (the desk) — zero npm dependencies but it needs the files, so clone
+# 3. nana code (the desk) — no npm dependencies of its own (it uses the pi from
+#    step 1, spawned and imported), but it needs the files, so clone
 #    (two lines: `&&` breaks in Windows PowerShell 5.1)
 git clone https://github.com/j-wanger/nana-pi
 node nana-pi/apps/desk/server.mjs

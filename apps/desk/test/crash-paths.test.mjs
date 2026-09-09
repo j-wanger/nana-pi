@@ -31,6 +31,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 const freePort = () =>
 	new Promise((resolve) => {
@@ -47,6 +48,11 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const APP = `http://127.0.0.1:${APP_PORT}`;
 const GRACE = 800; // DESK_KILL_GRACE_MS for the teardown case
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-crash-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
@@ -127,7 +133,7 @@ fs.writeFileSync(path.join(appsDir, "good.json"), JSON.stringify({ port: APP_POR
 
 const server = spawn("node", [SERVER], {
 	env: {
-		...process.env, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir,
+		...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir,
 		DESK_KILL_GRACE_MS: String(GRACE), PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 	},
 	stdio: ["ignore", "pipe", "pipe"],

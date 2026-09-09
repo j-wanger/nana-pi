@@ -107,6 +107,7 @@ Blocks travel in the tool result: for pi-extension tools in `details.blocks`; fo
 - **Size bound for extension blocks:** the validator rejects a block whose JSON exceeds 64 KiB or whose `table.rows` exceed 500; tools paginate. This mirrors the adapter's cap on the MCP path so both paths fail the same way.
 - Ledger semantics: custom entries do not enter LLM context, survive compaction, and are readable via `get_entries` (with a `since` cursor) from any client and from the session file. The **ledger is the stage**; the browser is a view of it.
 - Registers no tools and no commands. TUI rendering of ledger entries (`registerEntryRenderer`) is deferred; it is not needed for a browser feel check.
+- **Dependencies** *(recorded 2026-09-09)*: none at runtime beyond pi itself — `packages/nana-stage/package.json` declares `@earendil-works/pi-coding-agent` as an *optional* `peerDependency` (pi is the host the extension runs inside) and no `dependencies`/`devDependencies`; `lib/blocks.mjs` and `lib/sign.mjs` use `node:` builtins only, and `tests/blocks.test.mjs` is a zero-dep `node <file>` run.
 
 ### 3.3 The stage host (kit; browser module + headless)
 

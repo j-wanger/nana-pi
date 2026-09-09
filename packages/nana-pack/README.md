@@ -3,6 +3,12 @@
 Extensions + skills making pi shippable the nana way: hook coverage, opinionated
 project scaffolding, and dev-workflow skills.
 
+**Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
+is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
+something they install), and `package.json` declares no `dependencies` or
+`devDependencies`. Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; the
+ones that load a real extension skip themselves when pi is not installed globally.
+
 ## Skills (v0.4.0)
 
 | Skill | What it does |

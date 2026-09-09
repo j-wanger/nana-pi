@@ -1,5 +1,7 @@
 /**
- * nana code (the desk) — local server. Zero dependencies, binds 127.0.0.1 only.
+ * nana code (the desk) — local server. Binds 127.0.0.1 only. No npm dependencies of
+ * its own; requires the installed pi, which it both spawns (`pi --mode rpc`) and
+ * imports for session parsing (see pi-session.mjs). Node >= 22.19 (pi's floor).
  *
  * Surfaces:
  *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
@@ -50,6 +52,7 @@
 
 import { exec, execFile, spawn } from "node:child_process";
 import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
+import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -62,27 +65,43 @@ import { fileURLToPath } from "node:url";
 // telemetry collectors) can silently eat loopback traffic to it — observed
 // live 2026-09-03 (listener healthy, every client stuck in SYN_SENT).
 const PORT = Number(process.env.DESK_PORT || 7317);
+// The port we ACTUALLY bound. Differs from PORT only for DESK_PORT=0 ("give me any
+// free port"), which the Host/Origin rules below have to know about: they check that
+// the client addressed us by a loopback name AND the port it really reached us on.
+// Before this, a port-0 desk bound successfully and then 403'd every request.
+let BOUND_PORT = PORT;
 
-// Service managers (launchd/systemd) hand out a minimal PATH that misses npm
-// prefixes — resolve the pi binary once at startup instead of trusting PATH.
-function resolvePiBin() {
-	const exe = process.platform === "win32" ? "pi.cmd" : "pi";
-	const dirs = [
-		...(process.env.PATH || "").split(path.delimiter).filter(Boolean),
-		path.join(os.homedir(), ".local", "bin"),
-		"/opt/homebrew/bin", "/usr/local/bin",
-		path.join(os.homedir(), "AppData", "Roaming", "npm"),
-	];
-	for (const dir of dirs) {
-		const full = path.join(dir, exe);
-		try {
-			fs.accessSync(full, fs.constants.X_OK);
-			return full;
-		} catch {}
-	}
-	return exe; // last resort: let spawn search PATH and fail loudly
-}
+// The pi binary we spawn, and the SAME install's session parser (pi-session.mjs
+// owns both, so the two can never drift apart).
 const PI_BIN = resolvePiBin();
+
+// The session READ path is pi's own parser, imported from the same installation we
+// spawn. Loud and fatal here rather than a silent fallback: a desk that quietly
+// re-derives pi's format — or imports a DIFFERENT pi than it spawns — is the drift
+// this removes. Costs ~0.4 s and ~120 MB of startup (pi's root export pulls its
+// provider SDKs). The resolution path is logged: "which parser is this desk running"
+// has to be answerable from the startup line.
+let PI;
+try {
+	PI = await loadPiSession(PI_BIN);
+	for (const w of PI.warnings) console.warn(`nana code: WARNING ${w}`);
+	console.log(`nana code: pi ${PI.version} — spawning ${PI_BIN}, parsing sessions with ${PI.root} (resolved via ${PI.via})`);
+} catch (e) {
+	console.error(`nana code: cannot start.\n${e.message}`);
+	process.exit(1);
+}
+// A file written by a NEWER pi than the parser we imported can carry entry shapes
+// this desk does not know. Migration only ever moves files FORWARD to
+// CURRENT_SESSION_VERSION, so that case needs its own warning — once, not per read.
+let futureVersionWarned = false;
+function noteSessionVersion(header) {
+	const v = header?.version ?? 1;
+	if (v > PI.CURRENT_SESSION_VERSION && !futureVersionWarned) {
+		futureVersionWarned = true;
+		console.warn(`nana code: WARNING session version ${v} is newer than pi ${PI.version} understands (${PI.CURRENT_SESSION_VERSION}) — transcripts may render incompletely`);
+	}
+	return v;
+}
 
 // Children need a working PATH even when the desk itself was started with a
 // minimal one: the pi shim does `env node`, and sessions run uv/pnpm/git.
@@ -548,8 +567,25 @@ function readChunk(file, start, len) {
 	}
 }
 
+// A session line can be valid JSON that is not an entry: `null`, `12345`, `[1,2]`.
+// pi's parser preserves those (it only skips lines that do not PARSE), and pi's own
+// loader then dies on the first `e.type` — as this desk did, with a 500 on
+// /api/sessions and /api/transcript for the whole file. Filter at the boundary; the
+// same shape of guard the child-event reader has carried since the crash-paths pass.
+const isEntry = (e) => !!e && typeof e === "object" && !Array.isArray(e);
+
+// The byte-window scan STAYS ours: pi has no partial-read API. Its equivalent,
+// `SessionManager.list()`, fully loads every session file in the directory to build
+// each row — on a rail that shows 15 sessions per workspace across every workspace
+// on the machine, that is the whole sessions tree read on every refresh. What comes
+// from pi is the line→entry step (`parseSessionEntries`: blank and malformed lines
+// skipped, which is also what makes a window cut mid-entry safe — the torn line is
+// dropped exactly as pi drops it).
+//
+// No `migrateSessionEntries` here on purpose: migration only writes id/parentId
+// (v1→v2) and renames the `hookMessage` role (v2→v3), and this scan reads neither —
+// on a tail window it would spend fresh UUIDs on entries nobody indexes.
 function readSessionMeta(file) {
-	// Header is line 1; title = first user message; name = last session_info entry.
 	let head, size;
 	try {
 		size = fs.statSync(file).size;
@@ -557,41 +593,43 @@ function readSessionMeta(file) {
 	} catch {
 		return null;
 	}
-	const lines = head.split("\n");
-	let header;
-	try {
-		header = JSON.parse(lines[0]);
-	} catch {
-		return null;
-	}
+	const headEntries = PI.parseSessionEntries(head).filter(isEntry);
+	// pi's own loader rule: the first entry that parses must be the session header,
+	// or the file is not a pi session at all. It needs the `id` too — pi keys resume
+	// and rename on it, so a header without one lists a session nothing can open.
+	const header = headEntries[0];
+	if (!header || header.type !== "session" || typeof header.id !== "string") return null;
+	noteSessionVersion(header);
 	let title = "";
 	let name = null;
-	const scanLine = (line) => {
-		if (!line) return;
-		if (!title && line.includes('"role":"user"')) {
-			try {
-				const e = JSON.parse(line);
-				if (e.type === "message" && e.message?.role === "user") {
-					const c = e.message.content;
-					const text = typeof c === "string" ? c : (c || []).find((b) => b.type === "text")?.text || "";
-					title = text.slice(0, 120).replace(/\s+/g, " ").trim();
-				}
-			} catch {}
-		}
-		if (line.includes('"type":"session_info"')) {
-			try {
-				const e = JSON.parse(line);
-				// empty string = cleared name → fall back to the inferred title
-				if (e.type === "session_info" && typeof e.name === "string") name = e.name || null;
-			} catch {}
+	const scan = (entries) => {
+		for (const e of entries) {
+			if (!title && e.type === "message" && e.message?.role === "user") {
+				// content is a string or an array of parts — but a corrupt or
+				// foreign-tool entry can carry an object, and `{}.find` is not a
+				// function. The old per-line try/catch swallowed that; without a
+				// try/catch the shape has to be checked. Anything else = no title from
+				// this entry, and the scan moves on to the next user message.
+				const c = e.message.content;
+				const part = Array.isArray(c) ? c.find((b) => b?.type === "text")?.text : c;
+				const text = typeof part === "string" ? part.slice(0, 120).replace(/\s+/g, " ").trim() : "";
+				if (text) title = text;
+			}
+			// empty string = cleared name → fall back to the inferred title
+			if (e.type === "session_info" && typeof e.name === "string") name = e.name || null;
 		}
 	};
-	for (const line of lines.slice(1)) scanLine(line);
+	scan(headEntries.slice(1));
 	if (size > 65536) {
 		// names are usually set late in the file; scan the tail too
-		const tail = readChunk(file, Math.max(0, size - 32768), 32768);
-		for (const line of tail.split("\n")) scanLine(line);
+		scan(PI.parseSessionEntries(readChunk(file, Math.max(0, size - 32768), 32768)).filter(isEntry));
 	}
+	// KNOWN LIMIT, deliberate: a `session_info` that sits in neither window (renamed
+	// mid-session, then megabytes of transcript on either side) is not seen here, so
+	// the rail can show the inferred title while the session has a name. The rail is
+	// a hint over every session on the machine; /api/transcript reads the whole file
+	// and is the authority, and the rename path (sessionTail) does its own unbounded
+	// growing scan. Widening this one costs a full read per row on every refresh.
 	return { cwd: header.cwd, id: header.id, title, name };
 }
 
@@ -635,44 +673,79 @@ function listSessions() {
 
 const ENTRY_CAP = 2000;
 
+// v1 → v2 migration MINTS ids (`randomUUID().slice(0,8)`) for entries that never had
+// them, so two reads of an unchanged file came back with different id/parentId — the
+// client's keys, the branch walk and anything a user copied all changed under them on
+// a plain refresh. Replace the minted ids with ones derived from position, which are
+// stable across reads AND across desk restarts (a cache would only manage the first).
+// Scope of the synthetic ids is the file: a v1 file has no real ids to collide with,
+// and pi itself re-mints on load — it rewrites the file to v3 the moment it opens it.
+function stabilizeMigratedIds(fileEntries) {
+	const map = new Map();
+	let i = 0;
+	for (const e of fileEntries) {
+		if (e.type === "session" || typeof e.id !== "string") continue;
+		const stable = `v1-${String(i++).padStart(6, "0")}`;
+		map.set(e.id, stable);
+		e.id = stable;
+	}
+	// every reference minted alongside the ids has to move with them
+	for (const e of fileEntries) {
+		for (const k of ["parentId", "firstKeptEntryId", "targetId", "fromId"]) {
+			if (typeof e[k] === "string" && map.has(e[k])) e[k] = map.get(e[k]);
+		}
+	}
+}
+
+// Read side of a session file: pi's parser + pi's migration, then the desk's own
+// branch walk. `migrateSessionEntries` is the reason this is worth importing — a v1
+// file has no id/parentId at all and a v2 file still says `hookMessage`; both used
+// to render wrong here, silently. It mutates the array IN MEMORY only. (pi's own
+// `SessionManager.open()` would migrate and then REWRITE the file — a read endpoint
+// must not do that, which is why the desk does not use it.)
 function parseTranscript(file) {
-	const raw = fs.readFileSync(file, "utf-8").split("\n");
-	let header = null;
+	const fileEntries = PI.parseSessionEntries(fs.readFileSync(file, "utf-8")).filter(isEntry);
+	const header = fileEntries.find((e) => e.type === "session") ?? null;
+	// read the on-disk version BEFORE migrating: migration rewrites header.version
+	const version = noteSessionVersion(header);
+	PI.migrateSessionEntries(fileEntries);
+	if (version < 2) stabilizeMigratedIds(fileEntries);
+	// byId indexes EVERY entry with an id, session_info included: pi chains the next
+	// message to whatever the leaf is, and after a rename that leaf IS a session_info
+	// entry. Dropping those from the index broke the chain there and dimmed the whole
+	// history as an abandoned branch. They are still not rendered.
+	const byId = new Map();
 	const entries = [];
 	let name = null;
-	for (const line of raw) {
-		if (!line) continue;
-		let e;
-		try {
-			e = JSON.parse(line);
-		} catch {
-			continue;
-		}
-		if (e.type === "session") {
-			header = e;
-			continue;
-		}
+	let leaf = null;
+	for (const e of fileEntries) {
+		if (e.type === "session" || !e.id) continue;
+		byId.set(e.id, e);
+		leaf = e; // pi's leaf: the LAST non-header entry in the file (_buildIndex)
 		if (e.type === "session_info") {
 			if (typeof e.name === "string") name = e.name || null;
 			continue;
 		}
-		if (!e.id) continue;
 		entries.push(e);
 	}
-	// Active branch = parentId chain from the last entry (the file is append-only,
-	// so the last entry is the current tip).
+	// Active branch = parentId chain from the leaf (the file is append-only, so the
+	// last entry is the current tip).
 	// A hand-edited or corrupt file can have a parentId cycle (self-referential, or
 	// two entries pointing at each other): walking it spun forever and wedged the
 	// event loop — no HTTP, no child events. `onBranch` doubles as the visited set.
-	const byId = new Map(entries.map((e) => [e.id, e]));
+	// pi's own walks (`getBranch`, `buildSessionPath`) have no such guard, so this
+	// one stays ours.
 	const onBranch = new Set();
-	let cur = entries.length ? entries[entries.length - 1] : null;
+	let cur = leaf;
 	while (cur && !onBranch.has(cur.id)) {
 		onBranch.add(cur.id);
 		cur = cur.parentId ? byId.get(cur.parentId) : null;
 	}
 	const out = entries.slice(-ENTRY_CAP).map((e) => ({ ...e, onBranch: onBranch.has(e.id) }));
-	return { cwd: header?.cwd, sessionId: header?.id, name, total: entries.length, entries: out };
+	return {
+		cwd: header?.cwd, sessionId: header?.id, name, total: entries.length, entries: out,
+		version, parserVersion: PI.CURRENT_SESSION_VERSION,
+	};
 }
 
 // ── resource discovery (the skills/extensions a spawn can toggle) ──
@@ -1231,8 +1304,9 @@ function fileSize(file) {
 	}
 }
 
-// pi's loadEntriesFromFile: blank and unparseable lines are skipped, and the first
-// entry it does parse must be the session header, or it refuses the whole file.
+// pi's loadEntriesFromFile rule, run through pi's own line parser: blank and
+// unparseable lines are skipped, and the first entry it does parse must be the
+// session header, or pi refuses the whole file ("not a valid session").
 function hasSessionHeader(file) {
 	let head;
 	try {
@@ -1240,17 +1314,8 @@ function hasSessionHeader(file) {
 	} catch {
 		return false;
 	}
-	for (const line of head.split("\n")) {
-		if (!line.trim()) continue;
-		let e;
-		try {
-			e = JSON.parse(line);
-		} catch {
-			continue;
-		}
-		return !!e && typeof e === "object" && e.type === "session" && typeof e.id === "string";
-	}
-	return false;
+	const first = PI.parseSessionEntries(head)[0];
+	return !!first && typeof first === "object" && first.type === "session" && typeof first.id === "string";
 }
 
 // The leaf pi will resume at, per 0.84.4 session-manager.js `_buildIndex`: it
@@ -1262,6 +1327,10 @@ function hasSessionHeader(file) {
 // way pi's own appendSessionInfo does (`parentId: this.leafId`), and the rename is
 // a normal node on the branch. Also reports whether the file is terminated, which
 // decides whether our append needs to open a new line first.
+// Stays hand-rolled: pi exposes no way to read the LAST entry of a file. Its
+// parser is whole-text and array-building, so handing it a growing window (up to
+// TAIL_BUDGET) to learn one id would parse the file repeatedly. The line rule below
+// is pi's — malformed lines skipped — applied backwards.
 // An entry bigger than this is one we will not read to rename a session.
 const TAIL_BUDGET = Number(process.env.DESK_TAIL_BUDGET) || 64 * 1024 * 1024; // env: tests only
 
@@ -1588,10 +1657,10 @@ const server = http.createServer(async (req, res) => {
 			return json(res, 400, { error: "malformed request URL" });
 		}
 		const p = url.pathname;
-		const badHost = hostRejection(req, PORT);
+		const badHost = hostRejection(req, BOUND_PORT);
 		if (badHost) return json(res, 403, { error: badHost });
 		if (!READ_METHODS.has(req.method)) {
-			const bad = originRejection(req, PORT);
+			const bad = originRejection(req, BOUND_PORT);
 			if (bad) return json(res, 403, { error: bad });
 		}
 		if (req.method === "GET" && !p.startsWith("/api/") && serveStatic(res, p)) return;
@@ -1913,7 +1982,11 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 }
 
 server.listen(PORT, "127.0.0.1", () => {
-	console.log(`nana code → http://127.0.0.1:${PORT}`);
+	// the BOUND port, not the requested one: DESK_PORT=0 asks the OS for a free port,
+	// which is the only race-free way for a test to get one (reserve-then-close leaves
+	// a window where something else can take it). The Host/Origin rules read this too.
+	BOUND_PORT = server.address().port;
+	console.log(`nana code → http://127.0.0.1:${BOUND_PORT}`);
 });
 
 // ── app listeners: one origin per app manifest (apps.mjs) ──

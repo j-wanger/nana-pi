@@ -7,10 +7,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { reduceEntries } from "../../../packages/nana-stage/lib/blocks.mjs";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 const DESK = Number(process.env.DESK_TEST_PORT || 4401);
 const PA = 4402, PB = 4403;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "desk-apps-"));
 const binDir = path.join(tmp, "bin");
 const appsDir = path.join(tmp, "apps");
@@ -113,7 +119,7 @@ fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(4405
 fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(4406, cwdA, { tools: [] })));
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
@@ -206,7 +212,7 @@ try {
 	fs.writeFileSync(path.join(appsDir, "epsilon.json"), JSON.stringify(manifest(4412, cwdDying)));
 	// (the server loads manifests at start — spawn a second server for this one app)
 	const OUT2 = path.join(tmp, "stub-out-2.jsonl");
-	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: "4413", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: "4413", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 	try {
 		for (let i = 0; i < 40; i++) { try { await fetch("http://127.0.0.1:4412/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
 		const rE = await post("http://127.0.0.1:4412", "/api/session", {});

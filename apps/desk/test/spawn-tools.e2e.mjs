@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 function resolvePlaywright() {
 	const roots = [process.env.PW_ROOT, path.dirname(new URL(import.meta.url).pathname)].filter(Boolean);
@@ -46,6 +47,11 @@ const freePort = () =>
 const PORT = Number(process.env.DESK_TEST_PORT) || (await freePort());
 const BASE = `http://127.0.0.1:${PORT}`;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-spawn-tools-"));
 const PI_DIR = path.join(TD, ".pi", "agent");
 const repo = path.join(TD, "repo");
@@ -76,7 +82,7 @@ process.stdin.on("data", (c) => {
 `, { mode: 0o755 });
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, HOME: TD, DESK_PORT: String(PORT), STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(PORT), STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let log = "";

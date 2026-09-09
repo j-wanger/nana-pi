@@ -135,6 +135,34 @@ try {
 	check("app listener: the DESK's port in Host → 403 (each listener owns one origin)", r.status === 403, String(r.status));
 
 	check("no child was spawned by any of it", JSON.parse((await raw(PORT, "GET", "/api/live", `127.0.0.1:${PORT}`)).body).length === 0);
+
+	// ── DESK_PORT=0 (2026-09-09): the rule reads the port the desk BOUND, not the one
+	// it was asked for. Before this, a port-0 desk 403'd every request including its
+	// own — and the fix must not have turned the rule off instead. ──
+	const zero = spawn("node", [SERVER], { env: { ...process.env, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: path.join(TD, "no-apps") }, stdio: ["ignore", "pipe", "pipe"] });
+	let zeroLog = "";
+	zero.stdout.on("data", (c) => (zeroLog += c));
+	zero.stderr.on("data", (c) => (zeroLog += c));
+	try {
+		let bound = 0;
+		for (let i = 0; i < 80; i++) {
+			const m = /http:\/\/127\.0\.0\.1:(\d+)/.exec(zeroLog);
+			if (m) { bound = Number(m[1]); break; }
+			if (zero.exitCode !== null) throw new Error(`port-0 desk exited ${zero.exitCode}: ${zeroLog}`);
+			await sleep(250);
+		}
+		check("DESK_PORT=0 reports the port it bound", bound > 1024, String(bound));
+		r = await raw(bound, "GET", "/api/live", `127.0.0.1:${bound}`);
+		check("…and answers its own bound port", r.status === 200, `${r.status} ${r.body.slice(0, 60)}`);
+		r = await raw(bound, "GET", "/api/settings", `evil.example:${bound}`);
+		check("…while a rebound Host is still 403 (the rule was not switched off)", r.status === 403, String(r.status));
+		r = await raw(bound, "GET", "/api/live", "127.0.0.1:9999");
+		check("…and a loopback name on the WRONG port is still 403", r.status === 403, String(r.status));
+		r = await raw(bound, "GET", "/api/live", "127.0.0.1:0");
+		check("…including the port it was configured with (0), which it is not on", r.status === 403, String(r.status));
+	} finally {
+		zero.kill();
+	}
 } catch (e) {
 	console.log("HARNESS ERROR", e.message, "\n--- server log ---\n", log.slice(-2000));
 	fails = 99;

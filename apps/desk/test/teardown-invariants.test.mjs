@@ -22,6 +22,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 const freePort = () =>
 	new Promise((resolve) => {
@@ -36,6 +37,11 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const GRACE = 1200; // DESK_KILL_GRACE_MS
 const NOKILL = "UNKILLABLE"; // --name marker the preload matches on
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const PRELOAD = new URL("./fixtures/no-kill-preload.cjs", import.meta.url).pathname;
 const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-teardown-"));
 const binDir = path.join(TD, "bin");
@@ -65,7 +71,7 @@ fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
 const server = spawn("node", ["--require", PRELOAD, SERVER], {
 	env: {
-		...process.env, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir,
+		...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(PORT), DESK_APPS_DIR: appsDir,
 		DESK_KILL_GRACE_MS: String(GRACE), DESK_TEST_NOKILL: NOKILL,
 		PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 	},

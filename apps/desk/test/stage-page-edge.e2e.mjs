@@ -8,6 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 function resolvePlaywright() {
 	const roots = [process.env.PW_ROOT, path.dirname(new URL(import.meta.url).pathname)].filter(Boolean);
@@ -22,6 +23,11 @@ const { chromium } = resolvePlaywright();
 const DESK = Number(process.env.DESK_TEST_PORT || 4431);
 const APP = 4432;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const pageDir = process.env.EDGE_PAGE || path.join(os.homedir(), "edge-screener", "desk");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-page-edge-"));
 const binDir = path.join(tmp, "bin"), appsDir = path.join(tmp, "apps"), cwd = path.join(tmp, "repo");
@@ -82,7 +88,7 @@ process.stdin.on("end", () => process.exit(0));
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 fs.writeFileSync(path.join(appsDir, "edge.json"), JSON.stringify({ port: APP, title: "edge fixture", cwd, tools: ["screen_detail", "explore_screen"], extensions: [], trust: "no-approve", mutating: ["explore_screen"], page: pageDir, data: { tape: tapeCmd, shelf: shelfCmd, roster: rosterCmd }, quick: [["panel", "Show the panel"]] }));
 
-const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";
 server.stdout.on("data", (c) => (log += c));
 server.stderr.on("data", (c) => (log += c));

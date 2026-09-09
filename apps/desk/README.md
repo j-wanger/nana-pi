@@ -1,13 +1,91 @@
 # nana code (the desk)
 
-Local, zero-dependency dashboard over pi: every session on the machine in one place,
-live sessions driven from the browser. Aim: the TUI's main capabilities, in a browser.
+Local dashboard over pi: every session on the machine in one place, live sessions
+driven from the browser. Aim: the TUI's main capabilities, in a browser. It has **no
+npm dependencies of its own** — no `package.json`, no `node_modules`, nothing to
+install — but it is **not standalone: it requires the installed pi**, which it both
+spawns and imports (see below).
 
 ```bash
 node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change;
                               #    not 4317 — that's OTLP, and VPN/telemetry
                               #    filters can silently eat loopback to it)
 ```
+
+## Dependencies
+
+| | What | Why |
+|---|---|---|
+| Runtime | **Node ≥ 22.19** | pi's own floor (`engines` in its package.json). The desk's own code needs nothing newer than Node 18, but it imports pi in-process, so pi's floor is the desk's floor. |
+| Runtime | **`@earendil-works/pi-coding-agent` ≥ 0.84.4, installed globally** (`npm i -g @earendil-works/pi-coding-agent`) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in the terminal) and, since 2026-09-09, **imported** for session reading. |
+| Tests (browser e2e only) | **Playwright** (`playwright` or `playwright-core`; 1.61.1 in this repo's root `node_modules`) | Only `test/*.e2e.mjs`. They resolve it from `PW_ROOT` if set, else from the test directory's own require chain — i.e. the repo root — so a plain `npm i playwright` at the repo root is enough and `PW_ROOT` is only for a Playwright that lives somewhere else. The `test/*.test.mjs` files are zero-dep: `node <file>`, exit 0 = PASS. |
+| | *nothing else from npm* | No package.json, no lockfile, no build step. Everything else is `node:` builtins. |
+
+**What is imported from pi**, all from the package ROOT export
+(`@earendil-works/pi-coding-agent`, i.e. its `dist/index.js`; never a deep `dist/…`
+path, which is not a supported entry point):
+
+- `parseSessionEntries` — JSONL text → entries, malformed lines skipped
+- `migrateSessionEntries` — v1→v2→v3 entry migration, **in memory only**
+- `CURRENT_SESSION_VERSION` — what the imported parser understands
+
+`apps/desk/pi-session.mjs` owns both halves — the binary the desk spawns and the
+package it imports — because **importing a different pi than it spawns would render
+sessions with one version's parser while a child writes them with another's**. The
+package must be *tied* to the executable:
+
+1. `DESK_PI_ROOT`, if set — the operator's word, used **exclusively**: nothing else is
+   consulted (so a wrong value fails instead of silently loading another install) and
+   nothing is spawned. It does **not** suspend the same-install rule: if the `pi` the
+   desk would spawn lives inside a *different* package, the desk **refuses**, naming
+   both (a stale path in a service file is the likely way this goes wrong). Setting
+   `DESK_PI_BIN` as well — the binary that goes with `DESK_PI_ROOT` — is the one
+   configuration where the two halves may differ, because then both are the
+   operator's explicit choice; the desk warns and continues.
+2. Walk up from `realpath(PI_BIN)`: a package that CONTAINS the executable is the
+   install, by construction. Normal npm/pnpm case, costs nothing.
+3. Otherwise the executable is a shim (Volta's `pi` is a manager shim, not a symlink
+   into the package). Then: ask `pi --version`, enumerate the layouts we can detect
+   (`npm root -g`, `npm_config_prefix`, `volta which pi` + Volta's package image,
+   the node prefix for nvm/fnm, bun's global dir, `~/.local`, `~/.npm-global`,
+   `%APPDATA%\npm`, Homebrew, `/usr/local`, `/usr`), and accept **one** whose
+   `package.json` version equals it. Zero matches — or two that cannot be told
+   apart — and the desk **refuses to start**, listing every path with its version.
+
+It **fails loudly at startup** for all of: no install; an install that cannot be tied
+to the binary; an override that contradicts the binary; a version below 0.84.4 (the
+exports were only verified there — and a *prerelease* of 0.84.4 counts as below it,
+since a beta of the release that introduced these exports need not have them); a
+version string that is not a semantic version at all; or a missing export. Tying a
+package to a binary is exact-identity (`0.84.4+build` is not `0.84.4` — two builds of
+one version are two different parsers); the floor is semver precedence. On success it logs the winning path, so *which parser is this desk
+running* is answerable from the startup line:
+
+```
+nana code: pi 0.84.4 — spawning /Users/x/.local/bin/pi, parsing sessions with
+           /Users/x/.local/lib/node_modules/@earendil-works/pi-coding-agent (resolved via PI_BIN walk-up)
+```
+
+`SessionManager` is deliberately NOT used: `SessionManager.open()` rewrites the file
+when a migration applies, and a read endpoint must never write the user's session
+file. Parity is pinned by `test/pi-session-parity.test.mjs`, which builds a session
+with pi's own `SessionManager` and checks the desk reads it identically, and
+`test/pi-resolution.test.mjs`, which drives the resolution rules against synthetic
+install layouts (shim, mismatched versions, two indistinguishable installs).
+
+Two consequences worth knowing. **Migrated v1 sessions get synthetic entry ids**
+(`v1-000001`, …): pi's v1→v2 migration mints random ids, which would change on every
+refresh, so the desk derives them from position instead — stable across reads and
+restarts, meaningful only within that file. **The rail's name scan is bounded** (64 KB
+head + 32 KB tail): a rename buried in the middle of a multi-megabyte session shows as
+the inferred title in the rail, while `/api/transcript` — which reads the whole file —
+has it right.
+
+Two pieces of session handling stay ours because pi exports no equivalent: the
+**byte-window scan** behind the sessions rail (pi's `SessionManager.list()` fully
+loads every session file to build a row) and the **tail/leaf walk** behind the
+historical rename (pi's parser is whole-file, and its own branch walks have no
+cycle guard — the desk's does).
 
 ## What it does (TUI parity map)
 

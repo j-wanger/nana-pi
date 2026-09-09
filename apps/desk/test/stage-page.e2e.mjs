@@ -15,6 +15,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
+import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 function resolvePlaywright() {
 	const roots = [process.env.PW_ROOT, path.dirname(new URL(import.meta.url).pathname)].filter(Boolean);
@@ -29,6 +30,11 @@ const { chromium } = resolvePlaywright();
 const DESK = Number(process.env.DESK_TEST_PORT || 4421);
 const APP = 4422;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+// The desk imports pi's session parser from the install tied to the `pi` it
+// SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
+// package contains. So the harness names the real package explicitly; without it
+// the desk refuses to start rather than guess which install to parse with.
+const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-page-"));
 const binDir = path.join(tmp, "bin"), appsDir = path.join(tmp, "apps"), cwd = path.join(tmp, "repo");
 for (const d of [binDir, appsDir, cwd]) fs.mkdirSync(d, { recursive: true });
@@ -100,7 +106,7 @@ process.stdin.on("end", () => process.exit(0));
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 fs.writeFileSync(path.join(appsDir, "fx.json"), JSON.stringify({ port: APP, title: "fixture app", cwd, tools: ["board_table"], extensions: [], trust: "no-approve" }));
 
-const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";
 server.stdout.on("data", (c) => (log += c));
 server.stderr.on("data", (c) => (log += c));
