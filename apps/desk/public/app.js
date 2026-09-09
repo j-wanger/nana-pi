@@ -53,6 +53,7 @@ function newLiveState(id, cwd) {
 		ctxEstimate: null, // estimatedTokensAfter from the last compaction; pi reports percent:null until the next reply
 		helloSeen: false, // a SECOND desk_hello is a reconnect, not the first attach
 		pendingBashEvents: new Map(), // bash id → events that arrived before the row existed
+		renderSeq: 0, // bumped by renderMessages; tells an in-flight POST the transcript was rebuilt
 	};
 }
 
@@ -352,13 +353,34 @@ function bashRow(ctx, id, command) {
 		if (id) ctx.toolRows.set(`bash:${id}`, row);
 	}
 	row.querySelector(".bcmd").textContent = `! ${command}`;
+	row.dataset.bcmd = command;
+	if (id) row.dataset.bashId = id;
 	return row;
 }
+
+// A reconnect resync can rebuild the transcript while a bash POST is still in
+// flight, and pi's own record of that command comes back with it — already
+// FINISHED and with no RPC id, which is the key rows are stored under. Claim
+// that row rather than adding a second card for the same command. Newest match
+// wins; two identical commands in one transcript render the same thing either
+// way, so picking the wrong one is invisible.
+function adoptHistoryBashRow(ctx, command) {
+	const rows = [...ctx.container.querySelectorAll(".bash-card")].filter(
+		(r) => r.dataset.bcmd === command && !r.dataset.bashId && !r.querySelector(".mark")?.classList.contains("spin"),
+	);
+	return rows.length ? rows[rows.length - 1] : null;
+}
+
+// One window for everything a bash card holds or shows: the streamed tail, a
+// buffered event's retained text, and a finished result's rendered output. The
+// number means the same thing in all three places.
+const BASH_CHARS = 20000;
+const tail = (s) => (s.length > BASH_CHARS ? s.slice(-BASH_CHARS) : s);
 
 function appendBashDelta(row, delta) {
 	const out = row.querySelector(".bout");
 	out.hidden = false;
-	out.textContent = (out.textContent + delta).slice(-20000);
+	out.textContent = tail(out.textContent + delta);
 }
 
 // The POST that creates a bash row races the child's output for it: the server
@@ -370,14 +392,24 @@ function appendBashDelta(row, delta) {
 // whose POST never produced a row (an error, a session switch) must not grow.
 const BASH_BUFFER_IDS = 8;
 const BASH_BUFFER_EVENTS = 200;
-const BASH_BUFFER_CHARS = 20000; // the same window the rendered row keeps
+// Every text an event can carry counts against the per-id budget, not just the
+// streamed delta: a `desk_bash_result` carries the WHOLE captured output (and an
+// error string), so counting deltas alone let eight unknown ids retain eight
+// stdout-cap-sized results. Oversized text is cut on the way IN, so one event
+// can never exceed the budget on its own.
+const bashEventChars = (e) => (e.delta?.length || 0) + (e.data?.output?.length || 0) + String(e.error || "").length;
+function clipBashEvent(e) {
+	if (e.delta?.length > BASH_CHARS) return { ...e, delta: tail(e.delta) };
+	if (e.data?.output?.length > BASH_CHARS) return { ...e, data: { ...e.data, output: tail(e.data.output), truncated: true } };
+	return e;
+}
 function bufferBashEvent(id, e) {
 	if (!id) return;
 	const buf = L.pendingBashEvents;
 	const list = buf.get(id) || [];
-	list.push(e);
-	let chars = list.reduce((n, x) => n + (x.delta?.length || 0), 0);
-	while (list.length > BASH_BUFFER_EVENTS || chars > BASH_BUFFER_CHARS) chars -= list.shift().delta?.length || 0;
+	list.push(clipBashEvent(e));
+	let chars = list.reduce((n, x) => n + bashEventChars(x), 0);
+	while (list.length > BASH_BUFFER_EVENTS || (chars > BASH_CHARS && list.length > 1)) chars -= bashEventChars(list.shift());
 	buf.set(id, list);
 	while (buf.size > BASH_BUFFER_IDS) buf.delete(buf.keys().next().value);
 }
@@ -396,16 +428,20 @@ function finishBashRow(row, { output, exitCode, cancelled, truncated } = {}, err
 	const failed = error || cancelled || (exitCode !== 0 && exitCode !== undefined);
 	mark.className = `mark ${failed ? "bad" : "ok"}`;
 	mark.textContent = failed ? "✗" : "✓";
+	// A result carries the WHOLE captured output; the streaming path already keeps
+	// only the last BASH_CHARS, so render the same window here rather than putting
+	// an unbounded string in the DOM. A cut we made is reported like the server's.
+	const cut = output !== undefined && output.length > BASH_CHARS;
 	if (output !== undefined) {
 		const out = row.querySelector(".bout");
 		out.hidden = !output;
-		out.textContent = output;
+		out.textContent = tail(output);
 	}
 	row.querySelector(".bexit").textContent = error
 		? String(error)
 		: cancelled
 			? "cancelled"
-			: `exit ${exitCode}${truncated ? " · truncated" : ""}`;
+			: `exit ${exitCode}${truncated || cut ? " · truncated" : ""}`;
 }
 
 function noteRow(ctx, text, cls = "") {
@@ -491,6 +527,7 @@ function renderMessages(messages) {
 	L.optimisticUserEls = [];
 	L.currentBubble = null;
 	for (const m of messages) appendMessage(m, L.ctx);
+	L.renderSeq++;
 	pin(container);
 }
 
@@ -1706,8 +1743,10 @@ async function renameSession() {
 	const cur = L.state?.sessionName || "";
 	const name = prompt("Session name:", cur);
 	if (name === null) return;
+	const g = stageGen;
 	try {
 		await rpc({ type: "set_session_name", name });
+		if (stale(g)) return;
 		refreshState();
 		refreshRail();
 	} catch (e) {
@@ -1716,13 +1755,17 @@ async function renameSession() {
 }
 
 async function exportSession() {
+	// The name is read BEFORE the await: this file is the session that was
+	// exported, whatever is selected by the time the blob arrives. The download
+	// itself still happens — the user asked for it.
+	const label = L.state?.sessionName || L.id;
 	try {
 		const r = await fetch(`/api/session/${L.id}/export`, { method: "POST" });
 		if (!r.ok) throw new Error((await r.json()).error || "export failed");
 		const blob = await r.blob();
 		const a = document.createElement("a");
 		a.href = URL.createObjectURL(blob);
-		a.download = `nana-code-session-${L.state?.sessionName || L.id}.html`;
+		a.download = `nana-code-session-${label}.html`;
 		a.click();
 		URL.revokeObjectURL(a.href);
 	} catch (e) {
@@ -1743,10 +1786,14 @@ const DESK_COMMANDS = [
 	["session", "show session file / id / stats"],
 ];
 
+// Every branch below either issues its RPC before any await (so it reaches the
+// right child) or awaits first — and then must not act on whatever session is
+// selected when it resumes. One generation for the whole handler.
 async function handleDeskCommand(text) {
 	const m = text.match(/^\/(\w+)\s*(.*)$/s);
 	if (!m) return false;
 	const [, cmd, rest] = m;
+	const g = stageGen;
 	switch (cmd) {
 		case "model":
 			if (!rest) modelPicker();
@@ -1755,6 +1802,7 @@ async function handleDeskCommand(text) {
 					const models = (await rpc({ type: "get_available_models" })).models || [];
 					const q = rest.toLowerCase();
 					const hit = models.find((mo) => `${mo.provider}/${mo.id}`.toLowerCase().includes(q) || (mo.name || "").toLowerCase().includes(q));
+					if (stale(g)) return true; // set_model would target the session we switched to
 					if (!hit) return toast(`no model matches "${rest}"`, "warning"), true;
 					await rpc({ type: "set_model", provider: hit.provider, modelId: hit.id });
 					toast(`model → ${hit.provider}/${hit.id}`);
@@ -1768,7 +1816,7 @@ async function handleDeskCommand(text) {
 			if (!rest) thinkingPicker();
 			else
 				rpc({ type: "set_thinking_level", level: rest.trim() })
-					.then(() => (toast(`thinking → ${rest.trim()}`), refreshState()))
+					.then(() => !stale(g) && (toast(`thinking → ${rest.trim()}`), refreshState()))
 					.catch((e) => toast(String(e.message || e), "error"));
 			return true;
 		case "compact":
@@ -1776,12 +1824,13 @@ async function handleDeskCommand(text) {
 			rpc({ type: "compact", ...(rest ? { customInstructions: rest } : {}) }).catch((e) => toast(String(e.message || e), "error"));
 			return true;
 		case "name":
-			if (rest) rpc({ type: "set_session_name", name: rest.trim() }).then(() => (refreshState(), refreshRail())).catch((e) => toast(String(e), "error"));
+			if (rest) rpc({ type: "set_session_name", name: rest.trim() }).then(() => !stale(g) && (refreshState(), refreshRail())).catch((e) => toast(String(e), "error"));
 			else renameSession();
 			return true;
 		case "new":
 			rpc({ type: "new_session" })
 				.then((d) => {
+					if (stale(g)) return;
 					if (d?.cancelled) return toast("new session cancelled by an extension", "warning");
 					toast("fresh session");
 					resync();
@@ -1795,6 +1844,7 @@ async function handleDeskCommand(text) {
 		case "clone":
 			rpc({ type: "clone" })
 				.then((d) => {
+					if (stale(g)) return;
 					if (d?.cancelled) return toast("clone cancelled by an extension", "warning");
 					toast("cloned into a new session file");
 					refreshState();
@@ -1827,6 +1877,7 @@ async function send() {
 		if (text.startsWith("!!")) return toast("`!!` (hidden bash) isn't supported over RPC — use `!`", "warning");
 		const command = text.slice(1).trim();
 		input.value = "";
+		const seq = L.renderSeq;
 		try {
 			const r = await fetch(`/api/session/${L.id}/bash`, {
 				method: "POST",
@@ -1835,7 +1886,16 @@ async function send() {
 			}).then((r) => r.json());
 			if (stale(g)) return; // the row belongs to a session we have left
 			if (r.error) return toast(r.error, "error");
-			flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
+			const adopted = L.renderSeq !== seq ? adoptHistoryBashRow(L.ctx, command) : null;
+			if (adopted) {
+				// The transcript was rebuilt while we waited and already holds pi's
+				// own finished record of this command. Key it by the id so later
+				// events find it, and drop the buffer: history is authoritative for
+				// the same output, and replaying deltas into it would double them.
+				adopted.dataset.bashId = r.id;
+				L.ctx.toolRows.set(`bash:${r.id}`, adopted);
+				L.pendingBashEvents.delete(r.id);
+			} else flushBashEvents(bashRow(L.ctx, r.id, command), r.id);
 			pin(L.ctx.container);
 		} catch (e) {
 			if (!stale(g)) toast(String(e.message || e), "error");
@@ -1844,7 +1904,7 @@ async function send() {
 	}
 
 	if (text.startsWith("/") && (await handleDeskCommand(text))) {
-		input.value = "";
+		if (!stale(g)) input.value = ""; // never clear the editor of a session we switched to
 		return;
 	}
 
@@ -1869,15 +1929,18 @@ async function send() {
 		setChip("running");
 		L.streaming = true;
 	}
-	const restore = () => {
+	// `explicit` = the server ANSWERED and refused. That is the only proof the
+	// prompt is not running, and it outranks a matching echo (which can come from
+	// another tab or client on the same session): put the text back. Transport
+	// loss is the opposite — the echo proves pi HAS the message, so restoring it
+	// would hand the user a second copy of a prompt already under way.
+	const restore = (explicit) => {
 		if (stale(g) || !L) return; // this text belongs to a session we have left
-		// The echo already swapped this bubble, so pi HAS the message and the POST
-		// only lost its answer. Putting the text back would hand the user a second
-		// copy of a prompt that is already running.
-		if (optimistic && !L.optimisticUserEls.some((o) => o.el === optimistic)) return;
+		const pending = !!optimistic && L.optimisticUserEls.some((o) => o.el === optimistic);
+		if (!explicit && optimistic && !pending) return;
 		input.value = input.value ? `${text}\n${input.value}` : text;
 		setAttachments(savedAtt);
-		if (optimistic) {
+		if (pending) {
 			L.optimisticUserEls = L.optimisticUserEls.filter((o) => o.el !== optimistic);
 			optimistic.remove();
 			setChip("idle");
@@ -1892,11 +1955,11 @@ async function send() {
 		}).then((r) => r.json());
 		if (stale(g)) return;
 		if (!r.ok) {
-			restore();
+			restore(true);
 			return toast(r.error || "prompt rejected", "error");
 		}
 	} catch (e) {
-		restore();
+		restore(false);
 		if (!stale(g)) toast(String(e.message || e), "error");
 	}
 }
@@ -1921,8 +1984,10 @@ function setAttachments(list) {
 
 function addImageFile(file) {
 	if (!file.type.startsWith("image/")) return;
+	const g = stageGen;
 	const reader = new FileReader();
 	reader.onload = () => {
+		if (stale(g) || !L) return; // an image picked for a session we have left
 		const data = String(reader.result).split(",")[1];
 		setAttachments([...L.attachments, { data, mimeType: file.type, name: file.name }]);
 	};
@@ -2073,6 +2138,7 @@ async function openHistorical(file, cwd) {
 }
 
 async function spawnSession(cwd, sessionFile, extra) {
+	const g = stageGen;
 	const body = { cwd, ...extra };
 	if (sessionFile) body.session = sessionFile;
 	const sp = localStorage.getItem("desk-append-sp");
@@ -2083,6 +2149,9 @@ async function spawnSession(cwd, sessionFile, extra) {
 		body: JSON.stringify(body),
 	}).then((r) => r.json());
 	if (r.error) return toast(r.error, "error");
+	// You picked another stage while this spawn was in flight: the session exists
+	// and is in the rail, but stealing the stage back would undo your choice.
+	if (stale(g)) return refreshRail();
 	openLive(r.id, cwd);
 }
 
@@ -2339,11 +2408,17 @@ document.addEventListener("keydown", (e) => {
 	const dialog = document.querySelector("#dialogs .dialog");
 	if (dialog) return; // dialogs own Escape via their Cancel buttons; don't abort under a dialog
 	if (comp.open) return;
-	// TUI Esc: reclaim queued messages, then abort
+	// TUI Esc: reclaim queued messages, then abort. Both halves belong to the
+	// session that was selected when Esc was pressed — `reclaimQueue` guards
+	// itself, but the abort has to carry the id captured HERE: reading the global
+	// after the await aborts whichever session you switched to.
+	const g = stageGen;
+	const id = L.id;
 	(async () => {
 		try {
 			await reclaimQueue();
-			await fetch(`/api/session/${L.id}/abort`, { method: "POST" });
+			if (stale(g)) return;
+			await fetch(`/api/session/${id}/abort`, { method: "POST" });
 		} catch {}
 	})();
 });
