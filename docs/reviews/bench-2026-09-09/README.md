@@ -12,3 +12,4 @@ gpt-6-astra reviewed the reusable bench + the tool-profile study BEFORE any spen
 
 Per-round briefs sit beside the verdicts. Each fold is described in the corresponding commit message.
 | 6 | 09e6f4b | NO-GO (Fable) | astra content-filtered twice (the filter reacts to the evaluator source, not the brief) → Fable subagent reviewed: the nonce passed as a STRING reaches a writable `Buffer.from` (3-line fix: build the key as a Buffer pre-import); interrupt drain race can record a killed run with numeric cost; executeRun tests never use a real fixture. |
+| 7 | efa8c3f | (pending, Fable) | fold of round 6: Buffer-keyed signing + post-import sweep test; interrupt yields to salvage with an APPENDING mark; real-fixture executeRun test exposed workspace.diff taken against the pristine fixture (fixed) |
