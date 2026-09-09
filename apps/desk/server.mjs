@@ -236,10 +236,12 @@ function noteStageSession(child, state) {
 	return recordStageSession(child, id);
 }
 
-// The one place a session id is written down.
+// The one place a session id is written down. Note what is NOT here: the child does
+// not carry "the session it is in". A remembered identity had no reader left once
+// deferred inheritance was removed, and dead state that a comment calls an invariant
+// is worse than none — every decision below asks the child, in the moment, instead.
 function recordStageSession(child, id) {
 	if (!id) return null;
-	child.sessionId = id;
 	stageKeys.record(id, child.stageKey);
 	return id;
 }
@@ -414,7 +416,7 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 	}
 	const id = String(nextId++);
 	const child = {
-		proc, cwd, app: app || null, stageKey, sessionId: null, transition: 0, lifecycle: null, lifecycleQueued: 0,
+		proc, cwd, app: app || null, stageKey, transition: 0, lifecycle: null, lifecycleQueued: 0,
 		toolsExpected, clients: new Set(), state: "running", startedAt: Date.now(), stderrTail: "",
 		pending: new Map(), // rpcId → {resolve, reject, timer}
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
@@ -701,15 +703,36 @@ function sendRpc(child, command) {
 	return started;
 }
 
-// The whole of a transition, start to finish, in one place: confirm the source,
-// clear identity, run the command, confirm the destination, attribute the
-// inheritance. Nothing outlives it — `child.sessionId` means "the session this child
-// was CONFIRMED to hold", and it is cleared immediately before the command is sent
-// because a command that times out or comes back unsuccessful can still have moved
-// the child. Only a confirmed destination restores it.
+// The whole of a transition, start to finish, in one place: confirm the source, run
+// the command, confirm the destination, attribute the inheritance. Nothing outlives
+// it, and nothing about the child's session is remembered between transitions.
 const CONFIRM_TRIES = 3;
 const CONFIRM_WAIT_MS = 120;
+// A REAL bound, not a hopeful one. Each confirming get_state carries the ordinary
+// 30 s RPC timeout, so the budget has to be enforced here: what is left of it is
+// checked before every dispatch and raced against every response. A late answer is
+// ignored and counts as unconfirmed — the RPC keeps its own timer, we just stop
+// waiting for it.
 const CONFIRM_BUDGET_MS = 1000;
+
+function withinBudget(p, ms) {
+	let timer = null;
+	const done = (fn) => (v) => {
+		clearTimeout(timer);
+		return fn(v);
+	};
+	return Promise.race([
+		p.then(
+			done((v) => v),
+			done((e) => {
+				throw e;
+			}),
+		),
+		new Promise((_, reject) => {
+			timer = setTimeout(() => reject(new Error("stage-key confirmation budget exhausted")), ms);
+		}),
+	]);
+}
 
 async function lifecycleRpc(child, command) {
 	const inherits = command.type === "fork" || command.type === "clone";
@@ -731,7 +754,6 @@ async function lifecycleRpc(child, command) {
 			}
 			if (source) stageKeys.record(source, child.stageKey);
 		}
-		child.sessionId = null; // cleared at dispatch, restored only by a confirmation
 		const r = await sendRpcRaw(child, command);
 		// Only a command that actually ran can have moved the child.
 		if (!r?.success) return r;
@@ -741,19 +763,22 @@ async function lifecycleRpc(child, command) {
 		// budget, so a child that answers slowly costs one round trip, not three.
 		const deadline = Date.now() + CONFIRM_BUDGET_MS;
 		for (let attempt = 0; attempt < CONFIRM_TRIES; attempt++) {
+			const left = deadline - Date.now();
+			if (left <= 0) break; // no budget: do not dispatch another one
 			let id = null;
 			try {
-				id = stateSessionId(await childState(child));
+				id = stateSessionId(await withinBudget(childState(child), left));
 			} catch {
-				/* unconfirmed */
+				/* unconfirmed, or answered too late to count */
 			}
 			if (id) {
 				if (inherits && source && source !== id) stageKeys.seed(id, stageKeys.keysFor(source));
 				recordStageSession(child, id);
 				return r;
 			}
-			if (attempt + 1 >= CONFIRM_TRIES || Date.now() >= deadline) break;
-			await new Promise((res) => setTimeout(res, CONFIRM_WAIT_MS));
+			const rest = deadline - Date.now();
+			if (attempt + 1 >= CONFIRM_TRIES || rest <= 0) break;
+			await new Promise((res) => setTimeout(res, Math.min(CONFIRM_WAIT_MS, rest)));
 		}
 		// Unconfirmed after the retries: this fork inherits nothing. Its copied blocks
 		// stay redacted, which is the direction a failure has to fall.
