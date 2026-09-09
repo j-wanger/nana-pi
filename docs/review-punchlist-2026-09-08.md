@@ -239,7 +239,7 @@ sleeps became readiness handshakes.
   1000 ms budget (three tries, the budget checked before each and raced against each answer)
   inherits nothing, so its copied blocks signed only by inherited keys stay redacted; a ledger
   read that lands while a transition is in flight verifies that session against the live child's
-  key alone for that one read, and a child that exits before any later observation leaves that
+  key plus whatever was already recorded for it, without filing the observation, and a child that exits before any later observation leaves that
   session unrecorded; the 60 s wall-clock timeout path for a session-changing command shares the
   tested unsuccessful-response cleanup but is not itself covered by a test;
   the record is per session, not per app, so two app children that hold the same session file

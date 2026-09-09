@@ -74,6 +74,7 @@ const HOLDING = path.join(TD, "holding.flag"); // written by the stub while it i
 const RELEASE = path.join(TD, "release.flag"); // the test creates it to let a held response go
 const FAIL_FORK = path.join(TD, "fail-fork.flag"); // answer the next fork unsuccessfully
 const UNARM = path.join(TD, "unarm.flag"); // drop any leftover post-fork failure budget
+const LATE = path.join(TD, "late.flag"); // the stub wrote a deliberately late answer
 for (const d of [binDir, appsDir, cwdA, cwdB, SESSIONS]) fs.mkdirSync(d, { recursive: true });
 const extStage = path.join(TD, "nana-stage.ts");
 fs.writeFileSync(extStage, "export default function () {}\n");
@@ -156,7 +157,12 @@ process.stdin.on("data", (c) => {
 				if (afterFork && afterFork.startsWith("slow:")) {
 					const ms = Number(afterFork.slice(5)); afterFork = null;
 					const c = cmd;
-					setTimeout(() => say({ type: "response", id: c.id, command: c.type, success: true, data: { isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } }), ms);
+					setTimeout(() => {
+						say({ type: "response", id: c.id, command: c.type, success: true, data: { isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } });
+						// acknowledge that the late answer has actually gone out, so the test can
+						// wait for it instead of shutting down before it lands
+						try { fs.writeFileSync(process.env.STUB_LATE, String(Date.now())); } catch {}
+					}, ms);
 					break;
 				}
 				if (afterFork === "hold") {
@@ -261,7 +267,7 @@ async function startServer(run, ports) {
 			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
 			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
-			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM,
+			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM, STUB_LATE: LATE,
 			// explicit: an outer DESK_STAGE_KEYS would beat the temporary HOME and send
 			// this test's records into the operator's own store
 			DESK_STAGE_KEYS: STORE,
@@ -531,17 +537,37 @@ try {
 		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
 		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
 
-	// THE CONFIRMATION BUDGET IS REAL. A child that answers the confirming state read
-	// only after the budget must leave the fork unconfirmed, and the command must come
-	// back at the budget rather than at the RPC's own 30 s timeout.
+	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
+	// child does NOT sign with: if the late answer were accepted, the destination would
+	// be confirmed and seeded, and keyZ would appear in its record. The child answers
+	// the confirming state read only after the budget, so it must not be.
+	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	fs.rmSync(LATE, { force: true });
 	fs.writeFileSync(AFTER_FORK, "slow:3000");
 	const t0 = Date.now();
 	r = await rpc(s.id, { type: "fork", entryId: "x" });
 	const forkMs = Date.now() - t0;
-	check("run 3: a confirmation answered after the budget does not extend it", r?.success === true && forkMs < 2000, `${forkMs} ms`);
+	check("run 3: a confirmation answered after the budget does not extend the command", r?.success === true && forkMs < 2000, `${forkMs} ms`);
+	// stay alive for the late answer, and give the desk a moment to mishandle it
+	await until(() => fs.existsSync(LATE), "the stub's late answer to go out", 8000);
+	await sleep(250);
 	const idSlow = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: ...and that fork counts as unconfirmed, so it inherits nothing",
-		!keysOf(idSlow).includes(keyZ), `${JSON.stringify(keysOf(idSlow).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
+	check("run 3: ...and a late answer confirms nothing — the destination is not recorded at all",
+		recordOf(idSlow) === null, `${JSON.stringify(keysOf(idSlow).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
+
+	// the BOUNDARY: an answer timed to land exactly on the deadline. Whether the timer
+	// or the response is handled first is not ours to schedule, so what is pinned here
+	// is the outcome either way — an answer that is not inside the budget confirms
+	// nothing, whichever of the two the event loop reaches first.
+	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	fs.rmSync(LATE, { force: true });
+	fs.writeFileSync(AFTER_FORK, "slow:1000");
+	r = await rpc(s.id, { type: "fork", entryId: "x" });
+	await until(() => fs.existsSync(LATE), "the boundary answer to go out", 8000);
+	await sleep(250);
+	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	check("run 3: an answer landing ON the deadline confirms nothing either",
+		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
