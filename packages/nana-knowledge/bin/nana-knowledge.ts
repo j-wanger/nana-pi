@@ -27,8 +27,8 @@ async function cmdBuild(argv: string[]): Promise<number> {
 		for (const r of s.roots) {
 			console.log(`  ${r.root.padEnd(pad)}  ${String(r.files).padStart(6)} files  ${String(r.rows).padStart(7)} rows  ${r.kind}${r.skipped ? `  (${r.skipped} >1MB skipped)` : ""}`);
 		}
-		for (const m of s.missingRoots) console.log(`  ${m}  MISSING (skipped)`);
-		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · skipped>1MB ${s.skippedLarge}`);
+		for (const m of s.missingRoots) console.log(`  ${m}  MISSING (skipped, rows kept)`);
+		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · preserved ${s.preserved} · skipped>1MB ${s.skippedLarge}`);
 		console.log(`  ${(s.ms / 1000).toFixed(1)}s · db ${mb(s.dbBytes)} · ${paths.db}`);
 		return 0;
 	} catch (err) {
@@ -55,10 +55,12 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	return 0;
 }
 
-// Everything below the cap is the hook's own budget; the harness hook timeout is the
-// outer hard bound. The SQLite work itself is synchronous and measured at ~8 ms on the
-// real index, so it cannot overrun — what can is ASYNC: a stdin that is never closed,
-// a slow spawn, a blocked pipe. This timer is the answer to all of them at once.
+// The hook's own budget — NOT a hard wall-clock bound, and the README says so too.
+// This timer runs on the event loop, so it bounds ASYNCHRONOUS stalls only: a stdin that
+// is never closed, a slow spawn, a blocked pipe. A SYNCHRONOUS stall — a wedged
+// filesystem inside a single SQLite call, existsSync, or the log append — blocks the loop,
+// the timer never fires, and the harness hook timeout is then the only bound.
+// In practice the query work is measured at ~8 ms, so a real pull finishes well under it.
 // .unref() so it never holds a healthy fast path open.
 function armDeadline(ms: number): void {
 	setTimeout(() => process.exit(0), ms).unref();

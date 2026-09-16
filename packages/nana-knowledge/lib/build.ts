@@ -34,15 +34,81 @@ function tryCreateLock(now: number): boolean {
 	return true;
 }
 
-/** Atomically take the build lock. Returns true iff THIS process owns it. */
+/** Read the pid recorded inside the lock, or null when it is absent/unreadable/empty. */
+function lockPid(): number | null {
+	try {
+		const pid = JSON.parse(fs.readFileSync(paths.buildLock, "utf8"))?.pid;
+		return typeof pid === "number" && pid > 0 ? pid : null;
+	} catch { return null; }
+}
+
+/**
+ * "stale" — the owner is demonstrably gone, or the lock predates the TTL.
+ * "held"  — a real builder is running.
+ * "gone"  — the lock vanished while we looked at it; just retry the create.
+ *
+ * `process.kill(pid, 0)` sends no signal — it only asks "does this pid exist". ESRCH is
+ * the one answer that proves death (EPERM means alive but owned by someone else).
+ */
+function lockState(now: number): "stale" | "held" | "gone" {
+	const pid = lockPid();
+	if (pid !== null) {
+		try { process.kill(pid, 0); } catch (err) {
+			if ((err as NodeJS.ErrnoException)?.code === "ESRCH") return "stale";
+		}
+	}
+	try { return now - fs.statSync(paths.buildLock).mtimeMs > LOCK_TTL_MS ? "stale" : "held"; }
+	catch { return "gone"; }
+}
+
+/** A reclaim is held for ~1 ms; anything older than this is a builder killed mid-reclaim. */
+export const RECLAIM_ORPHAN_MS = 30_000;
+
+/**
+ * Atomically take the build lock. Returns true iff THIS process owns it.
+ *
+ * The fresh case is one atomic `wx`. RECLAIMING a stale lock is the hard part, and the
+ * defect it has to avoid is a reclaimer acting on an OBSERVATION THAT HAS EXPIRED: builder
+ * A sees a stale lock, removes it, creates its own — and B, which read the same stale lock
+ * a microsecond earlier, then removes A's FRESH lock and creates its own. Both return true
+ * and two writers run, which with `--rebuild` means one of them deletes the database under
+ * the other. Renaming the stale file aside instead of unlinking it does NOT fix this: the
+ * rename claims the PATH, not the file that was judged stale, so B still renames away A's
+ * new lock. (Measured, 32 racing processes x 25 races: remove-then-create produced more
+ * than one winner in 3 races, rename-aside in 12. This mechanism: 0.)
+ *
+ * So: the whole reclaim — re-check AND remove AND create — happens under a second,
+ * single-purpose `wx` lock. Inside it the staleness check is re-run, so it cannot be
+ * expired: if someone installed a live lock in the meantime we simply lose. The reclaim
+ * lock is never itself stale-reclaimed on this logic; it is held for about a millisecond,
+ * and an orphan (a builder killed mid-reclaim) is swept after 30 s by a path that NEVER
+ * grants the build lock, so two sweepers racing produce zero winners rather than two.
+ */
 export function acquireBuildLock(now = Date.now()): boolean {
 	try { fs.mkdirSync(paths.home, { recursive: true }); } catch { /* ignore */ }
 	if (tryCreateLock(now)) return true;
-	let age: number;
-	try { age = now - fs.statSync(paths.buildLock).mtimeMs; } catch { return tryCreateLock(now); }
-	if (age <= LOCK_TTL_MS) return false; // a real builder is running
-	try { fs.rmSync(paths.buildLock, { force: true }); } catch { return false; }
-	return tryCreateLock(now); // exactly one retry after reclaiming a stale lock
+	const state = lockState(now);
+	if (state === "gone") return tryCreateLock(now);
+	if (state === "held") return false;
+
+	const reclaimLock = paths.buildLock + ".reclaim";
+	try { fs.closeSync(fs.openSync(reclaimLock, "wx")); } catch {
+		// Someone else is reclaiming right now: lose, and let the next prompt retry in
+		// ~60 ms. Sweep an orphan on the way out — this branch returns false regardless,
+		// which is what makes the sweep safe to race.
+		try { if (Date.now() - fs.statSync(reclaimLock).mtimeMs > RECLAIM_ORPHAN_MS) fs.rmSync(reclaimLock, { force: true }); }
+		catch { /* ignore */ }
+		return false;
+	}
+	try {
+		if (lockState(Date.now()) !== "stale") return false; // re-checked under exclusion
+		try { fs.rmSync(paths.buildLock, { force: true }); } catch { return false; }
+		// The instant between rm and create is open to a process arriving FRESH — and that
+		// is fine: `wx` admits exactly one of us, and whoever loses it returns false here.
+		return tryCreateLock(now);
+	} finally {
+		try { fs.rmSync(reclaimLock, { force: true }); } catch { /* ignore */ }
+	}
 }
 
 /** Remove the lock ONLY when the pid inside is ours — never clear another builder's. */
@@ -68,6 +134,8 @@ export interface BuildStats {
 	reindexed: number;
 	unchanged: number;
 	removed: number;
+	/** Rows kept because their root is configured but missing right now (not deleted). */
+	preserved: number;
 	skippedLarge: number;
 	missingRoots: string[];
 	ms: number;
@@ -150,7 +218,7 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	}
 	const db = await openDb(paths.db, { create: true });
 	const stats: BuildStats = {
-		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0,
+		roots: [], files: 0, rows: 0, reindexed: 0, unchanged: 0, removed: 0, preserved: 0,
 		skippedLarge: 0, missingRoots: [], ms: 0, dbBytes: 0,
 	};
 
@@ -162,10 +230,12 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 		stats.roots.push({ root: r.path, kind: r.kind, files: candidates.length - before, rows: 0, skipped: 0 });
 	}
 	const rootStat = new Map(stats.roots.map((s) => [s.root, s]));
+	const scannedRoots = new Set(stats.roots.map((s) => s.root));
+	const configuredRoots = new Set(roots.map((r) => r.path));
 
-	const existing = new Map<string, { hash: string; size: number; mtime: number; rows: number }>(
-		db.prepare("SELECT path, hash, size, mtime, rows FROM files").all()
-			.map((r: any) => [r.path, { hash: r.hash, size: r.size, mtime: r.mtime, rows: r.rows }]),
+	const existing = new Map<string, { root: string; hash: string; size: number; mtime: number; rows: number }>(
+		db.prepare("SELECT path, root, hash, size, mtime, rows FROM files").all()
+			.map((r: any) => [r.path, { root: r.root, hash: r.hash, size: r.size, mtime: r.mtime, rows: r.rows }]),
 	);
 
 	const delDocs = db.prepare("DELETE FROM docs WHERE path = ?");
@@ -204,9 +274,23 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 		stats.reindexed++; stats.files++; stats.rows += rows.length; rs.rows += rows.length;
 		if (++pending >= 500) { db.exec("COMMIT; BEGIN"); pending = 0; }
 	}
-	// Anything left in `existing` is gone from disk (or its root was removed).
+	// Anything left in `existing` was NOT seen this pass. That means one of two things, and
+	// only one of them is evidence of deletion:
+	//   - its root WAS scanned, or its root is no longer in sources.json  -> really gone, purge
+	//   - its root is still configured but MISSING right now (unmounted volume, repo renamed
+	//     mid-build, a laptop off the VPN) -> keep it. An absent directory is not evidence
+	//     that the knowledge is gone, and purging would erase the whole root's index until
+	//     some later build happens to run while the mount is back.
 	const delFile = db.prepare("DELETE FROM files WHERE path = ?");
-	for (const gone of existing.keys()) { delDocs.run(gone); delFile.run(gone); stats.removed++; }
+	for (const [gone, prev] of existing) {
+		if (!scannedRoots.has(prev.root) && configuredRoots.has(prev.root)) {
+			// still counted: these rows are still IN the index, so the meta counts below
+			// and `status` must reflect them.
+			stats.preserved++; stats.files++; stats.rows += prev.rows;
+			continue;
+		}
+		delDocs.run(gone); delFile.run(gone); stats.removed++;
+	}
 	db.exec("COMMIT");
 
 	setMeta(db, "version", "1");

@@ -53,8 +53,14 @@ hashed; nothing else.
   code blocks are skipped, so DOCTRINE's own entry-contract template does not become 3
   fake rows. Pointers to ledger rows carry a line number: `~/…/DOCTRINE.md:147`.
 
-Roots that do not exist are skipped silently, reported by `build` and `status`. Add a
-root by editing the file; nothing else needs to change.
+Roots that do not exist are skipped, reported by `build` and `status` — and **their
+already-indexed rows are kept**. An unmounted volume or a repo renamed mid-build is not
+evidence that the knowledge is gone; purging on absence would erase a whole root's index
+until some later build happened to run while the mount was back. Rows are purged only when
+the file vanished from a root that was actually scanned, or when the root itself was taken
+out of `sources.json`. (`--rebuild` deletes the database first, so it does re-derive from
+what exists right now — run it when a root is really gone, not when it is merely offline.)
+Add a root by editing the file; nothing else needs to change.
 
 ## The index
 
@@ -65,7 +71,8 @@ call anywhere in this package.
 
 Builds are incremental on a per-file SHA-1 of the content: a file whose size and mtime
 are unchanged is not even read; one whose mtime moved but whose content hash matches is
-re-stat'd and **not** re-indexed. Files that vanish from disk are dropped from the index.
+re-stat'd and **not** re-indexed. Files that vanish from a root that was actually scanned
+are dropped from the index (see `sources.json` above for what a *missing root* does).
 Measured on the seeded corpus (13,382 files / 182 MB of markdown): **11.0 s cold, 0.1 s
 for a no-op rebuild, 273 MB on disk.**
 
@@ -105,12 +112,16 @@ Behaviour, in the order it is decided:
 - **Fail-open, always.** Malformed stdin, a missing index, a corrupt database, a
   permission error — it prints nothing and exits 0. A knowledge pull is never the reason
   a prompt fails to run.
-- **Budget: 1500 ms wall clock, ENFORCED.** An `setTimeout(process.exit(0)).unref()` is
-  armed before stdin is read, so a stdin that is never closed, a slow spawn, or any other
-  async stall exits 0 silently on the deadline; the per-stage checks only short-circuit
-  work that is already pointless. The SQLite work is synchronous and measured at ~8 ms on
-  the real index inside a ~60 ms Node start. Stdin is capped at 256 KB and only the first
-  8 KB of the prompt is tokenized.
+- **Budget: normally well under 1500 ms — not a hard bound.** The query itself is measured
+  at ~8 ms on the real index, inside a ~60 ms Node start. A `setTimeout(process.exit(0))
+  .unref()` timer is armed before stdin is read, and what it bounds is **asynchronous**
+  stalls: a stdin that is never closed, a slow spawn, a blocked pipe — those exit 0
+  silently on the deadline. It cannot bound a **synchronous** stall: if a wedged
+  filesystem blocks inside one SQLite call (or `existsSync`, or the log append) the event
+  loop never runs, the timer never fires, and the only bound left is the harness hook
+  timeout (`"timeout": 5` above). There is no 1500 ms guarantee — the guarantee is
+  fail-open, not fail-fast. The per-stage checks only short-circuit work that is already
+  pointless. Stdin is capped at 256 KB and only the first 8 KB of the prompt is tokenized.
 - **Skips** prompts under 12 characters, prompts starting with `/` (slash commands),
   harness notifications (`<system-reminder>`, `[SYSTEM NOTIFICATION`, `<task-notification>`
   — these arrive on the same channel as your typing and are machine text about the
@@ -126,8 +137,16 @@ Behaviour, in the order it is decided:
   morning has to be pullable that afternoon. The hook does **not** check the lock before
   spawning — that check was a TOCTOU that let two prompts start two writers. Every build
   path instead takes `build.lock` atomically (`openSync(..., "wx")`, pid inside, removed
-  only by its owner, reclaimed after 10 minutes), so a burst costs a few detached node
-  processes that exit in ~60 ms and never two concurrent writers. Readers are not swapped
+  only by its owner), so a burst costs a few detached node processes that exit in ~60 ms
+  and never two concurrent writers. A lock whose pid is no longer alive (`kill(pid, 0)` →
+  `ESRCH`), or that predates 10 minutes, is **reclaimed under a second `wx` lock**
+  (`build.lock.reclaim`): re-check, remove and create all happen inside that exclusion, so
+  no builder can act on a staleness observation that has since expired. Plain
+  remove-then-create was not safe — the loser's already-authorised unlink deletes the
+  winner's *fresh* lock — and neither is renaming the stale file aside, because the rename
+  claims the path rather than the file that was judged stale. Measured, 32 racing processes
+  × 25 races: remove-then-create gave more than one winner in 3 races, rename-aside in 12,
+  this mechanism in 0. Readers are not swapped
   onto a temp database: WAL already gives a consistent snapshot, and a pointer from the
   previous generation still names a real file.
 

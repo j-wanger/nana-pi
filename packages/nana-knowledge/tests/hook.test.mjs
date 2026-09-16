@@ -17,7 +17,7 @@ fs.writeFileSync(path.join(src, "compaction.md"), "# Context compaction handoff\
 fs.writeFileSync(path.join(src, "long.md"), "# " + "Titanic ".repeat(30) + "\n" + "compaction ".repeat(900) + "\n");
 fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));
 
-const { build, acquireBuildLock, releaseBuildLock, LOCK_TTL_MS } = await import(new URL("../lib/build.ts", import.meta.url).href);
+const { build, acquireBuildLock, releaseBuildLock, LOCK_TTL_MS, RECLAIM_ORPHAN_MS } = await import(new URL("../lib/build.ts", import.meta.url).href);
 const hook = await import(new URL("../lib/hook.ts", import.meta.url).href);
 const { runHook, renderBlock, ensureFreshIndex, readShown, BLOCK_MAX_CHARS } = hook;
 
@@ -94,7 +94,7 @@ const rb = await call(payload({ prompt: "what is the pi review round cap" }), { 
 check("over budget prints nothing", rb.output === null && rb.reason === "budget");
 const t0 = Date.now();
 await call(JSON.stringify({ session_id: "s3", prompt: "review rounds compaction handoff pi" }), { spawnFn: noSpawn });
-check(`a real pull is well inside 1500 ms (${Date.now() - t0} ms)`, Date.now() - t0 < 1500);
+check(`a real pull is well inside the 1500 ms budget (${Date.now() - t0} ms)`, Date.now() - t0 < 1500);
 
 // --- hard 2000-char block cap ---
 const fat = Array.from({ length: 12 }, (_, i) => ({
@@ -180,8 +180,11 @@ const hung = await spawnHook((stdin) => { stdin.write('{"session_id":"hung","pro
 check(`hung stdin: the hook exits at all (${hung.ms} ms)`, hung.ms < 5000);
 check("hung stdin: exit code 0", hung.code === 0);
 check("hung stdin: prints nothing", hung.out === "" && hung.err === "");
-// bound = node startup (~70 ms) + the armed 1500 ms deadline; typical is ~1570 ms
-check(`hung stdin: terminates on the 1500 ms deadline (${hung.ms} ms)`, hung.ms < 1800);
+// What this pins is the ASYNCHRONOUS bound — the armed timer fires on the event loop, so
+// it catches a stdin that is never closed. It is NOT a hard wall-clock guarantee: a
+// SYNCHRONOUS stall blocks the loop and only the harness hook timeout bounds that.
+// Bound here = node startup (~70 ms) + the armed 1500 ms deadline; typical is ~1570 ms.
+check(`hung stdin: the async deadline fires (${hung.ms} ms)`, hung.ms < 1800);
 
 const garbage = await spawnHook((stdin) => stdin.end("}{ not json at all"));
 check("malformed stdin: exit code 0", garbage.code === 0);
@@ -193,7 +196,7 @@ fs.mkdirSync(lockHome, { recursive: true });
 process.env.NANA_KNOWLEDGE_HOME = lockHome;
 const lockFile = path.join(lockHome, "build.lock");
 const won = [acquireBuildLock(), acquireBuildLock(), acquireBuildLock()];
-check("two concurrent lock attempts: exactly one wins", won.filter(Boolean).length === 1);
+check("three sequential lock attempts in one process: exactly one wins", won.filter(Boolean).length === 1);
 check("the lock file records the owning pid", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
 
 // a foreign lock is never cleared by release
@@ -206,8 +209,80 @@ const stale = (Date.now() - LOCK_TTL_MS - 60000) / 1000;
 fs.utimesSync(lockFile, stale, stale);
 check("a lock older than the TTL is reclaimed", acquireBuildLock() === true);
 check("the reclaimed lock is ours", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
+check("reclaim leaves no .reclaim litter behind", !fs.existsSync(lockFile + ".reclaim"));
 releaseBuildLock();
 check("release removes OUR lock", !fs.existsSync(lockFile));
+
+// a fresh lock whose OWNER IS DEAD is stale too — a crashed builder must not block the
+// index for ten minutes. deadPid is a pid we watched exit, so kill(pid,0) gives ESRCH.
+const deadPid = Number(execFileSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" }));
+const staleLock = () => {
+	fs.writeFileSync(lockFile, JSON.stringify({ pid: deadPid, at: 0 }));
+	const t = (Date.now() - LOCK_TTL_MS - 60000) / 1000;
+	fs.utimesSync(lockFile, t, t);
+};
+fs.writeFileSync(lockFile, JSON.stringify({ pid: deadPid, at: Date.now() }));
+check("a lock with a dead pid is reclaimed even when its mtime is fresh", acquireBuildLock() === true);
+releaseBuildLock();
+
+// THE EXCLUSION, asserted deterministically. Reclaiming is re-check + remove + create, and
+// all three run under a second `wx` lock so no reclaimer can act on an expired observation.
+// These three checks are what catch a regression of the mechanism; the multi-process race
+// below is what proves the resulting CONTRACT across real processes.
+staleLock();
+const reclaimLock = lockFile + ".reclaim";
+fs.writeFileSync(reclaimLock, ""); // another builder is mid-reclaim right now
+check("a second reclaimer loses while the reclaim lock is held", acquireBuildLock() === false);
+check("...and it does NOT remove the stale lock it lost the race for", fs.existsSync(lockFile));
+const orphan = (Date.now() - RECLAIM_ORPHAN_MS - 5000) / 1000;
+fs.utimesSync(reclaimLock, orphan, orphan);
+check("an ORPHANED reclaim lock is swept, and the sweep itself never grants the build lock",
+	acquireBuildLock() === false && !fs.existsSync(reclaimLock));
+check("the sweep leaves the stale lock for the next attempt to reclaim", fs.existsSync(lockFile));
+check("the next attempt then reclaims it", acquireBuildLock() === true);
+releaseBuildLock();
+
+// --- and the contract across real processes: N builders, one stale lock, one winner ---
+// The sequential calls above all run in ONE process and cannot see the interleaving at all
+// (that was the reviewer's catch). These are separate `node` processes parked on the same
+// wall-clock instant. Measured against the two mechanisms this replaced, at 32 racers:
+// remove-then-create gave >1 winner in 3/25 races and rename-aside in 12/25; this one, 0/25.
+const raceHome = path.join(td, "racehome");
+fs.mkdirSync(raceHome, { recursive: true });
+const raceLock = path.join(raceHome, "build.lock");
+fs.writeFileSync(raceLock, JSON.stringify({ pid: deadPid, at: 0 })); // dead pid AND old mtime
+const oldStale = (Date.now() - LOCK_TTL_MS - 60000) / 1000;
+fs.utimesSync(raceLock, oldStale, oldStale);
+
+const racer = path.join(td, "racer.mjs");
+fs.writeFileSync(racer, `
+const { acquireBuildLock } = await import(process.env.NK_BUILD_URL);
+const sleep = (ms) => { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+const go = Number(process.env.NK_GO_AT);
+sleep(go - 10 - Date.now());
+while (Date.now() < go) { /* spin onto the same millisecond as every other racer */ }
+process.stdout.write(acquireBuildLock() ? "WON" : "LOST");
+sleep(900);                          // HOLD: a winner that exited would itself look stale
+`);
+const buildUrl = new URL("../lib/build.ts", import.meta.url).href;
+const goAt = Date.now() + 1400; // enough for every child to start and finish its import
+const racers = Array.from({ length: 16 }, () => new Promise((resolve) => {
+	const c = spawn(process.execPath, [racer], {
+		stdio: ["ignore", "pipe", "pipe"],
+		env: { ...process.env, NODE_NO_WARNINGS: "1", NANA_KNOWLEDGE_HOME: raceHome, NK_BUILD_URL: buildUrl, NK_GO_AT: String(goAt) },
+	});
+	let out = "", err = "";
+	c.stdout.on("data", (d) => { out += d; });
+	c.stderr.on("data", (d) => { err += d; });
+	c.on("close", () => resolve({ out: out.trim(), err }));
+}));
+const results = await Promise.all(racers);
+const winners = results.filter((r) => r.out === "WON").length;
+check(`16 processes reclaim one stale lock: exactly one WON (${winners} winners)`, winners === 1);
+check("every loser reported LOST and none crashed",
+	results.filter((r) => r.out === "LOST").length === 15 && results.every((r) => !r.err));
+check("the winner's lock survives every loser", fs.existsSync(raceLock));
+check("the race leaves no .reclaim litter behind", !fs.existsSync(raceLock + ".reclaim"));
 
 // and build() itself refuses to run a second writer
 fs.writeFileSync(path.join(lockHome, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));

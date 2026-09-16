@@ -91,5 +91,32 @@ await build();
 check("shown files older than 7 days pruned", !fs.existsSync(oldShown));
 check("recent shown files kept", fs.existsSync(newShown));
 
+// --- a configured root that is temporarily MISSING keeps its rows ---
+// A renamed repo or an unmounted volume is not evidence that the knowledge is gone; the
+// old code deleted every row of that root and the next query came back empty.
+const away = src + ".away";
+fs.renameSync(src, away);
+const s7 = await build();
+check("missing root: nothing is removed", s7.removed === 0);
+check("missing root: its rows are preserved and still counted", s7.preserved === 1 && s7.rows === 3);
+check("missing root: it is still reported missing", s7.missingRoots.includes(src));
+db = await openDb(path.join(home, "index.db"), {});
+check("missing root: its rows are still searchable", search(db, "kilo lima", 5).length === 1);
+db.close();
+
+fs.renameSync(away, src);
+const s8 = await build();
+check("restored root: nothing re-indexed, nothing removed", s8.reindexed === 0 && s8.removed === 0);
+check("restored root: same row count as before it vanished", s8.rows === 3 && s8.preserved === 0);
+
+// ...but taking the root OUT of sources.json does purge it — that is a deliberate config
+// change, not an absent directory.
+fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({ roots: [{ path: ledger, kind: "ledger" }] }));
+const s9 = await build();
+check("root dropped from sources.json: its rows are purged", s9.removed === 1 && s9.rows === 2);
+db = await openDb(path.join(home, "index.db"), {});
+check("purged rows are no longer searchable", search(db, "kilo lima", 5).length === 0);
+db.close();
+
 fs.rmSync(td, { recursive: true, force: true });
 process.exit(fails);
