@@ -118,7 +118,11 @@ cycle guard — the desk's does).
   setting it, pi's own read/bash/edit/write. Unchecking sends `-xt` — deliberately
   NOT `-t`, which is a strict allowlist over *every* tool and would delete
   nana-stage and the subagent tools along with the one you dropped.
-- **Transcripts** — markdown rendering, collapsed thinking blocks, tool cards with
+- **Transcripts** — markdown rendering, collapsed thinking blocks (header: char
+  count; live, a compact card windowed on the last few lines of the reasoning,
+  expandable, that collapses to the same closed `<details>` when the block ends),
+  a `/skill:` trigger pi expanded into a whole skill file shown as `▸ /skill:NAME`
+  with the body behind a closed `<details>`, tool cards with
   full args + results + edit diffs, compaction/branch summaries, model/thinking
   change markers; abandoned branches collapse into dimmed groups. The `subagent`
   tool (pi-subagents) gets a readable card instead of raw JSON: agent — task in
@@ -138,8 +142,10 @@ cycle guard — the desk's does).
   arrives as a `PI_SUBAGENT_ASYNC_JSON:` machine snapshot for RPC clients — the
   desk decodes it into per-run rows instead of printing the blob);
   set_editor_text → composer.
-- **Header/footer** — model picker, thinking-level picker, session rename,
-  queue bar, status chips, tokens/cost, context meter (get_session_stats; after
+- **Header/footer** — an activity line above the composer while a turn runs
+  (spinner, what it is doing — thinking, writing, the file it is reading, the
+  command it is running — and the elapsed time), model picker, thinking-level
+  picker, session rename, queue bar, status chips, tokens/cost, context meter (get_session_stats; after
   a compaction pi reports percent:null until the next reply, so the meter shows
   the compaction's own estimate as `~N% (est)` instead of going stale),
   theme toggle (auto/light/dark).
