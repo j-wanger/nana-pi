@@ -295,6 +295,15 @@ const relay = net.createServer((client) => {
 	for (const ev of ["close", "error", "end"]) { client.on(ev, bye); up.on(ev, bye); }
 });
 await new Promise((r) => relay.listen(RELAY_PORT, "127.0.0.1", r));
+// A reconnect's history read is a POSITIVE fact to wait on, and "the transcript
+// was rebuilt" is what it means: renderMessages() replaces every node in the
+// pane. Mark the first bubble before the SSE is cut and wait for a bubble that
+// does not carry the mark. Waiting on a card COUNT (or on any /rpc response)
+// was satisfied by the pre-reconnect pane, so the held POST could be released
+// before the read had answered — the server only needs a few ms of other work
+// (a git-backed /changes GET rides the same hello) to lose that race.
+const markPane = (page) => page.evaluate(() => { const m = document.querySelector("#transcript .msg"); if (m) m.dataset.pre = "1"; return !!m; });
+const waitRebuilt = (page) => page.waitForFunction(() => { const m = document.querySelector("#transcript .msg"); return !!m && !m.dataset.pre; }, null, { timeout: 20000 });
 const killSse = () => { for (const s of [...sseSockets]) { sseSockets.delete(s); s.destroy(); } };
 
 const spawnSession = (cwd, name) =>
@@ -649,9 +658,11 @@ try {
 		await page.route(`**/api/session/${b.id}/bash`, async (route) => {
 			const resp = await route.fetch();
 			await page.waitForFunction(() => window.__sse.some((e) => e.type === "desk_bash_result"), null, { timeout: 15000 });
+			await markPane(page);
 			killSse();
 			await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
 			// the resync brought pi's own finished record of this command back
+			await waitRebuilt(page);
 			await page.waitForFunction(() => document.querySelectorAll(".bash-card").length === 1, null, { timeout: 20000 });
 			before = getMessages; // count the repair resync only, from the release on
 			return route.fulfill({ response: resp });
@@ -780,8 +791,10 @@ try {
 		await page.press("#input", "Enter");
 		await intercepted;
 		// an unrelated rebuild: the reconnect resync replays only the FIRST run
+		await markPane(page);
 		killSse();
 		await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
+		await waitRebuilt(page);
 		await page.waitForFunction(() => document.querySelectorAll(".bash-card").length === 1, null, { timeout: 20000 });
 		const before = getMessages;
 		release();
@@ -1038,9 +1051,10 @@ try {
 		await page.press("#input", "Enter");
 		await intercepted; // the POST is parked and the command is still running
 
+		await markPane(page);
 		killSse();
 		await page.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 30000 });
-		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/rpc")), null, { timeout: 20000 });
+		await waitRebuilt(page); // the reconnect read has answered and rebuilt the pane
 		release();
 		await page.waitForFunction(() => window.__fetched.some((u) => u.includes("/bash")), null, { timeout: 20000 });
 		await page.waitForTimeout(SETTLE); // the rebuild branch ran: no card exists yet
