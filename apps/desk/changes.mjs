@@ -42,6 +42,9 @@ function runGit(args, cwd, { cap, truncate = false } = {}) {
 	return new Promise((resolve) => {
 		const chunks = [];
 		let bytes = 0, done = false, over = false;
+		// declared first: a synchronous spawn() throw calls finish() before the
+		// timer exists, and `clearTimeout(timer)` would hit the temporal dead zone
+		let timer = null;
 		const finish = (r) => {
 			if (done) return;
 			done = true;
@@ -58,7 +61,7 @@ function runGit(args, cwd, { cap, truncate = false } = {}) {
 		} catch (e) {
 			return finish({ ok: false, reason: e?.code === "ENOENT" ? "missing" : "spawn", error: String(e?.message || e) });
 		}
-		const timer = setTimeout(() => {
+		timer = setTimeout(() => {
 			try { proc.kill("SIGKILL"); } catch {}
 			finish({ ok: false, reason: "timeout", error: `git timed out after ${gitTimeout()} ms` });
 		}, gitTimeout());
@@ -165,7 +168,10 @@ function parsePorcelain(out) {
 function countNewFile(abs) {
 	let buf;
 	try {
-		const st = fs.statSync(abs);
+		// lstat, not stat: an untracked SYMLINK must never be followed — counting
+		// its target's lines would report something from outside the work tree.
+		const st = fs.lstatSync(abs);
+		if (st.isSymbolicLink()) return { added: null, binary: false };
 		if (!st.isFile()) return null;
 		if (st.size > UNTRACKED_BYTE_CAP) return { added: null, binary: true };
 		buf = fs.readFileSync(abs);
@@ -180,10 +186,16 @@ function countNewFile(abs) {
 	return { added: s.endsWith("\n") ? n : n + 1, binary: false };
 }
 
+// A spawn ENOENT is ambiguous: git is not on PATH, or the cwd itself is gone
+// (the worktree was removed under a live session). Say which.
+function spawnFailure(cwd) {
+	return fs.existsSync(cwd) ? "git not found" : "working directory is gone";
+}
+
 export async function collectChanges(cwd) {
 	const info = await repoInfo(cwd);
 	if (info.broken) {
-		if (info.broken.reason === "missing") return { status: 200, body: { repo: false, reason: "git not found" } };
+		if (info.broken.reason === "missing") return { status: 200, body: { repo: false, reason: spawnFailure(cwd) } };
 		return { status: 500, body: { error: info.broken.error } };
 	}
 	if (!info.repo) return { status: 200, body: { repo: false } };
@@ -278,7 +290,7 @@ function newFileDiff(rel, abs, cap) {
 export async function fileDiff(cwd, rel) {
 	const info = await repoInfo(cwd);
 	if (info.broken) {
-		if (info.broken.reason === "missing") return { status: 500, body: { error: "git not found" } };
+		if (info.broken.reason === "missing") return { status: 500, body: { error: spawnFailure(cwd) } };
 		return { status: 500, body: { error: info.broken.error } };
 	}
 	if (!info.repo) return { status: 409, body: { error: "not a git work tree" } };
@@ -288,7 +300,7 @@ export async function fileDiff(cwd, rel) {
 
 	// Tracked or untracked? Ask git, not the filesystem: a file can exist and
 	// still be untracked, and only git knows which.
-	const ls = await runGit(["ls-files", "-z", "--error-unmatch", "--", rel], info.root);
+	const ls = await runGit(["--literal-pathspecs", "ls-files", "-z", "--error-unmatch", "--", rel], info.root);
 	const trackedByGit = ls.ok && ls.code === 0 && text(ls).replace(/\0/g, "").length > 0;
 	if (!trackedByGit && at.exists) {
 		const r = newFileDiff(rel, at.abs, cap);
@@ -296,7 +308,7 @@ export async function fileDiff(cwd, rel) {
 		return { status: 200, body: { path: rel, diff: r.diff, truncated: r.truncated, ...(r.binary ? { binary: true } : {}) } };
 	}
 	if (!info.baseline) return { status: 200, body: { path: rel, diff: "", truncated: false } };
-	const d = await runGit(["-c", "core.quotepath=false", "diff", info.baseline, "--", rel], info.root, { cap, truncate: true });
+	const d = await runGit(["-c", "core.quotepath=false", "--literal-pathspecs", "diff", info.baseline, "--", rel], info.root, { cap, truncate: true });
 	if (gitBroken(d)) return { status: 500, body: { error: d.error } };
 	if (!d.truncated && d.code !== 0) return { status: 500, body: { error: d.stderr || `git exited ${d.code}` } };
 	return { status: 200, body: { path: rel, diff: text(d), truncated: !!d.truncated } };

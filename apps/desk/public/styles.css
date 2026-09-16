@@ -534,7 +534,7 @@ body {
 .cg-row.st-A .cg-st, .cg-row.st-new .cg-st { color: var(--go); }
 .cg-row.st-D .cg-st { color: var(--stop); }
 .cg-row.st-R .cg-st { color: var(--accent); }
-.cg-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cg-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cg-more { padding: 2px 10px; font-size: 11px; }
 
 /* Floating, NOT modal: the composer stays usable with a diff open. Below
@@ -568,7 +568,7 @@ body {
 }
 .diffwin-head button { padding: 1px 7px; font-size: 12px; line-height: 1.5; }
 .diffwin-head button:disabled { opacity: 0.35; cursor: default; }
-.dw-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dw-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dw-count { flex: 0 0 auto; }
 .diffwin-body { flex: 1; min-height: 0; overflow: auto; padding: 6px 0; }
 .dw-note { padding: 2px 10px 6px; font-size: 11px; }

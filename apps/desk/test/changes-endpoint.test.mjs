@@ -116,6 +116,13 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	check("the endpoint refuses that symlink with 400", viaLink.status === 400, JSON.stringify(viaLink));
 	fs.rmSync(path.join(repo, "escape.txt"));
 
+	// an untracked SYMLINK is listed but never READ: its target's line count
+	// would be a fact from outside the work tree
+	fs.symlinkSync(outside, path.join(repo, "peek.txt"));
+	const listed = byPath((await collectChanges(repo)).body)["peek.txt"];
+	check("an untracked symlink is listed but not counted", listed && listed.added === null, JSON.stringify(listed));
+	fs.rmSync(path.join(repo, "peek.txt"));
+
 	const bad = await fileDiff(repo, "../outside-secret.txt");
 	check("the endpoint refuses `..` with 400 and reads nothing", bad.status === 400 && !JSON.stringify(bad.body).includes("secret"), JSON.stringify(bad));
 	if (process.platform === "win32") check("path rejected: a drive letter", !!resolveInRoot(root, "C:\\Windows\\win.ini").error, "");
@@ -180,6 +187,12 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	const r = await collectChanges(repo);
 	process.env.PATH = savedPath;
 	check("no git on PATH: repo:false with a reason, never a throw", r.status === 200 && r.body.repo === false && r.body.reason === "git not found", JSON.stringify(r.body));
+}
+
+// ── A9. a cwd that no longer exists (the worktree was removed under a session) ──
+{
+	const r = await collectChanges(path.join(TD, "never-existed"));
+	check("a vanished cwd says so, and is not blamed on git", r.status === 200 && r.body.repo === false && r.body.reason === "working directory is gone", JSON.stringify(r.body));
 }
 
 // ══ B. the routes, through the real server ══════════════════════════════════
