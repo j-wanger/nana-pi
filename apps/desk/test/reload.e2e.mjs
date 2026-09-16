@@ -128,16 +128,30 @@ process.stdin.on("data", (c) => {
 				if (!msg.startsWith("/")) say({ type: "message_end", message: { role: "user", content: [{ type: "text", text: cmd.message }] } });
 				let ctl = {};
 				try { ctl = JSON.parse(fs.readFileSync(process.env.STUB_CTL, "utf-8")); } catch {}
-				const delay = msg === "/reload-runtime" ? Number(ctl.reloadDelayMs) || 0 : 0;
-				if (!delay) { ok({}); break; }
 				// a slow extension command is a slow ANSWER to the prompt: pi emits
 				// the prompt's success only once the command's handler resolved
-				setTimeout(() => {
-					if (ctl.commandsAfterReload) fs.writeFileSync(process.env.STUB_CMDS, JSON.stringify(ctl.commandsAfterReload));
+				const answer = (c) => {
+					if (c.commandsAfterReload) fs.writeFileSync(process.env.STUB_CMDS, JSON.stringify(c.commandsAfterReload));
 					fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({ mark: MARK, type: "prompt-answered", message: msg, at: Date.now() }) + "\\n");
-					if (ctl.reloadFail) say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: String(ctl.reloadFail) });
+					if (c.reloadFail) say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: String(c.reloadFail) });
 					else ok({});
-				}, delay);
+				};
+				// reloadHold: the answer waits for the TEST, not for a clock. The
+				// control file is re-read on every poll, so releasing it is an event
+				// the test decides the moment of.
+				if (msg === "/reload-runtime" && ctl.reloadHold) {
+					const poll = setInterval(() => {
+						let now = {};
+						try { now = JSON.parse(fs.readFileSync(process.env.STUB_CTL, "utf-8")); } catch { return; }
+						if (!now.reloadRelease) return;
+						clearInterval(poll);
+						answer(now);
+					}, 100);
+					break;
+				}
+				const delay = msg === "/reload-runtime" ? Number(ctl.reloadDelayMs) || 0 : 0;
+				if (!delay) { ok({}); break; }
+				setTimeout(() => answer(ctl), delay);
 				break;
 			}
 			default: ok({});
@@ -174,6 +188,14 @@ const Native = window.EventSource;
 window.EventSource = class extends Native {
 	constructor(...a) { super(...a); this.addEventListener("message", (ev) => { try { window.__sse.push(JSON.parse(ev.data)); } catch {} }); }
 };
+// …and every /prompt answer the page received, cloned before app.js reads it, so
+// a test can NAME the promptId a reload is waiting on instead of guessing it.
+window.__prompts = [];
+const nativeFetch = window.fetch;
+window.fetch = (...a) => nativeFetch(...a).then((r) => {
+	try { if (String(r.url).endsWith("/prompt")) r.clone().json().then((j) => window.__prompts.push(j)).catch(() => {}); } catch {}
+	return r;
+});
 `;
 
 // ── TCP relay in front of the desk, so test 10 can destroy the SSE socket at a
@@ -185,12 +207,20 @@ const RELAY_PORT = PORT + 1;
 if (String(RELAY_PORT).length !== String(PORT).length) throw new Error("relay port must have the same digit count as the desk port");
 const RELAY = `http://127.0.0.1:${RELAY_PORT}`;
 const sseSockets = new Set();
+// While this is on the relay carries NO /events connection: what is open is
+// destroyed and what tries to reconnect dies at the relay. That turns "the
+// stream was down when the settlement was broadcast" from a timing hope into a
+// property of the test. Everything else (prompts, rpc, resources) still flows.
+let blockSse = false;
 const relay = net.createServer((client) => {
 	const up = net.connect(PORT, "127.0.0.1");
 	const bye = () => { sseSockets.delete(client); client.destroy(); up.destroy(); };
 	client.on("data", (c) => {
 		const s = c.toString("latin1");
-		if (/^GET [^\r\n ]*\/events[ ?]/m.test(s)) sseSockets.add(client);
+		if (/^GET [^\r\n ]*\/events[ ?]/m.test(s)) {
+			if (blockSse) return bye();
+			sseSockets.add(client);
+		}
 		up.write(Buffer.from(s.split(`127.0.0.1:${RELAY_PORT}`).join(`127.0.0.1:${PORT}`), "latin1"));
 	});
 	up.on("data", (c) => client.write(c));
@@ -470,9 +500,15 @@ try {
 	// ── 10. the settled event is broadcast while the stream is DOWN ──
 	// The desk replays no event buffers, so that event is gone for good. What
 	// brings the answer back is the reconnect's desk_hello: the server keeps the
-	// last 32 detached outcomes per session and puts them in the snapshot. One tab
-	// only, and it goes through the TCP relay — the SSE socket has to be destroyed
-	// for real, and kept destroyed across pi's answer.
+	// last 32 detached outcomes per session and puts them in the snapshot.
+	//
+	// Nothing here is timed. pi's answer is HELD until this test releases it, and
+	// for the whole window the relay carries no /events connection at all — what
+	// was open is destroyed and a reconnect dies at the relay. So "the settlement
+	// was broadcast with nothing listening" is a fact the test creates, not one it
+	// hopes for, and it is checked afterwards: no live settled event for THIS
+	// promptId ever reached the page. One tab only — page 1 is closed first, so
+	// the child has no other SSE client the broadcast could have gone to.
 	await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 	await page.close();
 	{
@@ -484,25 +520,42 @@ try {
 		await openByMark(page2, "packed");
 		await until(() => commandReads("packed").length > readsBeforeRelay, "read the commands on the relayed page");
 		await sleep(3100);
-		setCtl({
-			reloadDelayMs: 7000,
-			commandsAfterReload: { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("afterdrop")] },
-		});
+		const held = { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("afterdrop")] };
+		setCtl({ reloadHold: true, commandsAfterReload: held }); // …until this test says otherwise
 		const beforeDrop = reloadPrompts("packed").length;
+		const answersBefore = reloadAnswers("packed").length;
+		const promptsBefore = await page2.evaluate(() => window.__prompts.length);
 		await submit(page2, "/reload");
-		await until(() => reloadPrompts("packed").length === beforeDrop + 1, "sent the reload whose answer will be missed");
+		await until(() => reloadPrompts("packed").length === beforeDrop + 1, "sent the reload pi is now holding");
 		await submit(page2, "hello across a dropped stream");
-		await sleep(5800); // past the endpoint's 5 s detach: the waiter is installed
-		// …and the stream stays down THROUGH pi's answer at 7 s, so the settled
-		// event is broadcast with nothing listening. A reconnect landing in the
-		// middle would have received it live and proved nothing.
+		// The endpoint detaches after 5 s, so the page HAVING that answer is the
+		// positive fact that its waiter is installed — and the answer names the
+		// promptId every assertion below is about.
+		await page2.waitForFunction((n) => window.__prompts.slice(n).some((p) => p.pending), promptsBefore, { timeout: 25000 });
+		const promptId = await page2.evaluate((n) => window.__prompts.slice(n).find((p) => p.pending).promptId, promptsBefore);
+		check("10: the reload detached, and the page knows which prompt it waits on", !!promptId, String(promptId));
+
+		// the stream goes down and STAYS down — nothing can be listening from here
+		blockSse = true;
 		killSse();
-		const keepDown = setInterval(killSse, 200);
-		await sleep(3500);
-		clearInterval(keepDown);
+		await until(() => sseSockets.size === 0, "the relay let go of its SSE socket");
+		await page2.waitForFunction(() => document.getElementById("chip")?.textContent === "disconnected", null, { timeout: 20000 });
+		// …and only NOW is pi allowed to answer, into a child with no clients
+		setCtl({ reloadHold: true, reloadRelease: true, commandsAfterReload: held });
+		await until(() => reloadAnswers("packed").length === answersBefore + 1, "pi answered the held reload", 15000);
+		await sleep(500); // the broadcast rides the answer's own stdout line: give it the tick
+		blockSse = false;
+
 		await page2.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 40000 });
-		const hello2 = await page2.evaluate(() => window.__sse.filter((e) => e.type === "desk_hello").at(-1));
-		check("10: the reconnect's hello carries the settled outcomes", Array.isArray(hello2?.settledPrompts) && hello2.settledPrompts.length > 0, JSON.stringify(hello2?.settledPrompts));
+		const seen = await page2.evaluate((id) => {
+			const idx = window.__sse.map((e) => e.type).lastIndexOf("desk_hello");
+			return {
+				live: window.__sse.slice(0, idx).filter((e) => e.type === "desk_prompt_settled" && e.promptId === id).length,
+				ring: (window.__sse[idx].settledPrompts || []).filter((s) => s.promptId === id),
+			};
+		}, promptId);
+		check("10: no settled event for this prompt ever reached the page live", seen.live === 0, `${seen.live} live settled events for ${promptId}`);
+		check("10: …and the reconnect's hello carries THAT prompt's outcome", seen.ring.length === 1 && seen.ring[0].ok === true, JSON.stringify(seen.ring));
 		const t10 = await untilToast(page2, /reloaded/, 25000);
 		check("10: a reload whose settled event was missed finishes on the reconnect", /new: afterdrop/.test(t10), t10);
 		await until(() => userPrompts("packed", "hello across a dropped stream").length === 1, "released the prompt held across the outage", 15000);
