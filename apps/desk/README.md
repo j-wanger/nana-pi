@@ -196,7 +196,11 @@ cycle guard — the desk's does).
   its own 600 s RPC timeout included), when the session exits, or when you leave
   the session. Nothing else is evidence — a changed command list can be another
   tab's reload, an unchanged one says nothing, and `isStreaming` never moves for
-  an extension command, which starts no agent run. **Two tabs on one session can
+  an extension command, which starts no agent run. The cost of taking the event
+  as the only evidence: the desk does not replay events, so if the SSE stream
+  drops while a detached reload is in flight, that settled event is gone and the
+  wait ends only when the session exits or you leave it — and your text is still
+  sitting in the composer, unsent, either way. **Two tabs on one session can
   each start a reload**: pi serializes the prompts, and the second tab's own
   typing is held by its own reload, not by the first tab's. Same user, same
   session, both reloads run — noted, not fixed.
