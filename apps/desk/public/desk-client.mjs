@@ -6,6 +6,8 @@
 //
 //   rendering   el · contentBlocks · renderImage · argSummary
 //               toolRow · setToolStreaming · renderDiff · finishToolRow
+//   live text   activityVerb · toolActivity (the composer's activity line)
+//               parseSkillMessage · skillLabel · matchesUserEcho
 //   dialogs     buildDialog (extension_ui_request select/confirm/input/editor)
 //   transport   openEventStream · postJson · rpcCall
 //
@@ -38,6 +40,100 @@ export function argSummary(args) {
 	for (const k of ARG_KEYS) if (typeof args[k] === "string") return args[k].slice(0, 160);
 	const s = JSON.stringify(args);
 	return s === "{}" ? "" : s.slice(0, 160);
+}
+
+// ── live activity: what the turn is doing right now ──
+// Pure. A desk/pi event in, the verb phrase for the composer's activity line
+// out; null = this event says nothing new, keep the phrase you have
+// (most-recent-wins is the caller's job).
+const baseName = (p) => String(p ?? "").split(/[\\/]/).pop();
+
+export function toolActivity(toolName, args) {
+	const name = String(toolName || "tool");
+	const arg = argSummary(args); // same key order the tool cards summarize by
+	switch (name) {
+		case "read":
+			return arg ? `Reading ${baseName(arg)}…` : "Reading…";
+		case "edit":
+			return arg ? `Editing ${baseName(arg)}…` : "Editing…";
+		case "write":
+			return arg ? `Writing ${baseName(arg)}…` : "Writing…";
+		case "bash":
+			return arg ? `Running: ${arg.slice(0, 60)}…` : "Running a command…";
+		case "grep":
+		case "find":
+		case "ls":
+			return "Searching…";
+		case "subagent":
+			return "Delegating…";
+		default:
+			return `Running ${name}…`;
+	}
+}
+
+export function activityVerb(e) {
+	switch (e?.type) {
+		case "agent_start":
+			return "Starting…";
+		case "message_update": {
+			const a = e.assistantMessageEvent;
+			if (a?.type === "thinking_start" || a?.type === "thinking_delta") return "Thinking…";
+			if (a?.type === "text_start" || a?.type === "text_delta") return "Writing…";
+			if (a?.type === "toolcall_start") return `Calling ${a.toolName || "tool"}…`;
+			return null;
+		}
+		case "tool_execution_start":
+			return toolActivity(e.toolName, e.args ?? e.input);
+		case "tool_execution_end":
+			return "Thinking…"; // the tool answered; the model is about to speak again
+		case "compaction_start":
+			return "Compacting context…";
+		case "auto_retry_start":
+			return `Retrying (${e.attempt}/${e.maxAttempts})…`;
+		default:
+			return null;
+	}
+}
+
+// ── skill triggers ──
+// pi EXPANDS `/skill:<name> [args]` into the whole skill file before it records
+// the user message (`_expandSkillCommand`, agent-session.js), so what comes back
+// as the echo is a `<skill …>` block, not what was typed. Parse that shape back
+// — exactly, or not at all: anything that does not match renders as ordinary
+// text.  { name, location, body, args } | null
+const SKILL_OPEN = /^<skill name="([^"]*)" location="([^"]*)">$/;
+const SKILL_CLOSE = "\n</skill>";
+export function parseSkillMessage(text) {
+	if (typeof text !== "string" || !text.startsWith('<skill name="')) return null;
+	const nl = text.indexOf("\n");
+	if (nl < 0) return null;
+	const head = SKILL_OPEN.exec(text.slice(0, nl));
+	if (!head) return null;
+	const close = text.indexOf(SKILL_CLOSE, nl);
+	if (close < 0) return null;
+	const rest = text.slice(close + SKILL_CLOSE.length);
+	// pi appends the user's own args after a blank line, or nothing at all;
+	// anything else means we cut in the wrong place, and a wrong parse must lose.
+	if (rest !== "" && !rest.startsWith("\n\n")) return null;
+	return { name: head[1], location: head[2], body: text.slice(nl + 1, close), args: rest.slice(2) };
+}
+
+// `/skill:name args` — what the user typed, recovered from the expansion.
+export function skillLabel(text) {
+	const sk = parseSkillMessage(text);
+	return sk ? `/skill:${sk.name}${sk.args ? ` ${sk.args}` : ""}` : null;
+}
+
+// The optimistic user bubble is matched to pi's echo BY CONTENT (a FIFO match
+// let another tab's echo consume ours). Ordinary prompts must still match
+// exactly; the one tolerated difference is the skill expansion above, which can
+// never equal what was typed — match those by name + args instead.
+export function matchesUserEcho(typed, echo) {
+	if (typed === echo) return true;
+	const sk = parseSkillMessage(echo);
+	if (!sk) return false;
+	const m = /^\/skill:(\S+)([\s\S]*)$/.exec(String(typed ?? "").trim());
+	return !!m && m[1] === sk.name && m[2].trim() === sk.args;
 }
 
 export function toolRow(ctx, id, name, args) {
