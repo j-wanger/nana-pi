@@ -76,6 +76,7 @@ function newLiveState(id, cwd) {
 		reloading: false, // a reload is in flight
 		reloadPromise: null, // …and this settles when it is done, so send() can wait
 		reloadPending: null, // gained names waiting for the turn to settle
+		promptWaiters: new Map(), // promptId → resolve, for prompts the endpoint detached from
 	};
 }
 
@@ -902,6 +903,7 @@ function clearStage() {
 	stream = null;
 	stopStatsPoll();
 	stopActivity(); // before L goes: its timer belongs to the stage we are leaving
+	settlePromptWaiters(L, null); // …and so does anything waiting on its prompts
 	changes.clear();
 	L = null;
 	$("transcript").innerHTML = "";
@@ -987,36 +989,32 @@ async function enumerateResources(S) {
 }
 
 // The prompt endpoint waits 5 s for pi's acceptance and then DETACHES, answering
-// `{pending: true}` — and pi answers a prompt that turned out to be an extension
-// command only once that command's handler RESOLVED (`agent-session.js`:
+// `{pending: true, promptId}` — and pi answers a prompt that turned out to be an
+// extension command only once that command's handler RESOLVED (`agent-session.js`:
 // handled → preflightResult(true)). So a pending answer means "still reloading",
 // never "reloaded", and reading get_commands on it reports the OLD set.
 //
-// There is no longer-lived call to await: `prompt` is deliberately not on the
-// server's /rpc allowlist (prompts have a dedicated endpoint so the desk's own
-// bookkeeping stays consistent). So poll for the one thing a finished reload can
-// show the page — the command list changing. pi's `isStreaming` is no help here:
-// an extension command never starts an agent run, so the session reads as
-// not-streaming for the whole of it. A reload that adds no command is therefore
-// indistinguishable from one still running; that case runs out the ceiling and
-// then reports whatever it finds, which is what it would have said anyway.
-const RELOAD_POLL_MS = 500;
-const RELOAD_POLL_CEILING_MS = 15000;
-async function awaitPendingReload(S, before, g) {
-	const until = Date.now() + RELOAD_POLL_CEILING_MS;
-	while (Date.now() < until) {
-		await new Promise((r) => setTimeout(r, RELOAD_POLL_MS));
-		if (stale(g)) return null;
-		let d;
-		try {
-			d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
-		} catch {
-			continue; // a poll that failed is not a reload that failed
-		}
-		const now = (d.commands || []).map((c) => c.name);
-		if (now.length !== before.size || now.some((n) => !before.has(n))) return d;
+// What a detached prompt gets instead is a `desk_prompt_settled` event carrying
+// its own id, broadcast when the RPC finally answers. That is authoritative —
+// success, failure, or the RPC's own timeout as a failure — where the page's
+// other options were guesses: a changed command list can come from another tab's
+// reload, an unchanged one says nothing at all, and pi's `isStreaming` never
+// moves for an extension command (it starts no agent run). The wait therefore has
+// no time ceiling: it ends when pi answers, when the session exits, or when the
+// stage it belongs to is left. Until then the reload promise stays unresolved and
+// send() keeps holding the user's prompt, which is the point.
+function awaitPromptSettled(S, promptId) {
+	if (!promptId) return Promise.resolve({ ok: false, error: "the desk got no prompt id to wait for" });
+	return new Promise((resolve) => S.promptWaiters.set(promptId, resolve));
+}
+
+// `null` = nothing to report (the stage is going away); {ok:false} = it failed.
+function settlePromptWaiters(S, outcome) {
+	if (!S) return;
+	for (const [id, resolve] of S.promptWaiters) {
+		S.promptWaiters.delete(id);
+		resolve(outcome);
 	}
-	return null;
 }
 
 // One reload of `S`. `gained` (names from /api/resources) is only what PROMPTED
@@ -1054,10 +1052,18 @@ async function runReload(S, { gained = [], auto = false } = {}) {
 			if (!stale(g)) toast(r.error || "reload rejected", "error");
 			return;
 		}
-		// `pending` means the endpoint stopped waiting, NOT that pi finished.
-		let d = r.pending ? await awaitPendingReload(S, before, g) : null;
+		// `pending` means the endpoint stopped waiting, NOT that pi finished. Wait
+		// for the settled event carrying THIS prompt's id; nothing else is proof.
+		if (r.pending) {
+			const settled = await awaitPromptSettled(S, r.promptId);
+			if (stale(g) || !settled) return; // the stage was left while we waited
+			if (!settled.ok) {
+				toast(settled.error || "the reload did not finish", "error");
+				return;
+			}
+		}
+		const d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
 		if (stale(g)) return;
-		if (!d) d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
 		S.commands = d.commands || [];
 		// re-baseline so the next check does not see this reload's own gain again;
 		// a failure here is not a failed reload, so it never becomes an error
@@ -1376,6 +1382,16 @@ function handleEvent(e) {
 		case "desk_prompt_rejected":
 			toast(`prompt rejected: ${e.error || "unknown"}`, "error");
 			break;
+		case "desk_prompt_settled": {
+			// the answer to a prompt the endpoint detached from — the only thing that
+			// tells the page a reload running inside pi has actually finished
+			const waiter = L.promptWaiters.get(e.promptId);
+			if (waiter) {
+				L.promptWaiters.delete(e.promptId);
+				waiter({ ok: !!e.ok, error: e.error });
+			}
+			break;
+		}
 		case "desk_renamed":
 			// server pushed a derived/edited name into this live session
 			refreshState();
@@ -1385,6 +1401,8 @@ function handleEvent(e) {
 			L.streaming = false;
 			setChip("exited");
 			stopActivity();
+			// nothing it was still holding will ever answer now
+			settlePromptWaiters(L, { ok: false, error: "the session exited" });
 			noteRow(L.ctx, `— session process exited (${e.code}) ${e.stderrTail || ""}`);
 			refreshRail();
 			break;

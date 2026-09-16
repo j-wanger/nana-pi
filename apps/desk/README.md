@@ -189,13 +189,17 @@ cycle guard — the desk's does).
   a prompt sent while a reload is in flight is **held** until that reload answers
   (the composer says so) rather than posted into the middle of `ctx.reload()`; and
   because `POST /prompt` stops waiting for pi after 5 s and answers
-  `{pending: true}`, a pending reload is *not* treated as finished — the desk
-  polls `get_commands` every 500 ms for up to 15 s and reports the reload only
-  when the command list actually changes (or the ceiling is reached). Polling,
-  rather than a longer-lived call, because `prompt` is deliberately not on the
-  `/rpc` allowlist; and the command list rather than the turn state, because an
-  extension command never starts an agent run, so pi reads as not-streaming for
-  the whole of one.
+  `{pending: true, promptId}`, a pending reload is *not* treated as finished —
+  the desk waits for the `desk_prompt_settled` event carrying that `promptId`,
+  which the server broadcasts when the detached RPC finally answers. That wait has
+  no time ceiling and no guessing: it ends when pi answers (success or failure,
+  its own 600 s RPC timeout included), when the session exits, or when you leave
+  the session. Nothing else is evidence — a changed command list can be another
+  tab's reload, an unchanged one says nothing, and `isStreaming` never moves for
+  an extension command, which starts no agent run. **Two tabs on one session can
+  each start a reload**: pi serializes the prompts, and the second tab's own
+  typing is held by its own reload, not by the first tab's. Same user, same
+  session, both reloads run — noted, not fixed.
 - **Settings → Tools** — checkboxes over pi's built-ins (read, bash, powershell
   [win32], edit, write, grep, find, ls) writing `settings.json → defaultTools`,
   which REPLACES pi's own default set for new sessions; "Use pi defaults" deletes

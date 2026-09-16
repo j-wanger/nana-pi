@@ -15,7 +15,13 @@
 //   5. a prompt typed WHILE a reload is running is held until it answers — it
 //      would otherwise be posted into the middle of `ctx.reload()`.
 //   6. a reload the prompt endpoint only DETACHED from (`{pending:true}` after
-//      5 s) is not reported as done until pi actually answers.
+//      5 s) is not reported as done — and does not release the held prompt, or
+//      even re-read the commands — until pi actually answers (desk_prompt_settled).
+//   7. …and a detached reload that FAILS late reports the failure and releases
+//      the prompt it was holding, rather than holding it forever.
+//   8. …and one that changes NO command still finishes the moment pi answers.
+//      (The old ceiling-and-poll made this case a 15 s hold with the user's
+//      prompt stuck in the composer, and ended in a claim nothing had verified.)
 // The toast always reports what get_commands ACTUALLY returned, never what
 // /api/resources predicted — a session spawned with a narrowed skill set
 // re-applies its CLI flags on reload and gains nothing.
@@ -124,7 +130,8 @@ process.stdin.on("data", (c) => {
 				setTimeout(() => {
 					if (ctl.commandsAfterReload) fs.writeFileSync(process.env.STUB_CMDS, JSON.stringify(ctl.commandsAfterReload));
 					fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({ mark: MARK, type: "prompt-answered", message: msg, at: Date.now() }) + "\\n");
-					ok({});
+					if (ctl.reloadFail) say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: String(ctl.reloadFail) });
+					else ok({});
 				}, delay);
 				break;
 			}
@@ -305,26 +312,77 @@ try {
 
 	// ── 6. a reload the ENDPOINT only detached from is not "reloaded" ──
 	// /api/session/:id/prompt waits 5 s for pi's acceptance and then answers
-	// {pending:true}. pi has not finished; the desk must not say it has.
+	// {pending:true, promptId}. pi has not finished; the desk must not say it has,
+	// must not read commands yet, and must keep holding the user's next prompt —
+	// all of which now hang off the desk_prompt_settled event for that promptId.
 	await sleep(3100);
 	await resetToasts();
 	setCtl({
-		reloadDelayMs: 9000, // past the endpoint's 5 s detach
+		reloadDelayMs: 7000, // past the endpoint's 5 s detach
 		commandsAfterReload: { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("late")] },
 	});
 	const beforePending = reloadPrompts("packed").length;
 	const answersBefore = reloadAnswers("packed").length;
 	await submit(page, "/reload");
 	await until(() => reloadPrompts("packed").length === beforePending + 1, "sent the slow reload prompt");
-	await sleep(6000); // past the detach, well before the stub answers
+	const readsAtDetach = commandReads("packed").length;
+	await submit(page, "hello during a detached reload");
+	await sleep(6000); // past the 5 s detach, before the stub answers at 7 s
 	{
 		const ts = await seenToasts();
 		check("6: pi has not answered yet", reloadAnswers("packed").length === answersBefore, `${reloadAnswers("packed").length} vs ${answersBefore}`);
 		check("6: …and the desk has not claimed a reload on the detached answer", !ts.some((t) => /reloaded|new skills found/.test(t)), JSON.stringify(ts));
+		check("6: …and has not re-read the commands either", commandReads("packed").length === readsAtDetach, `${commandReads("packed").length} vs ${readsAtDetach}`);
+		check("6: …and the user's prompt is still held", userPrompts("packed", "hello during a detached reload").length === 0, "");
 	}
 	t = await untilToast(page, /reloaded/, 20000);
 	check("6: …and it reports the reload once pi actually answers", /new: late/.test(t), t);
 	check("6: …after pi answered, not before", reloadAnswers("packed").length === answersBefore + 1, String(reloadAnswers("packed").length));
+	await until(() => userPrompts("packed", "hello during a detached reload").length === 1, "released the held prompt", 10000);
+	{
+		const answered = reloadAnswers("packed").at(-1);
+		const typed = userPrompts("packed", "hello during a detached reload")[0];
+		check("6: …and only then is the held prompt posted", !!answered && typed.at >= answered.at, JSON.stringify({ answeredAt: answered?.at, typedAt: typed?.at }));
+	}
+	await submit(page, "!stream-off");
+	await page.waitForFunction(() => document.querySelector("#chip")?.textContent === "idle", null, { timeout: 10000 });
+
+	// ── 7. a detached reload that FAILS late says so, and releases the prompt ──
+	// The prompt is held on the reload, so a reload that never reports would hold
+	// the user's typing forever. A late failure has to end the wait like a success.
+	await sleep(3100);
+	await resetToasts();
+	setCtl({ reloadDelayMs: 7000, reloadFail: "reload handler exploded" });
+	const beforeFail = reloadPrompts("packed").length;
+	await submit(page, "/reload");
+	await until(() => reloadPrompts("packed").length === beforeFail + 1, "sent the failing reload prompt");
+	await submit(page, "hello after a failed reload");
+	await sleep(6000);
+	check("7: the user's prompt is held while the failing reload runs", userPrompts("packed", "hello after a failed reload").length === 0, "");
+	t = await untilToast(page, /exploded/, 20000);
+	check("7: the late failure is reported", /exploded/.test(t), t);
+	await until(() => userPrompts("packed", "hello after a failed reload").length === 1, "released the prompt held by a failed reload", 10000);
+	check("7: …and the held prompt is released, not lost", userPrompts("packed", "hello after a failed reload").length === 1, "");
+	await submit(page, "!stream-off");
+	await page.waitForFunction(() => document.querySelector("#chip")?.textContent === "idle", null, { timeout: 10000 });
+
+	// ── 8. a detached reload that changes NOTHING still finishes on the answer ──
+	// The old polling read a changed command list as "done", so a reload that adds
+	// no command could only end by running out a 15 s ceiling — and the user's
+	// prompt sat in the composer for all of it. The settle is the signal now.
+	await sleep(3100);
+	await resetToasts();
+	setCtl({ reloadDelayMs: 7000 }); // no commandsAfterReload: the list is identical
+	const beforeQuiet = reloadPrompts("packed").length;
+	await submit(page, "/reload");
+	await until(() => reloadPrompts("packed").length === beforeQuiet + 1, "sent the quiet reload prompt");
+	t = await untilToast(page, /reloaded/, 20000);
+	{
+		const seenAt = Date.now();
+		const answered = reloadAnswers("packed").at(-1);
+		check("8: an unchanged command list still reports a reload", /reloaded · /.test(t) && !/new: /.test(t), t);
+		check("8: …on pi's answer, not on a ceiling", !!answered && seenAt - answered.at < 3000, `${seenAt - (answered?.at ?? 0)} ms after pi answered`);
+	}
 	setCtl({});
 
 	check("no page errors along the way", errs.length === 0, JSON.stringify(errs));

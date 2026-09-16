@@ -35,7 +35,12 @@
  *                                   narrows via --no-skills/--skill + --no-extensions/-e; omit for pi
  *                                   defaults. excludeTools drops built-ins via -xt (extension tools stay)
  *   GET  /api/session/:id/events    SSE: desk_hello state snapshot, then live RPC events
- *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up, images?}
+ *   POST /api/session/:id/prompt    {message, mode: prompt|steer|follow_up, images?} →
+ *                                   {ok, error?, promptId} — or {ok:true, pending:true, promptId}
+ *                                   when pi has not accepted within 5 s and the wait DETACHED.
+ *                                   A detached prompt broadcasts exactly one
+ *                                   {type:"desk_prompt_settled", promptId, ok, error} when its RPC
+ *                                   finally answers (a failure also keeps its desk_prompt_rejected)
  *   POST /api/session/:id/rpc      {command} → allowlisted RPC passthrough with correlated response
  *   POST /api/session/:id/ui-response  {id, value?|confirmed?|cancelled?} → answer an extension dialog
  *   POST /api/session/:id/bash      {command} → {id}; output streams as bash_execution_update events
@@ -428,7 +433,7 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 		dialogs: new Map(), // uiId → extension_ui_request (unanswered dialog methods)
 		statuses: new Map(), widgets: new Map(), title: null,
 		queue: { steering: [], followUp: [] },
-		nextRpc: 1, files: null, filesAt: 0, exitNote: null,
+		nextRpc: 1, nextPrompt: 1, files: null, filesAt: 0, exitNote: null,
 	};
 	children.set(id, child);
 
@@ -1958,16 +1963,29 @@ async function promptChild(child, body) {
 	// Acceptance usually answers instantly, but an extension command can hold the
 	// response for minutes while it blocks on a dialog. Wait briefly, then detach:
 	// a late rejection is surfaced to clients as a desk_prompt_rejected event.
+	//
+	// Every answer carries a `promptId`, and a DETACHED one is followed by exactly
+	// one `desk_prompt_settled` for that id when the RPC finally answers — success
+	// or failure, its own 600 s timeout included. That event is the only
+	// authoritative "pi is done with this prompt" the desk has: nothing else about
+	// a running extension command is observable (it starts no agent run, so the
+	// session reads as not-streaming throughout), and guessing from the command
+	// list reported reloads that had not happened (sol r2, C-HIGH).
+	const promptId = `p-${child.nextPrompt++}`;
 	const p = sendRpc(child, cmd);
 	const winner = await Promise.race([
 		p.then((r) => ({ r })).catch((e) => ({ r: { success: false, error: String(e.message || e) } })),
 		new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
 	]);
-	if (winner) return { status: winner.r.success ? 200 : 409, body: { ok: winner.r.success, error: winner.r.error } };
-	p.then((r) => {
-		if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
-	}).catch(() => {});
-	return { status: 200, body: { ok: true, pending: true } };
+	if (winner) return { status: winner.r.success ? 200 : 409, body: { ok: winner.r.success, error: winner.r.error, promptId } };
+	p.then(
+		(r) => {
+			if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
+			broadcast(child, { type: "desk_prompt_settled", promptId, ok: !!r.success, error: r.error });
+		},
+		(e) => broadcast(child, { type: "desk_prompt_settled", promptId, ok: false, error: String(e?.message || e) }),
+	);
+	return { status: 200, body: { ok: true, pending: true, promptId } };
 }
 
 async function answerDialog(child, body) {
