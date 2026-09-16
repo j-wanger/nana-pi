@@ -364,6 +364,9 @@ body {
 .msg.note.err { color: var(--stop); }
 .msg.error { color: var(--stop); }
 .amsg { margin-bottom: 4px; }
+/* a `/skill:` trigger: what the user did, not the file pi expanded it into */
+.skill-trigger { font: 600 12px/1.6 var(--mono); color: var(--accent); }
+.msg.user .skill-body { margin: 4px 0 0; max-width: none; }
 
 /* markdown inside assistant bubbles */
 .msg.md { white-space: normal; }

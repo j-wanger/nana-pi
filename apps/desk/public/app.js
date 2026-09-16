@@ -493,13 +493,28 @@ function expandableNote(ctx, label, body) {
 	return d;
 }
 
+// A user text block. pi expands `/skill:<name> [args]` into the whole skill file
+// before it records the message, so what history hands back is the file — and a
+// bubble of it buries what the user actually did. Show the trigger (and the args
+// they typed); park the body behind a closed <details>.
+function appendUserText(bubble, text) {
+	const sk = parseSkillMessage(text);
+	if (!sk) return bubble.appendChild(el("div", "", text));
+	bubble.appendChild(el("div", "skill-trigger", `▸ /skill:${sk.name}`));
+	if (sk.args) bubble.appendChild(el("div", "", sk.args));
+	const d = el("details", "note-details skill-body");
+	d.appendChild(el("summary", "", `skill contents · ${fmtTok(sk.body.length)} chars`));
+	d.appendChild(el("div", "note-body", sk.body));
+	return bubble.appendChild(d);
+}
+
 function appendMessage(m, ctx) {
 	const container = ctx.container;
 	switch (m.role) {
 		case "user": {
 			const bubble = el("div", "msg user");
 			for (const b of contentBlocks(m.content)) {
-				if (b.type === "text") bubble.appendChild(el("div", "", b.text));
+				if (b.type === "text") appendUserText(bubble, b.text);
 				else if (b.type === "image") bubble.appendChild(renderImage(b));
 			}
 			container.appendChild(bubble);
@@ -835,7 +850,9 @@ function renderQueue(q) {
 	for (const [kind, text] of items) {
 		const chip = el("span", "queue-chip");
 		chip.appendChild(el("b", "", kind));
-		chip.appendChild(document.createTextNode(` ${text.slice(0, 80)}`));
+		// pi expands a `/skill:` BEFORE it queues, so a queued one arrives as the
+		// whole file — name the trigger instead of showing the first 80 chars of it
+		chip.appendChild(document.createTextNode(` ${(skillLabel(text) ?? text).slice(0, 80)}`));
 		bar.appendChild(chip);
 	}
 	if (items.length) {
@@ -1075,7 +1092,9 @@ function handleEvent(e) {
 			// client/tab on the same session can't consume our pending bubble.
 			if (e.message?.role === "user" && L.optimisticUserEls.length) {
 				const echoText = contentBlocks(e.message.content).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-				const i = L.optimisticUserEls.findIndex((o) => o.text === echoText);
+				// exact, except for a `/skill:` the child expanded on its way in —
+				// the echo of one can never equal what was typed (matchesUserEcho).
+				const i = L.optimisticUserEls.findIndex((o) => matchesUserEcho(o.text, echoText));
 				if (i >= 0) L.optimisticUserEls.splice(i, 1)[0].el.remove();
 			}
 			if (e.message) appendMessage(e.message, L.ctx);
