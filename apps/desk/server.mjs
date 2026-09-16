@@ -40,6 +40,11 @@
  *   POST /api/session/:id/ui-response  {id, value?|confirmed?|cancelled?} → answer an extension dialog
  *   POST /api/session/:id/bash      {command} → {id}; output streams as bash_execution_update events
  *   GET  /api/session/:id/files     file list of the child cwd (for @-completion)
+ *   GET  /api/session/:id/changes   working tree vs HEAD in the child cwd's repo →
+ *                                   {repo:false} | {repo:true, root, files:[{path,status,added,
+ *                                   removed,binary}], totals} (read-only; git on PATH)
+ *   GET  /api/session/:id/changes/file?path=  → {path, diff, truncated} — one file's unified
+ *                                   diff, capped at DESK_DIFF_CAP (512 KiB)
  *   POST /api/session/:id/export    export session to HTML, returns the document
  *   POST /api/session/:id/abort
  *   DELETE /api/session/:id         kill child
@@ -52,6 +57,7 @@
 
 import { exec, execFile, spawn } from "node:child_process";
 import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
+import { collectChanges, fileDiff } from "./changes.mjs";
 import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
 import { StageKeyStore } from "./stage-keys.mjs";
 import { randomBytes } from "node:crypto";
@@ -2037,7 +2043,7 @@ const server = http.createServer(async (req, res) => {
 			});
 			return json(res, 200, { id });
 		}
-		const m = p.match(/^\/api\/session\/(\w+)\/(events|prompt|rpc|ui-response|bash|files|export|abort)$/);
+		const m = p.match(/^\/api\/session\/(\w+)\/(events|prompt|rpc|ui-response|bash|files|export|abort|changes|changes\/file)$/);
 		if (m) {
 			const [, id, action] = m;
 			const child = children.get(id);
@@ -2111,6 +2117,20 @@ const server = http.createServer(async (req, res) => {
 			}
 			if (action === "files" && req.method === "GET") {
 				return json(res, 200, { files: await listFiles(child) });
+			}
+			// Read-only, git-backed, and bound to the LIVE session's own cwd — no
+			// path from the request ever names the repository. An exited session
+			// has no cwd the desk will still vouch for, so it 404s like an unknown
+			// one. Both go through the Host/Origin rules above like every route.
+			if (action === "changes" && req.method === "GET") {
+				if (child.state !== "running") return json(res, 404, { error: "no such live session" });
+				const r = await collectChanges(child.cwd);
+				return json(res, r.status, r.body);
+			}
+			if (action === "changes/file" && req.method === "GET") {
+				if (child.state !== "running") return json(res, 404, { error: "no such live session" });
+				const r = await fileDiff(child.cwd, url.searchParams.get("path") || "");
+				return json(res, r.status, r.body);
 			}
 			if (action === "export" && req.method === "POST") {
 				const out = path.join(os.tmpdir(), `nana-code-export-${id}-${Date.now()}.html`);
