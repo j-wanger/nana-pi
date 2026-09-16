@@ -19,7 +19,11 @@
  * (startup, new, resume, fork, reload) pick it up.
  *
  * Config (nana-pack.json): objective.enabled (default true), objective.path
- * (default ~/.pi/agent/nana-objective.md). USER SCOPE ONLY — see lib/config.ts.
+ * (default ~/.pi/agent/nana-objective.md; "~/" expands, a RELATIVE path resolves
+ * against ~/.pi/agent and NEVER against cwd). USER SCOPE ONLY — see lib/config.ts.
+ *
+ * When the objective is enabled but unreadable, an "OBJECTIVE UNAVAILABLE" marker
+ * is injected instead of nothing: silence is the failure that matters here.
  */
 
 import * as fs from "node:fs";
@@ -32,13 +36,24 @@ const INJECT_CAP = 4000; // OBJECTIVE.md is ~1.7k today; 2000 left 300 chars of 
 const HEADING = "## Objective and current priority (nana)";
 const CHARGE =
 	"Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending.";
+const MARKER_PREFIX = "OBJECTIVE UNAVAILABLE: ";
+
+function agentDir(): string {
+	return path.join(os.homedir(), ".pi", "agent");
+}
 
 function objectivePath(cfg: { objective: { path: string | null } }): string {
-	const p = cfg.objective.path ?? path.join(os.homedir(), ".pi", "agent", "nana-objective.md");
+	const p = cfg.objective.path ?? path.join(agentDir(), "nana-objective.md");
 	// A "~/..." written by hand in nana-pack.json would otherwise resolve to a
 	// literal "~" directory, miss, and silently inject nothing — an invisible
 	// failure of the one artifact that is supposed to always be there.
-	return p.startsWith("~/") ? path.join(os.homedir(), p.slice(2)) : p;
+	if (p === "~") return os.homedir();
+	if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
+	// A RELATIVE path must never resolve against cwd: `"path": "OBJECTIVE.md"`
+	// would then let every repository supply its own standing system-prompt text,
+	// which is exactly the project-scope escape lib/config.ts refuses. Relative
+	// means "relative to the user's own ~/.pi/agent", nothing else.
+	return path.isAbsolute(p) ? p : path.join(agentDir(), p);
 }
 
 function isSymlink(file: string): boolean {
@@ -81,32 +96,43 @@ function reachedThroughSymlinkInWorkspace(root: string, file: string): boolean {
 }
 
 export default function (pi: ExtensionAPI) {
-	let objective: string | null = null;
+	// The whole body injected under HEADING: either the objective text (plus a
+	// truncation line) or the UNAVAILABLE marker. null only when the feature is off.
+	let block: string | null = null;
 
 	pi.on("session_start", async (_event, ctx) => {
 		// every reason, deliberately — see the header comment
+		// Cleared BEFORE the enabled check: a live config toggle to enabled:false
+		// must not leave the previous session's objective text cached and injectable.
+		block = null;
 		const cfg = loadConfig(ctx);
 		if (!cfg.objective.enabled) return;
-		objective = null;
+		const file = objectivePath(cfg);
+		const unavailable = (cause: string) => {
+			block = `${MARKER_PREFIX}${cause} (${file}). Tell the user before spending.`;
+			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_unavailable", cwd: ctx.cwd, path: file, cause });
+			if (ctx.hasUI) ctx.ui.notify(`objective unavailable: ${cause} (${file})`, "warning");
+		};
 		try {
-			const file = objectivePath(cfg);
-			if (reachedThroughSymlinkInWorkspace(ctx.cwd, file)) {
-				appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_symlink_refused", cwd: ctx.cwd, path: file });
-				if (ctx.hasUI) ctx.ui.notify(`objective ignored: ${file} is reached through a symlink`, "warning");
-				return;
-			}
+			if (reachedThroughSymlinkInWorkspace(ctx.cwd, file)) return unavailable("reached through a symlink inside the workspace");
 			const raw = fs.readFileSync(file, "utf-8").trim();
-			if (!raw) return; // empty file = no-op, same as missing
-			objective = raw.slice(0, INJECT_CAP);
-			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_pickup", cwd: ctx.cwd, path: file, chars: objective.length });
-		} catch {
-			// no objective file — silent no-op; the pack must work with defaults
+			if (!raw) return unavailable("empty file");
+			const truncated = raw.length > INJECT_CAP;
+			block = raw.slice(0, INJECT_CAP) + (truncated ? `\n\n(truncated at ${INJECT_CAP} chars)` : "");
+			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_pickup", cwd: ctx.cwd, path: file, chars: block.length, truncated });
+		} catch (err) {
+			// Silence was the original behaviour and it defeated the whole point: the one
+			// artifact every session must see went missing INVISIBLY. Say so in the prompt.
+			unavailable((err as NodeJS.ErrnoException)?.code === "ENOENT" ? "file not found" : "unreadable");
 		}
 	});
 
 	pi.on("before_agent_start", async (event, ctx) => {
-		if (!objective) return undefined;
+		if (!block) return undefined;
 		if (!loadConfig(ctx).objective.enabled) return undefined;
-		return { systemPrompt: `${(event as any).systemPrompt}\n\n${HEADING}\n\n${objective}\n\n${CHARGE}` };
+		// The marker carries its own charge; the charge line only makes sense when
+		// there are actual lines to serve.
+		const tail = block.startsWith(MARKER_PREFIX) ? "" : `\n\n${CHARGE}`;
+		return { systemPrompt: `${(event as any).systemPrompt}\n\n${HEADING}\n\n${block}${tail}` };
 	});
 }

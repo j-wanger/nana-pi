@@ -172,9 +172,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
-  (relocate with `objective.path`, a leading `~/` is expanded); missing or empty file = silent
-  no-op; content capped at 4000 chars; a `objective_pickup` journal line records each pickup.
-  Three contract points:
+  (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
+  against `~/.pi/agent`, never cwd); content capped at 4000 chars; an `objective_pickup`
+  journal line records each pickup. Four contract points:
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
     handoff's startup/new. The handoff is continuity a resumed session already carries; the
     objective is standing governance that lives only in the system prompt, which pi rebuilds
@@ -183,6 +183,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
     could set the path would be writing standing instructions into every session run inside it,
     and one that could set `enabled: false` could silently suppress the owner's objective.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
+  - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, or
+    refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
+    under the same heading and journals `objective_unavailable` with the cause; truncation at
+    the cap injects the capped text plus `(truncated at 4000 chars)`. Silence was the original
+    behaviour and it defeated the point — the one artifact every session must see went missing
+    invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every
     component below the root is checked, as in the handoff). A path in the user's own home is
     not checked: linking `~/.pi/agent/nana-objective.md` at a repo's real `OBJECTIVE.md` is the

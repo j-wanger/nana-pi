@@ -62,35 +62,45 @@ for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
-// (c) cap: a runaway objective file cannot eat the context window.
+// (c) cap: a runaway objective file cannot eat the context window — and the
+// truncation is VISIBLE, not silent.
 {
 	fs.writeFileSync(objectiveFile, `${"A".repeat(4000)}TAIL${"B".repeat(3000)}`);
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("c: capped at 4000 chars", r?.systemPrompt.includes("A".repeat(4000)) && !r?.systemPrompt.includes("TAIL"));
+	check("c: truncation is announced", !!r?.systemPrompt.includes("(truncated at 4000 chars)"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
-// (d) missing file = silent no-op (nothing injected, nothing thrown).
-{
-	fs.rmSync(objectiveFile, { force: true });
+// (d/e) an unreadable objective is NOT silence. "Every session sees the objective"
+// fails invisibly if a missing/empty file injects nothing at all, so each cause
+// injects a one-line marker and journals objective_unavailable.
+for (const [label, cause, prep] of [
+	["missing file", "file not found", () => fs.rmSync(objectiveFile, { force: true })],
+	["empty file", "empty file", () => fs.writeFileSync(objectiveFile, "   \n\n")],
+	["unreadable (path is a directory)", "unreadable", () => {
+		fs.rmSync(objectiveFile, { force: true, recursive: true });
+		fs.mkdirSync(objectiveFile);
+	}],
+]) {
+	prep();
+	const before = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").split("\n").length : 0;
 	const { td, handlers, ctx } = session();
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
-	check("d: missing objective file does not throw", !threw);
-	check("d: nothing injected", (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx)) === undefined);
+	check(`d: ${label} does not throw`, !threw);
+	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	check(`d: ${label} injects the UNAVAILABLE marker`,
+		!!r?.systemPrompt.includes(`OBJECTIVE UNAVAILABLE: ${cause} (${objectiveFile}). Tell the user before spending.`));
+	check(`d: ${label} still carries the heading`, !!r?.systemPrompt.includes("## Objective and current priority (nana)"));
+	const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").slice(before - 1).map((l) => JSON.parse(l));
+	check(`d: ${label} journals objective_unavailable with the cause`,
+		lines.some((l) => l.event === "objective_unavailable" && l.cause === cause));
 	fs.rmSync(td, { recursive: true, force: true });
 }
-
-// (e) empty (whitespace-only) file = no-op, same as missing.
-{
-	fs.writeFileSync(objectiveFile, "   \n\n");
-	const { td, handlers, ctx } = session();
-	await handlers.session_start({ reason: "startup" }, ctx);
-	check("e: empty objective file injects nothing", (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx)) === undefined);
-	fs.rmSync(td, { recursive: true, force: true });
-}
+fs.rmSync(objectiveFile, { force: true, recursive: true });
 
 // (f) USER SCOPE ONLY: a TRUSTED project cannot redirect the path or disable it.
 {
@@ -134,8 +144,43 @@ for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check("h: symlinked in-workspace objective does not throw", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("h: nothing injected from a symlinked in-workspace path", r === undefined);
 	check("h: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
+	check("h: the refusal is announced, not silent",
+		!!r?.systemPrompt.includes("OBJECTIVE UNAVAILABLE: reached through a symlink inside the workspace"));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// (j) a RELATIVE objective.path resolves against ~/.pi/agent, never cwd — otherwise
+// `"path": "OBJECTIVE.md"` lets every repo supply its own standing system prompt.
+{
+	const { td, handlers, ctx } = session();
+	fs.writeFileSync(path.join(td, "OBJECTIVE.md"), "PWNED: this repo's own objective.\n");
+	fs.writeFileSync(path.join(home, ".pi", "agent", "OBJECTIVE.md"), "USER-SCOPE RELATIVE OBJECTIVE.\n");
+	writeUserCfg({ path: "OBJECTIVE.md" });
+	const cwd0 = process.cwd();
+	process.chdir(td); // the cwd a repo would be worked in
+	try {
+		await handlers.session_start({ reason: "startup" }, ctx);
+	} finally { process.chdir(cwd0); }
+	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	check("j: relative path does NOT resolve against cwd", !(r?.systemPrompt ?? "").includes("PWNED"));
+	check("j: relative path resolves under ~/.pi/agent", !!r?.systemPrompt.includes("USER-SCOPE RELATIVE OBJECTIVE"));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// (k) a live toggle to enabled:false must not inject the PREVIOUS session's text.
+{
+	fs.writeFileSync(objectiveFile, "CACHED OBJECTIVE: build products with agents.\n");
+	writeUserCfg({ path: objectiveFile });
+	const { td, handlers, ctx } = session();
+	await handlers.session_start({ reason: "startup" }, ctx);
+	check("k: first session picks the objective up",
+		!!(await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt.includes("CACHED OBJECTIVE"));
+	writeUserCfg({ enabled: false, path: objectiveFile });
+	await handlers.session_start({ reason: "resume" }, ctx);
+	check("k: after a live disable, no stale objective survives",
+		(await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx)) === undefined);
+	writeUserCfg({ path: objectiveFile });
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
