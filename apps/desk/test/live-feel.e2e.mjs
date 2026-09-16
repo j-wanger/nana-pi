@@ -398,19 +398,13 @@ try {
 		check("switch: the activity line does not follow you to the new session", !act.on && act.verb === "" && act.time === "", JSON.stringify(act));
 	}
 
-	// ── …and the OLD session's ticker cannot turn the new one's line off ──────
-	// alpha's turn is still running, so its interval is the one that would have
-	// called the global stopActivity() from a tick queued across the switch. A
-	// stale tick must retire itself and nothing else. Weak by construction (the
-	// queued-tick window is a few ms), but this is the only level it is visible
-	// at — the timer is not a pure function.
-	await step(page, "start");
-	await waitVerb(page, "Starting…");
-	await page.waitForTimeout(700); // three of the old stage's ticks would have run by now
-	{
-		const act = await activity(page);
-		check("switch: a turn started on the new session keeps its activity line", act.on && act.verb === "Starting…" && /\d/.test(act.time), JSON.stringify(act));
-	}
+	// NOT tested here: "a tick queued across a session switch retires only itself"
+	// (app.js noteActivity captures its own handle instead of calling the global
+	// stopActivity). A browser cannot be made to run it — clearInterval removes the
+	// id from the map of active timers, and an already-queued callback checks that
+	// map before it runs, so the stale tick is unreachable from the page. The step
+	// that used to sit here asserted the new session's line was still on, which the
+	// pre-fix code satisfies too. Deleted rather than kept green (2026-09-16).
 
 	console.log(fails ? `${fails} FAILED` : "ALL PASS");
 	await die(fails ? 1 : 0);
