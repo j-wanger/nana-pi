@@ -155,8 +155,12 @@ cycle guard — the desk's does).
   asynchronously so a refresh never holds the event loop away from the other
   sessions. Past that budget (or past 1000 untracked files) a file is still a
   row, just without a number, and the answer says `partial: true` with the reason
-  — so the bar's totals are a floor, not a claim about the whole tree. An
-  untracked **symlink** is listed and never read, in the list and in the diff
+  — so the bar's totals are a floor, not a claim about the whole tree. Every one
+  of those reads goes through a descriptor opened `O_NOFOLLOW` and `fstat`ed, and
+  stops at the smaller of the per-file cap and what is left of the budget, so
+  what is charged is what was actually read: a file that grew since its size was
+  taken is listed with no number (and `partial`) rather than read past the bound.
+  An untracked **symlink** is listed and never read, in the list and in the diff
   window alike (that one answers 409 `symlinked path`).
 - **Header/footer** — an activity line above the composer while a turn runs
   (spinner, what it is doing — thinking, writing, the file it is reading, the
@@ -582,12 +586,14 @@ is not":
   Its totals can also be a floor rather than a sum: past the 16 MiB untracked read
   budget, or past 1000 untracked files, the remaining rows carry no line count and
   the answer is marked `partial`.
-- **The diff window's symlink check is a check, not a lock.** An untracked path is
-  `lstat`ed and refused if it is a symlink, then read through its realpath. A
-  regular file swapped for a symlink between those two steps is still followed —
-  and only then, and only to a target inside the repository root, which the
-  realpath check already confirmed. It takes a process racing the desk inside your
-  own work tree, which is already a process running as you.
+- **On win32 the diff window's symlink check is a check, not a lock.** An untracked
+  path is `lstat`ed and refused if it is a symlink, then read. On darwin and linux
+  the read goes through a descriptor opened `O_NOFOLLOW` and `fstat`ed, so a regular
+  file swapped for a symlink between those two steps is refused at the open (409
+  `symlinked path`) instead of followed — the fd is the file, and it cannot be
+  redirected once it is open. win32 has no `O_NOFOLLOW`, so there the old race
+  stands: the swapped-in link is followed, to wherever it points. It takes a process
+  racing the desk inside your own work tree, which is already a process running as you.
 - **A hand-typed message in exactly pi's skill-wrapper shape collapses like a
   skill.** pi records a `/skill:name` invocation as the expanded
   `<skill name=".." location="..">…</skill>` block and gives the desk no

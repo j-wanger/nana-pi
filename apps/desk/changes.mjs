@@ -36,6 +36,9 @@ const MAX_FILES = 1000; // rows returned; the rest are reported as a count
 const UNTRACKED_READ_LIMIT = 1000; // untracked files whose lines we count
 const UNTRACKED_BYTE_CAP = 1024 * 1024; // per file; bigger ones are reported as binary
 const READ_CONCURRENCY = 8; // untracked reads in flight at once
+// Every untracked read goes through an fd opened with this. `undefined` on
+// win32, where 0 leaves the lstat-first check as the only guard (README).
+const NOFOLLOW = fs.constants.O_NOFOLLOW ?? 0;
 
 // AGGREGATE, per call. The per-file cap alone bounds nothing that matters: 1000
 // untracked files of 1 MiB each is a gigabyte read on every refresh. Past this
@@ -171,16 +174,61 @@ function parsePorcelain(out) {
 	return { status, untracked };
 }
 
+// Read a file through an open DESCRIPTOR, never past `limit` bytes — plus one,
+// which is how "there is more than that" is learned — counting lines as the
+// bytes arrive.
+//
+// The descriptor is the whole point. lstat-then-readFile decides on one PATHNAME
+// and then reads another: between the two the file can grow, or be replaced by a
+// symlink, which defeated both the per-file cap and the aggregate budget below.
+// Here the fd IS what was opened — O_NOFOLLOW refuses a symlink outright, fstat
+// refuses anything that is not a regular file, and the byte count is what was
+// actually read, not what a pathname said a moment ago.
+//
 // A new file's diff is every line added, so the line count IS the added count.
 // Counted on the BYTES: 0x0A cannot occur inside a UTF-8 multi-byte sequence, so
 // this is the same number decoding would give, without decoding a megabyte to
 // get it. A file holding a NUL byte is reported as binary, not counted.
-function countBuffer(buf) {
-	if (buf.includes(0)) return { added: null, binary: true };
-	if (!buf.length) return { added: 0, binary: false };
-	let n = 0;
-	for (let i = 0; i < buf.length; i++) if (buf[i] === 0x0a) n++;
-	return { added: buf[buf.length - 1] === 0x0a ? n : n + 1, binary: false };
+async function readBounded(abs, limit, { collect = false } = {}) {
+	let fh;
+	try {
+		fh = await fs.promises.open(abs, fs.constants.O_RDONLY | NOFOLLOW);
+	} catch (e) {
+		// ELOOP/EMLINK is O_NOFOLLOW refusing a symlink — a different answer from a
+		// file that is simply not there ("not shown" vs "gone").
+		return { error: e, symlink: e?.code === "ELOOP" || e?.code === "EMLINK", bytes: 0 };
+	}
+	try {
+		const st = await fh.stat();
+		if (!st.isFile()) return { notFile: true, bytes: 0 };
+		const room = limit + 1;
+		const buf = Buffer.allocUnsafe(Math.min(room, 64 * 1024));
+		const chunks = [];
+		let bytes = 0, lines = 0, nul = false, lastByte = -1;
+		while (bytes < room) {
+			const { bytesRead } = await fh.read(buf, 0, Math.min(buf.length, room - bytes), null);
+			if (!bytesRead) break;
+			for (let i = 0; i < bytesRead; i++) {
+				if (buf[i] === 0x0a) lines++;
+				else if (buf[i] === 0) nul = true;
+			}
+			lastByte = buf[bytesRead - 1];
+			bytes += bytesRead;
+			if (collect) chunks.push(Buffer.from(buf.subarray(0, bytesRead)));
+		}
+		return {
+			bytes,
+			size: st.size,
+			added: bytes === 0 ? 0 : lastByte === 0x0a ? lines : lines + 1,
+			binary: nul,
+			over: bytes > limit, // it had more to give than it was allowed to
+			buf: collect ? Buffer.concat(chunks) : null,
+		};
+	} catch (e) {
+		return { error: e, symlink: false, bytes: 0 };
+	} finally {
+		await fh.close().catch(() => {});
+	}
 }
 
 // A bounded worker pool. Bounded because the whole point of going async is to
@@ -199,6 +247,10 @@ async function pooled(items, width, fn) {
 // interleaves: lstat everything, decide in order who may be read, then read.
 //   map value `null` = drop the row (vanished, or not a regular file)
 //   {added: null, binary: false} = listed, deliberately not counted
+//
+// The lstat sizes decide WHO is read, in list order. What each read may COST is
+// enforced on the descriptor, and the budget is charged with the bytes actually
+// read — a file is no longer trusted to still be the size it announced.
 async function countUntracked(root, rels) {
 	const budget = untrackedTotalCap();
 	const stats = new Map();
@@ -209,29 +261,44 @@ async function countUntracked(root, rels) {
 	});
 	const counts = new Map();
 	const toRead = [];
-	let spent = 0, budgeted = false;
+	let allocated = 0, budgeted = false, raced = false;
 	for (const rel of rels) {
 		const st = stats.get(rel);
 		if (!st) counts.set(rel, null); // vanished between `git status` and here
 		else if (st.isSymbolicLink()) counts.set(rel, { added: null, binary: false });
 		else if (!st.isFile()) counts.set(rel, null);
 		else if (st.size > UNTRACKED_BYTE_CAP) counts.set(rel, { added: null, binary: true });
-		else if (spent + st.size > budget) {
+		else if (allocated + st.size > budget) {
 			counts.set(rel, { added: null, binary: false });
 			budgeted = true;
 		} else {
-			spent += st.size;
-			toRead.push(rel);
+			allocated += st.size;
+			toRead.push([rel, st.size]);
 		}
 	}
-	await pooled(toRead, READ_CONCURRENCY, async (rel) => {
-		try {
-			counts.set(rel, countBuffer(await fs.promises.readFile(path.join(root, rel))));
-		} catch {
-			counts.set(rel, null); // vanished between the lstat and the read
+	let spent = 0;
+	await pooled(toRead, READ_CONCURRENCY, async ([rel, size]) => {
+		// Only reachable if earlier files grew under us: their reads overspent the
+		// share the walk above allocated them, so this one no longer has a share.
+		if (spent >= budget) {
+			counts.set(rel, { added: null, binary: false });
+			budgeted = true;
+			return;
 		}
+		const r = await readBounded(path.join(root, rel), Math.min(size, budget - spent));
+		spent += r.bytes;
+		// Swapped for a symlink since the lstat: listed and not counted, the same
+		// answer an untracked symlink gets when it was already one.
+		if (r.symlink) counts.set(rel, { added: null, binary: false });
+		else if (r.error || r.notFile) counts.set(rel, null); // vanished, or no longer a file
+		else if (r.over) {
+			// Bigger than it said it was: a prefix's line count would be a lie, and
+			// reading the rest would be spending a budget nobody granted.
+			counts.set(rel, { added: null, binary: false });
+			raced = true;
+		} else counts.set(rel, { added: r.binary ? null : r.added, binary: r.binary });
 	});
-	return { counts, budgeted, budget };
+	return { counts, budgeted, raced, budget };
 }
 
 // A spawn ENOENT is ambiguous: git is not on PATH, or the cwd itself is gone
@@ -265,7 +332,7 @@ export async function collectChanges(cwd) {
 	for (const f of tracked.values()) files.push({ ...f, status: statusOf.get(f.path) || "M" });
 	// Past UNTRACKED_READ_LIMIT a file is listed with no count, like one the byte
 	// budget cut off — the row is still true, the number is simply not there.
-	const { counts, budgeted, budget } = await countUntracked(root, untracked.slice(0, UNTRACKED_READ_LIMIT));
+	const { counts, budgeted, raced, budget } = await countUntracked(root, untracked.slice(0, UNTRACKED_READ_LIMIT));
 	const overLimit = Math.max(0, untracked.length - UNTRACKED_READ_LIMIT);
 	for (const p of untracked) {
 		const counted = counts.has(p) ? counts.get(p) : { added: null, binary: false };
@@ -286,6 +353,7 @@ export async function collectChanges(cwd) {
 	// not the sum. Said out loud rather than folded silently into the numbers.
 	const why = [];
 	if (budgeted) why.push(`the ${budget}-byte untracked read budget for one refresh was reached`);
+	if (raced) why.push(`a file changed under the read`);
 	if (overLimit) why.push(`only the first ${UNTRACKED_READ_LIMIT} untracked files are line-counted`);
 	if (why.length) {
 		body.partial = true;
@@ -329,16 +397,17 @@ export function resolveInRoot(root, rel) {
 // An untracked file has no diff in git's model, so the desk synthesizes the one
 // git would print for a new file. Deliberately not `git diff --no-index`: that
 // exits 1 on difference, and /dev/null is not a path on win32.
-function newFileDiff(rel, abs, cap) {
-	let buf;
-	try {
-		const st = fs.statSync(abs);
-		if (st.size > UNTRACKED_BYTE_CAP) return { diff: `Binary or oversized file (${st.size} bytes) — not shown`, truncated: false, binary: true };
-		buf = fs.readFileSync(abs);
-	} catch (e) {
-		return { error: String(e?.message || e) };
-	}
-	if (buf.includes(0)) return { diff: `Binary file (${buf.length} bytes) — not shown`, truncated: false, binary: true };
+async function newFileDiff(rel, abs, cap) {
+	// Same descriptor rule as the file LIST: the path checked above and the bytes
+	// read here cannot be two different files (O_NOFOLLOW + fstat), and nothing
+	// past the per-file cap is read even if the file grew since it was checked.
+	const r = await readBounded(abs, UNTRACKED_BYTE_CAP, { collect: true });
+	if (r.symlink) return { symlink: true };
+	if (r.notFile) return { error: "not a regular file" };
+	if (r.error) return { error: String(r.error?.message || r.error) };
+	if (r.over) return { diff: `Binary or oversized file (${r.size} bytes) — not shown`, truncated: false, binary: true };
+	const buf = r.buf;
+	if (r.binary) return { diff: `Binary file (${buf.length} bytes) — not shown`, truncated: false, binary: true };
 	const body = buf.toString("utf-8");
 	const lines = body === "" ? [] : body.replace(/\n$/, "").split("\n");
 	const head = [`--- /dev/null`, `+++ b/${rel}`, `@@ -0,0 +1,${lines.length} @@`];
@@ -368,11 +437,13 @@ export async function fileDiff(cwd, rel) {
 		// "Untracked symlinks are never read" is the same rule the file LIST keeps
 		// (`countUntracked` lstats), and it holds here even for a target inside the
 		// root: the desk shows the work tree, not what a link in it points at.
-		// lstat the path AS GIVEN — `at.abs` is already the resolved target.
+		// lstat the path AS GIVEN — `at.abs` is already the resolved target. A path
+		// swapped for a symlink AFTER this check is refused by the open itself.
 		let link = false;
 		try { link = fs.lstatSync(at.raw).isSymbolicLink(); } catch {}
 		if (link) return { status: 409, body: { error: "symlinked path" } };
-		const r = newFileDiff(rel, at.abs, cap);
+		const r = await newFileDiff(rel, at.abs, cap);
+		if (r.symlink) return { status: 409, body: { error: "symlinked path" } };
 		if (r.error) return { status: 500, body: { error: r.error } };
 		return { status: 200, body: { path: rel, diff: r.diff, truncated: r.truncated, ...(r.binary ? { binary: true } : {}) } };
 	}

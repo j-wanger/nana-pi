@@ -252,20 +252,134 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	const N = 40; // 8 MiB, under the default budget so every one is read
 	for (let i = 0; i < N; i++) write(path.join(heavy, `big-${String(i).padStart(3, "0")}.txt`), chunk);
 
-	let last = Date.now();
-	let worst = 0;
-	const tick = setInterval(() => {
-		const now = Date.now();
-		worst = Math.max(worst, now - last);
-		last = now;
-	}, 20);
+	// The threshold is RELATIVE: the same ticker is run against an idle loop first,
+	// in this process, so a loaded machine moves both numbers and the assertion
+	// still means "this collect did not hold the loop". And a tick count, because
+	// a collect too fast to be ticked through would pass while measuring nothing.
+	const ticker = () => {
+		const st = { worst: 0, ticks: 0, last: Date.now() };
+		const h = setInterval(() => {
+			const now = Date.now();
+			st.worst = Math.max(st.worst, now - st.last);
+			st.last = now;
+			st.ticks++;
+		}, 5);
+		st.stop = () => clearInterval(h);
+		return st;
+	};
+	const idle = ticker();
+	await new Promise((r) => setTimeout(r, 200));
+	idle.stop();
+
+	const busy = ticker();
 	const t0 = Date.now();
 	const r = await collectChanges(heavy);
-	clearInterval(tick);
+	busy.stop();
+	const took = Date.now() - t0;
 	const f = byPath(r.body);
 	check(`loop: all ${N} untracked files are counted`, Object.keys(f).length === N && f["big-000.txt"]?.added === 2048, `${Object.keys(f).length} rows, ${JSON.stringify(f["big-000.txt"])}`);
 	check("loop: …and nothing is partial at 8 MiB", !r.body.partial, String(r.body.partialReason));
-	check("loop: the event loop kept ticking through the collect", worst < 100, `worst gap ${worst} ms over ${Date.now() - t0} ms`);
+	check("loop: the collect was long enough to measure", busy.ticks >= 5, `${busy.ticks} ticks over ${took} ms`);
+	check(
+		"loop: the event loop kept ticking through the collect",
+		busy.worst < Math.max(100, 8 * idle.worst),
+		`worst gap ${busy.worst} ms over ${took} ms (idle worst ${idle.worst} ms, ${busy.ticks} ticks)`,
+	);
+}
+
+// ── A12. the budget is charged against BYTES READ, not a stale lstat size ──
+// The bug: the walk allocated each file the size `lstat` reported, then read the
+// PATH with no limit at all. A file that grew in between defeated the per-file
+// cap and the aggregate budget together, and its line count was a number for a
+// file nobody had measured.
+//
+// Forced, not hoped for: `fs.promises` is instrumented for this case only — the
+// lstat grows the file it was just asked about (the race, made to happen every
+// time), and every read is tallied so the assertion is about bytes, not rows.
+{
+	const raced = path.join(TD, "raced");
+	fs.mkdirSync(raced);
+	git(raced, "init", "-q", ".");
+	write(path.join(raced, "seed.txt"), "seed\n");
+	git(raced, "add", "-A");
+	git(raced, "commit", "-qm", "seed");
+	const grow = path.join(raced, "grow.txt");
+	write(grow, "one\ntwo\n"); // 8 bytes — what the walk will be told
+	write(path.join(raced, "small.txt"), "a\n");
+	const BUDGET = 64;
+
+	const fsp = fs.promises;
+	const realLstat = fsp.lstat, realOpen = fsp.open, realReadFile = fsp.readFile;
+	let bytesRead = 0;
+	fsp.lstat = async (p, ...rest) => {
+		const st = await realLstat(p, ...rest);
+		// …and now it is 200 lines, after the size was taken and before any read
+		if (String(p).endsWith("grow.txt")) fs.writeFileSync(grow, `${Array.from({ length: 200 }, (_, i) => `grew ${i}`).join("\n")}\n`);
+		return st;
+	};
+	fsp.open = async (...a) => {
+		const fh = await realOpen(...a);
+		const read = fh.read.bind(fh);
+		fh.read = async (...ra) => {
+			const r = await read(...ra);
+			bytesRead += r.bytesRead;
+			return r;
+		};
+		return fh;
+	};
+	fsp.readFile = async (...a) => {
+		const b = await realReadFile(...a);
+		bytesRead += b.length;
+		return b;
+	};
+	let r;
+	try {
+		process.env.DESK_UNTRACKED_TOTAL_CAP = String(BUDGET);
+		r = await collectChanges(raced);
+	} finally {
+		fsp.lstat = realLstat;
+		fsp.open = realOpen;
+		fsp.readFile = realReadFile;
+		delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	}
+	const f = byPath(r.body);
+	check("raced: a file that grew under the read is listed with NO count", f["grow.txt"] && f["grow.txt"].added === null, JSON.stringify(f["grow.txt"]));
+	check("raced: …and the answer says it is partial, and why", r.body.partial === true && /changed under the read/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
+	check("raced: the bytes actually read never exceed the budget", bytesRead <= BUDGET, `${bytesRead} bytes read against a ${BUDGET}-byte budget`);
+	check("raced: a file that did not move is still counted", f["small.txt"]?.added === 1, JSON.stringify(f["small.txt"]));
+}
+
+// ── A13. a symlink swapped in AFTER the check, before the read ──
+// The per-file check is `lstat` on the path as given; the read used to follow
+// whatever that path pointed at by the time it ran. The read now goes through a
+// descriptor opened O_NOFOLLOW, so the swap is refused at the open. Instrumented
+// at `fs.promises.open` — the swap lands exactly in the window it has to.
+if (process.platform !== "win32") {
+	const secret = path.join(TD, "outside-secret.txt"); // written in A4
+	const swap = path.join(repo, "swapme.txt");
+	const fsp = fs.promises;
+	const realOpen = fsp.open;
+	fsp.open = (p, ...rest) => {
+		if (String(p).endsWith("swapme.txt") && !fs.lstatSync(swap).isSymbolicLink()) {
+			fs.rmSync(swap);
+			fs.symlinkSync(secret, swap);
+		}
+		return realOpen(p, ...rest);
+	};
+	try {
+		fs.writeFileSync(swap, "mine\n");
+		const one = await fileDiff(repo, "swapme.txt");
+		check("swap: the diff window refuses a path that became a symlink after the check", one.status === 409 && /symlink/.test(one.body.error || ""), JSON.stringify(one));
+		check("swap: …and nothing from the target is in the answer", !JSON.stringify(one.body).includes("secret"), JSON.stringify(one.body));
+
+		fs.rmSync(swap);
+		fs.writeFileSync(swap, "mine\n");
+		const list = byPath((await collectChanges(repo)).body)["swapme.txt"];
+		check("swap: the file list lists it and counts nothing", !!list && list.added === null, JSON.stringify(list));
+	} finally {
+		fsp.open = realOpen;
+		fs.rmSync(swap, { force: true });
+	}
 }
 
 // ══ B. the routes, through the real server ══════════════════════════════════
