@@ -12,6 +12,10 @@
 //      window `focus` fires → the same reload runs by itself and the toast names
 //      the new skill.
 //   4. mid-turn, the same gain does NOT reload: it waits for `agent_settled`.
+//   5. a prompt typed WHILE a reload is running is held until it answers — it
+//      would otherwise be posted into the middle of `ctx.reload()`.
+//   6. a reload the prompt endpoint only DETACHED from (`{pending:true}` after
+//      5 s) is not reported as done until pi actually answers.
 // The toast always reports what get_commands ACTUALLY returned, never what
 // /api/resources predicted — a session spawned with a narrowed skill set
 // re-applies its CLI flags on reload and gains nothing.
@@ -61,12 +65,19 @@ const plain = path.join(TD, "plain"); // session 1: no nana-pack
 const packed = path.join(TD, "packed"); // sessions 2-4: nana-pack loaded
 const LOG = path.join(TD, "rpc.jsonl"); // every command the stub received
 const CMDS = path.join(TD, "commands.json"); // what get_commands answers, live
+const CTL = path.join(TD, "control.json"); // how long the stub holds the reload prompt
 for (const d of [binDir, plain, packed, path.join(TD, ".pi", "agent", "sessions")]) fs.mkdirSync(d, { recursive: true });
 
 const RELOAD_CMD = { name: "reload-runtime", description: "Reload extensions, skills…", source: "extension", sourceInfo: { scope: "user", path: "/x/nana-lifecycle.ts" } };
 const skillCmd = (name) => ({ name: `skill:${name}`, description: `${name} skill`, source: "skill", sourceInfo: { scope: "user", path: `/x/${name}` } });
 const setCommands = (byCwd) => fs.writeFileSync(CMDS, JSON.stringify(byCwd));
 setCommands({ plain: [], packed: [RELOAD_CMD] });
+// `reloadDelayMs` holds the ANSWER to the `/reload-runtime` prompt, which is
+// what pi does with a slow extension command (the prompt's success is emitted
+// only once the handler resolved). `commandsAfterReload`, if set, becomes what
+// get_commands answers at that same moment — so a poll cannot see it early.
+const setCtl = (o) => fs.writeFileSync(CTL, JSON.stringify(o));
+setCtl({});
 
 // ── stub pi: marks itself by cwd, logs every command, answers get_commands
 // from the control file so the test can change what pi "has" mid-run ──
@@ -81,7 +92,7 @@ process.stdin.on("data", (c) => {
 		const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
 		if (!line.trim()) continue;
 		let cmd; try { cmd = JSON.parse(line); } catch { continue; }
-		fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({ mark: MARK, type: cmd.type, message: cmd.message || null }) + "\\n");
+		fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({ mark: MARK, type: cmd.type, message: cmd.message || null, at: Date.now() }) + "\\n");
 		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
 		switch (cmd.type) {
 			case "get_state": ok({ isStreaming: false, isCompacting: false, sessionName: MARK, sessionFile: null, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }); break;
@@ -101,10 +112,22 @@ process.stdin.on("data", (c) => {
 				say({ type: "response", id: cmd.id, success: true, data: { exitCode: 0 } });
 				break;
 			// an extension command produces no echo — pi handles it off the turn
-			case "prompt":
-				if (!String(cmd.message || "").startsWith("/")) say({ type: "message_end", message: { role: "user", content: [{ type: "text", text: cmd.message }] } });
-				ok({});
+			case "prompt": {
+				const msg = String(cmd.message || "");
+				if (!msg.startsWith("/")) say({ type: "message_end", message: { role: "user", content: [{ type: "text", text: cmd.message }] } });
+				let ctl = {};
+				try { ctl = JSON.parse(fs.readFileSync(process.env.STUB_CTL, "utf-8")); } catch {}
+				const delay = msg === "/reload-runtime" ? Number(ctl.reloadDelayMs) || 0 : 0;
+				if (!delay) { ok({}); break; }
+				// a slow extension command is a slow ANSWER to the prompt: pi emits
+				// the prompt's success only once the command's handler resolved
+				setTimeout(() => {
+					if (ctl.commandsAfterReload) fs.writeFileSync(process.env.STUB_CMDS, JSON.stringify(ctl.commandsAfterReload));
+					fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({ mark: MARK, type: "prompt-answered", message: msg, at: Date.now() }) + "\\n");
+					ok({});
+				}, delay);
 				break;
+			}
 			default: ok({});
 		}
 	}
@@ -116,7 +139,7 @@ fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 const server = spawn("node", [SERVER], {
 	env: {
 		...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: String(PORT),
-		DESK_APPS_DIR: path.join(TD, "no-apps"), STUB_LOG: LOG, STUB_CMDS: CMDS,
+		DESK_APPS_DIR: path.join(TD, "no-apps"), STUB_LOG: LOG, STUB_CMDS: CMDS, STUB_CTL: CTL,
 		PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 	},
 	stdio: ["ignore", "pipe", "pipe"],
@@ -133,6 +156,8 @@ const die = (code) => { browser?.close().catch(() => {}); server.kill(); fs.rmSy
 
 const rpcLog = () => (fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 const reloadPrompts = (mark) => rpcLog().filter((e) => e.mark === mark && e.type === "prompt" && e.message === "/reload-runtime");
+const reloadAnswers = (mark) => rpcLog().filter((e) => e.mark === mark && e.type === "prompt-answered");
+const userPrompts = (mark, text) => rpcLog().filter((e) => e.mark === mark && e.type === "prompt" && e.message === text);
 const commandReads = (mark) => rpcLog().filter((e) => e.mark === mark && e.type === "get_commands");
 // SETTLE: the only waits here that back a NEGATIVE assertion — long enough for
 // the enumeration (single-digit ms) and the prompt POST to have happened.
@@ -193,6 +218,16 @@ try {
 	const errs = [];
 	page.on("pageerror", (e) => errs.push(String(e.message)));
 	await page.goto(BASE, { waitUntil: "domcontentloaded" });
+	// Every toast the page raises, kept: a toast auto-dismisses, so "did it say
+	// `reloaded` before pi answered?" cannot be asked by polling for one.
+	await page.evaluate(() => {
+		window.__toasts = [];
+		new MutationObserver((ms) => {
+			for (const m of ms) for (const n of m.addedNodes) if (n.classList?.contains("toast")) window.__toasts.push(n.textContent);
+		}).observe(document.getElementById("toasts"), { childList: true });
+	});
+	const seenToasts = () => page.evaluate(() => window.__toasts.slice());
+	const resetToasts = () => page.evaluate(() => (window.__toasts.length = 0));
 
 	// ── 1. no nana-pack in the session: /reload sends nothing ──
 	await openByMark(page, "plain");
@@ -243,6 +278,54 @@ try {
 	check("4: …and runs the moment it settles", reloadPrompts("packed").length === beforeDefer + 1);
 	t = await untilToast(page, /deferred/);
 	check("4: …naming the skill that was waiting", /new skills found: deferred/.test(t), t);
+
+	// ── 5. a prompt typed DURING a reload waits for it ──
+	// `/reload-runtime` is a prompt of pi's own; posting the user's on top of it
+	// races `ctx.reload()`. checkResources() cannot catch this — it returns
+	// immediately while a reload is running — so send() waits on the reload itself.
+	await sleep(3100);
+	await resetToasts();
+	setCtl({ reloadDelayMs: 2000 }); // under the endpoint's 5 s wait: answered, just slowly
+	const beforeHeld = reloadPrompts("packed").length;
+	await submit(page, "/reload");
+	await until(() => reloadPrompts("packed").length === beforeHeld + 1, "sent the held reload prompt");
+	await submit(page, "hello during reload");
+	await until(() => userPrompts("packed", "hello during reload").length === 1, "sent the user prompt", 20000);
+	{
+		const answered = reloadAnswers("packed")[0];
+		const typed = userPrompts("packed", "hello during reload")[0];
+		check("5: the user's prompt reaches pi only after the reload answered", !!answered && typed.at >= answered.at, JSON.stringify({ answeredAt: answered?.at, typedAt: typed?.at }));
+		const ts = await seenToasts();
+		check("5: …and the composer says why it is holding it", ts.some((t) => /reloading skills/.test(t)), JSON.stringify(ts));
+	}
+	// that prompt left the session "running" (the stub settles no turn by itself),
+	// and runReload refuses to run under a turn — put it back to idle first
+	await submit(page, "!stream-off");
+	await page.waitForFunction(() => document.querySelector("#chip")?.textContent === "idle", null, { timeout: 10000 });
+
+	// ── 6. a reload the ENDPOINT only detached from is not "reloaded" ──
+	// /api/session/:id/prompt waits 5 s for pi's acceptance and then answers
+	// {pending:true}. pi has not finished; the desk must not say it has.
+	await sleep(3100);
+	await resetToasts();
+	setCtl({
+		reloadDelayMs: 9000, // past the endpoint's 5 s detach
+		commandsAfterReload: { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("late")] },
+	});
+	const beforePending = reloadPrompts("packed").length;
+	const answersBefore = reloadAnswers("packed").length;
+	await submit(page, "/reload");
+	await until(() => reloadPrompts("packed").length === beforePending + 1, "sent the slow reload prompt");
+	await sleep(6000); // past the detach, well before the stub answers
+	{
+		const ts = await seenToasts();
+		check("6: pi has not answered yet", reloadAnswers("packed").length === answersBefore, `${reloadAnswers("packed").length} vs ${answersBefore}`);
+		check("6: …and the desk has not claimed a reload on the detached answer", !ts.some((t) => /reloaded|new skills found/.test(t)), JSON.stringify(ts));
+	}
+	t = await untilToast(page, /reloaded/, 20000);
+	check("6: …and it reports the reload once pi actually answers", /new: late/.test(t), t);
+	check("6: …after pi answered, not before", reloadAnswers("packed").length === answersBefore + 1, String(reloadAnswers("packed").length));
+	setCtl({});
 
 	check("no page errors along the way", errs.length === 0, JSON.stringify(errs));
 	console.log(fails ? `${fails} FAILED` : "ALL PASS");

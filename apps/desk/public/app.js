@@ -74,6 +74,7 @@ function newLiveState(id, cwd) {
 		resCheckAt: 0, // when that enumeration was taken (throttle)
 		resChecking: false, // an enumeration is in flight
 		reloading: false, // a reload is in flight
+		reloadPromise: null, // …and this settles when it is done, so send() can wait
 		reloadPending: null, // gained names waiting for the turn to settle
 	};
 }
@@ -614,11 +615,16 @@ function noteActivity(verb) {
 	L.activityStart = Date.now();
 	activityFrame = 0;
 	clearInterval(activityTimer);
-	activityTimer = setInterval(() => {
-		if (stale(g) || !L?.streaming || !L.activityStart) return stopActivity();
+	// `h`, not the global: a tick that was already queued when the stage changed
+	// must retire ITSELF and nothing else. stopActivity() is global — from a
+	// stale tick it would clear the NEW session's timer and blank its row.
+	const h = setInterval(() => {
+		if (stale(g)) return clearInterval(h);
+		if (!L?.streaming || !L.activityStart) return stopActivity();
 		if (!reducedMotion.matches) activityFrame++;
 		paintActivity();
 	}, 200);
+	activityTimer = h;
 	paintActivity();
 }
 
@@ -980,10 +986,46 @@ async function enumerateResources(S) {
 	return resourceMap(d);
 }
 
+// The prompt endpoint waits 5 s for pi's acceptance and then DETACHES, answering
+// `{pending: true}` — and pi answers a prompt that turned out to be an extension
+// command only once that command's handler RESOLVED (`agent-session.js`:
+// handled → preflightResult(true)). So a pending answer means "still reloading",
+// never "reloaded", and reading get_commands on it reports the OLD set.
+//
+// There is no longer-lived call to await: `prompt` is deliberately not on the
+// server's /rpc allowlist (prompts have a dedicated endpoint so the desk's own
+// bookkeeping stays consistent). So poll for the one thing a finished reload can
+// show the page — the command list changing. pi's `isStreaming` is no help here:
+// an extension command never starts an agent run, so the session reads as
+// not-streaming for the whole of it. A reload that adds no command is therefore
+// indistinguishable from one still running; that case runs out the ceiling and
+// then reports whatever it finds, which is what it would have said anyway.
+const RELOAD_POLL_MS = 500;
+const RELOAD_POLL_CEILING_MS = 15000;
+async function awaitPendingReload(S, before, g) {
+	const until = Date.now() + RELOAD_POLL_CEILING_MS;
+	while (Date.now() < until) {
+		await new Promise((r) => setTimeout(r, RELOAD_POLL_MS));
+		if (stale(g)) return null;
+		let d;
+		try {
+			d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
+		} catch {
+			continue; // a poll that failed is not a reload that failed
+		}
+		const now = (d.commands || []).map((c) => c.name);
+		if (now.length !== before.size || now.some((n) => !before.has(n))) return d;
+	}
+	return null;
+}
+
 // One reload of `S`. `gained` (names from /api/resources) is only what PROMPTED
 // it: what the toast REPORTS is what `get_commands` says pi actually has
 // afterwards, which is the only truth for a session spawned with a narrowed
 // skill set — those re-apply their CLI flags on reload and gain nothing.
+//
+// The whole run is published on `S.reloadPromise` while it is in flight, so
+// send() can wait for it instead of posting a prompt into the middle of it.
 async function runReload(S, { gained = [], auto = false } = {}) {
 	const g = stageGen;
 	if (!S || S.reloading) return;
@@ -999,6 +1041,8 @@ async function runReload(S, { gained = [], auto = false } = {}) {
 		return;
 	}
 	S.reloading = true;
+	let settle;
+	S.reloadPromise = new Promise((r) => (settle = r)); // send() waits on this
 	try {
 		const before = new Set((S.commands || []).map((c) => c.name));
 		const r = await fetch(`/api/session/${S.id}/prompt`, {
@@ -1010,7 +1054,10 @@ async function runReload(S, { gained = [], auto = false } = {}) {
 			if (!stale(g)) toast(r.error || "reload rejected", "error");
 			return;
 		}
-		const d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
+		// `pending` means the endpoint stopped waiting, NOT that pi finished.
+		let d = r.pending ? await awaitPendingReload(S, before, g) : null;
+		if (stale(g)) return;
+		if (!d) d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
 		S.commands = d.commands || [];
 		// re-baseline so the next check does not see this reload's own gain again;
 		// a failure here is not a failed reload, so it never becomes an error
@@ -1030,6 +1077,8 @@ async function runReload(S, { gained = [], auto = false } = {}) {
 		if (!stale(g)) toast(String(e.message || e), "error");
 	} finally {
 		S.reloading = false;
+		S.reloadPromise = null;
+		settle();
 	}
 }
 
@@ -2285,6 +2334,16 @@ async function send() {
 	if (text.startsWith("/") && (await handleDeskCommand(text))) {
 		if (!stale(g)) input.value = ""; // never clear the editor of a session we switched to
 		return;
+	}
+
+	// A reload is a prompt of its own, executing inside pi right now. Posting
+	// ours into the middle of it races `ctx.reload()`, and checkResources() will
+	// not catch it — that returns immediately while a reload is running. Wait for
+	// the one in flight; the text stays in the editor until it answers.
+	if (L.reloading && L.reloadPromise) {
+		toast("reloading skills — sending your message when it finishes", "info", 8000);
+		await L.reloadPromise;
+		if (stale(g) || !L) return; // the wait outlived the session we typed into
 	}
 
 	// A skill added since this session started is invisible to it, and the turn
