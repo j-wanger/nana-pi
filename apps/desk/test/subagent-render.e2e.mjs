@@ -178,12 +178,17 @@ try {
 	check("expired terminal run pruned (stuck-partial bug)", !!widget && !widget.includes("stalecheck"));
 	check("fresh terminal run lingers with duration", !!widget && widget.includes("freshdone") && widget.includes("complete") && widget.includes("44s"));
 
-	// settle → history re-render path (toolResult.details) must keep the strip
-	for (let t = 0; t < 60; t++) {
-		if ((await page.$eval("#chip", (n) => n.textContent)) === "idle") break;
-		await page.waitForTimeout(250);
-	}
-	await page.waitForTimeout(300); // let resync finish
+	// settle → history re-render path (toolResult.details) must keep the strip.
+	// The history re-render IS the transcript being rebuilt, so wait for the live
+	// card NODE to be replaced and read the one that came back. `#chip` is not a
+	// proxy for it: this stub answers every get_state with isStreaming:false, so
+	// any refreshState that lands mid-run flips the chip to idle and the read
+	// below then happens while the run is still going (seen 2026-09-16, when an
+	// unrelated request shifted the open-time resync by a few tens of ms).
+	const liveCard = await page.$(".tool-card");
+	await page.waitForFunction((el) => !el.isConnected, liveCard, { timeout: 15000 });
+	// attached, not visible: a card rebuilt from history starts collapsed
+	await page.waitForSelector(".tool-card .sub-strip", { state: "attached", timeout: 15000 });
 	const doneStrip = await page.$eval(".tool-card .sub-strip", (n) => n.textContent);
 	check("settled strip survives history re-render", doneStrip.includes("researcher") && doneStrip.includes("42.1k tok"));
 	const ctxPre = await page.$eval("#ctx-label", (n) => n.textContent);

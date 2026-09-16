@@ -146,6 +146,18 @@ cycle guard — the desk's does).
 - **Session ops** — /model, /thinking, /compact [instructions], /name, /new,
   /fork (picker over prior user messages), /clone, /export (HTML download),
   /session; auto-compaction + steering/follow-up modes under ⚙.
+- **Reload** — pi scans skill/extension/prompt/context locations at STARTUP only,
+  so a skill added while a session is running is invisible to it. `/reload` in the
+  composer fixes that without a restart: it sends nana-pack's `/reload-runtime` as
+  a prompt (pi runs extension commands off the turn), then re-reads `get_commands`
+  and reports what pi *actually* has now. The desk also looks for itself — it
+  re-enumerates `/api/resources` on window focus, before every prompt, and after a
+  skills folder is added or removed under ⚙ → Skills (at most once per 3 s per
+  session), and reloads by itself when that set GREW, deferring to the end of a
+  running turn. Requires nana-pack in the session (the desk says so when it is
+  missing); a session spawned with narrowed resource toggles re-applies its flags
+  on reload and gains nothing, which is why the toast reports `get_commands`
+  rather than what the enumeration predicted.
 - **Settings → Tools** — checkboxes over pi's built-ins (read, bash, powershell
   [win32], edit, write, grep, find, ls) writing `settings.json → defaultTools`,
   which REPLACES pi's own default set for new sessions; "Use pi defaults" deletes
@@ -166,7 +178,7 @@ more than it informed. The nana-pack journal itself still exists on disk.)
 
 Not covered (TUI-only): `/tree` branch *jumping* (RPC has no goto; fork/clone are
 the desk's branch tools), `!!` hidden bash, themes, `/login`, `/settings` beyond
-the ⚙ subset, `/reload`, keybinding customization. `@file` completion inserts a
+the ⚙ subset, keybinding customization. `@file` completion inserts a
 path reference; it does not attach file contents the way TUI submit does.
 
 ## Design decisions
@@ -292,6 +304,10 @@ screen, and all six are visible to anyone driving the page.
   editor, the attachments or the live-session handle — **and paints no toast**, success or error:
   a command that fails for the session you left says nothing on the one you moved to. The old
   session's request may still complete on the server; only its effect on the page is dropped.
+  The reload path follows the same rule with one deliberate difference: its bookkeeping (the
+  resource enumeration, the refreshed command list) is written to the session state object it
+  *started* with rather than to `L`, so a switch mid-reload cannot cross the two — and the
+  toast is still stale-guarded.
   **Not covered:** an RPC already in flight from an open model / thinking / fork picker — see
   Known limits.
 - **A reconnect replays state and resyncs exactly once.** The SSE stream reconnects on its own,
@@ -524,6 +540,16 @@ is not":
   another tab's echo consume ours). Send `ok` as a prompt and, before its echo arrives, `ok` again
   as a steer, and the steer's echo swaps out the prompt's bubble — one bubble for two messages.
   Both messages did reach pi; only the transcript is short one line, and a resync repairs it.
+- **Auto-detected reload only sees what changed while the session was on screen, and only
+  additions.** The comparison baseline is taken when you open the session in the pane, so a skill
+  added before that — or while you were looking at another session, or before a page reload — is
+  already in the baseline and never reads as new. Removals are deliberately never auto-reloaded:
+  reloading would drop a skill out from under work in progress. `/reload` covers both cases, and
+  it is the only path for a session with no nana-pack loaded (there is nothing else on the RPC
+  surface that can reload a running session). A reload also cannot widen a session that was
+  spawned narrowed, or one whose project you did not trust — pi re-applies the CLI flags and
+  keeps the trust decision — so in those cases the desk reloads, sees nothing new in
+  `get_commands`, and says so.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted.

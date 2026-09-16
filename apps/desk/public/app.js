@@ -57,6 +57,11 @@ function newLiveState(id, cwd) {
 		resyncRunning: false, // a get_messages is in flight
 		resyncAgain: false, // …and something asked for a fresher one while it ran
 		bashAbandoned: new Map(), // bash id → command, for ids whose POST already gave up on them
+		resPaths: null, // last /api/resources enumeration for this cwd: path → name (null = no baseline yet)
+		resCheckAt: 0, // when that enumeration was taken (throttle)
+		resChecking: false, // an enumeration is in flight
+		reloading: false, // a reload is in flight
+		reloadPending: null, // gained names waiting for the turn to settle
 	};
 }
 
@@ -850,10 +855,128 @@ function openLive(id, cwd) {
 	resync();
 	rpc({ type: "get_commands" }).then((d) => !stale(g) && (L.commands = d.commands || [])).catch(() => {});
 	fetch(`/api/session/${id}/files`).then((r) => r.json()).then((d) => !stale(g) && (L.files = d.files || [])).catch(() => {});
+	checkResources({ force: true }); // baseline, so later checks can see a GAIN
 	startStatsPoll();
 	refreshRail();
 	$("input").focus();
 }
+
+// ── runtime reload (skills added after the session started) ──
+// pi scans skill/extension locations at STARTUP only, so a skill added while a
+// session is running is invisible to it — the desk's `/reload` sends nana-pack's
+// `reload-runtime` command as a prompt (pi runs extension commands straight off
+// a prompt, off the turn) and its handler calls `ctx.reload()`: settings are
+// re-read, so a folder added under ⚙ → Skills counts, then resources are
+// re-discovered. RPC has no reload command of its own, which is why the pack has
+// to carry one.
+const RELOAD_CMD = "reload-runtime";
+const RES_CHECK_MS = 3000; // per session: floor between /api/resources enumerations
+
+// pi suffixes duplicate extension command names (`/x:1`, `/x:2`) and reports the
+// INVOCATION name, so a second pack registering the same command still matches.
+const reloadCommandName = (commands) =>
+	(commands || []).find((c) => c.source === "extension" && (c.name === RELOAD_CMD || c.name.startsWith(`${RELOAD_CMD}:`)))?.name || null;
+
+// Keyed by PATH, not name: a renamed skill in place is not a new skill, and two
+// skills can share a name across locations.
+function resourceMap(d) {
+	const m = new Map();
+	for (const s of d.skills || []) m.set(`skill:${s.path}`, s.name);
+	for (const e of d.extensions || []) m.set(`ext:${e.path}`, e.name);
+	return m;
+}
+
+const commandNames = (cmds, source) => (cmds || []).filter((c) => c.source === source).map((c) => c.name);
+
+async function enumerateResources(S) {
+	const d = await fetch(`/api/resources?cwd=${encodeURIComponent(S.cwd || HOME)}`).then((r) => r.json());
+	// A cwd that has gone away answers `{error}`. Treated as "could not tell",
+	// never as an empty set: an empty set reads as every skill removed, and then
+	// as every skill gained the moment the directory comes back.
+	if (d.error) throw new Error(d.error);
+	S.resCheckAt = Date.now();
+	return resourceMap(d);
+}
+
+// One reload of `S`. `gained` (names from /api/resources) is only what PROMPTED
+// it: what the toast REPORTS is what `get_commands` says pi actually has
+// afterwards, which is the only truth for a session spawned with a narrowed
+// skill set — those re-apply their CLI flags on reload and gain nothing.
+async function runReload(S, { gained = [], auto = false } = {}) {
+	const g = stageGen;
+	if (!S || S.reloading) return;
+	const cmd = reloadCommandName(S.commands);
+	if (!cmd) {
+		if (!auto) toast("reload needs nana-pack in this session — restart the session to pick up new skills", "warning", 8000);
+		return;
+	}
+	if (S.streaming) {
+		// pi executes the command off the prompt immediately; do not race a turn.
+		if (auto) S.reloadPending = gained;
+		else toast("a turn is running — /reload when it settles", "warning");
+		return;
+	}
+	S.reloading = true;
+	try {
+		const before = new Set((S.commands || []).map((c) => c.name));
+		const r = await fetch(`/api/session/${S.id}/prompt`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ message: `/${cmd}`, mode: "prompt" }),
+		}).then((r) => r.json());
+		if (!r.ok) {
+			if (!stale(g)) toast(r.error || "reload rejected", "error");
+			return;
+		}
+		const d = await rpcCall(`/api/session/${S.id}`, { type: "get_commands" });
+		S.commands = d.commands || [];
+		// re-baseline so the next check does not see this reload's own gain again;
+		// a failure here is not a failed reload, so it never becomes an error
+		S.resPaths = await enumerateResources(S).catch(() => S.resPaths);
+		if (stale(g)) return; // a reload for a session we have left says nothing
+		const skills = commandNames(S.commands, "skill");
+		const exts = commandNames(S.commands, "extension");
+		const added = [...skills, ...exts].filter((n) => !before.has(n)).map((n) => n.replace(/^skill:/, ""));
+		const counts = `${skills.length} skills · ${exts.length} extensions`;
+		// get_commands cannot see an extension that registers no commands, so this
+		// says what it OBSERVED, not that the reload failed: no new command came
+		// from what changed (a narrowed or untrusted session, or a quiet extension).
+		if (auto && !added.length) toast(`reloaded · ${counts} — no new commands from ${gained.join(", ")}`, "warning", 8000);
+		else if (auto) toast(`new skills found: ${added.join(", ")} — reloaded · ${counts}`);
+		else toast(`reloaded · ${counts}${added.length ? ` · new: ${added.join(", ")}` : ""}`);
+	} catch (e) {
+		if (!stale(g)) toast(String(e.message || e), "error");
+	} finally {
+		S.reloading = false;
+	}
+}
+
+// Re-enumerate what pi WOULD discover for this cwd and reload if that grew.
+// Cheap (a few ms of stat/readdir), so it rides window focus and every prompt
+// rather than a timer. Removals do nothing: they are rare, and reloading on one
+// would drop a skill out from under work in progress — `/reload` covers them.
+async function checkResources({ force = false } = {}) {
+	const S = L;
+	const g = stageGen;
+	if (!S || selected?.kind !== "live" || S.resChecking || S.reloading) return;
+	if (!force && Date.now() - S.resCheckAt < RES_CHECK_MS) return;
+	S.resChecking = true;
+	try {
+		const next = await enumerateResources(S);
+		const prev = S.resPaths;
+		S.resPaths = next;
+		if (!prev || stale(g)) return; // the first enumeration is the baseline
+		const gained = [...next.keys()].filter((k) => !prev.has(k)).map((k) => next.get(k));
+		if (gained.length) await runReload(S, { gained, auto: true });
+	} catch {
+		// next check retries
+	} finally {
+		S.resChecking = false;
+	}
+}
+
+window.addEventListener("focus", () => checkResources());
+document.addEventListener("visibilitychange", () => !document.hidden && checkResources());
 
 function liveBubble(kind) {
 	if (!L.currentBubble || L.currentBubble.dataset.kind !== kind) {
@@ -893,13 +1016,20 @@ function handleEvent(e) {
 			L.streaming = true;
 			setChip("running");
 			break;
-		case "agent_settled":
+		case "agent_settled": {
 			L.streaming = false;
 			setChip("idle");
 			L.currentBubble = null;
 			resync();
+			// a gain detected mid-turn waited for exactly this moment
+			const pending = L.reloadPending;
+			if (pending) {
+				L.reloadPending = null;
+				runReload(L, { gained: pending, auto: true });
+			}
 			refreshRail();
 			break;
+		}
 		case "message_start":
 			L.currentBubble = null;
 			L.liveEls = [];
@@ -1347,6 +1477,7 @@ async function tabSkills(body) {
 		rm.onclick = async () => {
 			try {
 				await patchSettings({ skills: (await currentFolders()).filter((x) => x !== f) });
+				checkResources({ force: true }); // re-baseline: a removal never auto-reloads
 				tabReload(body, tabSkills);
 			} catch (e) {
 				toast(String(e.message || e), "error");
@@ -1362,6 +1493,8 @@ async function tabSkills(body) {
 		try {
 			const now = await currentFolders();
 			if (!now.includes(picked)) await patchSettings({ skills: [...now, picked] });
+			// the open session should not have to wait for a focus event for this
+			checkResources({ force: true });
 			tabReload(body, tabSkills);
 		} catch (e) {
 			toast(String(e.message || e), "error");
@@ -1829,6 +1962,7 @@ const DESK_COMMANDS = [
 	["clone", "duplicate active branch into a new session"],
 	["export", "download session as HTML"],
 	["session", "show session file / id / stats"],
+	["reload", "re-read skills, extensions and context files (needs nana-pack)"],
 ];
 
 // Every branch below either issues its RPC before any await (so it reaches the
@@ -1906,6 +2040,9 @@ async function handleDeskCommand(text) {
 			toast(`${s?.sessionFile || "(ephemeral)"} · id ${s?.sessionId || "?"} · ${s?.messageCount ?? "?"} messages`, "info", 8000);
 			return true;
 		}
+		case "reload":
+			runReload(L);
+			return true;
 		default:
 			return false;
 	}
@@ -1972,6 +2109,12 @@ async function send() {
 		if (!stale(g)) input.value = ""; // never clear the editor of a session we switched to
 		return;
 	}
+
+	// A skill added since this session started is invisible to it, and the turn
+	// about to run is exactly when that matters. Throttled and a few ms when
+	// nothing changed; only a GAIN costs a reload.
+	await checkResources();
+	if (stale(g) || !L) return;
 
 	let mode = $("mode").value;
 	if (mode === "auto") mode = L.streaming ? "steer" : "prompt";
