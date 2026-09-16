@@ -36,6 +36,12 @@ export interface NanaPackConfig {
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
 	handoff: { enabled: boolean; path: string | null };
+	/**
+	 * The owner's objective + current priority, injected into every system prompt.
+	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
+	 * `path` null = ~/.pi/agent/nana-objective.md.
+	 */
+	objective: { enabled: boolean; path: string | null };
 	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
 	receipts: { enabled: boolean; dir: string | null };
 }
@@ -46,6 +52,7 @@ const DEFAULTS: NanaPackConfig = {
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null },
+	objective: { enabled: true, path: null },
 	receipts: { enabled: true, dir: null },
 };
 
@@ -72,6 +79,14 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		notify: { ...DEFAULTS.notify, ...user.notify, ...project.notify },
 		journal: { ...DEFAULTS.journal, ...user.journal, ...project.journal },
 		handoff: { ...DEFAULTS.handoff, ...user.handoff, ...project.handoff },
+		// USER SCOPE ONLY — `project` is deliberately absent from this one merge.
+		// objective.path names a file whose contents go into EVERY session's system
+		// prompt, so a repo that could set it would be writing the standing
+		// instructions of every session run inside it; a repo that could set
+		// enabled:false would silently suppress the owner's objective. Project trust
+		// says "run this repo's tooling", not "speak for the user's own priorities",
+		// so trusted projects are excluded too.
+		objective: { ...DEFAULTS.objective, ...user.objective },
 		receipts: { ...DEFAULTS.receipts, ...user.receipts, ...project.receipts },
 	};
 }

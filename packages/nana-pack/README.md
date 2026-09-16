@@ -20,7 +20,7 @@ ones that load a real extension skip themselves when pi is not installed globall
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 
-Five extensions giving pi the hook coverage we require (Claude Code parity classes):
+Six extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -29,6 +29,7 @@ Five extensions giving pi the hook coverage we require (Claude Code parity class
 | `nana-lifecycle` | Session lifecycle observability + `/reload-runtime` | `session_start/…compact…/shutdown`, `registerCommand` |
 | `nana-notify` | Outward notifications | `agent_settled` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
+| `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 ## Install
 
@@ -83,7 +84,8 @@ loaded. Not seeing it is not proof of the opposite — it is also absent in prin
 ## Config (all optional)
 
 User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
-read live on every event — edits apply without restarting):
+read live on every event — edits apply without restarting). One exception: **`objective`
+is user-scope only** — project config never contributes to it, trusted or not.
 
 ```json
 {
@@ -101,6 +103,7 @@ read live on every event — edits apply without restarting):
 	"notify": { "enabled": true, "headless": false },
 	"journal": { "enabled": true, "path": null },
 	"handoff": { "enabled": true, "path": null },
+	"objective": { "enabled": true, "path": null },
 	"receipts": { "enabled": true, "dir": null }
 }
 ```
@@ -166,6 +169,24 @@ read live on every event — edits apply without restarting):
     with the open that follows, so a link swapped in between them is not caught; and the write
     is a plain `writeFileSync`, not a temp-file rename, so an interrupted compaction can leave
     a partially written handoff.
+- **Objective** injects the user's objective + current priority file into every system
+  prompt, under `## Objective and current priority (nana)` plus one line charging the session
+  to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
+  (relocate with `objective.path`, a leading `~/` is expanded); missing or empty file = silent
+  no-op; content capped at 2000 chars; a `objective_pickup` journal line records each pickup.
+  Three contract points:
+  - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
+    handoff's startup/new. The handoff is continuity a resumed session already carries; the
+    objective is standing governance that lives only in the system prompt, which pi rebuilds
+    at every agent start.
+  - **`objective.enabled` and `objective.path` are honored from USER scope only.** A repo that
+    could set the path would be writing standing instructions into every session run inside it,
+    and one that could set `enabled: false` could silently suppress the owner's objective.
+    Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
+  - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every
+    component below the root is checked, as in the handoff). A path in the user's own home is
+    not checked: linking `~/.pi/agent/nana-objective.md` at a repo's real `OBJECTIVE.md` is the
+    intended setup, not a repo-supplied link. Advisory, not a security boundary.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
   per repo+checker under `~/.pi/agent/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.
