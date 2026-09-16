@@ -509,10 +509,7 @@ function appendMessage(m, ctx) {
 			const group = el("div", "amsg");
 			for (const b of m.content || []) {
 				if (b.type === "thinking") {
-					const d = el("details", "thinking-details");
-					d.appendChild(el("summary", "", "thinking"));
-					d.appendChild(el("div", "thinking-body", b.thinking));
-					group.appendChild(d);
+					group.appendChild(thinkingDetails(b.thinking, thinkingLabel(b.thinking)));
 				} else if (b.type === "text") {
 					const bubble = el("div", "msg assistant md");
 					bubble.innerHTML = mdToHtml(b.text);
@@ -558,6 +555,7 @@ function renderMessages(messages) {
 	L.liveEls = [];
 	L.optimisticUserEls = [];
 	L.currentBubble = null;
+	L.thinkingCard = null;
 	for (const m of messages) appendMessage(m, L.ctx);
 	L.renderSeq++;
 	pin(container);
@@ -927,6 +925,80 @@ function liveBubble(kind) {
 	return L.currentBubble;
 }
 
+// ── thinking ──
+// Live, a compact card: a fixed-height window on the LAST few lines of the
+// reasoning, newest at the bottom, so a wrong direction is catchable at a glance
+// without reading a wall of text. Click the header for everything so far. When
+// the block ends it becomes the SAME closed <details> history renders, so the
+// two read alike — both headers carry the char count.
+const THINK_TAIL_LINES = 14; // held in the DOM while closed; the window clips it visually
+const thinkingLabel = (text, ms) =>
+	`thinking · ${fmtTok(String(text || "").length)} chars${ms == null ? "" : ` · ${fmtDur(ms)}`}`;
+
+function thinkingDetails(text, label) {
+	const d = el("details", "thinking-details");
+	d.appendChild(el("summary", "", label));
+	d.appendChild(el("div", "thinking-body", text || ""));
+	return d;
+}
+
+function paintThinking(card) {
+	const raw = card.dataset.raw || "";
+	const open = card.classList.contains("open");
+	card.querySelector(".think-text").textContent = open ? raw : raw.split("\n").slice(-THINK_TAIL_LINES).join("\n");
+	const win = card.querySelector(".think-win");
+	// Closed, the window is `overflow: hidden` — a script can still scroll it, and
+	// that is what keeps the newest line at the bottom however the lines wrap.
+	// Open, it scrolls with the text unless the reader has scrolled up.
+	if (!open || !card.dataset.unpinned) win.scrollTop = win.scrollHeight;
+}
+
+function thinkingCard() {
+	if (L.thinkingCard?.isConnected) return L.thinkingCard;
+	const card = el("div", "think-card");
+	card.dataset.raw = "";
+	card.dataset.startedAt = String(Date.now());
+	card.innerHTML = `<div class="think-head"><span class="mark spin">✻</span><span class="think-label">thinking</span><span class="spacer"></span><span class="caret">▸</span></div><div class="think-win"><div class="think-text"></div></div>`;
+	card.querySelector(".think-head").onclick = () => {
+		const open = card.classList.toggle("open");
+		card.querySelector(".caret").textContent = open ? "▾" : "▸";
+		delete card.dataset.unpinned;
+		paintThinking(card);
+	};
+	card.querySelector(".think-win").addEventListener("scroll", (ev) => {
+		const w = ev.currentTarget;
+		if (!card.classList.contains("open")) return; // closed: every scroll is ours
+		if (w.scrollHeight - w.scrollTop - w.clientHeight > 24) card.dataset.unpinned = "1";
+		else delete card.dataset.unpinned;
+	});
+	L.ctx.container.appendChild(card);
+	L.liveEls.push(card);
+	L.thinkingCard = card;
+	L.currentBubble = null; // text after this starts its own bubble
+	return card;
+}
+
+function appendThinking(delta) {
+	const card = thinkingCard();
+	card.dataset.raw += delta || "";
+	paintThinking(card);
+}
+
+// The block is over — thinking_end, or the first text/tool call after it.
+// Swap the card for the history-shaped <details>, in place and in liveEls, so
+// message_end still removes exactly what the live path put there.
+function finishThinkingCard() {
+	const card = L?.thinkingCard;
+	if (!card) return;
+	L.thinkingCard = null;
+	if (!card.isConnected) return;
+	const raw = card.dataset.raw || "";
+	const d = thinkingDetails(raw, thinkingLabel(raw, Date.now() - Number(card.dataset.startedAt || Date.now())));
+	const i = L.liveEls.indexOf(card);
+	if (i >= 0) L.liveEls[i] = d;
+	card.replaceWith(d);
+}
+
 function handleEvent(e) {
 	if (!L) return;
 	const container = L.ctx.container;
@@ -959,25 +1031,33 @@ function handleEvent(e) {
 			setChip("idle");
 			stopActivity();
 			L.currentBubble = null;
+			L.thinkingCard = null;
 			resync();
 			refreshRail();
 			break;
 		case "message_start":
 			L.currentBubble = null;
+			L.thinkingCard = null;
 			L.liveEls = [];
 			break;
 		case "message_update": {
 			const ame = e.assistantMessageEvent;
 			if (!ame) break;
 			if (ame.type === "text_delta") {
+				finishThinkingCard();
 				const b = liveBubble("text");
 				b.dataset.raw += ame.delta;
 				b.innerHTML = mdToHtml(b.dataset.raw);
+			} else if (ame.type === "text_start") {
+				finishThinkingCard(); // the reasoning is over even if no thinking_end came
+			} else if (ame.type === "thinking_start") {
+				thinkingCard();
 			} else if (ame.type === "thinking_delta") {
-				const b = liveBubble("thinking");
-				b.dataset.raw += ame.delta;
-				b.textContent = b.dataset.raw;
+				appendThinking(ame.delta);
+			} else if (ame.type === "thinking_end") {
+				finishThinkingCard();
 			} else if (ame.type === "toolcall_start") {
+				finishThinkingCard();
 				L.currentBubble = null;
 				const row = toolRow(L.ctx, ame.id, ame.toolName);
 				L.liveEls.push(row);
@@ -988,6 +1068,7 @@ function handleEvent(e) {
 			for (const elm of L.liveEls) elm.remove();
 			L.liveEls = [];
 			L.currentBubble = null;
+			L.thinkingCard = null;
 			// pi echoes user messages as message_end too; swap the matching
 			// optimistic bubble from send() for the echo instead of rendering a
 			// second copy. Content-matched (not FIFO) so a user echo from another
