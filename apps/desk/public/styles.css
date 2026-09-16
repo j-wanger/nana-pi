@@ -529,7 +529,7 @@ body {
 	overflow: hidden;
 }
 #activity.on { visibility: visible; }
-#act-verb { overflow: hidden; text-overflow: ellipsis; }
+#act-verb { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #act-time { flex: none; }
 .act-spin { width: 1ch; flex: none; }
 #input {
