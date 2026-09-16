@@ -2,12 +2,12 @@
 // nana-knowledge — build / query / hook.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
 import * as fs from "node:fs";
-import { build, pruneShown } from "../lib/build.ts";
+import { build, pruneShown, BuildLockedError } from "../lib/build.ts";
 import { openDb, getMeta } from "../lib/db.ts";
 import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
 import { loadRoots } from "../lib/sources.ts";
-import { runHook } from "../lib/hook.ts";
+import { runHook, BUDGET_MS, STDIN_MAX_BYTES } from "../lib/hook.ts";
 
 const USAGE = `nana-knowledge — local BM25 index over the knowledge stores
 
@@ -31,8 +31,11 @@ async function cmdBuild(argv: string[]): Promise<number> {
 		console.log(`\n  files ${s.files} · rows ${s.rows} · reindexed ${s.reindexed} · unchanged ${s.unchanged} · removed ${s.removed} · skipped>1MB ${s.skippedLarge}`);
 		console.log(`  ${(s.ms / 1000).toFixed(1)}s · db ${mb(s.dbBytes)} · ${paths.db}`);
 		return 0;
-	} finally {
-		try { fs.rmSync(paths.buildLock, { force: true }); } catch { /* ignore */ }
+	} catch (err) {
+		// The lock is the builder's own; a losing build says so and exits 0 rather than
+		// clearing someone else's lock (the old unconditional rmSync did exactly that).
+		if (err instanceof BuildLockedError) { console.error(err.message); return 0; }
+		throw err;
 	}
 }
 
@@ -52,10 +55,26 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	return 0;
 }
 
+// Everything below the cap is the hook's own budget; the harness hook timeout is the
+// outer hard bound. The SQLite work itself is synchronous and measured at ~8 ms on the
+// real index, so it cannot overrun — what can is ASYNC: a stdin that is never closed,
+// a slow spawn, a blocked pipe. This timer is the answer to all of them at once.
+// .unref() so it never holds a healthy fast path open.
+function armDeadline(ms: number): void {
+	setTimeout(() => process.exit(0), ms).unref();
+}
+
 async function cmdHook(): Promise<number> {
+	armDeadline(BUDGET_MS); // BEFORE stdin is touched — a hung read must still exit 0
 	try {
 		const chunks: Buffer[] = [];
-		for await (const c of process.stdin) chunks.push(c as Buffer);
+		let bytes = 0;
+		for await (const c of process.stdin) {
+			const buf = c as Buffer;
+			bytes += buf.length;
+			if (bytes > STDIN_MAX_BYTES) break; // stop reading; truncated JSON fails open below
+			chunks.push(buf);
+		}
 		const res = await runHook(Buffer.concat(chunks).toString("utf8"));
 		if (res.output) process.stdout.write(res.output + "\n");
 	} catch { /* fail open, always */ }

@@ -32,6 +32,8 @@ export function meaningfulTokens(text: string): string[] {
 	return out;
 }
 
+const NOTIFICATION_PREFIXES = ["<system-reminder>", "[SYSTEM NOTIFICATION", "<task-notification>"];
+
 /**
  * Reasons a prompt is not worth a pull. Returns null when the prompt should be queried.
  * Order matters only for the reported reason.
@@ -41,6 +43,10 @@ export function skipReason(prompt: unknown): string | null {
 	const p = prompt.trim();
 	if (p.length < 12) return "too-short";
 	if (p.startsWith("/")) return "slash-command";
+	// Harness notifications arrive on the same channel as the owner's own typing.
+	// They are machine text about the session, not a question — the first live run
+	// pulled pointers for a task-completion notice.
+	if (NOTIFICATION_PREFIXES.some((x) => p.startsWith(x))) return "harness-notification";
 	if (meaningfulTokens(p).length < 2) return "too-few-tokens";
 	return null;
 }

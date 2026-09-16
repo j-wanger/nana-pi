@@ -9,8 +9,54 @@ import { paths } from "./paths.ts";
 import { loadRoots, type Root } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
-const SKIP_DIRS = new Set(["node_modules", ".git"]);
+const SKIP_DIRS = new Set([
+	"node_modules",
+	".git",
+	// wiki convention: raw/ holds unprocessed scrapes; the CURATED articles are the wiki.
+	"raw",
+	// review corpora are process artifacts, not knowledge — they dominated 2 of the
+	// first 3 real queries with reviewer prose about code that has since changed.
+	"reviews",
+]);
 const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** A lock older than this is a crashed builder, not a running one. */
+export const LOCK_TTL_MS = 10 * 60 * 1000;
+
+function tryCreateLock(now: number): boolean {
+	let fd: number;
+	// "wx" is the whole mechanism: create-or-fail is ATOMIC, so of two racing builders
+	// exactly one gets the fd and the other sees EEXIST. The old stat-then-write let
+	// both through and ran two writers against one SQLite file.
+	try { fd = fs.openSync(paths.buildLock, "wx"); } catch { return false; }
+	try { fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, at: now })); }
+	catch { /* the lock exists, which is what matters; the pid is for release */ }
+	finally { try { fs.closeSync(fd); } catch { /* ignore */ } }
+	return true;
+}
+
+/** Atomically take the build lock. Returns true iff THIS process owns it. */
+export function acquireBuildLock(now = Date.now()): boolean {
+	try { fs.mkdirSync(paths.home, { recursive: true }); } catch { /* ignore */ }
+	if (tryCreateLock(now)) return true;
+	let age: number;
+	try { age = now - fs.statSync(paths.buildLock).mtimeMs; } catch { return tryCreateLock(now); }
+	if (age <= LOCK_TTL_MS) return false; // a real builder is running
+	try { fs.rmSync(paths.buildLock, { force: true }); } catch { return false; }
+	return tryCreateLock(now); // exactly one retry after reclaiming a stale lock
+}
+
+/** Remove the lock ONLY when the pid inside is ours — never clear another builder's. */
+export function releaseBuildLock(): void {
+	try {
+		const raw = JSON.parse(fs.readFileSync(paths.buildLock, "utf8"));
+		if (raw?.pid !== process.pid) return;
+	} catch { return; } // absent or unreadable: not provably ours, let the TTL reclaim it
+	try { fs.rmSync(paths.buildLock, { force: true }); } catch { /* ignore */ }
+}
+
+export class BuildLockedError extends Error {
+	constructor() { super("another nana-knowledge build holds " + paths.buildLock); }
+}
 
 interface Candidate { path: string; root: string; kind: Root["kind"]; size: number; mtime: number }
 
@@ -77,7 +123,24 @@ export function pruneShown(now = Date.now()): number {
 	return n;
 }
 
+/**
+ * @throws BuildLockedError when another build already holds the lock. Every build path
+ * goes through here, so "check then spawn" is never needed upstream.
+ *
+ * Readers are not swapped onto a temp database: WAL already gives a reader a consistent
+ * snapshot, and the output is POINTERS — a pointer from generation N-1 still names a real
+ * file. A temp-db-and-rename would buy single-generation reads nobody can perceive.
+ */
 export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStats> {
+	if (!acquireBuildLock()) throw new BuildLockedError();
+	try {
+		return await buildLocked(opts);
+	} finally {
+		releaseBuildLock();
+	}
+}
+
+async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	const t0 = Date.now();
 	const roots = loadRoots();
 	if (opts.rebuild) {
