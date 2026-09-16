@@ -88,7 +88,8 @@ function paint() {
 		row.title = f.path;
 		const st = el("span", "cg-st", f.status);
 		const p = el("span", "cg-path", f.path);
-		const add = el("span", "cg-add", f.binary ? "bin" : f.added == null ? "" : `+${f.added}`);
+		// zero is not worth a column: a delete reads `D old.js −40`, not `+0 −40`
+		const add = el("span", "cg-add", f.binary ? "bin" : f.added ? `+${f.added}` : "");
 		const del = el("span", "cg-del", f.binary || !f.removed ? "" : minus(f.removed));
 		row.append(st, p, el("span", "spacer"), add, del);
 		row.onclick = () => openFile(f.path);
