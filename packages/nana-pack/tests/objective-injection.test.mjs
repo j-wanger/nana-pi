@@ -64,11 +64,11 @@ for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 
 // (c) cap: a runaway objective file cannot eat the context window.
 {
-	fs.writeFileSync(objectiveFile, `${"A".repeat(2000)}TAIL${"B".repeat(3000)}`);
+	fs.writeFileSync(objectiveFile, `${"A".repeat(4000)}TAIL${"B".repeat(3000)}`);
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("c: capped at 2000 chars", r?.systemPrompt.includes("A".repeat(2000)) && !r?.systemPrompt.includes("TAIL"));
+	check("c: capped at 4000 chars", r?.systemPrompt.includes("A".repeat(4000)) && !r?.systemPrompt.includes("TAIL"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

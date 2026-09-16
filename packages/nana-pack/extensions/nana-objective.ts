@@ -28,7 +28,7 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 
-const INJECT_CAP = 2000;
+const INJECT_CAP = 4000; // OBJECTIVE.md is ~1.7k today; 2000 left 300 chars of headroom (truncates mid-file, silently)
 const HEADING = "## Objective and current priority (nana)";
 const CHARGE =
 	"Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending.";

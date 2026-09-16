@@ -173,7 +173,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
   (relocate with `objective.path`, a leading `~/` is expanded); missing or empty file = silent
-  no-op; content capped at 2000 chars; a `objective_pickup` journal line records each pickup.
+  no-op; content capped at 4000 chars; a `objective_pickup` journal line records each pickup.
   Three contract points:
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
     handoff's startup/new. The handoff is continuity a resumed session already carries; the
