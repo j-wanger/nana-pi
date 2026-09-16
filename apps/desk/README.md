@@ -156,12 +156,18 @@ cycle guard — the desk's does).
   sessions. Past that budget (or past 1000 untracked files) a file is still a
   row, just without a number, and the answer says `partial: true` with the reason
   — so the bar's totals are a floor, not a claim about the whole tree. Every one
-  of those reads goes through a descriptor opened `O_NOFOLLOW` and `fstat`ed, and
-  stops at the smaller of the per-file cap and what is left of the budget, so
-  what is charged is what was actually read: a file that grew since its size was
-  taken is listed with no number (and `partial`) rather than read past the bound.
-  An untracked **symlink** is listed and never read, in the list and in the diff
-  window alike (that one answers 409 `symlinked path`).
+  of those reads goes through a descriptor that is `fstat`ed (and, on darwin and
+  linux, opened `O_NOFOLLOW`; win32 has no such flag — there the `lstat`-first
+  check is the only guard, for the list and the diff window alike). The bound is
+  decided from THAT `fstat`, and the budget is charged before the first byte is
+  read, so concurrent reads cannot overshoot it between them. There is no probe
+  byte: a read stops exactly at its bound, never one past it to learn there was
+  more. A file that no longer fits what is left of the budget is listed with no
+  number (and `partial`) instead of being read in part, and one that is being
+  written under the read — it came up shorter than its own `fstat` — is listed
+  with no number too, because a prefix's line count is a number for a file
+  nobody measured. An untracked **symlink** is listed and never read, in the
+  list and in the diff window alike (that one answers 409 `symlinked path`).
 - **Header/footer** — an activity line above the composer while a turn runs
   (spinner, what it is doing — thinking, writing, the file it is reading, the
   command it is running — and the elapsed time), model picker, thinking-level
@@ -196,11 +202,15 @@ cycle guard — the desk's does).
   its own 600 s RPC timeout included), when the session exits, or when you leave
   the session. Nothing else is evidence — a changed command list can be another
   tab's reload, an unchanged one says nothing, and `isStreaming` never moves for
-  an extension command, which starts no agent run. The cost of taking the event
-  as the only evidence: the desk does not replay events, so if the SSE stream
-  drops while a detached reload is in flight, that settled event is gone and the
-  wait ends only when the session exits or you leave it — and your text is still
-  sitting in the composer, unsent, either way. **Two tabs on one session can
+  an extension command, which starts no agent run. The outcome is not only
+  broadcast, it is KEPT: the server holds the last 32 detached-prompt outcomes per
+  session and replays them in every `desk_hello`, and the page checks what it
+  already knows before it installs a waiter. That closes both orderings — the
+  event arriving before the POST it answers, and a stream that dropped while the
+  reload was in flight (the reconnect's hello carries the answer). What is left:
+  an outcome older than that session's last 32 detached prompts is gone, and a
+  reload waiting on one ends only when the session exits or you leave it — with
+  your text still sitting in the composer, unsent. **Two tabs on one session can
   each start a reload**: pi serializes the prompts, and the second tab's own
   typing is held by its own reload, not by the first tab's. Same user, same
   session, both reloads run — noted, not fixed.
@@ -594,14 +604,16 @@ is not":
   Its totals can also be a floor rather than a sum: past the 16 MiB untracked read
   budget, or past 1000 untracked files, the remaining rows carry no line count and
   the answer is marked `partial`.
-- **On win32 the diff window's symlink check is a check, not a lock.** An untracked
-  path is `lstat`ed and refused if it is a symlink, then read. On darwin and linux
-  the read goes through a descriptor opened `O_NOFOLLOW` and `fstat`ed, so a regular
-  file swapped for a symlink between those two steps is refused at the open (409
-  `symlinked path`) instead of followed — the fd is the file, and it cannot be
-  redirected once it is open. win32 has no `O_NOFOLLOW`, so there the old race
-  stands: the swapped-in link is followed, to wherever it points. It takes a process
-  racing the desk inside your own work tree, which is already a process running as you.
+- **On win32 the symlink check is a check, not a lock — in the file list and in the
+  diff window alike.** An untracked path is `lstat`ed and refused if it is a symlink,
+  then read. On darwin and linux the read goes through a descriptor opened
+  `O_NOFOLLOW` and `fstat`ed, so a regular file swapped for a symlink between those
+  two steps is refused at the open (the diff window answers 409 `symlinked path`; the
+  list shows the row with no line count) instead of followed — the fd is the file, and
+  it cannot be redirected once it is open. win32 has no `O_NOFOLLOW`, so there the old
+  race stands on both surfaces: the swapped-in link is followed, to wherever it points.
+  It takes a process racing the desk inside your own work tree, which is already a
+  process running as you.
 - **A hand-typed message in exactly pi's skill-wrapper shape collapses like a
   skill.** pi records a `/skill:name` invocation as the expanded
   `<skill name=".." location="..">…</skill>` block and gives the desk no
