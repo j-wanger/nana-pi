@@ -43,7 +43,8 @@ function lockPid(): number | null {
 }
 
 /**
- * "stale" — the owner is demonstrably gone, or the lock predates the TTL.
+ * "stale" — the owner is demonstrably gone (ESRCH), or no owner pid can be read AND the lock
+ *           predates the TTL. An ALIVE owner is never stale, however old the lock.
  * "held"  — a real builder is running.
  * "gone"  — the lock vanished while we looked at it; just retry the create.
  *
@@ -53,10 +54,21 @@ function lockPid(): number | null {
 function lockState(now: number): "stale" | "held" | "gone" {
 	const pid = lockPid();
 	if (pid !== null) {
-		try { process.kill(pid, 0); } catch (err) {
+		try {
+			process.kill(pid, 0);
+			// The owner is ALIVE: never reclaim on age alone (sol r3 C — a long build would be
+			// reclaimed under its own writer, and `--rebuild` would delete the db beneath it).
+			// The TTL is only for locks whose owner cannot be established at all.
+			try { fs.statSync(paths.buildLock); return "held"; } catch { return "gone"; }
+		} catch (err) {
 			if ((err as NodeJS.ErrnoException)?.code === "ESRCH") return "stale";
+			// EPERM: alive but another user's process — treat as held, same as above.
+			if ((err as NodeJS.ErrnoException)?.code === "EPERM") {
+				try { fs.statSync(paths.buildLock); return "held"; } catch { return "gone"; }
+			}
 		}
 	}
+	// No parsable owner pid: the TTL is the only evidence we have.
 	try { return now - fs.statSync(paths.buildLock).mtimeMs > LOCK_TTL_MS ? "stale" : "held"; }
 	catch { return "gone"; }
 }

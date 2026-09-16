@@ -213,6 +213,19 @@ check("reclaim leaves no .reclaim litter behind", !fs.existsSync(lockFile + ".re
 releaseBuildLock();
 check("release removes OUR lock", !fs.existsSync(lockFile));
 
+// sol r3 C: an ALIVE owner is never stale, however old the lock — a long build must not be
+// reclaimed under its own writer. Our own pid is alive by definition.
+fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid, at: Date.now() }));
+fs.utimesSync(lockFile, stale, stale);
+check("a lock older than the TTL whose owner is ALIVE is NOT reclaimed", acquireBuildLock() === false);
+check("...and the alive owner's lock is left in place", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
+fs.rmSync(lockFile, { force: true });
+// no readable owner pid + past the TTL → the TTL is the only evidence → reclaimed
+fs.writeFileSync(lockFile, "not json");
+fs.utimesSync(lockFile, stale, stale);
+check("a pid-less lock older than the TTL is reclaimed", acquireBuildLock() === true);
+releaseBuildLock();
+
 // a fresh lock whose OWNER IS DEAD is stale too — a crashed builder must not block the
 // index for ten minutes. deadPid is a pid we watched exit, so kill(pid,0) gives ESRCH.
 const deadPid = Number(execFileSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" }));
