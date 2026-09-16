@@ -75,6 +75,21 @@ const expand = (name, dir, body, args) => {
 	eq("parse: args ride after the block", sk?.args, "phase 3 please");
 	eq("parse: args do not leak into the body", sk?.body.includes("phase 3"), false);
 }
+{
+	// A skill file that documents the wrapper — or just happens to contain the
+	// line `</skill>` — must not be cut at its own text. The LAST wrapper close is
+	// the wrapper's; the first one belongs to the body.
+	const body = "# Wrapper docs\n\nA skill block ends with\n</skill>\nand that is fine.";
+	const sk = parseSkillMessage(expand("wrap", "/s/wrap", body));
+	check("parse: a body containing </skill> still collapses", !!sk, JSON.stringify(sk));
+	eq("parse: …with no args", sk?.args, "");
+	check("parse: …and the body keeps its own closing line", !!sk?.body.includes("\n</skill>\nand that is fine."), JSON.stringify(sk?.body));
+	const withArgs = parseSkillMessage(expand("wrap", "/s/wrap", body, "run it"));
+	eq("parse: …and with args the args still ride behind the wrapper", withArgs?.args, "run it");
+	check("parse: …without swallowing the body", !!withArgs?.body.endsWith("and that is fine."), JSON.stringify(withArgs?.body));
+	eq("label: a body containing </skill>", skillLabel(expand("wrap", "/s/wrap", body, "run it")), "/skill:wrap run it");
+}
+
 eq("parse: ordinary prompt", parseSkillMessage("just a prompt"), null);
 eq("parse: the typed form is not the expanded form", parseSkillMessage("/skill:loop-init go"), null);
 eq("parse: an opening line that is not the exact shape", parseSkillMessage('<skill name="x" location="y" extra="z">\nbody\n</skill>'), null);

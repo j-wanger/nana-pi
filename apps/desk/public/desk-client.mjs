@@ -109,8 +109,11 @@ export function parseSkillMessage(text) {
 	if (nl < 0) return null;
 	const head = SKILL_OPEN.exec(text.slice(0, nl));
 	if (!head) return null;
-	const close = text.indexOf(SKILL_CLOSE, nl);
-	if (close < 0) return null;
+	// LAST, not first: a skill file that documents the wrapper (or just contains
+	// the line `</skill>`) would otherwise be cut at its own text, and the rest of
+	// the body would be read as the user's arguments.
+	const close = text.lastIndexOf(SKILL_CLOSE);
+	if (close < nl) return null;
 	const rest = text.slice(close + SKILL_CLOSE.length);
 	// pi appends the user's own args after a blank line, or nothing at all;
 	// anything else means we cut in the wrong place, and a wrong parse must lose.
