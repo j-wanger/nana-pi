@@ -12,6 +12,12 @@
 //   3. a detached prompt that eventually FAILS broadcasts settled {ok:false,error}
 //      AND keeps the older desk_prompt_rejected (clients that only know that one)
 //   4. exactly one settled event per detached prompt, and none for a fast one
+//   5. …and that outcome is KEPT, not just broadcast: a client attaching later
+//      reads it out of the desk_hello snapshot (sol r3 HIGH 2 — the event can be
+//      sent before the POST it answers has reached the client at all)
+//   6. the kept ring is bounded at 32, oldest out first
+//   7. a child that DIES with a prompt still detached settles it {ok:false},
+//      rather than leaving the page waiting on an event nobody will send
 //
 // Real server + STUB pi (no model), zero dependencies.
 // Run: node apps/desk/test/prompt-detach.test.mjs   (exit 0 = all PASS)
@@ -164,6 +170,59 @@ try {
 	check("settle: a prompt answered inside the 5 s never settles separately", settledFor(fast.promptId).length === 0, JSON.stringify(settledFor(fast.promptId)));
 	const rejects = events.filter((e) => e.type === "desk_prompt_rejected");
 	check("settle: the late failure still raises the older desk_prompt_rejected", rejects.length === 1 && /late/.test(rejects[0].error || ""), JSON.stringify(rejects));
+
+	// ── 5. the outcome is KEPT, and rides in the next desk_hello ──
+	// A broadcast alone loses the race it exists to settle: the event goes out on
+	// the SSE stream while the answer it belongs to is still travelling on the
+	// POST, and a stream that drops takes it with it. A client attaching
+	// afterwards must still be able to learn what became of the prompt.
+	{
+		const late = listen(spawned.id);
+		await waitFor(() => late.some((e) => e.type === "desk_hello"));
+		const hello = late.find((e) => e.type === "desk_hello");
+		const ring = hello.settledPrompts || [];
+		check("hello: the snapshot carries the settled outcomes", Array.isArray(hello.settledPrompts), JSON.stringify(hello.settledPrompts));
+		check("hello: …the one that succeeded, under its own id", ring.some((s) => s.promptId === good.promptId && s.ok === true), JSON.stringify(ring));
+		check("hello: …and the one that failed, with its reason", ring.some((s) => s.promptId === bad.promptId && s.ok === false && /late/.test(s.error || "")), JSON.stringify(ring));
+		check("hello: a prompt answered inside the 5 s is not in it", !ring.some((s) => s.promptId === fast.promptId), JSON.stringify(ring));
+		late.stop();
+	}
+
+	// ── 6. the ring is bounded: 33 detached prompts, 32 kept ──
+	// It lives on a live child, so it cannot be a list that only grows.
+	{
+		const before = events.filter((e) => e.type === "desk_prompt_settled").length;
+		const many = await Promise.all(Array.from({ length: 33 }, (_, i) => prompt(spawned.id, `slow-ok #${i}`)));
+		check("ring: all 33 of them detached", many.every((m) => m.pending === true), JSON.stringify(many.filter((m) => !m.pending)));
+		const all = await waitFor(() => events.filter((e) => e.type === "desk_prompt_settled").length >= before + 33, 30000);
+		check("ring: …and all 33 settled", all, String(events.filter((e) => e.type === "desk_prompt_settled").length - before));
+		const order = events.filter((e) => e.type === "desk_prompt_settled").slice(before).map((e) => e.promptId);
+		const late = listen(spawned.id);
+		await waitFor(() => late.some((e) => e.type === "desk_hello"));
+		const ring = late.find((e) => e.type === "desk_hello").settledPrompts || [];
+		check("ring: the snapshot keeps 32 of them, not all 35", ring.length === 32, String(ring.length));
+		check("ring: …the oldest fell off", !ring.some((s) => s.promptId === good.promptId) && !ring.some((s) => s.promptId === order[0]), JSON.stringify(ring.map((s) => s.promptId)));
+		check("ring: …and the newest is still there", ring.at(-1)?.promptId === order.at(-1), `${ring.at(-1)?.promptId} vs ${order.at(-1)}`);
+		late.stop();
+	}
+
+	// ── 7. a child that dies with a prompt still detached ──
+	// The page holds the user's typing on that promise; one that never answers
+	// holds it forever.
+	{
+		const two = await fetch(`${BASE}/api/spawn`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cwd }) }).then((r) => r.json());
+		if (!two.id) throw new Error(`second spawn failed: ${JSON.stringify(two)}`);
+		const ev2 = listen(two.id);
+		await waitFor(() => ev2.some((e) => e.type === "desk_hello"));
+		const held = await prompt(two.id, "slow-ok, and then the session dies");
+		check("exit: the prompt detached", held.pending === true, JSON.stringify(held));
+		await fetch(`${BASE}/api/session/${two.id}`, { method: "DELETE" });
+		const came = await waitFor(() => ev2.some((e) => e.type === "desk_prompt_settled" && e.promptId === held.promptId));
+		const s = ev2.find((e) => e.type === "desk_prompt_settled" && e.promptId === held.promptId);
+		check("exit: a prompt still detached when the session dies settles ok:false", came && s?.ok === false, JSON.stringify(s));
+		check("exit: …and says the session went away", /exit/.test(s?.error || ""), JSON.stringify(s));
+		ev2.stop();
+	}
 } catch (e) {
 	console.log("FAIL harness:", e.message, "\n--- server log ---\n", log.slice(-2000));
 	fails++;

@@ -77,7 +77,27 @@ function newLiveState(id, cwd) {
 		reloadPromise: null, // …and this settles when it is done, so send() can wait
 		reloadPending: null, // gained names waiting for the turn to settle
 		promptWaiters: new Map(), // promptId → resolve, for prompts the endpoint detached from
+		settledSeen: new Map(), // …and promptId → {ok,error} for the ones already answered
+		exited: false, // the session process is gone: nothing it still holds will answer
 	};
+}
+
+// A settled outcome is REMEMBERED, not just dispatched. The event travels on the
+// SSE stream while the answer it belongs to travels on the POST, and nothing
+// orders those two: the event can land before the page even knows the promptId
+// to wait for, and a waiter installed after that would wait forever. Bounded to
+// the same 32 the server keeps, so an idle tab cannot grow this without end.
+const SETTLED_KEEP = 32;
+function noteSettled(S, promptId, outcome) {
+	if (!S || !promptId) return;
+	S.settledSeen.delete(promptId); // re-insert: Map keeps insertion order, oldest first
+	S.settledSeen.set(promptId, outcome);
+	while (S.settledSeen.size > SETTLED_KEEP) S.settledSeen.delete(S.settledSeen.keys().next().value);
+	const waiter = S.promptWaiters.get(promptId);
+	if (waiter) {
+		S.promptWaiters.delete(promptId);
+		waiter(outcome);
+	}
 }
 
 // ── rail ──
@@ -1003,8 +1023,15 @@ async function enumerateResources(S) {
 // no time ceiling: it ends when pi answers, when the session exits, or when the
 // stage it belongs to is left. Until then the reload promise stays unresolved and
 // send() keeps holding the user's prompt, which is the point.
+//
+// The answer may already BE here: the event races the POST it belongs to, and a
+// reconnect's desk_hello replays the last 32 outcomes. Both land in settledSeen,
+// so this asks what is known before it asks to be told.
 function awaitPromptSettled(S, promptId) {
 	if (!promptId) return Promise.resolve({ ok: false, error: "the desk got no prompt id to wait for" });
+	const seen = S.settledSeen.get(promptId);
+	if (seen) return Promise.resolve(seen);
+	if (S.exited) return Promise.resolve({ ok: false, error: "the session exited" });
 	return new Promise((resolve) => S.promptWaiters.set(promptId, resolve));
 }
 
@@ -1206,6 +1233,10 @@ function handleEvent(e) {
 	const pinned = isPinned(container);
 	switch (e.type) {
 		case "desk_hello": {
+			// FIRST: what became of the prompts this page detached from. On a
+			// reconnect this is the only place those outcomes still exist — the
+			// events themselves went out while the stream was down.
+			for (const s of e.settledPrompts || []) noteSettled(L, s.promptId, { ok: !!s.ok, error: s.error });
 			// Every render below is a whole-snapshot replacement (showDialog is
 			// id-guarded, the other three clear their box first), so a replayed
 			// hello is idempotent by construction.
@@ -1382,16 +1413,12 @@ function handleEvent(e) {
 		case "desk_prompt_rejected":
 			toast(`prompt rejected: ${e.error || "unknown"}`, "error");
 			break;
-		case "desk_prompt_settled": {
+		case "desk_prompt_settled":
 			// the answer to a prompt the endpoint detached from — the only thing that
-			// tells the page a reload running inside pi has actually finished
-			const waiter = L.promptWaiters.get(e.promptId);
-			if (waiter) {
-				L.promptWaiters.delete(e.promptId);
-				waiter({ ok: !!e.ok, error: e.error });
-			}
+			// tells the page a reload running inside pi has actually finished. Kept
+			// whether or not anything is waiting for it yet: it can arrive first.
+			noteSettled(L, e.promptId, { ok: !!e.ok, error: e.error });
 			break;
-		}
 		case "desk_renamed":
 			// server pushed a derived/edited name into this live session
 			refreshState();
@@ -1399,6 +1426,7 @@ function handleEvent(e) {
 			break;
 		case "desk_exit":
 			L.streaming = false;
+			L.exited = true; // …and a waiter installed AFTER this must not be installed at all
 			setChip("exited");
 			stopActivity();
 			// nothing it was still holding will ever answer now

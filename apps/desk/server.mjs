@@ -40,7 +40,8 @@
  *                                   when pi has not accepted within 5 s and the wait DETACHED.
  *                                   A detached prompt broadcasts exactly one
  *                                   {type:"desk_prompt_settled", promptId, ok, error} when its RPC
- *                                   finally answers (a failure also keeps its desk_prompt_rejected)
+ *                                   finally answers (a failure also keeps its desk_prompt_rejected),
+ *                                   and that outcome is ALSO kept: the last 32 ride in desk_hello
  *   POST /api/session/:id/rpc      {command} → allowlisted RPC passthrough with correlated response
  *   POST /api/session/:id/ui-response  {id, value?|confirmed?|cancelled?} → answer an extension dialog
  *   POST /api/session/:id/bash      {command} → {id}; output streams as bash_execution_update events
@@ -163,6 +164,13 @@ const SSE_CLIENT_BUFFER_CAP = Number(process.env.DESK_SSE_BUFFER_CAP) || 8 * 102
 // stats, file list); 64 leaves room for many tabs on one session and still bounds what
 // a caller looping on /api/… can pin in memory (each pending RPC holds a timer).
 const MAX_PENDING_RPC = Number(process.env.DESK_MAX_PENDING_RPC) || 64;
+// Outcomes of DETACHED prompts kept per child and replayed in every desk_hello.
+// A broadcast alone loses the race it exists to settle: the event can be sent
+// before the POST it answers has even reached the page (two connections, no
+// ordering between them), and a stream that drops takes the answer with it.
+// Bounded because it is a live child's memory: past this, an outcome older than
+// the last 32 detached prompts is gone.
+const SETTLED_RING = 32;
 
 // RPC commands a client may send through /rpc. prompt/steer/follow_up/abort/bash and
 // extension_ui_response have dedicated endpoints so desk bookkeeping stays consistent.
@@ -325,6 +333,17 @@ function sseWrite(res, line) {
 	}
 }
 
+// A detached prompt's outcome is REMEMBERED as well as broadcast. The client
+// that asked for it may not be able to receive it yet — the event travels on the
+// SSE connection while the answer it belongs to travels on the POST, and nothing
+// orders those two — and a client whose stream was down gets it back in the next
+// desk_hello instead of waiting for an event that already went past.
+function settlePrompt(child, promptId, ok, error) {
+	child.settledPrompts.push({ promptId, ok, error });
+	if (child.settledPrompts.length > SETTLED_RING) child.settledPrompts.shift();
+	broadcast(child, { type: "desk_prompt_settled", promptId, ok, error });
+}
+
 function broadcast(child, obj) {
 	const line =
 		sseLine(obj) ??
@@ -434,6 +453,7 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 		statuses: new Map(), widgets: new Map(), title: null,
 		queue: { steering: [], followUp: [] },
 		nextRpc: 1, nextPrompt: 1, files: null, filesAt: 0, exitNote: null,
+		settledPrompts: [], // last SETTLED_RING detached-prompt outcomes, replayed in desk_hello
 	};
 	children.set(id, child);
 
@@ -1978,12 +1998,15 @@ async function promptChild(child, body) {
 		new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
 	]);
 	if (winner) return { status: winner.r.success ? 200 : 409, body: { ok: winner.r.success, error: winner.r.error, promptId } };
+	// The rejection path is also how a child that DIES with a prompt still
+	// detached settles it: the exit handler rejects every pending RPC, so each
+	// one still out there lands here as {ok:false} rather than never answering.
 	p.then(
 		(r) => {
 			if (!r.success) broadcast(child, { type: "desk_prompt_rejected", error: r.error });
-			broadcast(child, { type: "desk_prompt_settled", promptId, ok: !!r.success, error: r.error });
+			settlePrompt(child, promptId, !!r.success, r.error);
 		},
-		(e) => broadcast(child, { type: "desk_prompt_settled", promptId, ok: false, error: String(e?.message || e) }),
+		(e) => settlePrompt(child, promptId, false, String(e?.message || e)),
 	);
 	return { status: 200, body: { ok: true, pending: true, promptId } };
 }
@@ -2074,6 +2097,10 @@ const server = http.createServer(async (req, res) => {
 					statuses: Object.fromEntries(child.statuses),
 					widgets: Object.fromEntries(child.widgets),
 					title: child.title, queue: child.queue,
+					// what became of the detached prompts this child has answered: a
+					// client that missed the event (it had not asked yet, or its stream
+					// was down) reads the outcome out of the snapshot instead
+					settledPrompts: [...child.settledPrompts],
 				};
 				// guarded: a client that vanished between the request and here must not
 				// throw inside this route, and must not join the fan-out

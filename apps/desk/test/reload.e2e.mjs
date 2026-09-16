@@ -22,6 +22,11 @@
 //   8. …and one that changes NO command still finishes the moment pi answers.
 //      (The old ceiling-and-poll made this case a 15 s hold with the user's
 //      prompt stuck in the composer, and ended in a claim nothing had verified.)
+//   9. …and one whose settled event arrives BEFORE the answer that names the
+//      promptId still finishes: the page keeps the outcome, so a waiter
+//      installed after the event is answered out of what it already knows.
+//  10. …and one whose settled event is broadcast while the SSE stream is DOWN
+//      finishes on the reconnect, out of the desk_hello snapshot.
 // The toast always reports what get_commands ACTUALLY returned, never what
 // /api/resources predicted — a session spawned with a narrowed skill set
 // re-applies its CLI flags on reload and gains nothing.
@@ -159,7 +164,42 @@ let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let browser;
-const die = (code) => { browser?.close().catch(() => {}); server.kill(); fs.rmSync(TD, { recursive: true, force: true }); process.exit(code); };
+
+// Records every SSE event the page's own EventSource delivers, from inside the
+// constructor — so this listener runs before app.js's, and "the page has this
+// event" is a fact the test can wait on rather than infer.
+const SSE_SPY = `
+window.__sse = [];
+const Native = window.EventSource;
+window.EventSource = class extends Native {
+	constructor(...a) { super(...a); this.addEventListener("message", (ev) => { try { window.__sse.push(JSON.parse(ev.data)); } catch {} }); }
+};
+`;
+
+// ── TCP relay in front of the desk, so test 10 can destroy the SSE socket at a
+// moment of its choosing (nothing in the browser or in Playwright can end an
+// established EventSource connection). Byte-for-byte pass-through apart from the
+// authority in the Host/Origin headers, which the desk checks against the port
+// it bound — the relay port has the same digit count so no Content-Length moves.
+const RELAY_PORT = PORT + 1;
+if (String(RELAY_PORT).length !== String(PORT).length) throw new Error("relay port must have the same digit count as the desk port");
+const RELAY = `http://127.0.0.1:${RELAY_PORT}`;
+const sseSockets = new Set();
+const relay = net.createServer((client) => {
+	const up = net.connect(PORT, "127.0.0.1");
+	const bye = () => { sseSockets.delete(client); client.destroy(); up.destroy(); };
+	client.on("data", (c) => {
+		const s = c.toString("latin1");
+		if (/^GET [^\r\n ]*\/events[ ?]/m.test(s)) sseSockets.add(client);
+		up.write(Buffer.from(s.split(`127.0.0.1:${RELAY_PORT}`).join(`127.0.0.1:${PORT}`), "latin1"));
+	});
+	up.on("data", (c) => client.write(c));
+	for (const ev of ["close", "error", "end"]) { client.on(ev, bye); up.on(ev, bye); }
+});
+await new Promise((r) => relay.listen(RELAY_PORT, "127.0.0.1", r));
+const killSse = () => { for (const s of [...sseSockets]) { sseSockets.delete(s); s.destroy(); } };
+
+const die = (code) => { browser?.close().catch(() => {}); relay.close(); server.kill(); fs.rmSync(TD, { recursive: true, force: true }); process.exit(code); };
 
 const rpcLog = () => (fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 const reloadPrompts = (mark) => rpcLog().filter((e) => e.mark === mark && e.type === "prompt" && e.message === "/reload-runtime");
@@ -221,9 +261,10 @@ try {
 	await spawnSession(plain);
 	await spawnSession(packed);
 	browser = await chromium.launch();
-	const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 	const errs = [];
+	const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 	page.on("pageerror", (e) => errs.push(String(e.message)));
+	await page.addInitScript(SSE_SPY);
 	await page.goto(BASE, { waitUntil: "domcontentloaded" });
 	// Every toast the page raises, kept: a toast auto-dismisses, so "did it say
 	// `reloaded` before pi answered?" cannot be asked by polling for one.
@@ -382,6 +423,91 @@ try {
 		const answered = reloadAnswers("packed").at(-1);
 		check("8: an unchanged command list still reports a reload", /reloaded · /.test(t) && !/new: /.test(t), t);
 		check("8: …on pi's answer, not on a ceiling", !!answered && seenAt - answered.at < 3000, `${seenAt - (answered?.at ?? 0)} ms after pi answered`);
+	}
+	// ── 9. the settled event arrives BEFORE the answer that names it ──
+	// The event travels on the SSE stream and the answer it belongs to on the
+	// POST, and nothing orders those two. A page that only DISPATCHED settled
+	// events would find no waiter for one that arrived first, drop it, and then
+	// install a waiter for an event that has already gone past — the reload never
+	// finishing and the user's prompt held in the composer behind it. Forced, not
+	// hoped for: the POST's response is HELD until the page has the settled event.
+	await sleep(3100);
+	await resetToasts();
+	setCtl({
+		reloadDelayMs: 7000,
+		commandsAfterReload: { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("early")] },
+	});
+	const beforeEarly = reloadPrompts("packed").length;
+	const settledBefore = await page.evaluate(() => window.__sse.filter((e) => e.type === "desk_prompt_settled").length);
+	let armed = true, releasedAt = 0;
+	await page.route("**/api/session/*/prompt", async (route) => {
+		let body = {};
+		try { body = route.request().postDataJSON() || {}; } catch {}
+		if (!armed || body.message !== "/reload-runtime") {
+			try { await route.continue(); } catch {} // the socket may be gone mid-flight
+			return;
+		}
+		armed = false;
+		const resp = await route.fetch(); // the endpoint has detached: {pending:true, promptId}
+		// …and the answer sits here until the page has the settled event, which is
+		// the ordering the page has to survive
+		await page.waitForFunction((n) => window.__sse.filter((e) => e.type === "desk_prompt_settled").length > n, settledBefore, { timeout: 30000 });
+		releasedAt = Date.now();
+		try { await route.fulfill({ response: resp }); } catch {}
+	});
+	await submit(page, "/reload");
+	await until(() => reloadPrompts("packed").length === beforeEarly + 1, "sent the reload whose answer is held back");
+	await submit(page, "hello behind an early settle");
+	t = await untilToast(page, /reloaded/, 25000);
+	check("9: a settled event seen BEFORE its own answer still finishes the reload", /new: early/.test(t), t);
+	check("9: …on the answer it was holding, not on some later event", releasedAt > 0 && Date.now() - releasedAt < 5000, `${releasedAt ? Date.now() - releasedAt : -1} ms after the answer was released`);
+	await until(() => userPrompts("packed", "hello behind an early settle").length === 1, "released the prompt held behind the early settle", 10000);
+	check("9: …and the prompt it was holding is posted", userPrompts("packed", "hello behind an early settle").length === 1, "");
+	await page.unroute("**/api/session/*/prompt").catch(() => {});
+	await submit(page, "!stream-off");
+	await page.waitForFunction(() => document.querySelector("#chip")?.textContent === "idle", null, { timeout: 10000 });
+
+	// ── 10. the settled event is broadcast while the stream is DOWN ──
+	// The desk replays no event buffers, so that event is gone for good. What
+	// brings the answer back is the reconnect's desk_hello: the server keeps the
+	// last 32 detached outcomes per session and puts them in the snapshot. One tab
+	// only, and it goes through the TCP relay — the SSE socket has to be destroyed
+	// for real, and kept destroyed across pi's answer.
+	await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+	await page.close();
+	{
+		const page2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+		page2.on("pageerror", (e) => errs.push(String(e.message)));
+		await page2.addInitScript(SSE_SPY);
+		await page2.goto(RELAY, { waitUntil: "domcontentloaded" });
+		const readsBeforeRelay = commandReads("packed").length;
+		await openByMark(page2, "packed");
+		await until(() => commandReads("packed").length > readsBeforeRelay, "read the commands on the relayed page");
+		await sleep(3100);
+		setCtl({
+			reloadDelayMs: 7000,
+			commandsAfterReload: { plain: [], packed: [RELOAD_CMD, skillCmd("from-manual"), skillCmd("picked-up"), skillCmd("deferred"), skillCmd("afterdrop")] },
+		});
+		const beforeDrop = reloadPrompts("packed").length;
+		await submit(page2, "/reload");
+		await until(() => reloadPrompts("packed").length === beforeDrop + 1, "sent the reload whose answer will be missed");
+		await submit(page2, "hello across a dropped stream");
+		await sleep(5800); // past the endpoint's 5 s detach: the waiter is installed
+		// …and the stream stays down THROUGH pi's answer at 7 s, so the settled
+		// event is broadcast with nothing listening. A reconnect landing in the
+		// middle would have received it live and proved nothing.
+		killSse();
+		const keepDown = setInterval(killSse, 200);
+		await sleep(3500);
+		clearInterval(keepDown);
+		await page2.waitForFunction(() => window.__sse.filter((e) => e.type === "desk_hello").length >= 2, null, { timeout: 40000 });
+		const hello2 = await page2.evaluate(() => window.__sse.filter((e) => e.type === "desk_hello").at(-1));
+		check("10: the reconnect's hello carries the settled outcomes", Array.isArray(hello2?.settledPrompts) && hello2.settledPrompts.length > 0, JSON.stringify(hello2?.settledPrompts));
+		const t10 = await untilToast(page2, /reloaded/, 25000);
+		check("10: a reload whose settled event was missed finishes on the reconnect", /new: afterdrop/.test(t10), t10);
+		await until(() => userPrompts("packed", "hello across a dropped stream").length === 1, "released the prompt held across the outage", 15000);
+		check("10: …and the prompt it was holding is posted, not lost", userPrompts("packed", "hello across a dropped stream").length === 1, "");
+		await page2.close();
 	}
 	setCtl({});
 
