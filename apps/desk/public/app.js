@@ -4,6 +4,7 @@ import {
 	stripAnsi, el, contentBlocks, renderImage, argSummary,
 	toolRow, setToolStreaming, renderDiff, finishToolRow as finishToolRowCore,
 	buildDialog, openEventStream, rpcCall,
+	activityVerb, parseSkillMessage, skillLabel, matchesUserEcho,
 } from "./desk-client.mjs";
 
 const $ = (id) => document.getElementById(id);
@@ -20,6 +21,11 @@ const when = (ms) => {
 };
 const fmtTok = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n ?? 0));
 const fmtCost = (c) => (c >= 0.995 ? `$${c.toFixed(2)}` : `$${(c ?? 0).toFixed(3)}`);
+// how long this turn has been running: `12s`, `1m 05s`
+const fmtElapsed = (ms) => {
+	const s = Math.max(0, Math.floor(ms / 1000));
+	return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+};
 
 // ── view state ──
 let selected = null; // {kind: "live"|"hist", id?, file?, cwd?}
@@ -57,6 +63,9 @@ function newLiveState(id, cwd) {
 		resyncRunning: false, // a get_messages is in flight
 		resyncAgain: false, // …and something asked for a fresher one while it ran
 		bashAbandoned: new Map(), // bash id → command, for ids whose POST already gave up on them
+		activityStart: null, // ms at agent_start — the activity line's timer origin
+		activityVerb: null, // the phrase it is showing, most-recent-wins
+		thinkingCard: null, // the streaming thinking card, until the block ends
 	};
 }
 
@@ -554,6 +563,56 @@ function renderMessages(messages) {
 	pin(container);
 }
 
+// ── activity line ──
+// The header chip says "running"; this says WHAT is running, above the composer
+// where you are already looking. One row, height reserved so nothing jumps.
+// Most-recent-wins: every event that means something re-states the phrase.
+// One timer, started at agent_start and cleared by stopActivity() — which
+// clearStage() calls, so a session switch can never leave it ticking.
+const SPIN_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+let activityTimer = null;
+let activityFrame = 0;
+
+function paintActivity() {
+	if (!L?.activityStart) return;
+	$("act-spin").textContent = SPIN_FRAMES[activityFrame % SPIN_FRAMES.length];
+	$("act-verb").textContent = L.activityVerb || "Working…";
+	$("act-time").textContent = fmtElapsed(Date.now() - L.activityStart);
+	$("activity").classList.add("on");
+}
+
+// `verb` = the phrase this event implies. Starts the line (and the timer) if the
+// turn was already under way when we noticed it.
+function noteActivity(verb) {
+	if (!L || !L.streaming) return;
+	L.activityVerb = verb;
+	if (L.activityStart) return paintActivity();
+	const g = stageGen;
+	L.activityStart = Date.now();
+	activityFrame = 0;
+	clearInterval(activityTimer);
+	activityTimer = setInterval(() => {
+		if (stale(g) || !L?.streaming || !L.activityStart) return stopActivity();
+		if (!reducedMotion.matches) activityFrame++;
+		paintActivity();
+	}, 200);
+	paintActivity();
+}
+
+function stopActivity() {
+	clearInterval(activityTimer);
+	activityTimer = null;
+	if (L) {
+		L.activityStart = null;
+		L.activityVerb = null;
+	}
+	$("activity").classList.remove("on");
+	$("act-spin").textContent = "";
+	$("act-verb").textContent = "";
+	$("act-time").textContent = "";
+}
+
 // ── live session: header / footer ──
 function setChip(state) {
 	const chip = $("chip");
@@ -580,6 +639,7 @@ async function refreshState() {
 	if (!s.isStreaming && !s.isCompacting) setChip("idle");
 	else if (s.isCompacting) setChip("compacting");
 	else setChip("running");
+	if (!L.streaming) stopActivity(); // a turn that ended without agent_settled
 }
 
 async function refreshStats() {
@@ -811,6 +871,7 @@ function clearStage() {
 	stream?.close();
 	stream = null;
 	stopStatsPoll();
+	stopActivity(); // before L goes: its timer belongs to the stage we are leaving
 	L = null;
 	$("transcript").innerHTML = "";
 	$("dialogs").innerHTML = "";
@@ -896,6 +957,7 @@ function handleEvent(e) {
 		case "agent_settled":
 			L.streaming = false;
 			setChip("idle");
+			stopActivity();
 			L.currentBubble = null;
 			resync();
 			refreshRail();
@@ -1033,10 +1095,15 @@ function handleEvent(e) {
 		case "desk_exit":
 			L.streaming = false;
 			setChip("exited");
+			stopActivity();
 			noteRow(L.ctx, `— session process exited (${e.code}) ${e.stderrTail || ""}`);
 			refreshRail();
 			break;
 	}
+	// most-recent-wins: whatever this event says the turn is doing NOW. null =
+	// it says nothing new, so the phrase on screen stands.
+	const verb = activityVerb(e);
+	if (verb) noteActivity(verb);
 	if (pinned) pin(container);
 }
 
