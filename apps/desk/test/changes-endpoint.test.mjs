@@ -501,13 +501,11 @@ if (process.platform !== "win32") {
 	check("sum: …and the answer says the budget did it", overBy1.body.partial === true && /budget/.test(overBy1.body.partialReason || ""), JSON.stringify(overBy1.body.partialReason));
 }
 
-// ── A16. the budget under the POOL: eight reads in flight, one budget ──
-// Each worker decides on the descriptor it just opened, so the charge has to
-// land before the read it pays for — eight workers reading `budget − spent` off
-// the same stale number all believe they can afford it, and overspend together.
+// ── A16. the budget under the POOL: who gets the last of it is not a race ──
 // 40 files against a budget for exactly 25: 25 counted however the pool
 // interleaves, and they are the first 25 in PATH order, because the walk that
-// hands out shares is one synchronous pass over the list.
+// hands out shares is one synchronous pass over the list — not eight workers
+// asking "is there room?" in whatever order their stats happen to land.
 {
 	const pool = path.join(TD, "pool");
 	fs.mkdirSync(pool);
@@ -528,6 +526,60 @@ if (process.platform !== "win32") {
 	check(`pool: a budget for ${ADMIT} counts exactly ${ADMIT} of ${N}`, counted.length === ADMIT, `${counted.length} counted`);
 	check("pool: …and they are the first ones in path order", counted.join(",") === names.slice(0, ADMIT).join(","), counted.join(","));
 	check("pool: …and the rest are rows with no number", names.slice(ADMIT).every((n) => f[n] && f[n].added === null), JSON.stringify(names.slice(ADMIT).map((n) => f[n]?.added)));
+}
+
+// ── A17. eight workers, one budget, every file growing under the walk ──
+// The walk hands out shares from the lstat sizes; the DESCRIPTOR is where the
+// real size turns up, and that is the only place left to stop a file that grew.
+// If the budget were charged after each read instead of before it, all eight
+// workers would read the same untouched `budget − spent` while they sat in
+// their reads — and all eight would spend it. Forced: every file grows the
+// moment its size is taken, and the reads are slowed so all eight are in flight
+// together. What is asserted is the byte tally, which rows cannot show.
+{
+	const race = path.join(TD, "race8");
+	fs.mkdirSync(race);
+	git(race, "init", "-q", ".");
+	write(path.join(race, "seed.txt"), "seed\n");
+	git(race, "add", "-A");
+	git(race, "commit", "-qm", "seed");
+	const grown = `${"w".repeat(99)}\n`.repeat(10); // 1000 bytes, 10 lines, once grown
+	const names = Array.from({ length: 8 }, (_, i) => `g-${i}.txt`);
+	for (const n of names) write(path.join(race, n), "tiny\n"); // 5 bytes to the walk
+	const BUDGET = 1000; // …and room for exactly ONE of them at its real size
+
+	const fsp = fs.promises;
+	const realLstat = fsp.lstat, realOpen = fsp.open;
+	let bytesRead = 0;
+	fsp.lstat = async (p, ...rest) => {
+		const st = await realLstat(p, ...rest); // the size the walk allocates from
+		if (/g-\d\.txt$/.test(String(p))) fs.writeFileSync(String(p), grown);
+		return st;
+	};
+	fsp.open = async (...a) => {
+		const fh = await realOpen(...a);
+		const read = fh.read.bind(fh);
+		fh.read = async (...ra) => {
+			await new Promise((res) => setTimeout(res, 5)); // hold every worker in its read at once
+			const rr = await read(...ra);
+			bytesRead += rr.bytesRead;
+			return rr;
+		};
+		return fh;
+	};
+	let r;
+	try {
+		process.env.DESK_UNTRACKED_TOTAL_CAP = String(BUDGET);
+		r = await collectChanges(race);
+	} finally {
+		fsp.lstat = realLstat;
+		fsp.open = realOpen;
+		delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	}
+	const f = byPath(r.body);
+	check("race8: eight reads in flight spend the budget ONCE", bytesRead <= BUDGET, `${bytesRead} bytes read against a ${BUDGET}-byte budget`);
+	check("race8: …so exactly one of the eight is counted", names.filter((n) => f[n]?.added === 10).length === 1, JSON.stringify(names.map((n) => f[n]?.added)));
+	check("race8: …and the other seven are rows with no number", names.filter((n) => f[n]?.added === null).length === 7, JSON.stringify(names.map((n) => f[n]?.added)));
 }
 
 // ══ B. the routes, through the real server ══════════════════════════════════
