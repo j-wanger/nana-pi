@@ -96,6 +96,13 @@ function paint() {
 		list.appendChild(row);
 	}
 	if (data.omitted) list.appendChild(el("div", "cg-more dim", `… and ${data.omitted} more (not listed)`));
+	// `partial` = some row above has no number, so the summary is a floor. Said
+	// out loud: a total that silently undercounts is worse than no total.
+	if (data.partial) {
+		const why = el("div", "cg-more dim", "… some files were not line-counted — the totals are a floor");
+		why.title = data.partialReason || "";
+		list.appendChild(why);
+	}
 	setExpanded(expanded);
 }
 

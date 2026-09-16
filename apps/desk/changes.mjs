@@ -27,13 +27,22 @@ import * as path from "node:path";
 const diffCap = () => Number(process.env.DESK_DIFF_CAP) || 512 * 1024;
 const gitTimeout = () => Number(process.env.DESK_GIT_TIMEOUT_MS) || 20000; // env: tests only
 
-// Bounds that are NOT configurable — they exist so one `agent_settled` in a
-// wrongly-shaped repository (no .gitignore over node_modules) cannot stall the
-// desk's single event loop or hand the page a multi-megabyte JSON body.
+// Bounds that exist so one `agent_settled` in a wrongly-shaped repository (no
+// .gitignore over node_modules) cannot stall the desk's single event loop or
+// hand the page a multi-megabyte JSON body. Fixed, except the aggregate read
+// budget below, which takes the same test-only env override DESK_DIFF_CAP does.
 const LIST_CAP = 8 * 1024 * 1024; // git's own porcelain/numstat output
 const MAX_FILES = 1000; // rows returned; the rest are reported as a count
 const UNTRACKED_READ_LIMIT = 1000; // untracked files whose lines we count
 const UNTRACKED_BYTE_CAP = 1024 * 1024; // per file; bigger ones are reported as binary
+const READ_CONCURRENCY = 8; // untracked reads in flight at once
+
+// AGGREGATE, per call. The per-file cap alone bounds nothing that matters: 1000
+// untracked files of 1 MiB each is a gigabyte read on every refresh. Past this
+// budget the remaining untracked files are still LISTED — with no line count —
+// and the body says `partial: true` so the page does not present the totals as
+// the whole truth. Same env-override shape as DESK_DIFF_CAP; tests only.
+const untrackedTotalCap = () => Number(process.env.DESK_UNTRACKED_TOTAL_CAP) || 16 * 1024 * 1024;
 
 // A git invocation, bounded in time and in bytes. `truncate` decides what a
 // byte overrun MEANS: for a diff it is a truncated answer the caller can still
@@ -163,27 +172,66 @@ function parsePorcelain(out) {
 }
 
 // A new file's diff is every line added, so the line count IS the added count.
-// Bounded: a file over the cap, or one holding a NUL byte, is reported as binary
-// with no count rather than read whole.
-function countNewFile(abs) {
-	let buf;
-	try {
-		// lstat, not stat: an untracked SYMLINK must never be followed — counting
-		// its target's lines would report something from outside the work tree.
-		const st = fs.lstatSync(abs);
-		if (st.isSymbolicLink()) return { added: null, binary: false };
-		if (!st.isFile()) return null;
-		if (st.size > UNTRACKED_BYTE_CAP) return { added: null, binary: true };
-		buf = fs.readFileSync(abs);
-	} catch {
-		return null; // vanished between `git status` and here
-	}
+// Counted on the BYTES: 0x0A cannot occur inside a UTF-8 multi-byte sequence, so
+// this is the same number decoding would give, without decoding a megabyte to
+// get it. A file holding a NUL byte is reported as binary, not counted.
+function countBuffer(buf) {
 	if (buf.includes(0)) return { added: null, binary: true };
 	if (!buf.length) return { added: 0, binary: false };
-	const s = buf.toString("utf-8");
 	let n = 0;
-	for (let i = 0; i < s.length; i++) if (s[i] === "\n") n++;
-	return { added: s.endsWith("\n") ? n : n + 1, binary: false };
+	for (let i = 0; i < buf.length; i++) if (buf[i] === 0x0a) n++;
+	return { added: buf[buf.length - 1] === 0x0a ? n : n + 1, binary: false };
+}
+
+// A bounded worker pool. Bounded because the whole point of going async is to
+// leave the event loop free: 1000 readFile calls issued at once hand the thread
+// pool a queue exactly as long as the synchronous loop this replaced.
+async function pooled(items, width, fn) {
+	let next = 0;
+	const worker = async () => {
+		while (next < items.length) await fn(items[next++]);
+	};
+	await Promise.all(Array.from({ length: Math.min(width, items.length) }, worker));
+}
+
+// Line-count the untracked files, asynchronously and within an aggregate byte
+// budget. Three passes so the budget is spent in LIST order however the pool
+// interleaves: lstat everything, decide in order who may be read, then read.
+//   map value `null` = drop the row (vanished, or not a regular file)
+//   {added: null, binary: false} = listed, deliberately not counted
+async function countUntracked(root, rels) {
+	const budget = untrackedTotalCap();
+	const stats = new Map();
+	await pooled(rels, READ_CONCURRENCY, async (rel) => {
+		// lstat, not stat: an untracked SYMLINK must never be followed — counting
+		// its target's lines would report something from outside the work tree.
+		try { stats.set(rel, await fs.promises.lstat(path.join(root, rel))); } catch {}
+	});
+	const counts = new Map();
+	const toRead = [];
+	let spent = 0, budgeted = false;
+	for (const rel of rels) {
+		const st = stats.get(rel);
+		if (!st) counts.set(rel, null); // vanished between `git status` and here
+		else if (st.isSymbolicLink()) counts.set(rel, { added: null, binary: false });
+		else if (!st.isFile()) counts.set(rel, null);
+		else if (st.size > UNTRACKED_BYTE_CAP) counts.set(rel, { added: null, binary: true });
+		else if (spent + st.size > budget) {
+			counts.set(rel, { added: null, binary: false });
+			budgeted = true;
+		} else {
+			spent += st.size;
+			toRead.push(rel);
+		}
+	}
+	await pooled(toRead, READ_CONCURRENCY, async (rel) => {
+		try {
+			counts.set(rel, countBuffer(await fs.promises.readFile(path.join(root, rel))));
+		} catch {
+			counts.set(rel, null); // vanished between the lstat and the read
+		}
+	});
+	return { counts, budgeted, budget };
 }
 
 // A spawn ENOENT is ambiguous: git is not on PATH, or the cwd itself is gone
@@ -215,9 +263,12 @@ export async function collectChanges(cwd) {
 
 	const files = [];
 	for (const f of tracked.values()) files.push({ ...f, status: statusOf.get(f.path) || "M" });
-	let read = 0;
+	// Past UNTRACKED_READ_LIMIT a file is listed with no count, like one the byte
+	// budget cut off — the row is still true, the number is simply not there.
+	const { counts, budgeted, budget } = await countUntracked(root, untracked.slice(0, UNTRACKED_READ_LIMIT));
+	const overLimit = Math.max(0, untracked.length - UNTRACKED_READ_LIMIT);
 	for (const p of untracked) {
-		const counted = read++ < UNTRACKED_READ_LIMIT ? countNewFile(path.join(root, p)) : { added: null, binary: false };
+		const counted = counts.has(p) ? counts.get(p) : { added: null, binary: false };
 		if (!counted) continue;
 		files.push({ path: p, status: "??", added: counted.added, removed: 0, binary: counted.binary });
 	}
@@ -231,6 +282,15 @@ export async function collectChanges(cwd) {
 	}
 	const body = { repo: true, root, files: shown, totals };
 	if (omitted) body.omitted = omitted;
+	// `partial` = some listed file has no line count, so the totals are a floor,
+	// not the sum. Said out loud rather than folded silently into the numbers.
+	const why = [];
+	if (budgeted) why.push(`the ${budget}-byte untracked read budget for one refresh was reached`);
+	if (overLimit) why.push(`only the first ${UNTRACKED_READ_LIMIT} untracked files are line-counted`);
+	if (why.length) {
+		body.partial = true;
+		body.partialReason = `${why.join("; ")} — the rest are listed with no line count`;
+	}
 	return { status: 200, body };
 }
 
@@ -257,11 +317,13 @@ export function resolveInRoot(root, rel) {
 	try {
 		real = fs.realpathSync(abs);
 	} catch {
-		return { abs, exists: false }; // deleted (or never existed): git decides
+		return { abs, raw: abs, exists: false }; // deleted (or never existed): git decides
 	}
 	if (real !== realRoot && !real.startsWith(realRoot + path.sep))
 		return { error: "path must not leave the repository root" };
-	return { abs: real, exists: true };
+	// `raw` = the path AS GIVEN, before realpath resolved any link away. The
+	// untracked branch needs it to ask whether the path itself is a symlink.
+	return { abs: real, raw: abs, exists: true };
 }
 
 // An untracked file has no diff in git's model, so the desk synthesizes the one
@@ -303,6 +365,13 @@ export async function fileDiff(cwd, rel) {
 	const ls = await runGit(["--literal-pathspecs", "ls-files", "-z", "--error-unmatch", "--", rel], info.root);
 	const trackedByGit = ls.ok && ls.code === 0 && text(ls).replace(/\0/g, "").length > 0;
 	if (!trackedByGit && at.exists) {
+		// "Untracked symlinks are never read" is the same rule the file LIST keeps
+		// (`countUntracked` lstats), and it holds here even for a target inside the
+		// root: the desk shows the work tree, not what a link in it points at.
+		// lstat the path AS GIVEN — `at.abs` is already the resolved target.
+		let link = false;
+		try { link = fs.lstatSync(at.raw).isSymbolicLink(); } catch {}
+		if (link) return { status: 409, body: { error: "symlinked path" } };
 		const r = newFileDiff(rel, at.abs, cap);
 		if (r.error) return { status: 500, body: { error: r.error } };
 		return { status: 200, body: { path: rel, diff: r.diff, truncated: r.truncated, ...(r.binary ? { binary: true } : {}) } };

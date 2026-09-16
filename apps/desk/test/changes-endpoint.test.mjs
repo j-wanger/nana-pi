@@ -123,6 +123,14 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	check("an untracked symlink is listed but not counted", listed && listed.added === null, JSON.stringify(listed));
 	fs.rmSync(path.join(repo, "peek.txt"));
 
+	// …and the PER-FILE endpoint refuses one too, even when the target is inside
+	// the root — realpath cannot catch that (the resolved path IS inside), so the
+	// untracked branch lstats the path as given before it reads anything.
+	fs.symlinkSync(path.join(repo, "keep.txt"), path.join(repo, "inside-link.txt"));
+	const inside = await fileDiff(repo, "inside-link.txt");
+	check("the file endpoint refuses an untracked symlink inside the root", inside.status === 409 && /symlink/.test(inside.body.error || ""), JSON.stringify(inside));
+	fs.rmSync(path.join(repo, "inside-link.txt"));
+
 	const bad = await fileDiff(repo, "../outside-secret.txt");
 	check("the endpoint refuses `..` with 400 and reads nothing", bad.status === 400 && !JSON.stringify(bad.body).includes("secret"), JSON.stringify(bad));
 	if (process.platform === "win32") check("path rejected: a drive letter", !!resolveInRoot(root, "C:\\Windows\\win.ini").error, "");
@@ -193,6 +201,71 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 {
 	const r = await collectChanges(path.join(TD, "never-existed"));
 	check("a vanished cwd says so, and is not blamed on git", r.status === 200 && r.body.repo === false && r.body.reason === "working directory is gone", JSON.stringify(r.body));
+}
+
+// ── A10. the AGGREGATE untracked read budget ──
+// The per-file 1 MiB cap bounds one file; nothing bounded the sum, so 1000
+// untracked files could be a gigabyte read per refresh. Past the budget a file
+// is still a row — it just has no number, and the body says so.
+{
+	const many = path.join(TD, "budget");
+	fs.mkdirSync(many);
+	git(many, "init", "-q", ".");
+	write(path.join(many, "seed.txt"), "seed\n");
+	git(many, "add", "-A");
+	git(many, "commit", "-qm", "seed");
+	const block = `${Array.from({ length: 100 }, (_, i) => `line ${i}`).join("\n")}\n`;
+	const names = ["a", "b", "c", "d", "e", "f"].map((n) => `u-${n}.txt`);
+	for (const n of names) write(path.join(many, n), block);
+	const size = Buffer.byteLength(block);
+
+	process.env.DESK_UNTRACKED_TOTAL_CAP = String(size * 2 + 1); // admits exactly two
+	const r = await collectChanges(many);
+	delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	const f = byPath(r.body);
+	check("budget: the answer says it is partial, and why", r.body.partial === true && /budget/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
+	check("budget: every untracked file is still a row", names.every((n) => !!f[n]), Object.keys(f).join(","));
+	check("budget: the files inside the budget are counted", f["u-a.txt"]?.added === 100 && f["u-b.txt"]?.added === 100, JSON.stringify([f["u-a.txt"], f["u-b.txt"]]));
+	check(
+		"budget: the ones past it are listed with no count, and are not called binary",
+		names.slice(2).every((n) => f[n]?.added === null && f[n]?.binary === false),
+		JSON.stringify(names.slice(2).map((n) => f[n])),
+	);
+	check("budget: the totals are the sum of what WAS counted", r.body.totals.added === 200 && r.body.totals.files === names.length, JSON.stringify(r.body.totals));
+
+	const full = await collectChanges(many);
+	check("budget: read per call, so the default counts them all", full.body.totals.added === 600 && !full.body.partial, `${JSON.stringify(full.body.totals)} partial=${full.body.partial}`);
+}
+
+// ── A11. the untracked read does not wedge the event loop ──
+// The bug: up to 1000 synchronous lstat+readFileSync of 1 MiB each, on the one
+// thread that serves every other session. A timer that keeps ticking THROUGH the
+// collect is the only evidence those sessions were still being served.
+{
+	const heavy = path.join(TD, "heavy");
+	fs.mkdirSync(heavy);
+	git(heavy, "init", "-q", ".");
+	write(path.join(heavy, "seed.txt"), "seed\n");
+	git(heavy, "add", "-A");
+	git(heavy, "commit", "-qm", "seed");
+	const chunk = `${"x".repeat(99)}\n`.repeat(2048); // 200 KiB, 2048 lines
+	const N = 40; // 8 MiB, under the default budget so every one is read
+	for (let i = 0; i < N; i++) write(path.join(heavy, `big-${String(i).padStart(3, "0")}.txt`), chunk);
+
+	let last = Date.now();
+	let worst = 0;
+	const tick = setInterval(() => {
+		const now = Date.now();
+		worst = Math.max(worst, now - last);
+		last = now;
+	}, 20);
+	const t0 = Date.now();
+	const r = await collectChanges(heavy);
+	clearInterval(tick);
+	const f = byPath(r.body);
+	check(`loop: all ${N} untracked files are counted`, Object.keys(f).length === N && f["big-000.txt"]?.added === 2048, `${Object.keys(f).length} rows, ${JSON.stringify(f["big-000.txt"])}`);
+	check("loop: …and nothing is partial at 8 MiB", !r.body.partial, String(r.body.partialReason));
+	check("loop: the event loop kept ticking through the collect", worst < 100, `worst gap ${worst} ms over ${Date.now() - t0} ms`);
 }
 
 // ══ B. the routes, through the real server ══════════════════════════════════
