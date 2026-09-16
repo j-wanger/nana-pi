@@ -8,7 +8,7 @@ import { indexAgeMs } from "./build.ts";
 import { openDb } from "./db.ts";
 import { paths } from "./paths.ts";
 import { search, type Hit } from "./query.ts";
-import { meaningfulTokens, skipReason } from "./tokenize.ts";
+import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
 export const BLOCK_MAX_CHARS = 2000;
@@ -18,8 +18,10 @@ export const TOP_K = 3;
 export const STALE_MS = 60 * 60 * 1000;
 /** Hard cap on hook stdin. Past this we stop reading and let the truncated JSON fail open. */
 export const STDIN_MAX_BYTES = 256 * 1024;
-/** Only this much of a prompt is tokenized — a pasted 2 MB log is not a better query. */
-export const PROMPT_MAX_CHARS = 8 * 1024;
+// Lives in tokenize.ts (no sqlite imports) so the pi extension can slice the prompt
+// to the same cap without pulling node:sqlite into pi's process. Re-exported here
+// because this module is the hook's contract.
+export { PROMPT_MAX_CHARS };
 const HEADER = "[nana:knowledge]";
 
 export interface HookResult { output: string | null; reason: string; hits: Hit[] }
@@ -144,6 +146,10 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 		ts: new Date().toISOString(),
 		cwd: typeof input.cwd === "string" ? input.cwd : null,
 		session_id: sessionId,
+		// Which harness pulled. The pi extension sends source:"pi"; Claude Code's
+		// UserPromptSubmit payload carries hook_event_name and no source. The citation
+		// checker has to be able to tell the two apart in one log.
+		source: typeof input.source === "string" ? input.source : (typeof input.hook_event_name === "string" ? "claude-code" : null),
 		tokens: meaningfulTokens(prompt).slice(0, 24),
 		hits: fresh.map((h) => h.display),
 		ms: Date.now() - t0,

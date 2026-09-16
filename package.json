@@ -1,12 +1,12 @@
 {
 	"name": "nana-pi",
 	"version": "0.4.1",
-	"description": "nana-pi bundle: the nana-pack pi extensions (gate, post-edit, lifecycle, notify) + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
+	"description": "nana-pi bundle: the nana-pack pi extensions (gate, post-edit, lifecycle, notify) + the nana-knowledge prompt-time knowledge pull + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"repository": "github:j-wanger/nana-pi",
 	"pi": {
-		"extensions": ["packages/nana-pack/extensions"],
+		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],
 		"skills": ["packages/nana-pack/skills"]
 	},
 	"peerDependencies": {

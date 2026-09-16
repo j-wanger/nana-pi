@@ -12,8 +12,9 @@ of context, so the agent can decide whether to open the file.
 **Dependencies:** none. Node ≥ 22.18 and nothing else — `node:sqlite` (bundled SQLite,
 FTS5 enabled) does the indexing, the `.ts` files run directly on Node's type stripping,
 and there is no build step, no lockfile, no npm install. pi is an *optional*
-peerDependency for manifest consistency with the other packages; this one does not run
-inside pi. Tests are zero-dep `node packages/nana-knowledge/tests/*.test.mjs`.
+peerDependency: the pi extension below is a thin wrapper that spawns the same CLI, so
+nothing in this package needs pi to be installed. Tests are zero-dep
+`node packages/nana-knowledge/tests/*.test.mjs`.
 
 ## Use
 
@@ -150,12 +151,44 @@ Behaviour, in the order it is decided:
   onto a temp database: WAL already gives a consistent snapshot, and a pointer from the
   previous generation still names a real file.
 
+## The pi extension
+
+`extensions/nana-knowledge.ts` gives pi the same pull. On `before_agent_start` it
+spawns the CLI above — the same `hook` command, same stdin JSON — and injects whatever
+it prints as a session message. One producer of pointers; the extension holds no
+querying logic of its own, and `node:sqlite` never loads inside pi's process.
+
+```bash
+pi install /path/to/nana-pi/packages/nana-knowledge
+# or add the path to "packages" in ~/.pi/agent/settings.json
+```
+
+- **The handler stops waiting after about 2 s** (a parent-side timer); killing the child
+  is best-effort. pi has no per-handler timeout, so that timer is what bounds the turn —
+  the child's own SIGKILL deadline ends any child a kill can end, and a child wedged in
+  the filesystem, which it cannot, is abandoned, not waited on.
+  Timeout, non-zero exit, missing CLI, empty output → nothing is injected and the turn
+  runs normally.
+- **You see what the agent sees:** the block arrives as a `⧉ nana-knowledge` bubble in
+  the desk (and as a custom message in the TUI), not as invisible context.
+- **It accumulates, and that is the trade.** Each fresh pull is one persistent message of
+  up to 2000 characters, and pi hands it to the model as an ordinary user-role turn on
+  every later turn of the session. Compaction summarizes or drops old blocks, and the
+  per-session dedup means they are not pulled again — so a pointer you want to keep,
+  open the file. There is no reinjection machinery and should not be one.
+- **A message, not a system-prompt append** — pi rebuilds the system prompt every turn,
+  so a deduped pointer would silently vanish; a message stays on the turn it was for.
+- Log lines carry `"source":"pi"` (Claude Code's carry `"claude-code"`), and dedup is
+  keyed on the **pi session id**, so `--continue` into a new session starts over.
+- No config key. Uninstall the package to turn it off, or `rm -rf
+  ~/.pi/agent/nana-knowledge` to remove the index and let it go quiet.
+
 ## The log
 
 Every invocation that printed something appends one JSONL line to
-`~/.pi/agent/nana-knowledge/pull.log`: `ts`, `cwd`, `session_id`, the query `tokens`, the
-`hits` shown, and `ms`. Skipped and deduped prompts are not logged. This is the file that
-answers the real question later — *do pulled pointers get cited?* — by diffing paths that
+`~/.pi/agent/nana-knowledge/pull.log`: `ts`, `cwd`, `session_id`, `source` (`pi` /
+`claude-code`), the query `tokens`, the `hits` shown, and `ms`. Skipped and deduped
+prompts are not logged. This is the file that answers the real question later — *do pulled pointers get cited?* — by diffing paths that
 appeared here against paths that turn up in commits, specs, and session logs.
 
 **It exists because it is the only instrument that says whether the pull is used at all**;

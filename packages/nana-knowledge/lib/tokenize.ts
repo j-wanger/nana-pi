@@ -1,6 +1,9 @@
 // Prompt -> FTS5 query. Deliberately dumb: alnum runs, a short stopword list, and
 // an OR-join. No stemming here (the FTS5 table carries the porter tokenizer).
 
+/** Only this much of a prompt is tokenized — a pasted 2 MB log is not a better query. */
+export const PROMPT_MAX_CHARS = 8 * 1024;
+
 export const STOPWORDS: ReadonlySet<string> = new Set([
 	"the", "and", "for", "are", "but", "not", "you", "your", "with", "that", "this", "from",
 	"have", "has", "had", "was", "were", "will", "would", "can", "could", "should", "what",
