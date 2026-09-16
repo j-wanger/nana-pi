@@ -148,8 +148,16 @@ cycle guard — the desk's does).
   tree against HEAD** — the conversation's edits plus whatever was already
   uncommitted, staged and unstaged in one number per file; untracked files count
   as added. Read-only, `git` on PATH, live sessions only. Caps: one file's diff
-  at 512 KiB (`DESK_DIFF_CAP`), 20 s per git call, 1000 rows, and an untracked
-  file's lines counted up to 1 MiB (bigger or NUL-bearing ones are `binary`).
+  at 512 KiB (`DESK_DIFF_CAP`), 20 s per git call, 1000 rows, an untracked file's
+  lines counted up to 1 MiB (bigger or NUL-bearing ones are `binary`), and — the
+  bound that matters when a tree is wrongly shaped — **16 MiB of untracked file
+  read in total per refresh**, spent in path order, eight reads in flight,
+  asynchronously so a refresh never holds the event loop away from the other
+  sessions. Past that budget (or past 1000 untracked files) a file is still a
+  row, just without a number, and the answer says `partial: true` with the reason
+  — so the bar's totals are a floor, not a claim about the whole tree. An
+  untracked **symlink** is listed and never read, in the list and in the diff
+  window alike (that one answers 409 `symlinked path`).
 - **Header/footer** — an activity line above the composer while a turn runs
   (spinner, what it is doing — thinking, writing, the file it is reading, the
   command it is running — and the elapsed time), model picker, thinking-level
@@ -165,13 +173,25 @@ cycle guard — the desk's does).
   composer fixes that without a restart: it sends nana-pack's `/reload-runtime` as
   a prompt (pi runs extension commands off the turn), then re-reads `get_commands`
   and reports what pi *actually* has now. The desk also looks for itself — it
-  re-enumerates `/api/resources` on window focus, before every prompt, and after a
-  skills folder is added or removed under ⚙ → Skills (at most once per 3 s per
-  session), and reloads by itself when that set GREW, deferring to the end of a
-  running turn. Requires nana-pack in the session (the desk says so when it is
-  missing); a session spawned with narrowed resource toggles re-applies its flags
-  on reload and gains nothing, which is why the toast reports `get_commands`
-  rather than what the enumeration predicted.
+  re-enumerates `/api/resources` on window focus and before every prompt, at most
+  once per 3 s per session, and **immediately, throttle bypassed**, after a skills
+  folder is added or removed under ⚙ → Skills (that is a change you just made, so
+  it is not made to wait) — and reloads by itself when that set GREW, deferring to
+  the end of a running turn. Requires nana-pack in the session (the desk says so
+  when it is missing); a session spawned with narrowed resource toggles re-applies
+  its flags on reload and gains nothing, which is why the toast reports
+  `get_commands` rather than what the enumeration predicted.
+  Two rules keep a reload from colliding with your own typing:
+  a prompt sent while a reload is in flight is **held** until that reload answers
+  (the composer says so) rather than posted into the middle of `ctx.reload()`; and
+  because `POST /prompt` stops waiting for pi after 5 s and answers
+  `{pending: true}`, a pending reload is *not* treated as finished — the desk
+  polls `get_commands` every 500 ms for up to 15 s and reports the reload only
+  when the command list actually changes (or the ceiling is reached). Polling,
+  rather than a longer-lived call, because `prompt` is deliberately not on the
+  `/rpc` allowlist; and the command list rather than the turn state, because an
+  extension command never starts an agent run, so pi reads as not-streaming for
+  the whole of one.
 - **Settings → Tools** — checkboxes over pi's built-ins (read, bash, powershell
   [win32], edit, write, grep, find, ls) writing `settings.json → defaultTools`,
   which REPLACES pi's own default set for new sessions; "Use pi defaults" deletes
@@ -559,13 +579,29 @@ is not":
   was already uncommitted when the session opened count as "changed" — nothing here
   attributes a line to this session. It covers LIVE sessions only: a historical
   transcript gets no bar, because the desk has no cwd it will still vouch for.
+  Its totals can also be a floor rather than a sum: past the 16 MiB untracked read
+  budget, or past 1000 untracked files, the remaining rows carry no line count and
+  the answer is marked `partial`.
+- **The diff window's symlink check is a check, not a lock.** An untracked path is
+  `lstat`ed and refused if it is a symlink, then read through its realpath. A
+  regular file swapped for a symlink between those two steps is still followed —
+  and only then, and only to a target inside the repository root, which the
+  realpath check already confirmed. It takes a process racing the desk inside your
+  own work tree, which is already a process running as you.
+- **A hand-typed message in exactly pi's skill-wrapper shape collapses like a
+  skill.** pi records a `/skill:name` invocation as the expanded
+  `<skill name=".." location="..">…</skill>` block and gives the desk no
+  provenance for it, so the page can only recognise the SHAPE. Type that shape
+  yourself and you get the collapsed `▸ /skill:NAME` row instead of your text.
+  Nothing is lost — the body is one click away inside the row.
 - **Auto-detected reload only sees what changed while the session was on screen, and only
   additions.** The comparison baseline is taken when you open the session in the pane, so a skill
   added before that — or while you were looking at another session, or before a page reload — is
   already in the baseline and never reads as new. Removals are deliberately never auto-reloaded:
-  reloading would drop a skill out from under work in progress. `/reload` covers both cases, and
-  it is the only path for a session with no nana-pack loaded (there is nothing else on the RPC
-  surface that can reload a running session). A reload also cannot widen a session that was
+  reloading would drop a skill out from under work in progress. `/reload` covers both cases —
+  but only where nana-pack is loaded. **A session without it has no reload path at all**: the
+  desk sends nothing and tells you to restart the session, because nothing on the RPC surface
+  can reload a running session. A reload also cannot widen a session that was
   spawned narrowed, or one whose project you did not trust — pi re-applies the CLI flags and
   keeps the trust decision — so in those cases the desk reloads, sees nothing new in
   `get_commands`, and says so.
