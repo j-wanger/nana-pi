@@ -26,7 +26,7 @@ Five extensions giving pi the hook coverage we require (Claude Code parity class
 |---|---|---|
 | `nana-gate` | Pre-tool permission gating | `tool_call` (blocking) |
 | `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
-| `nana-lifecycle` | Session lifecycle observability | `session_start/…compact…/shutdown` |
+| `nana-lifecycle` | Session lifecycle observability + `/reload-runtime` | `session_start/…compact…/shutdown`, `registerCommand` |
 | `nana-notify` | Outward notifications | `agent_settled` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 
@@ -37,6 +37,27 @@ pi install git:github.com/j-wanger/nana-pi       # canonical — the repo-root p
 pi install /path/to/nana-pi/packages/nana-pack   # local dev
 pi remove ...                                     # uninstall
 ```
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/reload-runtime` | Re-read extensions, skills, prompt templates and context files in the RUNNING session — pi's `ctx.reload()`, which is the same flow as the TUI's built-in `/reload`. It re-reads `settings.json` first, so a skills folder added while the session was up counts. |
+
+`/reload-runtime` exists because pi scans those locations at **startup only** and the TUI's
+`/reload` is a TUI-only command: an RPC host (nana code, any RPC client) has no way to reach that
+flow except through an extension command. The desk's own `/reload` is a thin wrapper that sends
+this one. Not named `reload`: pi treats an extension command that matches a built-in interactive
+command as a conflict, warns at every TUI start and skips it in the autocomplete (the built-in
+would shadow it there anyway) — so the two coexist instead, `/reload` in the TUI and
+`/reload-runtime` everywhere.
+
+**What it will not do:** a session started with a narrowed resource set (`--no-skills` + explicit
+`--skill`, or the desk's spawn toggles) re-applies those flags on reload and gains nothing new;
+neither does an **untrusted** project — reload preserves the session's trust decision, so
+`.pi/skills` in a project you did not approve stays ignored. Verified against pi 0.84.4: a skill
+added to a trusted project's `.pi/skills` after startup goes from absent to present across one
+`/reload-runtime`.
 
 ## What you will see
 
