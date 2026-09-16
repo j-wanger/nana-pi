@@ -6,6 +6,7 @@ import {
 	buildDialog, openEventStream, rpcCall,
 	activityVerb, parseSkillMessage, skillLabel, matchesUserEcho,
 } from "./desk-client.mjs";
+import * as changes from "./changes.js";
 
 const $ = (id) => document.getElementById(id);
 const HOME = "~";
@@ -42,6 +43,9 @@ let statsTimer = null;
 // through. No per-site flags.
 let stageGen = 0;
 const stale = (g) => g !== stageGen;
+// The changes bar owns its own DOM and its own fetches; all it needs from the
+// stage is the rule every continuation here follows.
+changes.init({ stale });
 
 function newLiveState(id, cwd) {
 	return {
@@ -887,6 +891,7 @@ function clearStage() {
 	stream = null;
 	stopStatsPoll();
 	stopActivity(); // before L goes: its timer belongs to the stage we are leaving
+	changes.clear();
 	L = null;
 	$("transcript").innerHTML = "";
 	$("dialogs").innerHTML = "";
@@ -924,6 +929,7 @@ function openLive(id, cwd) {
 	);
 
 	resync();
+	changes.refresh(id, g);
 	rpc({ type: "get_commands" }).then((d) => !stale(g) && (L.commands = d.commands || [])).catch(() => {});
 	fetch(`/api/session/${id}/files`).then((r) => r.json()).then((d) => !stale(g) && (L.files = d.files || [])).catch(() => {});
 	startStatsPoll();
@@ -1035,7 +1041,10 @@ function handleEvent(e) {
 			// every event in that window is gone for good. One resync restores the
 			// transcript and — through refreshState — the chip and `streaming`,
 			// which would otherwise sit on "disconnected" forever.
-			else if (L.helloSeen) resync();
+			else if (L.helloSeen) {
+				resync();
+				changes.refresh(L.id, stageGen); // the working tree moved on while the stream was down
+			}
 			L.helloSeen = true;
 			break;
 		}
@@ -1050,6 +1059,7 @@ function handleEvent(e) {
 			L.currentBubble = null;
 			L.thinkingCard = null;
 			resync();
+			changes.refresh(L.id, stageGen); // a finished turn is when the tree has settled
 			refreshRail();
 			break;
 		case "message_start":

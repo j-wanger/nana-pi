@@ -142,6 +142,14 @@ cycle guard — the desk's does).
   arrives as a `PI_SUBAGENT_ASYNC_JSON:` machine snapshot for RPC clients — the
   desk decodes it into per-run rows instead of printing the blob);
   set_editor_text → composer.
+- **Changes** — a one-line bar above the composer (`3 files changed  +40 −12`)
+  that expands to per-file rows and opens a floating, non-blocking diff window
+  (drag it, keep typing behind it, Esc closes). What it shows is the **working
+  tree against HEAD** — the conversation's edits plus whatever was already
+  uncommitted, staged and unstaged in one number per file; untracked files count
+  as added. Read-only, `git` on PATH, live sessions only. Caps: one file's diff
+  at 512 KiB (`DESK_DIFF_CAP`), 20 s per git call, 1000 rows, and an untracked
+  file's lines counted up to 1 MiB (bigger or NUL-bearing ones are `binary`).
 - **Header/footer** — an activity line above the composer while a turn runs
   (spinner, what it is doing — thinking, writing, the file it is reading, the
   command it is running — and the elapsed time), model picker, thinking-level
@@ -530,6 +538,11 @@ is not":
   another tab's echo consume ours). Send `ok` as a prompt and, before its echo arrives, `ok` again
   as a steer, and the steer's echo swaps out the prompt's bubble — one bubble for two messages.
   Both messages did reach pi; only the transcript is short one line, and a resync repairs it.
+- **The changes bar is a picture of the working tree, not of the conversation.** It
+  is the whole repository against HEAD, so another terminal's edits and anything that
+  was already uncommitted when the session opened count as "changed" — nothing here
+  attributes a line to this session. It covers LIVE sessions only: a historical
+  transcript gets no bar, because the desk has no cwd it will still vouch for.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted.
