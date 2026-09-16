@@ -174,9 +174,8 @@ function parsePorcelain(out) {
 	return { status, untracked };
 }
 
-// Read a file through an open DESCRIPTOR, never past `limit` bytes — plus one,
-// which is how "there is more than that" is learned — counting lines as the
-// bytes arrive.
+// Read a file through an open DESCRIPTOR, never past what `plan` allows,
+// counting lines as the bytes arrive.
 //
 // The descriptor is the whole point. lstat-then-readFile decides on one PATHNAME
 // and then reads another: between the two the file can grow, or be replaced by a
@@ -185,11 +184,25 @@ function parsePorcelain(out) {
 // refuses anything that is not a regular file, and the byte count is what was
 // actually read, not what a pathname said a moment ago.
 //
+// `plan(size)` is called SYNCHRONOUSLY between the fstat and the first read, with
+// the size this descriptor really has. It answers how many bytes this read may
+// cost — or `null` to refuse the file without reading a byte of it. Synchronous
+// is what makes a SHARED budget safe under the pool: JS runs one of these at a
+// time, so a plan that charges the budget has charged it before any other worker
+// can look at the number. And there is no probe byte: the read stops AT what
+// plan said, so no cap and no budget is ever exceeded to learn that it would be.
+//
+// A file that GROWS after the fstat is invisible here by construction — nothing
+// past `n` is read, so what is counted is the first `n` bytes and the answer
+// claims nothing more. A file that SHRINKS shows up as a SHORT read, and the
+// caller refuses to count that: a file being written has no stable line count
+// anyway, and a prefix's count would be a number for a file nobody measured.
+//
 // A new file's diff is every line added, so the line count IS the added count.
 // Counted on the BYTES: 0x0A cannot occur inside a UTF-8 multi-byte sequence, so
 // this is the same number decoding would give, without decoding a megabyte to
 // get it. A file holding a NUL byte is reported as binary, not counted.
-async function readBounded(abs, limit, { collect = false } = {}) {
+async function readBounded(abs, { collect = false, plan }) {
 	let fh;
 	try {
 		fh = await fs.promises.open(abs, fs.constants.O_RDONLY | NOFOLLOW);
@@ -201,12 +214,13 @@ async function readBounded(abs, limit, { collect = false } = {}) {
 	try {
 		const st = await fh.stat();
 		if (!st.isFile()) return { notFile: true, bytes: 0 };
-		const room = limit + 1;
-		const buf = Buffer.allocUnsafe(Math.min(room, 64 * 1024));
+		const n = plan(st.size);
+		if (n === null) return { refused: true, size: st.size, bytes: 0 };
+		const buf = Buffer.allocUnsafe(Math.min(n, 64 * 1024));
 		const chunks = [];
 		let bytes = 0, lines = 0, nul = false, lastByte = -1;
-		while (bytes < room) {
-			const { bytesRead } = await fh.read(buf, 0, Math.min(buf.length, room - bytes), null);
+		while (bytes < n) {
+			const { bytesRead } = await fh.read(buf, 0, Math.min(buf.length, n - bytes), null);
 			if (!bytesRead) break;
 			for (let i = 0; i < bytesRead; i++) {
 				if (buf[i] === 0x0a) lines++;
@@ -221,7 +235,7 @@ async function readBounded(abs, limit, { collect = false } = {}) {
 			size: st.size,
 			added: bytes === 0 ? 0 : lastByte === 0x0a ? lines : lines + 1,
 			binary: nul,
-			over: bytes > limit, // it had more to give than it was allowed to
+			short: bytes < n, // it had LESS to give than the fstat said: it is moving
 			buf: collect ? Buffer.concat(chunks) : null,
 		};
 	} catch (e) {
@@ -248,9 +262,11 @@ async function pooled(items, width, fn) {
 //   map value `null` = drop the row (vanished, or not a regular file)
 //   {added: null, binary: false} = listed, deliberately not counted
 //
-// The lstat sizes decide WHO is read, in list order. What each read may COST is
-// enforced on the descriptor, and the budget is charged with the bytes actually
-// read — a file is no longer trusted to still be the size it announced.
+// The lstat sizes decide WHO is read, in list order — that walk is one
+// synchronous pass, so which files get the last of the budget does not depend on
+// how the pool interleaves. What each read may COST is decided again on the
+// DESCRIPTOR, against the size the fd really has, and the budget is charged
+// there: a file is never trusted to still be the size it announced.
 async function countUntracked(root, rels) {
 	const budget = untrackedTotalCap();
 	const stats = new Map();
@@ -273,27 +289,42 @@ async function countUntracked(root, rels) {
 			budgeted = true;
 		} else {
 			allocated += st.size;
-			toRead.push([rel, st.size]);
+			toRead.push(rel);
 		}
 	}
 	let spent = 0;
-	await pooled(toRead, READ_CONCURRENCY, async ([rel, size]) => {
-		// Only reachable if earlier files grew under us: their reads overspent the
-		// share the walk above allocated them, so this one no longer has a share.
-		if (spent >= budget) {
-			counts.set(rel, { added: null, binary: false });
-			budgeted = true;
-			return;
-		}
-		const r = await readBounded(path.join(root, rel), Math.min(size, budget - spent));
-		spent += r.bytes;
+	await pooled(toRead, READ_CONCURRENCY, async (rel) => {
+		let refused = null;
+		const r = await readBounded(path.join(root, rel), {
+			// The budget is charged HERE — against the size the descriptor really
+			// has, before the first byte is read, and with nothing able to run in
+			// between — so two workers can never allocate the same bytes twice.
+			// A reservation comes BACK only when nothing at all is read; a read
+			// that comes up short keeps its whole share, because the file moved.
+			plan: (size) => {
+				if (size > UNTRACKED_BYTE_CAP) {
+					refused = "cap"; // grew past the per-file cap since the lstat
+					return null;
+				}
+				const n = Math.min(size, budget - spent);
+				spent += n;
+				if (n === size) return n;
+				spent -= n; // not enough budget left for the WHOLE file: read none of it
+				refused = "budget";
+				return null;
+			},
+		});
 		// Swapped for a symlink since the lstat: listed and not counted, the same
 		// answer an untracked symlink gets when it was already one.
 		if (r.symlink) counts.set(rel, { added: null, binary: false });
 		else if (r.error || r.notFile) counts.set(rel, null); // vanished, or no longer a file
-		else if (r.over) {
-			// Bigger than it said it was: a prefix's line count would be a lie, and
-			// reading the rest would be spending a budget nobody granted.
+		else if (refused === "cap") counts.set(rel, { added: null, binary: true });
+		else if (refused === "budget") {
+			counts.set(rel, { added: null, binary: false });
+			budgeted = true;
+		} else if (r.short) {
+			// Smaller than the fstat said: it is being written under us, and a
+			// prefix's line count would be a number for a file nobody measured.
 			counts.set(rel, { added: null, binary: false });
 			raced = true;
 		} else counts.set(rel, { added: r.binary ? null : r.added, binary: r.binary });
@@ -399,15 +430,23 @@ export function resolveInRoot(root, rel) {
 // exits 1 on difference, and /dev/null is not a path on win32.
 async function newFileDiff(rel, abs, cap) {
 	// Same descriptor rule as the file LIST: the path checked above and the bytes
-	// read here cannot be two different files (O_NOFOLLOW + fstat), and nothing
-	// past the per-file cap is read even if the file grew since it was checked.
-	const r = await readBounded(abs, UNTRACKED_BYTE_CAP, { collect: true });
+	// read here cannot be two different files (O_NOFOLLOW + fstat). And the same
+	// strictness about the bound — the window shows at most `cap` bytes, so `cap`
+	// is what is READ. A bigger file is cut at exactly that and says `truncated`;
+	// nothing is read past it to find out how much bigger it is.
+	let over = false;
+	const r = await readBounded(abs, {
+		collect: true,
+		plan: (size) => {
+			over = size > cap;
+			return Math.min(size, cap);
+		},
+	});
 	if (r.symlink) return { symlink: true };
 	if (r.notFile) return { error: "not a regular file" };
 	if (r.error) return { error: String(r.error?.message || r.error) };
-	if (r.over) return { diff: `Binary or oversized file (${r.size} bytes) — not shown`, truncated: false, binary: true };
 	const buf = r.buf;
-	if (r.binary) return { diff: `Binary file (${buf.length} bytes) — not shown`, truncated: false, binary: true };
+	if (r.binary) return { diff: `Binary file (${r.size} bytes) — not shown`, truncated: false, binary: true };
 	const body = buf.toString("utf-8");
 	const lines = body === "" ? [] : body.replace(/\n$/, "").split("\n");
 	const head = [`--- /dev/null`, `+++ b/${rel}`, `@@ -0,0 +1,${lines.length} @@`];
@@ -415,7 +454,7 @@ async function newFileDiff(rel, abs, cap) {
 	if (!body.endsWith("\n") && lines.length) out += "\n\\ No newline at end of file";
 	const bytes = Buffer.byteLength(out, "utf-8");
 	if (bytes > cap) return { diff: Buffer.from(out, "utf-8").subarray(0, cap).toString("utf-8"), truncated: true };
-	return { diff: out, truncated: false };
+	return { diff: out, truncated: over };
 }
 
 export async function fileDiff(cwd, rel) {

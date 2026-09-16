@@ -256,6 +256,8 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	// in this process, so a loaded machine moves both numbers and the assertion
 	// still means "this collect did not hold the loop". And a tick count, because
 	// a collect too fast to be ticked through would pass while measuring nothing.
+	// The ticker asks for 1 ms and the floor is TWO ticks: a 5 ms ticker needing
+	// five of them wanted ~25 ms of collect, which a fast machine can beat.
 	const ticker = () => {
 		const st = { worst: 0, ticks: 0, last: Date.now() };
 		const h = setInterval(() => {
@@ -263,7 +265,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 			st.worst = Math.max(st.worst, now - st.last);
 			st.last = now;
 			st.ticks++;
-		}, 5);
+		}, 1);
 		st.stop = () => clearInterval(h);
 		return st;
 	};
@@ -279,7 +281,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	const f = byPath(r.body);
 	check(`loop: all ${N} untracked files are counted`, Object.keys(f).length === N && f["big-000.txt"]?.added === 2048, `${Object.keys(f).length} rows, ${JSON.stringify(f["big-000.txt"])}`);
 	check("loop: …and nothing is partial at 8 MiB", !r.body.partial, String(r.body.partialReason));
-	check("loop: the collect was long enough to measure", busy.ticks >= 5, `${busy.ticks} ticks over ${took} ms`);
+	check("loop: the collect was long enough to measure", busy.ticks >= 2, `${busy.ticks} ticks over ${took} ms`);
 	check(
 		"loop: the event loop kept ticking through the collect",
 		busy.worst < Math.max(100, 8 * idle.worst),
@@ -291,7 +293,9 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 // The bug: the walk allocated each file the size `lstat` reported, then read the
 // PATH with no limit at all. A file that grew in between defeated the per-file
 // cap and the aggregate budget together, and its line count was a number for a
-// file nobody had measured.
+// file nobody had measured. The bound is now decided from the DESCRIPTOR's own
+// fstat, so a file that grew past what is left of the budget is refused there —
+// the walk's stale allocation buys it nothing.
 //
 // Forced, not hoped for: `fs.promises` is instrumented for this case only — the
 // lstat grows the file it was just asked about (the race, made to happen every
@@ -344,9 +348,52 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	}
 	const f = byPath(r.body);
 	check("raced: a file that grew under the read is listed with NO count", f["grow.txt"] && f["grow.txt"].added === null, JSON.stringify(f["grow.txt"]));
-	check("raced: …and the answer says it is partial, and why", r.body.partial === true && /changed under the read/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
+	check("raced: …and the answer says it is partial, and why", r.body.partial === true && /budget/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
 	check("raced: the bytes actually read never exceed the budget", bytesRead <= BUDGET, `${bytesRead} bytes read against a ${BUDGET}-byte budget`);
 	check("raced: a file that did not move is still counted", f["small.txt"]?.added === 1, JSON.stringify(f["small.txt"]));
+}
+
+// ── A12b. a file that SHRINKS between the fstat and the read ──
+// Growth after the fstat is invisible by construction: nothing past the bound is
+// read, so the count is of the bytes that were read and claims nothing more. The
+// other direction IS visible — the read comes up short — and a prefix's line
+// count would be a number for a file nobody measured, so it is not given one.
+// Forced by truncating the file inside the fstat itself, which is exactly the
+// window the race has.
+{
+	const shrink = path.join(TD, "shrink");
+	fs.mkdirSync(shrink);
+	git(shrink, "init", "-q", ".");
+	write(path.join(shrink, "seed.txt"), "seed\n");
+	git(shrink, "add", "-A");
+	git(shrink, "commit", "-qm", "seed");
+	const moving = path.join(shrink, "moving.txt");
+	write(moving, `${Array.from({ length: 50 }, (_, i) => `line ${i}`).join("\n")}\n`);
+	write(path.join(shrink, "still.txt"), "a\nb\n");
+
+	const fsp = fs.promises;
+	const realOpen = fsp.open;
+	fsp.open = async (p, ...rest) => {
+		const fh = await realOpen(p, ...rest);
+		if (!String(p).endsWith("moving.txt")) return fh;
+		const stat = fh.stat.bind(fh);
+		fh.stat = async (...a) => {
+			const st = await stat(...a); // …and now it is 4 bytes, before a byte is read
+			fs.writeFileSync(moving, "one\n");
+			return st;
+		};
+		return fh;
+	};
+	let r;
+	try {
+		r = await collectChanges(shrink);
+	} finally {
+		fsp.open = realOpen;
+	}
+	const f = byPath(r.body);
+	check("shrink: a file read shorter than its own fstat gets NO count", f["moving.txt"] && f["moving.txt"].added === null, JSON.stringify(f["moving.txt"]));
+	check("shrink: …and the answer says a file changed under the read", r.body.partial === true && /changed under the read/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
+	check("shrink: a file that did not move is still counted", f["still.txt"]?.added === 2, JSON.stringify(f["still.txt"]));
 }
 
 // ── A13. a symlink swapped in AFTER the check, before the read ──
@@ -380,6 +427,107 @@ if (process.platform !== "win32") {
 		fsp.open = realOpen;
 		fs.rmSync(swap, { force: true });
 	}
+}
+
+// ── A14. the PER-FILE cap, to the byte ──
+// The old read asked for `limit + 1` bytes, because one byte past the bound is
+// how "there is more than that" was learned — so a file of exactly the cap cost
+// a byte more than the cap, and a file handed the last of the budget cost a byte
+// more than the budget. Pinned at the boundary: exactly the cap counts, one byte
+// more is refused WITHOUT being read, and the whole refresh reads exactly the
+// budget it was given. The byte tally is the assertion — rows would not see it.
+{
+	const CAP = 1024 * 1024; // UNTRACKED_BYTE_CAP, fixed in changes.mjs
+	const edge = path.join(TD, "edge");
+	fs.mkdirSync(edge);
+	git(edge, "init", "-q", ".");
+	write(path.join(edge, "seed.txt"), "seed\n");
+	git(edge, "add", "-A");
+	git(edge, "commit", "-qm", "seed");
+	const atCap = `${"x".repeat(1023)}\n`.repeat(1024); // exactly 1 MiB, 1024 lines
+	write(path.join(edge, "at-cap.txt"), atCap);
+	write(path.join(edge, "over-cap.txt"), `${atCap}!`); // one byte more
+
+	const fsp = fs.promises;
+	const realOpen = fsp.open;
+	let bytesRead = 0;
+	fsp.open = async (...a) => {
+		const fh = await realOpen(...a);
+		const read = fh.read.bind(fh);
+		fh.read = async (...ra) => {
+			const rr = await read(...ra);
+			bytesRead += rr.bytesRead;
+			return rr;
+		};
+		return fh;
+	};
+	let r;
+	try {
+		process.env.DESK_UNTRACKED_TOTAL_CAP = String(CAP); // room for exactly the at-cap file
+		r = await collectChanges(edge);
+	} finally {
+		fsp.open = realOpen;
+		delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	}
+	const f = byPath(r.body);
+	check("edge: a file of exactly the per-file cap is counted", f["at-cap.txt"]?.added === 1024, JSON.stringify(f["at-cap.txt"]));
+	check("edge: one byte past the cap is a row with no count", f["over-cap.txt"]?.added === null && f["over-cap.txt"]?.binary === true, JSON.stringify(f["over-cap.txt"]));
+	check("edge: …and the refresh read exactly the budget, no probe byte", bytesRead === CAP, `${bytesRead} bytes read against a ${CAP}-byte budget`);
+}
+
+// ── A15. the AGGREGATE boundary, to the byte ──
+{
+	const sum = path.join(TD, "sum");
+	fs.mkdirSync(sum);
+	git(sum, "init", "-q", ".");
+	write(path.join(sum, "seed.txt"), "seed\n");
+	git(sum, "add", "-A");
+	git(sum, "commit", "-qm", "seed");
+	const body = `${"y".repeat(99)}\n`.repeat(10); // 1000 bytes, 10 lines
+	const names = ["s-a.txt", "s-b.txt", "s-c.txt", "s-d.txt", "s-e.txt"];
+	for (const n of names) write(path.join(sum, n), body);
+	const BUDGET = 5000; // exactly the five of them
+
+	process.env.DESK_UNTRACKED_TOTAL_CAP = String(BUDGET);
+	const exact = await collectChanges(sum);
+	fs.appendFileSync(path.join(sum, "s-c.txt"), "!"); // one byte more, in the middle of the set
+	const overBy1 = await collectChanges(sum);
+	delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	const fe = byPath(exact.body), fo = byPath(overBy1.body);
+	check("sum: files summing to exactly the budget are all counted", names.every((n) => fe[n]?.added === 10) && !exact.body.partial, JSON.stringify(names.map((n) => fe[n]?.added)));
+	const uncounted = names.filter((n) => fo[n]?.added === null);
+	check("sum: one byte more anywhere flips exactly one file", uncounted.length === 1, JSON.stringify(uncounted));
+	check("sum: …the LAST in path order, not whichever read landed first", uncounted[0] === "s-e.txt", JSON.stringify(uncounted));
+	check("sum: …and the answer says the budget did it", overBy1.body.partial === true && /budget/.test(overBy1.body.partialReason || ""), JSON.stringify(overBy1.body.partialReason));
+}
+
+// ── A16. the budget under the POOL: eight reads in flight, one budget ──
+// Each worker decides on the descriptor it just opened, so the charge has to
+// land before the read it pays for — eight workers reading `budget − spent` off
+// the same stale number all believe they can afford it, and overspend together.
+// 40 files against a budget for exactly 25: 25 counted however the pool
+// interleaves, and they are the first 25 in PATH order, because the walk that
+// hands out shares is one synchronous pass over the list.
+{
+	const pool = path.join(TD, "pool");
+	fs.mkdirSync(pool);
+	git(pool, "init", "-q", ".");
+	write(path.join(pool, "seed.txt"), "seed\n");
+	git(pool, "add", "-A");
+	git(pool, "commit", "-qm", "seed");
+	const body = `${"z".repeat(199)}\n`.repeat(5); // 1000 bytes, 5 lines
+	const N = 40, ADMIT = 25;
+	const names = Array.from({ length: N }, (_, i) => `p-${String(i).padStart(2, "0")}.txt`);
+	for (const n of names) write(path.join(pool, n), body);
+
+	process.env.DESK_UNTRACKED_TOTAL_CAP = String(1000 * ADMIT);
+	const r = await collectChanges(pool);
+	delete process.env.DESK_UNTRACKED_TOTAL_CAP;
+	const f = byPath(r.body);
+	const counted = names.filter((n) => f[n]?.added === 5);
+	check(`pool: a budget for ${ADMIT} counts exactly ${ADMIT} of ${N}`, counted.length === ADMIT, `${counted.length} counted`);
+	check("pool: …and they are the first ones in path order", counted.join(",") === names.slice(0, ADMIT).join(","), counted.join(","));
+	check("pool: …and the rest are rows with no number", names.slice(ADMIT).every((n) => f[n] && f[n].added === null), JSON.stringify(names.slice(ADMIT).map((n) => f[n]?.added)));
 }
 
 // ══ B. the routes, through the real server ══════════════════════════════════
