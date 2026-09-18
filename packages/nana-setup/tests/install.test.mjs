@@ -5,6 +5,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+const { commandInvokes, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
@@ -54,8 +56,8 @@ check("private rule is not in the repo", !fs.existsSync(path.join(pkg, "claude",
 
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const commands = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
-for (const want of ["nana-objective.sh", "nana-shared-memory.sh", "context-size-check.sh", "nana-knowledge.ts hook"]) {
-	check(`settings.json wires ${want}`, commands.some((c) => c.includes(want)));
+for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
+	check(`settings.json wires ${w.marker}`, commands.some((c) => commandInvokes(c, w.spec)));
 }
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
 check("knowledge hook points at this install root", commands.some((c) => c.includes(path.join(repo, "packages", "nana-knowledge"))));
@@ -124,6 +126,59 @@ const dryRun = run(["install", "--home", dry, "--dry-run"]);
 check("dry run exits 0", dryRun.status === 0, dryRun.stderr);
 check("dry run says would change", dryRun.stdout.includes("would change"));
 check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSync(dry).join(","));
+
+/* --- 8. a home with a SPACE in it: the generated commands must actually run ------------- */
+{
+	const spaced = fs.mkdtempSync(path.join(os.tmpdir(), "Jane Doe "));
+	tmps.push(spaced);
+	fs.mkdirSync(path.join(spaced, ".pi", "agent", "nana-knowledge"), { recursive: true });
+	fs.writeFileSync(path.join(spaced, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	const r = run(["install", "--home", spaced]);
+	check("space in home: install exits 0", r.status === 0, r.stderr);
+	const s = JSON.parse(fs.readFileSync(path.join(spaced, ".claude", "settings.json"), "utf8"));
+	const cmds = Object.values(s.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
+	check("space in home: the path is quoted", cmds.every((c) => c.includes("'")), cmds.join(" | "));
+	// the real proof: run the SessionStart commands through a shell
+	const sessionStart = s.hooks.SessionStart.flatMap((g) => g.hooks.map((h) => h.command));
+	for (const c of sessionStart) {
+		const out = spawnSync("bash", ["-c", c], { encoding: "utf8", input: "", env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" } });
+		check(`space in home: \`${c.slice(0, 40)}…\` runs cleanly`, out.status === 0 && !/No such file|command not found/.test(out.stderr), out.stderr);
+	}
+	const shared = spawnSync("bash", ["-c", sessionStart.find((c) => c.includes("nana-shared-memory"))], {
+		encoding: "utf8",
+		input: "",
+		env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
+	});
+	check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
+	check("space in home: doctor exits 0", run(["doctor", "--home", spaced]).status === 0);
+}
+
+/* --- 9. the objective seed is gated on nana-pack.json being ours ----------------------- */
+{
+	// nana-pack.json already points at a real repo's OBJECTIVE.md: creating the starter file
+	// would be noise, and the dry run must not offer it either.
+	const elsewhere = freshHome();
+	const objectiveElsewhere = path.join(elsewhere, "some-repo-OBJECTIVE.md");
+	fs.writeFileSync(objectiveElsewhere, "**Objective:** x\n");
+	fs.writeFileSync(path.join(elsewhere, ".pi", "agent", "nana-pack.json"), JSON.stringify({ objective: { path: objectiveElsewhere, projectFile: "OBJECTIVE.md" } }));
+	const dry = run(["install", "--home", elsewhere, "--dry-run"]);
+	check("objective seed: the dry run does not offer to create it", /pi nana-objective\.md\s+unchanged\s+not needed/.test(dry.stdout), dry.stdout);
+	const r = run(["install", "--home", elsewhere]);
+	check("objective seed: not created when nana-pack.json points elsewhere", !fs.existsSync(path.join(elsewhere, ".pi", "agent", "nana-objective.md")));
+	check("objective seed: the reason is reported", /not needed — objective\.path already points at/.test(r.stdout));
+	check("objective seed: doctor is still green", run(["doctor", "--home", elsewhere]).status === 0, run(["doctor", "--home", elsewhere]).stdout);
+
+	// and when the config IS ours, the starter file is created
+	const ours = freshHome();
+	run(["install", "--home", ours]);
+	check("objective seed: created alongside a freshly seeded nana-pack.json", fs.existsSync(path.join(ours, ".pi", "agent", "nana-objective.md")));
+
+	// an existing config that points AT the default file still gets it
+	const pointsHere = freshHome();
+	fs.writeFileSync(path.join(pointsHere, ".pi", "agent", "nana-pack.json"), JSON.stringify({ objective: { path: "~/.pi/agent/nana-objective.md" } }));
+	run(["install", "--home", pointsHere]);
+	check("objective seed: created when objective.path resolves to it", fs.existsSync(path.join(pointsHere, ".pi", "agent", "nana-objective.md")));
+}
 
 function walk(dir) {
 	const out = [];

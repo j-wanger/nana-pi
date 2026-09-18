@@ -2,10 +2,11 @@
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, serialize } from "./settings.mjs";
+import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.mjs";
 
 export class SetupError extends Error {}
 
@@ -48,30 +49,78 @@ export function stepRules(layout, o) {
 
 /* -------------------------------------------------------------------- claude settings.json */
 
-/** Parse first, so a malformed settings.json aborts BEFORE anything on disk has moved. */
+/**
+ * Preflight. Runs BEFORE any file moves, and everything that can legitimately stop the install
+ * is decided here: the file must parse, and its `hooks` must have a shape the merge can extend
+ * ({"hooks":"disabled"} parses but would throw mid-install — sol r1). Returns the parsed object
+ * plus a SNAPSHOT of the bytes and mode, which the write step uses to detect a concurrent edit.
+ */
 export function readClaudeSettings(layout) {
-	let raw;
+	let raw = null;
+	let mode = 0o600; // what Claude Code itself writes
 	try {
 		raw = fs.readFileSync(layout.claudeSettings, "utf8");
-	} catch {
-		return {};
-	}
-	if (raw.trim() === "") return {};
-	try {
-		const parsed = JSON.parse(raw);
-		if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-			throw new Error("top level is not an object");
-		}
-		return parsed;
+		mode = fs.statSync(layout.claudeSettings).mode & 0o777;
 	} catch (err) {
-		throw new SetupError(
-			`${layout.claudeSettings} is not valid JSON (${err.message}).\n` +
-				"Nothing was changed. Fix or move that file, then re-run — the installer will not rewrite settings it cannot parse.",
+		if (err.code !== "ENOENT") {
+			throw new SetupError(`${layout.claudeSettings} cannot be read (${err.message}).\nNothing was changed.`);
+		}
+		return { settings: {}, snapshot: { raw: null, mode } };
+	}
+	const abort = (why) =>
+		new SetupError(
+			`${layout.claudeSettings} ${why}.\n` +
+				"Nothing was changed. Fix or move that file, then re-run — the installer will not rewrite settings it cannot understand.",
 		);
+	if (raw.trim() === "") return { settings: {}, snapshot: { raw, mode } };
+	let parsed;
+	try {
+		parsed = JSON.parse(raw);
+	} catch (err) {
+		throw abort(`is not valid JSON (${err.message})`);
+	}
+	const bad = validateShape(parsed);
+	if (bad) throw abort(`has a shape this installer will not edit (${bad})`);
+	return { settings: parsed, snapshot: { raw, mode } };
+}
+
+/**
+ * Replace settings.json atomically, and only if nobody else wrote to it since the preflight read
+ * (sol r1: the old in-place write could silently drop a hook another process had just added).
+ * Temp file in the same directory + rename, with the original mode preserved.
+ */
+export function writeSettingsAtomic(file, contents, snapshot) {
+	let current = null;
+	try {
+		current = fs.readFileSync(file, "utf8");
+	} catch (err) {
+		if (err.code !== "ENOENT") throw new SetupError(`${file} cannot be re-read before writing (${err.message}). Nothing was changed.`);
+	}
+	if (current !== snapshot.raw) {
+		throw new SetupError(
+			`${file} changed on disk while nana-setup was running — another process (an editor, or a live Claude Code session) wrote to it.\n` +
+				"Nothing was written to it, and the install stopped here rather than overwriting that change. Re-run when nothing else is writing.",
+		);
+	}
+	const dir = path.dirname(file);
+	fs.mkdirSync(dir, { recursive: true });
+	const tmp = path.join(dir, `.settings.json.nana-setup.${process.pid}.tmp`);
+	try {
+		fs.writeFileSync(tmp, contents, { mode: snapshot.mode });
+		fs.chmodSync(tmp, snapshot.mode);
+		fs.renameSync(tmp, file);
+	} catch (err) {
+		try {
+			fs.unlinkSync(tmp);
+		} catch {
+			/* nothing to clean */
+		}
+		throw err;
 	}
 }
 
-export function stepSettings(layout, o, settings) {
+export function stepSettings(layout, o, state) {
+	const { settings, snapshot } = state;
 	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
 	// win32: the three bash hooks have no interpreter there, and `VAR=1 cmd` is not a thing in
 	// cmd.exe — so drop those entries and the env prefix on the one that survives.
@@ -91,10 +140,7 @@ export function stepSettings(layout, o, settings) {
 			detail: isSkipped ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
 		});
 	}
-	if (added.length && !o.dryRun) {
-		fs.mkdirSync(path.dirname(layout.claudeSettings), { recursive: true });
-		fs.writeFileSync(layout.claudeSettings, serialize(settings));
-	}
+	if (added.length && !o.dryRun) writeSettingsAtomic(layout.claudeSettings, serialize(settings), snapshot);
 	return out;
 }
 
@@ -119,13 +165,34 @@ export function stepSharedMemory(layout, o) {
 
 /* ------------------------------------------------------------------------- pi user config */
 
+/**
+ * Resolve nana-pack.json's `objective.path` the way the pack does: `~/` expands, a relative path
+ * resolves against the pi home and NEVER against cwd, null means the default file. Shared with
+ * `doctor` so the two can never disagree about which file the objective lives in.
+ */
+export function objectiveTarget(layout, cfg) {
+	const p = cfg?.objective?.path;
+	if (!p) return layout.piObjective;
+	if (p === "~") return layout.base;
+	if (p.startsWith("~/")) return path.join(layout.base, p.slice(2));
+	return path.isAbsolute(p) ? p : path.join(layout.piHome, p);
+}
+
 export function stepPiConfig(layout, o) {
-	const pack = seedFile(layout.piPackConfig, fs.readFileSync(path.join(pkgRoot, "pi", "nana-pack.seed.json"), "utf8"), o);
-	const objective = seedFile(layout.piObjective, fs.readFileSync(path.join(pkgRoot, "pi", "nana-objective.seed.md"), "utf8"), o);
-	return [
-		{ label: "pi nana-pack.json", ...pack },
-		{ label: "pi nana-objective.md", ...objective },
-	];
+	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "nana-pack.seed.json"), "utf8");
+	const pack = seedFile(layout.piPackConfig, seedText, o);
+	const out = [{ label: "pi nana-pack.json", ...pack }];
+	// The starter objective file belongs to the SEED. When nana-pack.json already exists and
+	// points its objective at a real repo's OBJECTIVE.md, creating ~/.pi/agent/nana-objective.md
+	// would be a file nothing reads (sol r1 / dry-run noise on this machine).
+	const cfg = pack.status === CREATED ? JSON.parse(seedText) : readPiPackConfig(layout);
+	const target = objectiveTarget(layout, cfg);
+	if (pack.status === CREATED || path.resolve(target) === path.resolve(layout.piObjective)) {
+		out.push({ label: "pi nana-objective.md", ...seedFile(layout.piObjective, fs.readFileSync(path.join(pkgRoot, "pi", "nana-objective.seed.md"), "utf8"), o) });
+	} else {
+		out.push({ label: "pi nana-objective.md", status: UNCHANGED, detail: `not needed — objective.path already points at ${target}` });
+	}
+	return out;
 }
 
 /** What nana-pack.json says about the objective — reported by `doctor`, never rewritten. */
@@ -218,21 +285,64 @@ export function stepDesk(layout, o) {
 
 /* ------------------------------------------------------------- pi package registration */
 
+/** realpath, falling back to the nearest existing ancestor so a non-existent path still resolves. */
+function realpathSafe(p) {
+	let cur = path.resolve(p);
+	const tail = [];
+	for (;;) {
+		try {
+			return path.join(fs.realpathSync(cur), ...tail);
+		} catch {
+			const parent = path.dirname(cur);
+			if (parent === cur) return path.resolve(p);
+			tail.unshift(path.basename(cur));
+			cur = parent;
+		}
+	}
+}
+
+const gitDirCache = new Map();
 /**
- * Does one pi `packages` entry mean "this install root is registered"?
+ * The repository's IDENTITY: its common git dir, which a linked worktree shares with the main
+ * checkout (`git rev-parse --git-common-dir` — verified: from ~/nana-pi-wt/setup it reports
+ * /Users/jwang/nana-pi/.git, the same value the main clone reports). Null when the path is not in
+ * a repo, or git is unavailable.
+ */
+export function gitCommonDir(dir) {
+	const key = path.resolve(dir);
+	if (gitDirCache.has(key)) return gitDirCache.get(key);
+	let out = null;
+	for (const args of [["--path-format=absolute", "--git-common-dir"], ["--git-common-dir"]]) {
+		const r = spawnSync("git", ["-C", key, "rev-parse", ...args], { encoding: "utf8" });
+		if (r.status === 0 && r.stdout.trim()) {
+			out = realpathSafe(path.resolve(key, r.stdout.trim()));
+			break;
+		}
+	}
+	gitDirCache.set(key, out);
+	return out;
+}
+
+/**
+ * Does one pi `packages` entry mean "this install root is already registered"?
  *
- * Verified against pi 0.84.4 (`docs/packages.md`): a relative local path resolves against the
- * settings file it appears in, and package identity for a local entry is its resolved absolute
- * path. An entry UNDER the root counts too — the packages are registered one by one on this
- * machine (`../../nana-pi/packages/nana-pack`), and adding a second, root-level entry on top of
- * that would load every extension twice.
+ * Identity, not string equality (sol r1). `~` is expanded, a relative path resolves against the
+ * pi home (pi's own rule: relative entries resolve against the settings file — docs/packages.md,
+ * pi 0.84.4), both sides are realpath'd, and an entry that lands inside THIS repository counts —
+ * including through another checkout of it, because a git worktree and its main clone share one
+ * common git dir. Getting this wrong adds a second, root-level package entry on top of the
+ * per-package ones and loads every extension twice.
  */
 export function entryMatches(entry, piHome, root) {
 	if (typeof entry !== "string" || entry.startsWith("npm:")) return false;
 	if (/^(git:|https?:|ssh:|git@)/.test(entry)) return /(^|[/:])j-wanger\/nana-pi(\.git)?(@|$)/.test(entry.replace(/^git:/, ""));
-	const abs = path.resolve(piHome, entry);
-	const r = path.resolve(root);
-	return abs === r || abs.startsWith(r + path.sep);
+	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
+	const abs = realpathSafe(path.resolve(piHome, expanded));
+	const r = realpathSafe(root);
+	if (abs === r || abs.startsWith(r + path.sep)) return true;
+	if (!fs.existsSync(abs)) return false;
+	const mine = gitCommonDir(r);
+	return Boolean(mine) && gitCommonDir(fs.statSync(abs).isDirectory() ? abs : path.dirname(abs)) === mine;
 }
 
 export function registrationState(layout) {
@@ -270,11 +380,11 @@ export function stepPiRegister(layout, o) {
 export function install(layout, opts = {}) {
 	const o = { dryRun: Boolean(opts.dryRun) };
 	// Pre-flight: the one thing that can abort. Parse before any write.
-	const settings = readClaudeSettings(layout);
+	const settingsState = readClaudeSettings(layout);
 	const results = [];
 	results.push(...stepHooks(layout, o));
 	results.push(...stepRules(layout, o));
-	results.push(...stepSettings(layout, o, settings));
+	results.push(...stepSettings(layout, o, settingsState));
 	results.push(...stepSharedMemory(layout, o));
 	results.push(...stepPiConfig(layout, o));
 	results.push(...stepKnowledge(layout, o));

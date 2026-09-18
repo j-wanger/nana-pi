@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { DESK_SERVER, HOOKS, PI_REVIEW_BIN, readPiPackConfig, registrationState } from "./steps.mjs";
+import { DESK_SERVER, HOOKS, PI_REVIEW_BIN, objectiveTarget, readPiPackConfig, registrationState } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -29,16 +29,6 @@ function linkOk(target, source) {
 	} catch {
 		return false;
 	}
-}
-
-/** Resolve nana-pack.json's objective.path the way the pack does: `~` expands, relative → pi
- *  home. (`~` expands against layout.base so a --home run checks the home it just installed.) */
-function objectiveTarget(layout, cfg) {
-	const p = cfg?.objective?.path;
-	if (!p) return layout.piObjective;
-	if (p === "~") return layout.base;
-	if (p.startsWith("~/")) return path.join(layout.base, p.slice(2));
-	return path.isAbsolute(p) ? p : path.join(layout.piHome, p);
 }
 
 export function diagnose(layout, opts = {}) {
@@ -71,7 +61,7 @@ export function diagnose(layout, opts = {}) {
 			continue;
 		}
 		if (parseError) add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`);
-		else add(hasHook(settings, w.event, w.match) ? OK : FAIL, `settings ${w.label}`, w.match);
+		else add(hasHook(settings, w.event, w.spec) ? OK : FAIL, `settings ${w.label}`, w.marker);
 	}
 
 	// --- two-tier auto-memory ---

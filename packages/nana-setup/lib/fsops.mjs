@@ -41,12 +41,27 @@ export function linkFile(target, source, { dryRun = false, copyInstead = false }
 	const st = lstat(target);
 	const resolved = path.resolve(source);
 	if (copyInstead) {
+		// The copy path owes the same no-destruction guarantee as the symlink path (sol r1):
+		// back up a regular file first, and NEVER write through a symlink — that would silently
+		// overwrite whatever the link points at.
 		const want = fs.readFileSync(source);
-		if (st && st.isFile() && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: "copy" };
-		if (dryRun) return { status: st ? UPDATED : CREATED, detail: "copy (dry run)" };
+		if (st?.isFile() && !st.isSymbolicLink() && fs.readFileSync(target).equals(want)) return { status: UNCHANGED, detail: "copy" };
+		if (dryRun) {
+			if (!st) return { status: CREATED, detail: "would copy" };
+			return { status: UPDATED, detail: st.isSymbolicLink() ? "would replace a symlink with a copy" : `would back up to ${path.basename(backupPath(target))} and copy` };
+		}
 		fs.mkdirSync(path.dirname(target), { recursive: true });
+		let detail = "copied (no symlink on this platform)";
+		if (st?.isSymbolicLink()) {
+			fs.unlinkSync(target);
+			detail = "replaced a symlink with a copy (the link's target was not written through)";
+		} else if (st) {
+			const bak = backupPath(target);
+			fs.renameSync(target, bak);
+			detail = `backed up ${path.basename(target)} -> ${path.basename(bak)}, then copied`;
+		}
 		fs.writeFileSync(target, want);
-		return { status: st ? UPDATED : CREATED, detail: "copied (no symlink on this platform)" };
+		return { status: st ? UPDATED : CREATED, detail };
 	}
 	if (st?.isSymbolicLink()) {
 		const current = path.resolve(path.dirname(target), fs.readlinkSync(target));

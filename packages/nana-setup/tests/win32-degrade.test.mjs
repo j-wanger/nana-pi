@@ -51,7 +51,7 @@ check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
-check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts hook"));
+check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts"));
 check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
 
@@ -65,6 +65,32 @@ check("win32 doctor marks the desk service as skipped", /desk service\s+skipped 
 /* re-running is still idempotent under the win32 branch */
 const again = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 check("win32: second install reports nothing to do", again.stdout.includes("nothing to do"));
+
+/* --- the copy path owes the same no-destruction guarantee as the symlink path --------- */
+{
+	const collide = freshHome();
+	fs.mkdirSync(path.join(collide, ".claude", "rules"), { recursive: true });
+	fs.writeFileSync(path.join(collide, ".claude", "rules", "nana-soul.md"), "# my own soul\n");
+	const r = run(["install", "--home", collide], { NANA_SETUP_PLATFORM: "win32" });
+	const baks = fs.readdirSync(path.join(collide, ".claude", "rules")).filter((f) => f.includes(".bak-"));
+	check("win32 collision: a backup is written", baks.length === 1, baks.join(","));
+	check("win32 collision: the backup keeps the old content", fs.readFileSync(path.join(collide, ".claude", "rules", baks[0]), "utf8") === "# my own soul\n");
+	check("win32 collision: the target now holds the repo copy", fs.readFileSync(path.join(collide, ".claude", "rules", "nana-soul.md"), "utf8") === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-soul.md"), "utf8"));
+	check("win32 collision: the backup is reported", r.stdout.includes("backed up"), r.stdout);
+}
+{
+	// never write THROUGH a symlink: that would overwrite whatever it points at
+	const linked = freshHome();
+	fs.mkdirSync(path.join(linked, ".claude", "rules"), { recursive: true });
+	const decoy = path.join(linked, "decoy.md");
+	fs.writeFileSync(decoy, "DECOY\n");
+	fs.symlinkSync(decoy, path.join(linked, ".claude", "rules", "nana-soul.md"));
+	const r = run(["install", "--home", linked], { NANA_SETUP_PLATFORM: "win32" });
+	check("win32 symlink: the link's target is untouched", fs.readFileSync(decoy, "utf8") === "DECOY\n");
+	check("win32 symlink: the target is now a regular file", fs.lstatSync(path.join(linked, ".claude", "rules", "nana-soul.md")).isFile() && !fs.lstatSync(path.join(linked, ".claude", "rules", "nana-soul.md")).isSymbolicLink());
+	check("win32 symlink: it holds the repo copy", fs.readFileSync(path.join(linked, ".claude", "rules", "nana-soul.md"), "utf8") === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-soul.md"), "utf8"));
+	check("win32 symlink: the replacement is reported", /replaced a symlink/.test(r.stdout), r.stdout);
+}
 
 /* the seam does not leak: a normal run on this machine still links */
 if (process.platform !== "win32") {

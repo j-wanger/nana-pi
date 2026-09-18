@@ -79,8 +79,9 @@ The experience has **two halves**, and both are installed from this repo:
    it. **What it never overwrites:** that file, an existing `~/.pi/agent/nana-pack.json` or
    objective file, and any hook, setting or package entry already present — a hook already wired
    by hand is recognised and left alone, and a regular file where a symlink belongs is backed up
-   to `<name>.bak-<date>` before it is replaced. A `settings.json` it cannot parse aborts the
-   install before anything on disk moves.
+   to `<name>.bak-<date>` before it is replaced. `settings.json` is rewritten atomically and only
+   when nothing else has touched it in the meantime; a file it cannot parse *or cannot safely
+   extend* aborts the install before anything on disk moves.
 
 Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and pi
 (`npm i -g @earendil-works/pi-coding-agent`); `uv` for BOTH templates — it is the Python

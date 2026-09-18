@@ -78,6 +78,45 @@ function piHomeWith(packages) {
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
 }
 
+/* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
+{
+	// This is the exact shape sol r1 flagged: the installer runs from a worktree
+	// (~/nana-pi-wt/<lane>) while settings registers the main checkout by relative path. A
+	// lexical guard says "not registered" and `pi install` then loads every extension twice.
+	const common = spawnSync("git", ["-C", repo, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" });
+	if (common.status !== 0) {
+		console.log("SKIP this checkout is not a git repo");
+	} else {
+		const mainCheckout = path.dirname(common.stdout.trim()); // <main clone>/.git -> <main clone>
+		const isWorktree = path.resolve(mainCheckout) !== path.resolve(repo);
+		check("this run is inside a linked worktree of the main clone", isWorktree, `${repo} vs ${mainCheckout}`);
+		const home = piHomeWith(null);
+		const agent = path.join(home, ".pi", "agent");
+		const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
+		fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel] }, null, 2));
+		const state = registrationState(resolveLayout({ home }));
+		check("the MAIN clone's relative entry marks this WORKTREE as registered", state.present, JSON.stringify(state));
+		const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
+		check("install does not run `pi install` for a worktree of a registered repo", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
+		check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 1);
+
+		// the `~/...` spelling of the same clone
+		const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;
+		if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
+		else {
+			fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm] }, null, 2));
+			check(`a \`~\` entry (${tildeForm}) is expanded and matched`, registrationState(resolveLayout({ home })).present);
+		}
+
+		// an unrelated repo still is not us
+		const other = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
+		tmps.push(other);
+		spawnSync("git", ["-C", other, "init", "-q"], { encoding: "utf8" });
+		fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [other] }, null, 2));
+		check("a different git repo is NOT a match", !registrationState(resolveLayout({ home })).present);
+	}
+}
+
 /* --- the real machine: the live registration must read as PRESENT ----------------------- */
 {
 	const live = path.join(os.homedir(), ".pi", "agent", "settings.json");

@@ -108,7 +108,64 @@ const run = (home, env = {}, stdin = "") =>
 	check("no CLAUDE_PROJECT_DIR: exit 0", r.status === 0);
 }
 
-/* --- 7. CLAUDE_CONFIG_DIR is honoured ---------------------------------------------------- */
+/* --- 7. over-200-character keys: reproduce the hash, never guess by pattern ------------- */
+{
+	// No project dir on this machine is anywhere near 200 chars (the longest is 84), so the
+	// expectation comes from the CLI's own rule — key.slice(0,200) + "-" + abs(hash32(path)).toString(36)
+	// — and is pinned here against the JS reference in lib/project-key.mjs.
+	const home = freshHome();
+	const longs = [
+		"/Users/x/" + "a".repeat(250),
+		"/Users/x/deep/" + "b".repeat(190) + "/x_y-z.42",
+		"/tmp/" + "Mixed-Case_9/".repeat(30) + "end",
+	];
+	for (const project of longs) {
+		const r = run(home, { CLAUDE_PROJECT_DIR: project });
+		const want = path.join(home, ".claude", "projects", projectKey(project), "memory", "shared");
+		check(`long path: the hook derives the same key as the CLI rule (…${projectKey(project).slice(-12)})`, fs.lstatSync(want).isSymbolicLink(), r.stdout + r.stderr);
+	}
+	const made = fs.readdirSync(path.join(home, ".claude", "projects"));
+	check("long path: exactly one directory per project, no extras", made.length === longs.length, made.join(" "));
+}
+
+/* --- 8. a sibling that shares the first 200 characters is NEVER touched ------------------ */
+{
+	const home = freshHome();
+	const a = "/Users/x/" + "z".repeat(250) + "/project-a";
+	const b = "/Users/x/" + "z".repeat(250) + "/project-b";
+	// only B's directory exists; a session for A must not adopt it
+	const bDir = path.join(home, ".claude", "projects", projectKey(b), "memory");
+	fs.mkdirSync(bDir, { recursive: true });
+	check("precondition: the two keys share their first 200 chars", projectKey(a).slice(0, 200) === projectKey(b).slice(0, 200));
+	const r = run(home, { CLAUDE_PROJECT_DIR: a });
+	check("shared prefix: exit 0", r.status === 0, r.stderr);
+	check("shared prefix: project B's memory dir was NOT linked", !fs.existsSync(path.join(bDir, "shared")));
+	check("shared prefix: project A got its own dir", fs.lstatSync(path.join(home, ".claude", "projects", projectKey(a), "memory", "shared")).isSymbolicLink());
+}
+
+/* --- 9. a non-ASCII path: say it skipped rather than guess ------------------------------- */
+{
+	// bash works in bytes, the harness in UTF-16 code units, so a derived key would be a
+	// DIFFERENT (stray) directory. Such a session still heals through transcript_path.
+	const home = freshHome();
+	const short = "/Users/x/café-repo";
+	const rs = run(home, { CLAUDE_PROJECT_DIR: short });
+	check("non-ASCII short path: exit 0", rs.status === 0);
+	check("non-ASCII short path: skipped, nothing created", /self-heal skipped/.test(rs.stdout) && !fs.existsSync(path.join(home, ".claude", "projects")));
+	const exact = path.join(home, ".claude", "projects", "-Users-x-caf--repo");
+	fs.mkdirSync(exact, { recursive: true });
+	const rt = run(home, { CLAUDE_PROJECT_DIR: short }, JSON.stringify({ transcript_path: path.join(exact, "s.jsonl") }));
+	check("non-ASCII short path: transcript_path still heals it", fs.lstatSync(path.join(exact, "memory", "shared")).isSymbolicLink(), rt.stdout);
+	fs.rmSync(path.join(home, ".claude", "projects"), { recursive: true, force: true });
+	const project = "/Users/x/" + "é".repeat(250);
+	const r = run(home, { CLAUDE_PROJECT_DIR: project });
+	check("non-ASCII long path: exit 0 (fail-open)", r.status === 0, r.stderr);
+	check("non-ASCII long path: the index is still printed", r.stdout.includes("- [One](one.md)"));
+	check("non-ASCII long path: it says the self-heal skipped", /self-heal skipped/.test(r.stdout), r.stdout);
+	check("non-ASCII long path: nothing was created", !fs.existsSync(path.join(home, ".claude", "projects")), fs.existsSync(path.join(home, ".claude", "projects")) ? fs.readdirSync(path.join(home, ".claude", "projects")).join(" ") : "");
+}
+
+/* --- 10. CLAUDE_CONFIG_DIR is honoured --------------------------------------------------- */
 {
 	const home = freshHome({ withIndex: false });
 	const cfg = path.join(home, "alt-claude");
