@@ -33,8 +33,11 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   own `Usage`/`calculateCost`); `studies/` holds recorded verdicts.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); template changes
-  ship by commit + `v*` tag. `templates/_shared/working-under-nana-pi.md` is the SINGLE
-  source of the canonical section below — edit it there, never in a copy.
+  ship by commit + `v*` tag. `templates/_shared/` is the SINGLE source of everything more than
+  one consumer emits — `working-under-nana-pi.md` (the canonical section below) and the three
+  frontier seeds `OBJECTIVE.md` / `HANDOFF.md` / `docs/sessions/README.md`, which the language
+  templates pull in with a Jinja `include` (the loader root is the repo root), the skill
+  `adopt-structure` copies, and `nana-setup project` fills. Edit them there, never in a copy.
 - `docs/` — design docs, review corpora (`docs/reviews/<slice>-<date>/`), and `docs/sessions/`
   (this repo's narrative, newest first).
 - `research/` — grounded landscape knowledge. `research/raw/` holds the deep-research

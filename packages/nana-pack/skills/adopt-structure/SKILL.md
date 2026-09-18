@@ -1,13 +1,15 @@
 ---
 name: adopt-structure
-description: Add the nana-pi agent-navigation layer to an EXISTING project of ANY language — a coherent root AGENTS.md, lean per-folder AGENTS.md files, and a starter .pi/nana-pack.json. Pure docs; no language stack, no copier, no source/config/CI changes. Use when the user wants the nana AGENTS.md navigation structure without adopting a language toolchain (that's adopt-py / adopt-ts).
+description: Add the nana-pi agent-navigation layer to an EXISTING project of ANY language — a coherent root AGENTS.md, lean per-folder AGENTS.md files, a starter .pi/nana-pack.json, and the three frontier seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/) when absent. Pure docs; no language stack, no copier, no source/config/CI changes. Use when the user wants the nana AGENTS.md navigation structure without adopting a language toolchain (that's adopt-py / adopt-ts).
 ---
 
 # Add the nana navigation layer to an existing project
 
 Give a real project the agent-navigation layer pi relies on: a lean root
-`AGENTS.md`, a one-screen `AGENTS.md` in each major folder, and a starter
-`.pi/nana-pack.json` on-ramp for the post-edit gate. Language-agnostic and
+`AGENTS.md`, a one-screen `AGENTS.md` in each major folder, a starter
+`.pi/nana-pack.json` on-ramp for the post-edit gate, and — only when they are
+missing — the three files a session here is steered by: `OBJECTIVE.md`,
+`HANDOFF.md` and `docs/sessions/README.md`. Language-agnostic and
 documentation-only — this NEVER touches source, language configs, or CI, and it
 does not run copier or create a template-update relationship. For the pinned
 toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
@@ -15,9 +17,11 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
 
 ## Hard rules
 
-- The ONLY files this skill writes are `AGENTS.md` files and one
-  `.pi/nana-pack.json`. Never edit or create source files, language/build
-  configs (pyproject, package.json, tsconfig, biome, ruff…), lockfiles, or CI.
+- The ONLY files this skill writes are `AGENTS.md` files, one
+  `.pi/nana-pack.json`, and the three frontier seeds of step 6 (`OBJECTIVE.md`,
+  `HANDOFF.md`, `docs/sessions/README.md`) **when they are absent**. Never edit or
+  create source files, language/build configs (pyproject, package.json, tsconfig,
+  biome, ruff…), lockfiles, or CI.
 - Derive every doc from the folder's REAL contents — read before you write. No
   invented structure, no aspirational rules.
 - Safe on re-run: if a file already exists, RECONCILE (refresh what's stale,
@@ -78,7 +82,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    ```
 
    Delete the throwaway scaffold afterwards — it is outside the project on
-   purpose, so this skill's "only AGENTS.md and `.pi/nana-pack.json`" rule holds.
+   purpose, so the "only these files" hard rule above still holds. The same
+   throwaway render also carries the step-6 seeds, so one render serves both.
 
 5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check `~/.pi/agent/nana-pack.json`: if the user
    already has user-scope `postEdit.commands`, do NOT write this starter —
@@ -114,9 +119,30 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    **project** config is ignored, though any user-scope `~/.pi/agent/nana-pack.json`
    commands still run.
 
-6. **Report** — list the `AGENTS.md` files written/refreshed and whether the
-   `.pi/nana-pack.json` was created or reconciled. Point the user at the one edit
-   they still owe: replacing the post-edit placeholder with their formatter/linter.
+6. **The three frontier seeds — only when absent.** A project the pack can
+   actually run a session in needs `OBJECTIVE.md` (what session start prints and
+   scores the session against), `HANDOFF.md` (the frontier) and `docs/sessions/`
+   (the narrative). They come from the SAME single source as step 4 —
+   `templates/_shared/OBJECTIVE.md`, `templates/_shared/HANDOFF.md`,
+   `templates/_shared/docs/sessions/README.md` — copied VERBATIM, with the same
+   throwaway-render fallback when that directory is not on disk (the seeds render
+   into a scaffold unchanged apart from `<name>`). Then:
+
+   - fill `<date>` with today's date (`YYYY-MM-DD`) and `<name>` with the project
+     name. **Leave every other `<…>`** — those are the owner's draft text.
+   - If any of the three already exists, leave it exactly as it is. This is a
+     seed, never a reconcile: an existing `OBJECTIVE.md` is a ratified decision.
+   - Tell the user, in one line, that the two `(DRAFT — ratify …)` lines in
+     `OBJECTIVE.md` are **theirs** to ratify — the skill has no business guessing
+     a project's objective or its current priority.
+
+   On a machine that has `nana-setup`, `nana-setup project <dir>` does exactly
+   this step (plus the month's session file) from any shell, pi or not.
+
+7. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
+   vs. left alone, and whether the `.pi/nana-pack.json` was created or reconciled.
+   Point the user at the two edits they still owe: the two DRAFT objective lines,
+   and replacing the post-edit placeholder with their formatter/linter.
 
 ## Notes
 

@@ -12,6 +12,7 @@ line, whether a machine actually has it.
 node packages/nana-setup/bin/nana-setup.mjs install      # install / repair everything
 node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓/✗ per piece; exits 1 on any ✗
 node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
+node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
 ```
 
 Runtime dependencies: Node ≥ 22 and nothing else. `install` calls out to `pi` (only to register
@@ -35,6 +36,40 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID` |
 | pi packages | `~/.pi/agent/settings.json` | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
+
+## `project` — a blank folder becomes a nana project
+
+`install` sets up the MACHINE. It does not give a folder the three files the per-project
+mechanisms read: `OBJECTIVE.md` (what session start prints, and what the close scores the
+session against), `HANDOFF.md` (the frontier) and `docs/sessions/` (the narrative). Neither did
+anything else outside pi — the scaffold and adopt skills only exist inside pi, so a folder used
+from Claude Code had no path to them at all. That gap is what `project` closes:
+
+```bash
+node packages/nana-setup/bin/nana-setup.mjs project [dir] [--name <n>] [--dry-run]
+node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # ✓/✗ per file; exits 1 on any ✗
+```
+
+`dir` defaults to the current directory, the name to its basename. Every step is idempotent and
+**nothing existing is ever overwritten** — a second run prints `nothing to do`.
+
+| Step | What | When it is skipped |
+|---|---|---|
+| `git init` | only when the folder is not already a repo | a folder INSIDE another repo is left alone — a nested repo hides every file from the outer one |
+| `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md` | copied from `templates/_shared/`, with `<date>` filled with today and `<name>` with the project name | any one of them that already exists |
+| `docs/sessions/<YYYY-MM>.md` | this month's log, header only | it already exists |
+| `AGENTS.md` + a relative `CLAUDE.md` symlink (win32: a copy) | a lean stub — name, empty `Layout` and `Rules that don't move`, then the canonical `Working under nana-pi` section verbatim | when **either** `AGENTS.md` or `CLAUDE.md` is already there: that project has made its choice |
+| `.pi/nana-pack.json` | `{"postEdit":{"commands":[]}}` — an empty on-ramp, so nothing runs until you fill it in | when it exists, **and** when you have user-scope `postEdit.commands`: project config replaces user config per key group, so an empty project block would shadow your global checks in this repo |
+| `nana-knowledge build` | refreshes the index so the new repo's docs are findable at prompt time | when there is no index yet — run `install` first |
+
+The three seeds have ONE source, `templates/_shared/`, and three consumers: this command, the
+copier templates (both languages `include` them, and `_skip_if_exists` keeps adopt mode from
+overwriting a real one) and the `adopt-structure` skill. So a scaffolded, an adopted and a
+hand-made project read identically. `<date>` is left literal in the rendered template on
+purpose — copier has no date variable — and is filled by this command or by the skill.
+
+What it will not do is decide your objective. The two `(DRAFT — ratify by editing this line)`
+lines are the owner's, and the command says so when it finishes.
 
 ## What it never does
 
@@ -125,6 +160,8 @@ not fail on them.
 ## Options
 
 ```
+--name <n>           project: the project's name  (default: the folder's name)
+--check              project: one ✓/✗ line per file; exits 1 on any ✗
 --home <dir>         put every user-scope location under <dir> (tests, dry machines)
 --claude-home <dir>  the .claude directory        (default ~/.claude)
 --pi-home <dir>      the pi agent directory       (default ~/.pi/agent)
@@ -148,3 +185,4 @@ count). Every run installs into `os.tmpdir()` with `--home`, so no test can touc
 | `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
 | `desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
+| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be. The copier half SKIPs itself when `uvx` is not installed |

@@ -5,23 +5,30 @@
 //
 //   node packages/nana-setup/bin/nana-setup.mjs install
 //   node packages/nana-setup/bin/nana-setup.mjs doctor
+//   node packages/nana-setup/bin/nana-setup.mjs project [dir]
 //
 // Run it as often as you like: it only ever ADDS, it backs up anything it replaces, and a
 // second run reports "nothing to do".
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
+import { checkProject, projectName, setupProject } from "../lib/project.mjs";
 import { SetupError, install } from "../lib/steps.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
-  nana-setup install [options]   install / repair every piece (idempotent)
-  nana-setup doctor  [options]   one ✓/✗ line per piece; exits 1 on any ✗
+  nana-setup install [options]        install / repair every piece (idempotent)
+  nana-setup doctor  [options]        one ✓/✗ line per piece; exits 1 on any ✗
+  nana-setup project [dir] [options]  make a folder a nana project (idempotent)
 
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
   --claude-home <dir>  the .claude directory            (default ~/.claude)
   --pi-home <dir>      the pi agent directory           (default ~/.pi/agent)
   --desk               install + load the desk launchd service (macOS, opt-in)
+  --name <n>           project: the project's name      (default: the folder's name)
+  --check              project: one ✓/✗ line per file; exits 1 on any ✗
   --dry-run            report what would change, write nothing
   --yes                accepted for scripts; the installer never prompts
   -h, --help
@@ -39,7 +46,11 @@ function parse(argv) {
 			const key = a === "--home" ? "home" : a === "--claude-home" ? "claudeHome" : "piHome";
 			opts[key] = argv[++i];
 			if (!opts[key]) throw new SetupError(`${a} needs a directory`);
-		} else if (a === "--desk") opts.desk = true;
+		} else if (a === "--name") {
+			opts.name = argv[++i];
+			if (!opts.name) throw new SetupError("--name needs a value");
+		} else if (a === "--check") opts.check = true;
+		else if (a === "--desk") opts.desk = true;
 		else if (a === "--dry-run") opts.dryRun = true;
 		else if (a === "--yes" || a === "-y") opts.yes = true;
 		else if (a === "-h" || a === "--help") opts.help = true;
@@ -88,6 +99,37 @@ function runDoctor(opts) {
 	return bad.length ? 1 : 0;
 }
 
+function runProject(opts) {
+	const dir = path.resolve(opts._[1] || process.cwd());
+	if (opts.check) {
+		const checks = checkProject(dir);
+		const width = Math.max(...checks.map((c) => c.label.length));
+		console.log(`nana-setup project --check — ${dir}\n`);
+		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
+		const bad = checks.filter((c) => !c.ok);
+		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
+		return bad.length ? 1 : 0;
+	}
+	if (!fs.existsSync(dir)) throw new SetupError(`${dir} does not exist — create the folder first`);
+	const layout = resolveLayout(opts);
+	console.log(`nana-setup project${opts.dryRun ? " (dry run)" : ""}`);
+	console.log(`  project       ${dir}`);
+	console.log(`  name          ${projectName(dir, opts)}`);
+	console.log(`  seeds from    ${path.join(repoRoot, "templates", "_shared")}\n`);
+	const results = setupProject(dir, layout, opts);
+	const width = Math.max(...results.map((r) => r.label.length));
+	for (const r of results) {
+		const detail = r.detail ? `  ${r.detail}` : "";
+		console.log(`  ${SYMBOL[r.status] ?? "?"} ${r.label.padEnd(width)}  ${r.status.padEnd(9)}${detail}`);
+	}
+	const changed = results.filter((r) => r.status === "created" || r.status === "updated").length;
+	console.log(changed === 0 ? "\n  nothing to do — everything was already in place." : `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`);
+	if (!opts.dryRun && changed) {
+		console.log("  next: open a session here and ratify the two DRAFT lines in OBJECTIVE.md — they are yours, not a default.");
+	}
+	return 0;
+}
+
 function main(argv) {
 	let opts;
 	try {
@@ -104,6 +146,7 @@ function main(argv) {
 	try {
 		if (cmd === "install") return runInstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
+		if (cmd === "project") return runProject(opts);
 	} catch (err) {
 		if (err instanceof SetupError) {
 			console.error(`\nnana-setup: ${err.message}`);

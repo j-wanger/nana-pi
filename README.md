@@ -14,7 +14,9 @@ Sibling repo to `~/nana-agent-loop`.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
-  folder-by-feature, nested AGENTS.md, post-edit quality gates. The copier src is the
+  folder-by-feature, nested AGENTS.md, post-edit quality gates, and the three frontier seeds
+  (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/`) from the one `templates/_shared` source
+  every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
   via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
@@ -82,6 +84,25 @@ The experience has **two halves**, and both are installed from this repo:
    to `<name>.bak-<date>` before it is replaced. `settings.json` is rewritten atomically and only
    when nothing else has touched it in the meantime; a file it cannot parse *or cannot safely
    extend* aborts the install before anything on disk moves.
+
+### A blank folder → a nana project
+
+`install` sets up the machine; it does not give a folder the three files the session-start
+hook, the score-at-close rule and the handoff protocol read **per project**. That is one
+command, from any shell, for any language — pi or Claude Code:
+
+```bash
+node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # seeds; idempotent
+```
+
+Then: open a session in that folder, and ratify the two DRAFT lines in its `OBJECTIVE.md` —
+the objective and the current priority are yours, and nothing guesses them for you.
+
+It seeds `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/` (README + this month's file),
+`AGENTS.md` + a `CLAUDE.md` symlink and a `.pi/nana-pack.json` on-ramp, `git init`s when
+needed, and refreshes the knowledge index. Nothing existing is ever overwritten;
+`project --check` prints one ✓/✗ per file. Scaffolded and adopted projects get the same three
+seeds from the same `templates/_shared` source (copier template, `adopt-structure` skill).
 
 Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and pi
 (`npm i -g @earendil-works/pi-coding-agent`); `uv` for BOTH templates — it is the Python
@@ -172,10 +193,11 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
   commit including `.copier-answers.yml`. An adopted project re-syncs with
   `copier update` like any other copy.
 - **Existing project, structure only** — the `adopt-structure` skill adds the
-  AGENTS.md navigation layer (a coherent root + per-folder AGENTS.md) and a
-  starter `.pi/nana-pack.json`, without touching the language toolchain. No
-  `.copier-answers.yml`, so no `copier update` relationship; layer `adopt-py`/
-  `adopt-ts` on top later for the pinned stack.
+  AGENTS.md navigation layer (a coherent root + per-folder AGENTS.md), a
+  starter `.pi/nana-pack.json`, and the three frontier seeds when they are
+  missing, without touching the language toolchain. No `.copier-answers.yml`, so
+  no `copier update` relationship; layer `adopt-py`/`adopt-ts` on top later for
+  the pinned stack. Outside pi, `nana-setup project` does the seed half.
 
 Canonical upstream coordinates: repo `earendil-works/pi`, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.

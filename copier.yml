@@ -7,6 +7,14 @@
 _min_copier_version: "9.0.0"
 _subdirectory: "templates/{{ language }}/template"
 
+# The three project-frontier seeds are emitted in BOTH modes (scaffold and adopt) but never
+# overwrite a real one: in an adopted repo these files already carry live content, and copier
+# would otherwise prompt-or-clobber. Paths are destination-relative and post-render.
+_skip_if_exists:
+  - "OBJECTIVE.md"
+  - "HANDOFF.md"
+  - "docs/sessions/README.md"
+
 language:
   type: str
   help: Which stack?
