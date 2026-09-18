@@ -60,6 +60,28 @@ neither does an **untrusted** project — reload preserves the session's trust d
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
+## Review runner (`bin/pi-review.mjs`)
+
+An independent review is run by a `pi` (Codex) call, and that endpoint intermittently **stalls** —
+`pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
+liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
+the whole process group and retries with a fresh session. A review is "produced" only when the
+child exits 0 *and* the output file is non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/
+`finding`); exit 0 means the review is in `--out`, exit 1 means every retry stalled.
+
+It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds per item. The
+round is read from the `--out` basename (`sol-r4.md`, `brief-round-4.md`), so a fourth round is
+refused with "land with residuals, subtract, or instrument/implement first" unless you state what
+changed: `--over-cap "<reason>"`. A file with no round in its name is never capped.
+
+```bash
+pi-review --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
+```
+
+`~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
+it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
+Tests: `node packages/nana-pack/tests/review-round.test.mjs`.
+
 ## What you will see
 
 In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.

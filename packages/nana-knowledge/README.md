@@ -63,6 +63,26 @@ out of `sources.json`. (`--rebuild` deletes the database first, so it does re-de
 what exists right now — run it when a root is really gone, not when it is merely offline.)
 Add a root by editing the file; nothing else needs to change.
 
+**Discovery (roots by convention).** A product repo only got indexed if someone remembered
+to add it, so `sources.json` also takes an optional `discover` block — written into a
+*freshly seeded* file, never added to an existing one (the owner opts in by editing):
+
+```json
+"discover": {
+  "parents": ["~"],
+  "subdirs": ["docs", "research", "knowledge"],
+  "exclude": ["node_modules", "raw", "reviews"]
+}
+```
+
+Every immediate child of a parent that holds a `.git` entry (a directory, or the file a
+git worktree gets) is a repo; each listed `subdirs` entry that exists under it becomes an
+`articles` root. Those are unioned with the explicit `roots` and deduped by resolved path,
+with the explicit entry winning — so a path you configured as a `ledger` stays a ledger.
+`exclude` names are skipped as path components by the same mechanism that already drops
+`raw/` and `reviews/`, both when picking repos and when walking a root. A parent that does
+not exist is skipped silently. `nana-knowledge status` marks these roots `(discovered)`.
+
 ## The index
 
 `~/.pi/agent/nana-knowledge/index.db` — SQLite with an FTS5 table (`porter unicode61`)

@@ -6,18 +6,9 @@ import * as path from "node:path";
 import { openDb, setMeta, type Db } from "./db.ts";
 import { parseArticle, parseLedger, type Row } from "./parse.ts";
 import { paths } from "./paths.ts";
-import { loadRoots, type Root } from "./sources.ts";
+import { loadSources, skipNames, type Root } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
-const SKIP_DIRS = new Set([
-	"node_modules",
-	".git",
-	// wiki convention: raw/ holds unprocessed scrapes; the CURATED articles are the wiki.
-	"raw",
-	// review corpora are process artifacts, not knowledge — they dominated 2 of the
-	// first 3 real queries with reviewer prose about code that has since changed.
-	"reviews",
-]);
 const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** A lock older than this is a crashed builder, not a running one. */
 export const LOCK_TTL_MS = 10 * 60 * 1000;
@@ -154,7 +145,7 @@ export interface BuildStats {
 	dbBytes: number;
 }
 
-function walk(root: string, kind: Root["kind"], out: Candidate[]): void {
+function walk(root: string, kind: Root["kind"], out: Candidate[], skip: Set<string>): void {
 	let st: fs.Stats;
 	try { st = fs.statSync(root); } catch { return; }
 	if (st.isFile()) {
@@ -170,7 +161,7 @@ function walk(root: string, kind: Root["kind"], out: Candidate[]): void {
 			const p = path.join(dir, e.name);
 			if (e.isSymbolicLink()) continue;
 			if (e.isDirectory()) {
-				if (!SKIP_DIRS.has(e.name)) stack.push(p);
+				if (!skip.has(e.name)) stack.push(p);
 				continue;
 			}
 			if (!e.isFile() || !e.name.endsWith(".md")) continue;
@@ -222,7 +213,8 @@ export async function build(opts: { rebuild?: boolean } = {}): Promise<BuildStat
 
 async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	const t0 = Date.now();
-	const roots = loadRoots();
+	const { roots, exclude } = loadSources();
+	const skip = skipNames(exclude);
 	if (opts.rebuild) {
 		for (const suffix of ["", "-wal", "-shm"]) {
 			try { fs.rmSync(paths.db + suffix, { force: true }); } catch { /* ignore */ }
@@ -238,7 +230,7 @@ async function buildLocked(opts: { rebuild?: boolean }): Promise<BuildStats> {
 	for (const r of roots) {
 		if (!fs.existsSync(r.path)) { stats.missingRoots.push(r.path); continue; }
 		const before = candidates.length;
-		walk(r.path, r.kind, candidates);
+		walk(r.path, r.kind, candidates, skip);
 		stats.roots.push({ root: r.path, kind: r.kind, files: candidates.length - before, rows: 0, skipped: 0 });
 	}
 	const rootStat = new Map(stats.roots.map((s) => [s.root, s]));
