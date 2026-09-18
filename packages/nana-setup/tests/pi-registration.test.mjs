@@ -11,7 +11,7 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { entryMatches, registrationState } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { entryMatches, registrationState, remoteMatches } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -29,10 +29,31 @@ check("relative per-package entry, the knowledge half", entryMatches("../../nana
 check("relative entry to the root itself", entryMatches("../../nana-pi", piHome, root));
 check("absolute entry to the root", entryMatches("/Users/x/nana-pi", piHome, root));
 check("absolute entry under the root", entryMatches("/Users/x/nana-pi/packages/nana-pack", piHome, root));
-check("git shorthand", entryMatches("git:github.com/j-wanger/nana-pi", piHome, root));
-check("git shorthand with a ref", entryMatches("git:github.com/j-wanger/nana-pi@v0.4.1", piHome, root));
-check("https git URL", entryMatches("https://github.com/j-wanger/nana-pi", piHome, root));
-check("ssh git URL", entryMatches("git:git@github.com:j-wanger/nana-pi", piHome, root));
+/* --- remote spellings: HOST and PATH are both anchored (sol r2) ------------------------- */
+for (const e of [
+	"git:github.com/j-wanger/nana-pi",
+	"git:github.com/j-wanger/nana-pi@v0.4.1",
+	"git:github.com/j-wanger/nana-pi#main",
+	"git:github.com/j-wanger/nana-pi.git",
+	"github:j-wanger/nana-pi",
+	"https://github.com/j-wanger/nana-pi",
+	"https://github.com/j-wanger/nana-pi.git",
+	"https://github.com/j-wanger/nana-pi@v1",
+	"git:git@github.com:j-wanger/nana-pi",
+	"git@github.com:j-wanger/nana-pi.git",
+	"ssh://git@github.com/j-wanger/nana-pi",
+]) check(`remote IS us: ${e}`, remoteMatches(e) && entryMatches(e, piHome, root));
+for (const e of [
+	"https://evil.example/archive/j-wanger/nana-pi",
+	"https://github.com.evil.example/j-wanger/nana-pi",
+	"https://evil.example/github.com/j-wanger/nana-pi",
+	"git:gitlab.com/j-wanger/nana-pi",
+	"https://github.com/someone/nana-pi",
+	"https://github.com/j-wanger/nana-pi-other",
+	"git:github.com/j-wanger/nana-pi-fork",
+	"https://github.com/j-wanger/nana-pi/extra",
+	"github:someone/nana-pi",
+]) check(`remote is NOT us: ${e}`, !remoteMatches(e) && !entryMatches(e, piHome, root));
 
 /* --- the shapes that do not ------------------------------------------------------------- */
 check("an npm package is not us", !entryMatches("npm:pi-subagents", piHome, root));

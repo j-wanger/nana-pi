@@ -84,43 +84,124 @@ export function readClaudeSettings(layout) {
 	return { settings: parsed, snapshot: { raw, mode } };
 }
 
-/**
- * Replace settings.json atomically, and only if nobody else wrote to it since the preflight read
- * (sol r1: the old in-place write could silently drop a hook another process had just added).
- * Temp file in the same directory + rename, with the original mode preserved.
- */
-export function writeSettingsAtomic(file, contents, snapshot) {
-	let current = null;
+export const LOCK_STALE_MS = 60_000;
+
+function pidAlive(pid) {
+	if (!Number.isInteger(pid) || pid <= 0) return false;
 	try {
-		current = fs.readFileSync(file, "utf8");
+		process.kill(pid, 0);
+		return true;
 	} catch (err) {
-		if (err.code !== "ENOENT") throw new SetupError(`${file} cannot be re-read before writing (${err.message}). Nothing was changed.`);
+		return err.code === "EPERM"; // alive, owned by someone else
 	}
-	if (current !== snapshot.raw) {
-		throw new SetupError(
+}
+
+/**
+ * Hold an exclusive lock for the whole read → validate → write-temp → re-compare → rename
+ * sequence (sol r2). O_EXCL creation is the lock; a lock older than 60s whose pid is gone is
+ * reclaimed, anything else aborts with who holds it. Released in `finally`, and only if it is
+ * still ours.
+ */
+export function withSettingsLock(file, fn) {
+	const lock = path.join(path.dirname(file), ".settings.json.nana-setup.lock");
+	const mine = JSON.stringify({ pid: process.pid, at: Date.now() });
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	const take = () => {
+		const fd = fs.openSync(lock, "wx");
+		fs.writeSync(fd, mine);
+		fs.closeSync(fd);
+	};
+	try {
+		take();
+	} catch (err) {
+		if (err.code !== "EEXIST") throw err;
+		let held = null;
+		try {
+			held = JSON.parse(fs.readFileSync(lock, "utf8"));
+		} catch {
+			/* unreadable or corrupt: age decides */
+		}
+		let age = Infinity;
+		try {
+			age = Date.now() - fs.statSync(lock).mtimeMs;
+		} catch {
+			/* vanished between the two calls */
+		}
+		const stale = age > LOCK_STALE_MS && !pidAlive(held?.pid);
+		if (!stale) {
+			throw new SetupError(
+				`another nana-setup is writing ${file} (lock ${lock}` +
+					`${held?.pid ? `, pid ${held.pid}` : ""}${Number.isFinite(age) ? `, ${Math.round(age / 1000)}s old` : ""}).\n` +
+					"Nothing was written. Wait for it to finish, or delete that lock file if you are sure no other run is alive.",
+			);
+		}
+		fs.rmSync(lock, { force: true });
+		take();
+	}
+	try {
+		return fn();
+	} finally {
+		try {
+			if (JSON.parse(fs.readFileSync(lock, "utf8")).pid === process.pid) fs.rmSync(lock, { force: true });
+		} catch {
+			/* someone else's lock, or already gone */
+		}
+	}
+}
+
+/**
+ * Write settings.json by temp file + rename, with the mode preserved, and re-compare the target
+ * AFTER the temp file is written and fsynced — immediately before the rename, so the window in
+ * which a foreign write can be lost is the rename itself rather than the whole serialize+write.
+ * `afterTempWrite` is a test seam: the tests use it to change the file at exactly that point and
+ * prove the compare sits after the temp write.
+ */
+export function writeSettingsAtomic(file, contents, snapshot, { afterTempWrite } = {}) {
+	const read = () => {
+		try {
+			return fs.readFileSync(file, "utf8");
+		} catch (err) {
+			if (err.code === "ENOENT") return null;
+			throw new SetupError(`${file} cannot be re-read before writing (${err.message}). Nothing was changed.`);
+		}
+	};
+	const changed = () =>
+		new SetupError(
 			`${file} changed on disk while nana-setup was running — another process (an editor, or a live Claude Code session) wrote to it.\n` +
 				"Nothing was written to it, and the install stopped here rather than overwriting that change. Re-run when nothing else is writing.",
 		);
-	}
+	if (read() !== snapshot.raw) throw changed();
 	const dir = path.dirname(file);
 	fs.mkdirSync(dir, { recursive: true });
 	const tmp = path.join(dir, `.settings.json.nana-setup.${process.pid}.tmp`);
-	try {
-		fs.writeFileSync(tmp, contents, { mode: snapshot.mode });
-		fs.chmodSync(tmp, snapshot.mode);
-		fs.renameSync(tmp, file);
-	} catch (err) {
+	const clean = () => {
 		try {
-			fs.unlinkSync(tmp);
+			fs.rmSync(tmp, { force: true });
 		} catch {
 			/* nothing to clean */
 		}
+	};
+	try {
+		const fd = fs.openSync(tmp, "w", snapshot.mode);
+		try {
+			fs.writeFileSync(fd, contents);
+			fs.fsyncSync(fd);
+		} finally {
+			fs.closeSync(fd);
+		}
+		fs.chmodSync(tmp, snapshot.mode);
+		if (afterTempWrite) afterTempWrite(tmp);
+		// LAST look before the swap. An external writer that ignores our lock can still land in
+		// the microseconds between here and the rename — that is the POSIX floor (README).
+		if (read() !== snapshot.raw) throw changed();
+		fs.renameSync(tmp, file);
+	} catch (err) {
+		clean();
 		throw err;
 	}
 }
 
 export function stepSettings(layout, o, state) {
-	const { settings, snapshot } = state;
 	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
 	// win32: the three bash hooks have no interpreter there, and `VAR=1 cmd` is not a thing in
 	// cmd.exe — so drop those entries and the env prefix on the one that survives.
@@ -129,19 +210,28 @@ export function stepSettings(layout, o, state) {
 				.filter((w) => !w.entry.command.startsWith("bash "))
 				.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
 		: wanted;
-	const { added } = mergeHooks(settings, applicable);
 	const live = new Set(applicable.map((w) => w.label));
-	const out = [];
-	for (const w of wanted) {
-		const isSkipped = !live.has(w.label);
-		out.push({
+	const report = (added) =>
+		wanted.map((w) => ({
 			label: `settings ${w.label}`,
-			status: isSkipped ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
-			detail: isSkipped ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
-		});
-	}
-	if (added.length && !o.dryRun) writeSettingsAtomic(layout.claudeSettings, serialize(settings), snapshot);
-	return out;
+			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
+			detail: !live.has(w.label) ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
+		}));
+	if (o.dryRun) return report(mergeHooks(structuredClone(state.settings), applicable).added);
+	return withSettingsLock(layout.claudeSettings, () => {
+		// Re-read INSIDE the lock: the preflight decided this install could run at all, this
+		// decides what is written, and the two must agree or nothing is written.
+		const fresh = readClaudeSettings(layout);
+		if (fresh.snapshot.raw !== state.snapshot.raw) {
+			throw new SetupError(
+				`${layout.claudeSettings} changed on disk since nana-setup started.\n` +
+					"Nothing was written to it. Re-run when nothing else is writing.",
+			);
+		}
+		const { added } = mergeHooks(fresh.settings, applicable);
+		if (added.length) writeSettingsAtomic(layout.claudeSettings, serialize(fresh.settings), fresh.snapshot, o);
+		return report(added);
+	});
 }
 
 /* ------------------------------------------------------------------------- shared memory */
@@ -333,9 +423,49 @@ export function gitCommonDir(dir) {
  * common git dir. Getting this wrong adds a second, root-level package entry on top of the
  * per-package ones and loads every extension twice.
  */
+const REMOTE_HOST = "github.com";
+const REMOTE_PATH = "j-wanger/nana-pi";
+
+/**
+ * Is this entry a REMOTE spelling of nana-pi? Host and path are both anchored (sol r2:
+ * `https://evil.example/archive/j-wanger/nana-pi` used to count). The accepted spellings are
+ * pi's own (docs/packages.md, pi 0.84.4): `git:` shorthand, `git@host:path`, and the protocol
+ * URLs, with an optional `.git` suffix and an optional pinned ref (`@ref`; `#ref` is accepted
+ * too, though pi documents `@`). `github:owner/repo` is accepted as a convenience spelling —
+ * pi's docs do not list it.
+ */
+export function remoteMatches(entry) {
+	const strip = (p) => {
+		let out = p.replace(/^\/+/, "").replace(/\/+$/, "");
+		const seg = out.split("/");
+		seg[seg.length - 1] = seg[seg.length - 1].replace(/[@#][^@#/]*$/, "");
+		out = seg.join("/");
+		return out.replace(/\.git$/, "");
+	};
+	const hit = (host, p) => host.toLowerCase() === REMOTE_HOST && strip(p) === REMOTE_PATH;
+	let s = entry.trim();
+	if (s.startsWith("github:")) return strip(s.slice("github:".length)) === REMOTE_PATH;
+	if (s.startsWith("git:")) s = s.slice("git:".length);
+	const scp = /^(?:[^@/\s]+@)?([^:/\s]+):(.+)$/.exec(s);
+	if (scp && !/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return hit(scp[1], scp[2]);
+	if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+		try {
+			// a trailing `@ref`/`#ref` is pi's pin, not part of the URL (an `@` inside the
+			// authority is followed by more path, so this anchored strip cannot eat it)
+			const u = new URL(s.replace(/[@#][^@#/]*$/, ""));
+			return hit(u.hostname, u.pathname);
+		} catch {
+			return false;
+		}
+	}
+	// bare shorthand: host/owner/repo
+	const bare = /^([^/\s]+)\/(.+)$/.exec(s);
+	return Boolean(bare) && hit(bare[1], bare[2]);
+}
+
 export function entryMatches(entry, piHome, root) {
 	if (typeof entry !== "string" || entry.startsWith("npm:")) return false;
-	if (/^(git:|https?:|ssh:|git@)/.test(entry)) return /(^|[/:])j-wanger\/nana-pi(\.git)?(@|$)/.test(entry.replace(/^git:/, ""));
+	if (/^(git:|github:|[a-z][a-z0-9+.-]*:\/\/)/i.test(entry) || /^[^@/\s]+@[^:/\s]+:/.test(entry)) return remoteMatches(entry);
 	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
 	const abs = realpathSafe(path.resolve(piHome, expanded));
 	const r = realpathSafe(root);
@@ -378,7 +508,8 @@ export function stepPiRegister(layout, o) {
 /* ------------------------------------------------------------------------------- install */
 
 export function install(layout, opts = {}) {
-	const o = { dryRun: Boolean(opts.dryRun) };
+	// `afterTempWrite` is the settings write's test seam; the CLI never produces it.
+	const o = { dryRun: Boolean(opts.dryRun), afterTempWrite: opts.afterTempWrite };
 	// Pre-flight: the one thing that can abort. Parse before any write.
 	const settingsState = readClaudeSettings(layout);
 	const results = [];

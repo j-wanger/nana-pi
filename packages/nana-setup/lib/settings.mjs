@@ -16,19 +16,78 @@ export function shq(p) {
 }
 
 /**
- * Does `command` invoke `script` (a basename) through one of `interpreters`?
- * The script must appear as a path component — `/<basename>` — and end at a boundary, so
- * `.../nana-objective.sh.disabled` and a bare `echo nana-objective.sh…` do not match, while both
- * `bash ~/.claude/hooks/nana-objective.sh` and `bash '/Users/Jane Doe/.claude/hooks/nana-objective.sh'`
- * do.
+ * Tokenize a shell command the way a shell would, enough to read its argv: single quotes are
+ * literal, double quotes honour backslash escapes, a bare backslash escapes the next character.
+ * Returns null when the quoting is unbalanced (then nothing matches — we add our own entry
+ * rather than assume someone else's broken command is ours).
+ */
+export function tokenize(command) {
+	if (typeof command !== "string") return null;
+	const out = [];
+	let cur = "";
+	let has = false;
+	let quote = null;
+	for (let i = 0; i < command.length; i++) {
+		const c = command[i];
+		if (quote === "'") {
+			if (c === "'") quote = null;
+			else cur += c;
+			continue;
+		}
+		if (quote === '"') {
+			if (c === "\\" && i + 1 < command.length && ['"', "\\", "$", "`"].includes(command[i + 1])) cur += command[++i];
+			else if (c === '"') quote = null;
+			else cur += c;
+			continue;
+		}
+		if (c === "'" || c === '"') {
+			quote = c;
+			has = true;
+			continue;
+		}
+		if (c === "\\" && i + 1 < command.length) {
+			cur += command[++i];
+			has = true;
+			continue;
+		}
+		if (/\s/.test(c)) {
+			if (has || cur) out.push(cur);
+			cur = "";
+			has = false;
+			continue;
+		}
+		cur += c;
+		has = true;
+	}
+	if (quote) return null;
+	if (has || cur) out.push(cur);
+	return out;
+}
+
+const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
+const base = (p) => p.split("/").pop();
+
+/**
+ * Does `command` actually EXECUTE `script` through one of `interpreters`?
+ *
+ * Parsed, not pattern-matched (sol r2): leading `VAR=value` assignments are dropped, then argv[0]
+ * must BE the interpreter and argv[1] must be a path ending in `/<script>` — so
+ * `echo bash /tmp/nana-objective.sh` is not an invocation, while
+ * `NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook` is. Extra argv words must match `args`.
+ * Conservative by design: a form we cannot parse reads as NOT installed, which adds a correct
+ * entry instead of claiming a machine is healthy.
  */
 export function commandInvokes(command, { interpreters, script, args = [] }) {
-	if (typeof command !== "string") return false;
-	const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const interp = new RegExp(`(^|[\\s;&|(/])(${interpreters.map(esc).join("|")})(\\s|$)`);
-	if (!interp.test(command)) return false;
-	const tail = args.length ? `['"]?\\s+${args.map(esc).join("\\s+")}(\\s|$)` : `['"\\s]|$`;
-	return new RegExp(`/${esc(script)}(${tail})`).test(command);
+	const argv = tokenize(command);
+	if (!argv) return false;
+	let i = 0;
+	while (i < argv.length && ENV_ASSIGN.test(argv[i])) i++;
+	const cmd = argv[i];
+	const target = argv[i + 1];
+	if (!cmd || !target) return false;
+	if (!interpreters.includes(base(cmd))) return false;
+	if (!target.endsWith(`/${script}`)) return false;
+	return args.every((a, n) => argv[i + 2 + n] === a);
 }
 
 /** The four hook entries the nana experience needs, in the order they are added. */

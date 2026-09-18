@@ -34,23 +34,36 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | knowledge index | `~/.pi/agent/nana-knowledge/index.db` | built when absent (`nana-knowledge build` refreshes it) |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID` |
-| pi packages | `~/.pi/agent/settings.json` | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir` |
+| pi packages | `~/.pi/agent/settings.json` | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, with an optional `.git` and an optional pinned ref — host **and** path anchored, so `https://evil.example/archive/j-wanger/nana-pi` is not us |
 
 ## What it never does
 
 - **Never overwrites** `~/.claude/rules/nana-personal.md` (private, and never in this repo — the
   repo ships a placeholder template), `~/.pi/agent/nana-pack.json`, or `~/.pi/agent/nana-objective.md`.
-- **Never removes or reorders** anything in `settings.json`. A hook counts as present when the
-  command actually invokes that script — the interpreter (`bash`/`sh`/`zsh`, or `node`) plus the
-  script as a **path component** with a boundary after it — so a hand-edited command (a `~` path,
-  an extra env var, quotes) is left exactly as it is, while `echo nana-objective.sh.disabled` is
-  correctly read as *not installed*. Paths the installer writes are single-quoted, so a home or
-  clone with a space in it still runs.
+- **Never removes or reorders** anything in `settings.json`. A hook counts as present only when
+  the command actually **executes** that script: the command is tokenized with shell-quoting
+  rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
+  (`bash`/`sh`/`zsh`, or `node`) with `argv[1]` a path ending in `/<script>` (plus the expected
+  argument, for the knowledge hook). So a hand-edited command (a `~` path, an extra env var,
+  quotes, `/bin/bash`) is left exactly as it is, while `echo bash /tmp/nana-objective.sh` and
+  `…/nana-objective.sh.disabled` read as *not installed*. Anything unparseable also reads as not
+  installed — the installer would rather add a correct entry than call a machine healthy. Paths
+  the installer writes are single-quoted, so a home or clone with a space in it still runs.
 - **Never half-writes `settings.json`.** Preflight parses the file *and* validates its shape
   (`{"hooks":"disabled"}` parses but cannot be extended) — a failure there **aborts before
-  anything on disk moves**. The write itself is a temp file in the same directory plus a rename,
-  with the mode preserved, and it re-reads the file first: if another process changed it since
-  the preflight read, the install stops and says so rather than overwriting that change.
+  anything on disk moves**. The write itself runs under an exclusive lock file
+  (`~/.claude/.settings.json.nana-setup.lock`, taken with `O_EXCL`) held across the whole
+  read → validate → write-temp → re-compare → rename sequence: a second `nana-setup` aborts
+  saying who holds it, and a lock older than 60 seconds whose pid is gone is reclaimed. Inside
+  it, the file is re-read and compared to the preflight bytes; the temp file is written and
+  `fsync`ed; then the file is compared **again**, immediately before the rename. Mode is
+  preserved, and the temp file is removed on any abort.
+
+  **The floor:** an external writer that ignores the lock can still land in the microseconds
+  between that final compare and the `rename(2)`, and its write would be lost. There is no
+  portable way to close that gap — POSIX has no compare-and-swap rename — so the design shrinks
+  the window to a syscall pair and takes a lock that every nana-setup respects. Claude Code and
+  editors do not take this lock.
 - **Never destroys a file it replaces.** A regular file where a symlink belongs is renamed to
   `<name>.bak-<YYYYMMDD>` first, and the backup is named in the output. The Windows copy path
   owes the same guarantee: it backs up too, and it never writes *through* a symlink — the link is
@@ -119,9 +132,9 @@ count). Every run installs into `os.tmpdir()` with `--home`, so no test can touc
 | File | Covers |
 |---|---|
 | `install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed |
-| `settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, anchored matching (a `.disabled` look-alike is not "installed"), shape validation making the install a no-op, and the atomic write refusing a concurrent edit |
+| `settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (live / young-dead / stale-reclaimed / released on throw), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
 | `project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
 | `shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |
-| `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and git specs — a false negative would double-load every extension |
+| `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
 | `desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |

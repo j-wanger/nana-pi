@@ -9,8 +9,8 @@ import * as path from "node:path";
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
-const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, validateShape } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { SetupError, readClaudeSettings, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, tokenize, validateShape } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { LOCK_STALE_MS, SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -44,6 +44,7 @@ check("four hook entries are wanted", wanted.length === 4);
 	];
 	for (const c of yes) check(`matches: ${c}`, commandInvokes(c, objective));
 	const no = [
+		"echo bash /tmp/nana-objective.sh", // mentions an invocation, is not one
 		"echo nana-objective.sh.disabled",
 		"bash ~/.claude/hooks/nana-objective.sh.disabled",
 		"bash ~/.claude/hooks/old-nana-objective.shx",
@@ -55,6 +56,21 @@ check("four hook entries are wanted", wanted.length === 4);
 	check("knowledge: the real command matches", commandInvokes("NODE_NO_WARNINGS=1 node /r/packages/nana-knowledge/bin/nana-knowledge.ts hook", knowledge));
 	check("knowledge: a different subcommand does not", !commandInvokes("node /r/packages/nana-knowledge/bin/nana-knowledge.ts build", knowledge));
 	check("knowledge: a bare mention does not", !commandInvokes("echo nana-knowledge.ts hook", knowledge));
+	check("knowledge: a quoted path with a space matches", commandInvokes("NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook", knowledge));
+	check("knowledge: `echo node … hook` does not", !commandInvokes("echo node /x/nana-knowledge.ts hook", knowledge));
+	check("unbalanced quoting reads as NOT installed", !commandInvokes("bash '/x/nana-objective.sh", objective));
+}
+
+/* --- the tokenizer the matcher is built on -------------------------------------------- */
+{
+	const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+	check("tokenize: plain words", eq(tokenize("bash /a/b.sh"), ["bash", "/a/b.sh"]));
+	check("tokenize: single quotes keep spaces", eq(tokenize("bash '/Jane Doe/b.sh'"), ["bash", "/Jane Doe/b.sh"]));
+	check("tokenize: double quotes keep spaces", eq(tokenize('bash "/Jane Doe/b.sh"'), ["bash", "/Jane Doe/b.sh"]));
+	check("tokenize: backslash escapes a space", eq(tokenize("bash /Jane\\ Doe/b.sh"), ["bash", "/Jane Doe/b.sh"]));
+	check("tokenize: env assignment stays its own word", eq(tokenize("A=1 node x hook"), ["A=1", "node", "x", "hook"]));
+	check("tokenize: an empty quoted word survives", eq(tokenize("a '' b"), ["a", "", "b"]));
+	check("tokenize: unbalanced quoting is null", tokenize("bash 'x") === null);
 }
 
 /* --- shape validation ----------------------------------------------------------------- */
@@ -215,6 +231,150 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check("after re-reading: the write goes through", JSON.stringify(done).includes("nana-objective.sh"));
 	check("after re-reading: the foreign hook is still there", JSON.stringify(done).includes("someone-elses.sh"));
 	check("after re-reading: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
+}
+
+/* --- the lock holds the whole read -> write -> rename sequence ------------------------- */
+const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.lock");
+const DEAD_PID = 999999; // above any real pid on macOS/Linux
+
+{
+	const home = freshHome();
+	const r = run(["install"], home);
+	check("lock: a normal install leaves no lock file", r.status === 0 && !fs.existsSync(lockOf(home)), r.stdout);
+}
+{
+	// a live holder: abort, change nothing
+	const home = freshHome();
+	fs.writeFileSync(path.join(home, ".claude", "settings.json"), "{}\n", { mode: 0o600 });
+	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: process.pid, at: Date.now() }));
+	const r = run(["install"], home);
+	check("lock: a live lock aborts the install", r.status === 2, String(r.status));
+	check("lock: the message names the lock and the pid", r.stderr.includes(lockOf(home)) && r.stderr.includes(String(process.pid)), r.stderr);
+	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
+	check("lock: the foreign lock is still there", fs.existsSync(lockOf(home)));
+}
+{
+	// a young lock whose pid is dead is NOT stale yet
+	const home = freshHome();
+	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: DEAD_PID, at: Date.now() }));
+	const r = run(["install"], home);
+	check("lock: a young lock is respected even with a dead pid", r.status === 2, r.stdout);
+}
+{
+	// older than the stale window AND a dead pid: reclaim
+	const home = freshHome();
+	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: DEAD_PID, at: Date.now() - LOCK_STALE_MS - 5000 }));
+	const old = (Date.now() - LOCK_STALE_MS - 5000) / 1000;
+	fs.utimesSync(lockOf(home), old, old);
+	const r = run(["install"], home);
+	check("lock: a stale lock with a dead pid is reclaimed", r.status === 0, r.stderr);
+	check("lock: and released again afterwards", !fs.existsSync(lockOf(home)));
+	check("lock: the install actually wrote settings", JSON.stringify(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"))).includes("nana-objective.sh"));
+}
+{
+	// the lock is released even when the write aborts
+	const home = freshHome();
+	const file = path.join(home, ".claude", "settings.json");
+	fs.writeFileSync(file, "{}\n", { mode: 0o600 });
+	const layout = resolveLayout({ home });
+	const state = readClaudeSettings(layout);
+	fs.writeFileSync(file, '{"model":"other"}\n'); // changed since the preflight
+	let err = null;
+	try {
+		stepSettings(layout, { dryRun: false }, state);
+	} catch (e) {
+		err = e;
+	}
+	check("lock: a stale preflight snapshot aborts inside the lock", err instanceof SetupError, String(err));
+	check("lock: released after the abort", !fs.existsSync(lockOf(home)));
+	check("lock: the newer file is intact", fs.readFileSync(file, "utf8") === '{"model":"other"}\n');
+}
+{
+	// withSettingsLock itself: one holder at a time, released on throw
+	const home = freshHome();
+	const file = path.join(home, ".claude", "settings.json");
+	let inner = null;
+	withSettingsLock(file, () => {
+		check("lock: the file exists while held", fs.existsSync(lockOf(home)));
+		try {
+			withSettingsLock(file, () => "should not run");
+		} catch (e) {
+			inner = e;
+		}
+	});
+	check("lock: a second acquisition is refused", inner instanceof SetupError, String(inner));
+	check("lock: released after the outer call", !fs.existsSync(lockOf(home)));
+	let threw = false;
+	try {
+		withSettingsLock(file, () => {
+			throw new Error("boom");
+		});
+	} catch {
+		threw = true;
+	}
+	check("lock: released when the body throws", threw && !fs.existsSync(lockOf(home)));
+}
+
+/* --- the re-compare sits AFTER the temp file is written -------------------------------- */
+{
+	const home = freshHome();
+	const file = path.join(home, ".claude", "settings.json");
+	const original = { hooks: { SessionStart: [{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/session-start.sh" }] }] } };
+	fs.writeFileSync(file, JSON.stringify(original, null, 2) + "\n", { mode: 0o600 });
+	const layout = resolveLayout({ home });
+	const state = readClaudeSettings(layout);
+
+	// an external writer that ignores the lock, landing while the temp file already exists
+	const foreign = JSON.parse(JSON.stringify(original));
+	foreign.hooks.SessionStart[0].hooks.push({ type: "command", command: "bash ~/.claude/hooks/someone-elses.sh" });
+	const foreignRaw = JSON.stringify(foreign, null, 2) + "\n";
+	let tempExisted = null;
+	let err = null;
+	try {
+		stepSettings(layout, {
+			dryRun: false,
+			afterTempWrite: (tmp) => {
+				tempExisted = fs.existsSync(tmp) && fs.readFileSync(tmp, "utf8").includes("nana-objective.sh");
+				fs.writeFileSync(file, foreignRaw);
+			},
+		}, state);
+	} catch (e) {
+		err = e;
+	}
+	check("post-write: the temp file was fully written before the compare", tempExisted === true);
+	check("post-write: the write aborts", err instanceof SetupError, String(err));
+	check("post-write: the message says another process wrote to it", /changed on disk while nana-setup was running/.test(err?.message ?? ""));
+	check("post-write: the temp file was removed", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp")), fs.readdirSync(path.join(home, ".claude")).join(" "));
+	check("post-write: the external writer's bytes are intact", fs.readFileSync(file, "utf8") === foreignRaw);
+	check("post-write: our entries were NOT written", !fs.readFileSync(file, "utf8").includes("nana-objective.sh"));
+	check("post-write: the lock was released", !fs.existsSync(lockOf(home)));
+
+	// with a fresh preflight it goes through, keeping the foreign hook and the mode
+	const fresh = readClaudeSettings(layout);
+	stepSettings(layout, { dryRun: false }, fresh);
+	const after = fs.readFileSync(file, "utf8");
+	check("post-write: a clean re-run writes our entries", after.includes("nana-objective.sh"));
+	check("post-write: the foreign hook survives", after.includes("someone-elses.sh"));
+	check("post-write: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
+}
+
+/* --- install() passes the seam through, so the whole run is exercised ------------------- */
+{
+	const home = freshHome();
+	const file = path.join(home, ".claude", "settings.json");
+	fs.writeFileSync(file, "{}\n", { mode: 0o600 });
+	const layout = resolveLayout({ home });
+	let err = null;
+	try {
+		install(layout, { afterTempWrite: () => fs.writeFileSync(file, '{"model":"sneaked-in"}\n') });
+	} catch (e) {
+		err = e;
+	}
+	check("full install: aborts on a write that lands after the temp file", err instanceof SetupError, String(err));
+	check("full install: the sneaked-in bytes survive", fs.readFileSync(file, "utf8") === '{"model":"sneaked-in"}\n');
+	check("full install: no temp or lock left behind", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp") && !f.includes(".lock")), fs.readdirSync(path.join(home, ".claude")).join(" "));
+	check("full install: the steps BEFORE settings did run (hooks are in place)", fs.lstatSync(path.join(home, ".claude", "hooks", "nana-objective.sh")).isSymbolicLink());
+	check("full install: the steps AFTER settings did not (no pi seed)", !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
