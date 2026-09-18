@@ -84,64 +84,47 @@ export function readClaudeSettings(layout) {
 	return { settings: parsed, snapshot: { raw, mode } };
 }
 
-export const LOCK_STALE_MS = 60_000;
-
-function pidAlive(pid) {
-	if (!Number.isInteger(pid) || pid <= 0) return false;
-	try {
-		process.kill(pid, 0);
-		return true;
-	} catch (err) {
-		return err.code === "EPERM"; // alive, owned by someone else
-	}
-}
-
 /**
  * Hold an exclusive lock for the whole read → validate → write-temp → re-compare → rename
- * sequence (sol r2). O_EXCL creation is the lock; a lock older than 60s whose pid is gone is
- * reclaimed, anything else aborts with who holds it. Released in `finally`, and only if it is
- * still ours.
+ * sequence. `O_EXCL` creation IS the lock, and that is the entire protocol: if the lock exists,
+ * this run aborts and says how to clear it.
+ *
+ * There is deliberately NO stale-lock reclamation (sol r3). Reclaiming under the same lock is a
+ * race — two runs can both judge a lock stale, and the loser's `unlink` deletes the winner's
+ * fresh lock, putting both inside the critical section. Doing it safely needs a second lock, and
+ * a human-run one-shot installer does not earn one: a leftover lock is a crash artifact, and the
+ * message below tells the human exactly how to remove it.
  */
 export function withSettingsLock(file, fn) {
 	const lock = path.join(path.dirname(file), ".settings.json.nana-setup.lock");
-	const mine = JSON.stringify({ pid: process.pid, at: Date.now() });
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	const take = () => {
-		const fd = fs.openSync(lock, "wx");
-		fs.writeSync(fd, mine);
-		fs.closeSync(fd);
-	};
+	let fd;
 	try {
-		take();
+		fd = fs.openSync(lock, "wx");
 	} catch (err) {
 		if (err.code !== "EEXIST") throw err;
 		let held = null;
 		try {
 			held = JSON.parse(fs.readFileSync(lock, "utf8"));
 		} catch {
-			/* unreadable or corrupt: age decides */
+			/* unreadable or corrupt */
 		}
-		let age = Infinity;
-		try {
-			age = Date.now() - fs.statSync(lock).mtimeMs;
-		} catch {
-			/* vanished between the two calls */
-		}
-		const stale = age > LOCK_STALE_MS && !pidAlive(held?.pid);
-		if (!stale) {
-			throw new SetupError(
-				`another nana-setup is writing ${file} (lock ${lock}` +
-					`${held?.pid ? `, pid ${held.pid}` : ""}${Number.isFinite(age) ? `, ${Math.round(age / 1000)}s old` : ""}).\n` +
-					"Nothing was written. Wait for it to finish, or delete that lock file if you are sure no other run is alive.",
-			);
-		}
-		fs.rmSync(lock, { force: true });
-		take();
+		const age = Number.isFinite(held?.at) ? `${Math.round((Date.now() - held.at) / 1000)}s ago` : "at an unrecorded time";
+		throw new SetupError(
+			`${file} is locked by another nana-setup run.\n` +
+				`  lock:    ${lock}\n` +
+				`  written: ${held?.pid ? `pid ${held.pid}` : "an unrecorded pid"}, ${age}\n` +
+				"Nothing was written. If no nana-setup is running (this lock is left over from an interrupted run), clear it:\n" +
+				`  rm ${lock}`,
+		);
 	}
+	fs.writeSync(fd, JSON.stringify({ pid: process.pid, at: Date.now() }));
+	fs.closeSync(fd);
 	try {
 		return fn();
 	} finally {
 		try {
+			// only ever remove a lock that is still ours
 			if (JSON.parse(fs.readFileSync(lock, "utf8")).pid === process.pid) fs.rmSync(lock, { force: true });
 		} catch {
 			/* someone else's lock, or already gone */
@@ -445,10 +428,14 @@ export function remoteMatches(entry) {
 	const hit = (host, p) => host.toLowerCase() === REMOTE_HOST && strip(p) === REMOTE_PATH;
 	let s = entry.trim();
 	if (s.startsWith("github:")) return strip(s.slice("github:".length)) === REMOTE_PATH;
-	if (s.startsWith("git:")) s = s.slice("git:".length);
+	// `git:` is pi's shorthand marker; `git://` is a real scheme and must survive to the URL branch
+	if (s.startsWith("git:") && !s.startsWith("git://")) s = s.slice("git:".length);
 	const scp = /^(?:[^@/\s]+@)?([^:/\s]+):(.+)$/.exec(s);
 	if (scp && !/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return hit(scp[1], scp[2]);
 	if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+		// pi's remote schemes only (docs/packages.md lists http:// as well; we do not accept it —
+		// a false negative just runs the idempotent `pi install`, a false positive suppresses it).
+		if (!/^(https|ssh|git|git\+ssh):\/\//i.test(s)) return false;
 		try {
 			// a trailing `@ref`/`#ref` is pi's pin, not part of the URL (an `@` inside the
 			// authority is followed by more path, so this anchored strip cannot eat it)

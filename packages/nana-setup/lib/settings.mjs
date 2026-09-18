@@ -18,8 +18,9 @@ export function shq(p) {
 /**
  * Tokenize a shell command the way a shell would, enough to read its argv: single quotes are
  * literal, double quotes honour backslash escapes, a bare backslash escapes the next character.
- * Returns null when the quoting is unbalanced (then nothing matches — we add our own entry
- * rather than assume someone else's broken command is ours).
+ * Returns null when the quoting is unbalanced OR when the command contains a shell operator,
+ * redirection or substitution outside quotes — those are not plain invocations, so nothing
+ * matches and we add our own entry rather than assume someone else's command is ours.
  */
 export function tokenize(command) {
 	if (typeof command !== "string") return null;
@@ -56,6 +57,11 @@ export function tokenize(command) {
 			has = false;
 			continue;
 		}
+		// An operator or redirection outside quotes means this is not a plain invocation —
+		// a pipeline, a list, a redirect or a substitution. `bash x.sh &&` is not even valid
+		// shell, and doctor must not report it as an installed hook (sol r3). `$` alone stays
+		// allowed (plain variable expansion); `$(` does not.
+		if ("&|;<>`".includes(c) || (c === "$" && command[i + 1] === "(")) return null;
 		cur += c;
 		has = true;
 	}

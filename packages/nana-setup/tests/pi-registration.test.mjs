@@ -42,6 +42,8 @@ for (const e of [
 	"git:git@github.com:j-wanger/nana-pi",
 	"git@github.com:j-wanger/nana-pi.git",
 	"ssh://git@github.com/j-wanger/nana-pi",
+	"git://github.com/j-wanger/nana-pi",
+	"git+ssh://git@github.com/j-wanger/nana-pi",
 ]) check(`remote IS us: ${e}`, remoteMatches(e) && entryMatches(e, piHome, root));
 for (const e of [
 	"https://evil.example/archive/j-wanger/nana-pi",
@@ -53,6 +55,10 @@ for (const e of [
 	"git:github.com/j-wanger/nana-pi-fork",
 	"https://github.com/j-wanger/nana-pi/extra",
 	"github:someone/nana-pi",
+	"file://github.com/j-wanger/nana-pi", // scheme allowlist: https, ssh, git, git+ssh only
+	"http://github.com/j-wanger/nana-pi",
+	"ftp://github.com/j-wanger/nana-pi",
+	"javascript://github.com/j-wanger/nana-pi",
 ]) check(`remote is NOT us: ${e}`, !remoteMatches(e) && !entryMatches(e, piHome, root));
 
 /* --- the shapes that do not ------------------------------------------------------------- */

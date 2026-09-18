@@ -10,7 +10,7 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, tokenize, validateShape } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { LOCK_STALE_MS, SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -45,6 +45,14 @@ check("four hook entries are wanted", wanted.length === 4);
 	for (const c of yes) check(`matches: ${c}`, commandInvokes(c, objective));
 	const no = [
 		"echo bash /tmp/nana-objective.sh", // mentions an invocation, is not one
+		"bash /tmp/nana-objective.sh &&", // not even valid shell
+		"bash /tmp/nana-objective.sh | cat",
+		"bash /tmp/nana-objective.sh; rm -rf /",
+		"bash /tmp/nana-objective.sh > log",
+		"bash /tmp/nana-objective.sh < in",
+		"bash /tmp/nana-objective.sh & ",
+		"bash $(echo /tmp)/nana-objective.sh",
+		"bash `echo /tmp`/nana-objective.sh",
 		"echo nana-objective.sh.disabled",
 		"bash ~/.claude/hooks/nana-objective.sh.disabled",
 		"bash ~/.claude/hooks/old-nana-objective.shx",
@@ -71,6 +79,11 @@ check("four hook entries are wanted", wanted.length === 4);
 	check("tokenize: env assignment stays its own word", eq(tokenize("A=1 node x hook"), ["A=1", "node", "x", "hook"]));
 	check("tokenize: an empty quoted word survives", eq(tokenize("a '' b"), ["a", "", "b"]));
 	check("tokenize: unbalanced quoting is null", tokenize("bash 'x") === null);
+	for (const op of ["&&", "||", ";", "|", "&", ">", "<", "`", "$("]) {
+		check(`tokenize: \`${op}\` outside quotes is null`, tokenize(`bash /x/y.sh ${op} z`) === null);
+	}
+	check("tokenize: an operator INSIDE quotes is just text", JSON.stringify(tokenize("bash '/x/a && b.sh'")) === JSON.stringify(["bash", "/x/a && b.sh"]));
+	check("tokenize: a bare $ (variable expansion) is fine", JSON.stringify(tokenize("bash $HOME/x.sh")) === JSON.stringify(["bash", "$HOME/x.sh"]));
 }
 
 /* --- shape validation ----------------------------------------------------------------- */
@@ -234,8 +247,9 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 }
 
 /* --- the lock holds the whole read -> write -> rename sequence ------------------------- */
+// There is NO stale-lock reclamation on purpose (sol r3): reclaiming under the same lock is a
+// race, and a one-shot installer does not earn a second lock. A leftover lock is a human's call.
 const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.lock");
-const DEAD_PID = 999999; // above any real pid on macOS/Linux
 
 {
 	const home = freshHome();
@@ -243,33 +257,46 @@ const DEAD_PID = 999999; // above any real pid on macOS/Linux
 	check("lock: a normal install leaves no lock file", r.status === 0 && !fs.existsSync(lockOf(home)), r.stdout);
 }
 {
-	// a live holder: abort, change nothing
 	const home = freshHome();
 	fs.writeFileSync(path.join(home, ".claude", "settings.json"), "{}\n", { mode: 0o600 });
-	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: process.pid, at: Date.now() }));
+	const held = { pid: 4242, at: Date.now() - 90_000 };
+	fs.writeFileSync(lockOf(home), JSON.stringify(held));
 	const r = run(["install"], home);
-	check("lock: a live lock aborts the install", r.status === 2, String(r.status));
-	check("lock: the message names the lock and the pid", r.stderr.includes(lockOf(home)) && r.stderr.includes(String(process.pid)), r.stderr);
+	check("lock: an existing lock aborts the install", r.status === 2, String(r.status));
+	check("lock: the message prints the lock path", r.stderr.includes(lockOf(home)), r.stderr);
+	check("lock: the message prints the recorded pid", r.stderr.includes("pid 4242"), r.stderr);
+	check("lock: the message prints the recorded age", /\b9\ds ago\b/.test(r.stderr), r.stderr);
+	check("lock: the message prints the exact rm command", r.stderr.includes(`rm ${lockOf(home)}`), r.stderr);
 	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
-	check("lock: the foreign lock is still there", fs.existsSync(lockOf(home)));
+	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
 }
 {
-	// a young lock whose pid is dead is NOT stale yet
+	// an old lock is NOT reclaimed — no age threshold, no pid liveness check
 	const home = freshHome();
-	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: DEAD_PID, at: Date.now() }));
+	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: 999999, at: Date.now() - 86_400_000 }));
 	const r = run(["install"], home);
-	check("lock: a young lock is respected even with a dead pid", r.status === 2, r.stdout);
+	check("lock: a day-old lock with a dead pid still aborts", r.status === 2, r.stdout);
+	check("lock: it was not unlinked", fs.existsSync(lockOf(home)));
+	check("lock: a corrupt lock file aborts too", (() => {
+		fs.writeFileSync(lockOf(home), "not json");
+		const r2 = run(["install"], home);
+		return r2.status === 2 && r2.stderr.includes("unrecorded pid") && fs.existsSync(lockOf(home));
+	})());
+	// and once the human clears it, the install goes through
+	fs.rmSync(lockOf(home));
+	const r3 = run(["install"], home);
+	check("lock: after `rm`, the install runs", r3.status === 0, r3.stderr);
+	check("lock: and leaves no lock behind", !fs.existsSync(lockOf(home)));
 }
 {
-	// older than the stale window AND a dead pid: reclaim
+	// --dry-run never takes the lock, and is not blocked by one
 	const home = freshHome();
-	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: DEAD_PID, at: Date.now() - LOCK_STALE_MS - 5000 }));
-	const old = (Date.now() - LOCK_STALE_MS - 5000) / 1000;
-	fs.utimesSync(lockOf(home), old, old);
-	const r = run(["install"], home);
-	check("lock: a stale lock with a dead pid is reclaimed", r.status === 0, r.stderr);
-	check("lock: and released again afterwards", !fs.existsSync(lockOf(home)));
-	check("lock: the install actually wrote settings", JSON.stringify(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"))).includes("nana-objective.sh"));
+	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: process.pid, at: Date.now() }));
+	const r = run(["install", "--dry-run"], home);
+	check("lock: --dry-run is not blocked by a lock", r.status === 0, r.stderr);
+	check("lock: --dry-run reports what it would add", /settings SessionStart objective\s+created/.test(r.stdout), r.stdout);
+	check("lock: --dry-run wrote nothing", !fs.existsSync(path.join(home, ".claude", "hooks")));
+	check("lock: --dry-run left the foreign lock alone", fs.existsSync(lockOf(home)));
 }
 {
 	// the lock is released even when the write aborts
@@ -303,6 +330,7 @@ const DEAD_PID = 999999; // above any real pid on macOS/Linux
 		}
 	});
 	check("lock: a second acquisition is refused", inner instanceof SetupError, String(inner));
+	check("lock: the refusal names our own pid", (inner?.message ?? "").includes(`pid ${process.pid}`));
 	check("lock: released after the outer call", !fs.existsSync(lockOf(home)));
 	let threw = false;
 	try {
@@ -313,6 +341,10 @@ const DEAD_PID = 999999; // above any real pid on macOS/Linux
 		threw = true;
 	}
 	check("lock: released when the body throws", threw && !fs.existsSync(lockOf(home)));
+	// a lock someone else replaced ours with is never unlinked by us
+	withSettingsLock(file, () => fs.writeFileSync(lockOf(home), JSON.stringify({ pid: 4242, at: Date.now() })));
+	check("lock: a replacement lock is left alone", fs.existsSync(lockOf(home)));
+	fs.rmSync(lockOf(home));
 }
 
 /* --- the re-compare sits AFTER the temp file is written -------------------------------- */
