@@ -92,7 +92,7 @@ hook, the score-at-close rule and the handoff protocol read **per project**. Tha
 command, from any shell, for any language — pi or Claude Code:
 
 ```bash
-node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # seeds; idempotent
+node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # creates the folder if needed; seeds; idempotent
 ```
 
 Then: open a session in that folder, and ratify the two DRAFT lines in its `OBJECTIVE.md` —

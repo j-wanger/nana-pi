@@ -119,7 +119,14 @@ async function runProject(opts) {
 		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
 		return bad.length ? 1 : 0;
 	}
-	if (!fs.existsSync(dir)) throw new SetupError(`${dir} does not exist — create the folder first`);
+	// A missing LEAF folder is created (this is "initiate a project"); a missing parent is the
+	// user's typo, so it still aborts. Dry run reports instead of creating.
+	if (!fs.existsSync(dir)) {
+		const parent = path.dirname(dir);
+		if (!fs.existsSync(parent)) throw new SetupError(`${parent} does not exist — check the path`);
+		if (opts.dryRun) console.log(`  + folder        ${dir}  would create`);
+		else fs.mkdirSync(dir);
+	}
 	const layout = resolveLayout(opts);
 	console.log(`nana-setup project${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  project       ${dir}`);

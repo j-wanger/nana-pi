@@ -354,5 +354,18 @@ function walk(dir) {
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
+/* --- a missing leaf folder is created; a missing parent is not ---------------------------- */
+{
+	const parent = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-leaf-"));
+	tmps.push(parent);
+	const leaf = path.join(parent, "new-thing");
+	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });
+	check("dry run reports the folder it would create and creates nothing", /would create/.test(dry.stdout) && !fs.existsSync(leaf), dry.stdout);
+	const r = spawnSync(process.execPath, [cli, "project", leaf, "--home", parent], { encoding: "utf8" });
+	check("a missing leaf folder is created and seeded", r.status === 0 && fs.existsSync(path.join(leaf, "OBJECTIVE.md")), r.stdout + r.stderr);
+	const bad = spawnSync(process.execPath, [cli, "project", path.join(parent, "nope", "deeper"), "--home", parent], { encoding: "utf8" });
+	check("a missing parent still aborts", bad.status !== 0 && /does not exist/.test(bad.stderr), bad.stderr);
+}
+
 console.log(`\nSUMMARY  PASS=${passes}  FAIL=${fails}  SKIP=${skips}`);
 process.exit(fails);
