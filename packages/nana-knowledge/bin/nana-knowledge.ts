@@ -86,7 +86,7 @@ async function cmdHook(): Promise<number> {
 async function cmdStatus(): Promise<number> {
 	const roots = loadRoots();
 	console.log(`sources ${paths.sources}`);
-	for (const r of roots) console.log(`  ${fs.existsSync(r.path) ? "ok  " : "MISS"} ${r.kind.padEnd(8)} ${r.path}`);
+	for (const r of roots) console.log(`  ${fs.existsSync(r.path) ? "ok  " : "MISS"} ${r.kind.padEnd(8)} ${r.path}${r.discovered ? "  (discovered)" : ""}`);
 	if (!fs.existsSync(paths.db)) { console.log(`\nno index at ${paths.db}`); return 0; }
 	const db = await openDb(paths.db, {});
 	const built = Number(getMeta(db, "built_at") || 0);
