@@ -99,7 +99,7 @@ with Linux paths.
 ### From git (no clone needed for the pack)
 
 ```bash
-# 1. the nana-pack — all four extensions + every skill (the root package.json
+# 1. the nana-pack — all six extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # add -l for project-local
 
