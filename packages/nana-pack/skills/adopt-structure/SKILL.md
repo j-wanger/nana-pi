@@ -64,12 +64,17 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    disk, lift the exact text instead by rendering a throwaway scaffold and
    copying the `## Working under nana-pi` section out of its `AGENTS.md`.
 
+   Render it with **this project's real name**, not a dummy: copier substitutes
+   `<name>` in the step-6 seeds at render time, so a throwaway named `_tmp` would
+   seed `# Objective and current priority — _tmp`. With the real name, the seeds
+   come out of the render already correct and step 6 fills only `<date>`.
+
    Two separate commands on purpose — `&&` breaks in Windows PowerShell 5.1 —
    and `node` instead of `sed`, which a native Windows shell does not have.
    macOS / Linux:
 
    ```bash
-   uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
+   uvx copier copy --defaults --data language=python --data project_name="<the project's name>" https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
    node -e "const s=require('fs').readFileSync('/tmp/nana-canon/AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
    ```
 
@@ -77,7 +82,7 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    `node -e` line is identical in both shells):
 
    ```powershell
-   uvx copier copy --defaults --data language=python --data project_name=_tmp https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
+   uvx copier copy --defaults --data language=python --data project_name="<the project's name>" https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
    node -e "const s=require('fs').readFileSync(process.env.TEMP + '\\nana-canon\\AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
    ```
 
@@ -125,11 +130,16 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    (the narrative). They come from the SAME single source as step 4 —
    `templates/_shared/OBJECTIVE.md`, `templates/_shared/HANDOFF.md`,
    `templates/_shared/docs/sessions/README.md` — copied VERBATIM, with the same
-   throwaway-render fallback when that directory is not on disk (the seeds render
-   into a scaffold unchanged apart from `<name>`). Then:
+   throwaway-render fallback when that directory is not on disk. Which source you
+   used decides what is left to fill:
 
-   - fill `<date>` with today's date (`YYYY-MM-DD`) and `<name>` with the project
-     name. **Leave every other `<…>`** — those are the owner's draft text.
+   - **from `templates/_shared`** — fill `<date>` with today's date (`YYYY-MM-DD`)
+     **and** `<name>` with the project name.
+   - **from the throwaway render** — copier already substituted `<name>` (that is
+     why step 4 renders it with the real project name), so fill only `<date>`.
+     Check the first line reads `# Objective and current priority — <the project>`
+     before you copy it in; if it names a dummy, you rendered with the wrong name.
+   - **Leave every other `<…>`** in both cases — those are the owner's draft text.
    - If any of the three already exists, leave it exactly as it is. This is a
      seed, never a reconcile: an existing `OBJECTIVE.md` is a ratified decision.
    - Tell the user, in one line, that the two `(DRAFT — ratify …)` lines in
@@ -140,9 +150,11 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    this step (plus the month's session file) from any shell, pi or not.
 
 7. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
-   vs. left alone, and whether the `.pi/nana-pack.json` was created or reconciled.
-   Point the user at the two edits they still owe: the two DRAFT objective lines,
-   and replacing the post-edit placeholder with their formatter/linter.
+   vs. left alone (and, when you used the fallback render, that the seeds carry
+   this project's name and today's date), and whether the `.pi/nana-pack.json` was
+   created or reconciled. Point the user at the two edits they still owe: the two
+   DRAFT objective lines, and replacing the post-edit placeholder with their
+   formatter/linter.
 
 ## Notes
 

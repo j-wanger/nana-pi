@@ -60,7 +60,7 @@ node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # ✓/✗ p
 | `docs/sessions/<YYYY-MM>.md` | this month's log, header only | it already exists |
 | `AGENTS.md` + a relative `CLAUDE.md` symlink (win32: a copy) | a lean stub — name, empty `Layout` and `Rules that don't move`, then the canonical `Working under nana-pi` section verbatim | when **either** `AGENTS.md` or `CLAUDE.md` is already there: that project has made its choice |
 | `.pi/nana-pack.json` | `{"postEdit":{"commands":[]}}` — an empty on-ramp, so nothing runs until you fill it in | when it exists, **and** when you have user-scope `postEdit.commands`: project config replaces user config per key group, so an empty project block would shadow your global checks in this repo |
-| `nana-knowledge build` | refreshes the index so the new repo's docs are findable at prompt time | when there is no index yet — run `install` first |
+| `nana-knowledge build` | refreshes the index so the new repo's docs are findable at prompt time | when there is no index yet — run `install` first; when another build **holds the lock** (that CLI exits 0 on a held lock so the prompt hook never fails, so the lock message on stderr is the only evidence — reported `skipped (build lock held)`, never "rebuilt"); and on the **60 s deadline** |
 
 The three seeds have ONE source, `templates/_shared/`, and three consumers: this command, the
 copier templates (both languages `include` them, and `_skip_if_exists` keeps adopt mode from
@@ -70,6 +70,24 @@ purpose — copier has no date variable — and is filled by this command or by 
 
 What it will not do is decide your objective. The two `(DRAFT — ratify by editing this line)`
 lines are the owner's, and the command says so when it finishes.
+
+**Present means present, not readable.** Every "is it already there?" decision is `lstat`, not
+`existsSync`: a **dangling** symlink reads as absent to `existsSync`, and seeding "the missing
+file" would write straight through the link to whatever it names. A symlink of any kind, or a
+directory, at a seed path is reported `skipped` naming what was found, and nothing is written
+through it.
+
+**The refresh cannot hang the command.** It is spawned asynchronously with a parent-side
+60 s deadline — SIGTERM, then SIGKILL 2 s later — and reported as `timeout`. `spawnSync`'s own
+`timeout` is not a deadline: it signals and then keeps waiting for the child to die, so a build
+stuck in an uninterruptible syscall (a hung network or FUSE knowledge root) would hang the
+whole command.
+
+**`--check` mirrors the setup decisions.** It never fails a state setup deliberately produced:
+a folder inside an existing repo reads ✓ `inside <root> — no nested repo, by design`, and a
+`.pi/nana-pack.json` omitted because you have user-scope `postEdit.commands` reads ✓ with that
+reason. A check that failed those would send you round a loop re-running a command that
+correctly does nothing.
 
 ## What it never does
 
@@ -109,6 +127,9 @@ lines are the owner's, and the command says so when it finishes.
   portable way to close that gap — POSIX has no compare-and-swap rename — so the design shrinks
   the window to a syscall pair and takes a lock that every nana-setup respects. Claude Code and
   editors do not take this lock.
+- **Never writes through a symlink.** Seeded files are decided by `lstat`, so a dangling
+  symlink counts as present (see `project` above); the Windows copy path removes a link before
+  copying rather than writing through it.
 - **Never destroys a file it replaces.** A regular file where a symlink belongs is renamed to
   `<name>.bak-<YYYYMMDD>` first, and the backup is named in the output. The Windows copy path
   owes the same guarantee: it backs up too, and it never writes *through* a symlink — the link is
@@ -176,6 +197,18 @@ Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with
 count). Every run installs into `os.tmpdir()` with `--home`, so no test can touch the real
 `~/.claude`, `~/.pi`, `~/.local/bin` or LaunchAgents, and none of them loads a launchd service.
 
+Environment switches (tests and CI only):
+
+| Variable | Effect |
+|---|---|
+| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — set it in CI, where a silent skip would drop the byte-equality and `_skip_if_exists` invariants |
+| `NANA_SETUP_PLATFORM` | forces the win32 branches on a Mac |
+| `NANA_SETUP_KNOWLEDGE_CLI` | points the knowledge refresh at a stub binary |
+| `NANA_SETUP_KNOWLEDGE_DEADLINE_MS` / `NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS` | shrink the refresh deadline and the SIGTERM→SIGKILL grace so the deadline is testable in under a second |
+
+Every test file prints a `SUMMARY  PASS=… FAIL=… SKIP=…` line; a skipped gate is printed
+loudly and counted, never silent.
+
 | File | Covers |
 |---|---|
 | `install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed |
@@ -185,4 +218,4 @@ count). Every run installs into `os.tmpdir()` with `--home`, so no test can touc
 | `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
 | `desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
-| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be. The copier half SKIPs itself when `uvx` is not installed |
+| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them; `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |

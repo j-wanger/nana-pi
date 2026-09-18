@@ -84,9 +84,28 @@ export function linkFile(target, source, { dryRun = false, copyInstead = false }
 	return { status: CREATED, detail: null };
 }
 
-/** Write `contents` only when `target` does not exist. Never overwrites, never diffs. */
+/**
+ * Write `contents` only when `target` does not exist. Never overwrites, never diffs.
+ *
+ * Existence is decided by `lstat`, NOT `existsSync` (sol r1, HIGH): `existsSync` follows the
+ * link, so a DANGLING symlink reads as absent — and writing "the missing file" would create
+ * the link's target instead, writing straight through a file entry the owner put there. Any
+ * non-regular entry (a symlink of any kind, a directory) is therefore reported as present,
+ * naming what was found, and nothing is written.
+ */
 export function seedFile(target, contents, { dryRun = false } = {}) {
-	if (fs.existsSync(target)) return { status: UNCHANGED, detail: "already present, left untouched" };
+	const st = lstat(target);
+	if (st?.isSymbolicLink()) {
+		let to = "";
+		try {
+			to = ` -> ${fs.readlinkSync(target)}`;
+		} catch {
+			/* unreadable link */
+		}
+		return { status: SKIPPED, detail: `a symlink${to} is there — left untouched, nothing written through it` };
+	}
+	if (st?.isDirectory()) return { status: SKIPPED, detail: "a directory is there — left untouched" };
+	if (st) return { status: UNCHANGED, detail: "already present, left untouched" };
 	if (dryRun) return { status: CREATED, detail: "would create" };
 	fs.mkdirSync(path.dirname(target), { recursive: true });
 	fs.writeFileSync(target, contents);

@@ -12,9 +12,17 @@ const repo = path.resolve(pkg, "..", "..");
 const shared = path.join(repo, "templates", "_shared");
 
 let fails = 0;
+let passes = 0;
+let skips = 0;
 const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : (extra ?? ""));
-	if (!ok) fails++;
+	if (ok) passes++;
+	else fails++;
+};
+/** A skipped GATE is counted and printed loudly — a silent skip is a test that stopped testing. */
+const skip = (n, why) => {
+	console.log(`SKIP ${n} (${why})`);
+	skips++;
 };
 
 const tmps = [];
@@ -76,7 +84,7 @@ function walk(dir) {
 	check("month file is a header only", read(path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`)).split("\n").filter((l) => l.trim()).length === 2);
 
 	// --check is green now
-	check("project --check exits 0 on a seeded folder", run(["project", dir, "--check"]).status === 0);
+	check("project --check exits 0 on a seeded folder", run(["project", dir, "--check", "--home", home]).status === 0);
 
 	// second run changes nothing
 	const before = walk(dir).filter(([p]) => !p.startsWith(".git" + path.sep));
@@ -115,7 +123,7 @@ function walk(dir) {
 	run(["project", dir, "--home", home]);
 	check("CLAUDE.md-only: no AGENTS.md written", !fs.existsSync(path.join(dir, "AGENTS.md")));
 	check("CLAUDE.md-only: the file is untouched", read(path.join(dir, "CLAUDE.md")) === "MY CLAUDE\n");
-	check("CLAUDE.md-only: --check is still green", run(["project", dir, "--check"]).status === 0);
+	check("CLAUDE.md-only: --check is still green", run(["project", dir, "--check", "--home", home]).status === 0);
 }
 
 /* --- 5. an empty project postEdit block must not shadow user-scope commands ---------- */
@@ -135,10 +143,92 @@ function walk(dir) {
 	check("dry run exits 0", r.status === 0, r.stderr);
 	check("dry run reports what it would do", /would change/.test(r.stdout), r.stdout);
 	check("dry run wrote nothing", fs.readdirSync(dir).length === 0, fs.readdirSync(dir).join(","));
-	check("--check on an empty folder exits 1", run(["project", dir, "--check"]).status === 1);
+	check("--check on an empty folder exits 1", run(["project", dir, "--check", "--home", home]).status === 1);
 }
 
-/* --- 7. win32: CLAUDE.md is a copy, because there is no usable symlink ---------------- */
+/* --- 7. a symlink or a directory at a seed target is PRESENT, never written through --- */
+{
+	const { dir, home } = freshProject();
+	const victim = path.join(tmp("nana-victim-"), "not-there.md");
+	fs.symlinkSync(victim, path.join(dir, "OBJECTIVE.md")); // dangling on purpose
+	fs.mkdirSync(path.join(dir, "HANDOFF.md")); // a directory where a file is expected
+	const r = run(["project", dir, "--home", home]);
+	check("dangling symlink: exits 0", r.status === 0, r.stderr);
+	check("dangling symlink: nothing written through it", !fs.existsSync(victim));
+	check("dangling symlink: the link itself is untouched", fs.lstatSync(path.join(dir, "OBJECTIVE.md")).isSymbolicLink() && fs.readlinkSync(path.join(dir, "OBJECTIVE.md")) === victim);
+	check("dangling symlink: reported as skipped, naming what was found", /OBJECTIVE\.md\s+skipped\s+a symlink -> .*nothing written through it/.test(r.stdout), r.stdout);
+	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
+	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
+	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
+}
+
+/* --- 8. --check mirrors what setup decided, never fails a deliberate state ------------ */
+{
+	// a. a folder inside an existing repo: setup skips the nested `git init`, so ✓ not ✗
+	const outer = tmp("nana-outer-");
+	spawnSync("git", ["init", outer], { encoding: "utf8" });
+	const inner = path.join(outer, "sub");
+	fs.mkdirSync(inner);
+	const home = path.join(tmp("nana-home-"), "h");
+	const setup = run(["project", inner, "--home", home]);
+	check("inside a repo: no nested git init", !fs.existsSync(path.join(inner, ".git")) && /inside .* already — no nested repo created/.test(setup.stdout), setup.stdout);
+	const c1 = run(["project", inner, "--check", "--home", home]);
+	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 0 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout), c1.stdout);
+
+	// b. pack config deliberately omitted because user-scope postEdit.commands exist
+	const { dir, home: home2 } = freshProject();
+	fs.mkdirSync(path.join(home2, ".pi", "agent"), { recursive: true });
+	fs.writeFileSync(path.join(home2, ".pi", "agent", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "\\.py$", run: "ruff check {file}" }] } }));
+	run(["project", dir, "--home", home2]);
+	const c2 = run(["project", dir, "--check", "--home", home2]);
+	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
+	// and it is still ✗ when it is simply missing for no reason
+	const { dir: bare } = freshProject();
+	const c3 = run(["project", bare, "--check", "--home", path.join(tmp("nana-home-"), "h")]);
+	check("--check: a missing pack config with no reason is still ✗", c3.status === 1 && /✗ \.pi\/nana-pack\.json/.test(c3.stdout), c3.stdout);
+}
+
+/* --- 9. the knowledge refresh tells the truth: a held lock is not a rebuild ----------- */
+{
+	const { dir, home } = freshProject();
+	const kh = path.join(home, ".pi", "agent", "nana-knowledge");
+	fs.mkdirSync(kh, { recursive: true });
+	fs.writeFileSync(path.join(kh, "index.db"), ""); // the refresh only runs when an index exists
+	fs.writeFileSync(path.join(kh, "sources.json"), JSON.stringify({ roots: [] }));
+	// A LIVE lock: the owner pid is this test process, which `process.kill(pid, 0)` proves alive,
+	// so nana-knowledge's own acquireBuildLock reports "held" and the CLI exits 0 saying so.
+	fs.writeFileSync(path.join(kh, "build.lock"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+	const r = run(["project", dir, "--home", home]);
+	check("build lock held: exits 0", r.status === 0, r.stderr);
+	check("build lock held: reported as skipped (build lock held)", /knowledge index\s+skipped\s+skipped \(build lock held\)/.test(r.stdout), r.stdout);
+	check("build lock held: never claims a rebuild", !/knowledge index\s+unchanged/.test(r.stdout), r.stdout);
+	check("build lock held: the lock is left alone", fs.existsSync(path.join(kh, "build.lock")));
+}
+
+/* --- 10. the refresh has a hard deadline: a child that ignores SIGTERM cannot hang it -- */
+{
+	const { dir, home } = freshProject();
+	const kh = path.join(home, ".pi", "agent", "nana-knowledge");
+	fs.mkdirSync(kh, { recursive: true });
+	fs.writeFileSync(path.join(kh, "index.db"), "");
+	// A stub "nana-knowledge" that traps SIGTERM and never finishes — the uninterruptible
+	// build, in a form a test can create. It also proves the parent does not wait for it.
+	const stub = path.join(kh, "stub-cli.mjs");
+	fs.writeFileSync(stub, "process.on('SIGTERM', () => {});\nsetInterval(() => {}, 1000);\nconsole.log('files 1');\n");
+	const t0 = Date.now();
+	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], {
+		encoding: "utf8",
+		timeout: 20_000,
+		env: { ...process.env, NANA_SETUP_KNOWLEDGE_CLI: stub, NANA_SETUP_KNOWLEDGE_DEADLINE_MS: "400", NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS: "200" },
+	});
+	const ms = Date.now() - t0;
+	check("deadline: the command still exits 0", r.status === 0, r.stderr);
+	check("deadline: reported as a timeout, not a rebuild", /knowledge index\s+skipped\s+timeout after/.test(r.stdout), r.stdout);
+	check("deadline: settles instead of hanging", ms < 15_000, `${ms}ms`);
+	check("deadline: the rest of the project still got seeded", fs.existsSync(path.join(dir, "OBJECTIVE.md")));
+}
+
+/* --- 11. win32: CLAUDE.md is a copy, because there is no usable symlink ---------------- */
 {
 	const { dir, home } = freshProject();
 	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
@@ -148,11 +238,15 @@ function walk(dir) {
 	check("win32: the reason is reported", /win32: no usable symlink/.test(r.stdout), r.stdout);
 }
 
-/* --- 8. the copier templates emit the same three seeds ------------------------------- */
+/* --- 12. the copier templates emit the same three seeds ------------------------------ */
 {
 	const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
 	if (uvx.error || uvx.status !== 0) {
-		console.log("SKIP copier render checks — uvx is not available on this machine");
+		// These renders ARE the invariant (byte equality with _shared, `_skip_if_exists`), so a
+		// machine without uvx must say so loudly — and CI sets NANA_SETUP_REQUIRE_COPIER=1 to
+		// make the absence a failure instead of a shrug.
+		if (process.env.NANA_SETUP_REQUIRE_COPIER === "1") check("copier renders (NANA_SETUP_REQUIRE_COPIER=1)", false, "uvx not found — install uv, or unset NANA_SETUP_REQUIRE_COPIER");
+		else skip("copier renders", "uvx not found");
 	} else {
 		const dest = tmp("nana-render-");
 		const render = (extra, out) =>
@@ -173,6 +267,10 @@ function walk(dir) {
 				check(`${language}: ${rel} is byte-equal to templates/_shared (after <name>)`, got === want, got === null ? "not rendered" : "differs");
 			}
 			check(`${language}: <date> is left literal for the skill / nana-setup to fill`, read(path.join(out, "OBJECTIVE.md")).includes("(since <date>)"));
+			// Pins the adopt-structure fallback rule: copier bakes <name> in at RENDER time, so a
+			// throwaway rendered with a dummy name would seed that dummy into the adopted project.
+			const rendered = read(path.join(out, "OBJECTIVE.md"));
+			check(`${language}: the render bakes in project_name (fallback must render the REAL name)`, rendered.startsWith("# Objective and current priority — _t") && !rendered.includes("<name>"));
 		}
 		// adopt mode still emits them, and never over a file the project already has
 		const adopt = path.join(dest, "adopt");
@@ -187,4 +285,5 @@ function walk(dir) {
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
+console.log(`\nSUMMARY  PASS=${passes}  FAIL=${fails}  SKIP=${skips}`);
 process.exit(fails);

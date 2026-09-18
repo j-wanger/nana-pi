@@ -99,10 +99,12 @@ function runDoctor(opts) {
 	return bad.length ? 1 : 0;
 }
 
-function runProject(opts) {
+async function runProject(opts) {
 	const dir = path.resolve(opts._[1] || process.cwd());
 	if (opts.check) {
-		const checks = checkProject(dir);
+		// The same layout the setup used: `--check` reads the user-scope pi config so it can
+		// mirror the one decision that depends on it (the pack-config omission).
+		const checks = checkProject(dir, resolveLayout(opts));
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
 		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
@@ -116,7 +118,7 @@ function runProject(opts) {
 	console.log(`  project       ${dir}`);
 	console.log(`  name          ${projectName(dir, opts)}`);
 	console.log(`  seeds from    ${path.join(repoRoot, "templates", "_shared")}\n`);
-	const results = setupProject(dir, layout, opts);
+	const results = await setupProject(dir, layout, opts);
 	const width = Math.max(...results.map((r) => r.label.length));
 	for (const r of results) {
 		const detail = r.detail ? `  ${r.detail}` : "";
@@ -130,7 +132,7 @@ function runProject(opts) {
 	return 0;
 }
 
-function main(argv) {
+async function main(argv) {
 	let opts;
 	try {
 		opts = parse(argv);
@@ -146,7 +148,7 @@ function main(argv) {
 	try {
 		if (cmd === "install") return runInstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
-		if (cmd === "project") return runProject(opts);
+		if (cmd === "project") return await runProject(opts);
 	} catch (err) {
 		if (err instanceof SetupError) {
 			console.error(`\nnana-setup: ${err.message}`);
@@ -158,4 +160,13 @@ function main(argv) {
 	return 2;
 }
 
-process.exitCode = main(process.argv.slice(2));
+// `project` awaits a child process, so main is async: same exit codes, same error text.
+main(process.argv.slice(2)).then(
+	(code) => {
+		process.exitCode = code;
+	},
+	(err) => {
+		console.error(err?.stack || String(err));
+		process.exitCode = 1;
+	},
+);

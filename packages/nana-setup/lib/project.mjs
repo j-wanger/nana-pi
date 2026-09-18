@@ -8,7 +8,7 @@
 // a scaffolded, an adopted and a hand-made project read identically.
 //
 // Every step is idempotent and never overwrites: a file that is already there is left alone.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
@@ -149,23 +149,91 @@ export function stepPackConfig(dir, o, layout) {
 
 /* ------------------------------------------------------------------------ knowledge pull */
 
+/**
+ * The exact text `nana-knowledge` prints when another build holds the lock
+ * (`BuildLockedError` in packages/nana-knowledge/lib/build.ts). That CLI exits **0** on it by
+ * design — the prompt hook must not fail because a build is already running — so exit status
+ * alone cannot tell "rebuilt" from "did nothing" (sol r1). This marker is the only evidence.
+ */
+export const BUILD_LOCK_MARK = "another nana-knowledge build holds";
+/** Hard wall-clock deadline, and how long SIGTERM gets before SIGKILL. Env seams are for tests. */
+export const REFRESH_DEADLINE_MS = Number(process.env.NANA_SETUP_KNOWLEDGE_DEADLINE_MS) || 60_000;
+export const REFRESH_KILL_GRACE_MS = Number(process.env.NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS) || 2_000;
+const knowledgeCli = () => process.env.NANA_SETUP_KNOWLEDGE_CLI || KNOWLEDGE_CLI;
+
+/**
+ * Spawn the build ASYNC with a parent-side timer, the way the knowledge hook keeps itself
+ * unblockable. `spawnSync`'s own `timeout` is not a deadline: it signals the child and then
+ * keeps waiting for it to die, so a build stuck in an uninterruptible syscall (a hung network
+ * or FUSE knowledge root) hangs `nana-setup project` forever. Here the parent decides at
+ * `REFRESH_DEADLINE_MS`, reports, and abandons the child — SIGTERM now, SIGKILL after the
+ * grace, and the grace timer is deliberately NOT unref'd so the kill is actually delivered.
+ */
+export function runKnowledgeBuild(layout) {
+	return new Promise((resolve) => {
+		const child = spawn(process.execPath, [knowledgeCli(), "build"], {
+			env: { ...process.env, NANA_KNOWLEDGE_HOME: layout.knowledgeHome, NODE_NO_WARNINGS: "1" },
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		let out = "";
+		let err = "";
+		let settled = false;
+		child.stdout.on("data", (d) => {
+			out += d;
+		});
+		child.stderr.on("data", (d) => {
+			err += d;
+		});
+		const done = (res) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(deadline);
+			resolve(res);
+		};
+		const deadline = setTimeout(() => {
+			try {
+				child.kill("SIGTERM");
+			} catch {
+				/* already gone */
+			}
+			setTimeout(() => {
+				try {
+					child.kill("SIGKILL");
+				} catch {
+					/* already gone */
+				}
+			}, REFRESH_KILL_GRACE_MS);
+			child.stdout.destroy();
+			child.stderr.destroy();
+			child.unref();
+			done({ timedOut: true, code: null, out, err });
+		}, REFRESH_DEADLINE_MS);
+		// A spawn failure (ENOENT, EMFILE) arrives as an EVENT, never a throw — with no
+		// listener Node turns it into an uncaught exception long after this resolved.
+		child.on("error", (e) => done({ error: e, code: null, out, err }));
+		child.on("close", (code) => done({ code, out, err }));
+	});
+}
+
 /** Re-index so this repo's docs are findable at prompt time. Never builds an index from scratch. */
-export function stepKnowledgeRefresh(layout, o) {
+export async function stepKnowledgeRefresh(layout, o) {
 	const label = "knowledge index";
-	if (!fs.existsSync(path.join(layout.knowledgeHome, "index.db"))) {
+	if (!lstat(path.join(layout.knowledgeHome, "index.db"))) {
 		return { label, status: SKIPPED, detail: `no index at ${layout.knowledgeHome} — run \`nana-setup install\` first` };
 	}
 	if (o.dryRun) return { label, status: UNCHANGED, detail: "would run `nana-knowledge build`" };
-	const r = spawnSync(process.execPath, [KNOWLEDGE_CLI, "build"], {
-		env: { ...process.env, NANA_KNOWLEDGE_HOME: layout.knowledgeHome, NODE_NO_WARNINGS: "1" },
-		encoding: "utf8",
-		timeout: 10 * 60_000,
-	});
-	if (r.status !== 0) {
-		const why = (r.stderr || r.error?.message || `exit ${r.status}`).trim().split("\n").slice(-2).join(" ");
+	const r = await runKnowledgeBuild(layout);
+	if (r.timedOut) {
+		return { label, status: SKIPPED, detail: `timeout after ${Math.round(REFRESH_DEADLINE_MS / 1000)}s — SIGTERM then SIGKILL; the index is unchanged` };
+	}
+	if (r.err.includes(BUILD_LOCK_MARK)) {
+		return { label, status: SKIPPED, detail: "skipped (build lock held) — another nana-knowledge build is running; nothing was re-indexed" };
+	}
+	if (r.error || r.code !== 0) {
+		const why = (r.err || r.error?.message || `exit ${r.code}`).trim().split("\n").slice(-2).join(" ");
 		return { label, status: SKIPPED, detail: `rebuild failed, the pull just stays quiet: ${why}` };
 	}
-	const rows = (r.stdout || "").trim().split("\n").filter((l) => l.includes("files ")).pop();
+	const rows = (r.out || "").trim().split("\n").filter((l) => l.includes("files ")).pop();
 	return { label, status: UNCHANGED, detail: (rows || "rebuilt").trim() };
 }
 
@@ -175,7 +243,7 @@ export function projectName(dir, opts = {}) {
 	return opts.name || path.basename(path.resolve(dir)) || "project";
 }
 
-export function setupProject(dir, layout, opts = {}) {
+export async function setupProject(dir, layout, opts = {}) {
 	const o = { dryRun: Boolean(opts.dryRun) };
 	const name = projectName(dir, opts);
 	const date = opts.date || today();
@@ -183,24 +251,47 @@ export function setupProject(dir, layout, opts = {}) {
 	results.push(...stepSeeds(dir, o, { name, date }));
 	results.push(...stepAgents(dir, o, { name }));
 	results.push(stepPackConfig(dir, o, layout));
-	results.push(stepKnowledgeRefresh(layout, o));
+	results.push(await stepKnowledgeRefresh(layout, o));
 	return results;
 }
 
 /* ------------------------------------------------------------------------------ check */
 
-/** `project --check`: one ✓/✗ per file this command owns. */
-export function checkProject(dir) {
+/**
+ * `project --check`: one ✓/✗ per file this command owns. It MIRRORS the setup decisions —
+ * a check that fails a state setup deliberately produced would send the owner round a loop
+ * re-running a command that correctly does nothing (sol r1).
+ */
+export function checkProject(dir, layout = {}) {
 	const has = (rel) => Boolean(lstat(path.join(dir, ...rel.split("/"))));
 	const month = today().slice(0, 7);
-	const checks = [
-		{ label: "git repo", ok: has(".git"), detail: ".git" },
+	const checks = [];
+
+	if (has(".git")) checks.push({ label: "git repo", ok: true, detail: ".git" });
+	else {
+		const top = spawnSync("git", ["-C", dir, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+		const inside = top.status === 0 ? top.stdout.trim() : "";
+		checks.push({ label: "git repo", ok: Boolean(inside), detail: inside ? `inside ${inside} — no nested repo, by design` : ".git" });
+	}
+
+	checks.push(
 		{ label: "OBJECTIVE.md", ok: has("OBJECTIVE.md"), detail: "the two lines the session-start hook prints" },
 		{ label: "HANDOFF.md", ok: has("HANDOFF.md"), detail: "the frontier" },
 		{ label: "docs/sessions/README.md", ok: has("docs/sessions/README.md"), detail: "the narrative's rules" },
 		{ label: `docs/sessions/${month}.md`, ok: has(`docs/sessions/${month}.md`), detail: "this month's log" },
 		{ label: "AGENTS.md", ok: has("AGENTS.md") || has("CLAUDE.md"), detail: "AGENTS.md (or a CLAUDE.md the project already had)" },
-		{ label: ".pi/nana-pack.json", ok: has(".pi/nana-pack.json"), detail: "post-edit on-ramp" },
-	];
+	);
+
+	const user = readPiPackConfig(layout);
+	const shadowed = Array.isArray(user?.postEdit?.commands) && user.postEdit.commands.length > 0;
+	checks.push({
+		label: ".pi/nana-pack.json",
+		ok: has(".pi/nana-pack.json") || shadowed,
+		detail: has(".pi/nana-pack.json")
+			? "post-edit on-ramp"
+			: shadowed
+				? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
+				: "post-edit on-ramp",
+	});
 	return checks;
 }
