@@ -193,6 +193,8 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	fs.renameSync(personal, elsewhere);
 	fs.symlinkSync(elsewhere, personal);
 	const r = run(["install", "--home", home]);
+	check("private rule symlink: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
+	check("private rule symlink: --dry-run exits 1 too", run(["install", "--home", home, "--dry-run"]).status === 1);
 	check("private rule symlink: install reports ✗ with the fix", /rule nana-personal\.md \(private\)\s+problem\s+private rule is a symlink — replace with a regular file/.test(r.stdout), r.stdout);
 	check("private rule symlink: the ✗ symbol is printed", /✗ rule nana-personal\.md \(private\)/.test(r.stdout), r.stdout);
 	check("private rule symlink: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
@@ -204,6 +206,7 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	fs.unlinkSync(personal);
 	fs.renameSync(elsewhere, personal);
 	check("private rule as a regular file: doctor exits 0", run(["doctor", "--home", home]).status === 0);
+	check("private rule as a regular file: a clean install exits 0 again", run(["install", "--home", home]).status === 0);
 }
 
 function walk(dir) {

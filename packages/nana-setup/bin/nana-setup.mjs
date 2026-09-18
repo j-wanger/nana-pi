@@ -87,7 +87,9 @@ function runInstall(opts) {
 			: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}, ${results.length - changed - skipped - problems} already in place${skipped ? `, ${skipped} skipped` : ""}${problems ? `, ${problems} ✗ needs your attention` : ""}.`,
 	);
 	if (!opts.dryRun) console.log("  next: nana-setup doctor");
-	return 0;
+	// A ✗ row is a machine that is NOT set up. Exiting 0 there tells automation the install
+	// succeeded (sol r3) — the dry run included, since it reports the same ✗.
+	return problems ? 1 : 0;
 }
 
 function runDoctor(opts) {
@@ -130,11 +132,19 @@ async function runProject(opts) {
 		console.log(`  ${SYMBOL[r.status] ?? "?"} ${r.label.padEnd(width)}  ${r.status.padEnd(9)}${detail}`);
 	}
 	const changed = results.filter((r) => r.status === "created" || r.status === "updated").length;
-	console.log(changed === 0 ? "\n  nothing to do — everything was already in place." : `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`);
+	const problems = results.filter((r) => r.status === "problem").length;
+	console.log(
+		problems
+			? `\n  ${changed ? `${changed} ${opts.dryRun ? "would change" : "changed"}; ` : "nothing changed; "}${problems} ✗ needs your attention (above).`
+			: changed === 0
+				? "\n  nothing to do — everything was already in place."
+				: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
+	);
 	if (!opts.dryRun && changed) {
 		console.log("  next: open a session here and ratify the two DRAFT lines in OBJECTIVE.md — they are yours, not a default.");
 	}
-	return 0;
+	// Same rule as `install`: a ✗ row means this is not a set-up project (sol r3).
+	return problems ? 1 : 0;
 }
 
 async function main(argv) {

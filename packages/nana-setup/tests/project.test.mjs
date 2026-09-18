@@ -226,6 +226,31 @@ function walk(dir) {
 	const c2 = run(["project", dir, "--check", "--home", home2]);
 	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
 	check("--check: the CLAUDE.md alias reads ✓ as a symlink to AGENTS.md", /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(c2.stdout), c2.stdout);
+
+	// ...and ONLY when it resolves to THIS project's AGENTS.md (sol r3). Three bad shapes:
+	const claude = path.join(dir, "CLAUDE.md");
+	const foreign = path.join(tmp("nana-foreign-"), "AGENTS.md");
+	fs.writeFileSync(foreign, "# someone else's project\n");
+	for (const [shape, target] of [
+		["dangling", "AGENTS.md.gone"],
+		["a link into a missing folder", "missing/AGENTS.md"],
+		["a link to another project's AGENTS.md", foreign],
+	]) {
+		fs.unlinkSync(claude);
+		fs.symlinkSync(target, claude);
+		const bad = run(["project", dir, "--check", "--home", home2]);
+		const dangling = shape !== "a link to another project's AGENTS.md";
+		check(
+			`--check: CLAUDE.md as ${shape} reads ✗ naming the target`,
+			bad.status === 1 && new RegExp(`✗ CLAUDE\\.md\\s+a symlink -> ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} — ${dangling ? "dangling" : "not this project's AGENTS\\.md"}`).test(bad.stdout),
+			`${bad.status} ${bad.stdout}`,
+		);
+	}
+	// restored to the healthy shape, it is ✓ again
+	fs.unlinkSync(claude);
+	fs.symlinkSync("AGENTS.md", claude);
+	const good = run(["project", dir, "--check", "--home", home2]);
+	check("--check: CLAUDE.md -> AGENTS.md resolves to this project and reads ✓", good.status === 0 && /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(good.stdout), good.stdout);
 	// and it is still ✗ when it is simply missing for no reason
 	const { dir: bare } = freshProject();
 	const c3 = run(["project", bare, "--check", "--home", path.join(tmp("nana-home-"), "h")]);

@@ -323,22 +323,43 @@ export function checkProject(dir, layout = {}) {
 	// CLAUDE.md is the ONE path where a symlink is the healthy state: `project` writes it as a
 	// relative link to AGENTS.md (win32 has no usable symlink, so a copy is healthy there too).
 	// Judged only when there is an AGENTS.md for it to alias — otherwise it IS the nav file above.
-	if (agents.ok && lstat(path.join(dir, "CLAUDE.md"))) {
-		const st = lstat(path.join(dir, "CLAUDE.md"));
-		let target = null;
+	//
+	// The link must RESOLVE to this project's own AGENTS.md, not merely be named after it
+	// (sol r3): `-> missing/AGENTS.md` reads nothing at all, and `-> /elsewhere/AGENTS.md`
+	// points Claude Code at another project's instructions while pi reads this one's.
+	const claudePath = path.join(dir, "CLAUDE.md");
+	const st = lstat(claudePath);
+	if (agents.ok && st) {
 		if (st.isSymbolicLink()) {
-			try {
-				target = fs.readlinkSync(path.join(dir, "CLAUDE.md"));
-			} catch {
-				/* unreadable link */
-			}
+			const raw = (() => {
+				try {
+					return fs.readlinkSync(claudePath);
+				} catch {
+					return null;
+				}
+			})();
+			const real = (p) => {
+				try {
+					return fs.realpathSync(p);
+				} catch {
+					return null;
+				}
+			};
+			const resolved = real(claudePath); // null == dangling
+			const want = real(path.join(dir, "AGENTS.md"));
+			const linked = Boolean(resolved && want && resolved === want);
+			checks.push({
+				label: "CLAUDE.md",
+				ok: linked,
+				detail: linked ? "-> AGENTS.md" : `a symlink -> ${raw ?? "?"} — ${resolved ? "not this project's AGENTS.md" : "dangling"}`,
+			});
+		} else {
+			checks.push({
+				label: "CLAUDE.md",
+				ok: st.isFile(),
+				detail: st.isFile() ? "a copy of AGENTS.md (win32 has no usable symlink)" : "a directory is there",
+			});
 		}
-		const linked = st.isSymbolicLink() && path.basename(target || "") === "AGENTS.md";
-		checks.push({
-			label: "CLAUDE.md",
-			ok: linked || st.isFile(),
-			detail: linked ? "-> AGENTS.md" : st.isFile() ? "a copy of AGENTS.md (win32 has no usable symlink)" : st.isDirectory() ? "a directory is there" : `a symlink -> ${target ?? "?"} — expected AGENTS.md`,
-		});
 	}
 
 	const user = readPiPackConfig(layout);
