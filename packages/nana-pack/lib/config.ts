@@ -40,8 +40,11 @@ export interface NanaPackConfig {
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
 	 * `path` null = ~/.pi/agent/nana-objective.md.
+	 * `projectFile` null = off; a bare filename (e.g. "OBJECTIVE.md") that the
+	 * extension looks for walking UP from the session cwd, so a product repo can
+	 * speak its own objective. Opting in is the OWNER's act, at user scope.
 	 */
-	objective: { enabled: boolean; path: string | null };
+	objective: { enabled: boolean; path: string | null; projectFile: string | null };
 	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
 	receipts: { enabled: boolean; dir: string | null };
 }
@@ -52,7 +55,7 @@ const DEFAULTS: NanaPackConfig = {
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null },
-	objective: { enabled: true, path: null },
+	objective: { enabled: true, path: null, projectFile: null },
 	receipts: { enabled: true, dir: null },
 };
 
@@ -85,7 +88,9 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		// instructions of every session run inside it; a repo that could set
 		// enabled:false would silently suppress the owner's objective. Project trust
 		// says "run this repo's tooling", not "speak for the user's own priorities",
-		// so trusted projects are excluded too.
+		// so trusted projects are excluded too. projectFile is the same: the owner
+		// decides once, at user scope, that repos may carry their own OBJECTIVE.md —
+		// a repo must not be able to decide that for itself.
 		objective: { ...DEFAULTS.objective, ...user.objective },
 		receipts: { ...DEFAULTS.receipts, ...user.receipts, ...project.receipts },
 	};

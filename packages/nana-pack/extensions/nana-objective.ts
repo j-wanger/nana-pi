@@ -18,12 +18,25 @@
  * just as able to spend on the wrong thing as a fresh one, so all five reasons
  * (startup, new, resume, fork, reload) pick it up.
  *
+ * Per-repo objectives (2026-09-18, parity with ~/.claude/hooks/nana-objective.sh):
+ * a product repo now carries its own OBJECTIVE.md, and a session there must be
+ * charged against the product's two lines, not the umbrella's. With
+ * objective.projectFile set, the nearest <dir>/<projectFile> walking UP from the
+ * session cwd wins; the user-scope objective.path is the fallback, and one
+ * "Umbrella (nana): ..." line is appended so the umbrella objective stays visible.
+ * Opting in is the OWNER's act at user scope — a repo cannot turn it on for
+ * itself, and cannot turn the fallback or the whole feature off.
+ *
  * Config (nana-pack.json): objective.enabled (default true), objective.path
  * (default ~/.pi/agent/nana-objective.md; "~/" expands, a RELATIVE path resolves
- * against ~/.pi/agent and NEVER against cwd). USER SCOPE ONLY — see lib/config.ts.
+ * against ~/.pi/agent and NEVER against cwd), objective.projectFile (default null
+ * = off). USER SCOPE ONLY — see lib/config.ts.
  *
  * When the objective is enabled but unreadable, an "OBJECTIVE UNAVAILABLE" marker
- * is injected instead of nothing: silence is the failure that matters here.
+ * is injected instead of nothing: silence is the failure that matters here. A
+ * project hit that cannot be used falls back to the user-scope file and journals
+ * objective_project_refused — the fallback is real text, so the marker would be
+ * wrong, but the refusal must still be on the record.
  */
 
 import * as fs from "node:fs";
@@ -95,6 +108,72 @@ function reachedThroughSymlinkInWorkspace(root: string, file: string): boolean {
 	return false;
 }
 
+function insideWorkspace(root: string, file: string): boolean {
+	const rel = path.relative(path.resolve(root), path.resolve(file));
+	return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
+/**
+ * Same rule, one addition, for a file the WALK found rather than the user named:
+ * a hit above the workspace root still gets its own final component checked.
+ * The user-scope `path` skips that check because linking ~/.pi/agent/nana-objective.md
+ * at a real OBJECTIVE.md is the documented setup — nobody typed this path, so the
+ * "the user meant this link" argument does not apply to it.
+ */
+function projectHitReachedThroughSymlink(root: string, file: string): boolean {
+	return insideWorkspace(root, file) ? reachedThroughSymlinkInWorkspace(root, file) : isSymlink(path.resolve(file));
+}
+
+/**
+ * The nearest `<dir>/<name>` walking UP from cwd to the filesystem root; first hit
+ * wins (same resolution as the Claude Code hook). "Hit" means an entry EXISTS
+ * there — a dangling or refused link is a hit that gets refused out loud, not a
+ * miss that silently keeps walking into some ancestor's file.
+ */
+function findProjectObjective(cwd: string, name: string): string | null {
+	let dir = path.resolve(cwd);
+	for (;;) {
+		const candidate = path.join(dir, name);
+		try {
+			fs.lstatSync(candidate);
+			return candidate;
+		} catch {
+			// nothing by that name here — keep walking up
+		}
+		const parent = path.dirname(dir);
+		if (parent === dir) return null; // filesystem root
+		dir = parent;
+	}
+}
+
+function readProjectObjective(cwd: string, file: string): { text: string } | { cause: string } {
+	if (projectHitReachedThroughSymlink(cwd, file)) return { cause: "reached through a symlink" };
+	try {
+		const raw = fs.readFileSync(file, "utf-8").trim();
+		return raw ? { text: raw } : { cause: "empty file" };
+	} catch (err) {
+		return { cause: (err as NodeJS.ErrnoException)?.code === "ENOENT" ? "file not found" : "unreadable" };
+	}
+}
+
+/**
+ * The umbrella's own Objective line, appended when a project file won, so a
+ * product session can still see what the whole program is for. Best-effort by
+ * design: an unreadable (or Objective-less) umbrella omits the line rather than
+ * failing the pickup — the project objective is the one that governs here.
+ */
+function umbrellaLine(file: string): string | null {
+	try {
+		const line = fs
+			.readFileSync(file, "utf-8")
+			.split(/\r?\n/)
+			.find((l) => l.startsWith("**Objective"));
+		return line ? `Umbrella (nana): ${line.trim()}` : null;
+	} catch {
+		return null;
+	}
+}
+
 export default function (pi: ExtensionAPI) {
 	// The whole body injected under HEADING: either the objective text (plus a
 	// truncation line) or the UNAVAILABLE marker. null only when the feature is off.
@@ -113,13 +192,44 @@ export default function (pi: ExtensionAPI) {
 			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_unavailable", cwd: ctx.cwd, path: file, cause });
 			if (ctx.hasUI) ctx.ui.notify(`objective unavailable: ${cause} (${file})`, "warning");
 		};
+		const cap = (raw: string): { body: string; truncated: boolean } => {
+			const truncated = raw.length > INJECT_CAP;
+			return { body: raw.slice(0, INJECT_CAP) + (truncated ? `\n\n(truncated at ${INJECT_CAP} chars)` : ""), truncated };
+		};
+
+		// A repo's own OBJECTIVE.md wins when the owner opted in at user scope.
+		const hit = cfg.objective.projectFile ? findProjectObjective(ctx.cwd, cfg.objective.projectFile) : null;
+		if (hit) {
+			const found = readProjectObjective(ctx.cwd, hit);
+			if ("text" in found) {
+				const { body, truncated } = cap(found.text);
+				// The umbrella line reads the user-scope file under the user-scope rule.
+				const umbrella = reachedThroughSymlinkInWorkspace(ctx.cwd, file) ? null : umbrellaLine(file);
+				block = body + (umbrella ? `\n\n${umbrella}` : "");
+				appendJournal(cfg, {
+					ts: new Date().toISOString(),
+					event: "objective_pickup",
+					cwd: ctx.cwd,
+					source: "project",
+					path: hit,
+					chars: block.length,
+					truncated,
+				});
+				return;
+			}
+			// Falling back to the user-scope objective is the right behaviour, but a
+			// silent fallback would hide a repo whose objective file is unusable.
+			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_project_refused", cwd: ctx.cwd, path: hit, cause: found.cause });
+			if (ctx.hasUI) ctx.ui.notify(`objective: ignoring ${hit} (${found.cause}) — using ${file}`, "warning");
+		}
+
 		try {
 			if (reachedThroughSymlinkInWorkspace(ctx.cwd, file)) return unavailable("reached through a symlink inside the workspace");
 			const raw = fs.readFileSync(file, "utf-8").trim();
 			if (!raw) return unavailable("empty file");
-			const truncated = raw.length > INJECT_CAP;
-			block = raw.slice(0, INJECT_CAP) + (truncated ? `\n\n(truncated at ${INJECT_CAP} chars)` : "");
-			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_pickup", cwd: ctx.cwd, path: file, chars: block.length, truncated });
+			const { body, truncated } = cap(raw);
+			block = body;
+			appendJournal(cfg, { ts: new Date().toISOString(), event: "objective_pickup", cwd: ctx.cwd, source: "user", path: file, chars: block.length, truncated });
 		} catch (err) {
 			// Silence was the original behaviour and it defeated the whole point: the one
 			// artifact every session must see went missing INVISIBLY. Say so in the prompt.

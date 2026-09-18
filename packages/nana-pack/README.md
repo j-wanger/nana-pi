@@ -103,7 +103,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 	"notify": { "enabled": true, "headless": false },
 	"journal": { "enabled": true, "path": null },
 	"handoff": { "enabled": true, "path": null },
-	"objective": { "enabled": true, "path": null },
+	"objective": { "enabled": true, "path": null, "projectFile": null },
 	"receipts": { "enabled": true, "dir": null }
 }
 ```
@@ -174,14 +174,28 @@ is user-scope only** — project config never contributes to it, trusted or not.
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
   (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
   against `~/.pi/agent`, never cwd); content capped at 4000 chars; an `objective_pickup`
-  journal line records each pickup. Four contract points:
+  journal line records each pickup and which source it came from (`source: "project" | "user"`).
+  Five contract points:
+  - **A repo can speak its own objective — when the OWNER opts in.** Set
+    `objective.projectFile` (e.g. `"OBJECTIVE.md"`; default `null` = off) and the nearest
+    `<dir>/<projectFile>` walking UP from the session cwd wins over `objective.path`, with one
+    `Umbrella (nana): **Objective:** …` line appended so the program-level objective stays
+    visible. A session in a product repo is then charged against that product's two lines —
+    parity with the Claude Code hook `~/.claude/hooks/nana-objective.sh`. This does not weaken
+    the user-scope rule: the opt-in, the fallback and the on/off switch are all user-scope
+    (project config never sets `projectFile`), so the owner is saying once, for every repo,
+    "repos I work in may carry their own objective" — a repo still cannot decide that for
+    itself. A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
+    back to the user-scope file and journals `objective_project_refused` with the cause; the
+    fallback is never silent.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
     handoff's startup/new. The handoff is continuity a resumed session already carries; the
     objective is standing governance that lives only in the system prompt, which pi rebuilds
     at every agent start.
-  - **`objective.enabled` and `objective.path` are honored from USER scope only.** A repo that
-    could set the path would be writing standing instructions into every session run inside it,
-    and one that could set `enabled: false` could silently suppress the owner's objective.
+  - **`objective.enabled`, `objective.path` and `objective.projectFile` are honored from USER
+    scope only.** A repo that could set the path would be writing standing instructions into
+    every session run inside it, and one that could set `enabled: false` could silently
+    suppress the owner's objective.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
   - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, or
     refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
@@ -192,7 +206,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every
     component below the root is checked, as in the handoff). A path in the user's own home is
     not checked: linking `~/.pi/agent/nana-objective.md` at a repo's real `OBJECTIVE.md` is the
-    intended setup, not a repo-supplied link. Advisory, not a security boundary.
+    intended setup, not a repo-supplied link. One addition for a `projectFile` hit *above* the
+    workspace root: its own final component is checked, because nobody typed that path — the
+    walk found it. Advisory, not a security boundary.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
   per repo+checker under `~/.pi/agent/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.
