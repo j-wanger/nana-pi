@@ -80,8 +80,11 @@ git worktree gets) is a repo; each listed `subdirs` entry that exists under it b
 `articles` root. Those are unioned with the explicit `roots` and deduped by resolved path,
 with the explicit entry winning — so a path you configured as a `ledger` stays a ledger.
 `exclude` names are skipped as path components by the same mechanism that already drops
-`raw/` and `reviews/`, both when picking repos and when walking a root. A parent that does
-not exist is skipped silently. `nana-knowledge status` marks these roots `(discovered)`.
+`raw/` and `reviews/`, both when picking repos and when walking a root. Roots never **nest**:
+a discovered root that contains — or sits inside — an explicit root is dropped, and between two
+discovered roots the ancestor is kept. (A file reached through two roots would be indexed twice,
+and `docs.key` is the file path, so the build would die on the UNIQUE constraint.) A parent that
+does not exist is skipped silently. `nana-knowledge status` marks these roots `(discovered)`.
 
 ## The index
 

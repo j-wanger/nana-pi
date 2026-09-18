@@ -152,16 +152,41 @@ export function loadSources(): Sources {
 	return union(explicit, d ? discoverRoots(d) : [], d?.exclude ?? []);
 }
 
-/** Explicit roots win: a discovered path already listed keeps its configured kind. */
+/** Is `p` inside `root`, or the same path? Compared with a separator boundary, so
+ *  `…/repoF/doc` does not contain `…/repoF/docs`. */
+function contains(root: string, p: string): boolean {
+	return p === root || p.startsWith(root.endsWith(path.sep) ? root : root + path.sep);
+}
+
+/**
+ * Explicit roots win: a discovered path already listed keeps its configured kind.
+ *
+ * Roots must also never NEST. `docs.key` is the file path, so a file reached through two
+ * roots is inserted twice in one build and the UNIQUE constraint kills the whole build —
+ * measured the first time discovery ran for real, where the seeded explicit root
+ * `~/nana-agent-loop/research/knowledge` sits inside the discovered `~/nana-agent-loop/research`.
+ * So a discovered root is dropped when it is an ancestor OR a descendant of an explicit one
+ * (the explicit root's scope is what was indexed before discovery existed, and stays), and
+ * between two discovered roots the ancestor is kept — it already covers the other.
+ */
 function union(explicit: Root[], discovered: Root[], exclude: string[]): Sources {
 	const seen = new Set<string>();
 	const roots: Root[] = [];
-	for (const r of [...explicit, ...discovered]) {
+	for (const r of explicit) {
 		if (seen.has(r.path)) continue;
 		seen.add(r.path);
 		roots.push(r);
 	}
-	return { roots, exclude };
+	const kept: Root[] = [];
+	for (const d of discovered) {
+		if (seen.has(d.path)) continue;
+		seen.add(d.path);
+		if (roots.some((e) => contains(e.path, d.path) || contains(d.path, e.path))) continue;
+		if (kept.some((k) => contains(k.path, d.path))) continue;
+		for (let i = kept.length - 1; i >= 0; i--) if (contains(d.path, kept[i].path)) kept.splice(i, 1);
+		kept.push(d);
+	}
+	return { roots: [...roots, ...kept], exclude };
 }
 
 /** Roots only — the shape every caller but the builder wants. */

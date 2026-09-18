@@ -32,6 +32,18 @@ md(path.join(mk("node_modules", "docs"), "vendored.md"), "# Vendored\n");
 // a plain file sitting in the parent
 fs.writeFileSync(path.join(parent, "loose.txt"), "not a repo\n");
 
+// A SECOND parent, for the nesting cases only (keeps the counts above independent).
+const parent2 = path.join(td, "parent2");
+const mk2 = (...p) => { fs.mkdirSync(path.join(parent2, ...p), { recursive: true }); return path.join(parent2, ...p); };
+mk2("repoE", ".git");
+md(path.join(mk2("repoE", "research"), "top.md"), "# Top\nmike november\n");
+md(path.join(mk2("repoE", "research", "knowledge"), "deep.md"), "# Deep\noscar papa\n");
+mk2("repoF", ".git");
+md(path.join(mk2("repoF", "docs"), "x.md"), "# X\nquebec romeo\n");
+mk2("repoF", "docs", "nested", ".git");
+md(path.join(mk2("repoF", "docs", "nested", "docs"), "y.md"), "# Y\nsierra tango\n");
+const DISCOVER2 = { parents: [parent2], subdirs: ["docs", "research", "knowledge"], exclude: [] };
+
 const DISCOVER = {
 	parents: [parent, path.join(td, "no-such-parent")],
 	subdirs: ["docs", "research", "knowledge"],
@@ -110,6 +122,46 @@ check("a freshly seeded sources.json carries the discover block",
 	JSON.stringify(seeded.discover) === JSON.stringify(DEFAULT_DISCOVER));
 check("seeding does not invent roots outside the literal list + wikis",
 	Array.isArray(seeded.roots) && seeded.roots.every((r) => r.kind === "articles" || r.kind === "ledger"));
+
+// --- roots must not NEST (docs.key is the file path: two roots over one file = UNIQUE failure) ---
+const hN1 = homeFor("nest-explicit-inside");
+writeSources(hN1, { roots: [
+	{ path: path.join(parent2, "repoE", "research", "knowledge"), kind: "articles" },
+	// shares a prefix with repoF/docs but is NOT an ancestor of it
+	{ path: path.join(parent2, "repoF", "doc"), kind: "articles" },
+], discover: DISCOVER2 });
+const n1 = loadSources().roots;
+check("a discovered root CONTAINING an explicit root is dropped (explicit wins)",
+	has(n1, path.join(parent2, "repoE", "research", "knowledge")) && !has(n1, path.join(parent2, "repoE", "research")));
+check("an unrelated discovered root is untouched by that drop", has(n1, path.join(parent2, "repoF", "docs")));
+
+const hN2 = homeFor("nest-discovered-inside");
+writeSources(hN2, { roots: [{ path: path.join(parent2, "repoE"), kind: "articles" }], discover: DISCOVER2 });
+const n2 = loadSources().roots;
+check("a discovered root INSIDE an explicit root is dropped too",
+	has(n2, path.join(parent2, "repoE")) && !has(n2, path.join(parent2, "repoE", "research")));
+
+const hN3 = homeFor("nest-discovered-pair");
+writeSources(hN3, { roots: [], discover: { ...DISCOVER2, parents: [parent2, path.join(parent2, "repoF", "docs")] } });
+const n3 = loadSources().roots;
+check("between two discovered roots the ANCESTOR is kept and the descendant dropped",
+	has(n3, path.join(parent2, "repoF", "docs")) && !has(n3, path.join(parent2, "repoF", "docs", "nested", "docs")));
+check("a shared PREFIX is not containment (…/repoF/doc does not swallow …/repoF/docs)",
+	has(n1, path.join(parent2, "repoF", "docs")));
+
+const hN4 = homeFor("nest-build");
+writeSources(hN4, { roots: [{ path: path.join(parent2, "repoE", "research", "knowledge"), kind: "articles" }], discover: DISCOVER2 });
+let nestStats = null, nestErr = null;
+try { nestStats = await build(); } catch (e) { nestErr = e; }
+check("a REAL build with an explicit root nested in a discovered one does not throw",
+	nestErr === null && nestStats !== null);
+if (nestErr) console.log("     build threw:", nestErr.message);
+check("each file is indexed exactly once", nestStats && nestStats.files === 3 && nestStats.rows === 3);
+const dbN = await openDb(path.join(hN4, "index.db"), {});
+check("the explicit (nested) root is the one that survives", search(dbN, "oscar papa", 5).length === 1);
+check("the dropped ancestor's other files are NOT indexed (explicit scope wins, as before discovery)",
+	search(dbN, "mike november", 5).length === 0);
+dbN.close();
 
 // --- the build actually indexes a discovered root, and honours exclude while walking ---
 const h5 = homeFor("build");
