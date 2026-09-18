@@ -110,37 +110,55 @@ function piHomeWith(packages) {
 	// This is the exact shape sol r1 flagged: the installer runs from a worktree
 	// (~/nana-pi-wt/<lane>) while settings registers the main checkout by relative path. A
 	// lexical guard says "not registered" and `pi install` then loads every extension twice.
+	// The test BUILDS that shape (a throwaway linked worktree of this repo, removed at the end)
+	// instead of asserting the environment it happens to run in — the first version did the
+	// latter and was green in a worktree, red on main (seat catch, 2026-09-18).
 	const common = spawnSync("git", ["-C", repo, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" });
 	if (common.status !== 0) {
 		console.log("SKIP this checkout is not a git repo");
 	} else {
 		const mainCheckout = path.dirname(common.stdout.trim()); // <main clone>/.git -> <main clone>
-		const isWorktree = path.resolve(mainCheckout) !== path.resolve(repo);
-		check("this run is inside a linked worktree of the main clone", isWorktree, `${repo} vs ${mainCheckout}`);
-		const home = piHomeWith(null);
-		const agent = path.join(home, ".pi", "agent");
-		const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
-		fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel] }, null, 2));
-		const state = registrationState(resolveLayout({ home }));
-		check("the MAIN clone's relative entry marks this WORKTREE as registered", state.present, JSON.stringify(state));
-		const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
-		check("install does not run `pi install` for a worktree of a registered repo", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
-		check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 1);
+		const wt = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-wt-"));
+		const added = spawnSync("git", ["-C", repo, "worktree", "add", "--detach", "-q", wt, "HEAD"], { encoding: "utf8" });
+		if (added.status !== 0) {
+			console.log("SKIP could not create a throwaway worktree: " + added.stderr.trim());
+			fs.rmSync(wt, { recursive: true, force: true });
+		} else {
+			try {
+				const wtCli = path.join(wt, "packages", "nana-setup", "bin", "nana-setup.mjs");
+				const wtSteps = await import(new URL("file://" + path.join(wt, "packages", "nana-setup", "lib", "steps.mjs")).href);
+				const wtPaths = await import(new URL("file://" + path.join(wt, "packages", "nana-setup", "lib", "paths.mjs")).href);
+				check("the throwaway worktree is a linked worktree of the main clone", fs.realpathSync(wtPaths.repoRoot) === fs.realpathSync(wt) && fs.realpathSync(mainCheckout) !== fs.realpathSync(wt), `${wtPaths.repoRoot} vs ${mainCheckout}`);
+				const home = piHomeWith(null);
+				const agent = path.join(home, ".pi", "agent");
+				const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
+				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel] }, null, 2));
+				const state = wtSteps.registrationState(wtPaths.resolveLayout({ home }));
+				check("the MAIN clone's relative entry marks the WORKTREE as registered", state.present, JSON.stringify(state));
+				const r = spawnSync(process.execPath, [wtCli, "install", "--home", home], { encoding: "utf8" });
+				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
+				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 1);
 
-		// the `~/...` spelling of the same clone
-		const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;
-		if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
-		else {
-			fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm] }, null, 2));
-			check(`a \`~\` entry (${tildeForm}) is expanded and matched`, registrationState(resolveLayout({ home })).present);
+				// the `~/...` spelling of the same clone
+				const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;
+				if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
+				else {
+					fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm] }, null, 2));
+					check(`a \`~\` entry (${tildeForm}) is expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+				}
+
+				// an unrelated repo still is not us
+				const other = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
+				tmps.push(other);
+				spawnSync("git", ["-C", other, "init", "-q"], { encoding: "utf8" });
+				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [other] }, null, 2));
+				check("a different git repo is NOT a match", !wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+			} finally {
+				spawnSync("git", ["-C", repo, "worktree", "remove", "--force", wt], { encoding: "utf8" });
+				fs.rmSync(wt, { recursive: true, force: true });
+				spawnSync("git", ["-C", repo, "worktree", "prune"], { encoding: "utf8" });
+			}
 		}
-
-		// an unrelated repo still is not us
-		const other = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
-		tmps.push(other);
-		spawnSync("git", ["-C", other, "init", "-q"], { encoding: "utf8" });
-		fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [other] }, null, 2));
-		check("a different git repo is NOT a match", !registrationState(resolveLayout({ home })).present);
 	}
 }
 

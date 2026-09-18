@@ -1,0 +1,5 @@
+# Review brief — nana-setup (round 3, the cap)
+
+Rounds 1 and 2 are in the main checkout at ~/nana-pi/docs/reviews/nana-setup-2026-09-18/ (review-r1.md, review-r2.md) — read both. The author folded r2 in the top commit on this branch (`git show HEAD --stat`, `git diff HEAD~1 -- packages/nana-setup`). Read-only tools only.
+
+Verify the three r2 items with the same concrete inputs and say FIXED / NOT FIXED / PARTIAL with file:line: (1) the settings write now runs under an O_EXCL lock with the re-compare AFTER the fsynced temp write and immediately before rename (the documented POSIX floor is the only residual); (2) `commandInvokes` parses argv (`echo bash /tmp/nana-objective.sh` must not match; `NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook` must); (3) `remoteMatches` requires host github.com and path j-wanger/nana-pi exactly. Then hunt regressions in the new code only (lock reclaim logic, tokenizer, URL parsing). This is the last round: anything you rate below HIGH is carried as a residual, so rank honestly. One line at the end: `VERDICT: LAND` or `VERDICT: BLOCK`.
