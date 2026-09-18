@@ -4,6 +4,9 @@
 	"description": "Nana's pi extension pack: permission gate, post-edit format/lint triggers, session lifecycle journal, desktop notifications, scaffold/adopt + dev skills",
 	"keywords": ["pi-package"],
 	"license": "MIT",
+	"bin": {
+		"pi-review": "bin/pi-review.mjs"
+	},
 	"pi": {
 		"extensions": ["./extensions"],
 		"skills": ["./skills"]

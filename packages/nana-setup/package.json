@@ -1,0 +1,10 @@
+{
+	"name": "nana-setup",
+	"version": "0.1.0",
+	"description": "nana-setup: one-command bootstrap for the whole nana experience — the Claude Code half (hooks, rules, settings wiring, two-tier auto-memory), user-scope pi config, the pi-review PATH entry and the desk launchd service",
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"nana-setup": "./bin/nana-setup.mjs"
+	}
+}

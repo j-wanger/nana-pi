@@ -21,6 +21,11 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   `UserPromptSubmit` hook and from pi's `before_agent_start` via one shared `hook` CLI.
 - `packages/nana-stage/` — the staged-block layer behind the UI-centric frontend: validates,
   HMAC-signs and ledgers code-authored blocks a tool returns.
+- `packages/nana-setup/` — the one-command bootstrap for everything outside pi: the Claude Code
+  hooks/rules/`settings.json` wiring, the two-tier auto-memory, user-scope pi config, `pi-review`
+  on PATH, the desk launchd service. The canonical copies of those hooks and rules live HERE
+  (`claude/`), symlinked into `~/.claude` — edit them in the repo, never in `~/.claude`.
+  `nana-setup doctor` is the ✓/✗ instrument for a machine.
 - `apps/desk/` — "nana code": the local browser dashboard over pi sessions (rail, live
   transcripts, spawn/fork/rename, the wire). Its README carries the Contract notes and
   Known limits — read them before changing its surface.
