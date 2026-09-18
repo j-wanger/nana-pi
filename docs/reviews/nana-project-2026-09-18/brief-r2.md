@@ -1,0 +1,5 @@
+# Review brief — project seeds + `nana-setup project` (round 2)
+
+Round 1 (your review: ~/nana-pi/docs/reviews/nana-project-2026-09-18/review-r1.md in the main checkout — read it) was BLOCK with 1 HIGH + 4 MEDIUM + 1 LOW. The author folded all six in the top commit on this branch (`git show HEAD --stat`; `git diff HEAD~1`). Read-only tools only.
+
+For EACH r1 finding, verify the fix against the code with the same concrete input and say FIXED / NOT FIXED / PARTIAL with file:line. Then hunt regressions in the new code only: the shared `seedFile` lstat rule (does `install`'s seeding still behave; does a symlink to an EXISTING correct file now get reported as skipped in a way that misleads `--check`), the async spawn + timer refresh (listener leaks, timers holding the process open, exit codes on timeout), `--check` reasons, the copier fallback rendering with a real name containing shell-special characters. Rank BLOCK/HIGH/MEDIUM/LOW with a failing input. One line at the end: `VERDICT: LAND` or `VERDICT: BLOCK` (BLOCK only for a real BLOCK/HIGH).

@@ -6,7 +6,7 @@
 
 ## Landed today (2026-09-18, main `7a90d3a`)
 
-- **nana-setup LANDED 2026-09-18** (`packages/nana-setup`): the Claude Code half + user-scope pi config + PATH + desk service install from this repo (`node packages/nana-setup/bin/nana-setup.mjs install|doctor`); hooks/rules are symlinks into the repo. Fresh-machine feel test not yet run. Corpus `docs/reviews/nana-setup-2026-09-18/`.
+- **nana-setup LANDED 2026-09-18** (`packages/nana-setup`): the Claude Code half + user-scope pi config + PATH + desk service install from this repo (`node packages/nana-setup/bin/nana-setup.mjs install|doctor`); hooks/rules are symlinks into the repo. `nana-setup project [dir]` (09-18, v0.5.0) makes a blank folder a nana project — OBJECTIVE/HANDOFF/sessions seeds shared with the copier template and adopt-structure. Fresh-machine feel test not yet run. Corpora `docs/reviews/nana-setup-2026-09-18/`, `docs/reviews/nana-project-2026-09-18/`.
 
 - **Per-repo objective** (`39f2462`) — `nana-objective` now reads a repo's own `OBJECTIVE.md` when the owner opts in via `objective.projectFile` in `~/.pi/agent/nana-pack.json`, prints the umbrella line alongside it, and matches the Claude Code hook's behaviour. Live-verified in `~/aml-desk` (which owns an `OBJECTIVE.md`); repos without one keep seeing the umbrella only.
 - **`pi-review` moved into the pack** (`f264dd5`) — canonical source is `packages/nana-pack/bin/{pi-review,review-round}.mjs` (the Codex-stall watchdog + the 3-round cap), same CLI contract and exit codes; `~/.local/bin/pi-review` puts it on PATH so reviews run from any cwd. nana-agent-loop keeps a spawn forwarder + re-export at the old `app/scripts` paths. Round-cap test ported as a zero-dep node test (21 checks).

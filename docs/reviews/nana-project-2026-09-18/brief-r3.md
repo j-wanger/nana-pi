@@ -1,0 +1,5 @@
+# Review brief — project seeds + `nana-setup project` (round 3, the cap)
+
+Rounds 1 and 2 are in the main checkout at ~/nana-pi/docs/reviews/nana-project-2026-09-18/ (review-r1.md, review-r2.md) — read both. The author folded r2 in the top commit on this branch (`git show HEAD --stat`; `git diff HEAD~1`). Read-only tools only.
+
+Verify the four r2 items with the same concrete inputs and say FIXED / NOT FIXED / PARTIAL with file:line: (1) the adopt-structure fallback commands take the name from an env var, never command text, and the `--name` path reaches file content only via a literal split/join; (2) `project --check` reads ✓ only for regular files (dangling symlink / directory → ✗, exit 1; CLAUDE.md alias rule); (3) a symlinked `nana-personal.md` is ✗ in install and doctor, summary never says "in place"; (4) CI residual recorded honestly (the repo has no CI). Then hunt regressions in the new code only (`fileState`, `PROBLEM` status plumbing through install's summary/exit code, the CLAUDE.md row logic). This is the last round: anything you rate below HIGH is carried as a residual, so rank honestly. One line at the end: `VERDICT: LAND` or `VERDICT: BLOCK`.
