@@ -8,6 +8,8 @@ export const CREATED = "created";
 export const UPDATED = "updated";
 export const UNCHANGED = "unchanged";
 export const SKIPPED = "skipped";
+/** Something on disk is wrong and only a human can fix it: printed ✗, never "already in place". */
+export const PROBLEM = "problem";
 
 export function stamp(d = new Date()) {
 	return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;

@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CREATED, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
+import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.mjs";
 
@@ -17,6 +17,15 @@ export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
 const skip = (label) => ({ label, status: SKIPPED, detail: "skipped (win32)" });
+
+/** lstat that never throws — the link itself, never what it points at. */
+export function lstatSafe(p) {
+	try {
+		return fs.lstatSync(p);
+	} catch {
+		return null;
+	}
+}
 
 /* ---------------------------------------------------------------- claude hooks and rules */
 
@@ -37,12 +46,23 @@ export function stepRules(layout, o) {
 	});
 	out.push({ label: "rule nana-soul.md", ...soul });
 	// PRIVATE, and never in the repo: created from the example only when absent, then never
-	// touched again — not even to compare it.
-	const personal = seedFile(
-		path.join(layout.rulesDir, "nana-personal.md"),
-		fs.readFileSync(path.join(pkgRoot, "claude", "rules", "nana-personal.example.md"), "utf8"),
-		o,
-	);
+	// touched again — not even to compare it. It must be a REGULAR file: a symlink there points
+	// the owner's private text at some other file — plausibly one inside this repo, which is how
+	// a private rule ends up committed. seedFile would leave it alone and the run would then read
+	// as "everything already in place", so this is reported ✗ instead (sol r2).
+	const personalPath = path.join(layout.rulesDir, "nana-personal.md");
+	const pst = lstatSafe(personalPath);
+	if (pst && !pst.isFile()) {
+		out.push({
+			label: "rule nana-personal.md (private)",
+			status: PROBLEM,
+			detail: pst.isSymbolicLink()
+				? "private rule is a symlink — replace with a regular file"
+				: "private rule is not a regular file — replace with a regular file",
+		});
+		return out;
+	}
+	const personal = seedFile(personalPath, fs.readFileSync(path.join(pkgRoot, "claude", "rules", "nana-personal.example.md"), "utf8"), o);
 	out.push({ label: "rule nana-personal.md (private)", ...personal });
 	return out;
 }

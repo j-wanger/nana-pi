@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { DESK_SERVER, HOOKS, PI_REVIEW_BIN, objectiveTarget, readPiPackConfig, registrationState } from "./steps.mjs";
+import { DESK_SERVER, HOOKS, PI_REVIEW_BIN, lstatSafe, objectiveTarget, readPiPackConfig, registrationState } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -44,8 +44,19 @@ export function diagnose(layout, opts = {}) {
 	}
 	const soul = path.join(pkgRoot, "claude", "rules", "nana-soul.md");
 	add(linkOk(path.join(layout.rulesDir, "nana-soul.md"), soul) ? OK : FAIL, "rule nana-soul.md", `-> ${soul}`);
+	// lstat, not existsSync: this file must be a REGULAR file. A symlink here aims the owner's
+	// private text at another file — possibly one in this repo — and existsSync would call that ✓.
 	const personal = path.join(layout.rulesDir, "nana-personal.md");
-	add(fs.existsSync(personal) ? OK : FAIL, "rule nana-personal.md", "private — never in the repo");
+	const pst = lstatSafe(personal);
+	add(
+		pst?.isFile() ? OK : FAIL,
+		"rule nana-personal.md",
+		pst?.isSymbolicLink()
+			? "private rule is a symlink — replace with a regular file"
+			: pst
+				? "private rule is not a regular file — replace with a regular file"
+				: "private — never in the repo",
+	);
 
 	let settings = null;
 	let parseError = null;

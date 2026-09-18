@@ -28,6 +28,11 @@ export function today(d = new Date()) {
  * Fill the two placeholders the seeds carry and NOTHING else. The seeds keep `<date>` and
  * `<name>` literal on purpose (copier has no date variable, so the rendered template ships them
  * unfilled and says so); every other `<...>` in them is draft text the owner is meant to replace.
+ *
+ * `split().join()`, deliberately, NOT `replaceAll` (sol r2): `replaceAll` gives the REPLACEMENT
+ * string special meaning — `$&`, `$'`, `$1` — even when the pattern is a plain string, so a
+ * project named `$&` would smear the pattern through its own title. split/join is literal. The
+ * name never reaches a shell either: it only ever becomes file CONTENT here and in `agentsStub`.
  */
 export function fillSeed(text, { name, date }) {
 	return text.split("<name>").join(name).split("<date>").join(date);
@@ -264,6 +269,32 @@ export async function setupProject(dir, layout, opts = {}) {
  */
 export function checkProject(dir, layout = {}) {
 	const has = (rel) => Boolean(lstat(path.join(dir, ...rel.split("/"))));
+	/**
+	 * A seed counts only as a REGULAR file. Setup deliberately refuses to write through a
+	 * symlink or into a directory sitting at a seed path — and the thing it refused is exactly
+	 * the thing `--check` must not print ✓ over: the objective still cannot be read (sol r2).
+	 */
+	const fileState = (rel) => {
+		const p = path.join(dir, ...rel.split("/"));
+		const st = lstat(p);
+		if (!st) return { ok: false, found: null };
+		if (st.isSymbolicLink()) {
+			let to = "";
+			try {
+				to = ` -> ${fs.readlinkSync(p)}`;
+			} catch {
+				/* unreadable link */
+			}
+			return { ok: false, found: `a symlink${to}` };
+		}
+		if (st.isDirectory()) return { ok: false, found: "a directory" };
+		if (!st.isFile()) return { ok: false, found: "not a regular file" };
+		return { ok: true, found: null };
+	};
+	const seed = (rel, meaning, label = rel) => {
+		const s = fileState(rel);
+		return { label, ok: s.ok, detail: s.found ? `${s.found} is there — not a readable ${rel}` : meaning };
+	};
 	const month = today().slice(0, 7);
 	const checks = [];
 
@@ -275,23 +306,54 @@ export function checkProject(dir, layout = {}) {
 	}
 
 	checks.push(
-		{ label: "OBJECTIVE.md", ok: has("OBJECTIVE.md"), detail: "the two lines the session-start hook prints" },
-		{ label: "HANDOFF.md", ok: has("HANDOFF.md"), detail: "the frontier" },
-		{ label: "docs/sessions/README.md", ok: has("docs/sessions/README.md"), detail: "the narrative's rules" },
-		{ label: `docs/sessions/${month}.md`, ok: has(`docs/sessions/${month}.md`), detail: "this month's log" },
-		{ label: "AGENTS.md", ok: has("AGENTS.md") || has("CLAUDE.md"), detail: "AGENTS.md (or a CLAUDE.md the project already had)" },
+		seed("OBJECTIVE.md", "the two lines the session-start hook prints"),
+		seed("HANDOFF.md", "the frontier"),
+		seed("docs/sessions/README.md", "the narrative's rules"),
+		seed(`docs/sessions/${month}.md`, "this month's log"),
 	);
+
+	// The navigation file: AGENTS.md as a regular file, or — for a project that already had one
+	// — CLAUDE.md as a regular file of its own.
+	const agents = fileState("AGENTS.md");
+	const claude = fileState("CLAUDE.md");
+	if (agents.ok) checks.push({ label: "AGENTS.md", ok: true, detail: "the navigation file" });
+	else if (agents.found) checks.push({ label: "AGENTS.md", ok: false, detail: `${agents.found} is there — not a readable AGENTS.md` });
+	else checks.push({ label: "AGENTS.md", ok: claude.ok, detail: claude.ok ? "CLAUDE.md, the project's own — no AGENTS.md by design" : "AGENTS.md (or a CLAUDE.md the project already had)" });
+
+	// CLAUDE.md is the ONE path where a symlink is the healthy state: `project` writes it as a
+	// relative link to AGENTS.md (win32 has no usable symlink, so a copy is healthy there too).
+	// Judged only when there is an AGENTS.md for it to alias — otherwise it IS the nav file above.
+	if (agents.ok && lstat(path.join(dir, "CLAUDE.md"))) {
+		const st = lstat(path.join(dir, "CLAUDE.md"));
+		let target = null;
+		if (st.isSymbolicLink()) {
+			try {
+				target = fs.readlinkSync(path.join(dir, "CLAUDE.md"));
+			} catch {
+				/* unreadable link */
+			}
+		}
+		const linked = st.isSymbolicLink() && path.basename(target || "") === "AGENTS.md";
+		checks.push({
+			label: "CLAUDE.md",
+			ok: linked || st.isFile(),
+			detail: linked ? "-> AGENTS.md" : st.isFile() ? "a copy of AGENTS.md (win32 has no usable symlink)" : st.isDirectory() ? "a directory is there" : `a symlink -> ${target ?? "?"} — expected AGENTS.md`,
+		});
+	}
 
 	const user = readPiPackConfig(layout);
 	const shadowed = Array.isArray(user?.postEdit?.commands) && user.postEdit.commands.length > 0;
+	const pack = fileState(".pi/nana-pack.json");
 	checks.push({
 		label: ".pi/nana-pack.json",
-		ok: has(".pi/nana-pack.json") || shadowed,
-		detail: has(".pi/nana-pack.json")
+		ok: pack.ok || (!pack.found && shadowed),
+		detail: pack.ok
 			? "post-edit on-ramp"
-			: shadowed
-				? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
-				: "post-edit on-ramp",
+			: pack.found
+				? `${pack.found} is there — not a readable .pi/nana-pack.json`
+				: shadowed
+					? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
+					: "post-edit on-ramp",
 	});
 	return checks;
 }

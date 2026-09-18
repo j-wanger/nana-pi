@@ -160,6 +160,49 @@ function walk(dir) {
 	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
+
+	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
+	// still cannot be read (sol r2).
+	const c = run(["project", dir, "--check", "--home", home]);
+	check("--check: a dangling symlink at OBJECTIVE.md reads ✗", /✗ OBJECTIVE\.md\s+a symlink -> .* is there — not a readable OBJECTIVE\.md/.test(c.stdout), c.stdout);
+	check("--check: a directory at HANDOFF.md reads ✗", /✗ HANDOFF\.md\s+a directory is there — not a readable HANDOFF\.md/.test(c.stdout), c.stdout);
+	check("--check: exits 1 on those", c.status === 1, String(c.status));
+}
+
+/* --- 7b. the project NAME is data: never a shell, never a regex replacement ---------- */
+{
+	const { dir, home } = freshProject();
+	const canary = path.join(tmp("nana-canary-"), "owned");
+	// Every shape that would matter if the name reached a shell ($(), ``, ;) or a regex
+	// replacement ($&, $', $1) — the name only ever becomes file CONTENT.
+	const nasty = `$& $' $1 $(touch ${canary}) \`touch ${canary}\` ; touch ${canary}`;
+	const r = run(["project", dir, "--home", home, "--name", nasty]);
+	check("nasty name: exits 0", r.status === 0, r.stderr);
+	check("nasty name: nothing was executed", !fs.existsSync(canary));
+	check("nasty name: written LITERALLY into the seed ($& is not a regex replacement)", read(path.join(dir, "OBJECTIVE.md")).startsWith(`# Objective and current priority — ${nasty}\n`), read(path.join(dir, "OBJECTIVE.md")).split("\n")[0]);
+	check("nasty name: literal in HANDOFF.md too", read(path.join(dir, "HANDOFF.md")).startsWith(`# Handoff — ${nasty} frontier`));
+	check("nasty name: literal in the AGENTS.md stub", read(path.join(dir, "AGENTS.md")).startsWith(`# ${nasty}\n`));
+}
+
+/* --- 7c. the adopt-structure fallback must pass the name as DATA, not command text ---- */
+{
+	// A doc test on purpose: this text IS the instruction an agent executes, and the same
+	// command line has now carried a shell-injection shape once (sol r2 HIGH). Pin the shape.
+	const skillFile = path.join(repo, "packages", "nana-pack", "skills", "adopt-structure", "SKILL.md");
+	const skillText = read(skillFile);
+	const copierLines = skillText.split("\n").filter((l) => l.includes("uvx copier"));
+	check("SKILL.md: the fallback renders with a project name at all", copierLines.length >= 2, String(copierLines.length));
+	check(
+		"SKILL.md: every fallback command takes the name from an env var",
+		copierLines.every((l) => /--data project_name=(?:"\$NANA_PROJECT_NAME"|\$env:NANA_PROJECT_NAME)(?:\s|$)/.test(l)),
+		copierLines.join(" | "),
+	);
+	check(
+		"SKILL.md: no fallback command interpolates a name placeholder into the command text",
+		copierLines.every((l) => !/project_name=["']?</.test(l)),
+		copierLines.join(" | "),
+	);
+	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
 }
 
 /* --- 8. --check mirrors what setup decided, never fails a deliberate state ------------ */
@@ -182,6 +225,7 @@ function walk(dir) {
 	run(["project", dir, "--home", home2]);
 	const c2 = run(["project", dir, "--check", "--home", home2]);
 	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
+	check("--check: the CLAUDE.md alias reads ✓ as a symlink to AGENTS.md", /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(c2.stdout), c2.stdout);
 	// and it is still ✗ when it is simply missing for no reason
 	const { dir: bare } = freshProject();
 	const c3 = run(["project", bare, "--check", "--home", path.join(tmp("nana-home-"), "h")]);

@@ -26,7 +26,7 @@ of those is optional and reports "skipped" with the reason when it is missing.
 |---|---|---|
 | `nana-objective.sh`, `nana-shared-memory.sh`, `context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
 | `nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
-| `nana-personal.md` (private) | `~/.claude/rules/` | **copied from `nana-personal.example.md`, only when absent**, then never touched |
+| `nana-personal.md` (private) | `~/.claude/rules/` | **copied from `nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
 | SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
@@ -88,6 +88,12 @@ a folder inside an existing repo reads ✓ `inside <root> — no nested repo, by
 `.pi/nana-pack.json` omitted because you have user-scope `postEdit.commands` reads ✓ with that
 reason. A check that failed those would send you round a loop re-running a command that
 correctly does nothing.
+
+**…but a seed must be a REGULAR file to read ✓.** A symlink or a directory sitting at
+`OBJECTIVE.md` is exactly what setup refused to write through, and the objective still cannot
+be read — so `--check` reads ✗ naming what it found, and exits 1. The one path where a symlink
+is the healthy state is `CLAUDE.md`, which `project` writes as a relative link to `AGENTS.md`
+(a copy on win32, which has no usable symlink).
 
 ## What it never does
 
@@ -201,7 +207,7 @@ Environment switches (tests and CI only):
 
 | Variable | Effect |
 |---|---|
-| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — set it in CI, where a silent skip would drop the byte-equality and `_skip_if_exists` invariants |
+| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — it exists so a machine that cannot render never drops the byte-equality and `_skip_if_exists` invariants silently. **Residual (2026-09-18): this repo has no CI workflow at all** — the only `.github/workflows` here belong to the two project *templates*, and nothing in the repo runs these tests automatically. Until there is one, set this by hand on any machine that is meant to exercise the renders; when a repo workflow is added, the job that runs these tests must install `uv` and set `NANA_SETUP_REQUIRE_COPIER: "1"` |
 | `NANA_SETUP_PLATFORM` | forces the win32 branches on a Mac |
 | `NANA_SETUP_KNOWLEDGE_CLI` | points the knowledge refresh at a stub binary |
 | `NANA_SETUP_KNOWLEDGE_DEADLINE_MS` / `NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS` | shrink the refresh deadline and the SIGTERM→SIGKILL grace so the deadline is testable in under a second |
@@ -211,11 +217,11 @@ loudly and counted, never silent.
 
 | File | Covers |
 |---|---|
-| `install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed |
+| `install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, and the private rule as a **symlink** — install ✗ with the fix, a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, green again once it is a regular file |
 | `settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
 | `project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
 | `shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |
 | `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
 | `desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
-| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them; `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |
+| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |

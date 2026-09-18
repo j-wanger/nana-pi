@@ -60,7 +60,7 @@ function parse(argv) {
 	return opts;
 }
 
-const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–" };
+const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", problem: "✗" };
 
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
@@ -76,10 +76,15 @@ function runInstall(opts) {
 	}
 	const changed = results.filter((r) => r.status === "created" || r.status === "updated").length;
 	const skipped = results.filter((r) => r.status === "skipped").length;
+	// A ✗ line means something on disk is wrong and only the owner can fix it. Never let the
+	// summary call such a run "everything was already in place" (sol r2).
+	const problems = results.filter((r) => r.status === "problem").length;
 	console.log(
 		changed === 0
-			? `\n  nothing to do — everything was already in place${skipped ? ` (${skipped} skipped)` : ""}.`
-			: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}, ${results.length - changed - skipped} already in place${skipped ? `, ${skipped} skipped` : ""}.`,
+			? problems
+				? `\n  nothing changed — ${problems} ✗ needs your attention (above).`
+				: `\n  nothing to do — everything was already in place${skipped ? ` (${skipped} skipped)` : ""}.`
+			: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}, ${results.length - changed - skipped - problems} already in place${skipped ? `, ${skipped} skipped` : ""}${problems ? `, ${problems} ✗ needs your attention` : ""}.`,
 	);
 	if (!opts.dryRun) console.log("  next: nana-setup doctor");
 	return 0;

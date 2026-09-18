@@ -69,12 +69,20 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    seed `# Objective and current priority — _tmp`. With the real name, the seeds
    come out of the render already correct and step 6 fills only `<date>`.
 
-   Two separate commands on purpose — `&&` breaks in Windows PowerShell 5.1 —
-   and `node` instead of `sed`, which a native Windows shell does not have.
+   **The name is DATA — put it in an environment variable, never in the command
+   text.** A project called `$(rm -rf ~)` or `` `whoami` `` pasted into a command
+   line is executed by the shell, and a name containing a quote corrupts the
+   argument; assigning it once, in single quotes, and expanding that variable into
+   the `--data` argument passes it through as one literal value. (A name with a
+   single quote in it is typed `'\''` in bash and doubled `''` in PowerShell.)
+
+   Separate commands on purpose — `&&` breaks in Windows PowerShell 5.1 — and
+   `node` instead of `sed`, which a native Windows shell does not have.
    macOS / Linux:
 
    ```bash
-   uvx copier copy --defaults --data language=python --data project_name="<the project's name>" https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
+   NANA_PROJECT_NAME='<the project name>'
+   uvx copier copy --defaults --data language=python --data project_name="$NANA_PROJECT_NAME" https://github.com/j-wanger/nana-pi.git /tmp/nana-canon
    node -e "const s=require('fs').readFileSync('/tmp/nana-canon/AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
    ```
 
@@ -82,7 +90,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    `node -e` line is identical in both shells):
 
    ```powershell
-   uvx copier copy --defaults --data language=python --data project_name="<the project's name>" https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
+   $env:NANA_PROJECT_NAME = '<the project name>'
+   uvx copier copy --defaults --data language=python --data project_name=$env:NANA_PROJECT_NAME https://github.com/j-wanger/nana-pi.git $env:TEMP\nana-canon
    node -e "const s=require('fs').readFileSync(process.env.TEMP + '\\nana-canon\\AGENTS.md','utf8');const i=s.indexOf('## Working under nana-pi');if(i!==-1)process.stdout.write(s.slice(i))"
    ```
 

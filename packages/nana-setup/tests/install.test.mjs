@@ -180,6 +180,32 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	check("objective seed: created when objective.path resolves to it", fs.existsSync(path.join(pointsHere, ".pi", "agent", "nana-objective.md")));
 }
 
+/* --- the private rule must be a REGULAR file, never a symlink ------------------------ */
+{
+	const home = freshHome();
+	run(["install", "--home", home]);
+	const personal = path.join(home, ".claude", "rules", "nana-personal.md");
+	const elsewhere = path.join(home, "private-notes.md");
+	// The exact shape sol r2 named: byte-correct content, reached through a LINK. seedFile
+	// leaves a symlink alone, so without a check of its own the run would read as healthy —
+	// while the owner's private text actually lives wherever that link points (plausibly in
+	// this repo, which is how a private rule gets committed).
+	fs.renameSync(personal, elsewhere);
+	fs.symlinkSync(elsewhere, personal);
+	const r = run(["install", "--home", home]);
+	check("private rule symlink: install reports ✗ with the fix", /rule nana-personal\.md \(private\)\s+problem\s+private rule is a symlink — replace with a regular file/.test(r.stdout), r.stdout);
+	check("private rule symlink: the ✗ symbol is printed", /✗ rule nana-personal\.md \(private\)/.test(r.stdout), r.stdout);
+	check("private rule symlink: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
+	check("private rule symlink: nothing is written through the link", fs.lstatSync(personal).isSymbolicLink());
+	const d = run(["doctor", "--home", home]);
+	check("private rule symlink: doctor reads ✗ with the same message", /✗ rule nana-personal\.md\s+private rule is a symlink — replace with a regular file/.test(d.stdout), d.stdout);
+	check("private rule symlink: doctor exits 1", d.status === 1, String(d.status));
+	// and a regular file is healthy again
+	fs.unlinkSync(personal);
+	fs.renameSync(elsewhere, personal);
+	check("private rule as a regular file: doctor exits 0", run(["doctor", "--home", home]).status === 0);
+}
+
 function walk(dir) {
 	const out = [];
 	for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
