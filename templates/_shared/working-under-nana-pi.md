@@ -26,9 +26,11 @@ setup. What that means while you work here:
   ```
 
 - **Handoff on compaction.** When the context compacts, the pack writes the
-  summary to `.pi/handoff.md` and re-injects it into the next fresh session in this
-  directory — continuity across the context window, no config needed. Treat it as
-  background state; update it in place when it goes stale; only a human deletes it.
+  summary to a user-scope store (`~/.pi/agent/handoffs/<hash>.md`, path printed) and
+  re-injects it into the next fresh session in this exact directory, labelled as an
+  agent-written summary with lower authority than OBJECTIVE.md / AGENTS.md / DOCTRINE.
+  Past 7 days it becomes a one-line pointer. Treat it as background state; update it in
+  place when it goes stale. A repo `.pi/handoff.md` is never injected.
 - **Journal.** Session events (start / compact / shutdown) append to
   `~/.pi/agent/nana-journal.jsonl` for observability.
 - **Notify.** A desktop notification fires when the agent settles and is waiting on

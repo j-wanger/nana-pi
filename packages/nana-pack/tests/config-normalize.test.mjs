@@ -29,7 +29,7 @@ const LEAVES = {
 	postEdit: { commands: ["commands", [{ match: "\\.ts$", run: "true" }]] },
 	notify: { enabled: ["bool", false], headless: ["bool", true] },
 	journal: { enabled: ["bool", false], path: ["path", path.join(fs.mkdtempSync(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
-	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"] },
+	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"], staleAfterDays: ["days", 3] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
 };
@@ -38,12 +38,12 @@ const DEFAULTS = {
 	postEdit: { commands: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
-	handoff: { enabled: true, path: null },
+	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
 	receipts: { enabled: true, dir: null },
 };
 const validFor = (k, v) =>
-	k === "bool" ? typeof v === "boolean" : k === "path" ? v === null || typeof v === "string" : Array.isArray(v) && v.length === 0; // [] is the only valid array among VALUES
+	k === "bool" ? typeof v === "boolean" : k === "days" ? typeof v === "number" && Number.isFinite(v) && v > 0 : k === "path" ? v === null || typeof v === "string" : Array.isArray(v) && v.length === 0; // [] is the only valid array among VALUES
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 let fails = 0, total = 0;
@@ -63,7 +63,7 @@ function isTyped(c) {
 		&& Array.isArray(c.postEdit.commands) && c.postEdit.commands.every((x) => typeof x.match === "string" && typeof x.run === "string")
 		&& typeof c.notify.enabled === "boolean" && typeof c.notify.headless === "boolean"
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
-		&& typeof c.handoff.enabled === "boolean" && nul(c.handoff.path)
+		&& typeof c.handoff.enabled === "boolean" && nul(c.handoff.path) && typeof c.handoff.staleAfterDays === "number" && c.handoff.staleAfterDays > 0
 		&& typeof c.objective.enabled === "boolean" && nul(c.objective.path) && nul(c.objective.projectFile)
 		&& typeof c.receipts.enabled === "boolean" && nul(c.receipts.dir);
 }
@@ -166,6 +166,10 @@ console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total
 for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 
 // ── named cases ──
+for (const v of [0, -1, 1e400]) {
+	const r = load(env({ user: { handoff: { staleAfterDays: v } } }));
+	named(`handoff.staleAfterDays=${v}: not a positive finite number → default 7`, !r.threw && r.cfg.handoff.staleAfterDays === 7);
+}
 {
 	const r = load(env({ user: { postEdit: { commands: null } } }));
 	named("sol {postEdit:{commands:null}}: no throw, commands = []", !r.threw && eq(r.cfg.postEdit.commands, []));
