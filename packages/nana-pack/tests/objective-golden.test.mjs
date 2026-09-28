@@ -24,7 +24,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 const enter = (w) => { process.env.HOME = w.home; if (w.agentDir) process.env.PI_CODING_AGENT_DIR = w.agentDir; else delete process.env.PI_CODING_AGENT_DIR; };
 const leave = () => { process.env.HOME = origHome; delete process.env.PI_CODING_AGENT_DIR; };
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
-const { LINE_CAP, OUTPUT_CAP, PATH_CAP, finish, displayPath, ownerVouched, trustRecord, produceObjective } = await import(new URL("../lib/objective.ts", import.meta.url).href);
+const { LINE_CAP, OUTPUT_CAP, PATH_CAP, finish, displayPath, ownerVouched, trustRecord, produceObjective, objectivePath } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 
 const OBJ = (s) => `**Objective (since 2026-09-28):** ${s}`;
 const PRI = (s) => `**Current priority (since 2026-09-28):** ${s}`;
@@ -853,8 +853,42 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		{
 			const w = productWorld(); writeStore(w, { [w.product]: false }); fs.chmodSync(store(w), 0o444);
 			await provenance("store present but not writable", w, true, { problem: "not writable", object: store(w) });
+			// …with an AFFIRMATIVE record there, pi's get() still reads it (its lock lives in the folder): not labelled
+			const w2 = productWorld(); writeStore(w2, { [w2.product]: true }); fs.chmodSync(store(w2), 0o444);
+			await provenance("store not writable, affirmative record, folder writable", w2, false);
+		}
+		// T14 (r5): an AFFIRMATIVE record in a store whose FOLDER is not writable. pi's get() takes its lock
+		// (mkdir <store>.lock) in that folder, so it THROWS and pi treats the project as untrusted — we must
+		// label too (saying vouched there is fail-open), with the folder remedy. Writable again → cleared.
+		{
+			const w = productWorld(); const ro = path.join(w.home, "ro"); fs.mkdirSync(ro); w.agentDir = ro;
+			fs.writeFileSync(path.join(ro, "trust.json"), JSON.stringify({ [w.product]: true })); fs.chmodSync(ro, 0o555);
+			if (piMod) {
+				enter(w);
+				let err = null;
+				try { new piMod.ProjectTrustStore(piMod.getAgentDir()).get(w.product); } catch (e) { err = e; } finally { leave(); }
+				check("T14 WHY: pi's own get() throws on an affirmative store in an unwritable folder (lock mkdir)", err?.code === "EACCES" && String(err.message).includes(".lock"), String(err));
+			}
+			await provenance("affirmative record, folder not writable", w, true, { problem: "folder not writable", object: ro });
+			fs.chmodSync(ro, 0o755);
+			await provenance("affirmative record, folder writable again", w, false);
 		}
 	}
+}
+// T15 (r5): nana-objective.md resolves through piAgentDir(), the dir the trust store is read from.
+{
+	const w = world({ config: false, umbrella: null });
+	const alt = path.join(w.home, "alt-agent"); fs.mkdirSync(alt); w.agentDir = alt;
+	const altFile = path.join(alt, "nana-objective.md"); fs.writeFileSync(altFile, UMBRELLA);
+	enter(w);
+	try {
+		check("T15 objectivePath default: <PI_CODING_AGENT_DIR>/nana-objective.md", objectivePath({ path: null }) === altFile, objectivePath({ path: null }));
+		check("T15 objectivePath relative: resolves against the active agent dir", objectivePath({ path: "x/o.md" }) === path.join(alt, "x", "o.md"));
+		check("T15 objectivePath ~/: still the home dir", objectivePath({ path: "~/o.md" }) === path.join(w.home, "o.md"));
+	} finally { leave(); }
+	const t = await golden("T15 default objective under PI_CODING_AGENT_DIR", w, path.join(w.home, "elsewhere"), () => {});
+	check("T15 both runtimes read the active agent dir's nana-objective.md", t.includes(`governing: ${altFile}\n`), t);
+	enter(w); try { check("T15 unset override: default ~/.pi/agent", (delete process.env.PI_CODING_AGENT_DIR, objectivePath({ path: null })) === path.join(w.home, ".pi", "agent", "nana-objective.md")); } finally { leave(); }
 }
 
 fs.rmSync(scratch, { recursive: true, force: true });

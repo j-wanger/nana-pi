@@ -38,7 +38,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { piTrustStorePath } from "./gate-paths.ts";
+import { piAgentDir, piTrustStorePath } from "./gate-paths.ts";
 
 /** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
@@ -76,14 +76,16 @@ export interface ObjectiveResult {
 	notices: string[];
 }
 
-const agentDir = () => path.join(os.homedir(), ".pi", "agent");
-
-/** `~/` expands; a RELATIVE path resolves against ~/.pi/agent and NEVER against cwd. */
+/**
+ * `~/` expands; a RELATIVE path resolves against pi's ACTIVE agent dir (gate-paths' piAgentDir():
+ * PI_CODING_AGENT_DIR when set, else ~/.pi/agent) and NEVER against the session cwd. The default
+ * (no path) is <active agent dir>/nana-objective.md — the same dir the trust store is read from.
+ */
 export function objectivePath(o: ObjectiveSettings): string {
-	const p = o.path ?? path.join(agentDir(), "nana-objective.md");
+	const p = o.path ?? path.join(piAgentDir(), "nana-objective.md");
 	if (p === "~") return os.homedir();
 	if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
-	return path.isAbsolute(p) ? p : path.join(agentDir(), p);
+	return path.isAbsolute(p) ? p : path.join(piAgentDir(), p);
 }
 
 function isSymlink(file: string): boolean {
@@ -354,15 +356,22 @@ export interface TrustRecord {
  * getEntry first) and cannot repair a foreign-owned, unreadable or non-file one.
  * A missing store is "nothing recorded". When not vouched, `problem` also covers what would stop
  * /trust WRITING (writeProblem): a folder problem outranks a store problem, since fixing the
- * store needs the folder. The predicate never depends on `problem`. Opened non-blocking so a FIFO can never stall a hook.
+ * store needs the folder. ONE exception where the predicate depends on writability: a folder
+ * problem (not writable / not a folder) makes even an affirmative record NOT vouched, because pi's
+ * own get() locks in that folder and throws there, so pi treats the project as untrusted.
+ * Opened non-blocking so a FIFO can never stall a hook.
  */
 export function trustRecord(dir: string): TrustRecord {
 	const store = piTrustStorePath();
 	let exists = true;
 	const result = (vouched: boolean, readProblem: TrustStoreProblem | null): TrustRecord => {
-		if (vouched) return { vouched, store, problem: null, object: store };
 		const w = writeProblem(store, exists);
-		if (w && (w.problem === "folder not writable" || w.problem === "path is not a folder")) return { vouched, store, ...w };
+		// A folder problem overrides even an affirmative record: pi's get() takes its lock (mkdir
+		// <store>.lock) in that folder, so it THROWS there and pi treats the project as untrusted.
+		// We must not say vouched where pi says untrusted (fail-open). A merely read-only STORE file
+		// does not: pi's lock lives in the folder, so its get() still reads the `true`.
+		if (w && (w.problem === "folder not writable" || w.problem === "path is not a folder")) return { vouched: false, store, ...w };
+		if (vouched) return { vouched, store, problem: null, object: store };
 		if (readProblem) return { vouched, store, problem: readProblem, object: store };
 		return w ? { vouched, store, ...w } : { vouched, store, problem: null, object: store };
 	};

@@ -514,9 +514,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
     follows.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
-  to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
-  (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
-  against `~/.pi/agent`, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
+  to say which of those lines its spend serves. Default source `nana-objective.md` in pi's active
+  agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`; relocate with `objective.path`, a leading
+  `~/` is expanded and a RELATIVE path resolves against that same agent dir, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
   never other file content — each capped on its own at 1500 chars, so a long one cannot
   push the other out (overall output ≤ 12000 chars); an `objective_pickup`
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
