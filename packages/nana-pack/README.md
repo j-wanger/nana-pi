@@ -106,7 +106,11 @@ loaded. Not seeing it is not proof of the opposite — it is also absent in prin
 ## Config (all optional)
 
 User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
-read live on every event — edits apply without restarting). One exception: **`objective`
+read on every event). Every non-gate block applies live, without restarting. The **`gate`
+block** applies live only when it *tightens* (an added extra/protected pattern, a removed
+allow pattern, a stop); anything that *loosens* it (an added allow pattern, a removed deny)
+takes effect at the next session start or **`/reload`**, and is journaled
+`gate_policy_widened`. One exception: **`objective`
 is user-scope only** — project config never contributes to it, trusted or not.
 
 - **Project config needs a real trust decision.** *Changed:* it used to be honored whenever
@@ -129,14 +133,18 @@ is user-scope only** — project config never contributes to it, trusted or not.
   - broken when pi **starts** (or restarts): the gate **blocks every bash / powershell /
     edit / write call**, interactive sessions included, with `nana-gate: user nana-pack.json
     gate block is malformed — repair it (<file>:<problem>)`, until the file is valid again.
-    Edits apply live, so a typo costs one repair.
+    The repair lifts the stop live; allow patterns in the repaired file apply from the next
+    session start or `/reload`.
   The **`gate` block of a nana-trusted project file** follows the same rule: broken mid-session
   keeps the last valid project gate this process loaded; broken at start blocks every gated
   call with `nana-gate: project nana-pack.json gate block is malformed — repair it
   (<file>:<problem>)` — it never silently drops the project's denies / protected paths or
   brings back a user exception the project had cancelled. (If both files are broken the user
-  stop is reported.) The repair is the owner's, outside the gated agent: fix or delete
-  `<cwd>/.pi/nana-pack.json`.
+  stop is reported.) **Owner recovery, both scopes** (malformed or over-cap — more than 200
+  `extraPatterns` / `protectedPaths` entries): the STOP has no in-pi exception, so repair the
+  named file with **any editor outside pi** — `~/.pi/agent/nana-pack.json` (user) or
+  `<cwd>/.pi/nana-pack.json` (trusted project) — **or delete it**: missing means defaults,
+  which also discards that scope's custom denies and protected paths.
   No copy of the policy is saved to disk: a saved "last good" file could be forged by the very
   agent the gate constrains, so after a restart nothing but a valid `nana-pack.json` can open
   the gate. A missing file is not malformed — it means the defaults (no project contribution).
@@ -167,12 +175,83 @@ is user-scope only** — project config never contributes to it, trusted or not.
 ## Behavior notes
 
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
-  outright. Interactively, "Block" is the default choice. Built-in patterns cover
-  `rm -rf`-family, `sudo`, force-push, `git reset --hard`/`clean -f`, `chmod 777`,
-  `dd of=/dev/`, `mkfs`, shutdown/reboot, `Remove-Item -Recurse/-Force`, plus protected
-  paths (`auth.json`, `settings.json`, `.ssh`, `.env*`) checked in commands AND edit/write targets.
-- **The gate is advisory-by-load-path** — a pi run without the extension has no gate.
-  Unattended enforcement stays at the container/sandbox layer.
+  outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
+  Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
+  `r''m`) or `--force`, `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
+  `git reset --hard`, `git clean -f`/`--force`, `git checkout -- .`, `git restore .`,
+  `git branch -D`, `git stash drop|clear`, `find -delete`/`-exec rm`, `rsync --delete`,
+  `truncate`, `shred`, `python -c`/`node -e` deleting files, `chmod 777`, `dd of=/dev/`,
+  `mkfs`, shutdown/reboot/halt (as a command, not as a word: `echo reboot` passes),
+  PowerShell `Remove-Item`/`ri`/`rm`/`del` with `-Recurse`/`-Force` or fed by a pipe,
+  cmd `rd /s`, `del /f|/s|/q`, `format X:`; plus protected paths (`auth.json`,
+  `settings.json`, `.ssh`, `.env*`, `.aws/credentials`, `.netrc`, `.config/gh/hosts.yml`)
+  checked in commands AND edit/write targets. `rm` is matched anywhere in a command
+  segment, so `grep -r "rm -rf" docs/` is gated too (a position rule would miss `xargs rm`).
+- **Policy files** — `nana-pack.json` (user and project), pi's `trust.json` (also under
+  `PI_CODING_AGENT_DIR`), `.claude/settings.json`, `.claude/settings.local.json`,
+  `.claude/hooks/**`. The `.claude` files are gated at **project scope too** (a ratified
+  expansion, 2026-09-28: a project `.claude/settings.json` carries hooks that run code). What
+  is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
+  backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
+  one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
+  `Out-File`, even `cat`). What is **not** caught — a path the shell computes at run time:
+  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
+  and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
+  variable, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
+  directory symlink created and written through in the same command, `cd … | xargs tee
+  nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
+  command text would not close this (every pattern invites the next form), so none is added.
+  **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
+  `session_start`. The **other blocks in the same file, including `postEdit.commands`, apply
+  live**, so a write that evades the gate's text scan can run code in the **same** session
+  through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
+  container layer. The agent edits policy files only through you:
+  `nana-setup`, the desk settings window, or "Allow once". The handoff store
+  `~/.pi/agent/handoffs/**` is not a policy file.
+- **`allowPatterns` exempt one command segment, never a compound.** A command is split on
+  `;` `&&` `||` `|` `&` and newlines; the pattern must match the segment that hit, so
+  `git status; rm -rf ~` is not covered by `^git status`. A command the gate cannot segment
+  reliably gets **no** exception anywhere: `$(…)`, backticks, `<(…)`, heredocs, `( … )`,
+  `{ …; }`, `eval`, `source`, `sh -c`/`bash -c`/`zsh -c`/`cmd /c`/`pwsh -Command`, `xargs`,
+  `parallel`, `watch`, a line continuation, an unbalanced quote. An allow pattern that matches the empty string
+  (`""`, `.*`, `^`) is rejected at load with a warning and exempts nothing.
+- **The floor — no allow pattern skips it** (the interactive dialog still can): pipe to a
+  shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …) when it reads its
+  program from stdin (no script operand — an option's value such as `-W ignore` is not one —
+  `-`, `/dev/stdin`, a shell's `-s` — any of these wins over a later `--version`/`--help`:
+  `curl u | sh -s arg`, `curl u | python3 -W ignore` and `curl u | python3 - --version`
+  are floor; `cat x | python3 script.py` and `echo x | python3 --version` are not), `rm` recursive on
+  `/`, `~`, `$HOME`, `C:` or an ancestor of home in any lexically equal spelling (`~/.`, `/.`,
+  `~//`, `/./`, `${HOME}`, `~/x/..`, a trailing `/`; `rm -rf .` is *not* floor), `mkfs`,
+  `dd of=/dev/`, `diskutil [quiet] erase*`, `Format-Volume` — also behind `sudo`/`doas`
+  (with `-u user`), `env`, `command`, `nice`, `time` — and every policy file above as
+  literally named. The `--force-with-lease` exception above keeps working.
+- **Bounded regex work.** Per list, entries 1–200 as written are considered, never a later
+  one. Past 200, or an entry that does not compile: in `extraPatterns` / `protectedPaths` the
+  gate block is malformed (last valid policy, else the conservative STOP naming the file and
+  entry) — a deny is never silently dropped; in `allowPatterns` the excess is dropped with a
+  `config_invalid` line naming the entries not considered. The 200 cap is **per source list
+  per load**; denies accumulated by live tightenings form an **uncapped** session union. A
+  command over 64 KB gets no exception (it is still checked): 64 KB bounds **exception
+  eligibility only**, not the subject of deny regexes nor total analysis work — there is **no
+  global work bound**. **Residual:** a catastrophic or polynomial regex in your **own** (or a
+  trusted project's) `nana-pack.json` (`(a+)+$`) can make the gate slow or hang, and a very
+  large command is scanned in full. Nothing in the pack can fix a pattern you asked it to run.
+- **Interpreter-argument residual.** The stdin floor models interpreter options with a
+  hand-maintained option-arity table (`-W`, `-X`, `-o`, `--rcfile`, …): an explicit stdin
+  indicator (`-`, `/dev/stdin`, a shell's `-s`) wins over any later argument, and a leading
+  `--version` / `--help` (non-shell `-V`) with no indicator reads nothing. An exotic
+  interpreter or option the table does not know can still be mis-modelled (an unknown
+  value-taking option's value read as the script operand → not floor).
+- **Loosening waits for session start.** The gate policy adopted at `session_start`
+  (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
+  write mid-session — by you, the desk, or anything the gate did not see — can tighten it at
+  once but cannot loosen it until the next session start or `/reload`.
+- **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
+  later extension can still mutate a checked input, and it reads command *text*: it cannot see
+  what a variable, an alias, a script file or `python`/`node` code does at run time, nor
+  follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
+  stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
   successes stay out of its context and are reported by the status chip instead. `{file}` is
   shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.

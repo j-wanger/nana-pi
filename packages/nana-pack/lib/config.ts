@@ -23,7 +23,9 @@
  * stops conservatively (`gate.stopReason`; the user stop wins if both). Nothing is persisted: a policy
  * file on disk could be forged by the very agent the gate constrains.
  *
- * Read on every event so config edits apply live, without restarting the session.
+ * Read on every event so config edits apply live, without restarting the session — except
+ * that nana-gate (L2) treats the gate block as a session baseline: live changes may only
+ * TIGHTEN it; loosening applies at the next session_start (incl. /reload).
  */
 
 import * as fs from "node:fs";
@@ -41,7 +43,7 @@ export interface PostEditCommand {
 export interface GateConfig {
 	/** Extra dangerous-command regexes (strings) added to the built-in list */
 	extraPatterns: string[];
-	/** Regexes that skip gating entirely — checked first */
+	/** Regexes that exempt ONE command segment (or an edit/write path) — never a compound, never the gate's floor */
 	allowPatterns: string[];
 	/** Extra protected-path regexes added to the built-in list */
 	protectedPaths: string[];
@@ -136,6 +138,13 @@ const positiveNumber: Leaf = (v, where, problems) => {
 	return { ok: false };
 };
 
+/** Per gate list, entries 1..MAX_GATE_PATTERNS as written are considered; the rest never are. */
+export const MAX_GATE_PATTERNS = 200;
+/** The only gate problem that is not fatal: allowPatterns past the cap (dropping an exception only tightens). */
+const ALLOW_CAP = /^gate\.allowPatterns: \d+ entries exceed the cap/;
+
+// Any other gate-list problem makes the gate block malformed (last valid policy, else STOP):
+// dropping an extraPatterns / protectedPaths entry would silently remove protection.
 const regexList =
 	(flags: string): Leaf =>
 	(v, where, problems) => {
@@ -143,14 +152,16 @@ const regexList =
 			problems.push(`${where}: expected an array of regex strings, got ${kind(v)} — using the default`);
 			return { ok: false };
 		}
+		if (v.length > MAX_GATE_PATTERNS)
+			problems.push(`${where}: ${v.length} entries exceed the cap of ${MAX_GATE_PATTERNS} — entries ${MAX_GATE_PATTERNS + 1}–${v.length} (from ${JSON.stringify(v[MAX_GATE_PATTERNS]).slice(0, 80)}) not considered`);
 		const out: string[] = [];
-		v.forEach((p, i) => {
+		v.slice(0, MAX_GATE_PATTERNS).forEach((p, i) => {
 			if (typeof p !== "string") return void problems.push(`${where}[${i}]: expected a regex string, got ${kind(p)} — dropped`);
 			try {
 				new RegExp(p, flags);
 				out.push(p);
 			} catch {
-				problems.push(`${where}[${i}]: invalid regex — dropped`);
+				problems.push(`${where}[${i}] ${JSON.stringify(p).slice(0, 80)}: invalid regex — dropped`);
 			}
 		});
 		return { ok: true, value: out };
@@ -243,7 +254,7 @@ function readConfigFile(p: string): FileRead {
 		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], gateValid: false };
 	}
 	const { blocks, problems } = normalizeRaw(raw);
-	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate"));
+	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate") && !ALLOW_CAP.test(m));
 	return { present: true, blocks, problems, gateValid };
 }
 
@@ -407,7 +418,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 				gate = { ...last, stopReason: null };
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this process"]);
 			} else {
-				const problem = user.problems.find((m) => m.startsWith("gate")) ?? user.problems[0] ?? "malformed";
+				const problem = user.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? user.problems[0] ?? "malformed";
 				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid and no valid policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 			}
@@ -433,7 +444,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 						project = { ...project, gate: last };
 						notes.push(["config_gate_fallback", projectFile, "gate policy invalid — enforcing the last valid project policy loaded in this process"]);
 					} else {
-						const problem = pr.problems.find((m) => m.startsWith("gate")) ?? pr.problems[0] ?? "malformed";
+						const problem = pr.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? pr.problems[0] ?? "malformed";
 						projectStop = gateStopReason(projectFile, problem, "project");
 						notes.push(["config_gate_fallback", projectFile, "project gate policy invalid and no valid project policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 					}
