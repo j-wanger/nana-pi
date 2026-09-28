@@ -3,6 +3,7 @@
 // the specific ways astra showed they could be gamed?
 // Run: node apps/bench/test/study-tasks.test.mjs   (exit 0 = all PASS)
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -13,6 +14,13 @@ import { loadStudy, shapedPaths } from "../run.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const studyDir = path.join(here, "../studies/tool-profiles-2026-09-08");
 const fixtureDir = path.join(studyDir, "fixture");
+// The study pins a third-party extension installed under apps/bench/.ext (gitignored — README
+// "reviewed, not vendored"). Without it the pin checks cannot read the files they hash, so this
+// pre-flight is a declared SKIP on such a machine rather than an ENOENT (seat ruling, L4 lane 2026-09-28).
+if (!existsSync(path.join(here, "../.ext/pi-web-access"))) {
+	console.log("SKIP study pre-flight: apps/bench/.ext/pi-web-access is not installed (optional; see apps/bench/README.md)");
+	process.exit(0);
+}
 const blocks = "packages/nana-stage/lib/blocks.mjs";
 const suite = "packages/nana-stage/tests/blocks.test.mjs";
 let fails = 0;
