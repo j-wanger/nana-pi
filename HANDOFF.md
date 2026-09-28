@@ -24,9 +24,16 @@
 
 ## Next
 
-1. **TRANCHE 1 COMPLETE 2026-09-28** — research pass `research/agentic-advances-and-nana-review-2026-09-27.md`; all four lanes landed: **L4** root `npm test` (`7563c4a`), **U** pi 0.84.4→0.87.1 (`d845c5f`), **L1** config safety + nana-trust (`6a8c5c7`), **L2** gate (`c883d8e`), **L3** handoff store (`564306b`). Suite 68 files / 3273 checks. Corpus + rulings: `docs/reviews/tranche1-2026-09-28/`. **NEXT: tranche 2** — objective producer (Jake ruling 1), per-item review ledger, pre-spend brief field, and **L5 directory adoption** (`docs/directory-adoption-design-2026-09-28.md`; astra's binding constraint: a `missing` handoff is NOT proof of an unadopted directory — apply repo-root/dismissal-marker/OBJECTIVE filters and never infer adoption from an error, refusal, empty file or cwd mismatch).
+1. **TRANCHE 1 + 2 COMPLETE 2026-09-28.** T1: **L4** root `npm test` (`7563c4a`) · **U** pi 0.84.4→0.87.1 (`d845c5f`) · **L1** config safety + nana-trust (`6a8c5c7`) · **L2** gate (`c883d8e`) · **L3** handoff store (`564306b`). T2: **T2a** one objective producer (`741d567` — the nearest `OBJECTIVE.md` governs unconditionally, both runtimes byte-identical, the umbrella priority finally shown in product repos, no raw file content ever injected) · **T2b** review ledger (`eb6b7f0` — the cap binds to the item, a round is one revision, workers launch through `pi-worker`). Suite 71 files / 3755 checks. Corpora: `docs/reviews/tranche1-2026-09-28/`, `docs/reviews/tranche2-2026-09-28/`. **NEXT:** (a) landing-day chores below; (b) **L5 directory adoption** (`docs/directory-adoption-design-2026-09-28.md`; astra's binding constraint: a `missing` handoff is NOT proof of an unadopted directory); (c) the cross-cutting **sanitization audit** astra ruled a separate lane — `nana-post-edit.ts:496` shows a raw repo-controlled path in both a notification and model-visible tool text, and `nana-handoff.ts` has its own unaudited `displayPath()`.
 2. Windows: the smoke test is still the standing proof gate — confirm the `nana-pack ✓` chip on the Windows box (absence = pack not installed there; `pi install` is user-scope per machine), then the win32 items below.
 3. Let the objective line + knowledge pointers run a week of `pull.log`, then decide the citation checker (measure before more retrieval machinery).
+
+## Landing-day chores (T2b, must happen before the ledger is used)
+
+- `ln -s ~/nana-pi/packages/nana-pack/bin/pi-worker.mjs ~/.local/bin/pi-worker` — the ledger refuses reviews without `--item`, and worker launches now need this binary.
+- `~/jev-research`: `docs/reviews/local-tool-judge-2026-09-19/launch-workers.sh:11` and `experiments/launch-wp-h-after-primary.sh:7` → `pi-worker` **and delete their `--retries 2`** (under the new N+1 meaning that is three MUTATING attempts). `docs/reviews/local-tool-judge-2026-09-19/launch-sol-review.sh:8` → add `--item <slug> --role sol`.
+- `~/.claude/nana-memory/shared/reference_pi_review_procedure.md` publishes the old invocation and the basename rule — rewrite it.
+- Carried, not done: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
 
 ## Open for Jake
 
