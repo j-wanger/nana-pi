@@ -107,9 +107,12 @@ setup. What that means while you work here:
   `~/.pi/agent/nana-journal.jsonl` for observability.
 - **Notify.** A desktop notification fires when the agent settles and is waiting on
   you.
-- **Gate.** Inspects `bash`/`powershell` command strings for dangerous patterns and
-  `edit`/`write` target paths for protected files (`.ssh`, `.env`, pi auth), and
-  prompts before running — or blocks, when there's no UI to prompt. Scope is narrow:
+- **Gate.** Inspects `bash`/`powershell` command strings for dangerous forms and
+  `edit`/`write` target paths for protected files (`.ssh`, `.env`, pi auth, and the policy
+  files: `nana-pack.json`, pi's `trust.json`, `.claude/settings*.json`, `.claude/hooks/`),
+  and prompts before running — or blocks, when there's no UI to prompt. Allow patterns
+  exempt one command segment, never a compound or the floor; a config change loosens the
+  gate only at the next session start or `/reload`. Scope is narrow:
   reads, custom tools, and direct extension commands are NOT gated, and a later
   handler can still mutate input the gate already checked. It is **advisory** — a
   load-path convenience, not a security boundary; real enforcement is the sandbox /

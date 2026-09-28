@@ -23,7 +23,9 @@
  * stops conservatively (`gate.stopReason`; the user stop wins if both). Nothing is persisted: a policy
  * file on disk could be forged by the very agent the gate constrains.
  *
- * Read on every event so config edits apply live, without restarting the session.
+ * Read on every event so config edits apply live, without restarting the session — except
+ * that nana-gate (L2) treats the gate block as a session baseline: live changes may only
+ * TIGHTEN it; loosening applies at the next session_start (incl. /reload).
  */
 
 import * as fs from "node:fs";
@@ -41,7 +43,7 @@ export interface PostEditCommand {
 export interface GateConfig {
 	/** Extra dangerous-command regexes (strings) added to the built-in list */
 	extraPatterns: string[];
-	/** Regexes that skip gating entirely — checked first */
+	/** Regexes that exempt ONE command segment (or an edit/write path) — never a compound, never the gate's floor */
 	allowPatterns: string[];
 	/** Extra protected-path regexes added to the built-in list */
 	protectedPaths: string[];

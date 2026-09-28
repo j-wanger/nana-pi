@@ -106,7 +106,11 @@ loaded. Not seeing it is not proof of the opposite — it is also absent in prin
 ## Config (all optional)
 
 User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
-read live on every event — edits apply without restarting). One exception: **`objective`
+read on every event). Every non-gate block applies live, without restarting. The **`gate`
+block** applies live only when it *tightens* (an added extra/protected pattern, a removed
+allow pattern, a stop); anything that *loosens* it (an added allow pattern, a removed deny)
+takes effect at the next session start or **`/reload`**, and is journaled
+`gate_policy_widened`. One exception: **`objective`
 is user-scope only** — project config never contributes to it, trusted or not.
 
 - **Project config needs a real trust decision.** *Changed:* it used to be honored whenever
@@ -129,7 +133,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   - broken when pi **starts** (or restarts): the gate **blocks every bash / powershell /
     edit / write call**, interactive sessions included, with `nana-gate: user nana-pack.json
     gate block is malformed — repair it (<file>:<problem>)`, until the file is valid again.
-    Edits apply live, so a typo costs one repair.
+    The repair lifts the stop live; allow patterns in the repaired file apply from the next
+    session start or `/reload`.
   The **`gate` block of a nana-trusted project file** follows the same rule: broken mid-session
   keeps the last valid project gate this process loaded; broken at start blocks every gated
   call with `nana-gate: project nana-pack.json gate block is malformed — repair it
@@ -167,12 +172,47 @@ is user-scope only** — project config never contributes to it, trusted or not.
 ## Behavior notes
 
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
-  outright. Interactively, "Block" is the default choice. Built-in patterns cover
-  `rm -rf`-family, `sudo`, force-push, `git reset --hard`/`clean -f`, `chmod 777`,
-  `dd of=/dev/`, `mkfs`, shutdown/reboot, `Remove-Item -Recurse/-Force`, plus protected
-  paths (`auth.json`, `settings.json`, `.ssh`, `.env*`) checked in commands AND edit/write targets.
-- **The gate is advisory-by-load-path** — a pi run without the extension has no gate.
-  Unattended enforcement stays at the container/sandbox layer.
+  outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
+  Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
+  `r''m`) or `--force`, `sudo`/`doas`/`su`, force-push (`--force*`, `-f`, `+refspec`),
+  `git reset --hard`, `git clean -f`/`--force`, `git checkout -- .`, `git restore .`,
+  `git branch -D`, `git stash drop|clear`, `find -delete`/`-exec rm`, `rsync --delete`,
+  `truncate`, `shred`, `python -c`/`node -e` deleting files, `chmod 777`, `dd of=/dev/`,
+  `mkfs`, shutdown/reboot/halt (as a command, not as a word: `echo reboot` passes),
+  PowerShell `Remove-Item`/`ri`/`rm`/`del` with `-Recurse`/`-Force` or fed by a pipe,
+  cmd `rd /s`, `del /f|/s|/q`, `format X:`; plus protected paths (`auth.json`,
+  `settings.json`, `.ssh`, `.env*`, `.aws/credentials`, `.netrc`, `.config/gh/hosts.yml`)
+  checked in commands AND edit/write targets. `rm` is matched anywhere in a command
+  segment, so `grep -r "rm -rf" docs/` is gated too (a position rule would miss `xargs rm`).
+- **Policy files are gated on the resolved path** — `nana-pack.json` (user and project),
+  pi's `trust.json` (also under `PI_CODING_AGENT_DIR`), `.claude/settings.json`,
+  `.claude/settings.local.json`, `.claude/hooks/**` (user and project scope): edit/write in
+  every form pi resolves (relative, `~`, `@`, `..`, backslash, any case, a symlinked alias),
+  and any bash/PowerShell command that names one (`>`, `tee`, `sed -i`, `cp`, `Set-Content`,
+  `Out-File`, even `cat`). The agent edits them only through you: `nana-setup`, the desk
+  settings window, or "Allow once". The handoff store `~/.pi/agent/handoffs/**` is not a
+  policy file.
+- **`allowPatterns` exempt one command segment, never a compound.** A command is split on
+  `;` `&&` `||` `|` `&` and newlines; the pattern must match the segment that hit, so
+  `git status; rm -rf ~` is not covered by `^git status`. A command the gate cannot segment
+  reliably gets **no** exception anywhere: `$(…)`, backticks, `<(…)`, heredocs, `( … )`,
+  `{ …; }`, `eval`, `source`, `sh -c`/`bash -c`/`zsh -c`/`cmd /c`/`pwsh -Command`, `xargs`,
+  a line continuation, an unbalanced quote. An allow pattern that matches the empty string
+  (`""`, `.*`, `^`) is rejected at load with a warning and exempts nothing.
+- **The floor — no allow pattern skips it** (the interactive dialog still can): pipe to a
+  shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …), `rm` recursive
+  on `/`, `~`, `$HOME` (`rm -rf .` is *not* floor), `mkfs`, `dd of=/dev/`,
+  `diskutil erase*`, `Format-Volume`, and every policy file above. The README's
+  `--force-with-lease` exception keeps working.
+- **Loosening waits for session start.** The gate policy adopted at `session_start`
+  (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
+  write mid-session — by you, the desk, or anything the gate did not see — can tighten it at
+  once but cannot loosen it until the next session start or `/reload`.
+- **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
+  later extension can still mutate a checked input, and it reads command *text*: it cannot see
+  what a variable, an alias, a script file or `python`/`node` code does at run time, nor
+  follow a `cd` earlier in the command. The `read` tool is not gated. Unattended enforcement
+  stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
   successes stay out of its context and are reported by the status chip instead. `{file}` is
   shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.

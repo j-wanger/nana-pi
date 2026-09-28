@@ -230,7 +230,11 @@ cycle guard — the desk's does).
   replace, so unknown top-level keys are refused *by name* rather than persisted;
   sub-keys the form does not render ride through untouched. Project-scope writes go
   through the same destination guards as context files (no write through a
-  symlinked `.pi` or leaf), and every write leaves a `.bak`.
+  symlinked `.pi` or leaf), and every write leaves a `.bak`. Gate edits that *loosen*
+  (a new allow pattern, a removed deny) reach a running session only after its next
+  `/reload` (or a new session); tightening edits apply at once. The form's "allow (skip
+  gate)" field exempts one command segment, never a compound or the gate's floor
+  (`packages/nana-pack/README.md`).
 
 (The wire — a journal-tail lifecycle feed — was removed 2026-09-03: it confused
 more than it informed. The nana-pack journal itself still exists on disk.)
