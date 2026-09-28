@@ -280,8 +280,12 @@ try {
 		const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : !ok ? `exit ${r.code ?? r.signal}` : "";
 		const held = r.pipesHeld ? `  (stdio still open ${DRAIN_MS / 1000}s after exit — a descendant holds it; not waited for)` : "";
 		const stat = `${p} pass${f ? `, ${f} fail` : ""}${s ? `, ${s} skip` : ""}  ${secs}s`;
-		tally[ok ? "PASS" : "FAIL"]++;
-		console.log(`${ok ? "PASS" : "FAIL"}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`);
+		// A file that ran no checks and printed only SKIP lines (a declared precondition, exit 0)
+		// is a SKIP at file level too — "PASS … 0 pass" understated skipped files (sol r2, LOW).
+		const allSkip = ok && p === 0 && f === 0 && s > 0;
+		const label = allSkip ? "SKIP" : ok ? "PASS" : "FAIL";
+		tally[label]++;
+		console.log(`${label}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`);
 		if (ok && f) warns.push(`WARN ${name}: FAIL line with exit 0`);
 		if (fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL")) selfTestMismatch.push(name);
 		if (!ok) {

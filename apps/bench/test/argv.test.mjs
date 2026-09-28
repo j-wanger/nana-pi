@@ -68,16 +68,17 @@ check("C: requiresEnv is empty, so no key is demanded", (P("research").requiresE
 // canonical `npm test` is honest on a fresh clone instead of red (seat ruling, L4 lane 2026-09-28).
 const extPresent = fs.existsSync(path.join(here, "../.ext/pi-web-access"));
 if (!extPresent) {
-	console.log("SKIP C: on-disk checks need apps/bench/.ext/pi-web-access (optional install; see apps/bench/README.md)");
+	console.log("SKIP C: the on-disk 'not blocked' check needs apps/bench/.ext/pi-web-access (optional install; see apps/bench/README.md)");
 } else {
 	check("C: not blocked — the pinned extension and the sidecar are both on disk", c.blocked === null, c.blocked ?? "");
-	// The bench sidecar rides along ONLY where an extension can make nested LLM calls. It registers
-	// no tools and adds no prompt text, so it cannot shift the comparison.
-	const eArgs = c.argv.filter((a2, i) => c.argv[i - 1] === "-e");
-	check("C: exactly two -e entries (pi-web-access + the bench sidecar)", eArgs.length === 2, eArgs.join(" "));
-	check("C: the sidecar is the LAST extension loaded", /bench-nested-usage\.ts$/.test(eArgs[1]), eArgs[1]);
-	check("C: the sidecar contributes no tool names to the allowlist", c.argv[c.argv.indexOf("--tools") + 1].split(",").length === P("research").tools.length);
 }
+// The bench sidecar rides along ONLY where an extension can make nested LLM calls. It registers
+// no tools and adds no prompt text, so it cannot shift the comparison. These three inspect the
+// argv renderRun builds regardless of what is on disk, so they run everywhere (sol r2).
+const eArgs = c.argv.filter((a2, i) => c.argv[i - 1] === "-e");
+check("C: exactly two -e entries (pi-web-access + the bench sidecar)", eArgs.length === 2, eArgs.join(" "));
+check("C: the sidecar is the LAST extension loaded", /bench-nested-usage\.ts$/.test(eArgs[1]), eArgs[1]);
+check("C: the sidecar contributes no tool names to the allowlist", c.argv[c.argv.indexOf("--tools") + 1].split(",").length === P("research").tools.length);
 check("C: runs BOTH families (astra BLOCK A)", JSON.stringify(P("research").families) === JSON.stringify(["code", "research"]));
 check("B: no sidecar, because B loads no extension", !b.argv.includes("-e"));
 
