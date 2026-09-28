@@ -4,13 +4,13 @@
 
 **No `OBJECTIVE.md` here.** nana-pi's objective IS the umbrella one, `~/nana-agent-loop/OBJECTIVE.md`: build products with agents, with nana-pi as the shared toolkit AND experience; current priority = make the nana-pi experience consistent, coherent and effective. (Both runtimes print it: the Claude Code SessionStart hook, and pi via the pack's `nana-objective`.)
 
-## Landed today (2026-09-18, main `7a90d3a`)
+## Landed 2026-09-18 (main `35da0e0`)
 
 - **nana-setup LANDED 2026-09-18** (`packages/nana-setup`): the Claude Code half + user-scope pi config + PATH + desk service install from this repo (`node packages/nana-setup/bin/nana-setup.mjs install|doctor`); hooks/rules are symlinks into the repo. `nana-setup project [dir]` (09-18, v0.5.0) makes a blank folder a nana project — OBJECTIVE/HANDOFF/sessions seeds shared with the copier template and adopt-structure. Fresh-machine feel test not yet run. Corpora `docs/reviews/nana-setup-2026-09-18/`, `docs/reviews/nana-project-2026-09-18/`.
 
 - **Per-repo objective** (`39f2462`) — `nana-objective` now reads a repo's own `OBJECTIVE.md` when the owner opts in via `objective.projectFile` in `~/.pi/agent/nana-pack.json`, prints the umbrella line alongside it, and matches the Claude Code hook's behaviour. Live-verified in `~/aml-desk` (which owns an `OBJECTIVE.md`); repos without one keep seeing the umbrella only.
 - **`pi-review` moved into the pack** (`f264dd5`) — canonical source is `packages/nana-pack/bin/{pi-review,review-round}.mjs` (the Codex-stall watchdog + the 3-round cap), same CLI contract and exit codes; `~/.local/bin/pi-review` puts it on PATH so reviews run from any cwd. nana-agent-loop keeps a spawn forwarder + re-export at the old `app/scripts` paths. Round-cap test ported as a zero-dep node test (21 checks).
-- **nana-knowledge root discovery** (`652b1e5`) — optional `discover` block in `sources.json`: under each listed parent, an immediate child holding a `.git` entry is a repo, and each named subdir it has (docs / research / knowledge) becomes an `articles` root, unioned with the explicit roots and deduped by resolved path (explicit wins). Fixes the real gap: every product repo was invisible to the pull until someone remembered to add it. `exclude` extends the ONE skip mechanism; an existing `sources.json` is never rewritten (opt-in by editing); 22 checks. **A nested-root bug is being fixed on branch `tooling-portable` right now — fix in flight.**
+- **nana-knowledge root discovery** (`652b1e5`) — optional `discover` block in `sources.json`: under each listed parent, an immediate child holding a `.git` entry is a repo, and each named subdir it has (docs / research / knowledge) becomes an `articles` root, unioned with the explicit roots and deduped by resolved path (explicit wins). Fixes the real gap: every product repo was invisible to the pull until someone remembered to add it. `exclude` extends the ONE skip mechanism; an existing `sources.json` is never rewritten (opt-in by editing); 22 checks. Nested-root containment landed (`e09fd44`, explicit wins).
 
 ## Where things stand
 
@@ -24,12 +24,13 @@
 
 ## Next
 
-1. Land the `tooling-portable` nested-root fix, then re-seed / re-check the discovered roots.
+1. **Research pass 2026-09-27/28 → `research/agentic-advances-and-nana-review-2026-09-27.md`** (five lanes + three astra rounds; raw in `research/raw/2026-09-27-advances/`). Tranche 1 needs no ruling: root `npm test` first, then config safety, gate, handoff trust (each with the blast-radius acceptance row + independent review). Lane contracts: `raw/…/opus-arch-tranche1.md`.
 2. Windows: the smoke test is still the standing proof gate — confirm the `nana-pack ✓` chip on the Windows box (absence = pack not installed there; `pi install` is user-scope per machine), then the win32 items below.
 3. Let the objective line + knowledge pointers run a week of `pull.log`, then decide the citation checker (measure before more retrieval machinery).
 
 ## Open for Jake
 
+0. **Seven one-line rulings from the research pass** (priority authority 09-16 vs 09-18 · attention-limit trial · appetite expiry · runner dormant + lint · completion-gate trial · Windows parity · current bet) — listed in the synthesis §"Rulings for Jake".
 1. **Changes-bar baseline** — the files-changed bar is git working-tree vs HEAD (incl. untracked), not conversation-attributed. Say if that's wrong; switching to tool-call attribution is a design change, not a tweak.
 2. **Raw-only wikis in or out** — `agent-memory` and `agentic-engineering` are scrape-only, so `raw/` is skipped and they are OUT of the knowledge index. Add their `raw/` as roots if scrape-level pull is wanted, or leave them out until absorbed.
 3. **win32 untested** — the nana-pack taskkill branch, the 09-16 desk UX batch, and the notify fallback have never run on Windows.
