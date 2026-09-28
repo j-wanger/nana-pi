@@ -24,7 +24,7 @@
 
 ## Next
 
-1. **Research pass 2026-09-27/28 → `research/agentic-advances-and-nana-review-2026-09-27.md`** (five lanes + three astra rounds; raw in `research/raw/2026-09-27-advances/`). Tranche 1 needs no ruling: root `npm test` first, then config safety, gate, handoff trust (each with the blast-radius acceptance row + independent review). Lane contracts: `raw/…/opus-arch-tranche1.md`.
+1. **Research pass 2026-09-27/28 → `research/agentic-advances-and-nana-review-2026-09-27.md`** (five lanes + three astra rounds; raw in `research/raw/2026-09-27-advances/`). Jake ruled all eight items 09-28 (memory `project_rulings_2026_09_28`). Tranche 1 in flight: **L4 root `npm test` LANDED** (`7563c4a`, 55 files / 2477 checks, 134 s; `docs/reviews/tranche1-2026-09-28/`) → **lane U pi 0.84.4→0.87.1 running** → L1 config safety + nana-trust predicate (brief written) → L2 gate ∥ L3 handoff (astra on the land). Lane contracts: `raw/…/opus-arch-tranche1.md`; lane shape + reviewer roles: `docs/lane-brief-template-2026-09-28.md` (draft; domain-expert role per Jake).
 2. Windows: the smoke test is still the standing proof gate — confirm the `nana-pack ✓` chip on the Windows box (absence = pack not installed there; `pi install` is user-scope per machine), then the win32 items below.
 3. Let the objective line + knowledge pointers run a week of `pull.log`, then decide the citation checker (measure before more retrieval machinery).
 
