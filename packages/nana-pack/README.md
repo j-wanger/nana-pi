@@ -235,9 +235,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
     handoff off unless the launcher clears `NANA_HANDOFF`.
   - **Exact directory only**: a nested cwd or worktree with no handoff of its own never gets an
     ancestor's text. If an ancestor directory has one, the session is told "no handoff for this
-    directory" plus that file's path; if no ancestor has one there is nothing to borrow and nothing
-    is added (seat ruling, L3 fix round: the marker exists to prevent silent borrowing, and a line
-    in every handoff-less session would be pure context noise). A store entry whose recorded `Cwd:` is another directory is not injected
+    directory" plus that file's path; if no ancestor has one, nothing is added to the
+    session — but the fact is not discarded: an unadopted directory is a signal addressed to the
+    SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
+    objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
+    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands, nothing is emitted either way. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
