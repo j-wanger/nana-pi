@@ -35,6 +35,11 @@ const DANGEROUS: RegExp[] = [
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
 	/\.pi[/\\]agent[/\\]settings\.json/i,
+	// L1 (2026-09-28): the gate's own policy and pi's trust store are trust EVIDENCE for
+	// project-scope config; a tool write to either could forge a wider policy for the next
+	// process (sol L1 r2). L2 adds the bash/PowerShell redirection forms and segment rules.
+	/\.pi[/\\]agent[/\\]trust\.json/i,
+	/\.pi[/\\](agent[/\\])?nana-pack\.json/i,
 	/(^|[\s/\\"'])\.ssh([/\\]|\b)/,
 	/(^|[\s/\\"'])\.env(\.[\w-]+)?\b/,
 ];
