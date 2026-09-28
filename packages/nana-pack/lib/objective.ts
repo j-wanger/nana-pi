@@ -16,13 +16,19 @@
  * governs, with the refusal printed. An unusable governing file prints an
  * "OBJECTIVE UNAVAILABLE" marker — silence is the failure that matters here.
  *
- * NEVER raw file content (T2a r2): from any file only the parsed **Objective and
- * **Current priority paragraphs are emitted, each capped on its OWN (LINE_CAP) so a long
- * one can never push the other out. A file with neither yields a named marker and nothing
- * else from the file. Bytes that one runtime would alter are removed here so both print
- * the same: NULs are stripped (bash command substitution drops them), invalid UTF-8 is
- * refused (never replacement-decoded), and the text ends in exactly ONE "\n" (the hook's
- * command substitution strips trailing newlines and printf re-adds one).
+ * NEVER raw file content (T2a r2/r3): from any file only the **Objective and **Current
+ * priority lines are emitted — each exactly ONE physical line (up to the first LF, CR,
+ * U+0085, U+2028 or U+2029; continuation lines are never shown), with C0/C1 controls and
+ * bidi controls removed, capped on its OWN (LINE_CAP) so a long one can never push the
+ * other out. A file with neither yields a named marker and nothing else from the file.
+ * Every interpolated PATH is display text rendered by displayPath(): controls, line
+ * separators and bidi controls JSON-escaped (the path then shown as a quoted JSON string),
+ * length bounded with the basename kept. Bytes that one runtime would alter are removed
+ * here so both print the same: NULs are stripped (bash command substitution drops them),
+ * lone surrogates become U+FFFD (the CLI's stdout would do that; pi would not), invalid
+ * UTF-8 — including a truncated sequence at end of file — is refused (never
+ * replacement-decoded), and the text ends in exactly ONE "\n" (the hook's command
+ * substitution strips trailing newlines and printf re-adds one).
  *
  * Pure and total: sync fs reads only, bounded (FILE_READ_MAX bytes per file, LINE_CAP
  * chars per line, OUTPUT_CAP chars overall including every marker), never throws, never
@@ -32,8 +38,10 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-/** Per line (paragraph). Real lines are < 500 chars; four capped lines + paths fit OUTPUT_CAP. */
+/** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
+/** Rendered length bound of one displayed path (before quoting). */
+export const PATH_CAP = 320;
 export const OUTPUT_CAP = 12000;
 const FILE_READ_MAX = 256 * 1024;
 export const HEADING = "## Objective and current priority (nana)";
@@ -133,13 +141,19 @@ function readObjective(file: string): Read {
 	try {
 		if (!fs.statSync(file).isFile()) return { cause: "unreadable" };
 		fd = fs.openSync(file, "r");
-		const buf = Buffer.alloc(FILE_READ_MAX);
-		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX, 0);
+		// one byte past the cap tells "file continues" (a char split BY THE CAP) from "file
+		// ends here" (a truncated sequence AT EOF, which is invalid UTF-8).
+		const buf = Buffer.alloc(FILE_READ_MAX + 1);
+		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX + 1, 0);
+		const continues = n > FILE_READ_MAX;
 		let decoded: string;
 		try {
-			// fatal: invalid UTF-8 is refused, not injected as U+FFFD. stream at the read cap:
-			// a multi-byte char split by the cap is dropped, not called invalid.
-			decoded = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(0, n), { stream: n === FILE_READ_MAX });
+			// fatal: invalid UTF-8 is refused, not injected as U+FFFD. The decoder streams, then
+			// is FLUSHED at end of file (an incomplete final sequence throws); only when the file
+			// continues past the cap is a multi-byte char split by the cap dropped unflushed.
+			const dec = new TextDecoder("utf-8", { fatal: true });
+			decoded = dec.decode(buf.subarray(0, Math.min(n, FILE_READ_MAX)), { stream: true });
+			if (!continues) decoded += dec.decode();
 		} catch {
 			return { cause: "not valid UTF-8" };
 		}
@@ -166,18 +180,52 @@ function capLine(s: string): { body: string; truncated: boolean } {
 		: { body: s, truncated: false };
 }
 
-/** The paragraph starting at the first line that begins with `prefix` (up to a blank line, heading or next bold lead). */
-function paragraph(lines: string[], prefix: string): string | null {
-	const i = lines.findIndex((l) => l.startsWith(prefix));
-	if (i < 0) return null;
-	let j = i + 1;
-	while (j < lines.length && lines[j].trim() !== "" && !lines[j].startsWith("**") && !lines[j].startsWith("#")) j++;
-	return lines.slice(i, j).join("\n").trimEnd();
+/** Every physical-line break: LF, CR (CRLF is CR then LF), NEL, LINE SEPARATOR, PARAGRAPH SEPARATOR. */
+const LINE_BREAK = /\r\n|[\n\r\u0085\u2028\u2029]/;
+/** C0 (TAB included), DEL, C1, and the bidi marks/embeddings/overrides/isolates. */
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+
+/** A marker line, canonicalised: the ONE physical line it starts, with every control removed. Never a continuation line. */
+function markerLine(physical: string[], prefix: string): string | null {
+	const l = physical.find((x) => x.startsWith(prefix));
+	return l === undefined ? null : l.replace(CONTROL, "").trimEnd();
 }
 
 function lines(text: string): { objective: string | null; priority: string | null } {
-	const ls = text.split("\n");
-	return { objective: paragraph(ls, "**Objective"), priority: paragraph(ls, "**Current priority") };
+	const ls = text.split(LINE_BREAK);
+	return { objective: markerLine(ls, "**Objective"), priority: markerLine(ls, "**Current priority") };
+}
+
+/** Anything the hook's stdout and pi's prompt would render differently or that could break a line. */
+const PATH_UNSAFE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/;
+
+/**
+ * A path as prompt DISPLAY text — the one renderer for every interpolated path (governing
+ * line, refusal, markers, precedence, notices). A clean path prints as-is. A path holding a
+ * control char, line separator or bidi control is shown as a JSON string literal: `\` and `"`
+ * escaped, every unsafe char as `\uXXXX` — so it is always ONE line and no control byte
+ * reaches the prompt. Over PATH_CAP rendered chars the middle is elided ("…"), keeping the
+ * basename. Lone surrogates are made well-formed first (runtime parity).
+ */
+export function displayPath(p: string): string {
+	const raw = p.toWellFormed();
+	const unsafe = PATH_UNSAFE.test(raw);
+	const tok = (c: string) =>
+		PATH_UNSAFE.test(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
+	let toks = Array.from(raw, tok);
+	const len = (t: string[]) => t.reduce((a, s) => a + s.length, 0);
+	if (len(toks) > PATH_CAP) {
+		const baseToks = Array.from(path.basename(raw), tok);
+		// the basename is kept whole when it fits in half the budget; otherwise the tail is kept
+		const tailBudget = len(baseToks) <= PATH_CAP / 2 ? len(baseToks) + 1 : PATH_CAP / 2;
+		const tail: string[] = [];
+		for (let i = toks.length - 1, used = 0; i >= 0 && used + toks[i].length <= tailBudget; i--) { tail.unshift(toks[i]); used += toks[i].length; }
+		const front: string[] = [];
+		for (let i = 0, used = 0; used + toks[i].length <= PATH_CAP - 1 - len(tail); i++) { front.push(toks[i]); used += toks[i].length; }
+		toks = [...front, "…", ...tail];
+	}
+	const s = toks.join("");
+	return unsafe ? `"${s}"` : s;
 }
 
 /** The two parsed lines, each capped on its own; null when the file has neither (nothing from it is emitted). */
@@ -189,7 +237,7 @@ function cappedLines(text: string): { objective: string | null; priority: string
 	return { objective: o?.body ?? null, priority: p?.body ?? null, truncated: !!(o?.truncated || p?.truncated) };
 }
 
-const noLines = (file: string) => `no **Objective or **Current priority line found in ${file}`;
+const noLines = (file: string) => `no **Objective or **Current priority line found in ${displayPath(file)}`;
 
 function sameFile(a: string, b: string): boolean {
 	const real = (p: string) => {
@@ -220,8 +268,8 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 			source = "project";
 		} else {
 			events.push({ event: "objective_project_refused", path: hit, cause: r.cause });
-			notices.push(`objective: ignoring ${hit} (${r.cause}) — using ${umbrella}`);
-			pre.push(`(ignored ${hit}: ${r.cause} — the program file governs)`);
+			notices.push(`objective: ignoring ${displayPath(hit)} (${r.cause}) — using ${displayPath(umbrella)}`);
+			pre.push(`(ignored ${displayPath(hit)}: ${r.cause} — the program file governs)`);
 		}
 	}
 	if (!found) {
@@ -232,41 +280,44 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 
 	if (!("text" in found)) {
 		events.push({ event: "objective_unavailable", path: umbrella, cause: found.cause });
-		notices.push(`objective unavailable: ${found.cause} (${umbrella})`);
-		const text = finish([HEADING, ...pre, `${MARKER_PREFIX}${found.cause} (${umbrella}). Tell the user before spending.`].join("\n\n"));
+		notices.push(`objective unavailable: ${found.cause} (${displayPath(umbrella)})`);
+		const text = finish([HEADING, ...pre, `${MARKER_PREFIX}${found.cause} (${displayPath(umbrella)}). Tell the user before spending.`].join("\n\n"));
 		return { text, unavailable: true, events, notices };
 	}
 
 	const g = cappedLines(found.text);
-	let body: string;
+	let head: string;
 	let unavailable = false;
 	if (g) {
-		body = `${g.objective ?? "(no **Objective line in this file)"}\n\n${g.priority ?? "(no **Current priority line in this file)"}`;
+		head = `governing: ${displayPath(governing)}\n${g.objective ?? "(no **Objective line in this file)"}\n\n${g.priority ?? "(no **Current priority line in this file)"}`;
 	} else {
+		// a file with no lines governs nothing: it is named as what it is, never "governing"
 		unavailable = true;
 		events.push({ event: "objective_unavailable", path: governing, cause: "no objective line" });
 		notices.push(`objective unavailable: ${noLines(governing)}`);
-		body = `${MARKER_PREFIX}${noLines(governing)}. Tell the user before spending.`;
+		head = `objective file: ${displayPath(governing)}\n${MARKER_PREFIX}${noLines(governing)}. Tell the user before spending.`;
 	}
 	const truncated = !!g?.truncated;
-	const parts = [HEADING, ...pre, `governing: ${governing}\n${body}`];
+	const parts = [HEADING, ...pre, head];
 	if (source === "project" && !sameFile(governing, umbrella)) {
 		const u: Read = reachedThroughSymlinkInWorkspace(cwd, umbrella)
 			? { cause: "reached through a symlink inside the workspace" }
 			: readObjective(umbrella);
 		let program: string;
+		const p = "text" in u ? cappedLines(u.text) : null;
 		if ("text" in u) {
-			const p = cappedLines(u.text);
 			program = p
 				? `program objective: ${p.objective ?? "(no **Objective line)"}\nprogram current priority: ${p.priority ?? "(no **Current priority line)"}`
 				: `program objective: unavailable (${noLines(umbrella)})`;
 		} else {
-			program = `program objective: unavailable (${u.cause}: ${umbrella})`;
+			program = `program objective: unavailable (${u.cause}: ${displayPath(umbrella)})`;
 		}
-		parts.push(
-			program,
-			`Precedence: the lines from ${governing} govern this session's work; the program lines (${umbrella}) say what the toolkit is for.`,
-		);
+		const precedence = g
+			? `Precedence: the lines from ${displayPath(governing)} govern this session's work; the program lines (${displayPath(umbrella)}) say what the toolkit is for.`
+			: p
+				? `Precedence: no governing lines were found in ${displayPath(governing)}; the program lines (${displayPath(umbrella)}) govern this session.`
+				: `Precedence: no governing lines were found in ${displayPath(governing)} or in the program file (${displayPath(umbrella)}).`;
+		parts.push(program, precedence);
 	}
 	parts.push(CHARGE);
 	const text = finish(parts.join("\n\n"));
@@ -276,6 +327,7 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 
 /** Exactly one trailing "\n"; the WHOLE result, marker included, is <= OUTPUT_CAP. A backstop only: capped lines fit. */
 export function finish(out: string): string {
+	out = out.toWellFormed(); // backstop: no lone surrogate reaches either runtime
 	const text = `${out}\n`;
 	if (text.length <= OUTPUT_CAP) return text;
 	const note = `\n\n(output truncated at ${OUTPUT_CAP} chars)\n`;
@@ -287,7 +339,7 @@ export function produceObjective(cwd: string, o: ObjectiveSettings): ObjectiveRe
 	try {
 		return produce(cwd, o);
 	} catch (err) {
-		const cause = `internal error (${String(err).slice(0, 120)})`;
+		const cause = `internal error (${head(String(err).toWellFormed().replace(CONTROL, " ").replace(/[\u2028\u2029]/g, " "), 120)})`;
 		return {
 			text: `${HEADING}\n\n${MARKER_PREFIX}${cause}. Tell the user before spending.\n`,
 			unavailable: true,

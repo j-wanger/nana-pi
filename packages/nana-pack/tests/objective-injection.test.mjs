@@ -313,7 +313,9 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	check("p: a symlinked repo objective does not throw", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("p: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
-	check("p: falls back to the user-scope objective", !!r?.systemPrompt.includes("one coherent experience"));
+	// the umbrella GOVERNS (not merely shown as the program line — that text also contains the priority)
+	check("p: falls back to the user-scope objective",
+		!!r?.systemPrompt.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.`));
 	check("p: no program block when the fallback won", !(r?.systemPrompt ?? "").includes("program objective:"));
 	check("p: the refusal is printed in the block",
 		!!r?.systemPrompt.includes(`(ignored ${link}: reached through a symlink — the program file governs)`));

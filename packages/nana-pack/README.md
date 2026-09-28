@@ -399,10 +399,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
   - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, not
     valid UTF-8, or refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
-    under the same heading and journals `objective_unavailable` with the cause; a governing file with
-    neither line injects `OBJECTIVE UNAVAILABLE: no **Objective or **Current priority line
-    found in <path>` and nothing from the file; a line over the cap injects its first 1500
-    chars plus `(truncated at 1500 chars)`. Silence was the original
+    under the same heading and journals `objective_unavailable` with the cause; a file with
+    neither line is labelled `objective file: <path>` (never `governing`), injects
+    `OBJECTIVE UNAVAILABLE: no **Objective or **Current priority line found in <path>` and
+    nothing from the file, and — for a product file — the precedence line says the program
+    lines govern the session. Each line is ONE physical line (continuations never shown),
+    control and bidi characters stripped; a line over the cap injects its first 1500
+    chars plus `(truncated at 1500 chars)`. Every path is display text: one containing a
+    control, line-separator or bidi character is shown as a quoted JSON-escaped string, and a
+    long one is middle-elided with its basename kept. Silence was the original
     behaviour and it defeated the point — the one artifact every session must see went missing
     invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every
