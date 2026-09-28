@@ -49,12 +49,13 @@ try {
 	const edit = mgr.appendContextEdit(a1, null);
 	const u2 = mgr.appendMessage({ role: "user", content: [{ type: "text", text: "second question" }], timestamp: Date.now() });
 	const a2 = mgr.appendMessage({ role: "assistant", content: [{ type: "text", text: "second answer" }], provider: "test", model: "test-model", usage: USAGE, stopReason: "stop", timestamp: Date.now() });
-	const warmLeaf = mgr.appendUsage("cache_warm", "test", "test-model", USAGE).id; // pi's leaf is now a usage entry
+	const warmLeaf = mgr.appendUsage("cache_warm", "test", "test-model", USAGE).id; // a usage entry as a leaf …
+	const editLeaf = mgr.appendContextEdit(a2, null); // … then a context_edit as pi's actual leaf (sol r1 LOW)
 	const raw = fs.readFileSync(FILE, "utf8");
 	check("the fixture file really carries the three new entry kinds",
 		raw.includes('"type":"usage"') && raw.includes('"type":"context_edit"') && raw.includes('"role":"system"'));
 	const piBranch = mgr.getBranch().map((e) => e.id);
-	check("pi's own branch runs through them, ending at the usage entry", piBranch.at(-1) === warmLeaf && [sys, warm, edit].every((id) => piBranch.includes(id)), piBranch.join(","));
+	check("pi's own branch runs through them, ending at the context_edit leaf (via the usage leaf)", piBranch.at(-1) === editLeaf && [sys, warm, edit, warmLeaf].every((id) => piBranch.includes(id)), piBranch.join(","));
 
 	server = spawn("node", [SERVER], { env: { ...process.env, HOME: TD, DESK_PORT: "0" }, stdio: ["ignore", "pipe", "pipe"] });
 	let stdout = "";
@@ -79,7 +80,7 @@ try {
 	check("the context_edit TARGET is still rendered (raw history unchanged)", ids.includes(a1));
 	check("every user/assistant message is rendered, in order", JSON.stringify(ids.filter((id) => [u1, a1, u2, a2].includes(id))) === JSON.stringify([u1, a1, u2, a2]), ids.join(","));
 	const branch = t.entries.filter((e) => e.onBranch).map((e) => e.id);
-	const hidden = new Set([sys, warm, edit, warmLeaf]);
+	const hidden = new Set([sys, warm, edit, warmLeaf, editLeaf]);
 	check("active branch = pi's getBranch() minus the hidden bookkeeping", JSON.stringify(branch) === JSON.stringify(piBranch.filter((id) => !hidden.has(id))), `${branch.join(",")} vs ${piBranch.join(",")}`);
 	check("…so nothing is dimmed as an abandoned branch", t.entries.every((e) => e.onBranch), JSON.stringify(t.entries.filter((e) => !e.onBranch).map((e) => e.id)));
 	check("the session still lists, titled by its first user message",

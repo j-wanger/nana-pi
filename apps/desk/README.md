@@ -62,7 +62,7 @@ one version are two different parsers); the floor is semver precedence. On succe
 running* is answerable from the startup line:
 
 ```
-nana code: pi 0.84.4 — spawning /Users/x/.local/bin/pi, parsing sessions with
+nana code: pi 0.87.1 — spawning /Users/x/.local/bin/pi, parsing sessions with
            /Users/x/.local/lib/node_modules/@earendil-works/pi-coding-agent (resolved via PI_BIN walk-up)
 ```
 
@@ -510,7 +510,7 @@ would send it twice.
   as `message` entries with `role:"system"` (the first request of every session writes one), and
   cache-warm spend (`cacheWarming: "streaming"` is the default) as `usage` entries; pi 0.87 adds
   `context_edit` (an append-only edit of a target's MODEL context — raw history, UI and usage stay
-  as they were). pi's own TUI chat draws none of them, and the page would have drawn the last two
+  as they were). pi's default TUI chat draws none of them (`usage` cache-warm notices appear only behind `showCacheMissNotices`; the desk hides them unconditionally — a deliberate desk choice, default-TUI parity), and the page would have drawn the last two
   as bare `— usage —` / `— context_edit —` rows. `/api/transcript` leaves all three out of
   `entries` (and `total`) — but keeps them in the branch index, since any of them can be pi's leaf
   and the next message chains to it. A `context_edit` target is still rendered: the desk shows raw
