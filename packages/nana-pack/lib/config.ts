@@ -3,10 +3,25 @@
  *
  * Sources (project wins over user, both optional — every extension works with defaults):
  *   user:    ~/.pi/agent/nana-pack.json
- *   project: <cwd>/.pi/nana-pack.json — TRUSTED PROJECTS ONLY. Project config can
+ *   project: <cwd>/.pi/nana-pack.json — NANA-TRUSTED PROJECTS ONLY. Project config can
  *   relax the gate (allowPatterns), define post-edit COMMANDS, and redirect the
- *   handoff path, so an untrusted repo must not be able to supply it. Fail-closed
- *   when the trust API is missing (older pi).
+ *   handoff path, so a repo must not be able to supply it by itself. pi auto-trusts
+ *   a folder whose `.pi/` holds nothing pi considers trust-requiring (pi 0.87.1
+ *   dist/main.js:585, dist/core/trust-manager.js:150-169), so `ctx.isProjectTrusted()`
+ *   alone is not a decision. nana-trust = isProjectTrusted() AND (pi would have asked,
+ *   or trust.json holds an owner decision for this folder — `/trust`). Fail-closed
+ *   when the trust API or pi's module is missing (bare harness, older pi).
+ *
+ * Never throws: any bytes in either file yield a fully typed config. A malformed
+ * leaf falls back to its default (in a trusted project file: to the user value for
+ * that leaf, if set), a malformed array entry is dropped, an unparsable
+ * file contributes nothing — each reported once per session (journal
+ * `config_invalid` + one UI warning; the journal line is written even when
+ * `journal.enabled` is false). EXCEPT the gate block, user or nana-trusted project:
+ * a malformed one falls back to the last valid gate policy of that file loaded IN THIS
+ * PROCESS (process-wide, across sessions), and with none (fresh process) the gate
+ * stops conservatively (`gate.stopReason`; the user stop wins if both). Nothing is persisted: a policy
+ * file on disk could be forged by the very agent the gate constrains.
  *
  * Read on every event so config edits apply live, without restarting the session.
  */
@@ -23,15 +38,25 @@ export interface PostEditCommand {
 	timeoutMs?: number;
 }
 
+export interface GateConfig {
+	/** Extra dangerous-command regexes (strings) added to the built-in list */
+	extraPatterns: string[];
+	/** Regexes that skip gating entirely — checked first */
+	allowPatterns: string[];
+	/** Extra protected-path regexes added to the built-in list */
+	protectedPaths: string[];
+	/**
+	 * Not a config leaf (never read from a file). Non-null = a gate block — the USER's, or a
+	 * nana-trusted PROJECT's — is malformed and this process never loaded a valid one at that
+	 * scope: the gate blocks every gated tool until the owner repairs the named file. The user
+	 * stop wins when both are malformed. A last-good policy at that scope is used instead, so a
+	 * file corrupted mid-process does not stop anything.
+	 */
+	stopReason: string | null;
+}
+
 export interface NanaPackConfig {
-	gate: {
-		/** Extra dangerous-command regexes (strings) added to the built-in list */
-		extraPatterns: string[];
-		/** Regexes that skip gating entirely — checked first */
-		allowPatterns: string[];
-		/** Extra protected-path regexes added to the built-in list */
-		protectedPaths: string[];
-	};
+	gate: GateConfig;
 	postEdit: { commands: PostEditCommand[] };
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
@@ -50,7 +75,7 @@ export interface NanaPackConfig {
 }
 
 const DEFAULTS: NanaPackConfig = {
-	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] },
+	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [], stopReason: null },
 	postEdit: { commands: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
@@ -59,41 +84,394 @@ const DEFAULTS: NanaPackConfig = {
 	receipts: { enabled: true, dir: null },
 };
 
-function readJson(p: string): Record<string, any> | undefined {
+// ---------------------------------------------------------------- process-wide state
+// pi loads every extension through its own jiti instance with moduleCache:false
+// (pi 0.87.1 dist/core/extensions/loader.js:411), so each extension gets its OWN copy
+// of this module. State that must be shared — the per-session dedupe, the trust
+// evidence resolved at session_start, the last valid gate — lives on globalThis.
+interface SharedState {
+	reported: Set<string>;
+	decidedByCwd: Map<string, boolean>;
+	lastValidUserGate: Map<string, GateLeaves>;
+	lastValidProjectGate: Map<string, Record<string, unknown>>;
+	piTrust: PiTrustApi | null | undefined;
+	piTrustLoading: Promise<void> | undefined;
+}
+const G: SharedState = ((globalThis as any)[Symbol.for("nana-pack.config.state")] ??= {
+	reported: new Set(),
+	decidedByCwd: new Map(),
+	lastValidUserGate: new Map(),
+	lastValidProjectGate: new Map(),
+	piTrust: undefined,
+	piTrustLoading: undefined,
+});
+
+// ---------------------------------------------------------------- normalization
+
+type Block = Record<string, unknown>;
+type Blocks = Record<string, Block>;
+
+const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+
+const kind = (v: unknown) => (v === null ? "null" : Array.isArray(v) ? "array" : typeof v);
+
+type Leaf = (v: unknown, where: string, problems: string[]) => { ok: boolean; value?: unknown };
+
+const bool: Leaf = (v, where, problems) => {
+	if (typeof v === "boolean") return { ok: true, value: v };
+	problems.push(`${where}: expected true/false, got ${kind(v)} — using the default`);
+	return { ok: false };
+};
+
+const pathOrNull: Leaf = (v, where, problems) => {
+	if (v === null || typeof v === "string") return { ok: true, value: v };
+	problems.push(`${where}: expected a string or null, got ${kind(v)} — using the default`);
+	return { ok: false };
+};
+
+const regexList =
+	(flags: string): Leaf =>
+	(v, where, problems) => {
+		if (!Array.isArray(v)) {
+			problems.push(`${where}: expected an array of regex strings, got ${kind(v)} — using the default`);
+			return { ok: false };
+		}
+		const out: string[] = [];
+		v.forEach((p, i) => {
+			if (typeof p !== "string") return void problems.push(`${where}[${i}]: expected a regex string, got ${kind(p)} — dropped`);
+			try {
+				new RegExp(p, flags);
+				out.push(p);
+			} catch {
+				problems.push(`${where}[${i}]: invalid regex — dropped`);
+			}
+		});
+		return { ok: true, value: out };
+	};
+
+const commandList: Leaf = (v, where, problems) => {
+	if (!Array.isArray(v)) {
+		problems.push(`${where}: expected an array of {match, run} commands, got ${kind(v)} — using the default`);
+		return { ok: false };
+	}
+	const out: PostEditCommand[] = [];
+	v.forEach((c, i) => {
+		const bad = (why: string) => problems.push(`${where}[${i}]: ${why} — dropped`);
+		if (!isObj(c)) return void bad(`expected an object, got ${kind(c)}`);
+		if (typeof c.run !== "string") return void bad("`run` must be a string");
+		if (typeof c.match !== "string") return void bad("`match` must be a regex string");
+		try {
+			new RegExp(c.match);
+		} catch {
+			return void bad("`match` is an invalid regex");
+		}
+		if (c.timeoutMs !== undefined && !(typeof c.timeoutMs === "number" && Number.isInteger(c.timeoutMs) && c.timeoutMs >= 0))
+			return void bad("`timeoutMs` must be a non-negative integer");
+		const cmd: PostEditCommand = { match: c.match, run: c.run };
+		if (c.timeoutMs !== undefined) cmd.timeoutMs = c.timeoutMs as number;
+		out.push(cmd);
+	});
+	return { ok: true, value: out };
+};
+
+/** The config-file schema: block → leaf → validator. `gate.stopReason` is deliberately absent. */
+const SCHEMA: Record<string, Record<string, Leaf>> = {
+	gate: { extraPatterns: regexList("i"), allowPatterns: regexList("i"), protectedPaths: regexList("i") },
+	postEdit: { commands: commandList },
+	notify: { enabled: bool, headless: bool },
+	journal: { enabled: bool, path: pathOrNull },
+	handoff: { enabled: bool, path: pathOrNull },
+	objective: { enabled: bool, path: pathOrNull, projectFile: pathOrNull },
+	receipts: { enabled: bool, dir: pathOrNull },
+};
+
+interface FileRead {
+	/** false = file absent (not a problem) */
+	present: boolean;
+	/** valid leaves only, by block */
+	blocks: Blocks;
+	problems: string[];
+	/** true when the gate block is known-good (absent file, or no gate problem) */
+	gateValid: boolean;
+}
+
+/** Validate a parsed value against SCHEMA. Pure; never throws. */
+export function normalizeRaw(raw: unknown): { blocks: Blocks; problems: string[] } {
+	const problems: string[] = [];
+	const blocks: Blocks = {};
+	if (!isObj(raw)) {
+		problems.push(`top level: expected an object, got ${kind(raw)} — file ignored`);
+		return { blocks, problems };
+	}
+	for (const [name, leaves] of Object.entries(SCHEMA)) {
+		const b = raw[name];
+		if (b === undefined) continue;
+		if (!isObj(b)) {
+			problems.push(`${name}: expected an object, got ${kind(b)} — using the defaults`);
+			continue;
+		}
+		const out: Block = {};
+		for (const [leaf, check] of Object.entries(leaves)) {
+			if (b[leaf] === undefined) continue;
+			const r = check(b[leaf], `${name}.${leaf}`, problems);
+			if (r.ok) out[leaf] = r.value;
+		}
+		blocks[name] = out;
+	}
+	return { blocks, problems };
+}
+
+function readConfigFile(p: string): FileRead {
+	let text: string;
 	try {
-		return JSON.parse(fs.readFileSync(p, "utf-8"));
+		text = fs.readFileSync(p, "utf-8");
+	} catch (e: any) {
+		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") return { present: false, blocks: {}, problems: [], gateValid: true };
+		return { present: true, blocks: {}, problems: [`unreadable (${e?.code ?? "error"}) — file ignored`], gateValid: false };
+	}
+	let raw: unknown;
+	try {
+		raw = JSON.parse(text.replace(/^﻿/, ""));
+	} catch (e: any) {
+		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], gateValid: false };
+	}
+	const { blocks, problems } = normalizeRaw(raw);
+	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate"));
+	return { present: true, blocks, problems, gateValid };
+}
+
+// ---------------------------------------------------------------- last valid gate (in memory only)
+
+const userConfigPath = () => path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
+
+type GateLeaves = Omit<GateConfig, "stopReason">;
+const gateLeaves = (b: Block | undefined): GateLeaves => ({
+	extraPatterns: (b?.extraPatterns as string[]) ?? [],
+	allowPatterns: (b?.allowPatterns as string[]) ?? [],
+	protectedPaths: (b?.protectedPaths as string[]) ?? [],
+});
+
+// G.lastValidUserGate: keyed by user config path (so a HOME change is a fresh state)
+// G.lastValidProjectGate: keyed by project config path
+
+export const gateStopReason = (file: string, problem: string, scope: "user" | "project" = "user") =>
+	`${scope} nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
+
+// ---------------------------------------------------------------- nana-trust
+
+interface PiTrustApi {
+	hasTrustRequiringProjectResources: (cwd: string) => boolean;
+	ProjectTrustStore: new (agentDir: string) => { get(cwd: string): boolean | null };
+	getAgentDir?: () => string;
+}
+// G.piTrust: undefined = not tried yet; null = pi not resolvable (bare harness) → fail-closed
+// G.decidedByCwd: canonical cwd → "trust was actually decided" (pi would have asked, or trust.json says yes)
+
+/** Install pi's trust module (called with the real module inside pi; tests may pass pi's own). */
+export function usePiTrustModule(m: unknown): void {
+	const x = m as any;
+	G.piTrust =
+		x && typeof x.hasTrustRequiringProjectResources === "function" && typeof x.ProjectTrustStore === "function"
+			? (x as PiTrustApi)
+			: null;
+	G.decidedByCwd.clear();
+}
+
+function loadPiTrust(): Promise<void> {
+	G.piTrustLoading ??= import("@earendil-works/pi-coding-agent")
+		.then((m) => {
+			if (G.piTrust === undefined) usePiTrustModule(m);
+		})
+		.catch(() => {
+			if (G.piTrust === undefined) G.piTrust = null; // not inside pi: nothing can vouch → closed
+		});
+	return G.piTrustLoading;
+}
+void loadPiTrust(); // start early so the first session_start usually finds it resolved
+
+const cwdKey = (cwd: string) => {
+	try {
+		return fs.realpathSync(path.resolve(cwd));
 	} catch {
-		return undefined;
+		return path.resolve(cwd);
+	}
+};
+
+function computeDecided(cwd: string): boolean {
+	const api = G.piTrust;
+	if (!api) return false;
+	try {
+		if (api.hasTrustRequiringProjectResources(cwd)) return true; // pi would have asked
+	} catch {
+		// fall through to the store
+	}
+	try {
+		const agentDir = api.getAgentDir?.() ?? path.join(os.homedir(), ".pi", "agent");
+		return new api.ProjectTrustStore(agentDir).get(cwd) === true; // owner-recorded (`/trust`)
+	} catch {
+		return false; // unreadable trust.json → no evidence
 	}
 }
+
+/** Resolve trust evidence for ctx.cwd (call at session_start). Never throws. */
+export async function primeNanaTrust(ctx: { cwd: string }): Promise<void> {
+	try {
+		await loadPiTrust();
+		G.decidedByCwd.set(cwdKey(ctx.cwd), computeDecided(ctx.cwd));
+	} catch {
+		// closed
+	}
+}
+
+/** nana-trust: pi reports trusted AND trust was actually decided (never pi's auto-trust). */
+export function isNanaTrusted(ctx: ConfigContext): boolean {
+	try {
+		if (typeof ctx.isProjectTrusted !== "function" || ctx.isProjectTrusted() !== true) return false;
+		const key = cwdKey(ctx.cwd);
+		let decided = G.decidedByCwd.get(key);
+		if (decided === undefined) {
+			if (G.piTrust === undefined) return false; // pi module still loading: closed, not cached
+			decided = computeDecided(ctx.cwd);
+			G.decidedByCwd.set(key, decided);
+		}
+		return decided;
+	} catch {
+		return false;
+	}
+}
+
+// ---------------------------------------------------------------- diagnostics
+
+function sessionKey(ctx: any): string {
+	try {
+		return String(ctx?.sessionManager?.getSessionId?.() ?? "");
+	} catch {
+		return "";
+	}
+}
+
+/** Once per session per (file, problem): a journal line, and one UI warning when a UI exists. */
+function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, problem: string): void {
+	try {
+		const key = `${sessionKey(ctx)}\0${event}\0${file}\0${problem}`;
+		if (G.reported.has(key)) return;
+		G.reported.add(key);
+		// Diagnostics are not event journaling: written even when journal.enabled is
+		// false (a malformed journal.path already fell back to the default path).
+		appendJournalLine(cfg, { ts: new Date().toISOString(), event, file, problem, cwd: ctx?.cwd });
+		if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${file}: ${problem}`, "warning");
+	} catch {
+		// observability must never break a handler
+	}
+}
+
+// ---------------------------------------------------------------- loadConfig
 
 export interface ConfigContext {
 	cwd: string;
 	isProjectTrusted?: () => boolean;
+	hasUI?: boolean;
+	ui?: any;
+	sessionManager?: any;
 }
 
+const merge = (name: string, ...parts: (Block | undefined)[]): any =>
+	Object.assign({}, (DEFAULTS as any)[name], ...parts.filter(Boolean));
+
 export function loadConfig(ctx: ConfigContext): NanaPackConfig {
-	const user = readJson(path.join(os.homedir(), ".pi", "agent", "nana-pack.json")) ?? {};
-	const trusted = typeof ctx.isProjectTrusted === "function" && ctx.isProjectTrusted();
-	const project = trusted ? (readJson(path.join(ctx.cwd, ".pi", "nana-pack.json")) ?? {}) : {};
-	return {
-		gate: { ...DEFAULTS.gate, ...user.gate, ...project.gate },
-		postEdit: { ...DEFAULTS.postEdit, ...user.postEdit, ...project.postEdit },
-		notify: { ...DEFAULTS.notify, ...user.notify, ...project.notify },
-		journal: { ...DEFAULTS.journal, ...user.journal, ...project.journal },
-		handoff: { ...DEFAULTS.handoff, ...user.handoff, ...project.handoff },
-		// USER SCOPE ONLY — `project` is deliberately absent from this one merge.
-		// objective.path names a file whose contents go into EVERY session's system
-		// prompt, so a repo that could set it would be writing the standing
-		// instructions of every session run inside it; a repo that could set
-		// enabled:false would silently suppress the owner's objective. Project trust
-		// says "run this repo's tooling", not "speak for the user's own priorities",
-		// so trusted projects are excluded too. projectFile is the same: the owner
-		// decides once, at user scope, that repos may carry their own OBJECTIVE.md —
-		// a repo must not be able to decide that for itself.
-		objective: { ...DEFAULTS.objective, ...user.objective },
-		receipts: { ...DEFAULTS.receipts, ...user.receipts, ...project.receipts },
-	};
+	const notes: [event: string, file: string, problem: string][] = [];
+	let cfg: NanaPackConfig;
+	try {
+		const userFile = userConfigPath();
+		const user = readConfigFile(userFile);
+		for (const p of user.problems) notes.push(["config_invalid", userFile, p]);
+
+		// --- user gate: never "default" when the block is malformed
+		let gate: GateConfig;
+		if (!user.present) {
+			gate = { ...gateLeaves(undefined), stopReason: null };
+		} else if (user.gateValid) {
+			const g = gateLeaves(user.blocks.gate);
+			G.lastValidUserGate.set(userFile, g);
+			gate = { ...g, stopReason: null };
+		} else {
+			const last = G.lastValidUserGate.get(userFile);
+			if (last) {
+				gate = { ...last, stopReason: null };
+				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this process"]);
+			} else {
+				const problem = user.problems.find((m) => m.startsWith("gate")) ?? user.problems[0] ?? "malformed";
+				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
+				notes.push(["config_gate_fallback", userFile, "gate policy invalid and no valid policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
+			}
+		}
+
+		// --- project scope: only under nana-trust
+		const projectFile = path.join(ctx.cwd, ".pi", "nana-pack.json");
+		let project: Blocks = {};
+		let projectStop: string | null = null;
+		if (isNanaTrusted(ctx)) {
+			const pr = readConfigFile(projectFile);
+			for (const p of pr.problems) notes.push(["config_invalid", projectFile, p]);
+			project = pr.blocks;
+			if (pr.present) {
+				if (pr.gateValid) G.lastValidProjectGate.set(projectFile, project.gate ?? {});
+				else {
+					// Same rule as the user gate (invariant 6 — never widens): keep the last
+					// valid project gate loaded in this process, else STOP. Substituting "no
+					// project contribution" would drop the project's denies/protected paths
+					// and resurrect user exceptions it had cancelled (astra L1 land ruling).
+					const last = G.lastValidProjectGate.get(projectFile);
+					if (last) {
+						project = { ...project, gate: last };
+						notes.push(["config_gate_fallback", projectFile, "gate policy invalid — enforcing the last valid project policy loaded in this process"]);
+					} else {
+						const problem = pr.problems.find((m) => m.startsWith("gate")) ?? pr.problems[0] ?? "malformed";
+						projectStop = gateStopReason(projectFile, problem, "project");
+						notes.push(["config_gate_fallback", projectFile, "project gate policy invalid and no valid project policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
+					}
+				}
+			}
+		} else if (fs.existsSync(projectFile)) {
+			notes.push([
+				"config_project_ignored",
+				projectFile,
+				"project config ignored — this folder's trust was never decided by you. Run /trust in pi for this folder (then restart) to honor it",
+			]);
+		}
+
+		const u = user.blocks;
+		const pg = project.gate;
+		cfg = {
+			// user stop wins (its reason names the user file); then the project stop
+			gate: gate.stopReason
+				? gate
+				: projectStop
+					? { ...gate, stopReason: projectStop }
+					: { ...gate, ...(pg as Record<string, string[]> | undefined) },
+			postEdit: merge("postEdit", u.postEdit, project.postEdit),
+			notify: merge("notify", u.notify, project.notify),
+			journal: merge("journal", u.journal, project.journal),
+			handoff: merge("handoff", u.handoff, project.handoff),
+			// USER SCOPE ONLY — `project` is deliberately absent from this one merge.
+			// objective.path names a file whose contents go into EVERY session's system
+			// prompt, so a repo that could set it would be writing the standing
+			// instructions of every session run inside it; a repo that could set
+			// enabled:false would silently suppress the owner's objective. Project trust
+			// says "run this repo's tooling", not "speak for the user's own priorities",
+			// so trusted projects are excluded too. projectFile is the same: the owner
+			// decides once, at user scope, that repos may carry their own OBJECTIVE.md —
+			// a repo must not be able to decide that for itself.
+			objective: merge("objective", u.objective),
+			receipts: merge("receipts", u.receipts, project.receipts),
+		};
+	} catch (e) {
+		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
+		cfg = structuredClone(DEFAULTS);
+		cfg.gate.stopReason = gateStopReason(userConfigPath(), `config load failed (${String(e).slice(0, 120)})`);
+	}
+	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
+	return cfg;
 }
 
 export function compileRegexes(patterns: string[]): RegExp[] {
@@ -118,6 +496,10 @@ export function journalFile(cfg: NanaPackConfig): string {
 /** Best-effort append; observability must never break the agent. */
 export function appendJournal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	if (!cfg.journal.enabled) return;
+	appendJournalLine(cfg, entry);
+}
+
+function appendJournalLine(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	try {
 		fs.appendFileSync(journalFile(cfg), `${JSON.stringify(entry)}\n`);
 	} catch {

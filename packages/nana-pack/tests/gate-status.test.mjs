@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Visibility property: the gate keeps a per-session tally and publishes it on
 // every tool call it INSPECTS, so an interactive session can tell "the gate is
 // live and letting things through" apart from "there is no gate". Tool calls
@@ -20,7 +28,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 function setup(gate, opts = {}) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "gate-status-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: false },
 		gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [], ...gate },
 	}));
@@ -120,7 +128,7 @@ const last = (a) => a.at(-1);
 {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "gate-status-headless-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false } }));
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };

@@ -35,6 +35,14 @@ function findPiRoot() {
 }
 
 const piRoot = findPiRoot();
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 const jitiEntry = piRoot && path.join(piRoot, "node_modules", "jiti", "lib", "jiti.mjs");
 if (!piRoot || !fs.existsSync(jitiEntry)) {
 	console.log("SKIP file-queue: @earendil-works/pi-coding-agent (with its bundled jiti) is not installed globally");
@@ -59,7 +67,7 @@ fs.mkdirSync(path.join(ws, ".pi"), { recursive: true });
 const orderLog = path.join(ws, "order.log");
 // the checker only records WHEN it ran, so ordering against the release is provable
 const cmd = `node -e "require('fs').appendFileSync('${orderLog}','checker'+String.fromCharCode(10))"`;
-fs.writeFileSync(path.join(ws, ".pi", "nana-pack.json"), JSON.stringify({
+fs.writeFileSync(USER_CFG, JSON.stringify({
 	journal: { enabled: false },
 	receipts: { enabled: true, dir: path.join(td, "receipts") },
 	postEdit: { commands: [{ match: "\\.txt$", run: cmd, timeoutMs: 10_000 }] },

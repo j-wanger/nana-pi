@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Evidence property: a post-edit check leaves a CONTENT-BOUND receipt for both
 // pass and fail, with a DISTINCT status (a checker that could not run is never
 // "passed"), and staleness is detectable by re-reading the workspace. The key
@@ -21,7 +29,7 @@ const ALLOWED_NOT_PASSED = new Set(["error", "timeout", "not_run"]);
 function setup(commands, opts = {}) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "receipt-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: false },
 		receipts: opts.receipts ?? { enabled: true, dir: path.join(td, "receipts") },
 		postEdit: { commands },
@@ -156,6 +164,8 @@ function setup(commands, opts = {}) {
 	const origHome = process.env.HOME;
 	const origUserProfile = process.env.USERPROFILE;
 	const { td, fire } = setup([{ match: "\\.txt$", run: cmd }], { receipts: { enabled: true, dir: 42 } });
+	fs.mkdirSync(path.join(td, ".pi", "agent"), { recursive: true }); // L1: HOME→td below reads user config from td
+	fs.copyFileSync(USER_CFG, path.join(td, ".pi", "agent", "nana-pack.json"));
 	try {
 		process.env.HOME = td; process.env.USERPROFILE = td; // default receiptsDir resolves under td (HOME on posix, USERPROFILE on win32)
 		const file = path.join(td, "bad.txt");

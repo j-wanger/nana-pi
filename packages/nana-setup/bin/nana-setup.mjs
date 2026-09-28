@@ -150,6 +150,12 @@ async function runProject(opts) {
 	if (!opts.dryRun && changed) {
 		console.log("  next: open a session here and ratify the two DRAFT lines in OBJECTIVE.md — they are yours, not a default.");
 	}
+	if (!opts.dryRun && fs.existsSync(path.join(dir, ".pi", "nana-pack.json"))) {
+		console.log(
+			"  trust: .pi/nana-pack.json is IGNORED until you decide this folder's trust — run /trust in pi here, then restart pi.\n" +
+				"         `pi -a` / `--approve` (the desk's trust box) trusts one run only; it is not a recorded decision.",
+		);
+	}
 	// Same rule as `install`: a ✗ row means this is not a set-up project (sol r3).
 	return problems ? 1 : 0;
 }

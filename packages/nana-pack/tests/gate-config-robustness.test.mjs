@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Robustness property: a malformed gate config (e.g. `"allowPatterns": null`) must
 // NOT throw out of the tool_call handler — a throw there is fail-safe-BLOCKED
 // upstream, so a null pattern array would wrongly block an otherwise-benign edit.
@@ -16,12 +24,22 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 function setup(gate) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "gate-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, gate }));
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, gate }));
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 	const call = (toolName, input) => handlers.tool_call({ toolName, input }, ctx);
 	return { td, call };
+}
+
+// L1 fixture: this process first loads a VALID (empty) user gate block, so the malformed
+// gate blocks below fall back to that in-memory last-good policy. A process that never
+// loaded a valid one stops conservatively instead (every gated tool blocked — pinned in
+// config-gate-fallback.test.mjs (b)/(c)).
+{
+	const { td, call } = setup({});
+	await call("bash", { command: "ls" });
+	fs.rmSync(td, { recursive: true, force: true });
 }
 
 // (a) gate.allowPatterns: null — a benign edit must return normally (no throw, no block).

@@ -68,6 +68,12 @@ overwriting a real one) and the `adopt-structure` skill. So a scaffolded, an ado
 hand-made project read identically. `<date>` is left literal in the rendered template on
 purpose — copier has no date variable — and is filled by this command or by the skill.
 
+**Trust is yours to decide, too.** The seeded `.pi/nana-pack.json` is ignored until you decide
+this folder's trust: run **`/trust`** in pi inside the folder, then restart pi (the command
+prints this). `pi -a` / `--approve` — and the desk's "Trust project config" box, which sends
+`-a` — trusts **one run** only; it is not a recorded decision, so a folder whose `.pi/` holds
+only nana files stays ignored under it. Existing projects need the same one-time `/trust`.
+
 What it will not do is decide your objective. The two `(DRAFT — ratify by editing this line)`
 lines are the owner's, and the command says so when it finishes.
 

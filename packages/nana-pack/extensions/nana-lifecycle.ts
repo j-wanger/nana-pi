@@ -10,7 +10,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { appendJournal, type ConfigContext, loadConfig } from "../lib/config.ts";
+import { appendJournal, type ConfigContext, loadConfig, primeNanaTrust } from "../lib/config.ts";
 
 export default function (pi: ExtensionAPI) {
 	const log = (ctx: ConfigContext, event: string, extra: Record<string, unknown> = {}) => {
@@ -24,6 +24,10 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	pi.on("session_start", async (event, ctx) => {
+		// Resolve nana-trust evidence for this cwd once per session (pi's trust module is
+		// an async import; loadConfig stays sync). The loadConfig inside log() then
+		// surfaces config problems / an ignored project config — once per session.
+		await primeNanaTrust(ctx);
 		log(ctx, "session_start", { reason: (event as any).reason });
 		if (ctx.hasUI) ctx.ui.setStatus("nana-pack", ctx.ui.theme.fg("dim", "nana-pack ✓"));
 	});

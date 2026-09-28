@@ -11,6 +11,9 @@
  * enforcement belongs to the container/sandbox layer, not here.
  */
 
+import * as os from "node:os";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, loadConfig } from "../lib/config.ts";
 
@@ -35,9 +38,61 @@ const DANGEROUS: RegExp[] = [
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
 	/\.pi[/\\]agent[/\\]settings\.json/i,
+	// L1 (2026-09-28): the gate's own policy and pi's trust store are trust EVIDENCE for
+	// project-scope config; a tool write to either could forge a wider policy for the next
+	// process (sol L1 r2). L2 adds the bash/PowerShell redirection forms and segment rules.
+	/\.pi[/\\]agent[/\\]trust\.json/i,
+	/\.pi[/\\](agent[/\\])?nana-pack\.json/i,
 	/(^|[\s/\\"'])\.ssh([/\\]|\b)/,
 	/(^|[\s/\\"'])\.env(\.[\w-]+)?\b/,
 ];
+
+// Protected-path checks run on the RESOLVED path, not the model's raw string:
+// `~/.pi/agent/../agent/trust.json` and `.pi/x/../nana-pack.json` both resolve onto a
+// policy file, and a raw-string regex misses them (sol L1 r3). Mirrors pi's own
+// `resolveToCwd` (dist/core/tools/path-utils.js) the same way nana-post-edit.ts does —
+// unicode spaces folded, leading `@` stripped, win32 shell paths converted, `~` expanded,
+// file:// converted — so the gate checks the file pi will actually open. Copied, not
+// imported: post-edit is another lane's file. L2 may factor both into one lib.
+const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
+
+function normalizeWindowsShellPath(filePath: string): string {
+	if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
+	const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
+	if (!match) return filePath;
+	const suffix = match[2]?.replaceAll("/", "\\");
+	return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
+}
+
+function normalizeToolPath(input: string): string {
+	let normalized = input.replace(UNICODE_SPACES, " ");
+	if (normalized.startsWith("@")) normalized = normalized.slice(1);
+	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
+	const home = os.homedir();
+	if (normalized === "~") return home;
+	if (normalized.startsWith("~/") || (process.platform === "win32" && normalized.startsWith("~\\"))) {
+		return path.join(home, normalized.slice(2));
+	}
+	if (/^file:\/\//.test(normalized)) {
+		try {
+			return fileURLToPath(normalized);
+		} catch {
+			return normalized; // a malformed file:// URL must never throw out of the gate
+		}
+	}
+	return normalized;
+}
+
+// Never throws: a resolution failure degrades to the raw subject, which is still matched.
+function resolveToolPath(filePath: string, cwd: string): string {
+	try {
+		const normalized = normalizeToolPath(filePath);
+		const base = normalizeToolPath(cwd || ".");
+		return path.isAbsolute(normalized) ? path.resolve(normalized) : path.resolve(base, normalized);
+	} catch {
+		return filePath;
+	}
+}
 
 function truncate(s: string, n: number): string {
 	return s.length <= n ? s : `${s.slice(0, n)}…`;
@@ -78,6 +133,16 @@ export default function (pi: ExtensionAPI) {
 		}
 		checked += 1;
 
+		// Malformed user (or nana-trusted project) gate block and no valid policy of
+		// that file loaded in this process
+		// (lib/config.ts): stop conservatively — every gated tool class is blocked,
+		// interactive or not, until the owner repairs the file.
+		if (cfg.gate.stopReason) {
+			gated += 1;
+			publishStatus(ctx);
+			return { block: true, reason: `nana-gate: ${cfg.gate.stopReason}` };
+		}
+
 		if (compileRegexes(cfg.gate.allowPatterns).some((r) => r.test(subject))) {
 			publishStatus(ctx);
 			return undefined;
@@ -86,8 +151,11 @@ export default function (pi: ExtensionAPI) {
 		const dangerousHit = isCommand
 			? [...DANGEROUS, ...compileRegexes(cfg.gate.extraPatterns)].find((r) => r.test(subject))
 			: undefined;
+		// Match the raw subject AND the resolved path: raw keeps every documented
+		// pattern working on relative forms, resolved closes `..` traversal (sol L1 r3).
+		const pathSubjects = isCommand ? [subject] : [subject, resolveToolPath(subject, String((ctx as any).cwd ?? ""))];
 		const protectedHit = [...PROTECTED_PATHS, ...compileRegexes(cfg.gate.protectedPaths)].find((r) =>
-			r.test(subject),
+			pathSubjects.some((p) => r.test(p)),
 		);
 		const hit = dangerousHit ?? protectedHit;
 		if (hit) gated += 1;

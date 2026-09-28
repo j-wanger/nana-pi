@@ -110,6 +110,9 @@ cycle guard — the desk's does).
   are the pluggable surface, so that's what the toggles cover. "Trust project
   config" maps to `-a` (RPC sessions never prompt); when unchecked, project-local
   items are locked off so untrusted project code can't ride in via explicit flags.
+  The box (`-a`, one run) does **not** make nana-pack honor a folder's
+  `.pi/nana-pack.json` when `.pi/` holds only nana files — that needs a recorded
+  decision: `/trust` in pi for the folder, then restart.
   The picker also lists the session's **built-in tools**, and says where the list
   came from: a trusted project's `.pi/settings.json` `defaultTools` REPLACES the
   global array (it is not merged), so the set is recomputed from `/api/resources`

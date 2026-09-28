@@ -109,6 +109,40 @@ User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project w
 read live on every event — edits apply without restarting). One exception: **`objective`
 is user-scope only** — project config never contributes to it, trusted or not.
 
+- **Project config needs a real trust decision.** *Changed:* it used to be honored whenever
+  pi reported the project trusted — including pi's silent auto-trust of a folder whose `.pi/`
+  holds only nana files. Now it is honored only when pi reports the project trusted **and**
+  trust was actually decided: pi asked (the folder has `.pi/settings.json`, `extensions`,
+  `skills`, `prompts`, `themes`, `SYSTEM.md`, `APPEND_SYSTEM.md`, or an ancestor
+  `.agents/skills`), or you saved trust for the folder (or a parent) with **`/trust`** in pi
+  (`~/.pi/agent/trust.json`), then restarted. An ignored project config is announced once per
+  session (a warning and a `config_project_ignored` journal line), never silent.
+- **Malformed config never throws and never widens the gate.** A bad leaf falls back to its
+  default — or, in a trusted *project* file, to the **user** value for that leaf when the user
+  file sets one (project leaves override user leaves one by one, so a dropped project leaf
+  leaves the user's in place) — a bad array entry is dropped, an unparsable file contributes
+  nothing; each problem
+  is reported once per session (a warning and a `config_invalid` journal line — written even
+  with `journal.enabled: false`, which governs event journaling, not config diagnostics). The
+  **user `gate` block** is the exception — it never falls back to the defaults:
+  - broken **mid-session**: the last valid gate policy this process loaded stays enforced;
+  - broken when pi **starts** (or restarts): the gate **blocks every bash / powershell /
+    edit / write call**, interactive sessions included, with `nana-gate: user nana-pack.json
+    gate block is malformed — repair it (<file>:<problem>)`, until the file is valid again.
+    Edits apply live, so a typo costs one repair.
+  The **`gate` block of a nana-trusted project file** follows the same rule: broken mid-session
+  keeps the last valid project gate this process loaded; broken at start blocks every gated
+  call with `nana-gate: project nana-pack.json gate block is malformed — repair it
+  (<file>:<problem>)` — it never silently drops the project's denies / protected paths or
+  brings back a user exception the project had cancelled. (If both files are broken the user
+  stop is reported.) The repair is the owner's, outside the gated agent: fix or delete
+  `<cwd>/.pi/nana-pack.json`.
+  No copy of the policy is saved to disk: a saved "last good" file could be forged by the very
+  agent the gate constrains, so after a restart nothing but a valid `nana-pack.json` can open
+  the gate. A missing file is not malformed — it means the defaults (no project contribution).
+  "This process" is process-wide, not per session: an interactive pi that starts a new /
+  resumed / forked session in the same process keeps the last valid gate it loaded.
+
 ```json
 {
 	"gate": {

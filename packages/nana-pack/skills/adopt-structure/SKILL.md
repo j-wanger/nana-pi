@@ -131,7 +131,7 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    user where to fill in their real `match`/`run`, and that this file takes effect
    **only in a trusted project** (pi's project-trust gate) — an untrusted repo's
    **project** config is ignored, though any user-scope `~/.pi/agent/nana-pack.json`
-   commands still run.
+   commands still run. Tell the user to run `/trust` in pi once for this folder (then restart): pi auto-trusts a `.pi/` holding only nana files, and nana does not count that, so the seeded config stays inert (with a warning) until they do.
 
 6. **The three frontier seeds — only when absent.** A project the pack can
    actually run a session in needs `OBJECTIVE.md` (what session start prints and

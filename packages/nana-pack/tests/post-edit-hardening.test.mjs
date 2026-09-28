@@ -2,6 +2,14 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Liveness + fidelity properties of the post-edit checker, driving the REAL
 // registered handler:
 //  (a) a checker that IGNORES SIGTERM is still bounded — Node's exec sends one
@@ -43,7 +51,7 @@ const JOURNAL = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "postedit-journa
 function setup(commands, opts = {}) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: JOURNAL },
 		receipts: { enabled: true, dir: path.join(td, "receipts") },
 		postEdit: { commands },
@@ -125,7 +133,7 @@ if (POSIX) {
 		`spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)", process.argv[2]], { stdio: "inherit" });`,
 	].join("\n"));
 	const cmd = `node "${spawner}" ${marker}`;
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: JOURNAL },
 		receipts: { enabled: true, dir: path.join(td, "receipts") },
 		postEdit: { commands: [{ match: "\\.txt$", run: cmd, timeoutMs: 300 }] },
@@ -186,7 +194,7 @@ if (POSIX) {
 		"c.unref();",
 	].join("\n"));
 	const cmd = `node "${spawner}" ${marker}`;
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: JOURNAL },
 		receipts: { enabled: true, dir: path.join(td, "receipts") },
 		postEdit: { commands: [{ match: "\\.txt$", run: cmd, timeoutMs: 300 }] },
@@ -258,6 +266,8 @@ if (POSIX) {
 		const [real, asModelWrites] = mk(td);
 		const abs = path.join(td, real);
 		fs.writeFileSync(abs, "one\n");
+		fs.mkdirSync(path.join(td, ".pi", "agent"), { recursive: true }); // L1: HOME→td below reads user config from td
+		fs.copyFileSync(USER_CFG, path.join(td, ".pi", "agent", "nana-pack.json"));
 		try {
 			// os.homedir() reads HOME (posix) / USERPROFILE (win32), so `~` lands in the workspace
 			process.env.HOME = td;
