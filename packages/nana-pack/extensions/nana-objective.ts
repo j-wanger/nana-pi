@@ -20,17 +20,17 @@
  *
  * Per-repo objectives (2026-09-18, parity with ~/.claude/hooks/nana-objective.sh):
  * a product repo now carries its own OBJECTIVE.md, and a session there must be
- * charged against the product's two lines, not the umbrella's. With
- * objective.projectFile set, the nearest <dir>/<projectFile> walking UP from the
- * session cwd wins; the user-scope objective.path is the fallback (the program
- * file), whose objective and current priority are shown alongside a product's.
- * Opting in is the OWNER's act at user scope — a repo cannot turn it on for
- * itself, and cannot turn the fallback or the whole feature off.
+ * charged against the product's two lines, not the umbrella's. UNCONDITIONALLY (no
+ * configuration needed), the nearest <dir>/OBJECTIVE.md walking UP from the session
+ * cwd wins; the user-scope objective.path is the fallback (the program file), whose
+ * objective and current priority are shown alongside a product's. Only the OWNER, at
+ * user scope, can rename the file looked for (objective.projectFile) — a repo cannot,
+ * and cannot turn the fallback or the whole feature off.
  *
  * Config (nana-pack.json): objective.enabled (default true), objective.path
  * (default ~/.pi/agent/nana-objective.md; "~/" expands, a RELATIVE path resolves
  * against ~/.pi/agent and NEVER against cwd), objective.projectFile (default null
- * = off). USER SCOPE ONLY — see lib/config.ts.
+ * = "OBJECTIVE.md"; false also means the default name — the walk is never off). USER SCOPE ONLY — see lib/config.ts.
  *
  * Resolution and rendering live in ONE place, lib/objective.ts (lane T2a,
  * 2026-09-28) — the Claude Code hook runs bin/nana-objective.mjs over the same

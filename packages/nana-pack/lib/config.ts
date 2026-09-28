@@ -68,9 +68,9 @@ export interface NanaPackConfig {
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
 	 * `path` null = ~/.pi/agent/nana-objective.md.
-	 * `projectFile` null = off; a bare filename (e.g. "OBJECTIVE.md") that the
-	 * extension looks for walking UP from the session cwd, so a product repo can
-	 * speak its own objective. Opting in is the OWNER's act, at user scope.
+	 * The nearest OBJECTIVE.md walking UP from the session cwd ALWAYS wins over `path`
+	 * (no opt-in). `projectFile` only renames that file: a bare filename, owner-set at
+	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
 	objective: { enabled: boolean; path: string | null; projectFile: string | null };
 	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
@@ -129,6 +129,14 @@ const bool: Leaf = (v, where, problems) => {
 const pathOrNull: Leaf = (v, where, problems) => {
 	if (v === null || typeof v === "string") return { ok: true, value: v };
 	problems.push(`${where}: expected a string or null, got ${kind(v)} — using the default`);
+	return { ok: false };
+};
+
+/** objective.projectFile: a filename, or null/false meaning the default name (normalised to null). */
+const fileNameOrDefault: Leaf = (v, where, problems) => {
+	if (v === null || v === false) return { ok: true, value: null };
+	if (typeof v === "string") return { ok: true, value: v || null };
+	problems.push(`${where}: expected a filename, null or false, got ${kind(v)} — using the default (OBJECTIVE.md)`);
 	return { ok: false };
 };
 
@@ -199,7 +207,7 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	notify: { enabled: bool, headless: bool },
 	journal: { enabled: bool, path: pathOrNull },
 	handoff: { enabled: bool, path: pathOrNull, staleAfterDays: positiveNumber },
-	objective: { enabled: bool, path: pathOrNull, projectFile: pathOrNull },
+	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
 	receipts: { enabled: bool, dir: pathOrNull },
 };
 

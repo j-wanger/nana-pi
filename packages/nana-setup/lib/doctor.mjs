@@ -92,7 +92,7 @@ export function diagnose(layout, opts = {}) {
 	const cfg = readPiPackConfig(layout);
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : `missing or unparseable: ${layout.piPackConfig}`);
 	const projectFile = cfg?.objective?.projectFile;
-	add(projectFile ? OK : NOTE, "pi objective.projectFile", projectFile ? `${projectFile} (per-repo objectives on)` : "not set — only the user-scope objective is used");
+	add(OK, "pi objective.projectFile", projectFile ? `${projectFile} (per-repo file renamed)` : "not set — per-repo OBJECTIVE.md (the default name)");
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
 

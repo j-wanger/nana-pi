@@ -28,8 +28,15 @@ const HEAD = "## Objective and current priority (nana)";
 const CHARGE = "Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending.";
 
 let n = 0;
-/** A fresh world: HOME with nana-pack.json, the umbrella at ~/loop/OBJECTIVE.md, a product at ~/work/widget. */
-function world({ projectFile = "OBJECTIVE.md", umbrella = UMBRELLA, enabled } = {}) {
+/**
+ * A fresh world: HOME with nana-pack.json, the umbrella at ~/loop/OBJECTIVE.md, a product at ~/work/widget.
+ * config:false = a FRESH MACHINE: no nana-pack.json at all, so the umbrella is the default
+ * ~/.pi/agent/nana-objective.md. projectFile: undefined = key absent; any other value is written as-is.
+ */
+function world(opts = {}) {
+	const { umbrella = UMBRELLA, enabled, config = true } = opts;
+	// NOT a destructuring default: an explicit { projectFile: undefined } must mean "key absent".
+	const projectFile = "projectFile" in opts ? opts.projectFile : "OBJECTIVE.md";
 	const home = path.join(scratch, `h${++n}`);
 	const loop = path.join(home, "loop");
 	const product = path.join(home, "work", "widget");
@@ -37,20 +44,23 @@ function world({ projectFile = "OBJECTIVE.md", umbrella = UMBRELLA, enabled } = 
 	fs.mkdirSync(loop, { recursive: true });
 	fs.mkdirSync(product, { recursive: true });
 	fs.mkdirSync(path.join(home, "elsewhere"), { recursive: true });
-	const umbrellaFile = path.join(loop, "OBJECTIVE.md");
+	const umbrellaFile = config ? path.join(loop, "OBJECTIVE.md") : path.join(home, ".pi", "agent", "nana-objective.md");
 	if (umbrella !== null) fs.writeFileSync(umbrellaFile, umbrella);
-	const objective = { path: umbrellaFile, ...(projectFile ? { projectFile } : {}), ...(enabled === undefined ? {} : { enabled }) };
-	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, objective }));
+	const objective = { path: umbrellaFile, ...(projectFile === undefined ? {} : { projectFile }), ...(enabled === undefined ? {} : { enabled }) };
+	if (config) fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, objective }));
 	// installed the way nana-setup does it: ~/.claude/hooks/nana-objective.sh -> repo
 	fs.mkdirSync(path.join(home, ".claude", "hooks"), { recursive: true });
 	fs.symlinkSync(hookSrc, path.join(home, ".claude", "hooks", "nana-objective.sh"));
 	return { home, loop, product, umbrellaFile, productFile: path.join(product, "OBJECTIVE.md") };
 }
 
-function runHook(w, cwd) {
+/** noProjectDir: CLAUDE_PROJECT_DIR unset — the hook runs IN cwd and must fall back to $PWD. */
+function runHook(w, cwd, { noProjectDir = false } = {}) {
+	const env = { HOME: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
+	if (!noProjectDir) env.CLAUDE_PROJECT_DIR = cwd;
 	const r = spawnSync("bash", [path.join(w.home, ".claude", "hooks", "nana-objective.sh")], {
-		cwd: w.home,
-		env: { HOME: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, CLAUDE_PROJECT_DIR: cwd },
+		cwd: noProjectDir ? cwd : w.home,
+		env,
 		encoding: "utf-8",
 		timeout: 10000,
 	});
@@ -72,8 +82,8 @@ async function runPi(w, cwd) {
 }
 
 /** The one comparison: hook stdout minus its tag line === pi's injected block. */
-async function golden(label, w, cwd, expect) {
-	const hook = runHook(w, cwd);
+async function golden(label, w, cwd, expect, hookOpts) {
+	const hook = runHook(w, cwd, hookOpts);
 	const pi = await runPi(w, cwd);
 	check(`${label}: hook exits 0`, hook.status === 0, hook.out);
 	let hookText = null;
@@ -186,21 +196,25 @@ async function golden(label, w, cwd, expect) {
 	});
 }
 
-// 10. objective.projectFile NOT opted in: a product file is ignored, the umbrella governs
-{
-	const w = world({ projectFile: null });
+// 10. objective.projectFile absent / null / false: NOT "off" — OBJECTIVE.md is still found (walk-up is the default)
+for (const [label, projectFile] of [["absent", undefined], ["null", null], ["false", false]]) {
+	const w = world({ projectFile });
 	fs.writeFileSync(w.productFile, PRODUCT);
-	await golden("projectFile off", w, w.product, (t) => {
-		check("projectFile off: umbrella governs", t.includes(`governing: ${w.umbrellaFile}\n`) && !t.includes("ship the widget"));
+	await golden(`projectFile ${label}`, w, w.product, (t) => {
+		check(`projectFile ${label}: OBJECTIVE.md still found, product governs`,
+			t.includes(`governing: ${w.productFile}\n${OBJ("ship the widget.")}`) && t.includes(`program current priority: ${PRI("make nana-pi coherent.")}`), t);
 	});
 }
 
-// 11. objective.projectFile opted in under a custom name
+// 11. objective.projectFile names a DIFFERENT filename: that name wins, even over an OBJECTIVE.md beside it
 {
 	const w = world({ projectFile: "WIDGET-OBJECTIVE.md" });
-	fs.writeFileSync(path.join(w.product, "WIDGET-OBJECTIVE.md"), PRODUCT);
+	const custom = path.join(w.product, "WIDGET-OBJECTIVE.md");
+	fs.writeFileSync(custom, PRODUCT);
+	fs.writeFileSync(w.productFile, `${OBJ("the WRONG file.")}\n`);
 	await golden("projectFile custom name", w, w.product, (t) => {
-		check("projectFile custom: product governs", t.includes("ship the widget") && t.includes("program current priority"));
+		check("projectFile custom: that name governs", t.includes(`governing: ${custom}\n${OBJ("ship the widget.")}`) && t.includes("program current priority"), t);
+		check("projectFile custom: the default-named file beside it is not used", !t.includes("the WRONG file."), t);
 	});
 }
 
@@ -269,6 +283,66 @@ for (const extra of [0, 1]) {
 	await golden("disabled", w, w.product, (t, piNull) => {
 		check("disabled: nothing printed or injected", t === "" && piNull);
 	});
+}
+
+// 19. FRESH MACHINE (no nana-pack.json at all) + product repo, cwd a subdirectory:
+// the product's lines govern. This is the case T2a r1 regressed (it printed UNAVAILABLE).
+{
+	const w = world({ config: false, umbrella: null });
+	fs.writeFileSync(w.productFile, PRODUCT);
+	const sub = path.join(w.product, "sub");
+	fs.mkdirSync(sub);
+	check("fresh machine: there really is no nana-pack.json", !fs.existsSync(path.join(w.home, ".pi", "agent", "nana-pack.json")));
+	const t = await golden("FRESH MACHINE, no config: product governs", w, sub, () => {});
+	check("FRESH MACHINE, no config: product governs — exact text", t === [
+		HEAD,
+		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
+		`program objective: unavailable (file not found: ${w.umbrellaFile})`,
+		`Precedence: the lines from ${w.productFile} govern this session's work; the program lines (${w.umbrellaFile}) say what the toolkit is for.`,
+		CHARGE,
+	].join("\n\n"), t);
+	check("FRESH MACHINE, no config: no UNAVAILABLE marker", !t.includes("OBJECTIVE UNAVAILABLE"), t);
+}
+
+// 20. FRESH MACHINE + product + the default umbrella present: product governs, program lines shown
+{
+	const w = world({ config: false });
+	fs.writeFileSync(w.productFile, PRODUCT);
+	await golden("FRESH MACHINE, no config, umbrella present: product governs", w, w.product, (t) => {
+		check("FRESH MACHINE + umbrella: product governs", t.includes(`governing: ${w.productFile}\n`), t);
+		check("FRESH MACHINE + umbrella: program lines labelled",
+			t.includes(`program objective: ${OBJ("build products with agents.")}\nprogram current priority: ${PRI("make nana-pi coherent.")}`), t);
+	});
+}
+
+// 21. FRESH MACHINE, no OBJECTIVE.md anywhere up the tree, default umbrella exists: umbrella governs
+{
+	const w = world({ config: false });
+	const t = await golden("FRESH MACHINE, no config, no product: umbrella governs", w, path.join(w.home, "elsewhere"), () => {});
+	check("FRESH MACHINE, no product: umbrella exact text",
+		t === [HEAD, `governing: ${w.umbrellaFile}\n${OBJ("build products with agents.")}\n\n${PRI("make nana-pi coherent.")}`, CHARGE].join("\n\n"), t);
+}
+
+// 22. FRESH MACHINE, nothing at all: the named marker
+{
+	const w = world({ config: false, umbrella: null });
+	const t = await golden("FRESH MACHINE, no config, nothing: marker", w, path.join(w.home, "elsewhere"), () => {});
+	check("FRESH MACHINE, nothing: exact marker", t === `${HEAD}\n\nOBJECTIVE UNAVAILABLE: file not found (${w.umbrellaFile}). Tell the user before spending.`, t);
+}
+
+// 23. CLAUDE_PROJECT_DIR UNSET: the hook falls back to $PWD (its process cwd) and the walk still resolves
+{
+	const w = world({ config: false, umbrella: null });
+	fs.writeFileSync(w.productFile, PRODUCT);
+	const sub = path.join(w.product, "sub");
+	fs.mkdirSync(sub);
+	await golden("CLAUDE_PROJECT_DIR unset", w, sub, (t) => {
+		check("CLAUDE_PROJECT_DIR unset: walk-up from the process cwd finds the product", t.includes(`governing: ${w.productFile}\n${OBJ("ship the widget.")}`), t);
+	}, { noProjectDir: true });
+	// control: the hook really did NOT get the answer from CLAUDE_PROJECT_DIR — run from elsewhere, it must not find the product
+	const ctl = runHook(w, path.join(w.home, "elsewhere"), { noProjectDir: true });
+	check("CLAUDE_PROJECT_DIR unset: control — from a cwd outside the product, the product is not found",
+		ctl.status === 0 && ctl.out.includes("OBJECTIVE UNAVAILABLE") && !ctl.out.includes("ship the widget"), ctl.out);
 }
 
 fs.rmSync(scratch, { recursive: true, force: true });

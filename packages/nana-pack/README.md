@@ -375,16 +375,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
   against `~/.pi/agent`, never cwd); content capped at 4000 chars; an `objective_pickup`
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
   Five contract points:
-  - **A repo can speak its own objective — when the OWNER opts in.** Set
-    `objective.projectFile` (e.g. `"OBJECTIVE.md"`; default `null` = off) and the nearest
-    `<dir>/<projectFile>` walking UP from the session cwd wins over `objective.path`, with one
-    `Umbrella (nana): **Objective:** …` line appended so the program-level objective stays
-    visible. A session in a product repo is then charged against that product's two lines —
-    parity with the Claude Code hook `~/.claude/hooks/nana-objective.sh`. This does not weaken
-    the user-scope rule: the opt-in, the fallback and the on/off switch are all user-scope
-    (project config never sets `projectFile`), so the owner is saying once, for every repo,
-    "repos I work in may carry their own objective" — a repo still cannot decide that for
-    itself. A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
+  - **A repo speaks its own objective — by default, no configuration.** The nearest
+    `<dir>/OBJECTIVE.md` walking UP from the session cwd wins over `objective.path` (Jake's
+    2026-09-18 decentralization ruling), followed by labelled `program objective:` /
+    `program current priority:` lines and a precedence sentence so the program-level objective
+    stays visible. A session in a product repo is charged against that product's two lines —
+    byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.sh` (both run
+    `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for;
+    `null`/`false`/absent = `OBJECTIVE.md`, never "off". The name, the fallback and the on/off
+    switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the

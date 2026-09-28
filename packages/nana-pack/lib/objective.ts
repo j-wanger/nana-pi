@@ -9,9 +9,10 @@
  * objective AND current priority are shown too, with the precedence stated. When the
  * umbrella itself governs, no duplicate block.
  *
- * Resolution: with objective.projectFile set (user scope only), the nearest
- * <dir>/<projectFile> walking UP from cwd; else the user-scope objective.path (the
- * umbrella). A project hit reached through a symlink is refused and the umbrella
+ * Resolution — UNCONDITIONAL, no configuration needed (Jake's 2026-09-18
+ * decentralization ruling): the nearest <dir>/OBJECTIVE.md walking UP from cwd wins;
+ * else the user-scope objective.path (the umbrella). objective.projectFile (user scope
+ * only) merely renames the file looked for; null/false/absent = OBJECTIVE.md. A project hit reached through a symlink is refused and the umbrella
  * governs, with the refusal printed. An unusable governing file prints an
  * "OBJECTIVE UNAVAILABLE" marker — silence is the failure that matters here.
  *
@@ -31,9 +32,16 @@ export const CHARGE =
 	"Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending.";
 export const MARKER_PREFIX = "OBJECTIVE UNAVAILABLE: ";
 
+export const DEFAULT_PROJECT_FILE = "OBJECTIVE.md";
+
 export interface ObjectiveSettings {
 	path: string | null;
-	projectFile: string | null;
+	/** Filename to walk up for. null / false / "" / absent = DEFAULT_PROJECT_FILE — never "off". */
+	projectFile?: string | false | null;
+}
+
+export function projectFileName(o: ObjectiveSettings): string {
+	return typeof o.projectFile === "string" && o.projectFile ? o.projectFile : DEFAULT_PROJECT_FILE;
 }
 
 export interface ObjectiveResult {
@@ -176,7 +184,7 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 	let governing = umbrella;
 	let found: Read | null = null;
 	let source: "project" | "user" = "user";
-	const hit = o.projectFile ? findProjectObjective(cwd, o.projectFile) : null;
+	const hit = findProjectObjective(cwd, projectFileName(o));
 	if (hit) {
 		const r: Read = projectHitReachedThroughSymlink(cwd, hit) ? { cause: "reached through a symlink" } : readObjective(hit);
 		if ("text" in r) {
