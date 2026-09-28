@@ -23,11 +23,12 @@
  * other out. A file with neither yields a named marker and nothing else from the file.
  * Every interpolated PATH is display text rendered by displayPath(): controls, line
  * separators and bidi controls JSON-escaped (the path then shown as a quoted JSON string),
- * length bounded with the basename kept. Bytes that one runtime would alter are removed
+ * at most PATH_CAP chars INCLUDING the quotes; an over-cap path is middle-elided keeping the
+ * basename whole when it fits in half the cap, else the basename's tail. Bytes that one runtime would alter are removed
  * here so both print the same: NULs are stripped (bash command substitution drops them),
  * lone surrogates become U+FFFD (the CLI's stdout would do that; pi would not), invalid
- * UTF-8 — including a truncated sequence at end of file — is refused (never
- * replacement-decoded), and the text ends in exactly ONE "\n" (the hook's command
+ * UTF-8 — including a truncated sequence at end of file, and a sequence that STARTS inside
+ * the read cap but is malformed past it — is refused (never replacement-decoded), and the text ends in exactly ONE "\n" (the hook's command
  * substitution strips trailing newlines and printf re-adds one).
  *
  * Pure and total: sync fs reads only, bounded (FILE_READ_MAX bytes per file, LINE_CAP
@@ -40,7 +41,7 @@ import * as path from "node:path";
 
 /** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
-/** Rendered length bound of one displayed path (before quoting). */
+/** Rendered length bound of one displayed path, quotes included. */
 export const PATH_CAP = 320;
 export const OUTPUT_CAP = 12000;
 const FILE_READ_MAX = 256 * 1024;
@@ -57,8 +58,11 @@ export interface ObjectiveSettings {
 	projectFile?: string | false | null;
 }
 
+/** A bare filename: no separator, not "." / "..". config.ts refuses anything else with a named problem. */
+export const isBareFileName = (s: string): boolean => s !== "" && s !== "." && s !== ".." && !/[\\/]/.test(s);
+
 export function projectFileName(o: ObjectiveSettings): string {
-	return typeof o.projectFile === "string" && o.projectFile ? o.projectFile : DEFAULT_PROJECT_FILE;
+	return typeof o.projectFile === "string" && isBareFileName(o.projectFile) ? o.projectFile : DEFAULT_PROJECT_FILE;
 }
 
 export interface ObjectiveResult {
@@ -141,19 +145,15 @@ function readObjective(file: string): Read {
 	try {
 		if (!fs.statSync(file).isFile()) return { cause: "unreadable" };
 		fd = fs.openSync(file, "r");
-		// one byte past the cap tells "file continues" (a char split BY THE CAP) from "file
-		// ends here" (a truncated sequence AT EOF, which is invalid UTF-8).
-		const buf = Buffer.alloc(FILE_READ_MAX + 1);
-		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX + 1, 0);
-		const continues = n > FILE_READ_MAX;
+		// Up to 3 bytes past the cap: a sequence that STARTS inside the cap is decoded WHOLE,
+		// so its continuation bytes are validated even when they lie past the cap.
+		const buf = Buffer.alloc(FILE_READ_MAX + 3);
+		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX + 3, 0);
 		let decoded: string;
 		try {
-			// fatal: invalid UTF-8 is refused, not injected as U+FFFD. The decoder streams, then
-			// is FLUSHED at end of file (an incomplete final sequence throws); only when the file
-			// continues past the cap is a multi-byte char split by the cap dropped unflushed.
-			const dec = new TextDecoder("utf-8", { fatal: true });
-			decoded = dec.decode(buf.subarray(0, Math.min(n, FILE_READ_MAX)), { stream: true });
-			if (!continues) decoded += dec.decode();
+			// fatal, never streamed: invalid UTF-8 — a malformed sequence, or one left incomplete
+			// by end of file — is refused, not injected as U+FFFD.
+			decoded = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(0, decodeEnd(buf, n)));
 		} catch {
 			return { cause: "not valid UTF-8" };
 		}
@@ -165,6 +165,20 @@ function readObjective(file: string): Read {
 	} finally {
 		if (fd !== undefined) try { fs.closeSync(fd); } catch { /* closed */ }
 	}
+}
+
+/**
+ * Where to stop decoding n read bytes: n itself when the file ends within the cap; else the
+ * end of the sequence that starts inside the cap (its lead byte found by walking back over at
+ * most 3 continuation bytes). A stray or invalid lead needs no extension — the decoder refuses it.
+ */
+function decodeEnd(buf: Buffer, n: number): number {
+	if (n <= FILE_READ_MAX) return n;
+	let s = FILE_READ_MAX - 1;
+	while (s > FILE_READ_MAX - 4 && s > 0 && (buf[s] & 0xc0) === 0x80) s--;
+	const b = buf[s];
+	const len = b < 0x80 ? 1 : (b & 0xe0) === 0xc0 ? 2 : (b & 0xf0) === 0xe0 ? 3 : (b & 0xf8) === 0xf0 ? 4 : 1;
+	return Math.min(n, Math.max(FILE_READ_MAX, s + len));
 }
 
 /** First n UTF-16 units, never ending on half a surrogate pair (a lone surrogate prints differently per runtime). */
@@ -204,8 +218,9 @@ const PATH_UNSAFE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u061c\u200e\u200f\u
  * line, refusal, markers, precedence, notices). A clean path prints as-is. A path holding a
  * control char, line separator or bidi control is shown as a JSON string literal: `\` and `"`
  * escaped, every unsafe char as `\uXXXX` — so it is always ONE line and no control byte
- * reaches the prompt. Over PATH_CAP rendered chars the middle is elided ("…"), keeping the
- * basename. Lone surrogates are made well-formed first (runtime parity).
+ * reaches the prompt. The result, quotes included, is at most PATH_CAP chars: over it the
+ * middle is elided ("…"), keeping the basename WHOLE when its rendering fits in half the cap,
+ * else only the basename's TAIL. Lone surrogates are made well-formed first (runtime parity).
  */
 export function displayPath(p: string): string {
 	const raw = p.toWellFormed();
@@ -214,18 +229,29 @@ export function displayPath(p: string): string {
 		PATH_UNSAFE.test(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
 	let toks = Array.from(raw, tok);
 	const len = (t: string[]) => t.reduce((a, s) => a + s.length, 0);
-	if (len(toks) > PATH_CAP) {
+	const cap = unsafe ? PATH_CAP - 2 : PATH_CAP; // the two quotes count
+	if (len(toks) > cap) {
 		const baseToks = Array.from(path.basename(raw), tok);
-		// the basename is kept whole when it fits in half the budget; otherwise the tail is kept
-		const tailBudget = len(baseToks) <= PATH_CAP / 2 ? len(baseToks) + 1 : PATH_CAP / 2;
+		// the basename (with its separator) is kept whole when it fits in half the cap; otherwise its tail is kept
+		const tailBudget = len(baseToks) + 1 <= cap / 2 ? len(baseToks) + 1 : Math.floor(cap / 2);
 		const tail: string[] = [];
 		for (let i = toks.length - 1, used = 0; i >= 0 && used + toks[i].length <= tailBudget; i--) { tail.unshift(toks[i]); used += toks[i].length; }
 		const front: string[] = [];
-		for (let i = 0, used = 0; used + toks[i].length <= PATH_CAP - 1 - len(tail); i++) { front.push(toks[i]); used += toks[i].length; }
+		for (let i = 0, used = 0; used + toks[i].length <= cap - 1 - len(tail); i++) { front.push(toks[i]); used += toks[i].length; }
 		toks = [...front, "…", ...tail];
 	}
 	const s = toks.join("");
 	return unsafe ? `"${s}"` : s;
+}
+
+/**
+ * Arbitrary text (an error message, a config problem) as ONE line of display text: lone
+ * surrogates made well-formed, every control, line break and bidi control replaced by a
+ * space, then bounded to `cap` UTF-16 units (never ending on half a pair). Letters survive;
+ * structure — a line an attacker could start — never does.
+ */
+export function displayText(s: string, cap = 400): string {
+	return head(String(s).toWellFormed().replace(CONTROL, " ").replace(/[\u2028\u2029]/g, " "), cap);
 }
 
 /** The two parsed lines, each capped on its own; null when the file has neither (nothing from it is emitted). */
@@ -339,7 +365,7 @@ export function produceObjective(cwd: string, o: ObjectiveSettings): ObjectiveRe
 	try {
 		return produce(cwd, o);
 	} catch (err) {
-		const cause = `internal error (${head(String(err).toWellFormed().replace(CONTROL, " ").replace(/[\u2028\u2029]/g, " "), 120)})`;
+		const cause = `internal error (${displayText(String(err), 120)})`;
 		return {
 			text: `${HEADING}\n\n${MARKER_PREFIX}${cause}. Tell the user before spending.\n`,
 			unavailable: true,

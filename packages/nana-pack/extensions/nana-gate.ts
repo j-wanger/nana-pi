@@ -33,6 +33,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
+import { displayText } from "../lib/objective.ts";
 import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
@@ -182,7 +183,7 @@ export default function (pi: ExtensionAPI) {
 				const problem = `gate.allowPatterns ${JSON.stringify(p)} matches the empty string (it would exempt everything) — rejected`;
 				journal(cfg, { event: "config_invalid", file: "nana-pack.json", problem, cwd: ctx?.cwd });
 				try {
-					if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${problem}`, "warning");
+					if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${displayText(problem)}`, "warning"); // a config diagnostic: display text, like lib/config.ts
 				} catch {
 					// observability only
 				}

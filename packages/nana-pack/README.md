@@ -383,7 +383,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     `program current priority:` lines and a precedence sentence so the program-level objective
     stays visible. A session in a product repo is charged against that product's two lines —
     byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.sh` (both run
-    `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for;
+    `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for — a bare
+    filename (a separator, `.` or `..` is refused with a named config problem);
     `null`/`false`/absent = `OBJECTIVE.md`, never "off". The name, the fallback and the on/off
     switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
@@ -406,8 +407,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
     lines govern the session. Each line is ONE physical line (continuations never shown),
     control and bidi characters stripped; a line over the cap injects its first 1500
     chars plus `(truncated at 1500 chars)`. Every path is display text: one containing a
-    control, line-separator or bidi character is shown as a quoted JSON-escaped string, and a
-    long one is middle-elided with its basename kept. Silence was the original
+    control, line-separator or bidi character is shown as a quoted JSON-escaped string; a
+    displayed path is at most 320 chars, quotes included — a longer one is middle-elided,
+    keeping its basename whole when that fits in 160 chars, else the basename's tail. The same
+    display-text rule covers pi's config diagnostics (`nana-pack: <file>: <problem>` warnings
+    and the gate's stop reason): the file is a display path, the problem one line with every
+    control and line separator replaced by a space. Silence was the original
     behaviour and it defeated the point — the one artifact every session must see went missing
     invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every

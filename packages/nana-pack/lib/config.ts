@@ -31,6 +31,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
 	/** Regex (string) tested against the edited file's path */
@@ -132,10 +133,14 @@ const pathOrNull: Leaf = (v, where, problems) => {
 	return { ok: false };
 };
 
-/** objective.projectFile: a filename, or null/false meaning the default name (normalised to null). */
+/** objective.projectFile: a BARE filename (no separator, not "."/".."), or null/false meaning the default name (normalised to null). */
 const fileNameOrDefault: Leaf = (v, where, problems) => {
 	if (v === null || v === false) return { ok: true, value: null };
-	if (typeof v === "string") return { ok: true, value: v || null };
+	if (typeof v === "string" && (v === "" || isBareFileName(v))) return { ok: true, value: v || null };
+	if (typeof v === "string") {
+		problems.push(`${where}: expected a bare filename (no path separator, not "." or "..") — using the default (OBJECTIVE.md)`);
+		return { ok: false };
+	}
 	problems.push(`${where}: expected a filename, null or false, got ${kind(v)} — using the default (OBJECTIVE.md)`);
 	return { ok: false };
 };
@@ -280,8 +285,13 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 // G.lastValidUserGate: keyed by user config path (so a HOME change is a fresh state)
 // G.lastValidProjectGate: keyed by project config path
 
+/**
+ * The gate's STOP reason — shown to the model as the block reason and in the UI, so both
+ * interpolated fields are display text: the file via displayPath(), the problem via
+ * displayText() (a JSON parse message quotes raw file bytes; a path can hold a newline).
+ */
 export const gateStopReason = (file: string, problem: string, scope: "user" | "project" = "user") =>
-	`${scope} nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
+	`${scope} nana-pack.json gate block is malformed — repair it (${displayPath(file)}:${displayText(problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, ""))})`;
 
 // ---------------------------------------------------------------- nana-trust
 
@@ -368,6 +378,9 @@ export function isNanaTrusted(ctx: ConfigContext): boolean {
 
 // ---------------------------------------------------------------- diagnostics
 
+/** The UI text of one config diagnostic: both fields display text. Exported for the probe tests. */
+export const configNotice = (file: string, problem: string): string => `nana-pack: ${displayPath(file)}: ${displayText(problem)}`;
+
 function sessionKey(ctx: any): string {
 	try {
 		return String(ctx?.sessionManager?.getSessionId?.() ?? "");
@@ -376,7 +389,12 @@ function sessionKey(ctx: any): string {
 	}
 }
 
-/** Once per session per (file, problem): a journal line, and one UI warning when a UI exists. */
+/**
+ * Once per session per (file, problem): a journal line, and one UI warning when a UI exists.
+ * The journal keeps the raw fields (JSON-encoded, one line per entry); the UI warning is
+ * display text — a repo path may hold a newline, a problem may quote raw file bytes — so
+ * no attacker-chosen text can start a line of its own there.
+ */
 function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, problem: string): void {
 	try {
 		const key = `${sessionKey(ctx)}\0${event}\0${file}\0${problem}`;
@@ -385,7 +403,7 @@ function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, pro
 		// Diagnostics are not event journaling: written even when journal.enabled is
 		// false (a malformed journal.path already fell back to the default path).
 		appendJournalLine(cfg, { ts: new Date().toISOString(), event, file, problem, cwd: ctx?.cwd });
-		if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${file}: ${problem}`, "warning");
+		if (ctx?.hasUI) ctx.ui.notify(configNotice(file, problem), "warning");
 	} catch {
 		// observability must never break a handler
 	}

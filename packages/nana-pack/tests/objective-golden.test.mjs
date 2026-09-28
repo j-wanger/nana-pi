@@ -336,8 +336,30 @@ for (const lines of [false, true]) {
 	check("displayPath: bounded", d.length <= PATH_CAP, d.length);
 	check("displayPath: basename intact, middle elided", d.endsWith("/OBJECTIVE.md") && d.includes("…") && d.startsWith("/ddd"), d);
 	const esc = displayPath(`/${`\n${ESC}`.repeat(1000)}/OBJECTIVE.md`);
-	check("displayPath: escaped long path bounded too, no control", esc.length <= PATH_CAP + 2 && !CONTROLS.test(esc) && esc.endsWith('/OBJECTIVE.md"'), esc);
+	check("displayPath: escaped long path bounded INCLUDING its quotes, no control", esc.length <= PATH_CAP && !CONTROLS.test(esc) && esc.endsWith('/OBJECTIVE.md"'), esc.length);
 	check("displayPath: a clean path is unchanged", displayPath("/a b/c.md") === "/a b/c.md");
+	// the cap counts the quotes: an unsafe path rendering to exactly PATH_CAP-2 chars is kept whole (PATH_CAP with quotes); one more is elided
+	const fit = `/a\n${"b".repeat(PATH_CAP - 2 - 8)}`; // "/a" + "\\u000A" (6) + b's = PATH_CAP-2 rendered, + 2 quotes
+	const at = displayPath(fit);
+	check("displayPath: unsafe path at the cap (quotes included) is unchanged", at.length === PATH_CAP && !at.includes("…"), at.length);
+	const over = displayPath(`${fit}b`);
+	check("displayPath: unsafe path one past the cap is elided to <= PATH_CAP", over.length <= PATH_CAP && over.includes("…"), over.length);
+	check("displayPath: a clean path of exactly PATH_CAP is unchanged, one more is elided", displayPath(`/${"c".repeat(PATH_CAP - 1)}`).length === PATH_CAP && displayPath(`/${"c".repeat(PATH_CAP)}`).includes("…"));
+	// basename WHOLE when it fits in half the cap — else only its TAIL (the documented contract)
+	const halfBase = `${"n".repeat(PATH_CAP / 2 - 1 - 3)}.md`; // "/" + base = PATH_CAP/2
+	check("displayPath: a basename fitting in half the cap is kept whole", displayPath(`/${"d".repeat(2000)}/${halfBase}`).endsWith(`/${halfBase}`));
+	const bigBase = `${"q".repeat(PATH_CAP)}END.md`;
+	const bb = displayPath(`/dir/${bigBase}`);
+	check("displayPath: an over-half-cap basename keeps only its tail", bb.length <= PATH_CAP && bb.endsWith("END.md") && !bb.includes(bigBase) && bb.includes("…"), bb.length);
+}
+
+// 13g. BOTH surrogate layers pinned independently (sol r3: removing either alone left the suites green)
+{
+	const lone = String.fromCharCode(0xd800);
+	// finish()'s layer alone: produce() never feeds it a lone surrogate (displayPath got there first), so only a direct call pins it
+	check("finish(): a lone surrogate never leaves the backstop", finish(`a${lone}b`).isWellFormed() && finish(`a${lone}b`) === `a\ufffdb\n`);
+	// displayPath()'s layer alone: its exported contract, without finish() behind it
+	check("displayPath(): a lone surrogate is made well-formed", displayPath(`/x${lone}.md`) === `/x\ufffd.md`);
 }
 
 // 14. oversized: a huge objective can NOT erase the current priority — product pair AND program pair, both runtimes
@@ -409,8 +431,9 @@ for (const extra of [0, 1]) {
 }
 
 // 15e. strict UTF-8 at the READ CAP (256 KiB): a file ending EXACTLY at the cap in an incomplete
-// sequence is refused (the decoder is flushed at EOF); a file that CONTINUES past the cap with a
-// char split by the cap is accepted (the split char is dropped, not called invalid).
+// sequence is refused; a file that CONTINUES past the cap with a VALID char split by the cap is
+// accepted (the sequence that starts inside the cap is decoded whole); a sequence that starts
+// inside the cap but is MALFORMED past it is refused (sol r3 MED).
 {
 	const MAX = 256 * 1024;
 	const lead = Buffer.from(`${OBJ("big file.")}\n\n${PRI("p")}\n`);
@@ -427,6 +450,24 @@ for (const extra of [0, 1]) {
 	await golden("cap splits a char, file continues", w2, w2.product, (t) => {
 		check("cap splits a char in a longer file: accepted", t.includes(`governing: ${w2.productFile}\n${OBJ("big file.")}`), t.slice(0, 400));
 	});
+	// sol's case: a lead byte at the LAST byte inside the cap (byte 262,144, index MAX-1) whose invalid continuation is past the cap
+	const pad = (k) => Buffer.alloc(MAX - k - lead.length, 0x61);
+	const cases = [
+		["2-byte lead at the last cap byte, invalid continuation past the cap", Buffer.concat([lead, pad(1), Buffer.from([0xc3, 0x41]), Buffer.from("tail\n")]), false],
+		["3-byte lead 2 before the cap end, invalid third byte past the cap", Buffer.concat([lead, pad(2), Buffer.from([0xe2, 0x82, 0x41]), Buffer.from("tail\n")]), false],
+		["4-byte lead at the last cap byte, invalid last byte past the cap", Buffer.concat([lead, pad(1), Buffer.from([0xf0, 0x9f, 0x98, 0x41]), Buffer.from("tail\n")]), false],
+		["4-byte char starting at the last cap byte, valid", Buffer.concat([lead, pad(1), Buffer.from("😀"), Buffer.from("tail\n")]), true],
+		["file ends 1 byte past the cap inside a 3-byte sequence", Buffer.concat([lead, pad(1), Buffer.from([0xe2, 0x82])]), false],
+	];
+	for (const [name, bytes, ok] of cases) {
+		const wc = world();
+		fs.writeFileSync(wc.productFile, bytes);
+		await golden(`cap boundary: ${name}`, wc, wc.product, (t) => {
+			check(`cap boundary: ${name}: ${ok ? "accepted" : "refused"}`, ok
+				? t.includes(`governing: ${wc.productFile}\n${OBJ("big file.")}`)
+				: t.includes(`(ignored ${wc.productFile}: not valid UTF-8`) && !t.includes("big file."), t.slice(0, 300));
+		});
+	}
 }
 
 // 16. CRLF file: normalised, identical, no stray \r

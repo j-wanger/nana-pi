@@ -5,7 +5,7 @@
 // Output: "[nana:objective]" then the block; nothing when objective.enabled is false.
 // Always exits 0 — a hook must never fail the session start.
 import { loadUserObjective } from "../lib/config.ts";
-import { HEADING, MARKER_PREFIX, produceObjective } from "../lib/objective.ts";
+import { displayText, HEADING, MARKER_PREFIX, produceObjective } from "../lib/objective.ts";
 
 const TAG = "[nana:objective]";
 try {
@@ -14,5 +14,5 @@ try {
 	const o = loadUserObjective();
 	if (o.enabled) process.stdout.write(`${TAG}\n${produceObjective(cwd, o).text}`); // text ends in its own one "\n"
 } catch (err) {
-	process.stdout.write(`${TAG}\n${HEADING}\n\n${MARKER_PREFIX}producer failed (${String(err).slice(0, 120)}). Tell the user before spending.\n`);
+	process.stdout.write(`${TAG}\n${HEADING}\n\n${MARKER_PREFIX}producer failed (${displayText(String(err), 120)}). Tell the user before spending.\n`);
 }
