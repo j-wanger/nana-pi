@@ -30,11 +30,10 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as vm from "node:vm";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
+import { compileRegexes, type GateConfig, MAX_GATE_PATTERNS as MAX_PATTERNS, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
-import { type Danger, detectionSegments, dequote, type Segment, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
+import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
@@ -48,22 +47,10 @@ const PROTECTED_PATHS: RegExp[] = [
 	/\.config[/\\]gh[/\\]hosts\.yml\b/i,
 ];
 
-// Bounds on what one tool_call does with user regexes (sol r1 LOW #6): at most MAX_PATTERNS per
-// list (the excess dropped, one config_invalid line); a command longer than MAX_SUBJECT gets no
-// exception; and the user-regex phase runs under a watchdog (a catastrophic regex hangs at ~40
-// chars, so a length cap alone cannot bound it) — past ANALYSIS_MS the call BLOCKs.
-const MAX_PATTERNS = 200;
+// Bounds on user regex work (sol r1 LOW #6): at most MAX_PATTERNS per list (the excess dropped,
+// one config_invalid line); a command longer than MAX_SUBJECT gets no exception; catastrophic
+// patterns are dropped once, at config load (lib/config.ts) — no per-call watchdog.
 const MAX_SUBJECT = 64 * 1024;
-const ANALYSIS_MS = 250;
-const WATCHDOG = vm.createContext({});
-function bounded<T>(f: () => T): T {
-	(WATCHDOG as any).f = f;
-	try {
-		return vm.runInContext("f()", WATCHDOG, { timeout: ANALYSIS_MS });
-	} finally {
-		(WATCHDOG as any).f = null;
-	}
-}
 
 type Policy = Omit<GateConfig, "stopReason"> & { stopReason: string | null };
 type Hit = { label: string; reason: string } | null;
@@ -124,11 +111,6 @@ function commandHit(command: string, gate: Policy, cwd: string): Hit {
 	const det = segmentable ? segments : [...segments, ...detectionSegments(command)];
 	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
 	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
-	return bounded(() => userRegexHit(command, gate, det, dangers, segmentable));
-}
-
-/** The phase that runs configured (user) regexes — under the watchdog. */
-function userRegexHit(command: string, gate: Policy, det: Segment[], dangers: Map<Segment, Danger | null>, segmentable: boolean): Hit {
 	const allow = compileRegexes(gate.allowPatterns);
 	const extra = compileRegexes(gate.extraPatterns);
 	const prot = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)];
@@ -158,11 +140,9 @@ function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	const cands = pathCandidates(subject, cwd);
 	const policy = policyFileHit(cands);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
-	return bounded(() => {
-		if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
-		const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
-		return p ? { label: "protected path", reason: String(p) } : null;
-	});
+	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
+	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
+	return p ? { label: "protected path", reason: String(p) } : null;
 }
 
 function truncate(s: string, n: number): string {
@@ -283,9 +263,8 @@ export default function (pi: ExtensionAPI) {
 		let hit: Hit;
 		try {
 			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
-		} catch (e) {
-			const slow = (e as any)?.code === "ERR_SCRIPT_EXECUTION_TIMEOUT";
-			hit = { label: "unanalysable call", reason: slow ? `gate analysis exceeded ${ANALYSIS_MS} ms` : "gate analysis failed" };
+		} catch {
+			hit = { label: "unanalysable call", reason: "gate analysis failed" };
 		}
 		if (hit) gated += 1;
 		publishStatus(ctx);

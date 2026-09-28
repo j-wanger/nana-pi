@@ -221,9 +221,10 @@ is user-scope only** — project config never contributes to it, trusted or not.
   (with `-u user`), `env`, `command`, `nice`, `time` — and every policy file above as
   literally named. The `--force-with-lease` exception above keeps working.
 - **Bounded regex work.** Per list, the first 200 patterns are used (the rest dropped, one
-  `config_invalid` journal line); a command over 64 KB gets no exception; and matching your
-  configured regexes runs under a 250 ms watchdog — a catastrophic user regex (`(a+)+$`) makes that
-  call BLOCK instead of hanging the agent.
+  `config_invalid` journal line); a command over 64 KB gets no exception (it is still checked);
+  and each configured regex is probed once per process at config load — one that backtracks
+  catastrophically (`(a+)+$`) is dropped with a `config_invalid` line naming it. Polynomial
+  blow-ups (`a*a*a*!`) are not detected; keep your patterns simple.
 - **Loosening waits for session start.** The gate policy adopted at `session_start`
   (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
   write mid-session — by you, the desk, or anything the gate did not see — can tighten it at

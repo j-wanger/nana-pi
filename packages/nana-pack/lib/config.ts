@@ -467,6 +467,12 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			objective: merge("objective", u.objective),
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
+		for (const key of ["extraPatterns", "allowPatterns", "protectedPaths"] as const) {
+			const file = pg && key in pg ? projectFile : userFile;
+			cfg.gate[key] = dropSlow(cfg.gate[key], (p) =>
+				notes.push(["config_invalid", file, `gate.${key} ${JSON.stringify(p)} backtracks catastrophically (over ${PROBE_MS} ms on a probe of at most 40 chars) — dropped`]),
+			);
+		}
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
 		cfg = structuredClone(DEFAULTS);
@@ -474,6 +480,53 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;
+}
+
+/** Per gate list, only the first MAX_GATE_PATTERNS distinct entries are used (the gate caps). */
+export const MAX_GATE_PATTERNS = 200;
+const PROBE_MS = 10;
+const SLOW: Map<string, boolean> = ((globalThis as any)[Symbol.for("nana-pack.config.slowRegex")] ??= new Map());
+
+/**
+ * Catastrophic-backtracking check, once per pattern per process: run the regex on growing
+ * backtracking shapes (`a…a!`, `/a/a…!`, `a a …!`), bare and behind the pattern's literal
+ * prefix, one char at a time up to 40. Exponential blow-up shows as one step past PROBE_MS
+ * (each step multiplies the cost by the branching factor), so no probe can hang. Per-call
+ * matching is then plain RegExp.test. Polynomial regexes (a*a*a*!) are not caught here.
+ */
+function slowRegex(p: string): boolean {
+	let hit = SLOW.get(p);
+	if (hit !== undefined) return hit;
+	hit = false;
+	try {
+		const r = new RegExp(p, "i");
+		const lit = (/^\^?((?:[^\\^$.|?*+()[\]{}]|\\[^\w])*)/.exec(p)?.[1] ?? "").replace(/\\(.)/g, "$1");
+		out: for (let n = 1; n <= 40; n++)
+			for (const body of ["a".repeat(n) + "!", "/a".repeat(n) + "!", "a ".repeat(n) + "!"])
+				for (const s of [body, lit + body]) {
+					const t = performance.now();
+					r.test(s);
+					if (performance.now() - t > PROBE_MS) {
+						hit = true;
+						break out;
+					}
+				}
+	} catch {
+		// invalid regex: compileRegexes skips it
+	}
+	SLOW.set(p, hit);
+	return hit;
+}
+
+/** Drop catastrophic patterns from one gate list (probing only as many as the gate will use). */
+function dropSlow(list: unknown, onDrop: (p: string) => void): string[] {
+	if (!Array.isArray(list)) return list as string[];
+	const out: string[] = [];
+	for (const p of new Set(list)) {
+		if (out.length < MAX_GATE_PATTERNS && typeof p === "string" && slowRegex(p)) onDrop(p);
+		else out.push(p);
+	}
+	return out;
 }
 
 export function compileRegexes(patterns: string[]): RegExp[] {

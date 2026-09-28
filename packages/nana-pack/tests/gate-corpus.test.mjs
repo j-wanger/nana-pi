@@ -150,21 +150,29 @@ const ALLOW = [
 	run = await gate({ allowPatterns: ["^rm -rf build"] });
 	check("subject cap: allow applies at 64 KB", (await run(`rm -rf build ${"x".repeat(64 * 1024 - 13)}`)) === "ALLOW");
 	check("subject cap: a longer command gets no exception", (await run(`rm -rf build ${"x".repeat(64 * 1024)}`)) === "BLOCK");
+	// A catastrophic pattern is dropped once, at config load; later calls are plain RegExp.test.
 	const evil = `${"a".repeat(48)}!`; // (a+)+$ backtracks ~2^48 steps on this
-	for (const [name, cfg, cmd] of [
-		["extra", { extraPatterns: ["(a+)+$"] }, `echo ${evil}`],
-		["allow", { allowPatterns: ["^rm -rf (a+)+$"] }, `rm -rf ${evil}`],
-		["protected", { protectedPaths: ["(a+)+$"] }, `cat ${evil}`],
+	for (const [key, pat, cmd] of [
+		["extraPatterns", "(a+)+$", `echo ${evil}`],
+		["allowPatterns", "^rm -rf (a+)+$", `rm -rf ${evil}`],
+		["protectedPaths", "([/a]+)+$", `cat ${evil}`],
 	]) {
-		run = await gate(cfg);
+		const before = lines().length;
+		run = await gate({ [key]: [pat, "^zzkeep$"] });
 		const t0 = Date.now();
-		const r = await run(cmd);
+		const rs = [];
+		for (let i = 0; i < 50; i++) rs.push(await run(cmd));
 		const ms = Date.now() - t0;
-		console.log(`  catastrophic ${name} regex: ${r} in ${ms} ms`);
-		check(`catastrophic ${name} regex: BLOCK well under 1 s`, r === "BLOCK" && ms < 1000, `${r} ${ms}ms`);
+		const diag = lines().slice(before).filter((e) => e.event === "config_invalid" && e.problem.includes(JSON.stringify(pat)) && /dropped/.test(e.problem));
+		console.log(`  catastrophic ${key}: 50 calls in ${ms} ms; ${diag[0]?.problem}`);
+		check(`catastrophic ${key}: one config_invalid naming the pattern`, diag.length === 1);
+		check(`catastrophic ${key}: 50 later calls well under 1 s`, ms < 1000, `${ms}ms`);
+		check(`catastrophic ${key}: dropped (verdict as if absent)`, rs.every((r) => r === (key === "allowPatterns" ? "BLOCK" : "ALLOW")), rs[0]);
 	}
-	run = await gate({ extraPatterns: ["(a+)+$"] });
-	check("watchdog: a normal command still analysed after a timeout", (await run("ls")) === "ALLOW");
+	run = await gate({});
+	const t0 = Date.now();
+	check("benign 4 MB command ALLOWs", (await run(`echo ${"x".repeat(4 * 1024 * 1024)}`)) === "ALLOW");
+	console.log(`  benign 4 MB: ${Date.now() - t0} ms`);
 }
 
 // ---- Interactive: dialog, Block default, Allow once is one call only
