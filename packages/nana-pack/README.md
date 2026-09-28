@@ -184,14 +184,26 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `settings.json`, `.ssh`, `.env*`, `.aws/credentials`, `.netrc`, `.config/gh/hosts.yml`)
   checked in commands AND edit/write targets. `rm` is matched anywhere in a command
   segment, so `grep -r "rm -rf" docs/` is gated too (a position rule would miss `xargs rm`).
-- **Policy files are gated on the resolved path** — `nana-pack.json` (user and project),
-  pi's `trust.json` (also under `PI_CODING_AGENT_DIR`), `.claude/settings.json`,
-  `.claude/settings.local.json`, `.claude/hooks/**` (user and project scope): edit/write in
-  every form pi resolves (relative, `~`, `@`, `..`, backslash, any case, a symlinked alias),
-  and any bash/PowerShell command that names one (`>`, `tee`, `sed -i`, `cp`, `Set-Content`,
-  `Out-File`, even `cat`). The agent edits them only through you: `nana-setup`, the desk
-  settings window, or "Allow once". The handoff store `~/.pi/agent/handoffs/**` is not a
-  policy file.
+- **Policy files** — `nana-pack.json` (user and project), pi's `trust.json` (also under
+  `PI_CODING_AGENT_DIR`), `.claude/settings.json`, `.claude/settings.local.json`,
+  `.claude/hooks/**`. The `.claude` files are gated at **project scope too** (a ratified
+  expansion, 2026-09-28: a project `.claude/settings.json` carries hooks that run code). What
+  is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
+  backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
+  one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
+  `Out-File`, even `cat`). What is **not** caught — a path the shell computes at run time:
+  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
+  and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
+  variable, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
+  directory symlink created and written through in the same command, `cd … | xargs tee
+  nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
+  command text would not close this (every pattern invites the next form), so none is added.
+  **Mitigation:** such a write never loosens the gate in the session that made it —
+  loosening waits for the next `session_start` — so it is a cross-session escalation that
+  takes a new session adopting the widened file, not self-escalation. **What closes it** is
+  the OS sandbox / container layer. The agent edits policy files only through you:
+  `nana-setup`, the desk settings window, or "Allow once". The handoff store
+  `~/.pi/agent/handoffs/**` is not a policy file.
 - **`allowPatterns` exempt one command segment, never a compound.** A command is split on
   `;` `&&` `||` `|` `&` and newlines; the pattern must match the segment that hit, so
   `git status; rm -rf ~` is not covered by `^git status`. A command the gate cannot segment
@@ -201,9 +213,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
   (`""`, `.*`, `^`) is rejected at load with a warning and exempts nothing.
 - **The floor — no allow pattern skips it** (the interactive dialog still can): pipe to a
   shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …), `rm` recursive
-  on `/`, `~`, `$HOME` (`rm -rf .` is *not* floor), `mkfs`, `dd of=/dev/`,
-  `diskutil erase*`, `Format-Volume`, and every policy file above. The README's
-  `--force-with-lease` exception keeps working.
+  when it reads its program from stdin (no script operand, `-`, `/dev/stdin`, a shell's
+  `-s`: `curl u | sh -s arg` is floor, `cat x | python3 script.py` is not), `rm` recursive on
+  `/`, `~`, `$HOME`, `C:` or an ancestor of home in any lexically equal spelling (`~/.`, `/.`,
+  `~//`, `/./`, `${HOME}`, `~/x/..`, a trailing `/`; `rm -rf .` is *not* floor), `mkfs`,
+  `dd of=/dev/`, `diskutil [quiet] erase*`, `Format-Volume` — also behind `sudo`/`doas`
+  (with `-u user`), `env`, `command`, `nice`, `time` — and every policy file above as
+  literally named. The `--force-with-lease` exception above keeps working.
+- **Bounded regex work.** Per list, the first 200 patterns are used (the rest dropped, one
+  `config_invalid` journal line); a command over 64 KB gets no exception; and matching your
+  configured regexes runs under a 250 ms watchdog — a catastrophic user regex (`(a+)+$`) makes that
+  call BLOCK instead of hanging the agent.
 - **Loosening waits for session start.** The gate policy adopted at `session_start`
   (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
   write mid-session — by you, the desk, or anything the gate did not see — can tighten it at
@@ -211,7 +231,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
   later extension can still mutate a checked input, and it reads command *text*: it cannot see
   what a variable, an alias, a script file or `python`/`node` code does at run time, nor
-  follow a `cd` earlier in the command. The `read` tool is not gated. Unattended enforcement
+  follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
   successes stay out of its context and are reported by the status chip instead. `{file}` is

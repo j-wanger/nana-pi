@@ -112,7 +112,12 @@ setup. What that means while you work here:
   files: `nana-pack.json`, pi's `trust.json`, `.claude/settings*.json`, `.claude/hooks/`),
   and prompts before running — or blocks, when there's no UI to prompt. Allow patterns
   exempt one command segment, never a compound or the floor; a config change loosens the
-  gate only at the next session start or `/reload`. Scope is narrow:
+  gate only at the next session start or `/reload`. Policy files are caught through
+  `edit`/`write` (every path form) and through targets a command names *literally*; a path
+  the shell computes (relative after `cd`, variables, globs, escapes, a symlink made in the
+  same command, script files, interpreter string-building) is NOT caught — such a write
+  cannot loosen the running session, only a later one that adopts the file, and the sandbox /
+  container layer is what closes it. Scope is narrow:
   reads, custom tools, and direct extension commands are NOT gated, and a later
   handler can still mutate input the gate already checked. It is **advisory** — a
   load-path convenience, not a security boundary; real enforcement is the sandbox /

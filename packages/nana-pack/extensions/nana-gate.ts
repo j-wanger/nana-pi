@@ -12,9 +12,16 @@
  * config change mid-session can TIGHTEN it at once (extra/protected patterns added, allow
  * patterns removed, a stop) but never LOOSEN it: loosening applies at the next session_start
  * and is journaled `gate_policy_widened`. Allow patterns exempt one command segment, never a
- * compound (lib/gate-shell.ts), and never the FLOOR: pipe-to-shell, `rm -r` on / or ~, mkfs,
- * `dd of=/dev/`, `diskutil erase*`, Format-Volume, and every policy file (lib/gate-paths.ts).
+ * compound (lib/gate-shell.ts), and never the FLOOR: pipe to a stdin-reading shell/interpreter,
+ * `rm -r` on / or ~ (any lexically equal spelling), mkfs, `dd of=/dev/`, `diskutil erase*`,
+ * Format-Volume (also behind sudo/doas/env/nice/time), and every policy file (lib/gate-paths.ts).
  * An allow pattern matching the empty string is rejected with a warning.
+ *
+ * Policy files are caught via edit/write (resolved path) and via targets a command names
+ * LITERALLY. NOT caught: shell-computed paths — relative after `cd`, escapes, globs, variables,
+ * a symlink created in the same command, `cd … | xargs tee`, script files, interpreter
+ * string-building. Such a write never loosens THIS session (loosening waits for session_start),
+ * so it is cross-session escalation; the sandbox/container layer closes it, not more patterns.
  *
  * This gate is advisory-by-load-path: anyone can run pi without it, a later extension can
  * mutate input after it, and it reads command TEXT — not a shell security boundary.
@@ -23,10 +30,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as vm from "node:vm";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
-import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
+import { type Danger, detectionSegments, dequote, type Segment, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
@@ -39,6 +47,23 @@ const PROTECTED_PATHS: RegExp[] = [
 	/(^|[\s/\\"'=])\.netrc\b/i,
 	/\.config[/\\]gh[/\\]hosts\.yml\b/i,
 ];
+
+// Bounds on what one tool_call does with user regexes (sol r1 LOW #6): at most MAX_PATTERNS per
+// list (the excess dropped, one config_invalid line); a command longer than MAX_SUBJECT gets no
+// exception; and the user-regex phase runs under a watchdog (a catastrophic regex hangs at ~40
+// chars, so a length cap alone cannot bound it) — past ANALYSIS_MS the call BLOCKs.
+const MAX_PATTERNS = 200;
+const MAX_SUBJECT = 64 * 1024;
+const ANALYSIS_MS = 250;
+const WATCHDOG = vm.createContext({});
+function bounded<T>(f: () => T): T {
+	(WATCHDOG as any).f = f;
+	try {
+		return vm.runInContext("f()", WATCHDOG, { timeout: ANALYSIS_MS });
+	} finally {
+		(WATCHDOG as any).f = null;
+	}
+}
 
 type Policy = Omit<GateConfig, "stopReason"> & { stopReason: string | null };
 type Hit = { label: string; reason: string } | null;
@@ -93,19 +118,27 @@ function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 function commandHit(command: string, gate: Policy, cwd: string): Hit {
 	const policy = commandPolicyHit(command, cwd);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
-	const { segments, segmentable } = splitCommand(command);
+	const split = splitCommand(command);
+	const segments = split.segments;
+	const segmentable = split.segmentable && command.length <= MAX_SUBJECT;
 	const det = segmentable ? segments : [...segments, ...detectionSegments(command)];
 	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
 	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
+	return bounded(() => userRegexHit(command, gate, det, dangers, segmentable));
+}
 
+/** The phase that runs configured (user) regexes — under the watchdog. */
+function userRegexHit(command: string, gate: Policy, det: Segment[], dangers: Map<Segment, Danger | null>, segmentable: boolean): Hit {
 	const allow = compileRegexes(gate.allowPatterns);
 	const extra = compileRegexes(gate.extraPatterns);
 	const prot = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)];
 	const segHit = (s: { text: string }, d: Danger | null | undefined): Hit => {
 		if (d) return { label: "dangerous command", reason: d.reason };
-		const e = extra.find((r) => r.test(s.text) || r.test(dequote(s.text)));
+		const dq = dequote(s.text);
+		const e = extra.find((r) => r.test(s.text) || r.test(dq));
 		if (e) return { label: "dangerous command", reason: String(e) };
-		const p = prot.find((r) => r.test(s.text) || r.test(dequote(s.text, false)));
+		const dqKeep = dequote(s.text, false);
+		const p = prot.find((r) => r.test(s.text) || r.test(dqKeep));
 		return p ? { label: "protected path", reason: String(p) } : null;
 	};
 	for (const s of det) {
@@ -125,9 +158,11 @@ function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	const cands = pathCandidates(subject, cwd);
 	const policy = policyFileHit(cands);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
-	if (compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
-	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
-	return p ? { label: "protected path", reason: String(p) } : null;
+	return bounded(() => {
+		if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
+		const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
+		return p ? { label: "protected path", reason: String(p) } : null;
+	});
 }
 
 function truncate(s: string, n: number): string {
@@ -159,7 +194,16 @@ export default function (pi: ExtensionAPI) {
 	const livePolicy = (ctx: any): { cfg: NanaPackConfig; gate: Policy } => {
 		const cfg = loadConfig(ctx);
 		const g = cfg.gate;
-		const allowPatterns = uniq(g.allowPatterns).filter((p) => {
+		const cap = (key: string, list: string[]) => {
+			const u = uniq(list);
+			if (u.length > MAX_PATTERNS && !warned.has(key)) {
+				warned.add(key);
+				const problem = `gate.${key} has ${u.length} entries; only the first ${MAX_PATTERNS} are used`;
+				journal(cfg, { event: "config_invalid", file: "nana-pack.json", problem, cwd: ctx?.cwd });
+			}
+			return u.slice(0, MAX_PATTERNS);
+		};
+		const allowPatterns = cap("allowPatterns", g.allowPatterns).filter((p) => {
 			if (!matchesEmpty(p)) return true;
 			if (!warned.has(p)) {
 				warned.add(p);
@@ -178,8 +222,8 @@ export default function (pi: ExtensionAPI) {
 			gate: {
 				stopReason: g.stopReason,
 				allowPatterns,
-				extraPatterns: uniq(g.extraPatterns),
-				protectedPaths: uniq(g.protectedPaths),
+				extraPatterns: cap("extraPatterns", g.extraPatterns),
+				protectedPaths: cap("protectedPaths", g.protectedPaths),
 			},
 		};
 	};
@@ -239,8 +283,9 @@ export default function (pi: ExtensionAPI) {
 		let hit: Hit;
 		try {
 			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
-		} catch {
-			hit = { label: "unanalysable call", reason: "gate analysis failed" };
+		} catch (e) {
+			const slow = (e as any)?.code === "ERR_SCRIPT_EXECUTION_TIMEOUT";
+			hit = { label: "unanalysable call", reason: slow ? `gate analysis exceeded ${ANALYSIS_MS} ms` : "gate analysis failed" };
 		}
 		if (hit) gated += 1;
 		publishStatus(ctx);

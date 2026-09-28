@@ -134,16 +134,21 @@ const WRAPPERS = new Set(
 	),
 );
 
-/** Index of the command word: skips `A=b` assignments, wrappers and their flags/numbers. */
-function commandIndex(t: string[]): number {
+const PRIV = new Set(["sudo", "doas", "pkexec", "runas"]);
+const PRIV_VALUE = /^-[ugCDhprtUT]$/; // sudo/doas options whose value is the next word
+
+/** Index of the command word: skips `A=b` assignments, wrappers and their flags/numbers
+ *  (with `priv`, also sudo/doas/pkexec/runas and their `-u user`-style options). */
+function commandIndex(t: string[], priv = false): number {
 	let i = 0;
 	let afterWrapper = false;
 	while (i < t.length) {
 		if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t[i])) i++;
-		else if (WRAPPERS.has(base(t[i]))) {
+		else if (WRAPPERS.has(base(t[i])) || (priv && PRIV.has(base(t[i])))) {
 			afterWrapper = true;
 			i++;
-		} else if (afterWrapper && (/^-./.test(t[i]) || /^\/[a-z]$/i.test(t[i]) || /^\d+(\.\d+)?[smhd]?$/.test(t[i]))) i++;
+		} else if (afterWrapper && priv && PRIV_VALUE.test(t[i])) i += 2;
+		else if (afterWrapper && (/^-./.test(t[i]) || /^\/[a-z]$/i.test(t[i]) || /^\d+(\.\d+)?[smhd]?$/.test(t[i]))) i++;
 		else break;
 	}
 	return i;
@@ -155,7 +160,21 @@ const SHELLS = new Set(
 const INTERPRETERS = /^(python[\d.]*|node|perl|ruby|deno|bun|php)$/;
 const INTERP_DELETE =
 	/\b(rmtree|rmSync|rmdirSync|unlinkSync|removedirs|os\.remove|unlink|rimraf|rm_rf|rm_r|remove_tree|fs\.rm|fs\.promises\.rm)\b/i;
-const ROOT_TARGET = /^(\/|\/\*|~|~\/|~\/\*|\$HOME|\$HOME\/|\$HOME\/\*|[a-z]:[\\/]?\*?)$/i;
+/** `/`, `~`, `$HOME`, `C:` or an ancestor of home, after lexical normalization: `//`, `/./`, a
+ *  trailing `/`, `/.`, `/*`, and `..` (`~/.`, `/./`, `~//`, `$HOME/x/..`, `~/..` all count). */
+function rootTarget(t: string): boolean {
+	const parts = t.replace(/\\/g, "/").split("/");
+	const head = parts.shift() ?? "";
+	const home = head === "~" || head === "$HOME";
+	if (!(home || /^[a-z]:$/i.test(head) || (head === "" && parts.length))) return false;
+	const stack: string[] = [];
+	for (const p of parts.filter((p, i) => p && p !== "." && !(p === "*" && i === parts.length - 1))) {
+		if (p !== "..") stack.push(p);
+		else if (!stack.length && home) return true; // above home
+		else stack.pop();
+	}
+	return stack.length === 0;
+}
 // `git rm -r`, `docker rm -f`, `npm rm` are those tools' own subcommands, not /bin/rm.
 const SUBCOMMAND_HOSTS = new Set("git docker podman npm pnpm yarn bun cargo kubectl helm conda pip brew".split(" "));
 const PIPE_PREFIX = new Set("sudo doas env command exec nohup time nice stdbuf".split(" "));
@@ -168,7 +187,7 @@ function rmDanger(after: string[]): Danger | null {
 	const targets = after.filter((a, i) => (end >= 0 && i > end) || !a.startsWith("-"));
 	const recursive = flags.some((f) => /^-[^-]*r/i.test(f) || f === "--recursive");
 	const long = flags.some((f) => f === "--force" || f === "--no-preserve-root");
-	if (recursive && (targets.some((t) => ROOT_TARGET.test(t)) || flags.includes("--no-preserve-root")))
+	if (recursive && (targets.some(rootTarget) || flags.includes("--no-preserve-root")))
 		return { reason: "rm recursive on / or ~ (floor)", floor: true };
 	return recursive || long ? { reason: "rm recursive/forced", floor: false } : null;
 }
@@ -222,19 +241,31 @@ export function segmentDanger(seg: Segment): Danger | null {
 		if (seg.piped) {
 			// the first word that is not an assignment / sudo / env-style prefix or a flag
 			let i = 0;
-			while (i < t.length && (/^[A-Za-z_][A-Za-z0-9_]*=|^-/.test(t[i]) || PIPE_PREFIX.has(base(t[i])))) i++;
+			while (i < t.length && (/^[A-Za-z_][A-Za-z0-9_]*=|^-/.test(t[i]) || PIPE_PREFIX.has(base(t[i]))))
+				i += PRIV_VALUE.test(t[i]) ? 2 : 1;
 			const sh = base(t[i] ?? "");
-			if (SHELLS.has(sh) && t.slice(i + 1).every((a) => a.startsWith("-"))) return hit(`pipe to ${sh} (floor)`, true);
+			const rest = t.slice(i + 1);
+			// the program is read from stdin: no script operand, `-`, /dev/stdin, or a shell's `-s`
+			const stdin =
+				rest.every((a) => a.startsWith("-")) ||
+				rest.some((a) => a === "-" || /^\/dev\/(stdin|fd\/0)$/.test(a)) ||
+				(/^(sh|bash|zsh|dash|ksh|fish)$/.test(sh) && rest.some((a) => /^-[^-]*s/.test(a)));
+			if (SHELLS.has(sh) && stdin) return hit(`pipe to ${sh} (floor)`, true);
 		}
+		// Floor verbs are found behind sudo/doas too (`sudo mkfs`, `sudo -u root dd …`).
+		const fi = commandIndex(t, true);
+		const fcmd = base(t[fi] ?? "");
+		const fargs = t.slice(fi + 1);
+		if (fcmd.startsWith("mkfs")) return hit("mkfs (floor)", true);
+		if (fcmd === "dd" && fargs.some((a) => /^of=\/dev\//i.test(a))) return hit("dd of=/dev/ (floor)", true);
+		const verb = fargs.find((a) => !/^(-.*|quiet)$/i.test(a)) ?? ""; // `diskutil quiet eraseDisk`
+		if (fcmd === "diskutil" && /^(erase|zero|secureerase|partitiondisk|reformat)/i.test(verb))
+			return hit("diskutil erase (floor)", true);
+		if (["format-volume", "clear-disk", "initialize-disk"].includes(fcmd)) return hit(`${fcmd} (floor)`, true);
 		// `x=rm; $x -rf ~`: the variable's value is invisible; a root target with -r is enough.
 		if (cmd.startsWith("$") && rmDanger(args)?.floor) return hit(`${cmd} -r on / or ~ (floor)`, true);
 		if (["sudo", "doas", "su", "pkexec", "runas"].includes(cmd)) return hit(cmd);
 		if (["shutdown", "reboot", "halt", "poweroff", "stop-computer", "restart-computer"].includes(cmd)) return hit(cmd);
-		if (cmd.startsWith("mkfs")) return hit("mkfs (floor)", true);
-		if (cmd === "dd" && args.some((a) => /^of=\/dev\//i.test(a))) return hit("dd of=/dev/ (floor)", true);
-		if (cmd === "diskutil" && /^(erase|zero|secureerase|partitiondisk|reformat)/i.test(args[0] ?? ""))
-			return hit("diskutil erase (floor)", true);
-		if (["format-volume", "clear-disk", "initialize-disk"].includes(cmd)) return hit(`${cmd} (floor)`, true);
 		if (cmd === "format" && /^[a-z]:$/i.test(args[0] ?? "")) return hit("format <drive>:");
 		if (cmd === "iex" || cmd === "invoke-expression") return hit(cmd);
 		if (cmd === "git") {

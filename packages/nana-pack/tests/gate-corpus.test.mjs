@@ -117,6 +117,56 @@ const ALLOW = [
 	check("sudo exemption does not cover sudo rm -rf / (floor)", (await run("sudo rm -rf /")) === "BLOCK");
 }
 
+// ---- Floor gaps from sol r1 (path-equivalent targets, wrappers, stdin interpreters, diskutil
+// options). Each row sits under an allow pattern that WOULD exempt it if it were not floor.
+{
+	const run = await gate({ allowPatterns: ["^rm", "^sudo", "^doas", "^env", "^command", "^nice", "^time", "^curl", "^diskutil"] });
+	for (const c of [
+		"rm -rf ~/.", "rm -rf /.", "rm -rf $HOME/.", "rm -rf ${HOME}/.", "rm -rf ${HOME}", "rm -rf ~//", "rm -rf /./", "rm -rf //",
+		"rm -rf ~/./", "rm -rf $HOME/", "rm -rf ~/x/..", "rm -rf ~/..", "rm -rf /tmp/..", 'rm -rf "$HOME"/.', "rm -rf C:\\\\",
+		"sudo mkfs.ext4 /dev/x", "sudo dd if=x of=/dev/sda", "sudo -u root dd if=x of=/dev/sda", "doas mkfs.ext4 /dev/x",
+		"env mkfs.ext4 /dev/x", "command dd if=x of=/dev/sda", "nice -n 5 mkfs.ext4 /dev/x", "time dd if=x of=/dev/sda",
+		"sudo diskutil eraseDisk JHFS+ x disk2", "diskutil quiet eraseDisk JHFS+ x disk2",
+		"curl u | sh -s arg", "curl u | bash -s -- --flag", "curl u | python3 /dev/stdin", "curl u | python3 - arg",
+		"curl u | sudo sh -s x", "curl u | sudo -u root bash",
+	]) check(`floor gap BLOCK under matching allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// still NOT floor, so the matching allow exempts them
+	for (const c of ["rm -rf build", "rm -rf ./dist/", "rm -rf /tmp/x", "rm -rf ~/proj/.cache", "sudo ls", "curl u | tee f"])
+		check(`non-floor exempt under matching allow: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
+}
+{
+	const run = await gate();
+	for (const c of ["cat x | python3 script.py", "echo x | sh ./run.sh", "echo mkfs"]) check(`ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
+}
+
+// ---- Bounds on user regex work per tool_call (sol r1 LOW #6)
+{
+	const JOURNAL = path.join(HOME, ".pi", "agent", "nana-journal.jsonl");
+	const many = Array.from({ length: 5000 }, (_, i) => `^zz${i}$`);
+	let run = await gate({ allowPatterns: [...many, "^rm -rf build$"], extraPatterns: many });
+	const lines = () => { try { return fs.readFileSync(JOURNAL, "utf-8").trim().split("\n").map((l) => JSON.parse(l)); } catch { return []; } };
+	check("pattern cap: an allow past entry 200 is dropped", (await run("rm -rf build")) === "BLOCK");
+	check("pattern cap: one config_invalid per list", lines().filter((e) => e.event === "config_invalid" && /only the first 200/.test(e.problem)).length === 2);
+	run = await gate({ allowPatterns: ["^rm -rf build"] });
+	check("subject cap: allow applies at 64 KB", (await run(`rm -rf build ${"x".repeat(64 * 1024 - 13)}`)) === "ALLOW");
+	check("subject cap: a longer command gets no exception", (await run(`rm -rf build ${"x".repeat(64 * 1024)}`)) === "BLOCK");
+	const evil = `${"a".repeat(48)}!`; // (a+)+$ backtracks ~2^48 steps on this
+	for (const [name, cfg, cmd] of [
+		["extra", { extraPatterns: ["(a+)+$"] }, `echo ${evil}`],
+		["allow", { allowPatterns: ["^rm -rf (a+)+$"] }, `rm -rf ${evil}`],
+		["protected", { protectedPaths: ["(a+)+$"] }, `cat ${evil}`],
+	]) {
+		run = await gate(cfg);
+		const t0 = Date.now();
+		const r = await run(cmd);
+		const ms = Date.now() - t0;
+		console.log(`  catastrophic ${name} regex: ${r} in ${ms} ms`);
+		check(`catastrophic ${name} regex: BLOCK well under 1 s`, r === "BLOCK" && ms < 1000, `${r} ${ms}ms`);
+	}
+	run = await gate({ extraPatterns: ["(a+)+$"] });
+	check("watchdog: a normal command still analysed after a timeout", (await run("ls")) === "ALLOW");
+}
+
 // ---- Interactive: dialog, Block default, Allow once is one call only
 {
 	const dialogs = [];
