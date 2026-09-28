@@ -38,6 +38,24 @@ check("addUsage sums every public field including totalTokens", acc.input === 2 
 check("addUsage sums pi's cost too", Math.abs(acc.cost.total - 0.3) < 1e-9 && Math.abs(acc.cost.input - 0.3) < 1e-9);
 check("addUsage ignores a missing usage object", addUsage(acc, undefined) === false);
 check("two assistant messages contributed own usage", s.usageMessages === 2, String(s.usageMessages));
+
+// pi ≥ 0.86: cache-warm refreshes are a `usage` SESSION ENTRY, forwarded in json mode as
+// `entry_appended` (0.87.1 cache-warmer.js appendUsage → agent-session `entry_appended`). pi counts
+// them in session totals; so does the bench, as own spend, and says how many it folded in.
+{
+	const warmUsage = { input: 0, output: 1, cacheRead: 5000, cacheWrite: 0, totalTokens: 5001, cost: { input: 0, output: 0.00001, cacheRead: 0.0025, cacheWrite: 0, total: 0.00251 } };
+	const withWarm = parseStream(
+		read("sample-stream.jsonl") +
+			`\n${JSON.stringify({ type: "entry_appended", entry: { type: "usage", id: "w1", parentId: null, timestamp: "2026-09-28T00:00:00.000Z", kind: "cache_warm", provider: "openai-codex", model: "gpt-5.6-sol", usage: warmUsage } })}` +
+			`\n${JSON.stringify({ type: "entry_appended", entry: { type: "custom", id: "c1", parentId: "w1", customType: "x", data: { usage: warmUsage } } })}\n`,
+	);
+	check("a pi cache-warm usage entry is own spend (tokens)", totalTokens(withWarm.tokens) === totalTokens(s.tokens) + 5001, String(totalTokens(withWarm.tokens)));
+	check("…priced with pi's own cost", Math.abs(costTotal(withWarm.tokens) - (costTotal(s.tokens) + 0.00251)) < 1e-12, String(costTotal(withWarm.tokens)));
+	check("…counted as a usage ENTRY, not an assistant message", withWarm.usageEntries === 1 && withWarm.usageMessages === s.usageMessages, `${withWarm.usageEntries}/${withWarm.usageMessages}`);
+	check("…a non-usage appended entry (extension `custom`) is not spend", withWarm.usageEntries === 1);
+	check("…and none of it is nested", totalTokens(withWarm.nested) === totalTokens(s.nested));
+	check("a stream with no usage entries reports zero of them", s.usageEntries === 0, String(s.usageEntries));
+}
 check("one tool message contributed nested usage", s.nestedMessages === 1, String(s.nestedMessages));
 check("turns counted from turn_start", s.turns === 2, String(s.turns));
 check("tool calls counted per tool", JSON.stringify(s.toolCalls) === JSON.stringify({ grep: 2, read: 1, parallel: 1 }), JSON.stringify(s.toolCalls));
