@@ -492,6 +492,19 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	return cfg;
 }
 
+/**
+ * The objective block alone, user scope — exactly what loadConfig(ctx).objective yields,
+ * without the gate/project machinery or its journal side effects. For bin/nana-objective.mjs
+ * (the Claude Code hook's producer), so both runtimes read the same three settings.
+ */
+export function loadUserObjective(): NanaPackConfig["objective"] {
+	try {
+		return merge("objective", readConfigFile(userConfigPath()).blocks.objective);
+	} catch {
+		return structuredClone(DEFAULTS.objective);
+	}
+}
+
 export function compileRegexes(patterns: string[]): RegExp[] {
 	const out: RegExp[] = [];
 	// Malformed config (e.g. `"allowPatterns": null`) must not throw out of the

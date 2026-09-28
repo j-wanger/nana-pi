@@ -206,7 +206,8 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 // nearest <dir>/<projectFile> walking UP from cwd wins, else the user-scope path.
 // ---------------------------------------------------------------------------
 const PROJECT_FILE = "REPO-OBJECTIVE.md"; // distinctive: the walk runs to the filesystem root
-const UMBRELLA_LINE = "Umbrella (nana): **Objective:** build products with agents.";
+const UMBRELLA_LINE = "program objective: **Objective:** build products with agents.";
+const UMBRELLA_PRIORITY_LINE = "program current priority: **Current priority:** one coherent experience.";
 const REPO_OBJECTIVE = "**Objective:** ship the desk.\n\n**Current priority:** the feel pass.\n";
 const journalLines = () =>
 	fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -224,8 +225,16 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("l: the repo's objective is injected", !!r?.systemPrompt.includes("ship the desk"));
 	check("l: the repo's priority is injected", !!r?.systemPrompt.includes("the feel pass"));
-	check("l: the umbrella's text does NOT replace it", !r?.systemPrompt.includes("one coherent experience"));
-	check("l: the umbrella line is appended", !!r?.systemPrompt.includes(UMBRELLA_LINE));
+	// Jake's ruling 1 (2026-09-28): the product's lines govern, AND the program's objective
+	// + current priority are shown, labelled, after them, with the precedence stated. (This
+	// replaces an assertion that the umbrella priority was absent — that encoded the defect.)
+	const sp = r?.systemPrompt ?? "";
+	check("l: the umbrella objective AND current priority are shown, labelled",
+		sp.includes(`${UMBRELLA_LINE}\n${UMBRELLA_PRIORITY_LINE}`));
+	check("l: the product's lines come first and are labelled with the governing path",
+		sp.indexOf(`governing: ${repoFile}\n**Objective:** ship the desk.`) >= 0 && sp.indexOf("ship the desk") < sp.indexOf(UMBRELLA_LINE));
+	check("l: the precedence sentence is stated",
+		sp.includes(`Precedence: the lines from ${repoFile} govern this session's work; the program lines (${objectiveFile}) say what the toolkit is for.`));
 	check("l: same heading", !!r?.systemPrompt.includes("## Objective and current priority (nana)"));
 	check("l: charge line still applies", !!r?.systemPrompt.includes("Every session must be able to say which of these lines its spend serves."));
 	check("l: objective_pickup records source \"project\" and the path",
