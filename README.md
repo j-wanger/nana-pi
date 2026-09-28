@@ -54,6 +54,15 @@ the pi-hosted ones. Per component:
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
 | `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
 
+## Tests
+
+`npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
+and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
+temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
+if any file fails. The `*.e2e.mjs` browser suites and `apps/bench` tests are not in it.
+`npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
+deliberately failing file to prove the runner turns red.
+
 ## Install — the whole experience ships from this repo
 
 The experience has **two halves**, and both are installed from this repo:
