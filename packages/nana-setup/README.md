@@ -15,7 +15,12 @@ node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launch
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
 ```
 
-Runtime dependencies: Node ≥ 22 and nothing else. `install` calls out to `pi` (only to register
+Runtime dependencies: **Node ≥ 22.18** and nothing else. The floor is set by the installed
+`nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that CLI imports
+`lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
+22.18). On an older Node the hook prints `OBJECTIVE UNAVAILABLE: Node <v> is older than 22.18 …`
+(and `… node not found on PATH …` with no `node` at all) instead of the objective, and `doctor`'s
+`node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
 the packages, and only when they are not registered yet), to `node` (to build the knowledge
 index) and to `launchctl` (only with `--desk`, only on macOS, only against the real home) — each
 of those is optional and reports "skipped" with the reason when it is missing.

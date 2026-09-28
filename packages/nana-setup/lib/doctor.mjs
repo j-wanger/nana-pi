@@ -31,10 +31,51 @@ function linkOk(target, source) {
 	}
 }
 
+/**
+ * objective.projectFile as the PRODUCER reads it (packages/nana-pack/lib/config.ts
+ * fileNameOrDefault + lib/objective.ts isBareFileName — same rule, restated here because
+ * nana-setup cannot import .ts on its Node floor): absent/null/false/"" or "OBJECTIVE.md"
+ * is the default; any other bare filename is a rename; a separator, "." or ".." — or a
+ * non-string — is REFUSED by the producer, which falls back to OBJECTIVE.md: ✗ here.
+ */
+export function projectFileState(v) {
+	const DEFAULT = "OBJECTIVE.md";
+	if (v === undefined || v === null || v === false || v === "" || v === DEFAULT)
+		return { status: OK, kind: "default", detail: `per-repo ${DEFAULT} (the default name)` };
+	const shown = JSON.stringify(v)?.slice(0, 120) ?? String(v);
+	if (typeof v !== "string")
+		return { status: FAIL, kind: "invalid", detail: `${shown} is invalid (expected a bare filename, null or false) — the producer ignores it and uses ${DEFAULT}` };
+	if (v === "." || v === ".." || /[\\/]/.test(v))
+		return { status: FAIL, kind: "invalid", detail: `${shown} is invalid (a bare filename only: no path separator, not "." or "..") — the producer ignores it and uses ${DEFAULT}` };
+	return { status: OK, kind: "renamed", detail: `${shown} (per-repo file renamed from ${DEFAULT})` };
+}
+
+/** The objective hook's CLI imports .ts with no flag: Node's type stripping, default from 22.18. */
+export const NODE_FLOOR = "22.18";
+export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
+	const [a, b] = String(version).replace(/^v/, "").split(".").map(Number);
+	const [fa, fb] = floor.split(".").map(Number);
+	return a > fa || (a === fa && b >= fb);
+}
+
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
 	const add = (status, label, detail) => checks.push({ status, label, detail });
+
+	// --- runtime floor: the `node` the objective hook will run (the one on this PATH) ---
+	if (win) add(NOTE, "node for the objective hook", "skipped (win32)");
+	else {
+		const r = spawnSync("node", ["-p", "process.versions.node"], { encoding: "utf8" });
+		const v = r.status === 0 ? r.stdout.trim() : null;
+		add(
+			v && nodeMeetsFloor(v) ? OK : FAIL,
+			"node for the objective hook",
+			v
+				? `${v}${nodeMeetsFloor(v) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
+				: `node not found on PATH (needs ≥ ${NODE_FLOOR})`,
+		);
+	}
 
 	// --- Claude Code half ---
 	for (const h of HOOKS) {
@@ -91,10 +132,8 @@ export function diagnose(layout, opts = {}) {
 	// --- pi user config ---
 	const cfg = readPiPackConfig(layout);
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : `missing or unparseable: ${layout.piPackConfig}`);
-	const projectFile = cfg?.objective?.projectFile;
-	// Only a DIFFERENT name is a rename: the seed writes the default "OBJECTIVE.md" explicitly.
-	const renamed = typeof projectFile === "string" && projectFile !== "" && projectFile !== "OBJECTIVE.md";
-	add(OK, "pi objective.projectFile", renamed ? `${projectFile} (per-repo file renamed)` : "per-repo OBJECTIVE.md (the default name)");
+	const pf = projectFileState(cfg?.objective?.projectFile);
+	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
 

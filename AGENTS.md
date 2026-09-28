@@ -10,6 +10,19 @@ nana-pi has none of its own) → `HANDOFF.md` (the frontier) →
 `research/pi-landscape-2026-09-01.md` (the verified pi capability map; do not re-research
 what it answers — append dated addenda when facts drift, pi releases fast).
 
+## Objective contract (both runtimes, one producer: `packages/nana-pack/lib/objective.ts`)
+
+- Session start injects the nearest `OBJECTIVE.md` walking UP from the session cwd — always, no
+  opt-in; with none found, the user-scope umbrella (`objective.path`, default
+  `~/.pi/agent/nana-objective.md`) governs. Project config can neither choose nor disable it.
+- `objective.projectFile` (user scope) only RENAMES the file looked for — a bare filename; a
+  separator, `.` or `..` is refused and `OBJECTIVE.md` is used (`nana-setup doctor` reads ✗).
+- When a product file governs, both program lines (`program objective:` / `program current
+  priority:`) are shown too, followed by a precedence sentence: the product lines govern the
+  session's work; the program lines say what the toolkit is for.
+- Only the marker-bearing `**Objective` / `**Current priority` lines are emitted — one physical
+  line each, capped — never raw file content. An unusable file prints `OBJECTIVE UNAVAILABLE`.
+
 ## Layout
 
 - `packages/nana-pack/` — the pi extension pack: gate, post-edit checks + receipts,

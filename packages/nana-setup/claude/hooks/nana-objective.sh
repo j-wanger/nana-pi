@@ -9,6 +9,12 @@ while [ -L "$src" ]; do
   case "$t" in /*) src="$t" ;; *) src="$(dirname "$src")/$t" ;; esac
 done
 cli="$(cd "$(dirname "$src")/../../.." 2>/dev/null && pwd)/nana-pack/bin/nana-objective.mjs"
+# Requires Node >= 22.18 (built-in TypeScript stripping); an older Node gets a named marker from the CLI itself.
+if ! command -v node >/dev/null 2>&1; then
+  printf '%s\n\n%s\n\n%s\n' "[nana:objective]" "## Objective and current priority (nana)" \
+    "OBJECTIVE UNAVAILABLE: node not found on PATH (the objective producer needs Node >= 22.18). Tell the user before spending."
+  exit 0
+fi
 if out=$(node --no-warnings "$cli" --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null); then
   [ -n "$out" ] && printf '%s\n' "$out"
   exit 0
