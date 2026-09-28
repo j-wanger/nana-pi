@@ -1062,7 +1062,7 @@ function stabilizeMigratedIds(fileEntries) {
 	}
 }
 
-// Entries pi ≥ 0.86 writes that pi's own TUI chat never renders (0.87.1
+// Entries pi ≥ 0.86 writes that pi's DEFAULT TUI chat does not render (0.87.1
 // interactive-mode.js `renderSessionEntries` / docs/session-format.md): the
 // prompt+tool loadout as `role:"system"` messages (0.86), `usage` entries for
 // cache-warm spend (0.86, shown only behind `showCacheMissNotices`), and

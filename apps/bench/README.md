@@ -306,7 +306,11 @@ and optional `assets/`. Outputs land beside them: `results.jsonl`, `schedule.jso
   "baselineProfile": "pi-defaults",
   "smokeTask": "…", "smokeProfile": "…",
   "model": { "provider": "openai-codex", "id": "gpt-5.6-sol", "thinking": "medium" },
-  "pinnedPiVersion": "0.87.1",    // a different pi aborts rather than quietly changing the study
+  "pinnedPiVersion": "0.87.1",    // a different pi aborts rather than quietly changing the study.
+                                   // A CLOSED study keeps its pin forever: to reproduce it, install
+                                   // that exact pi; to measure on a newer pi, copy the study to a new
+                                   // directory and re-pin there (never edit a closed study's pin —
+                                   // its fingerprint would change and the runs would mix). Lane U 09-28.
   "env": { "PI_OFFLINE": "1" },
   "maxTotalTokens": 3500000, "maxWallMs": 21600000,
   "agentDir": { "dir": "~/.pi/bench-agent", "sourceDir": "~/.pi/agent" },

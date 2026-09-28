@@ -1,6 +1,6 @@
 // pi 0.86/0.87 session entries on the desk's read path (lane U, 2026-09-28).
 //
-// pi ≥ 0.86 persists three kinds of entry its TUI chat never draws: the prompt/tool
+// pi ≥ 0.86 persists three kinds of entry its default TUI chat does not draw: the prompt/tool
 // loadout as `message` entries with `role:"system"`, `usage` entries for cache-warm
 // spend, and (0.87) `context_edit`, which changes only future MODEL context. The desk
 // page draws any entry type it does not know as a bare "— <type> —" row, so the server
