@@ -8,7 +8,7 @@
 //                                            earned: {v,kind:"round",ts,repo,item,revision,role,…}.
 //                                            The cap reads ONLY this (plus live reservations).
 //   ~/.pi/agent/review-ledger.jsonl (+ .1)   the verbose AUDIT log (every verdict and override);
-//                                            rotated past 1 MiB; never consulted by the cap.
+//                                            rotated past 1 MiB before EVERY append; never consulted by the cap.
 //   ~/.pi/agent/review-ledger.reservations/  one <id>.json per in-flight review holding its round
 //   ~/.pi/agent/review-ledger.lock           O_EXCL lock around every read-decide-write
 //
@@ -26,7 +26,8 @@
 //  - --out on a TRACKED path of the reviewed tree is refused; elsewhere in the tree (not ignored) it
 //    warns (sol r3 ruling; see outInTree).
 //  - every git failure REFUSES admission with the git error (sol r2 #10) — never "clean".
-//  - only a completed verdict earns the round; a stall / failure returns the reservation.
+//  - a completed verdict earns the round; a stall / failure returns the reservation. Exception:
+//    a completion whose tree changed mid-review consumes the round as unverified (below).
 //  - complete() must own a live reservation: an expired, pruned or replaced one records nothing.
 //    A reservation lives while its owner is alive AND renews it (heartbeat, sol r2 #15).
 //  - complete() re-derives the revision under the lock; if the tree changed during the review, the round is still
@@ -42,7 +43,7 @@ import {
   unlinkSync, renameSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve, basename, relative, isAbsolute, sep } from 'node:path';
+import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 export { reviewShaped } from './review-shape.mjs';
@@ -74,7 +75,7 @@ export function ledgerPaths(home = homedir()) {
   };
 }
 
-/** Canonical item slug: NFKC, trim, casefold, internal whitespace → one space. Throws on a path
+/** Canonical item slug: NFKC, trim, lowercase (String#toLowerCase — not Unicode case folding), internal whitespace → one space. Throws on a path
  *  separator, "..", a control character, empty, or more than SLUG_MAX characters. Pure. */
 export function canonicalItem(raw) {
   const s = String(raw ?? '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -186,7 +187,7 @@ export function workingState(root, exclude = []) {
   }
   for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
   for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
-  const skip = new Set(exclude.map((x) => relative(root, x)).filter((x) => x && !x.startsWith('..') && !isAbsolute(x)).map((x) => x.split(sep).join('/')));
+  const skip = new Set(exclude.map((x) => relUnder(root, x)).filter(Boolean));
 
   const records = [], ids = [];
   for (const p of [...paths].sort(byteOrder)) {
@@ -216,6 +217,27 @@ export function workingState(root, exclude = []) {
   const headIds = [...inHead.keys()].sort(byteOrder).map((p) => `${inHead.get(p)}\t${p}`);
   const clean = ids.length === headIds.length && ids.every((x, i) => x === headIds[i]);
   return { head, snapshot: clean ? null : sha256(records.join('')) };
+}
+/** `abs` relative to `root` as a git path ("a/b"), or null when it is `root` itself or outside it.
+ *  Outside = the FIRST path SEGMENT is ".." (T2b r5: a string prefix test misread "..notes.md"). */
+export function relUnder(root, abs) {
+  const rel = relative(root, abs);
+  if (!rel || isAbsolute(rel)) return null;
+  const segs = rel.split(sep);
+  return segs[0] === '..' ? null : segs.join('/');
+}
+/** Where a write to `p` actually lands: realpath of the FULL path, the leaf included (T2b r5: an
+ *  --out that is itself a symlink resolves to its target). A not-yet-existing leaf resolves through
+ *  its parent; a dangling symlink leaf is followed to where the write would create its target. */
+export function realOut(p, hops = 0) {
+  if (hops > 40) throw new Error(`--out ${p}: too many levels of symbolic links — refused`);
+  try { return realpathSync(p); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  let st = null;
+  try { st = lstatSync(p); } catch (e) { if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') throw e; }
+  if (st?.isSymbolicLink()) return realOut(resolve(dirname(p), readlinkSync(p)), hops + 1);
+  const parent = dirname(p);
+  if (parent === p) return p;
+  return join(realOut(parent, hops), basename(p));
 }
 const withSnap = (sha, scope) => (scope.snapshot ? `${sha}+snap:${scope.snapshot}` : sha);
 
@@ -388,9 +410,10 @@ function parseReview(args, cwd) {
   const out = optValue(args, '--out');
   if (rawItem === undefined) return { missing: true };
   const item = canonicalItem(rawItem);
-  const exclude = out ? [resolve(cwd, out)] : []; // the review's own output is not the reviewed work
+  const outAbs = out ? resolve(cwd, out) : null;
+  const exclude = out ? [realOut(outAbs)] : []; // the review's own output (where the write LANDS) is not the reviewed work
   const revision = deriveRevision(revArg, cwd, exclude);
-  const warning = out ? outInTree(revision.root, resolve(cwd, out)) : null; // throws on a tracked --out
+  const warning = out ? outInTree(revision.root, outAbs) : null; // throws on a tracked --out, symlinked or not
   return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: resolve(cwd), revArg, exclude, warning };
 }
 function deriveRevision(revArg, cwd, exclude) {
@@ -406,17 +429,13 @@ function deriveRevision(revArg, cwd, exclude) {
  *     and so can spend a distinct-revision slot); outside the tree, or outside git → null. */
 export function outInTree(root, outAbs) {
   if (!root) return null;
-  let dir = resolve(outAbs, '..');
-  const tail = [basename(outAbs)];
-  while (!existsSync(dir)) { tail.unshift(basename(dir)); dir = resolve(dir, '..'); }
-  const real = join(realpathSync(dir), ...tail);
-  const rel = relative(root, real);
-  if (!rel || rel.startsWith('..') || isAbsolute(rel)) return null;
-  const relGit = rel.split(sep).join('/');
+  const real = realOut(outAbs); // the full path, leaf symlink included (T2b r5)
+  const relGit = relUnder(root, real); // by path segment: "..notes.md" is in the tree (T2b r5)
+  if (relGit === null) return null;
   const listed = (args) => gitOut(root, ['--literal-pathspecs', ...args, '--', relGit]).stdout.length > 0;
   const head = headOf(root);
   if (listed(['ls-files', '-z', '--cached']) || (head && listed(['ls-tree', '-r', '-z', '--name-only', '--full-tree', head]))) {
-    throw new Error(`--out ${real} is a TRACKED file in the reviewed tree (${root}): the review would overwrite it, and ` +
+    throw new Error(`--out ${outAbs}${real === outAbs ? '' : ` (→ ${real})`} is a TRACKED file in the reviewed tree (${root}): the review would overwrite it, and ` +
       'excluding it from the snapshot would hide that. Write the output outside the tree (or to an ignored path)');
   }
   if (gitOut(root, ['check-ignore', '-q', '--', relGit], { okStatus: [0, 1] }).status === 0) return null;
@@ -428,6 +447,16 @@ export function revisionParts(revision) {
   const [head, snapshot] = String(revision).split('+snap:');
   return { head, snapshot: snapshot ?? null };
 }
+
+/** Rotate the verbose audit log past LEDGER_MAX_BYTES. Runs before EVERY audit append (T2b r5:
+ *  a failed over-cap launch appends too), so the audit is bounded to ~2 × LEDGER_MAX_BYTES. The
+ *  tally is separate and NEVER rotates. Call under the lock. */
+function rotateAudit(p) {
+  const st = lstatOrNull(p.audit);
+  refuseNonRegular(p.audit, st);
+  if (st && st.size > LEDGER_MAX_BYTES) { refuseNonRegular(p.rotated); renameSync(p.audit, p.rotated); }
+}
+function appendAudit(p, rec) { rotateAudit(p); appendChecked(p.audit, rec); }
 
 const failMessage = (e) => `review ledger: ${e.message}` +
   (['EACCES', 'EPERM', 'EROFS'].includes(e.code) ? ' — the ledger directory (~/.pi/agent) must be writable by this user' : '');
@@ -451,7 +480,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       const d = decide(p, q.key, q.revision, q.overCap, true);
       if (d.verdict === 'refuse') return { ok: false, message: REFUSE(d) };
       const override = d.verdict === 'override' ? q.overCap : undefined;
-      if (override) appendChecked(p.audit, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
+      if (override) appendAudit(p, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
       const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude };
@@ -510,9 +539,7 @@ export function complete(r, out, { home = homedir() } = {}) {
       try { now = deriveRevision(r.revArg, r.cwd, r.exclude ?? []).id; } catch (e) { why = e.message; }
       const stable = now === held.revision;
       // audit rotation first (only the verbose log rotates), so a refusal there writes nothing
-      const st2 = lstatOrNull(p.audit);
-      refuseNonRegular(p.audit, st2);
-      if (st2 && st2.size > LEDGER_MAX_BYTES) { refuseNonRegular(p.rotated); renameSync(p.audit, p.rotated); }
+      rotateAudit(p);
       const rounds = readTally(p).filter((x) => sameItem(x, held));
       let idx = rounds.findIndex((x) => x.revision === held.revision);
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
@@ -520,7 +547,7 @@ export function complete(r, out, { home = homedir() } = {}) {
         appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, ...drift });
         idx = rounds.length;
       }
-      appendChecked(p.audit, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, ...drift });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, ...drift });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round: idx + 1, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +

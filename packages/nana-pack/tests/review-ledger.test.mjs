@@ -298,13 +298,21 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 {
 	freshHome("11");
 	reviewAt("ck", 0);
+	// T2b r5 (astra): capture BEFORE check, so the equality below can fail. A live reservation is
+	// planted (this process owns it) so "check prunes/adds nothing" is observable, not vacuous.
+	fs.writeFileSync(path.join(resDir, "held.json"), JSON.stringify({ id: "held", pid: process.pid, repo: "x", item: "other", revision: "r" }));
+	const tallyBefore = fs.readFileSync(tallyFile, "utf8");
+	const auditBefore = fs.readFileSync(auditFile, "utf8");
+	const resBefore = fs.readdirSync(resDir).sort().join(",");
 	fs.chmodSync(resDir, 0o555);
 	A.at(1);
 	const c = ledgerCheck(["--item", "ck"]);
 	fs.chmodSync(resDir, 0o755);
 	check("check with a read-only reservations dir succeeds (it writes nothing)", c.status === 0 && /would be round 2\/3/.test(c.stdout), c.stderr + c.stdout);
-	const before = fs.readFileSync(tallyFile, "utf8");
-	check("check changed neither the tally nor the reservations", before === fs.readFileSync(tallyFile, "utf8") && fs.readdirSync(resDir).length === 0);
+	check("check changed neither the tally, the audit nor the reservations (captured before check)",
+		tallyBefore.length > 0 && tallyBefore === fs.readFileSync(tallyFile, "utf8") && auditBefore === fs.readFileSync(auditFile, "utf8") &&
+		resBefore === "held.json" && fs.readdirSync(resDir).sort().join(",") === resBefore);
+	fs.rmSync(path.join(resDir, "held.json"));
 	freshHome("11b");
 	const c2 = ledgerCheck(["--item", "nothing"]);
 	check("check on a machine with no ledger creates nothing", c2.status === 0 && !fs.existsSync(agent), c2.stderr);
@@ -578,6 +586,53 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("an --out outside the tree is silent", outside.status === 0 && !/WARNING/.test(outside.stderr), outside.stderr);
 	const chk = ledgerCheck(["--item", "outt", "--out", path.join(O.d, "f")], O.d);
 	check("review-ledger check refuses a tracked --out too", chk.status === 1 && /TRACKED/.test(chk.stderr), chk.stderr);
+	// T2b r5 (astra MUST): an --out that is ITSELF a symlink resolves through its leaf. Before the fix
+	// the parent alone was resolved, the link (outside the tree) passed, and the review overwrote f.
+	const fBytes = fs.readFileSync(path.join(O.d, "f"));
+	const link = path.join(outs, "link-to-f.md"), chain = path.join(outs, "chain-to-f.md");
+	fs.symlinkSync(path.join(O.d, "f"), link);
+	fs.symlinkSync(path.basename(link), chain);
+	for (const [label, o] of [["a symlinked --out aimed at a tracked file", link], ["…through a chain of two links", chain]]) {
+		const s = ledgerRun(["--item", "outs"], { cwd: O.d, outFile: o });
+		check(`${label} is refused BEFORE the review (target byte-identical, nothing reserved or counted)`,
+			s.status === 1 && /TRACKED file/.test(s.stderr) && !/admitted/.test(s.stderr) &&
+			fs.readFileSync(path.join(O.d, "f")).equals(fBytes) && roundsOf("outs").length === 0 && fs.readdirSync(resDir).length === 0 && noStack(s), s.stderr);
+	}
+	const dangling = path.join(outs, "dangling.md");
+	fs.symlinkSync(path.join(O.d, "made-by-link.md"), dangling);
+	check("a dangling --out link is resolved to where the write would land (in-tree → warns)",
+		/inside the reviewed tree/.test(mod.outInTree(fs.realpathSync(O.d), dangling) ?? ""));
+	// "..notes.md" is a legitimate in-tree name: the check is by path SEGMENT, not string prefix
+	fs.writeFileSync(path.join(O.d, "..notes.md"), "NOTES\n");
+	gitIn(O.d, "add", "..notes.md"); gitIn(O.d, "commit", "-qm", "dotdot");
+	const dd = ledgerRun(["--item", "outd"], { cwd: O.d, outFile: path.join(O.d, "..notes.md") });
+	check("a TRACKED file named ..notes.md is in-tree and refused (file untouched)",
+		dd.status === 1 && /TRACKED file/.test(dd.stderr) && fs.readFileSync(path.join(O.d, "..notes.md"), "utf8") === "NOTES\n" && roundsOf("outd").length === 0, dd.stderr);
+	const du = ledgerRun(["--item", "outdu"], { cwd: O.d, outFile: path.join(O.d, "..draft.md") });
+	check("an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)",
+		du.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(du.stderr) && roundsOf("outdu").length === 1 && !roundsOf("outdu")[0].unverified, du.stderr);
+	fs.rmSync(path.join(O.d, "..draft.md"));
+	check("relUnder: by segment", typeof mod.relUnder === "function" && mod.relUnder("/r", "/r/..notes.md") === "..notes.md" && mod.relUnder("/r", "/r/../x") === null &&
+		mod.relUnder("/r", "/r") === null && mod.relUnder("/r", "/r/a/..b") === "a/..b");
+}
+
+// 22. the audit is bounded on EVERY append path (T2b r5, astra MUST): a FAILED over-cap launch
+// appends its override and must rotate too. Before the fix only a completed verdict rotated.
+{
+	freshHome("22");
+	for (let i = 0; i < 3; i++) reviewAt("aud", i);
+	A.at(3);
+	fs.writeFileSync(auditFile, '{"v":1,"kind":"pad"}\n'.repeat(Math.ceil((mod.LEDGER_MAX_BYTES + 1) / 21)));
+	const FAIL_CMD = [process.execPath, "-e", "process.exit(1)"];
+	const sizes = [];
+	for (let i = 0; i < 3; i++) {
+		const f = ledgerRun(["--item", "aud", "--over-cap", `retry ${i}`], { cwd: A.d, cmd: FAIL_CMD });
+		sizes.push([f.status, fs.statSync(auditFile).size]);
+	}
+	const rotated = path.join(agent, "review-ledger.jsonl.1");
+	check("repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded",
+		sizes.every(([st, sz]) => st === 1 && sz <= mod.LEDGER_MAX_BYTES) && fs.existsSync(rotated) &&
+		jsonl(auditFile).filter((l) => l.kind === "override" && l.item === "aud").length === 3 && roundsOf("aud").length === 3, JSON.stringify(sizes));
 }
 
 // 21. --retries contract notice (sol r3 LOW): printed only when the flag is explicit
