@@ -16,15 +16,24 @@
  * governs, with the refusal printed. An unusable governing file prints an
  * "OBJECTIVE UNAVAILABLE" marker — silence is the failure that matters here.
  *
- * Pure and total: sync fs reads only, bounded (FILE_READ_MAX bytes per file, INJECT_CAP
- * chars per section, OUTPUT_CAP chars overall), never throws, never blocks on a
- * non-regular file (a FIFO would stall a hook; it reads as "unreadable").
+ * NEVER raw file content (T2a r2): from any file only the parsed **Objective and
+ * **Current priority paragraphs are emitted, each capped on its OWN (LINE_CAP) so a long
+ * one can never push the other out. A file with neither yields a named marker and nothing
+ * else from the file. Bytes that one runtime would alter are removed here so both print
+ * the same: NULs are stripped (bash command substitution drops them), invalid UTF-8 is
+ * refused (never replacement-decoded), and the text ends in exactly ONE "\n" (the hook's
+ * command substitution strips trailing newlines and printf re-adds one).
+ *
+ * Pure and total: sync fs reads only, bounded (FILE_READ_MAX bytes per file, LINE_CAP
+ * chars per line, OUTPUT_CAP chars overall including every marker), never throws, never
+ * blocks on a non-regular file (a FIFO would stall a hook; it reads as "unreadable").
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-export const INJECT_CAP = 4000;
+/** Per line (paragraph). Real lines are < 500 chars; four capped lines + paths fit OUTPUT_CAP. */
+export const LINE_CAP = 1500;
 export const OUTPUT_CAP = 12000;
 const FILE_READ_MAX = 256 * 1024;
 export const HEADING = "## Objective and current priority (nana)";
@@ -126,7 +135,15 @@ function readObjective(file: string): Read {
 		fd = fs.openSync(file, "r");
 		const buf = Buffer.alloc(FILE_READ_MAX);
 		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX, 0);
-		const text = buf.subarray(0, n).toString("utf-8").replace(/\r\n?/g, "\n").trim();
+		let decoded: string;
+		try {
+			// fatal: invalid UTF-8 is refused, not injected as U+FFFD. stream at the read cap:
+			// a multi-byte char split by the cap is dropped, not called invalid.
+			decoded = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(0, n), { stream: n === FILE_READ_MAX });
+		} catch {
+			return { cause: "not valid UTF-8" };
+		}
+		const text = decoded.replace(/\0/g, "").replace(/\r\n?/g, "\n").trim();
 		return text ? { text } : { cause: "empty file" };
 	} catch (err) {
 		const code = (err as NodeJS.ErrnoException)?.code;
@@ -136,8 +153,17 @@ function readObjective(file: string): Read {
 	}
 }
 
-function cap(s: string, n: number): { body: string; truncated: boolean } {
-	return s.length > n ? { body: `${s.slice(0, n)}\n\n(truncated at ${n} chars)`, truncated: true } : { body: s, truncated: false };
+/** First n UTF-16 units, never ending on half a surrogate pair (a lone surrogate prints differently per runtime). */
+function head(s: string, n: number): string {
+	const c = s.charCodeAt(n - 1);
+	return s.slice(0, c >= 0xd800 && c <= 0xdbff ? n - 1 : n);
+}
+
+/** One line, capped on its own: truncation stays INSIDE the line, never removes the next one. */
+function capLine(s: string): { body: string; truncated: boolean } {
+	return s.length > LINE_CAP
+		? { body: `${head(s, LINE_CAP)} (truncated at ${LINE_CAP} chars)`, truncated: true }
+		: { body: s, truncated: false };
 }
 
 /** The paragraph starting at the first line that begins with `prefix` (up to a blank line, heading or next bold lead). */
@@ -154,15 +180,16 @@ function lines(text: string): { objective: string | null; priority: string | nul
 	return { objective: paragraph(ls, "**Objective"), priority: paragraph(ls, "**Current priority") };
 }
 
-/** The governing file's section: its objective + current priority, or the file as written when it has no **Objective line. */
-function governingBody(text: string): { body: string; truncated: boolean } {
-	const { objective, priority } = lines(text);
-	if (!objective) {
-		const c = cap(text, INJECT_CAP);
-		return { body: `(no **Objective line in this file — shown as written)\n${c.body}`, truncated: c.truncated };
-	}
-	return cap(`${objective}\n\n${priority ?? "(no **Current priority line in this file)"}`, INJECT_CAP);
+/** The two parsed lines, each capped on its own; null when the file has neither (nothing from it is emitted). */
+function cappedLines(text: string): { objective: string | null; priority: string | null; truncated: boolean } | null {
+	const l = lines(text);
+	if (!l.objective && !l.priority) return null;
+	const o = l.objective ? capLine(l.objective) : null;
+	const p = l.priority ? capLine(l.priority) : null;
+	return { objective: o?.body ?? null, priority: p?.body ?? null, truncated: !!(o?.truncated || p?.truncated) };
 }
+
+const noLines = (file: string) => `no **Objective or **Current priority line found in ${file}`;
 
 function sameFile(a: string, b: string): boolean {
 	const real = (p: string) => {
@@ -206,11 +233,22 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 	if (!("text" in found)) {
 		events.push({ event: "objective_unavailable", path: umbrella, cause: found.cause });
 		notices.push(`objective unavailable: ${found.cause} (${umbrella})`);
-		const text = [HEADING, ...pre, `${MARKER_PREFIX}${found.cause} (${umbrella}). Tell the user before spending.`].join("\n\n");
+		const text = finish([HEADING, ...pre, `${MARKER_PREFIX}${found.cause} (${umbrella}). Tell the user before spending.`].join("\n\n"));
 		return { text, unavailable: true, events, notices };
 	}
 
-	const { body, truncated } = governingBody(found.text);
+	const g = cappedLines(found.text);
+	let body: string;
+	let unavailable = false;
+	if (g) {
+		body = `${g.objective ?? "(no **Objective line in this file)"}\n\n${g.priority ?? "(no **Current priority line in this file)"}`;
+	} else {
+		unavailable = true;
+		events.push({ event: "objective_unavailable", path: governing, cause: "no objective line" });
+		notices.push(`objective unavailable: ${noLines(governing)}`);
+		body = `${MARKER_PREFIX}${noLines(governing)}. Tell the user before spending.`;
+	}
+	const truncated = !!g?.truncated;
 	const parts = [HEADING, ...pre, `governing: ${governing}\n${body}`];
 	if (source === "project" && !sameFile(governing, umbrella)) {
 		const u: Read = reachedThroughSymlinkInWorkspace(cwd, umbrella)
@@ -218,11 +256,10 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 			: readObjective(umbrella);
 		let program: string;
 		if ("text" in u) {
-			const { objective, priority } = lines(u.text);
-			program = cap(
-				`program objective: ${objective ?? "(no **Objective line)"}\nprogram current priority: ${priority ?? "(no **Current priority line)"}`,
-				INJECT_CAP,
-			).body;
+			const p = cappedLines(u.text);
+			program = p
+				? `program objective: ${p.objective ?? "(no **Objective line)"}\nprogram current priority: ${p.priority ?? "(no **Current priority line)"}`
+				: `program objective: unavailable (${noLines(umbrella)})`;
 		} else {
 			program = `program objective: unavailable (${u.cause}: ${umbrella})`;
 		}
@@ -232,10 +269,17 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 		);
 	}
 	parts.push(CHARGE);
-	const out = parts.join("\n\n");
-	const text = out.length > OUTPUT_CAP ? `${out.slice(0, OUTPUT_CAP)}\n\n(output truncated at ${OUTPUT_CAP} chars)` : out;
+	const text = finish(parts.join("\n\n"));
 	events.push({ event: "objective_pickup", source, path: governing, chars: text.length, truncated });
-	return { text, unavailable: false, events, notices };
+	return { text, unavailable, events, notices };
+}
+
+/** Exactly one trailing "\n"; the WHOLE result, marker included, is <= OUTPUT_CAP. A backstop only: capped lines fit. */
+export function finish(out: string): string {
+	const text = `${out}\n`;
+	if (text.length <= OUTPUT_CAP) return text;
+	const note = `\n\n(output truncated at ${OUTPUT_CAP} chars)\n`;
+	return `${head(out, OUTPUT_CAP - note.length)}${note}`;
 }
 
 /** Never throws: an internal failure is itself a named marker. */
@@ -245,7 +289,7 @@ export function produceObjective(cwd: string, o: ObjectiveSettings): ObjectiveRe
 	} catch (err) {
 		const cause = `internal error (${String(err).slice(0, 120)})`;
 		return {
-			text: `${HEADING}\n\n${MARKER_PREFIX}${cause}. Tell the user before spending.`,
+			text: `${HEADING}\n\n${MARKER_PREFIX}${cause}. Tell the user before spending.\n`,
 			unavailable: true,
 			events: [{ event: "objective_unavailable", cause }],
 			notices: [`objective unavailable: ${cause}`],

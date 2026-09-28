@@ -372,7 +372,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
   (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
-  against `~/.pi/agent`, never cwd); content capped at 4000 chars; an `objective_pickup`
+  against `~/.pi/agent`, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
+  never other file content — each capped on its own at 1500 chars, so a long one cannot
+  push the other out (overall output ≤ 12000 chars); an `objective_pickup`
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
   Five contract points:
   - **A repo speaks its own objective — by default, no configuration.** The nearest
@@ -395,10 +397,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
     every session run inside it, and one that could set `enabled: false` could silently
     suppress the owner's objective.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
-  - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, or
-    refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
-    under the same heading and journals `objective_unavailable` with the cause; truncation at
-    the cap injects the capped text plus `(truncated at 4000 chars)`. Silence was the original
+  - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, not
+    valid UTF-8, or refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
+    under the same heading and journals `objective_unavailable` with the cause; a governing file with
+    neither line injects `OBJECTIVE UNAVAILABLE: no **Objective or **Current priority line
+    found in <path>` and nothing from the file; a line over the cap injects its first 1500
+    chars plus `(truncated at 1500 chars)`. Silence was the original
     behaviour and it defeated the point — the one artifact every session must see went missing
     invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every

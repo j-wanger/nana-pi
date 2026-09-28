@@ -12,7 +12,7 @@ try {
 	const i = process.argv.indexOf("--cwd");
 	const cwd = (i >= 0 && process.argv[i + 1]) || process.cwd();
 	const o = loadUserObjective();
-	if (o.enabled) process.stdout.write(`${TAG}\n${produceObjective(cwd, o).text}\n`);
+	if (o.enabled) process.stdout.write(`${TAG}\n${produceObjective(cwd, o).text}`); // text ends in its own one "\n"
 } catch (err) {
 	process.stdout.write(`${TAG}\n${HEADING}\n\n${MARKER_PREFIX}producer failed (${String(err).slice(0, 120)}). Tell the user before spending.\n`);
 }

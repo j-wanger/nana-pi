@@ -92,7 +92,9 @@ export function diagnose(layout, opts = {}) {
 	const cfg = readPiPackConfig(layout);
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : `missing or unparseable: ${layout.piPackConfig}`);
 	const projectFile = cfg?.objective?.projectFile;
-	add(OK, "pi objective.projectFile", projectFile ? `${projectFile} (per-repo file renamed)` : "not set — per-repo OBJECTIVE.md (the default name)");
+	// Only a DIFFERENT name is a rename: the seed writes the default "OBJECTIVE.md" explicitly.
+	const renamed = typeof projectFile === "string" && projectFile !== "" && projectFile !== "OBJECTIVE.md";
+	add(OK, "pi objective.projectFile", renamed ? `${projectFile} (per-repo file renamed)` : "per-repo OBJECTIVE.md (the default name)");
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
 

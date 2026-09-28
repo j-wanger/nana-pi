@@ -485,9 +485,9 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			// instructions of every session run inside it; a repo that could set
 			// enabled:false would silently suppress the owner's objective. Project trust
 			// says "run this repo's tooling", not "speak for the user's own priorities",
-			// so trusted projects are excluded too. projectFile is the same: the owner
-			// decides once, at user scope, that repos may carry their own OBJECTIVE.md —
-			// a repo must not be able to decide that for itself.
+			// so trusted projects are excluded too. projectFile is the same: it only RENAMES the
+			// file the (unconditional) walk-up looks for — no opt-in, never "off" — and a
+			// repo must not be able to rename it for itself.
 			objective: merge("objective", u.objective),
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
