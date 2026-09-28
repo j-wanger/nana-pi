@@ -137,7 +137,9 @@ An `AGENTS.override.md` replaces a layer instead of adding to it.
 `.pi/nana-pack.json` (project scope) is honored **only in trusted projects** — it
 can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`),
 and the handoff path. `~/.pi/agent/nana-pack.json` is the user-scope equivalent,
-always read.
+always read. "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
+`pi -a` / the desk's trust box (one run) is not enough for a nana-only `.pi/`; a malformed
+project `gate` block stops every gated tool until the owner repairs the file.
 
 ### The desk
 

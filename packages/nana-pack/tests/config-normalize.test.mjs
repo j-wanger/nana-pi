@@ -49,6 +49,9 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 let fails = 0, total = 0;
 const failed = [];
 const STOP = /^user nana-pack\.json gate block is malformed — repair it \(.+:.+\)$/s;
+// A malformed gate block in a nana-trusted PROJECT with no last-good project gate in this
+// process stops too (invariant 6, astra L1 land ruling) — never "no project contribution".
+const PSTOP = /^project nana-pack\.json gate block is malformed — repair it \(.+nana-pack\.json:.+\)$/s;
 const check = (n, ok) => { total++; if (!ok) { fails++; failed.push(n); } };
 const named = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
@@ -138,7 +141,10 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 			if (r.threw) continue;
 			check(`${tag}: typed`, isTyped(r.cfg));
 			check(`${tag}: never widens`, r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
-			check(`${tag}: project never stops the gate`, r.cfg.gate.stopReason === null);
+			// a malformed project GATE leaf stops (fresh cwd = no last-good project gate);
+			// any other block's malformed leaf never touches the gate
+			check(`${tag}: ${block === "gate" && !validFor(kind, v) ? "malformed project gate → conservative stop" : "gate not stopped"}`,
+				block === "gate" && !validFor(kind, v) ? PSTOP.test(r.cfg.gate.stopReason ?? "") : r.cfg.gate.stopReason === null);
 			const ok = validFor(kind, v);
 			// objective is USER SCOPE ONLY; a malformed project gate block contributes nothing
 			const expected = block === "objective" || !ok ? VALID[block][leaf] : v;
@@ -174,7 +180,8 @@ for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false && eq(r.cfg.postEdit.commands, []));
 	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", STOP.test(r.cfg?.gate.stopReason ?? ""));
 	const p = load(env({ user: VALID, projectText: text }));
-	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && p.cfg.gate.stopReason === null);
+	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.notify, VALID.notify));
+	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PSTOP.test(p.cfg?.gate.stopReason ?? ""));
 }
 {
 	const r = load(env({ user: { postEdit: { commands: [{ match: "\\.ts$", run: "ok" }, 7, { match: "(", run: "x" }, { run: "nomatch" }, { match: "a", run: "t", timeoutMs: -1 }, { match: "b", run: "u", timeoutMs: 50 }] } } }));

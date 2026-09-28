@@ -133,7 +133,8 @@ export default function (pi: ExtensionAPI) {
 		}
 		checked += 1;
 
-		// Malformed user gate block and no valid policy loaded in this process
+		// Malformed user (or nana-trusted project) gate block and no valid policy of
+		// that file loaded in this process
 		// (lib/config.ts): stop conservatively — every gated tool class is blocked,
 		// interactive or not, until the owner repairs the file.
 		if (cfg.gate.stopReason) {

@@ -13,12 +13,14 @@
  *   when the trust API or pi's module is missing (bare harness, older pi).
  *
  * Never throws: any bytes in either file yield a fully typed config. A malformed
- * leaf falls back to its default, a malformed array entry is dropped, an unparsable
+ * leaf falls back to its default (in a trusted project file: to the user value for
+ * that leaf, if set), a malformed array entry is dropped, an unparsable
  * file contributes nothing — each reported once per session (journal
  * `config_invalid` + one UI warning; the journal line is written even when
- * `journal.enabled` is false). EXCEPT the user gate block: a malformed one falls back
- * to the last valid gate policy loaded IN THIS PROCESS, and with none (fresh process)
- * the gate stops conservatively (`gate.stopReason`). Nothing is persisted: a policy
+ * `journal.enabled` is false). EXCEPT the gate block, user or nana-trusted project:
+ * a malformed one falls back to the last valid gate policy of that file loaded IN THIS
+ * PROCESS (process-wide, across sessions), and with none (fresh process) the gate
+ * stops conservatively (`gate.stopReason`; the user stop wins if both). Nothing is persisted: a policy
  * file on disk could be forged by the very agent the gate constrains.
  *
  * Read on every event so config edits apply live, without restarting the session.
@@ -249,8 +251,8 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 // G.lastValidUserGate: keyed by user config path (so a HOME change is a fresh state)
 // G.lastValidProjectGate: keyed by project config path
 
-export const gateStopReason = (file: string, problem: string) =>
-	`user nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
+export const gateStopReason = (file: string, problem: string, scope: "user" | "project" = "user") =>
+	`${scope} nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
 
 // ---------------------------------------------------------------- nana-trust
 
@@ -393,7 +395,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			const last = G.lastValidUserGate.get(userFile);
 			if (last) {
 				gate = { ...last, stopReason: null };
-				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this session"]);
+				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this process"]);
 			} else {
 				const problem = user.problems.find((m) => m.startsWith("gate")) ?? user.problems[0] ?? "malformed";
 				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
@@ -404,13 +406,28 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		// --- project scope: only under nana-trust
 		const projectFile = path.join(ctx.cwd, ".pi", "nana-pack.json");
 		let project: Blocks = {};
+		let projectStop: string | null = null;
 		if (isNanaTrusted(ctx)) {
 			const pr = readConfigFile(projectFile);
 			for (const p of pr.problems) notes.push(["config_invalid", projectFile, p]);
 			project = pr.blocks;
 			if (pr.present) {
 				if (pr.gateValid) G.lastValidProjectGate.set(projectFile, project.gate ?? {});
-				else project = { ...project, gate: G.lastValidProjectGate.get(projectFile) ?? {} };
+				else {
+					// Same rule as the user gate (invariant 6 — never widens): keep the last
+					// valid project gate loaded in this process, else STOP. Substituting "no
+					// project contribution" would drop the project's denies/protected paths
+					// and resurrect user exceptions it had cancelled (astra L1 land ruling).
+					const last = G.lastValidProjectGate.get(projectFile);
+					if (last) {
+						project = { ...project, gate: last };
+						notes.push(["config_gate_fallback", projectFile, "gate policy invalid — enforcing the last valid project policy loaded in this process"]);
+					} else {
+						const problem = pr.problems.find((m) => m.startsWith("gate")) ?? pr.problems[0] ?? "malformed";
+						projectStop = gateStopReason(projectFile, problem, "project");
+						notes.push(["config_gate_fallback", projectFile, "project gate policy invalid and no valid project policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
+					}
+				}
 			}
 		} else if (fs.existsSync(projectFile)) {
 			notes.push([
@@ -423,7 +440,12 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		const u = user.blocks;
 		const pg = project.gate;
 		cfg = {
-			gate: gate.stopReason ? gate : { ...gate, ...(pg as Record<string, string[]> | undefined) },
+			// user stop wins (its reason names the user file); then the project stop
+			gate: gate.stopReason
+				? gate
+				: projectStop
+					? { ...gate, stopReason: projectStop }
+					: { ...gate, ...(pg as Record<string, string[]> | undefined) },
 			postEdit: merge("postEdit", u.postEdit, project.postEdit),
 			notify: merge("notify", u.notify, project.notify),
 			journal: merge("journal", u.journal, project.journal),

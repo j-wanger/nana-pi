@@ -49,8 +49,8 @@ for (const p of ["/tmp/proj/notes/.pi-nana-pack.json", "/tmp/proj/.pineapple/nan
 // Composed regression (documented residual, equal to pi's own trust model): a trust.json planted
 // by a NON-tool write (e.g. `python -c`, outside the gate's sight) would still be honored as trust
 // evidence — that is pi's own rule too (a planted trust.json also loads project extensions).
-// The gate can only refuse the writes it sees; we pin that it does.
-check("bash redirection into trust.json is L2's item (not asserted here)", true);
+// The gate can only refuse the writes it sees; we pin that it does. Bash redirection into
+// trust.json is L2's item — deliberately not asserted here.
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
 console.log(fails ? `FAILED ${fails}` : "all PASS");
