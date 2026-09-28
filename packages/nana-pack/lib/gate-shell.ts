@@ -177,6 +177,9 @@ function rootTarget(t: string): boolean {
 }
 // `git rm -r`, `docker rm -f`, `npm rm` are those tools' own subcommands, not /bin/rm.
 const SUBCOMMAND_HOSTS = new Set("git docker podman npm pnpm yarn bun cargo kubectl helm conda pip brew".split(" "));
+// interpreter/shell options whose value is the next word (`python3 -W ignore`, `bash -o errexit`);
+// over-matching (python's valueless -O / -I) only turns a script operand into "stdin" — stricter
+const VALUE_OPT = /^(-[WXrICoO]|--(require|import|rcfile|init-file))$/;
 const PIPE_PREFIX = new Set("sudo doas env command exec nohup time nice stdbuf".split(" "));
 const PS_REMOVE = new Set(["remove-item", "ri", "rm", "del", "erase", "rd", "rmdir"]);
 const PS_REMOVE_FLAG = /^-(r|re|rec|recu|recur|recurs|recurse|fo|for|forc|force)$/i;
@@ -245,11 +248,15 @@ export function segmentDanger(seg: Segment): Danger | null {
 				i += PRIV_VALUE.test(t[i]) ? 2 : 1;
 			const sh = base(t[i] ?? "");
 			const rest = t.slice(i + 1);
-			// the program is read from stdin: no script operand, `-`, /dev/stdin, or a shell's `-s`
+			const isSh = /^(sh|bash|zsh|dash|ksh|fish)$/.test(sh);
+			// the script operand: the first word that is neither an option nor an option's value
+			let j = 0;
+			while (j < rest.length && /^-./.test(rest[j])) j += VALUE_OPT.test(rest[j]) ? 2 : 1;
+			// the program is read from stdin: no script operand, `-`, /dev/stdin, or a shell's `-s`;
+			// `--version` / `--help` (and a non-shell's `-V`) read nothing
 			const stdin =
-				rest.every((a) => a.startsWith("-")) ||
-				rest.some((a) => a === "-" || /^\/dev\/(stdin|fd\/0)$/.test(a)) ||
-				(/^(sh|bash|zsh|dash|ksh|fish)$/.test(sh) && rest.some((a) => /^-[^-]*s/.test(a)));
+				!rest.some((a) => /^--(version|help)$/.test(a) || (!isSh && a === "-V")) &&
+				(j >= rest.length || rest.some((a) => a === "-" || /^\/dev\/(stdin|fd\/0)$/.test(a)) || (isSh && rest.some((a) => /^-[^-]*s/.test(a))));
 			if (SHELLS.has(sh) && stdin) return hit(`pipe to ${sh} (floor)`, true);
 		}
 		// Floor verbs are found behind sudo/doas too (`sudo mkfs`, `sudo -u root dd …`).

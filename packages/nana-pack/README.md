@@ -198,10 +198,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
   directory symlink created and written through in the same command, `cd … | xargs tee
   nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
   command text would not close this (every pattern invites the next form), so none is added.
-  **Mitigation:** such a write never loosens the gate in the session that made it —
-  loosening waits for the next `session_start` — so it is a cross-session escalation that
-  takes a new session adopting the widened file, not self-escalation. **What closes it** is
-  the OS sandbox / container layer. The agent edits policy files only through you:
+  **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
+  `session_start`. The **other blocks in the same file, including `postEdit.commands`, apply
+  live**, so a write that evades the gate's text scan can run code in the **same** session
+  through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
+  container layer. The agent edits policy files only through you:
   `nana-setup`, the desk settings window, or "Allow once". The handoff store
   `~/.pi/agent/handoffs/**` is not a policy file.
 - **`allowPatterns` exempt one command segment, never a compound.** A command is split on
@@ -209,22 +210,26 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `git status; rm -rf ~` is not covered by `^git status`. A command the gate cannot segment
   reliably gets **no** exception anywhere: `$(…)`, backticks, `<(…)`, heredocs, `( … )`,
   `{ …; }`, `eval`, `source`, `sh -c`/`bash -c`/`zsh -c`/`cmd /c`/`pwsh -Command`, `xargs`,
-  a line continuation, an unbalanced quote. An allow pattern that matches the empty string
+  `parallel`, `watch`, a line continuation, an unbalanced quote. An allow pattern that matches the empty string
   (`""`, `.*`, `^`) is rejected at load with a warning and exempts nothing.
 - **The floor — no allow pattern skips it** (the interactive dialog still can): pipe to a
-  shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …), `rm` recursive
-  when it reads its program from stdin (no script operand, `-`, `/dev/stdin`, a shell's
-  `-s`: `curl u | sh -s arg` is floor, `cat x | python3 script.py` is not), `rm` recursive on
+  shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …) when it reads its
+  program from stdin (no script operand — an option's value such as `-W ignore` is not one —
+  `-`, `/dev/stdin`, a shell's `-s`: `curl u | sh -s arg` and `curl u | python3 -W ignore`
+  are floor; `cat x | python3 script.py` and `echo x | python3 --version` are not), `rm` recursive on
   `/`, `~`, `$HOME`, `C:` or an ancestor of home in any lexically equal spelling (`~/.`, `/.`,
   `~//`, `/./`, `${HOME}`, `~/x/..`, a trailing `/`; `rm -rf .` is *not* floor), `mkfs`,
   `dd of=/dev/`, `diskutil [quiet] erase*`, `Format-Volume` — also behind `sudo`/`doas`
   (with `-u user`), `env`, `command`, `nice`, `time` — and every policy file above as
   literally named. The `--force-with-lease` exception above keeps working.
-- **Bounded regex work.** Per list, the first 200 patterns are used (the rest dropped, one
-  `config_invalid` journal line); a command over 64 KB gets no exception (it is still checked);
-  and each configured regex is probed once per process at config load — one that backtracks
-  catastrophically (`(a+)+$`) is dropped with a `config_invalid` line naming it. Polynomial
-  blow-ups (`a*a*a*!`) are not detected; keep your patterns simple.
+- **Bounded regex work.** Per list, entries 1–200 as written are considered, never a later
+  one. Past 200, or an entry that does not compile: in `extraPatterns` / `protectedPaths` the
+  gate block is malformed (last valid policy, else the conservative STOP naming the file and
+  entry) — a deny is never silently dropped; in `allowPatterns` the excess is dropped with a
+  `config_invalid` line naming the entries not considered. A command over 64 KB gets no
+  exception (it is still checked). **Residual:** a catastrophic or polynomial regex in your
+  **own** `nana-pack.json` (`(a+)+$`) can make your own gate slow or hang. Nothing in the pack
+  can fix a pattern you asked it to run; the count and subject caps bound everything else.
 - **Loosening waits for session start.** The gate policy adopted at `session_start`
   (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
   write mid-session — by you, the desk, or anything the gate did not see — can tighten it at

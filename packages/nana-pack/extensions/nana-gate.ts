@@ -20,8 +20,9 @@
  * Policy files are caught via edit/write (resolved path) and via targets a command names
  * LITERALLY. NOT caught: shell-computed paths — relative after `cd`, escapes, globs, variables,
  * a symlink created in the same command, `cd … | xargs tee`, script files, interpreter
- * string-building. Such a write never loosens THIS session (loosening waits for session_start),
- * so it is cross-session escalation; the sandbox/container layer closes it, not more patterns.
+ * string-building. GATE loosening from such a write waits for session_start; the file's other
+ * blocks, incl. postEdit.commands, apply live — so it can run code in the SAME session through
+ * post-edit. The sandbox/container layer closes that, not more patterns.
  *
  * This gate is advisory-by-load-path: anyone can run pi without it, a later extension can
  * mutate input after it, and it reads command TEXT — not a shell security boundary.
@@ -31,7 +32,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { compileRegexes, type GateConfig, MAX_GATE_PATTERNS as MAX_PATTERNS, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
+import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
@@ -47,9 +48,9 @@ const PROTECTED_PATHS: RegExp[] = [
 	/\.config[/\\]gh[/\\]hosts\.yml\b/i,
 ];
 
-// Bounds on user regex work (sol r1 LOW #6): at most MAX_PATTERNS per list (the excess dropped,
-// one config_invalid line); a command longer than MAX_SUBJECT gets no exception; catastrophic
-// patterns are dropped once, at config load (lib/config.ts) — no per-call watchdog.
+// Bounds on user regex work: at most 200 patterns per list (lib/config.ts) and no exception for a
+// command over MAX_SUBJECT. A catastrophic regex the OWNER configured is not detected: it can
+// make the owner's own gate slow or hang (README "Bounded regex work").
 const MAX_SUBJECT = 64 * 1024;
 
 type Policy = Omit<GateConfig, "stopReason"> & { stopReason: string | null };
@@ -174,16 +175,7 @@ export default function (pi: ExtensionAPI) {
 	const livePolicy = (ctx: any): { cfg: NanaPackConfig; gate: Policy } => {
 		const cfg = loadConfig(ctx);
 		const g = cfg.gate;
-		const cap = (key: string, list: string[]) => {
-			const u = uniq(list);
-			if (u.length > MAX_PATTERNS && !warned.has(key)) {
-				warned.add(key);
-				const problem = `gate.${key} has ${u.length} entries; only the first ${MAX_PATTERNS} are used`;
-				journal(cfg, { event: "config_invalid", file: "nana-pack.json", problem, cwd: ctx?.cwd });
-			}
-			return u.slice(0, MAX_PATTERNS);
-		};
-		const allowPatterns = cap("allowPatterns", g.allowPatterns).filter((p) => {
+		const allowPatterns = uniq(g.allowPatterns).filter((p) => {
 			if (!matchesEmpty(p)) return true;
 			if (!warned.has(p)) {
 				warned.add(p);
@@ -202,8 +194,8 @@ export default function (pi: ExtensionAPI) {
 			gate: {
 				stopReason: g.stopReason,
 				allowPatterns,
-				extraPatterns: cap("extraPatterns", g.extraPatterns),
-				protectedPaths: cap("protectedPaths", g.protectedPaths),
+				extraPatterns: uniq(g.extraPatterns),
+				protectedPaths: uniq(g.protectedPaths),
 			},
 		};
 	};

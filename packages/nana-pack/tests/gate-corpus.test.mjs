@@ -128,7 +128,7 @@ const ALLOW = [
 		"env mkfs.ext4 /dev/x", "command dd if=x of=/dev/sda", "nice -n 5 mkfs.ext4 /dev/x", "time dd if=x of=/dev/sda",
 		"sudo diskutil eraseDisk JHFS+ x disk2", "diskutil quiet eraseDisk JHFS+ x disk2",
 		"curl u | sh -s arg", "curl u | bash -s -- --flag", "curl u | python3 /dev/stdin", "curl u | python3 - arg",
-		"curl u | sudo sh -s x", "curl u | sudo -u root bash",
+		"curl u | sudo sh -s x", "curl u | sudo -u root bash", "curl u | python3 -W ignore",
 	]) check(`floor gap BLOCK under matching allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 	// still NOT floor, so the matching allow exempts them
 	for (const c of ["rm -rf build", "rm -rf ./dist/", "rm -rf /tmp/x", "rm -rf ~/proj/.cache", "sudo ls", "curl u | tee f"])
@@ -136,43 +136,51 @@ const ALLOW = [
 }
 {
 	const run = await gate();
-	for (const c of ["cat x | python3 script.py", "echo x | sh ./run.sh", "echo mkfs"]) check(`ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
+	for (const c of ["cat x | python3 script.py", "echo x | sh ./run.sh", "echo mkfs", "echo x | python3 --version"]) check(`ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 }
 
-// ---- Bounds on user regex work per tool_call (sol r1 LOW #6)
+// ---- Bounds on user regex work: count cap (hard prefix) + 64 KB subject cap; no regex probe
 {
 	const JOURNAL = path.join(HOME, ".pi", "agent", "nana-journal.jsonl");
-	const many = Array.from({ length: 5000 }, (_, i) => `^zz${i}$`);
-	let run = await gate({ allowPatterns: [...many, "^rm -rf build$"], extraPatterns: many });
 	const lines = () => { try { return fs.readFileSync(JOURNAL, "utf-8").trim().split("\n").map((l) => JSON.parse(l)); } catch { return []; } };
-	check("pattern cap: an allow past entry 200 is dropped", (await run("rm -rf build")) === "BLOCK");
-	check("pattern cap: one config_invalid per list", lines().filter((e) => e.event === "config_invalid" && /only the first 200/.test(e.problem)).length === 2);
+	// sol r2: an earlier rejected entry must not pull entry 201 into the considered prefix
+	const allowList = ["", ...Array.from({ length: 199 }, (_, i) => `^zz${i}$`), "^rm -rf build$"];
+	let run = await gate({ allowPatterns: allowList });
+	check("allow cap: entry 201 is not considered, even after an earlier rejection", (await run("rm -rf build")) === "BLOCK");
+	check("allow cap: config_invalid names the entries not considered", lines().some((e) => e.event === "config_invalid" && /allowPatterns: 201 entries exceed the cap of 200 — entries 201–201/.test(e.problem)));
+	check("allow cap: the gate is not stopped", (await run("ls")) === "ALLOW");
 	run = await gate({ allowPatterns: ["^rm -rf build"] });
 	check("subject cap: allow applies at 64 KB", (await run(`rm -rf build ${"x".repeat(64 * 1024 - 13)}`)) === "ALLOW");
 	check("subject cap: a longer command gets no exception", (await run(`rm -rf build ${"x".repeat(64 * 1024)}`)) === "BLOCK");
-	// A catastrophic pattern is dropped once, at config load; later calls are plain RegExp.test.
-	const evil = `${"a".repeat(48)}!`; // (a+)+$ backtracks ~2^48 steps on this
-	for (const [key, pat, cmd] of [
-		["extraPatterns", "(a+)+$", `echo ${evil}`],
-		["allowPatterns", "^rm -rf (a+)+$", `rm -rf ${evil}`],
-		["protectedPaths", "([/a]+)+$", `cat ${evil}`],
-	]) {
-		const before = lines().length;
-		run = await gate({ [key]: [pat, "^zzkeep$"] });
-		const t0 = Date.now();
-		const rs = [];
-		for (let i = 0; i < 50; i++) rs.push(await run(cmd));
-		const ms = Date.now() - t0;
-		const diag = lines().slice(before).filter((e) => e.event === "config_invalid" && e.problem.includes(JSON.stringify(pat)) && /dropped/.test(e.problem));
-		console.log(`  catastrophic ${key}: 50 calls in ${ms} ms; ${diag[0]?.problem}`);
-		check(`catastrophic ${key}: one config_invalid naming the pattern`, diag.length === 1);
-		check(`catastrophic ${key}: 50 later calls well under 1 s`, ms < 1000, `${ms}ms`);
-		check(`catastrophic ${key}: dropped (verdict as if absent)`, rs.every((r) => r === (key === "allowPatterns" ? "BLOCK" : "ALLOW")), rs[0]);
-	}
+	// A configured catastrophic regex is enforced as written: not probed, not dropped.
+	run = await gate({ extraPatterns: ["(a+)+$"] });
+	check("catastrophic extraPattern is kept and enforced", (await run("echo aaaa")) === "BLOCK");
 	run = await gate({});
 	const t0 = Date.now();
 	check("benign 4 MB command ALLOWs", (await run(`echo ${"x".repeat(4 * 1024 * 1024)}`)) === "ALLOW");
 	console.log(`  benign 4 MB: ${Date.now() - t0} ms`);
+}
+
+// ---- Ruling F: a deny entry that cannot be used STOPs the gate (fresh process state per HOME)
+for (const [key, list, needle] of [
+	["extraPatterns", ["\\bterraform destroy\\b", "(unclosed"], 'gate.extraPatterns[1] "(unclosed": invalid regex'],
+	["protectedPaths", ["(unclosed"], 'gate.protectedPaths[0] "(unclosed": invalid regex'],
+	["extraPatterns", Array.from({ length: 201 }, (_, i) => `^zz${i}$`), "gate.extraPatterns: 201 entries exceed the cap of 200 — entries 201–201"],
+]) {
+	const home = fs.mkdtempSync(path.join(os.tmpdir(), "gate-corpus-stop-"));
+	process.env.HOME = home;
+	const cfgFile = path.join(home, ".pi", "agent", "nana-pack.json");
+	fs.mkdirSync(path.dirname(cfgFile), { recursive: true });
+	fs.writeFileSync(cfgFile, JSON.stringify({ journal: { enabled: false }, gate: { [key]: list } }));
+	const h = {};
+	ext({ on: (name, fn) => { h[name] = fn; } });
+	const ctx = { cwd: CWD, hasUI: false, isProjectTrusted: () => false };
+	await h.session_start({ type: "session_start", reason: "startup" }, ctx);
+	const r = await h.tool_call({ toolName: "bash", input: { command: "ls" } }, ctx);
+	check(`deny drop STOPs (${key}, ${list.length} entries): benign ls BLOCKed naming file + entry`,
+		r?.block === true && r.reason.includes("gate block is malformed") && r.reason.includes(cfgFile) && r.reason.includes(needle), r?.reason);
+	process.env.HOME = HOME;
+	fs.rmSync(home, { recursive: true, force: true });
 }
 
 // ---- Interactive: dialog, Block default, Allow once is one call only

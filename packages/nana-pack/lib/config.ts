@@ -131,6 +131,13 @@ const pathOrNull: Leaf = (v, where, problems) => {
 	return { ok: false };
 };
 
+/** Per gate list, entries 1..MAX_GATE_PATTERNS as written are considered; the rest never are. */
+export const MAX_GATE_PATTERNS = 200;
+/** The only gate problem that is not fatal: allowPatterns past the cap (dropping an exception only tightens). */
+const ALLOW_CAP = /^gate\.allowPatterns: \d+ entries exceed the cap/;
+
+// Any other gate-list problem makes the gate block malformed (last valid policy, else STOP):
+// dropping an extraPatterns / protectedPaths entry would silently remove protection.
 const regexList =
 	(flags: string): Leaf =>
 	(v, where, problems) => {
@@ -138,14 +145,16 @@ const regexList =
 			problems.push(`${where}: expected an array of regex strings, got ${kind(v)} — using the default`);
 			return { ok: false };
 		}
+		if (v.length > MAX_GATE_PATTERNS)
+			problems.push(`${where}: ${v.length} entries exceed the cap of ${MAX_GATE_PATTERNS} — entries ${MAX_GATE_PATTERNS + 1}–${v.length} (from ${JSON.stringify(v[MAX_GATE_PATTERNS]).slice(0, 80)}) not considered`);
 		const out: string[] = [];
-		v.forEach((p, i) => {
+		v.slice(0, MAX_GATE_PATTERNS).forEach((p, i) => {
 			if (typeof p !== "string") return void problems.push(`${where}[${i}]: expected a regex string, got ${kind(p)} — dropped`);
 			try {
 				new RegExp(p, flags);
 				out.push(p);
 			} catch {
-				problems.push(`${where}[${i}]: invalid regex — dropped`);
+				problems.push(`${where}[${i}] ${JSON.stringify(p).slice(0, 80)}: invalid regex — dropped`);
 			}
 		});
 		return { ok: true, value: out };
@@ -238,7 +247,7 @@ function readConfigFile(p: string): FileRead {
 		return { present: true, blocks: {}, problems: [`invalid JSON (${String(e?.message ?? e).slice(0, 120)}) — file ignored`], gateValid: false };
 	}
 	const { blocks, problems } = normalizeRaw(raw);
-	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate"));
+	const gateValid = isObj(raw) && !problems.some((m) => m.startsWith("gate") && !ALLOW_CAP.test(m));
 	return { present: true, blocks, problems, gateValid };
 }
 
@@ -402,7 +411,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 				gate = { ...last, stopReason: null };
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this process"]);
 			} else {
-				const problem = user.problems.find((m) => m.startsWith("gate")) ?? user.problems[0] ?? "malformed";
+				const problem = user.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? user.problems[0] ?? "malformed";
 				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
 				notes.push(["config_gate_fallback", userFile, "gate policy invalid and no valid policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 			}
@@ -428,7 +437,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 						project = { ...project, gate: last };
 						notes.push(["config_gate_fallback", projectFile, "gate policy invalid — enforcing the last valid project policy loaded in this process"]);
 					} else {
-						const problem = pr.problems.find((m) => m.startsWith("gate")) ?? pr.problems[0] ?? "malformed";
+						const problem = pr.problems.find((m) => m.startsWith("gate") && !ALLOW_CAP.test(m)) ?? pr.problems[0] ?? "malformed";
 						projectStop = gateStopReason(projectFile, problem, "project");
 						notes.push(["config_gate_fallback", projectFile, "project gate policy invalid and no valid project policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 					}
@@ -467,12 +476,6 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			objective: merge("objective", u.objective),
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
-		for (const key of ["extraPatterns", "allowPatterns", "protectedPaths"] as const) {
-			const file = pg && key in pg ? projectFile : userFile;
-			cfg.gate[key] = dropSlow(cfg.gate[key], (p) =>
-				notes.push(["config_invalid", file, `gate.${key} ${JSON.stringify(p)} backtracks catastrophically (over ${PROBE_MS} ms on a probe of at most 40 chars) — dropped`]),
-			);
-		}
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
 		cfg = structuredClone(DEFAULTS);
@@ -480,53 +483,6 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;
-}
-
-/** Per gate list, only the first MAX_GATE_PATTERNS distinct entries are used (the gate caps). */
-export const MAX_GATE_PATTERNS = 200;
-const PROBE_MS = 10;
-const SLOW: Map<string, boolean> = ((globalThis as any)[Symbol.for("nana-pack.config.slowRegex")] ??= new Map());
-
-/**
- * Catastrophic-backtracking check, once per pattern per process: run the regex on growing
- * backtracking shapes (`a…a!`, `/a/a…!`, `a a …!`), bare and behind the pattern's literal
- * prefix, one char at a time up to 40. Exponential blow-up shows as one step past PROBE_MS
- * (each step multiplies the cost by the branching factor), so no probe can hang. Per-call
- * matching is then plain RegExp.test. Polynomial regexes (a*a*a*!) are not caught here.
- */
-function slowRegex(p: string): boolean {
-	let hit = SLOW.get(p);
-	if (hit !== undefined) return hit;
-	hit = false;
-	try {
-		const r = new RegExp(p, "i");
-		const lit = (/^\^?((?:[^\\^$.|?*+()[\]{}]|\\[^\w])*)/.exec(p)?.[1] ?? "").replace(/\\(.)/g, "$1");
-		out: for (let n = 1; n <= 40; n++)
-			for (const body of ["a".repeat(n) + "!", "/a".repeat(n) + "!", "a ".repeat(n) + "!"])
-				for (const s of [body, lit + body]) {
-					const t = performance.now();
-					r.test(s);
-					if (performance.now() - t > PROBE_MS) {
-						hit = true;
-						break out;
-					}
-				}
-	} catch {
-		// invalid regex: compileRegexes skips it
-	}
-	SLOW.set(p, hit);
-	return hit;
-}
-
-/** Drop catastrophic patterns from one gate list (probing only as many as the gate will use). */
-function dropSlow(list: unknown, onDrop: (p: string) => void): string[] {
-	if (!Array.isArray(list)) return list as string[];
-	const out: string[] = [];
-	for (const p of new Set(list)) {
-		if (out.length < MAX_GATE_PATTERNS && typeof p === "string" && slowRegex(p)) onDrop(p);
-		else out.push(p);
-	}
-	return out;
 }
 
 export function compileRegexes(patterns: string[]): RegExp[] {
