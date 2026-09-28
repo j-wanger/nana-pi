@@ -5,7 +5,8 @@
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"bin": {
-		"pi-review": "bin/pi-review.mjs"
+		"pi-review": "bin/pi-review.mjs",
+		"review-ledger": "bin/review-ledger.mjs"
 	},
 	"pi": {
 		"extensions": ["./extensions"],

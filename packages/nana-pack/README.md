@@ -69,18 +69,47 @@ the whole process group and retries with a fresh session. A review is "produced"
 child exits 0 *and* the output file is non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/
 `finding`); exit 0 means the review is in `--out`, exit 1 means every retry stalled.
 
-It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds per item. The
-round is read from the `--out` basename (`sol-r4.md`, `brief-round-4.md`), so a fourth round is
-refused with "land with residuals, subtract, or instrument/implement first" unless you state what
-changed: `--over-cap "<reason>"`. A file with no round in its name is never capped.
+It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds **per item**,
+counted from completed verdicts in a user-scope ledger — never from the output file name, and
+the same for every launcher.
+
+- **Identity** is `{item, revision, role}`. `--item <slug>` is **required**; a call without it is
+  refused loudly. Revision = the cwd's git HEAD short sha, or `--revision <id>`; role defaults to
+  `reviewer` (`--role sol|astra|scope|…`).
+- **A round** = per revision, the most verdicts any ONE role gave. A sol and an astra verdict (or
+  scope + adversarial + compat) on one revision are one round; the same role twice is two. A new
+  revision resets nothing.
+- **Only a completed verdict counts.** A stall, an infrastructure failure or a timeout returns the
+  slot. A worker launched through this wrapper passes `--worker` (logged, consumes nothing).
+- **Over the cap** → refused ("land with residuals, subtract, or instrument/implement first")
+  unless `--over-cap "<what changed>"`. The reason must be non-blank and not a flag
+  (`--over-cap --retries` is refused). Every override is written to the ledger with a timestamp.
+- **Ledger:** `~/.pi/agent/review-ledger.jsonl`, append-only, one JSON line per verdict / override
+  / worker launch: `{"v":1,"ts":…,"kind":"verdict","item":…,"revision":…,"role":…,"out":…,"launcher":…}`.
+  Past 1 MiB it is renamed to `.jsonl.1` (replacing the previous one); counts read both files.
+- **Atomic:** an in-flight review holds a reservation (`review-ledger.reservations/<id>.json`)
+  taken under an O_EXCL lock (`review-ledger.lock`), so two concurrent launchers cannot both take
+  the last slot. **Crash recovery:** a reservation whose launcher pid is dead (or older than 12 h)
+  is pruned at the next admission; a lock whose pid is dead (or older than 30 s) is stolen.
 
 ```bash
-pi-review --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
+pi-review --item <slug> --role sol --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
 ```
+
+**Any other launcher** (e.g. a hand-rolled `claude -p … > out.md`) prefixes the same check —
+`bin/review-ledger.mjs run` reserves a slot, runs the command with stdout → `--out`, and records the
+verdict only if it exits 0 with a review-shaped output:
+
+```bash
+node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out out.md -- claude -p --model <model> "$(cat brief.md)"
+```
+
+`review-ledger check --item <slug> [--role R] [--revision R]` answers "would the next review be
+admitted?" (exit 0/1) without reserving anything.
 
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
-Tests: `node packages/nana-pack/tests/review-round.test.mjs`.
+Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
 ## What you will see
 

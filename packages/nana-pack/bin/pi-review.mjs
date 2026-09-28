@@ -10,7 +10,8 @@
 // login problem — auth is checked by pi itself; this only manages the hang.
 //
 // Usage:
-//   node pi-review.mjs --out <file> [--stall-secs 75] [--retries 3] [--poll 15] [--over-cap <why>] -- <pi args...>
+//   node pi-review.mjs --out <file> --item <slug> [--role sol] [--revision <id>] [--worker]
+//                      [--stall-secs 75] [--retries 3] [--poll 15] [--over-cap <why>] -- <pi args...>
 // Exit: 0 = a review was produced (written to --out); 1 = all retries stalled / bad args.
 // The success heuristic: the child exited 0 AND --out is non-empty AND contains a review-shaped
 // token (VERDICT/LAND/FAIL/finding) — a stall produces an empty/partial file.
@@ -19,7 +20,7 @@ import { spawn, execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { REVIEW_ROUND_CAP, roundFromOutPath, roundCapVerdict } from './review-round.mjs';
+import { admit, complete, release, reviewShaped } from './review-round.mjs';
 
 // Wrapper options are parsed ONLY from the argv slice before `--` (sol review 2026-09-16, F):
 // a pi arg must never be mistaken for --out/--over-cap or any watchdog knob.
@@ -35,7 +36,7 @@ const stallSecs = Number(arg('--stall-secs', '75'));
 const retries = Number(arg('--retries', '3'));
 const pollSecs = Number(arg('--poll', '15'));
 if (!outPath || sep < 0 || sep === process.argv.length - 1) {
-  process.stderr.write('usage: pi-review.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n');
+  process.stderr.write('usage: pi-review.mjs --out <file> --item <slug> [--role R] [--revision R] [--worker] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n');
   process.exit(1);
 }
 // Guard the numeric knobs: a NaN/0 would make the poll loop never fire (or busy-spin),
@@ -46,23 +47,14 @@ if (![stallSecs, retries, pollSecs].every((n) => Number.isFinite(n) && n > 0)) {
 }
 const piArgs = process.argv.slice(sep + 1);
 
-// Round cap (OBJECTIVE.md rule, 2026-09-16) — see review-round.mjs. Only look BEFORE `--`
-// for the override so a pi arg can never satisfy or spoof it.
-const overCapIdx = ownArgs.indexOf('--over-cap');
-const overCap = overCapIdx >= 0 ? (ownArgs[overCapIdx + 1] ?? '') : '';
-const round = roundFromOutPath(outPath);
-const capVerdict = roundCapVerdict(round, overCap);
-if (capVerdict === 'refuse') {
-  process.stderr.write(
-    `pi-review: round ${round} exceeds the cap of ${REVIEW_ROUND_CAP} rounds per item (OBJECTIVE.md). ` +
-      `Land with residuals, subtract, or instrument/implement first. ` +
-      `To run anyway: --over-cap "<what changed since r${REVIEW_ROUND_CAP}>"\n`,
-  );
+// Round cap (OBJECTIVE.md rule; T2b per-item ledger) — see review-round.mjs. Only the argv BEFORE
+// `--` is consulted, so a pi arg can never satisfy or spoof --item/--over-cap.
+const adm = admit(ownArgs, { launcher: 'pi-review' });
+if (!adm.ok) {
+  process.stderr.write(`pi-review: ${adm.message}\n`);
   process.exit(1);
 }
-if (capVerdict === 'override') {
-  process.stderr.write(`pi-review: round ${round} over cap ${REVIEW_ROUND_CAP} — override: ${overCap.trim()}\n`);
-}
+process.stderr.write(`pi-review: ${adm.note}\n`);
 
 // CPU-time (seconds) of a pid via `ps -o time=` (mm:ss or hh:mm:ss). 0 if gone.
 function cpuSeconds(pid) {
@@ -77,10 +69,6 @@ function cpuSeconds(pid) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function reviewShaped(text) {
-  return /\b(VERDICT|LAND|FAIL|finding|BLOCKING)\b/i.test(text);
-}
 
 import { openSync, closeSync } from 'node:fs';
 
@@ -135,11 +123,13 @@ for (let a = 1; a <= retries; a++) {
   last = text;
   if (ok) {
     writeFileSync(outPath, text);
+    if (adm.id) complete(adm.res, outPath); // a completed verdict: the ONLY thing that consumes a round
     process.stderr.write(`[pi-review] SUCCESS on attempt ${a} (${text.length} chars → ${outPath})\n`);
     process.exit(0);
   }
   process.stderr.write(`[pi-review] attempt ${a} did not produce a review${a < retries ? ' — retrying' : ''}\n`);
 }
 if (last.trim()) writeFileSync(outPath, last); // preserve last partial for inspection
+if (adm.id) release(adm.id); // infrastructure failure is not a review: the slot is returned
 process.stderr.write(`[pi-review] FAILED after ${retries} attempts (endpoint likely in a bad stretch)\n`);
 process.exit(1);

@@ -64,8 +64,9 @@ else {
 	fs.writeFileSync(path.join(bin, "pi"), '#!/bin/sh\necho "VERDICT: stub NANA_HANDOFF=${NANA_HANDOFF:-unset}"\n', { mode: 0o755 });
 	const out = path.join(bin, "review.md");
 	const piReview = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));
-	const r = spawnSync(process.execPath, [piReview, "--out", out, "--poll", "1", "--stall-secs", "10", "--retries", "1", "--", "-p", "x"], {
-		env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+	const r = spawnSync(process.execPath, [piReview, "--item", "handoff-writer-role-test", "--out", out, "--poll", "1", "--stall-secs", "10", "--retries", "1", "--", "-p", "x"], {
+		// HOME → the temp dir: the T2b review ledger this call writes must never be the real one
+		env: { ...process.env, HOME: bin, USERPROFILE: bin, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
 		encoding: "utf-8",
 		timeout: 60_000,
 	});
