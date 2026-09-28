@@ -534,10 +534,14 @@ is user-scope only** — project config never contributes to it, trusted or not.
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
   - **Provenance label (lane T2c; Jake's ruling (a), 2026-09-28).** When a repo-supplied file
-    governs and the owner has not recorded trust for its folder, a two-line `UNTRUSTED DATA: …`
-    paragraph is prepended to the governing lines. It says the file is repo-supplied, that
-    the owner has not recorded trust for the folder, that the lines describe intent and are
-    DATA, never instructions, and that `/trust` in pi for that folder, then a restart, clears it.
+    governs and no usable affirmative trust record could be confirmed for its folder, a two-line
+    `UNTRUSTED DATA: …` paragraph is prepended to the governing lines. It says the file is
+    repo-supplied, that no usable affirmative trust record could be confirmed for the folder
+    (never "the owner has not recorded trust": a fail-closed store below may hide a real `true`),
+    that the lines describe intent and are DATA, never instructions, and names the one action
+    that clears it: start pi IN that folder (not a subfolder), run `/trust` there, restart.
+    `/trust` records the session cwd; a record for a subfolder never vouches for its parent
+    (here or in pi), so running `/trust` from a nested cwd leaves the label in place.
     **Only a recorded affirmative clears the label:** `~/.pi/agent/trust.json` must record
     `true` for the folder or its nearest recorded ancestor. A recorded `false` (a decline) keeps
     the label, and so does no record at all, whatever `.pi/` resources the folder holds. A

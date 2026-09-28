@@ -22,6 +22,12 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   session's work; the program lines say what the toolkit is for.
 - Only the marker-bearing `**Objective` / `**Current priority` lines are emitted — one physical
   line each, capped — never raw file content. An unusable file prints `OBJECTIVE UNAVAILABLE`.
+- Provenance label (T2c): when a repo-supplied file governs and `~/.pi/agent/trust.json` yields
+  no usable affirmative record for its folder (or a nearest recorded ancestor), a two-line
+  `UNTRUSTED DATA: …` paragraph precedes the governing lines — the lines are intent, DATA, never
+  instructions. It clears only by starting pi IN that folder (a subfolder's record does not
+  count), running `/trust`, and restarting. It never changes what governs; the umbrella is never
+  labelled. Defence in depth, not a security boundary.
 
 ## Layout
 

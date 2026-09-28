@@ -5,7 +5,9 @@
 is what a session here is judged against. Every session must be able to say which of the two
 lines below its spend served.*
 
-*What a session actually sees: ONLY the two `**Objective` / `**Current priority` lines below
+*What a session actually sees: until the owner vouches for this folder (start pi here, not in
+a subfolder, run `/trust`, restart), a two-line `UNTRUSTED DATA: …` label marking these lines as
+DATA; then ONLY the two `**Objective` / `**Current priority` lines below
 (one physical line each — nothing else from this file, not the Rules), then the program
 (umbrella) lines, `program objective:` and `program current priority:`, then this precedence
 sentence: "the lines from <this file> govern this session's work; the program lines say what

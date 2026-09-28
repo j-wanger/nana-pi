@@ -306,7 +306,7 @@ export function checkProject(dir, layout = {}) {
 	}
 
 	checks.push(
-		seed("OBJECTIVE.md", "the two lines the session-start hook prints"),
+		seed("OBJECTIVE.md", "the two lines the session-start hook prints (labelled UNTRUSTED DATA until /trust from this folder)"),
 		seed("HANDOFF.md", "the frontier"),
 		seed("docs/sessions/README.md", "the narrative's rules"),
 		seed(`docs/sessions/${month}.md`, "this month's log"),
