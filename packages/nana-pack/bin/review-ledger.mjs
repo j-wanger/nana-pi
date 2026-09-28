@@ -10,9 +10,10 @@
 //       would a review of this tree's revision be admitted? exit 0 yes / 1 no. Takes the lock,
 //       writes nothing (no reservation, no pruning).
 
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
-import { admit, complete, project, release, reviewShaped } from './review-round.mjs';
+import { admit, complete, project, release, startHeartbeat } from './review-round.mjs';
+import { reviewShaped } from './review-shape.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const sep = rest.indexOf('--');
@@ -34,7 +35,16 @@ const adm = admit(own, { launcher: 'review-ledger run' });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
 const out = adm.res.out;
-const r = spawnSync(child[0], child.slice(1), { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+// async spawn so the heartbeat keeps renewing the reservation while the review runs (sol r2 #15)
+const stopHeartbeat = startHeartbeat(adm.res);
+const r = await new Promise((done) => {
+  const chunks = [];
+  const k = spawn(child[0], child.slice(1), { stdio: ['inherit', 'pipe', 'inherit'] });
+  k.stdout.on('data', (c) => chunks.push(c));
+  k.on('error', (error) => done({ status: null, error, stdout: Buffer.concat(chunks).toString('utf8') }));
+  k.on('close', (status, signal) => done({ status, signal, stdout: Buffer.concat(chunks).toString('utf8') }));
+});
+stopHeartbeat();
 const text = r.stdout ?? '';
 try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write ${out}: ${e.message} — reservation returned`); }
 if (r.status === 0 && text.trim() && reviewShaped(text)) {

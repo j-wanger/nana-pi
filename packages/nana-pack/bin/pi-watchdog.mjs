@@ -8,19 +8,21 @@
 // call accumulates CPU and completes; a bad stretch fails fast + retries.
 // (FRICTIONS: pi-reviewer-watchdog, 2026-07-17.) The endpoint stall is intermittent, not a
 // login problem — auth is checked by pi itself; this only manages the hang.
-// The success heuristic: the child exited 0 AND its output is non-empty AND contains a
-// review-shaped token (VERDICT/LAND/FAIL/finding) — a stall produces an empty/partial file.
+// Success: the child exited 0 AND its output is non-empty AND the caller's `accept(text)` holds
+// (T2b fix r3, sol r2 #13: the predicate is a PARAMETER — pi-review passes reviewShaped; a worker
+// passes none). This module imports no ledger or review code.
+// --retries N = re-attempts AFTER the first (N+1 attempts total); the default is the caller's
+// (pi-review 2 → 3 attempts, unchanged; pi-worker 0 — a retried worker repeats its mutations).
 
 import { spawn, execSync } from 'node:child_process';
 import { readFileSync, existsSync, mkdtempSync, openSync, closeSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { reviewShaped } from './review-round.mjs';
 
 /** Parse the launcher's argv. Wrapper options are read ONLY from the slice before `--` (sol
  *  review 2026-09-16, F): a pi arg must never be mistaken for --out or any watchdog knob.
  *  Returns {error} or {ownArgs, outPath, stallSecs, retries, pollSecs, piArgs}. */
-export function parseWatchdogArgv(argv) {
+export function parseWatchdogArgv(argv, { defaultRetries = 2 } = {}) {
   const sep = argv.indexOf('--');
   const ownArgs = sep >= 0 ? argv.slice(0, sep) : argv;
   const arg = (name, def) => {
@@ -29,14 +31,15 @@ export function parseWatchdogArgv(argv) {
   };
   const outPath = arg('--out', null);
   const stallSecs = Number(arg('--stall-secs', '75'));
-  const retries = Number(arg('--retries', '3'));
+  const retries = Number(arg('--retries', String(defaultRetries)));
   const pollSecs = Number(arg('--poll', '15'));
   if (!outPath || sep < 0 || sep === argv.length - 1) return { error: 'usage' };
   // Guard the numeric knobs: a NaN/0 would make the poll loop never fire (or busy-spin),
   // which would hang the watchdog ITSELF — the exact failure it exists to prevent.
-  if (![stallSecs, retries, pollSecs].every((n) => Number.isFinite(n) && n > 0)) {
-    return { error: '--stall-secs, --retries, --poll must be positive numbers' };
+  if (![stallSecs, pollSecs].every((n) => Number.isFinite(n) && n > 0)) {
+    return { error: '--stall-secs and --poll must be positive numbers' };
   }
+  if (!Number.isInteger(retries) || retries < 0) return { error: '--retries must be a whole number >= 0 (re-attempts after the first)' };
   return { ownArgs, outPath, stallSecs, retries, pollSecs, piArgs: argv.slice(sep + 1) };
 }
 
@@ -62,7 +65,9 @@ function killGroup(child) {
   try { child.kill('SIGKILL'); } catch { /* already dead */ }
 }
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs }, attempt) {
+const nonEmpty = () => true;
+
+async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt) {
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
@@ -95,18 +100,20 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs }, attempt) {
   // Child exited on its own — wait for close, read output.
   await new Promise((r) => (child.exitCode !== null ? r() : child.on('close', r)));
   const text = readOut();
-  return { ok: child.exitCode === 0 && text.trim() !== '' && reviewShaped(text), text };
+  return { ok: child.exitCode === 0 && text.trim() !== '' && accept(text), text };
 }
 
-/** Run `pi <piArgs>` with retries. Returns {ok, text, attempt} (text = last output). */
+/** Run `pi <piArgs>`: one attempt plus opts.retries re-attempts. opts.accept(text) = the caller's
+ *  success predicate beyond exit 0 + non-empty output. Returns {ok, text, attempt} (text = last). */
 export async function runWatchdog(tag, opts) {
+  const attempts = opts.retries + 1;
   let last = '';
-  for (let a = 1; a <= opts.retries; a++) {
-    process.stderr.write(`[${tag}] attempt ${a}/${opts.retries}\n`);
+  for (let a = 1; a <= attempts; a++) {
+    process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
     const { ok, text } = await runOnce(tag, opts, a);
     last = text;
     if (ok) return { ok: true, text, attempt: a };
-    process.stderr.write(`[${tag}] attempt ${a} did not produce a review${a < opts.retries ? ' — retrying' : ''}\n`);
+    process.stderr.write(`[${tag}] attempt ${a} did not succeed${a < attempts ? ' — retrying' : ''}\n`);
   }
-  return { ok: false, text: last, attempt: opts.retries };
+  return { ok: false, text: last, attempt: attempts };
 }

@@ -65,9 +65,11 @@ added to a trusted project's `.pi/skills` after startup goes from absent to pres
 An independent review is run by a `pi` (Codex) call, and that endpoint intermittently **stalls** —
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
-the whole process group and retries with a fresh session. A review is "produced" only when the
-child exits 0 *and* the output file is non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/
-`finding`); exit 0 means the review is in `--out`, exit 1 means every retry stalled.
+the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
+first; default 2). A review is "produced" only when the child exits 0 *and* the output file is
+non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/`finding`/`BLOCKING` — the predicate lives
+in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
+exit 0 means the review is in `--out`, exit 1 means every attempt failed.
 
 It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds **per item**,
 counted in a user-scope ledger — never from the output file name, and the same for every launcher.
@@ -84,15 +86,27 @@ counted in a user-scope ledger — never from the output file name, and the same
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
   commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
-  not by this cap). A **dirty tree** is its own state: its revision is `<HEAD sha>+diff:<first 16
-  hex of sha256(git diff HEAD)>` (tracked changes only — an untracked scratch file changes nothing),
-  so fix-review-fix-review without committing still counts one round per distinct diff; reverting
-  to an already-reviewed state earns none. Ledger lines carry both parts as `head` and `diff`
-  (`diff: null` when clean). `--revision` is only the fallback when there is no HEAD (outside git); inside
+  not by this cap). A **dirty tree** is its own state: when the working tree's *content* differs
+  from HEAD's, its revision is `<HEAD sha>+snap:<full sha256 of a content snapshot>`. The snapshot
+  covers every path in HEAD's tree, the index, and the untracked files that `.gitignore` does not
+  ignore; per path present on disk, in byte order: file mode as on disk (644/755 by the owner-x
+  bit, symlink, submodule), then the sha256 of the **raw bytes** (a symlink's target; a
+  submodule's own revision, recursively). It never renders a diff, so diff/color/prefix config,
+  EOL normalization, clean filters and `core.fileMode` cannot merge two states, and staging does
+  not change it: staged and unstaged of one content are **one** revision (so `git add` alone earns
+  no round), while a new untracked, non-ignored file is a new state. The review's own `--out`
+  file is left out of the snapshot. Reverting to an already-reviewed state earns no round. Ledger
+  lines carry both parts as `head` and `snapshot` (`snapshot: null` when clean). **Any git
+  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only the fallback when there is no HEAD (outside git); inside
   git it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
 - **Only a completed verdict earns the round.** A stall, an infrastructure failure or a timeout
-  returns the reservation. A completion must own a live reservation: an expired (12 h), pruned or
-  replaced reservation records nothing.
+  returns the reservation. A completion must own a live reservation: an expired, pruned or
+  replaced reservation records nothing. **Completion re-derives the revision:** if the tree changed
+  during the review, the verdict is *not* recorded as valid (`verdict-unverified` in the audit,
+  exit 1), yet the round **is** consumed for the admitted revision (tally line `unverified: true`,
+  `completedAs: <new revision>`). A tree edited mid-review was read in no single state, so no state
+  can own the verdict; counting nothing instead would make every review free for anyone editing
+  during it.
 - **Over the cap** → refused ("land with residuals, subtract, or instrument/implement first")
   unless `--over-cap "<what changed>"`. The reason must be non-blank and not a flag
   (`--over-cap --retries` is refused). Every override is written to the ledger with a timestamp.
@@ -107,8 +121,10 @@ counted in a user-scope ledger — never from the output file name, and the same
     runs, and files are opened `O_NOFOLLOW`.
 - **Atomic:** an in-flight review holds a reservation (`review-ledger.reservations/<id>.json`)
   taken under an O_EXCL lock (`review-ledger.lock`), so two concurrent launchers cannot both take
-  the last round. **Crash recovery:** a reservation whose launcher pid is dead, older than 12 h or
-  dated in the future is pruned at the next admission; a lock is taken over only when its holder
+  the last round. The launcher **renews** its reservation (a heartbeat every 2 min); a live,
+  renewing review never expires, however long it runs. **Crash recovery:** a reservation whose
+  launcher pid is dead, not renewed for 10 min, or dated in the future is pruned at the next
+  admission; a lock is taken over only when its holder
   pid is dead (never from a live holder). A lock path that is not a regular file, or an
   unwritable ledger directory, fails at once with a message.
 
@@ -133,10 +149,16 @@ A **worker** (a build agent, not a review) runs under the same watchdog through 
 which never imports the ledger: it records nothing and can admit no verdict. `pi-review` has no
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
 was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
-`pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`).
+`pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`). A worker
+succeeds when `pi` exits 0 with non-empty output; no review shape is required.
+
+**A worker is not retried by default** (`--retries 0`). **Retrying a worker can repeat file
+mutations**: a stalled or failed attempt may already have edited, written or run commands, and a
+re-attempt does it all again on top. Opt in with `--retries N` only for an idempotent task; the
+launcher prints a warning when you do.
 
 ```bash
-pi-worker --out wp-a-out.md --stall-secs 300 --retries 2 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
+pi-worker --out wp-a-out.md --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
 ### Trust model

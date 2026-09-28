@@ -17,13 +17,19 @@
 //    COMMON dir, so every worktree of one repository shares an item and the same slug in an
 //    unrelated repository does not. Outside git, repo = "path:" + realpath(cwd).
 //  - A ROUND is a distinct REVISION reviewed for the item. Revision = the reviewed tree's git HEAD
-//    (full sha); --revision is only the fallback when HEAD cannot be resolved (and inside git it
-//    must name that commit). A DIRTY tree's revision is "<sha>+diff:<16 hex of sha256(git diff HEAD)>"
-//    (tracked changes only), so fix-review-fix-review without committing still counts each state.
-//    Any number of reviews — any roles — on one revision are ONE round.
-//    --role is audit metadata only.
+//    (full sha) when the working tree's CONTENT equals HEAD's; otherwise
+//    "<sha>+snap:<full sha256 of the working-state snapshot>" (T2b fix r3, sol r2 #11 — see
+//    workingSnapshot: raw file content + mode + path of every tracked and non-ignored untracked
+//    file, independent of the index and of diff rendering). --revision is only the fallback when
+//    HEAD cannot be resolved (and inside git it must name that commit). Any number of reviews —
+//    any roles — on one revision are ONE round. --role is audit metadata only.
+//  - every git failure REFUSES admission with the git error (sol r2 #10) — never "clean".
 //  - only a completed verdict earns the round; a stall / failure returns the reservation.
 //  - complete() must own a live reservation: an expired, pruned or replaced one records nothing.
+//    A reservation lives while its owner is alive AND renews it (heartbeat, sol r2 #15).
+//  - complete() re-derives the revision; if the tree changed during the review, the round is still
+//    CONSUMED for the admitted revision, but the verdict is recorded as unverified and refused
+//    (sol r2 #12; see complete()).
 //  - a malformed tally line, a non-regular ledger path, or a lock path that is not a regular file
 //    REFUSES admission with a diagnostic — never a silent skip, never a stack.
 // This is a self-governance device against the fix-review treadmill, not a security control
@@ -31,12 +37,13 @@
 
 import {
   openSync, closeSync, writeSync, readFileSync, fstatSync, lstatSync, mkdirSync, readdirSync,
-  unlinkSync, renameSync, realpathSync, constants as C,
+  unlinkSync, renameSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve, basename } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { join, resolve, basename, relative, isAbsolute, sep } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
+export { reviewShaped } from './review-shape.mjs';
 
 export const REVIEW_ROUND_CAP = 3;
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
@@ -44,7 +51,13 @@ export const SLUG_MAX = 128; // characters, after canonicalization
 const REVISION_MAX = 128;
 const LOCK_WAIT_MS = 15_000;
 const LOCK_ORPHAN_MS = 5_000; // a lock file with no readable pid, older than this, is a crashed create
-const RESERVATION_TTL_MS = 12 * 3600_000;
+// A reservation is stale when its owner stops renewing it for this long (heartbeat every 1/5 of it).
+// There is NO absolute lifetime: a live owner that keeps renewing never expires (sol r2 #15).
+const RES_STALE_DEFAULT_MS = 10 * 60_000;
+export function reservationStaleMs() {
+  const v = Number(process.env.NANA_REVIEW_RES_STALE_MS);
+  return Number.isFinite(v) && v >= 500 ? v : RES_STALE_DEFAULT_MS;
+}
 const CLOCK_SKEW_MS = 60_000; // a reservation dated further in the future than this is stale
 
 export function ledgerPaths(home = homedir()) {
@@ -57,11 +70,6 @@ export function ledgerPaths(home = homedir()) {
     lock: join(dir, 'review-ledger.lock'),
     resDir: join(dir, 'review-ledger.reservations'),
   };
-}
-
-/** The success heuristic shared by every launcher: a review-shaped token in the output. */
-export function reviewShaped(text) {
-  return /\b(VERDICT|LAND|FAIL|finding|BLOCKING)\b/i.test(text);
 }
 
 /** Canonical item slug: NFKC, trim, casefold, internal whitespace → one space. Throws on a path
@@ -105,51 +113,123 @@ export function optValue(args, name) {
   return v.trim();
 }
 
-const git = (cwd, args) => {
-  try {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
-  } catch {
-    return null;
+/** Run git; THROWS with git's own error on any failure (sol r2 #10: never read a failure as "clean").
+ *  Pinned config so nothing a user sets changes what is enumerated. */
+function gitOut(cwd, args, { okStatus = [0] } = {}) {
+  const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', ...args],
+    { cwd, encoding: 'utf8', maxBuffer: 1 << 30 });
+  if (r.error) throw new Error(`git ${args[0]} could not run in ${cwd}: ${r.error.message} — admission refused`);
+  if (!okStatus.includes(r.status)) {
+    throw new Error(`git ${args.join(' ')} failed in ${cwd} (exit ${r.status ?? r.signal}): ` +
+      `${(r.stderr || '').trim().split('\n').slice(0, 3).join(' | ') || 'no message'} — admission refused`);
   }
-};
-
-/** Repository identity + HEAD of the reviewed tree. repo = realpath of the git common dir (shared
- *  by all worktrees of one repository), or "path:<realpath cwd>" outside git. */
-export function treeScope(cwd = process.cwd()) {
-  const common = git(cwd, ['rev-parse', '--git-common-dir']);
-  if (!common) return { repo: `path:${realpathSync(cwd)}`, inGit: false, head: null };
-  return {
-    repo: `git:${realpathSync(resolve(cwd, common))}`,
-    inGit: true,
-    head: git(cwd, ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']),
-    diff: diffDigest(cwd),
-  };
+  return r;
 }
 
-/** A dirty tree is its own state of the work: a short digest of `git diff HEAD` (tracked changes
- *  only — an untracked file does not change it), or null when the tree is clean. */
-function diffDigest(cwd) {
-  let d;
-  try {
-    d = execFileSync('git', ['diff', 'HEAD', '--binary', '--no-color', '--no-ext-diff', '--no-textconv'],
-      { cwd, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 30 });
-  } catch { return null; } // no HEAD yet: nothing to diff against
-  return d.length ? createHash('sha256').update(d).digest('hex').slice(0, 16) : null;
+/** Repository identity + the reviewed tree's revision parts. repo = realpath of the git common dir
+ *  (shared by all worktrees of one repository), or "path:<realpath cwd>" outside git. `exclude` =
+ *  absolute paths left out of the snapshot (the review's own --out file). Throws on a git failure
+ *  other than "not a git repository". */
+export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
+  const r = gitOut(cwd, ['rev-parse', '--git-common-dir', '--show-toplevel'], { okStatus: [0, 128] });
+  if (r.status !== 0) {
+    if (/not a git repository/i.test(r.stderr)) return { repo: `path:${realpathSync(cwd)}`, inGit: false, head: null, snapshot: null };
+    throw new Error(`git rev-parse failed in ${cwd}: ${r.stderr.trim().split('\n')[0]} — admission refused`);
+  }
+  const [common, top] = r.stdout.trim().split('\n');
+  const root = realpathSync(top);
+  const { head, snapshot } = workingState(root, exclude);
+  return { repo: `git:${realpathSync(resolve(cwd, common))}`, inGit: true, root, head, snapshot };
 }
-const withDiff = (sha, scope) => (scope.diff ? `${sha}+diff:${scope.diff}` : sha);
+
+function headOf(root) {
+  const r = gitOut(root, ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}'], { okStatus: [0, 1] });
+  if (r.status === 0) return r.stdout.trim();
+  if (r.stderr.trim()) throw new Error(`git rev-parse HEAD failed in ${root}: ${r.stderr.trim()} — admission refused`);
+  return null; // unborn branch: no HEAD
+}
+
+const nulList = (t) => t.split('\0').filter(Boolean);
+const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
+const sha256 = (...parts) => { const h = createHash('sha256'); for (const x of parts) h.update(x); return h.digest('hex'); };
+
+/** {head, snapshot}: snapshot = null when the working tree's content equals HEAD's tree, else the
+ *  FULL sha256 of the working-state snapshot:
+ *    files  = paths in HEAD's tree ∪ the index ∪ untracked files not ignored (--exclude-standard)
+ *             — so staging/unstaging never moves a path in or out; an ignored file never counts
+ *    record = "<mode> <sha256(raw bytes)>\t<path>\0" per path present on disk, in byte order of path;
+ *             mode from the filesystem (100644 / 100755 by the owner-x bit, 120000 symlink →
+ *             sha256 of its target, 160000 submodule → the submodule's own revision, recursively;
+ *             an uninitialized submodule → its recorded commit). A missing path has no record.
+ *  Raw bytes: no clean/smudge filter, no EOL normalization, no core.fileMode, no diff config.
+ *  "Content equals HEAD" compares the same records by git object id against `git ls-tree -r HEAD`. */
+export function workingState(root, exclude = []) {
+  const head = headOf(root);
+  if (!head) return { head: null, snapshot: null };
+  const fmt = gitOut(root, ['rev-parse', '--show-object-format']).stdout.trim() || 'sha1';
+  const blobId = (buf) => createHash(fmt === 'sha256' ? 'sha256' : 'sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
+  const inHead = new Map();
+  for (const rec of nulList(gitOut(root, ['ls-tree', '-r', '-z', '--full-tree', head]).stdout)) {
+    const m = /^(\d+) \w+ ([0-9a-f]+)\t([\s\S]+)$/.exec(rec);
+    if (!m) throw new Error(`git ls-tree: unparseable entry ${JSON.stringify(rec.slice(0, 60))} — admission refused`);
+    inHead.set(m[3], `${m[1]} ${m[2]}`);
+  }
+  const gitlink = new Map();
+  const paths = new Set(inHead.keys());
+  for (const rec of nulList(gitOut(root, ['ls-files', '-z', '--stage']).stdout)) {
+    const m = /^(\d+) ([0-9a-f]+) \d\t([\s\S]+)$/.exec(rec);
+    if (!m) throw new Error(`git ls-files: unparseable entry ${JSON.stringify(rec.slice(0, 60))} — admission refused`);
+    paths.add(m[3]);
+    if (m[1] === '160000') gitlink.set(m[3], m[2]);
+  }
+  for (const p of nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)) paths.add(p.replace(/\/$/, ''));
+  for (const p of inHead.keys()) if (inHead.get(p).startsWith('160000 ')) gitlink.set(p, gitlink.get(p) ?? inHead.get(p).split(' ')[1]);
+  const skip = new Set(exclude.map((x) => relative(root, x)).filter((x) => x && !x.startsWith('..') && !isAbsolute(x)).map((x) => x.split(sep).join('/')));
+
+  const records = [], ids = [];
+  for (const p of [...paths].sort(byteOrder)) {
+    if (skip.has(p)) continue;
+    if (p.includes('�')) throw new Error(`path ${JSON.stringify(p)} is not valid UTF-8 — the snapshot cannot read it; admission refused`);
+    const full = join(root, p);
+    let st;
+    try { st = lstatSync(full); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') continue; throw e; }
+    let mode, content, id;
+    if (st.isSymbolicLink()) {
+      const t = readlinkSync(full, { encoding: 'buffer' });
+      mode = '120000'; content = sha256(t); id = blobId(t);
+    } else if (st.isFile()) {
+      const b = readFileSync(full);
+      mode = st.mode & 0o100 ? '100755' : '100644'; content = sha256(b); id = blobId(b);
+    } else if (st.isDirectory()) {
+      mode = '160000';
+      if (existsSync(join(full, '.git'))) {
+        const sub = workingState(realpathSync(full));
+        content = id = sub.snapshot ? `${sub.head ?? 'unborn'}+snap:${sub.snapshot}` : (sub.head ?? 'unborn');
+      } else if (gitlink.has(p)) content = id = gitlink.get(p); // uninitialized submodule: its recorded commit
+      else { mode = '040000'; content = id = 'dir'; }
+    } else throw new Error(`${full} is not a file, symlink or directory — the snapshot refuses it; admission refused`);
+    records.push(`${mode} ${content}\t${p}\0`);
+    ids.push(`${mode} ${id}\t${p}`);
+  }
+  const headIds = [...inHead.keys()].sort(byteOrder).map((p) => `${inHead.get(p)}\t${p}`);
+  const clean = ids.length === headIds.length && ids.every((x, i) => x === headIds[i]);
+  return { head, snapshot: clean ? null : sha256(records.join('')) };
+}
+const withSnap = (sha, scope) => (scope.snapshot ? `${sha}+snap:${scope.snapshot}` : sha);
 
 /** The revision a review is counted against. Throws with the reason when it cannot be derived. */
 export function resolveRevision(explicit, scope, cwd = process.cwd()) {
   if (scope.inGit && explicit) {
-    const sha = git(cwd, ['rev-parse', '--verify', '--quiet', `${explicit}^{commit}`]);
+    const q = gitOut(cwd, ['rev-parse', '--verify', '--quiet', `${explicit}^{commit}`], { okStatus: [0, 1] });
+    const sha = q.status === 0 ? q.stdout.trim() : null;
     if (!sha) throw new Error(`--revision ${JSON.stringify(explicit)} is not a commit in ${cwd}`);
     if (scope.head && sha !== scope.head) {
       throw new Error(`--revision ${explicit} is ${sha.slice(0, 12)}, but the reviewed tree's HEAD is ${scope.head.slice(0, 12)}: ` +
         'the revision is derived from HEAD — run the review from a checkout of that commit');
     }
-    return withDiff(sha, scope);
+    return withSnap(sha, scope);
   }
-  if (scope.head) return withDiff(scope.head, scope);
+  if (scope.head) return withSnap(scope.head, scope);
   if (!explicit) throw new Error(`no git HEAD at ${cwd}; pass --revision <id>`);
   const r = explicit.trim();
   if (!r || r.length > REVISION_MAX || /[\s\p{Cc}]/u.test(r)) throw new Error(`--revision ${JSON.stringify(r.slice(0, 40))}: 1-${REVISION_MAX} characters, no whitespace`);
@@ -247,9 +327,10 @@ function readTally(p) {
   });
 }
 
+/** Stale = owner dead, or not renewed within reservationStaleMs(), or dated in the future. */
 function reservationStale(r, st) {
   const age = Date.now() - st.mtimeMs;
-  return !r || !alive(r.pid) || age > RESERVATION_TTL_MS || age < -CLOCK_SKEW_MS;
+  return !r || !alive(r.pid) || age > reservationStaleMs() || age < -CLOCK_SKEW_MS;
 }
 function readReservation(f) {
   const st = lstatOrNull(f);
@@ -305,14 +386,18 @@ function parseReview(args, cwd) {
   const out = optValue(args, '--out');
   if (rawItem === undefined) return { missing: true };
   const item = canonicalItem(rawItem);
-  const scope = treeScope(cwd);
-  const revision = resolveRevision(revArg, scope, cwd);
-  return { key: { repo: scope.repo, item }, revision, role, overCap, out };
+  const exclude = out ? [resolve(cwd, out)] : []; // the review's own output is not the reviewed work
+  const revision = deriveRevision(revArg, cwd, exclude);
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: resolve(cwd), revArg, exclude };
+}
+function deriveRevision(revArg, cwd, exclude) {
+  const scope = treeScope(cwd, { exclude });
+  return { repo: scope.repo, id: resolveRevision(revArg, scope, cwd) };
 }
 /** The ledger record's view of a revision: both parts, so an audit sees which state was reviewed. */
 export function revisionParts(revision) {
-  const [head, diff] = String(revision).split('+diff:');
-  return { head, diff: diff ?? null };
+  const [head, snapshot] = String(revision).split('+snap:');
+  return { head, snapshot: snapshot ?? null };
 }
 
 const failMessage = (e) => `review ledger: ${e.message}` +
@@ -340,7 +425,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       if (override) appendChecked(p.audit, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
-      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override };
+      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude };
       const fd = openSync(join(p.resDir, `${id}.json`), C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
       const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +
@@ -369,11 +454,19 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
   }
 }
 
-/** A completed verdict. Verifies and consumes the caller's OWN live reservation under the lock;
- *  records the round in the tally (once per revision) and the verdict in the audit log.
+/** A completed verdict. Verifies and consumes the caller's OWN live reservation under the lock,
+ *  and RE-DERIVES the reviewed tree's revision (sol r2 #12).
+ *   - unchanged → the round is recorded in the tally (once per revision), the verdict in the audit.
+ *   - changed (or no longer derivable) during the review → the round IS consumed for the admitted
+ *     revision (tally line marked unverified), the verdict is audited as "verdict-unverified", and
+ *     this returns ok:false. Chosen over recording against "the state actually reviewed": a tree
+ *     edited mid-review was read in no single state, so no state can honestly own the verdict; and
+ *     over counting nothing: then editing during a review would make every review free.
  *  Never throws: {ok:true, round} | {ok:false, message}. `r` = admit(...).res */
 export function complete(r, out, { home = homedir() } = {}) {
   const p = ledgerPaths(home);
+  let now = null, why = '';
+  try { now = deriveRevision(r?.revArg, r?.cwd, r?.exclude ?? []).id; } catch (e) { why = e.message; }
   try {
     return withLock(p, () => {
       const f = join(p.resDir, `${r?.id}.json`);
@@ -383,23 +476,51 @@ export function complete(r, out, { home = homedir() } = {}) {
         throw new Error(`reservation ${r?.id} is gone, expired or not this launcher's — this verdict is NOT recorded ` +
           `(output kept at ${out ?? r?.out}). Re-run the review to have it counted`);
       }
+      const stable = now === held.revision;
       // audit rotation first (only the verbose log rotates), so a refusal there writes nothing
       const st2 = lstatOrNull(p.audit);
       refuseNonRegular(p.audit, st2);
       if (st2 && st2.size > LEDGER_MAX_BYTES) { refuseNonRegular(p.rotated); renameSync(p.audit, p.rotated); }
       const rounds = readTally(p).filter((x) => sameItem(x, held));
       let idx = rounds.findIndex((x) => x.revision === held.revision);
+      const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
       if (idx < 0) {
-        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override });
+        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, ...drift });
         idx = rounds.length;
       }
-      appendChecked(p.audit, { kind: 'verdict', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override });
+      appendChecked(p.audit, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, ...drift });
       unlinkSync(f);
+      if (!stable) {
+        return { ok: false, round: idx + 1, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
+          `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${idx + 1} ` +
+          `was consumed for the admitted revision. Re-review the current state (output kept at ${out ?? held.out})` };
+      }
       return { ok: true, round: idx + 1 };
     });
   } catch (e) {
     return { ok: false, message: failMessage(e) };
   }
+}
+
+/** Heartbeat: renew the caller's reservation (mtime := now). false when it is gone or not ours. */
+export function renew(r, { home = homedir() } = {}) {
+  if (!/^[\w-]+$/.test(String(r?.id))) return false;
+  let fd;
+  try {
+    fd = openSync(join(ledgerPaths(home).resDir, `${r.id}.json`), C.O_RDWR | C.O_NOFOLLOW);
+    if (!fstatSync(fd).isFile()) return false;
+    const held = JSON.parse(readFileSync(fd, 'utf8'));
+    if (held.id !== r.id || held.pid !== r.pid) return false;
+    const t = new Date();
+    futimesSync(fd, t, t);
+    return true;
+  } catch { return false; } finally { if (fd !== undefined) closeSync(fd); }
+}
+/** Renew `r` every 1/5 of the stale window until the returned stop() is called. Unref'd. */
+export function startHeartbeat(r, opts = {}) {
+  const t = setInterval(() => renew(r, opts), Math.max(100, Math.floor(reservationStaleMs() / 5)));
+  t.unref();
+  return () => clearInterval(t);
 }
 
 /** No verdict (stall, infra failure, timeout): the reservation is dropped, nothing is counted. */

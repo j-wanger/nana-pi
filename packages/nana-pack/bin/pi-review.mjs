@@ -5,12 +5,13 @@
 //
 // Usage:
 //   node pi-review.mjs --out <file> --item <slug> [--role sol] [--revision <id>]
-//                      [--stall-secs 75] [--retries 3] [--poll 15] [--over-cap <why>] -- <pi args...>
+//                      [--stall-secs 75] [--retries 2] [--poll 15] [--over-cap <why>] -- <pi args...>
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.
 
 import { writeFileSync } from 'node:fs';
-import { admit, complete, release } from './review-round.mjs';
+import { admit, complete, release, startHeartbeat } from './review-round.mjs';
+import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
@@ -29,7 +30,9 @@ if (!adm.ok) {
 }
 process.stderr.write(`pi-review: ${adm.note}\n`);
 
-const r = await runWatchdog('pi-review', w);
+const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
+const r = await runWatchdog('pi-review', { ...w, accept: reviewShaped });
+stopHeartbeat();
 if (r.ok) {
   writeFileSync(w.outPath, r.text);
   const c = complete(adm.res, w.outPath); // a completed verdict: the ONLY thing that earns a round
@@ -42,5 +45,5 @@ if (r.ok) {
 }
 if (r.text.trim()) writeFileSync(w.outPath, r.text); // preserve last partial for inspection
 release(adm.id); // infrastructure failure is not a review: the reservation is returned
-process.stderr.write(`[pi-review] FAILED after ${w.retries} attempts (endpoint likely in a bad stretch)\n`);
+process.stderr.write(`[pi-review] FAILED after ${w.retries + 1} attempts (endpoint likely in a bad stretch)\n`);
 process.exit(1);

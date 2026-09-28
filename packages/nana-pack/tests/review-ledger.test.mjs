@@ -17,9 +17,10 @@ const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "review-ledger
 const stubs = path.join(tmp, "stubs");
 const outs = path.join(tmp, "outs");
 for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
-// the stub `pi`: STUB=verdict prints a verdict; fail = infra failure; stall = 0-CPU hang
+// the stub `pi`: STUB=verdict prints a verdict; fail = infra failure; stall = 0-CPU hang;
+// plain = an ordinary worker reply with NO review token, counting its invocations in $COUNT
 fs.writeFileSync(path.join(stubs, "pi"),
-	'#!/bin/sh\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; *) echo "VERDICT: LAND";; esac\n');
+	'#!/bin/sh\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; *) echo "VERDICT: LAND";; esac\n');
 fs.chmodSync(path.join(stubs, "pi"), 0o755);
 
 let home, agent, tallyFile, auditFile, resDir;
@@ -61,11 +62,11 @@ fs.mkdirSync(plain);
 let n = 0;
 const out = () => path.join(outs, `o${++n}.md`);
 const piReview = (args, { stub = "verdict", cwd = A.d } = {}) =>
-	spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--retries", "1", ...args, "--", "-p", "x"],
+	spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--retries", "0", ...args, "--", "-p", "x"],
 		{ cwd, env: env({ STUB: stub }), encoding: "utf8", timeout: 30000 });
 const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND')"];
-const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD } = {}) =>
-	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", out(), "--", ...cmd], { cwd, env: env(), encoding: "utf8", timeout: 30000 });
+const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
+	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
 const ledgerCheck = (args, cwd = A.d) => spawnSync(process.execPath, [LEDGER_CLI, "check", ...args], { cwd, env: env(), encoding: "utf8" });
 const noStack = (r) => !/\n\s+at .+:\d+:\d+/.test(r.stderr);
 const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["--item", item, ...extra], { cwd: r.d }); };
@@ -327,7 +328,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4);
 }
 
-// 13. a DIRTY tree is its own state of the work: HEAD + a digest of `git diff HEAD` (T2b fix r2)
+// 13. a DIRTY tree is its own state of the work: HEAD + the full sha256 of a content snapshot (fix r3)
 {
 	freshHome("13");
 	const D = repo("D", 2);
@@ -337,26 +338,187 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	fs.writeFileSync(f, "fix one");
 	const r1 = ledgerRun(["--item", "dirty"], { cwd: D.d });
 	const t1 = rev();
-	check("dirty tree review → round 1, ledger line {revision:<sha>+diff:<16hex>, head:<sha>, diff:<16hex>}",
+	check("dirty tree review → round 1, ledger line {revision:<sha>+snap:<64hex>, head:<sha>, snapshot:<64hex>}",
 		r1.status === 0 && /round 1\/3/.test(r1.stderr) && roundsOf("dirty").length === 1 &&
-		t1.head === D.shas[1] && /^[0-9a-f]{16}$/.test(t1.diff) && t1.revision === `${D.shas[1]}+diff:${t1.diff}`, r1.stderr + JSON.stringify(t1));
+		t1.head === D.shas[1] && /^[0-9a-f]{64}$/.test(t1.snapshot) && t1.revision === `${D.shas[1]}+snap:${t1.snapshot}`, r1.stderr + JSON.stringify(t1));
 	fs.writeFileSync(f, "fix two");
 	const r2 = ledgerRun(["--item", "dirty"], { cwd: D.d });
-	check("edit a tracked file (uncommitted) → round 2", r2.status === 0 && /round 2\/3/.test(r2.stderr) && roundsOf("dirty").length === 2 && rev().diff !== t1.diff, r2.stderr);
+	check("edit a tracked file (uncommitted) → round 2", r2.status === 0 && /round 2\/3/.test(r2.stderr) && roundsOf("dirty").length === 2 && rev().snapshot !== t1.snapshot, r2.stderr);
 	fs.writeFileSync(f, "fix one");
 	const r3 = ledgerRun(["--item", "dirty"], { cwd: D.d });
 	check("revert the edit → original revision recognised, no new round", r3.status === 0 && /round 1\/3/.test(r3.stderr) && /already counted/.test(r3.stderr) && roundsOf("dirty").length === 2, r3.stderr);
-	fs.writeFileSync(path.join(D.d, "scratch.txt"), "untracked");
+	gitIn(D.d, "add", "f");
 	const r4 = ledgerRun(["--item", "dirty"], { cwd: D.d });
-	check("touch an untracked file → no new round", r4.status === 0 && /already counted/.test(r4.stderr) && roundsOf("dirty").length === 2, r4.stderr);
-	gitIn(D.d, "commit", "-qam", "fix one");
+	check("stage the same content → the same revision (index state is not work state), no new round", r4.status === 0 && /already counted/.test(r4.stderr) && roundsOf("dirty").length === 2, r4.stderr);
+	gitIn(D.d, "commit", "-qm", "fix one");
 	const r5 = ledgerRun(["--item", "dirty"], { cwd: D.d });
-	check("commit the change → a new revision (clean sha, diff null), a new round",
-		r5.status === 0 && /round 3\/3/.test(r5.stderr) && roundsOf("dirty").length === 3 && rev().revision === gitIn(D.d, "rev-parse", "HEAD") && rev().diff === null, r5.stderr + JSON.stringify(rev()));
+	check("commit the change → a new revision (clean sha, snapshot null), a new round",
+		r5.status === 0 && /round 3\/3/.test(r5.stderr) && roundsOf("dirty").length === 3 && rev().revision === gitIn(D.d, "rev-parse", "HEAD") && rev().snapshot === null, r5.stderr + JSON.stringify(rev()));
 	fs.writeFileSync(f, "fix three");
 	const r6 = ledgerRun(["--item", "dirty", "--revision", "HEAD"], { cwd: D.d });
-	check("explicit --revision HEAD on a dirty tree still carries the digest (4th state → refused)", r6.status === 1 && /round 4, over the cap/.test(r6.stderr), r6.stderr);
+	check("explicit --revision HEAD on a dirty tree still carries the snapshot (4th state → refused)", r6.status === 1 && /round 4, over the cap/.test(r6.stderr), r6.stderr);
 	gitIn(D.d, "checkout", "-q", "--", "f");
+}
+
+// 14. pi-worker (sol r2 #13): exit 0 + non-empty output is success; no review shape; NO retry by default
+{
+	freshHome("14");
+	const count = path.join(tmp, "worker-count");
+	const wo = path.join(outs, "worker-plain.md");
+	const w = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--out", wo, "--", "-p", "x"], { cwd: A.d, env: env({ STUB: "plain", COUNT: count }), encoding: "utf8", timeout: 30000 });
+	check("a worker reply with NO review token succeeds (exit 0, output written)", w.status === 0 && /Implemented the change/.test(fs.readFileSync(wo, "utf8")) && /SUCCESS on attempt 1/.test(w.stderr), w.stderr);
+	check("…and ran exactly once (zero retries)", fs.readFileSync(count, "utf8").trim().split("\n").length === 1 && !/retrying/.test(w.stderr), fs.readFileSync(count, "utf8"));
+	const wf = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--out", path.join(outs, "wf.md"), "--", "-p", "x"], { cwd: A.d, env: env({ STUB: "fail" }), encoding: "utf8", timeout: 30000 });
+	check("a failing worker is NOT retried by default (1 attempt, exit 1)", wf.status === 1 && /attempt 1\/1/.test(wf.stderr) && !/attempt 2/.test(wf.stderr), wf.stderr);
+	const wr = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--retries", "1", "--out", path.join(outs, "wr.md"), "--", "-p", "x"], { cwd: A.d, env: env({ STUB: "fail" }), encoding: "utf8", timeout: 30000 });
+	check("--retries 1 opts in explicitly, with a mutation warning (2 attempts)", wr.status === 1 && /REPEATS any file mutations/.test(wr.stderr) && /attempt 2\/2/.test(wr.stderr), wr.stderr);
+	const plainReview = piReview(["--item", "shape", "--out", out()], { stub: "plain" });
+	check("pi-review still requires review shape (the same plain reply is no verdict)", plainReview.status === 1 && roundsOf("shape").length === 0, plainReview.stderr);
+	const wd = fs.readFileSync(path.join(bin, "pi-watchdog.mjs"), "utf8").replace(/^\/\/.*$/gm, "");
+	check("pi-watchdog imports no ledger or review module", !/import[^;]*(review-round|review-shape|review-ledger)/.test(wd) && !/reviewShaped/.test(wd));
+}
+
+// 15. a git failure REFUSES admission, naming the git error (sol r2 #10)
+{
+	freshHome("15");
+	const G = repo("G", 1);
+	fs.writeFileSync(path.join(G.d, ".git", "index"), "garbage");
+	const r = ledgerRun(["--item", "gitfail"], { cwd: G.d });
+	check("corrupt index → refused, the message names git's error, no stack, no round",
+		r.status === 1 && /git ls-files .*failed .*index/i.test(r.stderr) && /admission refused/.test(r.stderr) && noStack(r) && roundsOf("gitfail").length === 0, r.stderr);
+	const c = ledgerCheck(["--item", "gitfail"], G.d);
+	check("check refuses too", c.status === 1 && /failed/.test(c.stderr), c.stderr);
+}
+
+// 16. the snapshot is a working-state identity (sol r2 #11): every collapse is distinct, every split is one
+{
+	const revOf = (d) => mod.resolveRevision(undefined, mod.treeScope(d), d);
+	const rendered = (d) => spawnSync("git", ["diff", "HEAD", "--binary", "--no-color"], { cwd: d }).stdout.toString();
+	const S = repo("S", 1);
+	const clean = revOf(S.d);
+	check("clean tree → the bare HEAD sha", clean === S.shas[0], clean);
+	// --- collapses (rendered diff text is identical; the snapshot must differ)
+	fs.writeFileSync(path.join(S.d, "new.txt"), "n");
+	const withUntracked = revOf(S.d);
+	check("collapse: an untracked file is part of the state (≠ clean)", withUntracked !== clean && rendered(S.d) === "", withUntracked);
+	fs.rmSync(path.join(S.d, "new.txt"));
+	check("…and removing it returns to the clean sha", revOf(S.d) === clean);
+
+	const E = repo("E", 0);
+	fs.writeFileSync(path.join(E.d, ".gitattributes"), "* text=auto\n");
+	fs.writeFileSync(path.join(E.d, "t.txt"), "l1\nl2\n");
+	gitIn(E.d, "add", "."); gitIn(E.d, "commit", "-qm", "lf");
+	const eLF = revOf(E.d);
+	fs.writeFileSync(path.join(E.d, "t.txt"), "l1\r\nl2\r\n");
+	check("collapse: CRLF vs LF under text=auto (git diff empty) → distinct", eLF === gitIn(E.d, "rev-parse", "HEAD") && revOf(E.d) !== eLF && rendered(E.d) === "", rendered(E.d));
+
+	const M = repo("M", 1);
+	gitIn(M.d, "config", "core.fileMode", "false");
+	fs.chmodSync(path.join(M.d, "f"), 0o755);
+	check("collapse: chmod +x under core.fileMode=false (git diff empty) → distinct", revOf(M.d) !== M.shas[0] && rendered(M.d) === "");
+	fs.chmodSync(path.join(M.d, "f"), 0o644);
+	check("…chmod back → the clean sha", revOf(M.d) === M.shas[0]);
+
+	const F = repo("F", 0);
+	gitIn(F.d, "config", "filter.strip.clean", "sed -e 's/#.*//'");
+	gitIn(F.d, "config", "filter.strip.smudge", "cat");
+	fs.writeFileSync(path.join(F.d, ".gitattributes"), "*.c filter=strip\n");
+	fs.writeFileSync(path.join(F.d, "x.c"), "a\n");
+	gitIn(F.d, "add", "."); gitIn(F.d, "commit", "-qm", "c");
+	fs.writeFileSync(path.join(F.d, "x.c"), "a#one\n"); const f1 = revOf(F.d), d1 = rendered(F.d);
+	fs.writeFileSync(path.join(F.d, "x.c"), "a#two\n"); const f2 = revOf(F.d), d2 = rendered(F.d);
+	check("collapse: two contents one clean filter maps to the same blob (same rendered diff) → distinct", d1 === d2 && f1 !== f2 && f1.startsWith(gitIn(F.d, "rev-parse", "HEAD") + "+snap:"), `${d1 === d2} ${f1} ${f2}`);
+
+	const Sub = repo("Sub", 1), P = repo("P", 1);
+	spawnSync("git", ["-c", "protocol.file.allow=always", "-c", "user.name=t", "-c", "user.email=t@t", "submodule", "add", "-q", Sub.d, "sub"], { cwd: P.d });
+	gitIn(P.d, "commit", "-qm", "sub");
+	const pClean = revOf(P.d);
+	check("a clean submodule at its recorded commit → the bare HEAD sha", pClean === gitIn(P.d, "rev-parse", "HEAD"), pClean);
+	fs.writeFileSync(path.join(P.d, "sub", "f"), "dirty one"); const s1 = revOf(P.d), sd1 = rendered(P.d);
+	fs.writeFileSync(path.join(P.d, "sub", "f"), "dirty two"); const s2 = revOf(P.d), sd2 = rendered(P.d);
+	check("collapse: two different dirty submodule contents (both render '-dirty') → distinct", sd1 === sd2 && /-dirty/.test(sd1) && s1 !== s2 && s1 !== pClean, sd1);
+	gitIn(path.join(P.d, "sub"), "checkout", "-q", "--", "f");
+	check("…submodule restored → the clean sha", revOf(P.d) === pClean);
+	check("the full sha-256 is retained (64 hex)", /\+snap:[0-9a-f]{64}$/.test(s1), s1);
+
+	// --- splits (one content state; the revision must not move)
+	const T = repo("T", 1);
+	fs.writeFileSync(path.join(T.d, "f"), "changed");
+	fs.writeFileSync(path.join(T.d, "added.txt"), "brand new");
+	const unstaged = revOf(T.d);
+	gitIn(T.d, "add", "-N", "added.txt"); const intent = revOf(T.d);
+	gitIn(T.d, "add", "f", "added.txt"); const staged = revOf(T.d);
+	check("split: modified + new file — unstaged, intent-to-add, fully staged → ONE revision", unstaged === intent && intent === staged && unstaged !== T.shas[0], [unstaged, intent, staged].join(" "));
+	for (const [k, v] of [["diff.noprefix", "true"], ["diff.mnemonicPrefix", "true"], ["color.ui", "always"], ["core.quotePath", "false"], ["diff.renames", "copies"]]) gitIn(T.d, "config", k, v);
+	check("split: diff.noprefix / mnemonicPrefix / color.ui / quotePath / renames set → same revision", revOf(T.d) === staged);
+	fs.writeFileSync(path.join(T.d, ".git", "info", "exclude"), "*.log\nbuild/\n");
+	fs.writeFileSync(path.join(T.d, "debug.log"), "noise"); fs.mkdirSync(path.join(T.d, "build")); fs.writeFileSync(path.join(T.d, "build", "o"), "x");
+	check("split: ignored files (*.log, build/) do not change the revision", revOf(T.d) === staged);
+	fs.writeFileSync(path.join(T.d, "debug.log"), "more noise");
+	check("…nor does editing an ignored file", revOf(T.d) === staged);
+	const later = new Date(Date.now() + 5000); fs.utimesSync(path.join(T.d, "f"), later, later);
+	check("split: touching a file (mtime only) does not change the revision", revOf(T.d) === staged);
+	const U = repo("U", 1);
+	gitIn(U.d, "rm", "-q", "--cached", "f");
+	check("split: `git rm --cached` (index only; the file is unchanged on disk) → still the clean sha", revOf(U.d) === U.shas[0], revOf(U.d));
+	const outInTree = path.join(U.d, "review-out.md");
+	fs.writeFileSync(outInTree, "VERDICT: LAND");
+	check("the review's own --out file inside the tree is excluded from its snapshot",
+		mod.resolveRevision(undefined, mod.treeScope(U.d, { exclude: [outInTree] }), U.d) === U.shas[0]);
+}
+
+// 17. completion re-derives the revision (sol r2 #12): a tree edited mid-review is not credited
+{
+	freshHome("17");
+	const K = repo("K", 1);
+	const editThenVerdict = [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(path.join(K.d, "f"))}, 'edited mid-review'); console.log('VERDICT: LAND')`];
+	const r = ledgerRun(["--item", "drift"], { cwd: K.d, cmd: editThenVerdict });
+	const t = roundsOf("drift"), au = jsonl(auditFile).filter((x) => x.item === "drift");
+	check("edit during the review → exit 1, 'changed during the review', verdict NOT recorded as valid",
+		r.status === 1 && /changed during the review/.test(r.stderr) && !au.some((x) => x.kind === "verdict"), r.stderr);
+	check("…the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)",
+		t.length === 1 && t[0].revision === K.shas[0] && t[0].unverified === true && /\+snap:[0-9a-f]{64}$/.test(t[0].completedAs) &&
+		au.some((x) => x.kind === "verdict-unverified"), JSON.stringify(t));
+	check("…and no reservation is left behind", fs.readdirSync(resDir).length === 0);
+	gitIn(K.d, "checkout", "-q", "--", "f");
+	const inTreeOut = path.join(K.d, "sol-r1.md");
+	const ok = ledgerRun(["--item", "stable"], { cwd: K.d, outFile: inTreeOut });
+	check("a review whose --out lands inside the reviewed tree is stable (its own output is excluded)", ok.status === 0 && roundsOf("stable")[0]?.revision === K.shas[0] && !roundsOf("stable")[0]?.unverified, ok.stderr);
+	fs.rmSync(inTreeOut);
+}
+
+// 18. reservations renew (sol r2 #15): a live renewing owner never expires; a non-renewing one is reclaimed
+{
+	freshHome("18");
+	const STALE = "1000"; // the window, shortened for the test (production default 10 min, heartbeat every 1/5)
+	const H = repo("H", 4);
+	H.at(0);
+	const slow = [process.execPath, "-e", "setTimeout(()=>console.log('VERDICT: LAND'),4000)"];
+	const kid = spawn(process.execPath, [LEDGER_CLI, "run", "--item", "hb", "--out", out(), "--", ...slow], { cwd: H.d, env: env({ NANA_REVIEW_RES_STALE_MS: STALE }), stdio: ["ignore", "ignore", "pipe"] });
+	let kerr = ""; kid.stderr.on("data", (d) => (kerr += d));
+	const done = new Promise((r) => kid.on("exit", r));
+	await new Promise((r) => setTimeout(r, 2500)); // 2.5× the stale window, still running
+	process.env.NANA_REVIEW_RES_STALE_MS = STALE;
+	const HW = path.join(tmp, "H-wt"); // another worktree of H: the running review's tree is left alone
+	gitIn(H.d, "worktree", "add", "-q", "--detach", HW, H.shas[1]);
+	const other = mod.admit(["--item", "hb"], { launcher: "test", home, cwd: HW }); // admission PRUNES stale reservations
+	check("while a renewing review runs past its stale window, another admission sees it in flight", other.ok && /1 review\(s\) in flight/.test(other.note), other.note ?? other.message);
+	const code = await done;
+	check("…and the renewing review completes and is recorded (exit 0, round 1)", code === 0 && roundsOf("hb").some((x) => x.revision === H.shas[0]), kerr);
+	// `other` is held by this (live) test process but never renewed → reclaimed after the window
+	await new Promise((r) => setTimeout(r, 1300));
+	const pr = mod.project(["--item", "hb"], { home, cwd: HW });
+	check("a live but NON-renewing owner is reclaimed after the window (0 in flight)", pr.ok && /0 review\(s\) in flight/.test(pr.note), pr.note ?? pr.message);
+	check("…and its late completion records nothing", mod.complete(other.res, "late.md", { home }).ok === false && roundsOf("hb").length === 1);
+	// the old 12 h lease: a reservation last touched 13 h ago is revived by one renewal
+	H.at(2);
+	const old = mod.admit(["--item", "hb"], { launcher: "test", home, cwd: H.d });
+	for (const fn of fs.readdirSync(resDir)) { const t = new Date(Date.now() - 13 * 3600e3); fs.utimesSync(path.join(resDir, fn), t, t); }
+	check("renew() refreshes a reservation older than the old 12 h lease", mod.renew(old.res, { home }) === true &&
+		/1 review\(s\) in flight/.test(mod.project(["--item", "hb"], { home, cwd: H.d }).note ?? ""));
+	check("…and completes", mod.complete(old.res, "o.md", { home }).ok === true && roundsOf("hb").length === 2);
+	check("renew() of a consumed reservation returns false", mod.renew(old.res, { home }) === false);
+	delete process.env.NANA_REVIEW_RES_STALE_MS;
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
