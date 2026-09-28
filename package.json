@@ -5,6 +5,9 @@
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"repository": "github:j-wanger/nana-pi",
+	"scripts": {
+		"test": "node scripts/test.mjs"
+	},
 	"pi": {
 		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],
 		"skills": ["packages/nana-pack/skills"]

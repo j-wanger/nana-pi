@@ -51,11 +51,13 @@ export function diagnose(layout, opts = {}) {
 	add(
 		pst?.isFile() ? OK : FAIL,
 		"rule nana-personal.md",
-		pst?.isSymbolicLink()
-			? "private rule is a symlink — replace with a regular file"
-			: pst
-				? "private rule is not a regular file — replace with a regular file"
-				: "private — never in the repo",
+		pst?.isFile()
+			? "private — never in the repo"
+			: pst?.isSymbolicLink()
+				? "private rule is a symlink — replace with a regular file"
+				: pst
+					? "private rule is not a regular file — replace with a regular file"
+					: "private rule is missing — run `nana-setup install` to seed it",
 	);
 
 	let settings = null;
