@@ -30,6 +30,10 @@
 
 ## Open for Jake
 
+0a. **Consequence of ruling 1 that neither of us considered (raised 2026-09-28, T2a):** with walk-up restored as the unconditional default, ANY repo's `OBJECTIVE.md` becomes governing system-prompt text with no owner opt-in — including a repo you just cloned. That is the same class L1's nana-trust predicate and L3's legacy-handoff exclusion were built to close: repo-writable content reaching the prompt. It is weaker than those cases (an objective states intent, it grants no execution, and the session is shown `governing: <path>`), but an attacker-authored objective is still instruction-shaped. Options: (a) leave as ruled, adding a provenance label when the governing file is outside a trusted/owned location, framed as untrusted data like the knowledge pointers already are; (b) require nana-trust for a product objective, accepting that a fresh clone shows the umbrella until you trust it once; (c) leave entirely as-is. Seat recommends (a) — cheap, keeps the ruling, makes the provenance visible.
+
+0b. **Known intermittent test failure (evidence 2026-09-28):** `apps/desk/test/stage-key-persistence.test.mjs` failed once under the full `npm test` runner and passed 5/5 standalone and on a full rerun; seen twice today (once by the L3 worker). NOT a port collision — the test uses `DESK_PORT=0`. No root cause yet. Matters because `npm test` is the canonical acceptance path for every lane.
+
 0. **Seven one-line rulings from the research pass** (priority authority 09-16 vs 09-18 · attention-limit trial · appetite expiry · runner dormant + lint · completion-gate trial · Windows parity · current bet) — listed in the synthesis §"Rulings for Jake".
 1. **Changes-bar baseline** — the files-changed bar is git working-tree vs HEAD (incl. untracked), not conversation-attributed. Say if that's wrong; switching to tool-call attribution is a design change, not a tweak.
 2. **Raw-only wikis in or out** — `agent-memory` and `agentic-engineering` are scrape-only, so `raw/` is skipped and they are OUT of the knowledge index. Add their `raw/` as roots if scrape-level pull is wanted, or leave them out until absorbed.
