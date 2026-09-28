@@ -65,22 +65,166 @@ added to a trusted project's `.pi/skills` after startup goes from absent to pres
 An independent review is run by a `pi` (Codex) call, and that endpoint intermittently **stalls** —
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
-the whole process group and retries with a fresh session. A review is "produced" only when the
-child exits 0 *and* the output file is non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/
-`finding`); exit 0 means the review is in `--out`, exit 1 means every retry stalled.
+the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
+first; default 2). A review is "produced" only when the child exits 0 *and* the output file is
+non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/`finding`/`BLOCKING` — the predicate lives
+in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
+exit 0 means the review is in `--out`, exit 1 means every attempt failed.
 
-It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds per item. The
-round is read from the `--out` basename (`sol-r4.md`, `brief-round-4.md`), so a fourth round is
-refused with "land with residuals, subtract, or instrument/implement first" unless you state what
-changed: `--over-cap "<reason>"`. A file with no round in its name is never capped.
+It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds **per item**,
+counted in a user-scope ledger — never from the output file name, and the same for every launcher.
+
+- **Item** = `{repository, slug}`. `--item <slug>` is **required**; a call without it is refused
+  loudly. The slug is canonicalized — NFKC, trimmed, lowercased (JavaScript `toLowerCase`, not Unicode case folding), internal whitespace collapsed
+  (`" Scope  ONE "` ≡ `"scope one"`) — and refused if it contains `/`, `\`, `..` or a control
+  character, or exceeds **128 characters**. The repository is the realpath of the git **common
+  dir**, so every worktree of one repository shares an item, while the same slug in an unrelated
+  repository is a different item. (Chosen over the remote URL: it exists for every repository,
+  needs no URL normalization, and cannot be changed by `git remote set-url`. Cost: a fresh clone
+  at a new path is a new scope.) Outside git the scope is `path:<realpath of cwd>`.
+- **A round is a revision.** Revision = the reviewed tree's (cwd's) git `HEAD`, as a full sha.
+  Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
+  **one** round: a round is one review pass over one state of the work, and a fix makes a new
+  commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
+  not by this cap). A **dirty tree** is its own state: when the working tree's *content* differs
+  from HEAD's, its revision is `<HEAD sha>+snap:<full sha256 of a content snapshot>`. The snapshot
+  covers every path in HEAD's tree, the index, and the untracked files that `.gitignore` does not
+  ignore; per path present on disk, in byte order: file mode as on disk (644/755 by the owner-x
+  bit, symlink, submodule), then the sha256 of the **raw bytes** (a symlink's target; a
+  submodule's own revision, recursively). It never renders a diff, so diff/color/prefix config,
+  EOL normalization, clean filters and `core.fileMode` cannot merge two states, and staging does
+  not change it: staged and unstaged of one content are **one** revision (so `git add` alone earns
+  no round), while a new untracked, non-ignored file is a new state. The review's own `--out`
+  file is left out of the snapshot. Reverting to an already-reviewed state earns no round. Ledger
+  lines carry both parts as `head` and `snapshot` (`snapshot: null` when clean). **Any git
+  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only the fallback when there is no HEAD (outside git); inside
+  git it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
+- **A completed verdict earns the round — with one exception.** A stall, an infrastructure failure
+  or a timeout returns the reservation. The exception is below: a completion whose tree changed
+  during the review still consumes the round, as *unverified*. A completion must own a live reservation: an expired, pruned or
+  replaced reservation records nothing. **Completion re-derives the revision:** if the tree changed
+  during the review, the verdict is *not* recorded as valid (`verdict-unverified` in the audit,
+  exit 1), yet the round **is** consumed for the admitted revision (tally line `unverified: true`,
+  `completedAs: <new revision>`). A tree edited mid-review was read in no single state, so no state
+  can own the verdict; counting nothing instead would make every review free for anyone editing
+  during it.
+- **Over the cap** → refused ("land with residuals, subtract, or instrument/implement first")
+  unless `--over-cap "<what changed>"`. The reason must be non-blank and not a flag
+  (`--over-cap --retries` is refused). Every override is written to the audit log with a
+  timestamp at admission — also when that review then fails.
+- **Ledger** (`~/.pi/agent/`):
+  - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: one line per round
+    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"diff":…,"role":…,"launcher":…}`.
+    The cap reads only this and the live reservations. A malformed line **refuses** admission
+    with `file:line` — a corrupted record never grants a free review.
+  - `review-ledger.jsonl` — the verbose audit log (every verdict and override). Before **every**
+    append (a verdict, or an override at admission — including one whose review then fails), a log
+    past 1 MiB is renamed to `.jsonl.1`, replacing the previous one, so the audit is bounded at about
+    2 MiB. Rotation never touches the tally, so it cannot reset a cap.
+  - **Storage is NOT bounded overall.** The tally grows by one line per round earned, forever
+    (O(items + overridden revisions)), and is read in full at every admission. Only the audit is
+    bounded. Prune an item's tally lines by hand if it matters (see Trust model).
+  - Every ledger path must be a regular file: a symlink (or directory) is refused before a review
+    runs, and files are opened `O_NOFOLLOW`.
+- **Atomic:** an in-flight review holds a reservation (`review-ledger.reservations/<id>.json`)
+  taken under an O_EXCL lock (`review-ledger.lock`), so two concurrent launchers cannot both take
+  the last round. The launcher **renews** its reservation (a heartbeat every 2 min); a live,
+  renewing review never expires, however long it runs. **Crash recovery:** a reservation whose
+  launcher pid is dead, not renewed for 10 min, or dated in the future is pruned at the next
+  admission; a lock is taken over only when its holder
+  pid is dead (never from a live holder). A lock path that is not a regular file, or an
+  unwritable ledger directory, fails at once with a message.
 
 ```bash
-pi-review --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
+pi-review --item <slug> --role sol --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
 ```
 
+**Any other launcher** (e.g. a hand-rolled `claude -p … > out.md`) prefixes the same check —
+`bin/review-ledger.mjs run` reserves the round, runs the command (cwd = the reviewed tree) with
+stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output:
+
+```bash
+node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out out.md -- claude -p --model <model> "$(cat brief.md)"
+```
+
+`review-ledger check --item <slug>` answers "would a review of this tree's revision be admitted?"
+(exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
+
+### Workers: `bin/pi-worker.mjs`
+
+A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
+which never imports the ledger: it records nothing and can admit no verdict. `pi-review` has no
+worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
+was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
+`pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`, `--worker`). A worker
+succeeds when `pi` exits 0 with non-empty output; no review shape is required.
+
+**A worker is not retried by default** (`--retries 0`). **Retrying a worker can repeat file
+mutations**: a stalled or failed attempt may already have edited, written or run commands, and a
+re-attempt does it all again on top. Opt in with `--retries N` only for an idempotent task; the
+launcher prints a warning when you do.
+
+```bash
+pi-worker --out wp-a-out.md --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
+```
+
+### Trust model
+
+**This is a self-governance device against the fix-review treadmill, not a security control.**
+The ledger lives in the same user's home directory as the agents it governs. Anyone who can
+write it can exhaust an item (three fabricated round lines) or extend one (delete lines); anyone
+can also run `pi -p` or `pi-worker` by hand and never touch it. What the ledger buys is that every
+round earned, every completed verdict and every override is **recorded** — a bypass has to be an
+explicit act, never an accident of a file name or a launcher. Not every admission is: an ordinary
+(non-override) admission whose review fails leaves **no durable record** once its reservation is
+returned. **Budget is not enforced here:** these wrappers do not read, pass or enforce
+`--max-budget-usd` (or any spend limit); budget control is external — the caller's own flags and
+the provider's limits. **Repair:** to reset an item, delete its
+lines from `review-ledger.rounds.jsonl` (and any stale file under `review-ledger.reservations/`);
+to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
+
+### Migration (callers outside this repo — document only)
+
+- **`roundFromOutPath` is deprecated.** It is still exported (pure, unchanged) only so
+  `~/nana-agent-loop/app/scripts/review-round.mjs`'s named re-export keeps linking; nothing in the
+  cap reads file names any more. Drop the re-export there, then remove it here.
+- `~/jev-research/docs/reviews/local-tool-judge-2026-09-19/launch-workers.sh:11` and
+  `~/jev-research/experiments/launch-wp-h-after-primary.sh:7` launch **workers**: replace
+  `pi-review` with `pi-worker` **and delete their `--retries 2`** (both pass it today). A retried
+  worker repeats its file mutations, and under the new N+1 meaning `--retries 2` is **three**
+  mutating attempts, not `pi-worker`'s safe single one; keep a `--retries` only for a task you
+  have deliberately judged idempotent. The rest of the arguments stay as they are. A worker must
+  **not** receive `--item` or `--worker` (`pi-worker` refuses both, before running anything).
+- `~/jev-research/docs/reviews/local-tool-judge-2026-09-19/launch-sol-review.sh:8` launches a
+  **review**: add `--item <stable slug> --role sol`, and run it from the reviewed tree.
+- `~/.local/bin/pi-worker` → symlink `bin/pi-worker.mjs`, as `~/.local/bin/pi-review` does.
+- `~/.claude/nana-memory/shared/reference_pi_review_procedure.md` and
+  `~/nana-agent-loop/loops/system-map.components.json` describe the old basename rule; update them.
+
+**When this lands:** `~/.local/bin/pi-worker` must be symlinked to `bin/pi-worker.mjs` (the seat
+does it), beside the existing `~/.local/bin/pi-review` link.
+
+**Release note — `--retries` changed meaning (T2b).** `--retries N` now means N **re-attempts
+after the first** (N+1 attempts total); before T2b it meant N attempts total. An explicit
+`--retries 2` therefore runs **3** attempts where it used to run 2. Defaults are unchanged in
+effect (`pi-review` 3 attempts; `pi-worker` 1). No call site in this repository passes the flag;
+an external caller that does should subtract one — and a **worker** caller should drop the flag
+(see Migration above). `pi-review` and `pi-worker` print a one-line
+notice whenever `--retries` is passed explicitly.
+
+**`--out` inside the reviewed tree (sol r3).** A review's own output is excluded from its
+snapshot, so `--out` on a **tracked** path (HEAD or index) is **refused** before the review runs —
+the exclusion would hide the review overwriting a tracked file. The check resolves the **full**
+path, a final symlink included (an `--out` link outside the tree aimed at a tracked file is
+refused; a dangling link is followed to where the write would land), and tests in-tree by path
+segment (a tracked `..notes.md` is in the tree). Any other in-tree, non-ignored `--out` is admitted
+with a **warning**: a leftover output there changes the next revision and can spend a round slot.
+Write outputs outside the reviewed tree (this repo's practice: another working tree) or to an
+ignored path. `complete()` re-derives the revision **under the ledger lock**, so an edit made
+while a completion waits on the lock is recorded unverified.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
-Tests: `node packages/nana-pack/tests/review-round.test.mjs`.
+Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
 ## What you will see
 
