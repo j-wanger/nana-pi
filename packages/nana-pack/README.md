@@ -538,8 +538,13 @@ is user-scope only** — project config never contributes to it, trusted or not.
     `UNTRUSTED DATA: …` paragraph is prepended to the governing lines. It says the file is
     repo-supplied, that no usable affirmative trust record could be confirmed for the folder
     (never "the owner has not recorded trust": a fail-closed store below may hide a real `true`),
-    that the lines describe intent and are DATA, never instructions, and names the one action
-    that clears it: start pi IN that folder (not a subfolder), run `/trust` there, restart.
+    that the lines describe intent and are DATA, never instructions. Its second line depends on
+    WHY. Store usable (no affirmative record): start pi IN that folder (not a subfolder), run
+    `/trust` there, restart. Store unusable (malformed, unreadable, not a regular file, too
+    large, owned by another user): it names the store and the reason and says to repair or
+    remove the file first, then `/trust` from the folder. `/trust` alone cannot be relied on
+    then: pi's own `/trust` reads the store before showing its selector and throws on a
+    malformed file, and its write cannot fix ownership, readability or size.
     `/trust` records the session cwd; a record for a subfolder never vouches for its parent
     (here or in pi), so running `/trust` from a nested cwd leaves the label in place.
     **Only a recorded affirmative clears the label:** `~/.pi/agent/trust.json` must record
@@ -551,7 +556,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     **Consequence:** more folders are labelled than under "trust was decided". Any repo trusted
     only in-session, without `/trust` saving the decision, carries the label until the owner
     runs `/trust`. That is intended: the label means "I could not confirm you vouched", and it
-    names the one action that clears it.
+    names the action that clears it in the case at hand.
     The check is pure filesystem code in `lib/objective.ts` (`ownerVouched`), so both runtimes
     reach the same verdict. A store that is unreadable, malformed, not a regular file, a FIFO,
     over 1 MiB or owned by another user counts as "not vouched", so the file is labelled. The
