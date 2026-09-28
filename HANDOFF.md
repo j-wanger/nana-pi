@@ -30,6 +30,10 @@
 
 ## Open for Jake
 
+0a. **RULED (Jake 2026-09-28): option (a).** Walk-up stays unconditional; a governing `OBJECTIVE.md` outside a trusted/owned location carries a **provenance label framed as untrusted data** (the framing the knowledge pointers already use). Not trust-gated — that would blank a fresh clone. Implemented in lane T2a.
+
+0b. **Known intermittent test failure (evidence 2026-09-28):** `apps/desk/test/stage-key-persistence.test.mjs` failed once under the full `npm test` runner and passed 5/5 standalone and on a full rerun; seen twice today (once by the L3 worker). NOT a port collision — the test uses `DESK_PORT=0`. No root cause yet. Matters because `npm test` is the canonical acceptance path for every lane.
+
 0. **Seven one-line rulings from the research pass** (priority authority 09-16 vs 09-18 · attention-limit trial · appetite expiry · runner dormant + lint · completion-gate trial · Windows parity · current bet) — listed in the synthesis §"Rulings for Jake".
 1. **Changes-bar baseline** — the files-changed bar is git working-tree vs HEAD (incl. untracked), not conversation-attributed. Say if that's wrong; switching to tool-call attribution is a design change, not a tweak.
 2. **Raw-only wikis in or out** — `agent-memory` and `agentic-engineering` are scrape-only, so `raw/` is skipped and they are OUT of the knowledge index. Add their `raw/` as roots if scrape-level pull is wanted, or leave them out until absorbed.
