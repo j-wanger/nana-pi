@@ -5,9 +5,10 @@ import * as path from "node:path";
 // either nana-pack.json and always returns a fully typed config. A malformed leaf
 // → that leaf's default; a malformed array entry → dropped; an unparsable file →
 // contributes nothing. EXCEPT the user gate block: never "default" — the last
-// validated snapshot, else a conservative stop. Never widens: effective
-// gate.allowPatterns ⊆ the valid config's list.
-// Each case runs under a FRESH temp HOME + USERPROFILE (so no snapshot leaks).
+// valid policy loaded in this process, else (fresh HOME = never loaded) a
+// conservative stop. Never widens: effective gate.allowPatterns ⊆ the valid config's list.
+// Each case runs under a FRESH temp HOME + USERPROFILE (in-memory last-good is keyed
+// by the user config path, so nothing leaks between cases).
 // Run: node --experimental-strip-types <this file>
 const { loadConfig, usePiTrustModule } = await import(new URL("../lib/config.ts", import.meta.url).href);
 
@@ -27,7 +28,7 @@ const LEAVES = {
 	gate: { extraPatterns: ["regex", ["\\bterraform\\s+destroy\\b"]], allowPatterns: ["regex", ["^ls\\b"]], protectedPaths: ["regex", ["secrets\\.txt"]] },
 	postEdit: { commands: ["commands", [{ match: "\\.ts$", run: "true" }]] },
 	notify: { enabled: ["bool", false], headless: ["bool", true] },
-	journal: { enabled: ["bool", false], path: ["path", "/tmp/nana-j.jsonl"] },
+	journal: { enabled: ["bool", false], path: ["path", path.join(fs.mkdtempSync(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
@@ -47,6 +48,7 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 let fails = 0, total = 0;
 const failed = [];
+const STOP = /^user nana-pack\.json gate block is malformed — repair it \(.+:.+\)$/s;
 const check = (n, ok) => { total++; if (!ok) { fails++; failed.push(n); } };
 const named = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
@@ -101,7 +103,7 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 		const blockValid = v !== null && typeof v === "object" && !Array.isArray(v);
 		if (block === "gate") {
 			check(`${tag}: never widens`, r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
-			check(`${tag}: malformed gate → conservative stop (no snapshot)`, blockValid ? r.cfg.gate.stopReason === null : /repair nana-pack\.json/.test(r.cfg.gate.stopReason ?? ""));
+			check(`${tag}: malformed gate → conservative stop (fresh process, no valid policy)`, blockValid ? r.cfg.gate.stopReason === null : STOP.test(r.cfg.gate.stopReason ?? ""));
 		} else {
 			check(`${tag}: block = defaults`, eq(r.cfg[block], DEFAULTS[block]));
 		}
@@ -170,7 +172,7 @@ for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 	const text = '{\n  "notify": { "headless": true },\n  "gate": { "extraPatterns": ["x"], },\n}\n';
 	const r = load(env({ userText: text }));
 	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false && eq(r.cfg.postEdit.commands, []));
-	named("Opus trailing-comma file: gate stops conservatively (no validated snapshot)", /repair nana-pack\.json/.test(r.cfg?.gate.stopReason ?? ""));
+	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", STOP.test(r.cfg?.gate.stopReason ?? ""));
 	const p = load(env({ user: VALID, projectText: text }));
 	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && p.cfg.gate.stopReason === null);
 }
@@ -192,6 +194,18 @@ for (const bytes of ["", "\u0000\u0001", "null", "[1,2]", '"str"', "{", "{}}"]) 
 	fs.mkdirSync(path.join(e.home, ".pi", "agent", "nana-pack.json"));
 	const r = load(e);
 	named("user config is a directory: no throw, gate stopped", !r.threw && r.cfg.gate.stopReason !== null);
+}
+{
+	// sol r1 MED: config diagnostics do not depend on journal.enabled (that flag governs
+	// event journaling). The malformed leaf here is journal.path itself, so the line
+	// goes to the DEFAULT journal path.
+	const e = env({ userText: '{"journal":{"enabled":false,"path":7}}' });
+	const r = load(e);
+	const jf = path.join(e.home, ".pi", "agent", "nana-journal.jsonl");
+	const lines = fs.existsSync(jf) ? fs.readFileSync(jf, "utf-8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+	named("sol {journal:{enabled:false,path:7}}: no throw, journal stays disabled", !r.threw && r.cfg.journal.enabled === false && r.cfg.journal.path === null);
+	named("sol {journal:{enabled:false,path:7}}: exactly one config_invalid line at the default journal path",
+		lines.filter((l) => l.event === "config_invalid").length === 1 && lines.some((l) => /journal\.path/.test(l.problem)));
 }
 
 process.exit(fails);

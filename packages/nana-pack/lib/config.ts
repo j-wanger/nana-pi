@@ -15,9 +15,11 @@
  * Never throws: any bytes in either file yield a fully typed config. A malformed
  * leaf falls back to its default, a malformed array entry is dropped, an unparsable
  * file contributes nothing — each reported once per session (journal
- * `config_invalid` + one UI warning). EXCEPT the user gate block: a malformed one
- * falls back to the last VALIDATED gate policy (persisted beside the config on every
- * valid load), and with none, the gate stops conservatively (`gate.stopReason`).
+ * `config_invalid` + one UI warning; the journal line is written even when
+ * `journal.enabled` is false). EXCEPT the user gate block: a malformed one falls back
+ * to the last valid gate policy loaded IN THIS PROCESS, and with none (fresh process)
+ * the gate stops conservatively (`gate.stopReason`). Nothing is persisted: a policy
+ * file on disk could be forged by the very agent the gate constrains.
  *
  * Read on every event so config edits apply live, without restarting the session.
  */
@@ -43,7 +45,7 @@ export interface GateConfig {
 	protectedPaths: string[];
 	/**
 	 * Not a config leaf (never read from a file). Non-null = the user gate block is
-	 * malformed and no validated policy exists: the gate blocks every gated tool.
+	 * malformed and this process never loaded a valid one: the gate blocks every gated tool.
 	 */
 	stopReason: string | null;
 }
@@ -77,17 +79,15 @@ const DEFAULTS: NanaPackConfig = {
 	receipts: { enabled: true, dir: null },
 };
 
-export const GATE_REPAIR_REASON = "repair nana-pack.json";
-
 // ---------------------------------------------------------------- process-wide state
 // pi loads every extension through its own jiti instance with moduleCache:false
 // (pi 0.87.1 dist/core/extensions/loader.js:411), so each extension gets its OWN copy
 // of this module. State that must be shared — the per-session dedupe, the trust
-// evidence resolved at session_start, the last validated gate — lives on globalThis.
+// evidence resolved at session_start, the last valid gate — lives on globalThis.
 interface SharedState {
 	reported: Set<string>;
 	decidedByCwd: Map<string, boolean>;
-	lastValidUserGate: Map<string, { gate: GateLeaves; json: string }>;
+	lastValidUserGate: Map<string, GateLeaves>;
 	lastValidProjectGate: Map<string, Record<string, unknown>>;
 	piTrust: PiTrustApi | null | undefined;
 	piTrustLoading: Promise<void> | undefined;
@@ -235,10 +235,9 @@ function readConfigFile(p: string): FileRead {
 	return { present: true, blocks, problems, gateValid };
 }
 
-// ---------------------------------------------------------------- gate snapshot
+// ---------------------------------------------------------------- last valid gate (in memory only)
 
 const userConfigPath = () => path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
-export const gateSnapshotPath = () => path.join(os.homedir(), ".pi", "agent", "nana-pack.gate.validated.json");
 
 type GateLeaves = Omit<GateConfig, "stopReason">;
 const gateLeaves = (b: Block | undefined): GateLeaves => ({
@@ -247,32 +246,11 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 	protectedPaths: (b?.protectedPaths as string[]) ?? [],
 });
 
-// G.lastValidUserGate: keyed by snapshot path (so a HOME change is a fresh state)
+// G.lastValidUserGate: keyed by user config path (so a HOME change is a fresh state)
 // G.lastValidProjectGate: keyed by project config path
 
-function persistGateSnapshot(gate: GateLeaves): void {
-	const snap = gateSnapshotPath();
-	const json = JSON.stringify({ gate }, null, 2);
-	if (G.lastValidUserGate.get(snap)?.json === json) return;
-	G.lastValidUserGate.set(snap, { gate, json });
-	try {
-		if (fs.existsSync(snap) && fs.readFileSync(snap, "utf-8") === json) return;
-		const tmp = `${snap}.${process.pid}.tmp`;
-		fs.writeFileSync(tmp, json);
-		fs.renameSync(tmp, snap);
-	} catch {
-		// best-effort; the in-memory copy still covers this process
-	}
-}
-
-function lastValidatedGate(): { gate: GateLeaves; source: string } | null {
-	const snap = gateSnapshotPath();
-	const mem = G.lastValidUserGate.get(snap);
-	if (mem) return { gate: mem.gate, source: "last validated policy (this session)" };
-	const r = readConfigFile(snap);
-	if (r.present && r.gateValid && r.problems.length === 0) return { gate: gateLeaves(r.blocks.gate), source: snap };
-	return null;
-}
+export const gateStopReason = (file: string, problem: string) =>
+	`user nana-pack.json gate block is malformed — repair it (${file}:${problem})`;
 
 // ---------------------------------------------------------------- nana-trust
 
@@ -373,7 +351,9 @@ function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, pro
 		const key = `${sessionKey(ctx)}\0${event}\0${file}\0${problem}`;
 		if (G.reported.has(key)) return;
 		G.reported.add(key);
-		appendJournal(cfg, { ts: new Date().toISOString(), event, file, problem, cwd: ctx?.cwd });
+		// Diagnostics are not event journaling: written even when journal.enabled is
+		// false (a malformed journal.path already fell back to the default path).
+		appendJournalLine(cfg, { ts: new Date().toISOString(), event, file, problem, cwd: ctx?.cwd });
 		if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${file}: ${problem}`, "warning");
 	} catch {
 		// observability must never break a handler
@@ -401,22 +381,23 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 		const user = readConfigFile(userFile);
 		for (const p of user.problems) notes.push(["config_invalid", userFile, p]);
 
-		// --- user gate: never "default" once a validated policy existed
+		// --- user gate: never "default" when the block is malformed
 		let gate: GateConfig;
 		if (!user.present) {
 			gate = { ...gateLeaves(undefined), stopReason: null };
 		} else if (user.gateValid) {
 			const g = gateLeaves(user.blocks.gate);
-			persistGateSnapshot(g);
+			G.lastValidUserGate.set(userFile, g);
 			gate = { ...g, stopReason: null };
 		} else {
-			const last = lastValidatedGate();
+			const last = G.lastValidUserGate.get(userFile);
 			if (last) {
-				gate = { ...last.gate, stopReason: null };
-				notes.push(["config_gate_fallback", userFile, `gate policy invalid — enforcing the ${last.source}`]);
+				gate = { ...last, stopReason: null };
+				notes.push(["config_gate_fallback", userFile, "gate policy invalid — enforcing the last valid policy loaded in this session"]);
 			} else {
-				gate = { ...gateLeaves(undefined), stopReason: `${GATE_REPAIR_REASON} (${userFile}): gate block is malformed and no validated policy exists` };
-				notes.push(["config_gate_fallback", userFile, `gate policy invalid and no validated snapshot — every gated tool is BLOCKED until you ${GATE_REPAIR_REASON}`]);
+				const problem = user.problems.find((m) => m.startsWith("gate")) ?? user.problems[0] ?? "malformed";
+				gate = { ...gateLeaves(undefined), stopReason: gateStopReason(userFile, problem) };
+				notes.push(["config_gate_fallback", userFile, "gate policy invalid and no valid policy loaded in this process — every gated tool is BLOCKED until the file is repaired"]);
 			}
 		}
 
@@ -462,7 +443,7 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
 		cfg = structuredClone(DEFAULTS);
-		cfg.gate.stopReason = `${GATE_REPAIR_REASON}: config load failed (${String(e).slice(0, 120)})`;
+		cfg.gate.stopReason = gateStopReason(userConfigPath(), `config load failed (${String(e).slice(0, 120)})`);
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;
@@ -490,6 +471,10 @@ export function journalFile(cfg: NanaPackConfig): string {
 /** Best-effort append; observability must never break the agent. */
 export function appendJournal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	if (!cfg.journal.enabled) return;
+	appendJournalLine(cfg, entry);
+}
+
+function appendJournalLine(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 	try {
 		fs.appendFileSync(journalFile(cfg), `${JSON.stringify(entry)}\n`);
 	} catch {

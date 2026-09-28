@@ -3,13 +3,15 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 // Permission-block exception (L1 invariant 2, astra r2 HIGH): for the gate block,
-// "default" is never the fallback once a valid policy existed. Every valid load
-// persists ~/.pi/agent/nana-pack.gate.validated.json; a malformed user gate block
-// enforces that snapshot (mid-session AND in a fresh process), and with no snapshot
-// the gate stops conservatively: every gated tool class is blocked with
-// "repair nana-pack.json". A malformed gate block never allows more than the last
-// valid one. Drives the REAL registered gate handler; the fresh-process cases run
-// in a child node process sharing only the temp HOME.
+// "default" is never the fallback. Mid-session, a malformed user gate block keeps the
+// last valid policy loaded IN THIS PROCESS (memory only). In a FRESH process the gate
+// stops conservatively: every gated tool class (bash, powershell, edit, write) is
+// blocked with "user nana-pack.json gate block is malformed — repair it (<file>:<problem>)".
+// Nothing is persisted (sol r1 HIGH: a persisted snapshot is forgeable by the agent the
+// gate constrains), so no file anywhere on disk can widen the gate after a restart.
+// A malformed gate block never allows more than the last valid one. Drives the REAL
+// registered gate handler; the fresh-process cases run in a child node process
+// sharing only the temp HOME.
 // Run: node --experimental-strip-types <this file>
 const GATE_URL = new URL("../extensions/nana-gate.ts", import.meta.url).href;
 const ext = (await import(GATE_URL)).default;
@@ -25,7 +27,6 @@ function freshHome() {
 	return {
 		home,
 		cfg: path.join(home, ".pi", "agent", "nana-pack.json"),
-		snap: path.join(home, ".pi", "agent", "nana-pack.gate.validated.json"),
 		journal: path.join(home, ".pi", "agent", "nana-journal.jsonl"),
 	};
 }
@@ -38,7 +39,9 @@ function gate(opts = {}) {
 }
 const bash = (call, command) => call("bash", { command });
 const blocked = (r) => r?.block === true;
+const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
+const STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json gate block is malformed — repair it \\(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.+\\)$`, "s");
 
 // Runs the gate in a FRESH node process (no in-memory state) against HOME.
 const CHILD = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-child-")), "child.mjs");
@@ -65,7 +68,7 @@ const A = freshHome();
 	const call = gate();
 	check("a: valid config — terraform destroy blocked", blocked(await bash(call, "terraform destroy")));
 	check("a: valid config — allow pattern applies", (await bash(call, "git status")) === undefined);
-	check("a: a validated snapshot was persisted beside the config", JSON.parse(fs.readFileSync(A.snap, "utf-8")).gate.extraPatterns[0] === "\\bterraform\\s+destroy\\b");
+	check("a: nothing persisted beside the config (no policy file to forge)", eq(fs.readdirSync(path.dirname(A.cfg)).filter((f) => f !== "nana-journal.jsonl"), ["nana-pack.json"]));
 	fs.writeFileSync(A.cfg, TRAILING); // corrupted mid-session
 	check("a: corrupted mid-session — terraform destroy STILL blocked", blocked(await bash(call, "terraform destroy")));
 	check("a: corrupted mid-session — rm -rf /tmp/x blocked", blocked(await bash(call, "rm -rf /tmp/x")));
@@ -75,33 +78,36 @@ const A = freshHome();
 	check("a: the fallback is journaled (config_gate_fallback)", lines.some((l) => l.event === "config_gate_fallback" && l.file === A.cfg));
 }
 
-// (b) FRESH PROCESS with the corrupted file → the snapshot is enforced
+// (b) FRESH PROCESS with the corrupted file → conservative STOP after restart (the
+// mid-session policy is gone with the process; nothing on disk stands in for it)
 {
-	const out = freshProcess(A.home, [["tf", "bash", { command: "terraform destroy" }], ["rm", "bash", { command: "rm -rf /tmp/x" }], ["ls", "bash", { command: "ls -la" }]]);
-	check("b: fresh process + corrupted file — terraform destroy blocked (snapshot)", out.tf?.block === true, JSON.stringify(out));
-	check("b: fresh process — built-in rm -rf still blocked", out.rm?.block === true);
-	check("b: fresh process — benign command allowed (snapshot is a real policy, not a stop)", out.ls === null);
-}
-
-// (c) FRESH PROCESS, corrupted file, NO snapshot → conservative stop of every gated class
-{
-	const C = freshHome();
-	fs.writeFileSync(C.cfg, TRAILING);
-	const out = freshProcess(C.home, [
+	const out = freshProcess(A.home, [
+		["tf", "bash", { command: "terraform destroy" }],
 		["ls", "bash", { command: "ls -la" }],
 		["ps", "powershell", { command: "Get-ChildItem" }],
 		["edit", "edit", { path: "src/a.ts" }],
 		["write", "write", { path: "notes.md" }],
 		["read", "read", { path: "src/a.ts" }],
 	]);
-	for (const k of ["ls", "ps", "edit", "write"])
-		check(`c: no snapshot — ${k} blocked with the repair reason`, out[k]?.block === true && /repair nana-pack\.json/.test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
-	check("c: no snapshot — tools outside the gate's scope untouched (read)", out.read === null);
+	for (const k of ["tf", "ls", "ps", "edit", "write"])
+		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
+	check("b: the reason names the problem (invalid JSON)", /invalid JSON/.test(out.ls?.reason ?? ""), out.ls?.reason);
+	check("b: tools outside the gate's scope untouched (read)", out.read === null);
+}
+
+// (c) FRESH PROCESS, malformed gate LEAF → stop; interactive too; repair restores service
+{
+	const C = freshHome();
+	fs.writeFileSync(C.cfg, JSON.stringify({ gate: { allowPatterns: ".*" } }));
+	const out = freshProcess(C.home, [["ls", "bash", { command: "ls -la" }], ["edit", "edit", { path: "src/a.ts" }]]);
+	for (const k of ["ls", "edit"])
+		check(`c: malformed leaf, fresh process — ${k} blocked`, out[k]?.block === true && STOP(C.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
+	check("c: the reason names the malformed leaf", /gate\.allowPatterns/.test(out.ls?.reason ?? ""), out.ls?.reason);
 	// interactive sessions stop too — no dialog can re-open a gate whose policy is unknown
 	let dialogs = 0;
 	const call = gate({ hasUI: true, ui: { select: async () => { dialogs++; return "Allow once"; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } } });
 	const r = await bash(call, "ls");
-	check("c: interactive + no snapshot — blocked without a dialog", blocked(r) && dialogs === 0);
+	check("c: interactive + fresh malformed — blocked without a dialog", blocked(r) && dialogs === 0 && STOP(C.cfg).test(r.reason));
 	// repairing the file restores normal service in the same session
 	fs.writeFileSync(C.cfg, JSON.stringify({ gate: {} }));
 	check("c: repaired file — benign command allowed again", (await bash(call, "ls")) === undefined);
@@ -124,20 +130,36 @@ const A = freshHome();
 		check(`d: ${label} — rm -rf /tmp/x still blocked`, blocked(await bash(call, "rm -rf /tmp/x")));
 		check(`d: ${label} — the last valid allow still applies`, (await bash(call, "git status")) === undefined);
 	}
-	const fresh = freshProcess(D.home, [["rm", "bash", { command: "rm -rf /tmp/x" }]]);
-	check("d: fresh process — still blocked", fresh.rm?.block === true);
-	// a corrupted SNAPSHOT is not trusted either
-	fs.writeFileSync(D.snap, '{"gate":{"allowPatterns":7}}');
-	const out = freshProcess(D.home, [["ls", "bash", { command: "ls" }]]);
-	check("d: malformed config + malformed snapshot → conservative stop", out.ls?.block === true && /repair nana-pack\.json/.test(out.ls.reason));
+	const fresh = freshProcess(D.home, [["rm", "bash", { command: "rm -rf /tmp/x" }], ["gs", "bash", { command: "git status" }]]);
+	check("d: fresh process — rm -rf still blocked", fresh.rm?.block === true);
+	check("d: fresh process — stopped, so not even the last valid allow applies", fresh.gs?.block === true && STOP(D.cfg).test(fresh.gs.reason));
+	// A planted WIDER policy file anywhere on disk cannot widen the gate after restart:
+	// the old snapshot path, variants beside the config, in HOME, and in the cwd.
+	const wide = JSON.stringify({ gate: { allowPatterns: [".*"], extraPatterns: [], protectedPaths: [] } });
+	const agent = path.dirname(D.cfg);
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-cwd-"));
+	for (const f of [path.join(agent, "nana-pack.gate.validated.json"), path.join(agent, "nana-pack.gate.json"), path.join(agent, "nana-pack.json.bak"),
+		path.join(D.home, "nana-pack.json"), path.join(cwd, ".pi", "nana-pack.json"), path.join(cwd, ".pi", "nana-pack.gate.validated.json")]) {
+		fs.mkdirSync(path.dirname(f), { recursive: true });
+		fs.writeFileSync(f, wide);
+	}
+	const planted = execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", CHILD, JSON.stringify([["rm", "bash", { command: "rm -rf /tmp/x" }], ["ls", "bash", { command: "ls" }]])], {
+		env: { ...process.env, HOME: D.home, USERPROFILE: D.home }, encoding: "utf-8", cwd,
+	});
+	const po = JSON.parse(planted.trim().split("\n").at(-1));
+	check("d: planted wider policy files after restart — rm -rf blocked", po.rm?.block === true, JSON.stringify(po));
+	check("d: planted wider policy files after restart — gate still STOPPED (not widened)", po.ls?.block === true && STOP(D.cfg).test(po.ls.reason), JSON.stringify(po));
 }
 
-// (e) a missing user config is not "malformed": defaults, no stop, no snapshot
+// (e) a missing user config is not "malformed": defaults, no stop, nothing written
 {
 	const E = freshHome();
 	const call = gate();
 	check("e: no user config — benign allowed", (await bash(call, "ls")) === undefined);
-	check("e: no user config — no snapshot written", !fs.existsSync(E.snap));
+	check("e: no user config — built-in rm -rf still blocked", blocked(await bash(call, "rm -rf /tmp/x")));
+	const out = freshProcess(E.home, [["ls", "bash", { command: "ls" }]]);
+	check("e: no user config, fresh process — benign allowed (defaults, no stop)", out.ls === null, JSON.stringify(out));
+	check("e: no user config — no policy file written", !fs.existsSync(path.join(path.dirname(E.cfg), "nana-pack.gate.validated.json")));
 }
 
 process.exit(fails);

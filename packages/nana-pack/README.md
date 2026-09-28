@@ -119,11 +119,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
   session (a warning and a `config_project_ignored` journal line), never silent.
 - **Malformed config never throws and never widens the gate.** A bad leaf falls back to its
   default, a bad array entry is dropped, an unparsable file contributes nothing; each problem
-  is reported once per session (a warning and a `config_invalid` journal line). The **user
-  `gate` block** is the exception: every valid load saves it to
-  `~/.pi/agent/nana-pack.gate.validated.json`, and a malformed gate block enforces that last
-  validated policy instead of the defaults. With no validated policy, the gate **blocks every
-  bash / powershell / edit / write call** ("repair nana-pack.json") until the file is fixed.
+  is reported once per session (a warning and a `config_invalid` journal line — written even
+  with `journal.enabled: false`, which governs event journaling, not config diagnostics). The
+  **user `gate` block** is the exception — it never falls back to the defaults:
+  - broken **mid-session**: the last valid gate policy this process loaded stays enforced;
+  - broken when pi **starts** (or restarts): the gate **blocks every bash / powershell /
+    edit / write call**, interactive sessions included, with `nana-gate: user nana-pack.json
+    gate block is malformed — repair it (<file>:<problem>)`, until the file is valid again.
+    Edits apply live, so a typo costs one repair.
+  No copy of the policy is saved to disk: a saved "last good" file could be forged by the very
+  agent the gate constrains, so after a restart nothing but a valid `nana-pack.json` can open
+  the gate. A missing file is not malformed — it means the defaults.
 
 ```json
 {

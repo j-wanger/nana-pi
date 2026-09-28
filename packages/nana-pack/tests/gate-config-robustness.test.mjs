@@ -9,11 +9,6 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-// L1 fixture: this user HAD a valid (empty) gate policy, so a malformed gate block
-// falls back to it. With no validated snapshot at all, L1 stops the gate
-// conservatively (every gated tool blocked — pinned in config-gate-fallback.test.mjs).
-fs.writeFileSync(path.join(NANA_HOME, ".pi", "agent", "nana-pack.gate.validated.json"),
-	JSON.stringify({ gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] } }));
 // Robustness property: a malformed gate config (e.g. `"allowPatterns": null`) must
 // NOT throw out of the tool_call handler — a throw there is fail-safe-BLOCKED
 // upstream, so a null pattern array would wrongly block an otherwise-benign edit.
@@ -35,6 +30,16 @@ function setup(gate) {
 	const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 	const call = (toolName, input) => handlers.tool_call({ toolName, input }, ctx);
 	return { td, call };
+}
+
+// L1 fixture: this process first loads a VALID (empty) user gate block, so the malformed
+// gate blocks below fall back to that in-memory last-good policy. A process that never
+// loaded a valid one stops conservatively instead (every gated tool blocked — pinned in
+// config-gate-fallback.test.mjs (b)/(c)).
+{
+	const { td, call } = setup({});
+	await call("bash", { command: "ls" });
+	fs.rmSync(td, { recursive: true, force: true });
 }
 
 // (a) gate.allowPatterns: null — a benign edit must return normally (no throw, no block).
