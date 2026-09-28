@@ -250,7 +250,7 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 // G.lastValidProjectGate: keyed by project config path
 
 export const gateStopReason = (file: string, problem: string) =>
-	`user nana-pack.json gate block is malformed — repair it (${file}:${problem})`;
+	`user nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
 
 // ---------------------------------------------------------------- nana-trust
 
