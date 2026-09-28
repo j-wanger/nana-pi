@@ -230,7 +230,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
     containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
     absolute. The line is ≤300 chars: over the cap the authority tail goes, then the writer is
     trimmed, then the age. **If the path alone exceeds 300 chars, the pointer does too** — a long
-    true path beats a short false one. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
+    true path beats a short false one. **Caveat — not always one read away:** a custom
+    `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
+    (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
+    written (it could resolve to an ASCII-space sibling). Such a path is shown as the
+    absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
+    "— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly
+    (do not pass it to read as written)" — never claimed readable; the same form is used in
+    the fresh-summary `Source:` line. A **relative** custom `handoff.path` resolves against the
+    pi **process** cwd, not the session cwd; the pointer shows that file. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
     compaction resets it.
   - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
     that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` sets it for every

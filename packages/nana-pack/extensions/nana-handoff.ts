@@ -18,9 +18,11 @@
  *
  * Staleness: a summary older than handoff.staleAfterDays (default 7; age from its own
  * `Written:` header, else mtime) is injected as a POINTER (path, age, writer), not its
- * text — the stale imperative is one read away, not in the prompt. The path always
- * resolves under pi's read tool (`~/…`, cwd-relative, or absolute in full); ≤300 chars
- * unless the path alone is longer.
+ * text — the stale imperative is one read away, not in the prompt. The path resolves
+ * under pi's read tool (`~/…`, cwd-relative, or absolute in full); ≤300 chars unless the
+ * path alone is longer. Exception: a custom path containing a Unicode space pi folds, or a
+ * tab / CR / LF, is shown JSON-escaped with a marker and never claimed readable
+ * (addressable). A RELATIVE custom handoff.path resolves against the process cwd.
  *
  * Role: a launcher that sets NANA_HANDOFF=off in the child env (pi-review does) marks a
  * non-writer session: no pickup, no write (journal `handoff_skipped_role`). Never inferred
@@ -171,13 +173,42 @@ function ageText(ms: number): string {
 }
 
 /**
+ * Characters pi's read tool rewrites (resolveToCwd folds this Unicode-space class to " ")
+ * or that cannot survive a one-line pointer (tab, CR, LF). A path containing any of them
+ * is not addressable as written — emitted verbatim it could resolve to an ASCII-space decoy.
+ */
+const UNADDRESSABLE = /[  -   　\t\r\n]/;
+const UNADDRESSABLE_G = new RegExp(UNADDRESSABLE.source, "g");
+export const UNADDRESSABLE_MARK =
+	"— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly (do not pass it to read as written)";
+
+/**
+ * A locator for `file` as shown in the prompt. Addressable → `shown` (already resolvable).
+ * Otherwise the ABSOLUTE path as a JSON string literal (`\` and `"` escaped, every
+ * UNADDRESSABLE char as `\uXXXX`; JSON.parse gives the exact path) + UNADDRESSABLE_MARK.
+ * The quoted form starts with `"`, so read would take it as cwd-relative `<cwd>/"…"` —
+ * never the ASCII-space sibling.
+ */
+export function addressable(shown: string, file: string): { text: string; mark: string | null } {
+	const abs = path.resolve(file);
+	if (!UNADDRESSABLE.test(shown) && !UNADDRESSABLE.test(abs)) return { text: shown, mark: null };
+	const esc = abs
+		.replace(/[\\"]/g, (c) => `\\${c}`)
+		.replace(UNADDRESSABLE_G, (c) => `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}`);
+	return { text: `"${esc}"`, mark: UNADDRESSABLE_MARK };
+}
+
+/**
  * path, age, writer — never the summary text. `shown` must already be resolvable (see
  * resolvablePath); it is never shortened. Over 300 chars the authority tail goes, then the
  * writer is trimmed (then dropped), then the age; if the path alone exceeds the cap, so does
- * the pointer — a long true path beats a short false one.
+ * the pointer — a long true path beats a short false one. A path with UNADDRESSABLE chars is
+ * emitted escaped (see addressable) with the marker in place of the "read it" tail; the
+ * marker is never trimmed.
  */
-export function stalePointer(shown: string, ageMs: number, writer: string): string {
-	const p = shown.replace(/[\r\n\t]+/g, " ");
+export function stalePointer(shown: string, ageMs: number, writer: string, file: string = shown): string {
+	const loc = addressable(shown, file);
+	const p = loc.mark ? `${loc.text} ${loc.mark}` : loc.text;
 	let w: string | null = oneLine(path.basename(writer), 80);
 	let a: string | null = ageText(ageMs);
 	const s = () => {
@@ -185,7 +216,7 @@ export function stalePointer(shown: string, ageMs: number, writer: string): stri
 		return `Stale handoff NOT injected${parts.length ? ` (${parts.join(", ")})` : ""}: ${p}`;
 	};
 	const tail = " — lower authority than OBJECTIVE/AGENTS/DOCTRINE; read it if relevant.";
-	if (s().length + tail.length <= POINTER_CAP) return s() + tail;
+	if (!loc.mark && s().length + tail.length <= POINTER_CAP) return s() + tail;
 	if (s().length <= POINTER_CAP) return s();
 	const keep = (w ?? "").length - (s().length - POINTER_CAP);
 	w = keep > 0 ? (w ?? "").slice(0, keep) : null;
@@ -261,16 +292,17 @@ export default function (pi: ExtensionAPI) {
 				}
 				const age = Date.now() - when;
 				if (age > cfg.handoff.staleAfterDays * DAY_MS) {
-					lines.push(stalePointer(resolvablePath(ctx.cwd, file, true), age, h.writer));
+					lines.push(stalePointer(resolvablePath(ctx.cwd, file, true), age, h.writer, file));
 					j("handoff_stale_pointer", { path: file, ageDays: Math.floor(age / DAY_MS) });
 				} else {
+					const loc = addressable(shown, file);
 					lines.push(
-						`Source: ${shown} · written ${new Date(when).toISOString()} by session ${oneLine(h.writer, 200)}`,
+						`Source: ${loc.mark ? `${loc.text} ${loc.mark}` : shown} · written ${new Date(when).toISOString()} by session ${oneLine(h.writer, 200)}`,
 						AUTHORITY,
 						"",
 						h.body.slice(0, INJECT_CAP),
 						"",
-						`When the current work makes it stale, update ${shown} in place.`,
+						`When the current work makes it stale, update ${loc.text} in place.`,
 					);
 					j("handoff_pickup", { path: file });
 				}

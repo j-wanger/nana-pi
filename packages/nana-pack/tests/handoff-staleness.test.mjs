@@ -276,6 +276,53 @@ const resolvesTo = (shown, cwd, file) => {
 		console.log(`  default store: pointer ${p.length} chars: ${s}`);
 		check("default store: ~/… form, pi resolves it to the store file and it reads back", s.startsWith("~/") && resolvesTo(s, repo, file));
 	}
+	// PINNED (sol r3): a path with a char pi's resolver folds (Unicode spaces) or a one-line
+	// pointer cannot carry (tab/CR/LF) is never emitted in a form that resolves to the
+	// ASCII-space DECOY sibling — it is JSON-escaped, marked, and not claimed readable
+	const JSTR = /: ("(?:[^"\\]|\\.)*") /;
+	for (const [label, ch] of [["NBSP", " "], ["narrow NBSP", " "], ["tab", "\t"], ["CR", "\r"], ["LF", "\n"]]) {
+		const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "uc-")));
+		const f = path.join(dir, `hand${ch}off.md`);
+		const decoy = path.join(dir, "hand off.md");
+		stale(f);
+		fs.writeFileSync(decoy, "DECOY — the ASCII-space sibling");
+		const { p } = await run(label, f);
+		const m = JSTR.exec(p);
+		const emitted = m?.[1] ?? "";
+		const r = PI.resolveToCwd(emitted, repo);
+		console.log(`  ${label}: emitted ${emitted} → pi resolves to ${JSON.stringify(r)}`);
+		check(`${label}: control — the old forms (verbatim / tab-CR-LF→space) resolve to the decoy`, [f, f.replace(/[\r\n\t]+/g, " ")].some((x) => fs.existsSync(PI.resolveToCwd(x, repo)) && fs.realpathSync(PI.resolveToCwd(x, repo)) === fs.realpathSync(decoy)));
+		check(`${label}: pointer is one line and carries the marker, not the "read it" tail`, !/[\r\n]/.test(p) && p.includes(mod.UNADDRESSABLE_MARK) && !p.includes("read it if relevant"));
+		check(`${label}: emitted form is a JSON string of the exact absolute path`, emitted !== "" && JSON.parse(emitted) === f && fs.readFileSync(JSON.parse(emitted), "utf-8").includes(SUMMARY));
+		check(`${label}: emitted form never resolves to the decoy (nor to any existing file)`, r !== decoy && !fs.existsSync(r));
+		check(`${label}: the raw path never appears in the pointer`, !p.includes(f));
+		if (label === "NBSP") {
+			// fresh summary: the Source / update-in-place locator gets the same treatment
+			fs.writeFileSync(f, fs.readFileSync(f, "utf-8").replace(/^Written: .*$/m, `Written: ${new Date().toISOString()}`));
+			const sp = await session(repo).prompt();
+			const src = sp.split("\n").find((l) => l.startsWith("Source: ")) ?? "";
+			check("NBSP fresh: Source line escaped + marked, raw path absent from the prompt", sp.includes(SUMMARY) && src.includes(`Source: ${emitted} ${mod.UNADDRESSABLE_MARK}`) && !sp.includes(f) && sp.includes(`update ${emitted} in place`));
+		}
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+	// PINNED (sol r3 CARRY): a RELATIVE custom handoff.path resolves against the PROCESS cwd,
+	// not the session cwd; the pointer shows the file actually read, never the session-cwd twin
+	{
+		const proc = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "pcwd-")));
+		const saved = process.cwd();
+		process.chdir(proc);
+		const real = path.join(proc, "rel-h", "handoff.md");
+		const twin = path.join(repo, "rel-h", "handoff.md");
+		fs.mkdirSync(path.dirname(real), { recursive: true });
+		fs.mkdirSync(path.dirname(twin), { recursive: true });
+		stale(real);
+		fs.writeFileSync(twin, "DECOY — session-cwd twin");
+		const { p, s } = await run("relative custom", path.join("rel-h", "handoff.md"));
+		check("relative custom: pointer shows the process-cwd file (absolute) and pi resolves it there, not the session-cwd twin", /\(30d old/.test(p) && s === real && resolvesTo(s, repo, real) && PI.resolveToCwd(s, repo) !== twin);
+		process.chdir(saved);
+		fs.rmSync(proc, { recursive: true, force: true });
+		fs.rmSync(path.dirname(twin), { recursive: true, force: true });
+	}
 	cfg();
 }
 
