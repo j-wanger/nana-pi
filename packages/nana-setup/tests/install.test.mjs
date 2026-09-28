@@ -112,6 +112,9 @@ check("the example carries the same top heading as the real rule", seeded.starts
 const ok = run(["doctor", "--home", home]);
 check("doctor exits 0 after install", ok.status === 0, ok.stdout);
 check("doctor prints no ✗ after install", !ok.stdout.includes("✗"));
+// the seed writes projectFile "OBJECTIVE.md" explicitly — that is the default, not a rename
+check("doctor calls the seeded projectFile the default, not a rename",
+	/objective\.projectFile\s+per-repo OBJECTIVE\.md \(the default name\)/.test(ok.stdout) && !ok.stdout.includes("renamed"), ok.stdout);
 fs.unlinkSync(path.join(home, ".claude", "hooks", "nana-shared-memory.sh"));
 const bad = run(["doctor", "--home", home]);
 check("doctor exits 1 on a missing piece", bad.status === 1);

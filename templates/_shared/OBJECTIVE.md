@@ -5,6 +5,12 @@
 is what a session here is judged against. Every session must be able to say which of the two
 lines below its spend served.*
 
+*What a session actually sees: ONLY the two `**Objective` / `**Current priority` lines below
+(one physical line each — nothing else from this file, not the Rules), then the program
+(umbrella) lines, `program objective:` and `program current priority:`, then this precedence
+sentence: "the lines from <this file> govern this session's work; the program lines say what
+the toolkit is for." Keep each line self-contained on one line.*
+
 **Objective (since <date>):** <the one thing this project is for> (DRAFT — ratify by editing this line).
 
 **Current priority (since <date>):** <the one lane open right now> (DRAFT — ratify by editing this line).

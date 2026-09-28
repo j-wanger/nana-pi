@@ -25,6 +25,12 @@ setup. What that means while you work here:
   }
   ```
 
+- **Objective.** Every session starts with the nearest `OBJECTIVE.md` walking up from
+  its directory (no opt-in; the user-scope umbrella when there is none). Only its
+  `**Objective` and `**Current priority` lines are injected — never other file content —
+  followed by the program (umbrella) objective and priority lines and a precedence
+  sentence: this project's lines govern its work; the program lines say what the
+  toolkit is for.
 - **Handoff on compaction.** When the context compacts, the pack writes the
   summary to a user-scope store (`~/.pi/agent/handoffs/<hash>.md`, path printed) and
   re-injects it into the next fresh session in this exact directory, labelled as an

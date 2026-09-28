@@ -372,19 +372,21 @@ is user-scope only** — project config never contributes to it, trusted or not.
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
   (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
-  against `~/.pi/agent`, never cwd); content capped at 4000 chars; an `objective_pickup`
+  against `~/.pi/agent`, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
+  never other file content — each capped on its own at 1500 chars, so a long one cannot
+  push the other out (overall output ≤ 12000 chars); an `objective_pickup`
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
   Five contract points:
-  - **A repo can speak its own objective — when the OWNER opts in.** Set
-    `objective.projectFile` (e.g. `"OBJECTIVE.md"`; default `null` = off) and the nearest
-    `<dir>/<projectFile>` walking UP from the session cwd wins over `objective.path`, with one
-    `Umbrella (nana): **Objective:** …` line appended so the program-level objective stays
-    visible. A session in a product repo is then charged against that product's two lines —
-    parity with the Claude Code hook `~/.claude/hooks/nana-objective.sh`. This does not weaken
-    the user-scope rule: the opt-in, the fallback and the on/off switch are all user-scope
-    (project config never sets `projectFile`), so the owner is saying once, for every repo,
-    "repos I work in may carry their own objective" — a repo still cannot decide that for
-    itself. A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
+  - **A repo speaks its own objective — by default, no configuration.** The nearest
+    `<dir>/OBJECTIVE.md` walking UP from the session cwd wins over `objective.path` (Jake's
+    2026-09-18 decentralization ruling), followed by labelled `program objective:` /
+    `program current priority:` lines and a precedence sentence so the program-level objective
+    stays visible. A session in a product repo is charged against that product's two lines —
+    byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.sh` (both run
+    `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for — a bare
+    filename (a separator, `.` or `..` is refused with a named config problem);
+    `null`/`false`/absent = `OBJECTIVE.md`, never "off". The name, the fallback and the on/off
+    switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
@@ -396,10 +398,21 @@ is user-scope only** — project config never contributes to it, trusted or not.
     every session run inside it, and one that could set `enabled: false` could silently
     suppress the owner's objective.
     Project *trust* means "run this repo's tooling", not "speak for the user's priorities".
-  - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, or
-    refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
-    under the same heading and journals `objective_unavailable` with the cause; truncation at
-    the cap injects the capped text plus `(truncated at 4000 chars)`. Silence was the original
+  - **An unavailable objective is announced, never silent.** Missing, empty, unreadable, not
+    valid UTF-8, or refused-as-a-symlink injects a one-line `OBJECTIVE UNAVAILABLE: <cause> (<path>)` marker
+    under the same heading and journals `objective_unavailable` with the cause; a file with
+    neither line is labelled `objective file: <path>` (never `governing`), injects
+    `OBJECTIVE UNAVAILABLE: no **Objective or **Current priority line found in <path>` and
+    nothing from the file, and — for a product file — the precedence line says the program
+    lines govern the session. Each line is ONE physical line (continuations never shown),
+    control and bidi characters stripped; a line over the cap injects its first 1500
+    chars plus `(truncated at 1500 chars)`. Every path is display text: one containing a
+    control, line-separator or bidi character is shown as a quoted JSON-escaped string; a
+    displayed path is at most 320 chars, quotes included — a longer one is middle-elided,
+    keeping its basename whole when that fits in 160 chars, else the basename's tail. The same
+    display-text rule covers pi's config diagnostics (`nana-pack: <file>: <problem>` warnings
+    and the gate's stop reason): the file is a display path, the problem one line with every
+    control and line separator replaced by a space. Silence was the original
     behaviour and it defeated the point — the one artifact every session must see went missing
     invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every

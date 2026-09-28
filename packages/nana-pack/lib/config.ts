@@ -31,6 +31,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
 	/** Regex (string) tested against the edited file's path */
@@ -68,9 +69,9 @@ export interface NanaPackConfig {
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
 	 * `path` null = ~/.pi/agent/nana-objective.md.
-	 * `projectFile` null = off; a bare filename (e.g. "OBJECTIVE.md") that the
-	 * extension looks for walking UP from the session cwd, so a product repo can
-	 * speak its own objective. Opting in is the OWNER's act, at user scope.
+	 * The nearest OBJECTIVE.md walking UP from the session cwd ALWAYS wins over `path`
+	 * (no opt-in). `projectFile` only renames that file: a bare filename, owner-set at
+	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
 	objective: { enabled: boolean; path: string | null; projectFile: string | null };
 	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
@@ -129,6 +130,18 @@ const bool: Leaf = (v, where, problems) => {
 const pathOrNull: Leaf = (v, where, problems) => {
 	if (v === null || typeof v === "string") return { ok: true, value: v };
 	problems.push(`${where}: expected a string or null, got ${kind(v)} — using the default`);
+	return { ok: false };
+};
+
+/** objective.projectFile: a BARE filename (no separator, not "."/".."), or null/false meaning the default name (normalised to null). */
+const fileNameOrDefault: Leaf = (v, where, problems) => {
+	if (v === null || v === false) return { ok: true, value: null };
+	if (typeof v === "string" && (v === "" || isBareFileName(v))) return { ok: true, value: v || null };
+	if (typeof v === "string") {
+		problems.push(`${where}: expected a bare filename (no path separator, not "." or "..") — using the default (OBJECTIVE.md)`);
+		return { ok: false };
+	}
+	problems.push(`${where}: expected a filename, null or false, got ${kind(v)} — using the default (OBJECTIVE.md)`);
 	return { ok: false };
 };
 
@@ -199,7 +212,7 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	notify: { enabled: bool, headless: bool },
 	journal: { enabled: bool, path: pathOrNull },
 	handoff: { enabled: bool, path: pathOrNull, staleAfterDays: positiveNumber },
-	objective: { enabled: bool, path: pathOrNull, projectFile: pathOrNull },
+	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
 	receipts: { enabled: bool, dir: pathOrNull },
 };
 
@@ -272,8 +285,13 @@ const gateLeaves = (b: Block | undefined): GateLeaves => ({
 // G.lastValidUserGate: keyed by user config path (so a HOME change is a fresh state)
 // G.lastValidProjectGate: keyed by project config path
 
+/**
+ * The gate's STOP reason — shown to the model as the block reason and in the UI, so both
+ * interpolated fields are display text: the file via displayPath(), the problem via
+ * displayText() (a JSON parse message quotes raw file bytes; a path can hold a newline).
+ */
 export const gateStopReason = (file: string, problem: string, scope: "user" | "project" = "user") =>
-	`${scope} nana-pack.json gate block is malformed — repair it (${file}:${problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, "")})`;
+	`${scope} nana-pack.json gate block is malformed — repair it (${displayPath(file)}:${displayText(problem.replace(/ — (using the default|using the defaults|dropped|file ignored)$/, ""))})`;
 
 // ---------------------------------------------------------------- nana-trust
 
@@ -360,6 +378,9 @@ export function isNanaTrusted(ctx: ConfigContext): boolean {
 
 // ---------------------------------------------------------------- diagnostics
 
+/** The UI text of one config diagnostic: both fields display text. Exported for the probe tests. */
+export const configNotice = (file: string, problem: string): string => `nana-pack: ${displayPath(file)}: ${displayText(problem)}`;
+
 function sessionKey(ctx: any): string {
 	try {
 		return String(ctx?.sessionManager?.getSessionId?.() ?? "");
@@ -368,7 +389,12 @@ function sessionKey(ctx: any): string {
 	}
 }
 
-/** Once per session per (file, problem): a journal line, and one UI warning when a UI exists. */
+/**
+ * Once per session per (file, problem): a journal line, and one UI warning when a UI exists.
+ * The journal keeps the raw fields (JSON-encoded, one line per entry); the UI warning is
+ * display text — a repo path may hold a newline, a problem may quote raw file bytes — so
+ * no attacker-chosen text can start a line of its own there.
+ */
 function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, problem: string): void {
 	try {
 		const key = `${sessionKey(ctx)}\0${event}\0${file}\0${problem}`;
@@ -377,7 +403,7 @@ function surface(ctx: any, cfg: NanaPackConfig, event: string, file: string, pro
 		// Diagnostics are not event journaling: written even when journal.enabled is
 		// false (a malformed journal.path already fell back to the default path).
 		appendJournalLine(cfg, { ts: new Date().toISOString(), event, file, problem, cwd: ctx?.cwd });
-		if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${file}: ${problem}`, "warning");
+		if (ctx?.hasUI) ctx.ui.notify(configNotice(file, problem), "warning");
 	} catch {
 		// observability must never break a handler
 	}
@@ -477,9 +503,9 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			// instructions of every session run inside it; a repo that could set
 			// enabled:false would silently suppress the owner's objective. Project trust
 			// says "run this repo's tooling", not "speak for the user's own priorities",
-			// so trusted projects are excluded too. projectFile is the same: the owner
-			// decides once, at user scope, that repos may carry their own OBJECTIVE.md —
-			// a repo must not be able to decide that for itself.
+			// so trusted projects are excluded too. projectFile is the same: it only RENAMES the
+			// file the (unconditional) walk-up looks for — no opt-in, never "off" — and a
+			// repo must not be able to rename it for itself.
 			objective: merge("objective", u.objective),
 			receipts: merge("receipts", u.receipts, project.receipts),
 		};
@@ -490,6 +516,19 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;
+}
+
+/**
+ * The objective block alone, user scope — exactly what loadConfig(ctx).objective yields,
+ * without the gate/project machinery or its journal side effects. For bin/nana-objective.mjs
+ * (the Claude Code hook's producer), so both runtimes read the same three settings.
+ */
+export function loadUserObjective(): NanaPackConfig["objective"] {
+	try {
+		return merge("objective", readConfigFile(userConfigPath()).blocks.objective);
+	} catch {
+		return structuredClone(DEFAULTS.objective);
+	}
 }
 
 export function compileRegexes(patterns: string[]): RegExp[] {
