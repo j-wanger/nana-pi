@@ -1,97 +1,149 @@
 /**
  * nana-gate — pre-tool permission gating.
  *
- * Gates bash/powershell commands matching dangerous patterns and any tool
- * touching protected paths. Interactive sessions confirm via UI (Block is the
- * default choice); headless runs BLOCK fail-closed. Handler errors also block
- * (pi's tool_call is fail-safe upstream). A running `gate ✓ N checked · M gated`
- * status shows the gate is live even when it is letting everything through.
+ * Gates bash/powershell commands matching dangerous forms and any tool touching protected
+ * paths. Interactive sessions confirm via UI (Block is the default choice); headless runs
+ * BLOCK fail-closed. Handler errors also block (pi's tool_call is fail-safe upstream). A
+ * running `gate ✓ N checked · M gated` status shows the gate is live even when it is letting
+ * everything through.
  *
- * This gate is advisory-by-load-path: anyone can run pi without it. Unattended
- * enforcement belongs to the container/sandbox layer, not here.
+ * Policy (L2, 2026-09-28): the gate policy adopted at `session_start` (startup / new / resume /
+ * fork / reload — lazily on the first tool_call if none fired) is the session's baseline. A
+ * config change mid-session can TIGHTEN it at once (extra/protected patterns added, allow
+ * patterns removed, a stop) but never LOOSEN it: loosening applies at the next session_start
+ * and is journaled `gate_policy_widened`. Allow patterns exempt one command segment, never a
+ * compound (lib/gate-shell.ts), and never the FLOOR: pipe to a stdin-reading shell/interpreter,
+ * `rm -r` on / or ~ (any lexically equal spelling), mkfs, `dd of=/dev/`, `diskutil erase*`,
+ * Format-Volume (also behind sudo/doas/env/nice/time), and every policy file (lib/gate-paths.ts).
+ * An allow pattern matching the empty string is rejected with a warning.
+ *
+ * Policy files are caught via edit/write (resolved path) and via targets a command names
+ * LITERALLY. NOT caught: shell-computed paths — relative after `cd`, escapes, globs, variables,
+ * a symlink created in the same command, `cd … | xargs tee`, script files, interpreter
+ * string-building. GATE loosening from such a write waits for session_start; the file's other
+ * blocks, incl. postEdit.commands, apply live — so it can run code in the SAME session through
+ * post-edit. The sandbox/container layer closes that, not more patterns.
+ *
+ * This gate is advisory-by-load-path: anyone can run pi without it, a later extension can
+ * mutate input after it, and it reads command TEXT — not a shell security boundary.
+ * Unattended enforcement belongs to the container/sandbox layer, not here.
  */
 
-import * as os from "node:os";
+import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { compileRegexes, loadConfig } from "../lib/config.ts";
-
-const DANGEROUS: RegExp[] = [
-	/\brm\s+-[a-z]*r[a-z]*f/i, // rm -rf, -Rf, -r ... -f combined short flags
-	/\brm\s+-[a-z]*f[a-z]*r/i, // rm -fr
-	/\brm\s+.*(--recursive|--force|--no-preserve-root)/i,
-	/\bsudo\b/,
-	/\bgit\s+push\b[^|;&]*(\s--force\b|\s-f\b)/,
-	/\bgit\s+reset\s+--hard/,
-	/\bgit\s+clean\b[^|;&]*\s-[a-z]*f/i,
-	/\b(chmod|chown)\b[^|;&]*\b777\b/,
-	/\bdd\b[^|;&]*\bof=\/dev\//,
-	/\bmkfs\b/,
-	/\b(shutdown|reboot|halt)\b/,
-	/Remove-Item\b[^|;&]*(-Recurse|-Force)/i,
-	/\b(rd|rmdir)\b[^|;&]*\s\/s\b/i, // cmd.exe: rd /s /q
-	/\b(del|erase)\b[^|;&]*\s\/[fsq]\b/i, // cmd.exe: del /f /s /q (+ its erase alias)
-	/\bformat\s+[a-z]:(\s|$)/i, // disk format (colon guard keeps `ruff format c:\…` safe)
-];
+import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
+import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
+import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
 	/\.pi[/\\]agent[/\\]settings\.json/i,
-	// L1 (2026-09-28): the gate's own policy and pi's trust store are trust EVIDENCE for
-	// project-scope config; a tool write to either could forge a wider policy for the next
-	// process (sol L1 r2). L2 adds the bash/PowerShell redirection forms and segment rules.
 	/\.pi[/\\]agent[/\\]trust\.json/i,
 	/\.pi[/\\](agent[/\\])?nana-pack\.json/i,
 	/(^|[\s/\\"'])\.ssh([/\\]|\b)/,
 	/(^|[\s/\\"'])\.env(\.[\w-]+)?\b/,
+	/\.aws[/\\]credentials\b/i,
+	/(^|[\s/\\"'=])\.netrc\b/i,
+	/\.config[/\\]gh[/\\]hosts\.yml\b/i,
 ];
 
-// Protected-path checks run on the RESOLVED path, not the model's raw string:
-// `~/.pi/agent/../agent/trust.json` and `.pi/x/../nana-pack.json` both resolve onto a
-// policy file, and a raw-string regex misses them (sol L1 r3). Mirrors pi's own
-// `resolveToCwd` (dist/core/tools/path-utils.js) the same way nana-post-edit.ts does —
-// unicode spaces folded, leading `@` stripped, win32 shell paths converted, `~` expanded,
-// file:// converted — so the gate checks the file pi will actually open. Copied, not
-// imported: post-edit is another lane's file. L2 may factor both into one lib.
-const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
+// Bounds on user regex work: at most 200 patterns per list (lib/config.ts) and no exception for a
+// command over MAX_SUBJECT. A catastrophic regex the OWNER configured is not detected: it can
+// make the owner's own gate slow or hang (README "Bounded regex work").
+const MAX_SUBJECT = 64 * 1024;
 
-function normalizeWindowsShellPath(filePath: string): string {
-	if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
-	const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
-	if (!match) return filePath;
-	const suffix = match[2]?.replaceAll("/", "\\");
-	return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
-}
+type Policy = Omit<GateConfig, "stopReason"> & { stopReason: string | null };
+type Hit = { label: string; reason: string } | null;
 
-function normalizeToolPath(input: string): string {
-	let normalized = input.replace(UNICODE_SPACES, " ");
-	if (normalized.startsWith("@")) normalized = normalized.slice(1);
-	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
-	const home = os.homedir();
-	if (normalized === "~") return home;
-	if (normalized.startsWith("~/") || (process.platform === "win32" && normalized.startsWith("~\\"))) {
-		return path.join(home, normalized.slice(2));
-	}
-	if (/^file:\/\//.test(normalized)) {
-		try {
-			return fileURLToPath(normalized);
-		} catch {
-			return normalized; // a malformed file:// URL must never throw out of the gate
-		}
-	}
-	return normalized;
-}
-
-// Never throws: a resolution failure degrades to the raw subject, which is still matched.
-function resolveToolPath(filePath: string, cwd: string): string {
+const uniq = (a: string[]) => [...new Set(Array.isArray(a) ? a : [])];
+const matchesEmpty = (p: string) => {
 	try {
-		const normalized = normalizeToolPath(filePath);
-		const base = normalizeToolPath(cwd || ".");
-		return path.isAbsolute(normalized) ? path.resolve(normalized) : path.resolve(base, normalized);
+		return new RegExp(p, "i").test("");
 	} catch {
-		return filePath;
+		return false;
 	}
+};
+
+// Last policy in force (adopted at session_start, ratcheted by live tightening), per cwd,
+// process-wide — only to journal widening at the next session_start.
+const ADOPTED: Map<string, Policy> = ((globalThis as any)[Symbol.for("nana-pack.gate.adopted")] ??= new Map());
+
+/**
+ * Live config may only tighten the session baseline. The STOP is live in both directions: a
+ * repaired file clears it at once (L1's contract) — but a baseline adopted while stopped holds
+ * no allow patterns, so the repaired file's exceptions still wait for the next session_start.
+ */
+function tighten(base: Policy, live: Policy): Policy {
+	const liveAllow = new Set(live.allowPatterns);
+	return {
+		stopReason: live.stopReason,
+		extraPatterns: uniq([...base.extraPatterns, ...live.extraPatterns]),
+		protectedPaths: uniq([...base.protectedPaths, ...live.protectedPaths]),
+		allowPatterns: base.allowPatterns.filter((p) => liveAllow.has(p)),
+	};
+}
+
+function widening(prev: Policy, next: Policy): Record<string, unknown> | null {
+	const w = {
+		allowAdded: next.allowPatterns.filter((p) => !prev.allowPatterns.includes(p)),
+		extraRemoved: prev.extraPatterns.filter((p) => !next.extraPatterns.includes(p)),
+		protectedRemoved: prev.protectedPaths.filter((p) => !next.protectedPaths.includes(p)),
+		stopCleared: !!prev.stopReason && !next.stopReason,
+	};
+	return w.allowAdded.length || w.extraRemoved.length || w.protectedRemoved.length || w.stopCleared ? w : null;
+}
+
+function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
+	try {
+		// A security event, like config diagnostics: written even when journal.enabled is false.
+		fs.appendFileSync(journalFile(cfg), `${JSON.stringify({ ts: new Date().toISOString(), ...entry })}\n`);
+	} catch {
+		// best-effort
+	}
+}
+
+function commandHit(command: string, gate: Policy, cwd: string): Hit {
+	const policy = commandPolicyHit(command, cwd);
+	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
+	const split = splitCommand(command);
+	const segments = split.segments;
+	const segmentable = split.segmentable && command.length <= MAX_SUBJECT;
+	const det = segmentable ? segments : [...segments, ...detectionSegments(command)];
+	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
+	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
+	const allow = compileRegexes(gate.allowPatterns);
+	const extra = compileRegexes(gate.extraPatterns);
+	const prot = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)];
+	const segHit = (s: { text: string }, d: Danger | null | undefined): Hit => {
+		if (d) return { label: "dangerous command", reason: d.reason };
+		const dq = dequote(s.text);
+		const e = extra.find((r) => r.test(s.text) || r.test(dq));
+		if (e) return { label: "dangerous command", reason: String(e) };
+		const dqKeep = dequote(s.text, false);
+		const p = prot.find((r) => r.test(s.text) || r.test(dqKeep));
+		return p ? { label: "protected path", reason: String(p) } : null;
+	};
+	for (const s of det) {
+		const h = segHit(s, dangers.get(s));
+		// An exception applies only to a whole segment of a segmentable command.
+		if (h && !(segmentable && allow.some((r) => r.test(s.text)))) return h;
+	}
+	// A configured pattern that only matches ACROSS segments is never exempt.
+	for (const r of [...extra, ...prot]) {
+		if (r.test(command) && !det.some((s) => r.test(s.text)))
+			return { label: extra.includes(r) ? "dangerous command" : "protected path", reason: String(r) };
+	}
+	return null;
+}
+
+function pathHit(subject: string, gate: Policy, cwd: string): Hit {
+	const cands = pathCandidates(subject, cwd);
+	const policy = policyFileHit(cands);
+	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
+	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
+	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
+	return p ? { label: "protected path", reason: String(p) } : null;
 }
 
 function truncate(s: string, n: number): string {
@@ -106,6 +158,8 @@ export default function (pi: ExtensionAPI) {
 	// the running tally is the happy-path signal.
 	let checked = 0;
 	let gated = 0;
+	const baseline = new Map<string, Policy>(); // session baseline, per cwd
+	const warned = new Set<string>();
 	const publishStatus = (ctx: { hasUI?: boolean; ui?: any }) => {
 		// tool_call handler errors BLOCK the tool, so observability is wrapped:
 		// no status update may ever decide whether a command runs.
@@ -117,9 +171,52 @@ export default function (pi: ExtensionAPI) {
 		}
 	};
 
-	pi.on("tool_call", async (event, ctx) => {
+	/** The config's gate policy, with empty-matching allow patterns rejected (and warned about). */
+	const livePolicy = (ctx: any): { cfg: NanaPackConfig; gate: Policy } => {
 		const cfg = loadConfig(ctx);
+		const g = cfg.gate;
+		const allowPatterns = uniq(g.allowPatterns).filter((p) => {
+			if (!matchesEmpty(p)) return true;
+			if (!warned.has(p)) {
+				warned.add(p);
+				const problem = `gate.allowPatterns ${JSON.stringify(p)} matches the empty string (it would exempt everything) — rejected`;
+				journal(cfg, { event: "config_invalid", file: "nana-pack.json", problem, cwd: ctx?.cwd });
+				try {
+					if (ctx?.hasUI) ctx.ui.notify(`nana-pack: ${problem}`, "warning");
+				} catch {
+					// observability only
+				}
+			}
+			return false;
+		});
+		return {
+			cfg,
+			gate: {
+				stopReason: g.stopReason,
+				allowPatterns,
+				extraPatterns: uniq(g.extraPatterns),
+				protectedPaths: uniq(g.protectedPaths),
+			},
+		};
+	};
+	const cwdOf = (ctx: any) => path.resolve(String(ctx?.cwd ?? "."));
 
+	pi.on("session_start", async (event, ctx) => {
+		try {
+			await primeNanaTrust(ctx);
+			const { cfg, gate } = livePolicy(ctx);
+			const k = cwdOf(ctx);
+			const prev = baseline.get(k) ?? ADOPTED.get(k);
+			const w = prev ? widening(prev, gate) : null;
+			if (w) journal(cfg, { event: "gate_policy_widened", reason: (event as any)?.reason, cwd: ctx.cwd, ...w });
+			ADOPTED.set(k, gate);
+			baseline.set(k, gate);
+		} catch {
+			// the first tool_call initialises lazily
+		}
+	});
+
+	pi.on("tool_call", async (event, ctx) => {
 		let subject: string;
 		let isCommand: boolean;
 		if (event.toolName === "bash" || event.toolName === "powershell") {
@@ -133,42 +230,44 @@ export default function (pi: ExtensionAPI) {
 		}
 		checked += 1;
 
+		const { gate: live } = livePolicy(ctx);
+		const k = cwdOf(ctx);
+		let base = baseline.get(k);
+		if (!base) {
+			base = live; // no session_start fired (bare harness): adopt lazily
+			baseline.set(k, base);
+			if (!ADOPTED.has(k)) ADOPTED.set(k, base);
+		}
+		const gate = tighten(base, live);
+		// Ratchet: a tightening seen once holds for the session (undoing it is a loosening).
+		baseline.set(k, { ...gate, stopReason: null });
+		ADOPTED.set(k, { ...gate, stopReason: null });
+
 		// Malformed user (or nana-trusted project) gate block and no valid policy of
-		// that file loaded in this process
-		// (lib/config.ts): stop conservatively — every gated tool class is blocked,
-		// interactive or not, until the owner repairs the file.
-		if (cfg.gate.stopReason) {
+		// that file loaded in this process (lib/config.ts): stop conservatively — every gated tool class is blocked, interactive or not.
+		if (gate.stopReason) {
 			gated += 1;
 			publishStatus(ctx);
-			return { block: true, reason: `nana-gate: ${cfg.gate.stopReason}` };
+			return { block: true, reason: `nana-gate: ${gate.stopReason}` };
 		}
 
-		if (compileRegexes(cfg.gate.allowPatterns).some((r) => r.test(subject))) {
-			publishStatus(ctx);
-			return undefined;
+		const cwd = String((ctx as any).cwd ?? "");
+		let hit: Hit;
+		try {
+			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
+		} catch {
+			hit = { label: "unanalysable call", reason: "gate analysis failed" };
 		}
-
-		const dangerousHit = isCommand
-			? [...DANGEROUS, ...compileRegexes(cfg.gate.extraPatterns)].find((r) => r.test(subject))
-			: undefined;
-		// Match the raw subject AND the resolved path: raw keeps every documented
-		// pattern working on relative forms, resolved closes `..` traversal (sol L1 r3).
-		const pathSubjects = isCommand ? [subject] : [subject, resolveToolPath(subject, String((ctx as any).cwd ?? ""))];
-		const protectedHit = [...PROTECTED_PATHS, ...compileRegexes(cfg.gate.protectedPaths)].find((r) =>
-			pathSubjects.some((p) => r.test(p)),
-		);
-		const hit = dangerousHit ?? protectedHit;
 		if (hit) gated += 1;
 		publishStatus(ctx);
 		if (!hit) return undefined;
 
-		const label = dangerousHit ? "dangerous command" : "protected path";
 		if (!ctx.hasUI) {
-			return { block: true, reason: `nana-gate: ${label} blocked (headless fail-closed): ${hit}` };
+			return { block: true, reason: `nana-gate: ${hit.label} blocked (headless fail-closed): ${hit.reason}` };
 		}
 
 		const choice = await ctx.ui.select(
-			`nana-gate — ${label} (${hit}) in ${event.toolName}:\n\n  ${truncate(subject, 400)}\n\nAllow?`,
+			`nana-gate — ${hit.label} (${hit.reason}) in ${event.toolName}:\n\n  ${truncate(subject, 400)}\n\nAllow?`,
 			["Block", "Allow once"],
 		);
 		if (choice !== "Allow once") {

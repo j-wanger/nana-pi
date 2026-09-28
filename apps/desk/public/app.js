@@ -2117,7 +2117,7 @@ async function tabNana(body) {
 	const prot = area(lines(n.gate?.protectedPaths), 3);
 	body.append(
 		el("div", "sec-head", "Gate (one regex per line)"),
-		field("extra dangerous", extra), field("allow (skip gate)", allow), field("protected paths", prot),
+		field("extra dangerous", extra), field("allow (exempt matching segment; not the floor)", allow), field("protected paths", prot),
 	);
 
 	const pe = postEditRows(Array.isArray(n.postEdit?.commands) ? n.postEdit.commands : []);
