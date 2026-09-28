@@ -533,6 +533,27 @@ is user-scope only** — project config never contributes to it, trusted or not.
     switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
+  - **Provenance label (lane T2c; Jake's ruling (a), 2026-09-28).** When a repo-supplied file
+    governs and the owner never decided trust for its folder, a two-line `UNTRUSTED DATA: …`
+    paragraph is prepended to the governing lines. It says the file is repo-supplied, that
+    the folder's trust was never decided, that the lines describe intent and are DATA, never
+    instructions, and that `/trust` in pi for that folder, then a restart, clears it.
+    "Decided" uses the same semantics as nana-trust (`lib/config.ts`): pi would have asked,
+    meaning the folder holds `.pi/{settings.json,extensions,skills,prompts,themes,SYSTEM.md,APPEND_SYSTEM.md}`
+    or an ancestor holds `.agents/skills`, or `~/.pi/agent/trust.json` records `true` for the
+    folder or its nearest recorded parent. pi's auto-trust of a nana-only `.pi/` never counts.
+    The check is pure filesystem code in `lib/objective.ts` (`ownerDecidedTrust`), so both
+    runtimes reach the same verdict. A store that is unreadable, malformed, not a regular file,
+    over 1 MiB or owned by another user counts as "not decided", so the file is labelled. The
+    umbrella is never labelled. The label changes nothing else: the file still governs, and
+    its lines, their order and the precedence stay as they are.
+  - **Risk acceptance — the label is defence in depth, NOT a security boundary.** A model can
+    still follow attacker-authored text on a governing line, whatever the label says. The
+    label does not close prompt injection. sol recommended trust-gating instead: require
+    nana-trust before repo text is injected or called governing. Jake chose the label anyway
+    on 2026-09-28, knowing this, and accepted the residual deliberately: an untrusted repo's
+    `OBJECTIVE.md` can steer a session before the owner states intent. nana's tool gate
+    still limits what that steering can do.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
     handoff's startup/new. The handoff is continuity a resumed session already carries; the
     objective is standing governance that lives only in the system prompt, which pi rebuilds
