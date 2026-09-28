@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Continuity property: the handoff artifact survives tidy agents. Compaction
 // must (a) write .pi/handoff.md, (b) git-ignore exactly that file (appending,
 // never clobbering, an existing .pi/.gitignore — .pi/ itself stays committable),
@@ -16,7 +24,7 @@ ext({ on: (name, fn) => { handlers[name] = fn; } });
 
 const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-"));
 fs.mkdirSync(path.join(td, ".pi"));
-fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false } }));
+fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 fs.writeFileSync(path.join(td, ".pi", ".gitignore"), "scratch/\n");
 const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 
@@ -42,7 +50,7 @@ ext({ on: (name, fn) => { handlers2[name] = fn; } });
 const td2 = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-custom-"));
 const custom = path.join(td2, "STATE", "HANDOFF.md");
 fs.mkdirSync(path.join(td2, ".pi"));
-fs.writeFileSync(path.join(td2, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, handoff: { path: custom } }));
+fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff: { path: custom } }));
 const ctx2 = { cwd: td2, hasUI: false, isProjectTrusted: () => true };
 await handlers2.session_compact({ compactionEntry: { summary: "custom-path state" }, reason: "manual" }, ctx2);
 check("custom path: handoff written", fs.readFileSync(custom, "utf-8").includes("custom-path state"));

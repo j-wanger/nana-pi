@@ -109,6 +109,22 @@ User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project w
 read live on every event — edits apply without restarting). One exception: **`objective`
 is user-scope only** — project config never contributes to it, trusted or not.
 
+- **Project config needs a real trust decision.** *Changed:* it used to be honored whenever
+  pi reported the project trusted — including pi's silent auto-trust of a folder whose `.pi/`
+  holds only nana files. Now it is honored only when pi reports the project trusted **and**
+  trust was actually decided: pi asked (the folder has `.pi/settings.json`, `extensions`,
+  `skills`, `prompts`, `themes`, `SYSTEM.md`, `APPEND_SYSTEM.md`, or an ancestor
+  `.agents/skills`), or you saved trust for the folder (or a parent) with **`/trust`** in pi
+  (`~/.pi/agent/trust.json`), then restarted. An ignored project config is announced once per
+  session (a warning and a `config_project_ignored` journal line), never silent.
+- **Malformed config never throws and never widens the gate.** A bad leaf falls back to its
+  default, a bad array entry is dropped, an unparsable file contributes nothing; each problem
+  is reported once per session (a warning and a `config_invalid` journal line). The **user
+  `gate` block** is the exception: every valid load saves it to
+  `~/.pi/agent/nana-pack.gate.validated.json`, and a malformed gate block enforces that last
+  validated policy instead of the defaults. With no validated policy, the gate **blocks every
+  bash / powershell / edit / write call** ("repair nana-pack.json") until the file is fixed.
+
 ```json
 {
 	"gate": {

@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Security property: the handoff artifact is never read or written THROUGH a
 // symlink. A repo can commit `.pi/handoff.md` as a link to e.g. ~/.ssh/id_rsa —
 // pickup would paste the target into the next session's system prompt, and the
@@ -15,7 +23,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 function workspace() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-link-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false } }));
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
@@ -79,7 +87,7 @@ function workspace() {
 	const outside = path.join(td, "outside");
 	fs.mkdirSync(ws);
 	fs.mkdirSync(outside);
-	fs.writeFileSync(path.join(outside, "nana-pack.json"), JSON.stringify({ journal: { enabled: false } }));
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	fs.writeFileSync(path.join(outside, "handoff.md"), "EXTERNAL SECRET\n");
 	fs.symlinkSync(outside, path.join(ws, ".pi")); // the whole .pi directory is the link
 	const handlers = {};
@@ -108,7 +116,7 @@ function workspace() {
 	const real = path.join(td, "real");
 	const link = path.join(td, "link"); // the workspace root itself is reached via a link
 	fs.mkdirSync(path.join(real, ".pi"), { recursive: true });
-	fs.writeFileSync(path.join(real, ".pi", "nana-pack.json"), JSON.stringify({ journal: { enabled: false } }));
+	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	fs.symlinkSync(real, link);
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });

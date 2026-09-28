@@ -78,6 +78,15 @@ export default function (pi: ExtensionAPI) {
 		}
 		checked += 1;
 
+		// Malformed user gate block with no validated policy to fall back to
+		// (lib/config.ts): stop conservatively — every gated tool class is blocked,
+		// interactive or not, until the owner repairs the file.
+		if (cfg.gate.stopReason) {
+			gated += 1;
+			publishStatus(ctx);
+			return { block: true, reason: `nana-gate: ${cfg.gate.stopReason}` };
+		}
+
 		if (compileRegexes(cfg.gate.allowPatterns).some((r) => r.test(subject))) {
 			publishStatus(ctx);
 			return undefined;

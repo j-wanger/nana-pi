@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Silence property: when the OS notifier fails, the pack must SAY SO instead of
 // dropping the notification. The Windows toast path was the live case — a
 // PowerShell/WinRT failure was swallowed by an empty execFile callback, and the
@@ -37,7 +45,7 @@ function setup(opts = {}) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "notify-fallback-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	const journalPath = path.join(td, "journal.jsonl");
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: journalPath },
 		// pinned explicitly so a user-level ~/.pi/agent/nana-pack.json cannot mute this
 		notify: { enabled: true, headless: true },
@@ -180,7 +188,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "notify-off-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	const journalPath = path.join(td, "journal.jsonl");
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: journalPath },
 		notify: { enabled: false, headless: true },
 	}));

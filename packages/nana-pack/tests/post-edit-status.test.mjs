@@ -2,6 +2,14 @@ import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+// L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
+// decision), so this file's config lives at USER scope under an isolated HOME
+// (os.homedir() reads HOME on posix, USERPROFILE on win32).
+const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+process.env.HOME = NANA_HOME;
+process.env.USERPROFILE = NANA_HOME;
+const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
+fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 import { pathToFileURL } from "node:url";
 // Visibility property: post-edit reports EVERY run through ctx.ui.setStatus, not
 // only the failing ones — a hook that is working must not look identical to a
@@ -20,7 +28,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 function setup(commands, opts = {}) {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-status-"));
 	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: false },
 		receipts: { enabled: false },
 		postEdit: { commands },
@@ -196,7 +204,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 
 		const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-lock-"));
 		fs.mkdirSync(path.join(td, ".pi"));
-		fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({
+		fs.writeFileSync(USER_CFG, JSON.stringify({
 			journal: { enabled: false },
 			receipts: { enabled: false },
 			postEdit: { commands: [{ match: "\\.txt$", run: PASS_CMD }] },
