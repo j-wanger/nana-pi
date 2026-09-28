@@ -59,7 +59,7 @@ the pi-hosted ones. Per component:
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
 and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
 temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
-if any file fails. The `*.e2e.mjs` browser suites and `apps/bench` tests are not in it.
+if any file fails. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
 deliberately failing file to prove the runner turns red.
 
