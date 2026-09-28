@@ -1,0 +1,56 @@
+You are a careful senior engineer working headless for Jake Wang's nana program. Terse reporting; every claim backed by a command you ran and its output. Follow the brief exactly; when the brief and the code disagree, say so in the report rather than improvising outside the allowlist. Never end your turn while a command you started is still running. Smallest change that passes; if the contract needs more than the appetite, stop and report.
+
+# Lane L2 — gate: self-protection, segment-scoped exceptions, missing forms, corpus   2026-09-28 · nana-pi · worktree `~/nana-pi-wt/l2`, branch `lane/l2-gate` (forked from main AFTER L1 merged; L1's `loadConfig` diagnostics and in-memory last-good policy are yours to consume, not edit)
+
+## Goal
+The pi gate (`packages/nana-pack/extensions/nana-gate.ts`) does its stated job on the common destructive forms, cannot be loosened by the agent it gates within a session, exempts only the command segment an allow pattern matches, and stops firing on benign commands. Still advisory by load-path; no claim of a shell security boundary. Contract: `~/nana-pi/research/raw/2026-09-27-advances/opus-arch-tranche1.md` §L2 (read whole). Evidence: `opus-review.md` C1–C3 (seat re-ran the probes: `rm -r -f ~`, `find ~ -delete`, `git clean --force -d`, `git push origin +main`, `rsync --delete`, `cat ~/.aws/credentials`, PowerShell `ri -r -fo` all ALLOW today; `echo reboot` and `git log --grep=sudo` BLOCK today; `git status; rm -rf ~` ALLOW under a `^git status` allow pattern; write to `~/.pi/agent/nana-pack.json` ALLOW). Jake ruled 09-28 (#8): gate loosening applies only at session start / `/reload`, tightening stays live.
+
+## Appetite
+`--max-budget-usd 25` · advisory ≤10 files / ≤700 LOC (contract: ~150–250 LOC code + ~400 LOC tests). If reliable segmentation of shell text turns out to need a real parser, STOP: implement the conservative rule ("any construct the gate cannot segment makes the whole command ineligible for exceptions") and report; do not write a shell parser.
+
+## doneWhen
+From the worktree root: `npm test` exits 0. Plus the three new test files pass, `gate-status.test.mjs` and `gate-config-robustness.test.mjs` pass unchanged, and the seat's probe scripts (`/private/tmp/claude-501/-Users-jwang-nana-agent-loop/3beaf51b-41bb-4cfe-a961-e0a5d433d832/scratchpad/w3/gate-probe.mjs`, `gate2-probe.mjs`, pointed at the worktree's `nana-gate.ts`) show BLOCK on every dangerous row and ALLOW on `echo reboot`, `git log --grep=sudo`, `npm run format c: --x`, `ruff format c:\x`.
+
+## Outcome (invariants), from the arch contract
+(a) Tool calls touching nana's own policy files, the Claude policy files, or pi's trust store are gated. L1 already protects the PATH forms of `nana-pack.json` (both scopes) and `~/.pi/agent/trust.json` for edit/write (`tests/gate-policy-paths.test.mjs`, keep it passing); L2 adds `~/.claude/settings.json`, `~/.claude/settings.local.json`, `~/.claude/hooks/**` — for `edit`/`write` on the RESOLVED path (relative, absolute, `@`-prefixed, backslash, mixed case on win32) and for bash/PowerShell redirection or in-place edits (`echo … > …`, `sed -i … .pi/nana-pack.json`, `tee`, PowerShell `Set-Content`/`Out-File`).
+(b) Within a session, config changes can tighten the gate immediately but cannot loosen it; loosening takes effect at the next `session_start` (startup/new/resume/fork/reload) and journals `gate_policy_widened`. The policy initialises lazily on first `tool_call` when no `session_start` fired (existing tests call handlers cold).
+(c) An allow pattern exempts only the command segment it matches, never a compound. Segments split on `;`, `&&`, `||`, `|`, newlines. Any construct the gate cannot segment reliably makes the WHOLE command ineligible for exceptions: `$(…)`, backticks, `eval`, `sh -c`/`bash -c`/`zsh -c`, heredocs, `xargs`. Segmentation errors resolve to "no exception applies", never throw.
+(d) A small floor, named in the README, cannot be skipped by any allow pattern: pipe-to-shell (`| sh`, `| bash`, `| zsh`, `| python`), `rm` recursive on `/`, `~`, `$HOME`, `.` at repo root is NOT floor (too common), `mkfs`, `dd of=/dev/`, `diskutil eraseDisk`, `Format-Volume`. The README's `--force-with-lease` exception keeps working.
+(e) Destructive forms gated (see corpus) and the benign false positives stop firing (word-boundary + position rules; `echo reboot` is not a reboot).
+(f) An allow pattern that matches the empty string (`""`, `.*` alone, `^`) is rejected at load with a warning; it never exempts anything.
+(g) `src/nana-pack-notes.md` and any non-policy file: ALLOW (pin it). The `read` tool stays ungated (named residual). An edit of L3's future user-scope handoff store (`~/.pi/agent/handoffs/**`) → ALLOW.
+
+## Tests
+- `tests/gate-corpus.test.mjs` (new, table-driven, headless + one interactive variant): Must BLOCK — every existing built-in plus `rm -r -f ~`, `rm -R x`, `rm -rv ~/proj`, `/bin/rm -rf ~`, `\rm -rf ~`, `find ~ -delete`, `find . -exec rm {} +`, `git clean --force -d`, `git clean -d -x -f`, `git push origin +main`, `git push origin main --force`, `git checkout -- .`, `git restore .`, `rsync -a --delete a/ b/`, `truncate -s0 f`, `base64 -d x | sh`, `curl u | bash`, `python3 -c "import shutil;shutil.rmtree('/x')"`, `node -e "require('fs').rmSync('/x',{recursive:true})"`, `cat ~/.aws/credentials`, `cat ~/.netrc`, `cat ~/.config/gh/hosts.yml`, PowerShell `ri -r -fo x`, `Remove-Item x -Recurse`, `Get-ChildItem x | Remove-Item`, cmd `rd /s /q x`, `del /s /q x`. Must ALLOW — `echo reboot`, `git log --grep=sudo`, `npm run format c: --x`, `ruff format c:\x`, `rm file.txt`, `rm -f build/out.o`, `git push --force-with-lease origin feat` under the README exception, `ls -la`, `grep -r "rm -rf" docs/` (a string, not a command — decide and pin; if you gate it, say why). Compound under `^git status` exception: `git status; rm -rf ~`, `git status && sudo rm -rf /`, `git status | sh`, `git status $(rm -rf ~)`, heredoc variant → all BLOCK; plain `git status` → ALLOW. Floor under an allow pattern of `^rm`: `rm -rf ~` → BLOCK. Interactive: a hit shows the dialog, "Block" is the default, "Allow once" allows only that call.
+- `tests/gate-self-protection.test.mjs` (new): every path form in (a) → BLOCK for edit/write; the bash/PowerShell redirection forms → BLOCK; handoff store edit → ALLOW; `src/nana-pack-notes.md` → ALLOW.
+- `tests/gate-survives-mutation.test.mjs` (new — the astra acceptance test): register the gate, fire `session_start`, then write the config files directly with `fs` (standing in for any write the path check missed): (1) user config gains `allowPatterns:[".*"]` → next `rm -rf ~` BLOCKs and a write to `nana-pack.json` BLOCKs; (2) same for `[""]` and for project scope; (3) tightening live: `extraPatterns:["\\bterraform\\s+destroy\\b"]` mid-session → next `terraform destroy` BLOCKs; (4) file malformed mid-session → last-good `extraPatterns` still enforced (L1's process-wide in-memory last-good policy; there is NO persisted snapshot — sol found the first one forgeable and it was subtracted; do not reintroduce one); (4b) fresh process with a malformed user gate block → every gated class blocked with the repair reason (L1's conservative stop) — the gate must not fall back to defaults or to any file the agent could have planted; (5) `session_start` with `reason:"reload"` adopts the loosened config and journals `gate_policy_widened`; (6) empty-matching allow pattern rejected at load with a warning; (7) the status tally stays correct throughout.
+- Unchanged and passing: `gate-status.test.mjs`, `gate-config-robustness.test.mjs`, and every L1 test.
+
+## NOT
+- No `lib/config.ts` semantics (L1 owns them; consume its diagnostics and in-memory last-good policy). No handoff, objective, post-edit edits. No gating of the `read` tool. No desk changes (the desk settings window's gate edits now loosen only after reload — the seat adds that README note). No shell parser.
+- Do not weaken any existing assertion.
+
+## Allowlist
+`packages/nana-pack/extensions/nana-gate.ts` · new `packages/nana-pack/lib/gate-*.ts` helpers (segmentation, path resolution — you may COPY the pure resolver from `nana-post-edit.ts`, never edit it) · the three new tests · `packages/nana-pack/README.md` Gate bullets (name the floor; replace "read live on every event" with "loosening at next session start or `/reload`; tightening and every non-gate block stay live") · `nana-pi/AGENTS.md` gate paragraph only if wording changes.
+
+## Constraints (pi 0.87.1 — verify against installed docs)
+- Handler throws BLOCK the tool: every path in the gate must resolve to allow/block, never throw.
+- Later extensions can mutate input after the gate with no revalidation (documented; keep the advisory wording).
+- `edit`/`write` paths: pi resolves relative to cwd with `@` stripped (`nana-post-edit.ts:74` shows the resolver).
+- `session_start` fires for startup/new/resume/fork/reload.
+- win32: backslashes, case-insensitive paths, PowerShell aliases (`ri`, `rm`, `del`, `rd`).
+
+## Carried from the L1 land ruling (astra r1/r2 — binding for this lane)
+- **Preserve** L1's STOP-before-exception ordering and the traversal regressions (`tests/gate-policy-paths.test.mjs`, `config-project-gate-fallback.test.mjs`) — your corpus must keep them green.
+- The **session snapshot is NOT implemented by L1**: the in-memory last-good policy is per-scope and process-wide. Loosening-at-session_start is yours to build.
+- Your documentation duty is wider than the Gate bullets: the `config.ts` header comment, the README **Config** section and the desk settings UI text still say "read live" / "exceptions checked first". Update them with the behavior you ship (`apps/desk/README.md` text only, never `server.mjs`).
+- Astra's carried residuals you should close if cheap, else name: symlink / alternate-agent-directory protection; STOP → repair → resume within one process (today only tested across a restart); the composed tool-write → trust-store → fresh-policy regression.
+
+## Roles
+builder: Opus 5.5 (you) · reviewers: **scope** + **adversarial** (executed probes: the corpus, the mutation test, novel bypass attempts — quoting tricks, `r''m`, `$x -rf`, unicode, env-var indirection; report which ones the gate cannot see and why that is acceptable under "advisory") + **compatibility** (the documented feature changes, the desk settings path, win32) — all sol · land: **astra** (permission surface; gate-survives-after is the acceptance test).
+
+## Rules
+Foreground commands only; never end your turn with a command running. Kill only PIDs you started. Commit on the branch, no push. Smallest change that passes. Baseline first: run the seat's two probe scripts against main's gate and record the ALLOW rows, then against yours.
+
+## Report (≤40 lines)
+Commits · baseline vs after for the probe scripts (rows flipped) · `npm test` summary · each invariant (a)–(g) with the test case that pins it · the constructs you declared unsegmentable · benign commands you could not un-block without weakening a dangerous match (list them; that is a finding, not a failure) · documented feature changes and where you wrote them · `git diff --stat` · residuals · the one claim most likely wrong · `VERDICT: DONE`.

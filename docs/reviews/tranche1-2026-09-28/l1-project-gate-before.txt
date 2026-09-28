@@ -1,0 +1,26 @@
+PASS fixture: pi agent dir is the isolated HOME 
+PASS 1: valid trusted project deny — terraform destroy BLOCKED 
+FAIL 1: corrupted + fresh process — terraform destroy still BLOCKED null
+FAIL 1: stop reason names the project file and the repair 
+FAIL 1: project stop blocks every gated class — bash null
+FAIL 1: project stop blocks every gated class — powershell null
+FAIL 1: project stop blocks every gated class — edit null
+FAIL 1: project stop blocks every gated class — write null
+PASS 1: corrupted mid-session — last valid project deny still enforced 
+PASS 1: corrupted mid-session — benign command allowed (last-good, not a stop) 
+PASS 1: repaired — deny enforced, benign allowed 
+FAIL 1: the project stop is journaled (config_gate_fallback on the project file) 
+PASS 2: valid project allowPatterns [] replaces the user exception — rm -rf /tmp/x BLOCKED 
+FAIL 2: corrupted + fresh process — user exception does NOT resurrect (BLOCKED) null
+FAIL 2: blocked by the project stop 
+PASS 2: control — no project file: user exception applies, no stop 
+PASS 3: valid project protectedPaths — write secrets/key.txt BLOCKED, src/a.ts allowed 
+FAIL 3: corrupted + fresh process — write secrets/key.txt still BLOCKED null
+FAIL 3: corrupted + fresh process — edit secrets/key.txt still BLOCKED null
+FAIL 3: blocked by the project stop 
+FAIL control: malformed gate leaf (string, not array) in a trusted project → stop {"ls":null}
+PASS control: malformed non-gate block in a trusted project → no stop 
+PASS control: untrusted corrupted project → ignored, no stop 
+PASS control: auto-trusted (undecided) corrupted project → ignored, no stop 
+PASS control: valid project gate keeps replace semantics (project [] replaces the user leaf) 
+PASS control: both malformed → the user stop wins 

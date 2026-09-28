@@ -1,0 +1,110 @@
+BLOCK  rm -rf /
+BLOCK  rm -r -f ~
+BLOCK  rm -R ~/x
+BLOCK  rm -r ~/proj
+BLOCK  rm -rv ~/proj
+BLOCK  /bin/rm -rf ~
+BLOCK  command rm -rf ~
+BLOCK  rm  -r  --  ~/proj
+BLOCK  r''m -rf ~
+BLOCK  x=rm; $x -rf ~
+BLOCK  \rm -rf ~
+BLOCK  rm -Rv ~/x
+BLOCK  find ~ -delete
+BLOCK  find . -exec rm {} +
+BLOCK  git clean -fdx
+BLOCK  git clean -xdf
+BLOCK  git clean --force -d
+BLOCK  git clean -d -x -f
+BLOCK  git push -f
+BLOCK  git push origin +main
+BLOCK  git push --force-with-lease
+BLOCK  git push origin main --force
+BLOCK  git reset --hard
+BLOCK  git checkout -- .
+BLOCK  git restore .
+BLOCK  git stash drop
+BLOCK  git branch -D main
+BLOCK  git filter-branch
+BLOCK  python3 -c "import shutil;shutil.rmtree('/Users/x')"
+BLOCK  node -e "require('fs').rmSync('/x',{recursive:true})"
+BLOCK  perl -e "system q(rm -rf ~)"
+BLOCK  echo cm0gLXJmIH4= | base64 -d | sh
+BLOCK  eval "$(echo rm -rf ~)"
+BLOCK  bash -c "rm -rf ~"
+BLOCK  rimraf ~/x
+BLOCK  rsync -a --delete empty/ ~/
+BLOCK  truncate -s0 ~/.zshrc
+BLOCK  mv ~ /dev/null
+ALLOW  > ~/.bashrc
+BLOCK  shred -u file
+BLOCK  chmod -R 777 /
+BLOCK  chmod 0777 x
+BLOCK  chmod a+rwx -R /
+BLOCK  dd if=/dev/zero of=/dev/disk2
+BLOCK  diskutil eraseDisk JHFS+ x disk2
+BLOCK  sudo rm x
+BLOCK  doas rm -rf /
+BLOCK  su -c "rm x"
+BLOCK  Remove-Item -Recurse C:\x
+BLOCK  ri -r -fo C:\x
+BLOCK  rm -r -fo C:\x
+BLOCK  del /s /q C:\x
+BLOCK  rd /s /q C:\x
+BLOCK  rmdir /S /Q C:\x
+BLOCK  Remove-Item C:\x -r
+BLOCK  Get-ChildItem C:\x | Remove-Item
+BLOCK  cmd /c "rd /s /q C:\x"
+BLOCK  Clear-Content x
+BLOCK  Format-Volume -DriveLetter D
+BLOCK  cat ~/.ssh/id_rsa
+BLOCK  cat ~/.env
+BLOCK  cat .env.local
+BLOCK  cat $HOME/.ssh/id_rsa
+BLOCK  cat ~/.pi/agent/auth.json
+BLOCK  cp ~/.pi/agent/auth.json /tmp/x
+BLOCK  cat ~/.aws/credentials
+BLOCK  cat ~/.config/gh/hosts.yml
+BLOCK  cat ~/.netrc
+BLOCK  cat ${HOME}/.s's'h/id_rsa
+BLOCK  cd ~ && cat .ssh/id_rsa
+BLOCK  cd ~/.ssh; cat id_rsa
+ALLOW  npm run format c: --x
+ALLOW  ruff format c:\x
+ALLOW  echo reboot
+ALLOW  git log --grep=sudo
+BLOCK  edit .env
+BLOCK  write .env
+BLOCK  edit src/.env
+BLOCK  write src/.env
+BLOCK  edit /Users/x/.ssh/config
+BLOCK  write /Users/x/.ssh/config
+BLOCK  edit .pi/agent/auth.json
+BLOCK  write .pi/agent/auth.json
+BLOCK  edit /Users/x/.pi/agent/settings.json
+BLOCK  write /Users/x/.pi/agent/settings.json
+ALLOW  edit .envrc
+ALLOW  write .envrc
+BLOCK  edit .env.production
+BLOCK  write .env.production
+BLOCK  edit /Users/x/.aws/credentials
+BLOCK  write /Users/x/.aws/credentials
+BLOCK  edit x/.ssh
+BLOCK  write x/.ssh
+ALLOW  edit ~/.bashrc
+ALLOW  write ~/.bashrc
+BLOCK  edit /Users/x/.claude/settings.json
+BLOCK  write /Users/x/.claude/settings.json
+BLOCK  edit /Users/x/.pi/agent/nana-pack.json
+BLOCK  write /Users/x/.pi/agent/nana-pack.json
+BLOCK  edit .pi/nana-pack.json
+BLOCK  write .pi/nana-pack.json
+BLOCK  edit /Users/x/.claude/hooks/nana-objective.sh
+BLOCK  write /Users/x/.claude/hooks/nana-objective.sh
+ALLOW  toolName=Bash
+ALLOW  toolName=shell
+ALLOW  toolName=exec
+ALLOW  toolName=multi_edit
+ALLOW  toolName=Write
+ALLOW  toolName=read
+ALLOW  write with file_path key

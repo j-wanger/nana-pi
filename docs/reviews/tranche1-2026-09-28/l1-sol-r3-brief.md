@@ -1,0 +1,7 @@
+# Review brief — lane L1 round 3 of 3 (gpt-5.6-sol) — final confirm; the seat lands with residuals after this
+
+Your r2 (`l1-sol-r2.md`) BLOCKed on one HIGH: `~/.pi/agent/trust.json` was not a protected path, so a tool `write` could forge trust evidence and a repo `.pi/nana-pack.json` would widen the gate after restart. Seat fold, commit `30b8748` on `~/nana-pi-wt/l1`: `PROTECTED_PATHS` in `extensions/nana-gate.ts` now covers `.pi/agent/trust.json` and `.pi/[agent/]nana-pack.json` (both scopes; edit/write on the path forms), pinned by `tests/gate-policy-paths.test.mjs` (30 cases incl. `@`-prefixed, backslash, mixed case, and ALLOW controls). Bash/PowerShell redirection forms and segment-scoped exceptions remain L2 (brief `l2-brief.md`), and a trust.json planted by a non-tool write (`python -c`) remains a documented residual equal to pi's own trust model (a planted trust.json also makes pi load project extensions). Clean diff vs main: `l1-r3.patch`.
+
+Seat-verified: `npm test` → 60 files, 2607 checks, exit 0.
+
+Judge only, ≤35 lines: (1) is the r2 HIGH FIXED for tool-path writes (probe `write`/`edit` on the path forms under a temp HOME)? (2) does the new protection break any legitimate flow (the desk settings window writes config OUTSIDE pi tools; `nana-setup project` seeds `.pi/nana-pack.json` outside pi; an interactive user can "Allow once")? (3) any NEW defect; (4) the residuals you would carry to the astra land ruling, each with its cost of error. End with `VERDICT: LAND` or `VERDICT: BLOCK`.

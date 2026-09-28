@@ -11,6 +11,14 @@
 ## Appetite        --max-budget-usd N · advisory ceiling: ≤F files / ≤L LOC changed
                    If the contract needs more than the appetite: STOP, commit what is
                    green, report what it would take. Never expand the scope to fit.
+                   **The stop must be cheap to take, or it never fires** (lane L2, 09-28:
+                   the worker blew through a 700-LOC ceiling to 1066 and finished anyway;
+                   the reviewer later judged the contract genuinely needed ~800-900, so the
+                   ceiling was wrong AND the stop still should have fired). Therefore: on
+                   crossing the ceiling the worker writes a one-paragraph CHECKPOINT to its
+                   report file naming what remains and what it would cost, then continues
+                   only if the remainder is mechanical. A checkpoint is a success, not a
+                   failure; the seat re-scopes from it.
 ## doneWhen        the exact command(s) that must pass, run from <dir>
 ## NOT             explicit out-of-scope list (the things a capable worker would be
                    tempted to also fix) — touching one is a scope defect, not initiative.

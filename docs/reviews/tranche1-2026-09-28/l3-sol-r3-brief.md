@@ -1,0 +1,11 @@
+# Review brief — lane L3 round 3 of 3 (gpt-5.6-sol), FINAL. After this the seat lands with residuals or implements; no further sol round.
+
+Your r2 (`l3-sol-r2.md`) BLOCKed with 2 HIGH + 1 MED on the compact path, plus the L5 seam. Fix round `ff0c6a1` (`l3-worker-r3.md`). Worktree `~/nana-pi-wt/l3`; clean diff vs main `l3-r3.patch`.
+
+Seat ruling applied: **a locator that does not resolve is worse than a long line — correctness beats the 300-char cap.** New `resolvablePath` picks the shortest of absolute / cwd-relative (only if inside the session cwd) / `~/…` (only if under the real home); any path containing a literal `~` is absolute; a cwd-relative path starting with `@` is absolute (pi strips `@`); the `…/<tail>` form is deleted; the path is never truncated. Over 300 chars the line drops the authority tail, then trims/drops the writer, then the age — and if the path alone exceeds 300 the pointer does too, documented.
+
+The worker verified each case by running the emitted path through the INSTALLED pi's own `resolveToCwd` and reading the file back: 446-char out-of-home path emitted whole (474-char pointer, over by design), 255-char basename (350, over by design), literal-`~` directory emitted absolute (237) with a control proving the old form resolved to a decoy, plus default store / in-project / long-home cases. The L5 seam is now `readHandoff` → `{kind:"missing"|"error"|"ok"}` with a distinct `handoff_missing` journal line.
+
+Seat-verified: `npm test` → 65 files, 2757 checks, exit 0. The worker's most-doubted claim (that pi's read tool bases on the session cwd) is CONFIRMED by the seat: `dist/core/tools/read.js:56` calls `resolveReadPathAsync(path, ctx?.cwd || cwd)`.
+
+Judge, ≤35 lines: (1) each r2 finding FIXED / PARTIAL / NOT FIXED / RULED with the line; (2) NEW defects — especially: can `resolvablePath` still emit something unresolvable (Unicode spaces, tab/CR/LF in a path, a path that is exactly the cwd, a symlinked cwd, a relative custom `handoff.path`)? does dropping the authority tail before the writer lose the provenance the invariant requires? is `handoff_missing` on every fresh session in an unadopted directory acceptable journal volume; (3) your final CARRY list for the astra land ruling, each priced by cost of error, including what L5 must not assume. End with `VERDICT: LAND` or `VERDICT: BLOCK`.
