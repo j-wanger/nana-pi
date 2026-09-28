@@ -35,6 +35,14 @@
                    diff --stat attached") · the one claim most likely wrong · VERDICT: DONE
 ```
 
+## 1b. If the brief tells a human to DO something, trace the action first (added 2026-09-28)
+
+Lane T2c produced a "the stated remedy is false" finding in **every** review round, four of them traceable to the seat's brief, and astra's land ruling named the cause: *"inadequate contract derivation, not four unforeseeable edge cases — the seat should have traced `/trust` through directory resolution, lookup, locking and writing before specifying its remedy."*
+
+**Rule.** Any brief that specifies user-facing remediation text, or any check whose meaning depends on another tool's behaviour, must first trace that tool's real code path end to end and record what it found in the brief: how it RESOLVES its paths (env overrides, tilde, relative, symlinks), what it READS, how it LOCKS, what it WRITES, and what it does on each failure. Cite file:line in the host's installed source. A remedy specified from the tool's documentation, or from memory, is an untested claim being handed to the owner as an instruction.
+
+**Cheap test that the trace happened:** the brief can name the failure mode for each step. If it cannot say what the tool does when its lock path is occupied, the trace was not done.
+
 ## 2. Reviewer role catalog (assign by objective and blast radius, not by habit)
 
 | Role | Asks | Dimensions it owns | Typical model |
