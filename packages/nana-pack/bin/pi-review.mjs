@@ -12,7 +12,7 @@
 import { writeFileSync } from 'node:fs';
 import { admit, complete, release, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
-import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
+import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv);
@@ -20,6 +20,8 @@ if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
   process.exit(1);
 }
+
+if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-review', w.retries));
 
 // Round cap — only the argv BEFORE `--` is consulted, so a pi arg can never satisfy or spoof
 // --item/--over-cap.
@@ -29,6 +31,7 @@ if (!adm.ok) {
   process.exit(1);
 }
 process.stderr.write(`pi-review: ${adm.note}\n`);
+if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
 const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
 const r = await runWatchdog('pi-review', { ...w, accept: reviewShaped });

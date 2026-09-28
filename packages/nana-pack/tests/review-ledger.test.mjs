@@ -521,5 +521,83 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	delete process.env.NANA_REVIEW_RES_STALE_MS;
 }
 
+// 19. completion TOCTOU (sol r3 MED): the revision is derived UNDER the lock. Race forced by holding
+// the ledger lock (this live pid in the lock file), starting complete() in a child process so it
+// blocks on the lock, editing the tree while it waits, then releasing the lock.
+{
+	freshHome("19");
+	const L = repo("L", 1);
+	const res = mod.admit(["--item", "toctou", "--out", path.join(outs, "toctou.md")], { launcher: "test", home, cwd: L.d });
+	check("toctou: admitted at the clean HEAD", res.ok && res.res.revision === L.shas[0], res.message);
+	const lockFile = path.join(agent, "review-ledger.lock");
+	fs.writeFileSync(lockFile, String(process.pid)); // a LIVE holder: the child must wait, never take it over
+	const script = `const m = await import(${JSON.stringify(path.join(bin, "review-round.mjs"))});` +
+		`const c = m.complete(${JSON.stringify(res.res)}, "toctou.md", { home: ${JSON.stringify(home)} });` +
+		`process.stdout.write(JSON.stringify(c));`;
+	let cout = "";
+	const kid = spawn(process.execPath, ["--input-type=module", "-e", script], { env: env(), stdio: ["ignore", "pipe", "inherit"] });
+	kid.stdout.on("data", (c) => (cout += c));
+	const exited = new Promise((r) => kid.on("close", r));
+	await new Promise((r) => setTimeout(r, 1500)); // the child is now blocked on the lock (pre-fix it had already derived)
+	const blocked = kid.exitCode === null;
+	fs.writeFileSync(path.join(L.d, "f"), "edited while completion waits on the lock");
+	fs.unlinkSync(lockFile);
+	await exited;
+	const c = JSON.parse(cout || "{}");
+	const t = roundsOf("toctou"), au = jsonl(auditFile).filter((x) => x.item === "toctou");
+	check("toctou: the completion was blocked on the lock when the tree was edited", blocked);
+	check("toctou: an edit made while completion waits on the lock → verdict recorded UNVERIFIED, not valid",
+		c.ok === false && /changed during the review/.test(c.message) && t.length === 1 && t[0].unverified === true &&
+		au.some((x) => x.kind === "verdict-unverified") && !au.some((x) => x.kind === "verdict"), cout + JSON.stringify(t));
+}
+
+// 20. --out inside the reviewed tree (sol r3 ruling): tracked → refused; untracked → warns; ignored / outside → silent
+{
+	freshHome("20");
+	const O = repo("O", 1);
+	fs.writeFileSync(path.join(O.d, ".gitignore"), "*.log\n");
+	gitIn(O.d, "add", ".gitignore"); gitIn(O.d, "commit", "-qm", "ignore");
+	const tracked = ledgerRun(["--item", "outt"], { cwd: O.d, outFile: path.join(O.d, "f") });
+	check("a TRACKED --out is refused before the review runs (file untouched, nothing reserved)",
+		tracked.status === 1 && /TRACKED file/.test(tracked.stderr) && fs.readFileSync(path.join(O.d, "f"), "utf8") === "O0" &&
+		roundsOf("outt").length === 0 && noStack(tracked), tracked.stderr);
+	const viaSub = pathRel => ledgerRun(["--item", "outt"], { cwd: path.join(O.d), outFile: pathRel });
+	const trackedRel = viaSub("./sub/../f");
+	check("…also when spelled through ../ (resolved)", trackedRel.status === 1 && /TRACKED file/.test(trackedRel.stderr), trackedRel.stderr);
+	gitIn(O.d, "rm", "-q", "--cached", "f");
+	const headOnly = mod.admit(["--item", "outt", "--out", path.join(O.d, "f")], { launcher: "test", home, cwd: O.d });
+	check("…and a path tracked in HEAD but removed from the index", headOnly.ok === false && /TRACKED/.test(headOnly.message), headOnly.message);
+	gitIn(O.d, "reset", "-q");
+	const untracked = ledgerRun(["--item", "outu"], { cwd: O.d, outFile: path.join(O.d, "new-out.md") });
+	check("an untracked in-tree --out WARNS and the review still runs",
+		untracked.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(untracked.stderr) && roundsOf("outu").length === 1, untracked.stderr);
+	fs.rmSync(path.join(O.d, "new-out.md"));
+	const ignored = ledgerRun(["--item", "outi"], { cwd: O.d, outFile: path.join(O.d, "r.log") });
+	check("an ignored in-tree --out is silent", ignored.status === 0 && !/WARNING/.test(ignored.stderr), ignored.stderr);
+	const outside = ledgerRun(["--item", "outo"], { cwd: O.d });
+	check("an --out outside the tree is silent", outside.status === 0 && !/WARNING/.test(outside.stderr), outside.stderr);
+	const chk = ledgerCheck(["--item", "outt", "--out", path.join(O.d, "f")], O.d);
+	check("review-ledger check refuses a tracked --out too", chk.status === 1 && /TRACKED/.test(chk.stderr), chk.stderr);
+}
+
+// 21. --retries contract notice (sol r3 LOW): printed only when the flag is explicit
+{
+	freshHome("21");
+	const NOTICE = /note — --retries \d+ = \d+ re-attempt\(s\) after the first/;
+	const explicit = piReview(["--item", "rt", "--out", out()]); // the helper passes --retries 0
+	const implicit = spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--item", "rt2", "--out", out(), "--", "-p", "x"],
+		{ cwd: A.d, env: env({ STUB: "verdict" }), encoding: "utf8", timeout: 30000 });
+	check("pi-review: explicit --retries → one-line notice", explicit.status === 0 && (explicit.stderr.match(new RegExp(NOTICE, "g")) ?? []).length === 1, explicit.stderr);
+	check("pi-review: no --retries → no notice", implicit.status === 0 && !NOTICE.test(implicit.stderr), implicit.stderr);
+	const wk = (extra) => spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--stall-secs", "1", ...extra, "--out", out(), "--", "-p", "x"],
+		{ cwd: A.d, env: env({ STUB: "plain", COUNT: path.join(tmp, "count21") }), encoding: "utf8", timeout: 30000 });
+	const we = wk(["--retries", "1"]), wi = wk([]);
+	check("pi-worker: explicit --retries → notice; default → none",
+		we.status === 0 && NOTICE.test(we.stderr) && wi.status === 0 && !NOTICE.test(wi.stderr), we.stderr + wi.stderr);
+	check("…a pi arg named --retries (after --) is not the flag", !NOTICE.test(spawnSync(process.execPath,
+		[PI_WORKER, "--poll", "1", "--stall-secs", "1", "--out", out(), "--", "-p", "--retries", "3"],
+		{ cwd: A.d, env: env({ STUB: "plain", COUNT: path.join(tmp, "count21") }), encoding: "utf8", timeout: 30000 }).stderr));
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 process.exit(fails);

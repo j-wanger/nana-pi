@@ -27,6 +27,7 @@ if (cmd === 'check') {
   const pr = project(own);
   if (!pr.ok) die(pr.message);
   process.stdout.write(`${pr.note}\n`);
+  if (pr.warning) process.stderr.write(`review-ledger: WARNING: ${pr.warning}\n`);
   process.exit(0);
 }
 if (!own.includes('--out') || !child.length) die('run needs --out <file> and -- <cmd...>');
@@ -34,6 +35,7 @@ if (!own.includes('--out') || !child.length) die('run needs --out <file> and -- 
 const adm = admit(own, { launcher: 'review-ledger run' });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
+if (adm.warning) process.stderr.write(`review-ledger: WARNING: ${adm.warning}\n`);
 const out = adm.res.out;
 // async spawn so the heartbeat keeps renewing the reservation while the review runs (sol r2 #15)
 const stopHeartbeat = startHeartbeat(adm.res);

@@ -13,7 +13,7 @@
 // Exit: 0 = the worker produced output (written to --out); 1 = every attempt failed / bad args.
 
 import { writeFileSync } from 'node:fs';
-import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
+import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv, { defaultRetries: 0 });
@@ -27,6 +27,7 @@ if (reviewFlag) {
   process.exit(1);
 }
 
+if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
 if (w.retries > 0) {
   process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
 }

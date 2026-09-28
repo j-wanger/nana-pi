@@ -40,8 +40,14 @@ export function parseWatchdogArgv(argv, { defaultRetries = 2 } = {}) {
     return { error: '--stall-secs and --poll must be positive numbers' };
   }
   if (!Number.isInteger(retries) || retries < 0) return { error: '--retries must be a whole number >= 0 (re-attempts after the first)' };
-  return { ownArgs, outPath, stallSecs, retries, pollSecs, piArgs: argv.slice(sep + 1) };
+  return { ownArgs, outPath, stallSecs, retries, retriesExplicit: ownArgs.includes('--retries'), pollSecs, piArgs: argv.slice(sep + 1) };
 }
+
+/** One-line notice printed when --retries is passed explicitly (sol r3 LOW): the contract changed
+ *  in T2b from "N attempts" to "N re-attempts after the first", so an old explicit value now runs
+ *  one more attempt. Printed only for an explicit flag — the defaults are unchanged. */
+export const RETRIES_NOTICE = (tag, n) =>
+  `${tag}: note — --retries ${n} = ${n} re-attempt(s) after the first (${n + 1} attempt(s) total); before T2b it meant ${n} attempt(s) total\n`;
 
 // CPU-time (seconds) of a pid via `ps -o time=` (mm:ss or hh:mm:ss). 0 if gone.
 function cpuSeconds(pid) {

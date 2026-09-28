@@ -23,11 +23,13 @@
 //    file, independent of the index and of diff rendering). --revision is only the fallback when
 //    HEAD cannot be resolved (and inside git it must name that commit). Any number of reviews —
 //    any roles — on one revision are ONE round. --role is audit metadata only.
+//  - --out on a TRACKED path of the reviewed tree is refused; elsewhere in the tree (not ignored) it
+//    warns (sol r3 ruling; see outInTree).
 //  - every git failure REFUSES admission with the git error (sol r2 #10) — never "clean".
 //  - only a completed verdict earns the round; a stall / failure returns the reservation.
 //  - complete() must own a live reservation: an expired, pruned or replaced one records nothing.
 //    A reservation lives while its owner is alive AND renews it (heartbeat, sol r2 #15).
-//  - complete() re-derives the revision; if the tree changed during the review, the round is still
+//  - complete() re-derives the revision under the lock; if the tree changed during the review, the round is still
 //    CONSUMED for the admitted revision, but the verdict is recorded as unverified and refused
 //    (sol r2 #12; see complete()).
 //  - a malformed tally line, a non-regular ledger path, or a lock path that is not a regular file
@@ -388,11 +390,38 @@ function parseReview(args, cwd) {
   const item = canonicalItem(rawItem);
   const exclude = out ? [resolve(cwd, out)] : []; // the review's own output is not the reviewed work
   const revision = deriveRevision(revArg, cwd, exclude);
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: resolve(cwd), revArg, exclude };
+  const warning = out ? outInTree(revision.root, resolve(cwd, out)) : null; // throws on a tracked --out
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: resolve(cwd), revArg, exclude, warning };
 }
 function deriveRevision(revArg, cwd, exclude) {
   const scope = treeScope(cwd, { exclude });
-  return { repo: scope.repo, id: resolveRevision(revArg, scope, cwd) };
+  return { repo: scope.repo, root: scope.root, id: resolveRevision(revArg, scope, cwd) };
+}
+
+/** --out inside the reviewed tree (sol r3 ruling). The output is excluded from the snapshot, so:
+ *   - a TRACKED path (in HEAD or the index) is REFUSED (throws): excluding it would mask the review
+ *     overwriting a tracked file — a silent data-loss/mutation the revision could never show;
+ *   - an ignored path returns null (the snapshot never reads it — the recommended in-tree place);
+ *   - any other in-tree path returns a warning (a leftover output there changes the NEXT revision
+ *     and so can spend a distinct-revision slot); outside the tree, or outside git → null. */
+export function outInTree(root, outAbs) {
+  if (!root) return null;
+  let dir = resolve(outAbs, '..');
+  const tail = [basename(outAbs)];
+  while (!existsSync(dir)) { tail.unshift(basename(dir)); dir = resolve(dir, '..'); }
+  const real = join(realpathSync(dir), ...tail);
+  const rel = relative(root, real);
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) return null;
+  const relGit = rel.split(sep).join('/');
+  const listed = (args) => gitOut(root, ['--literal-pathspecs', ...args, '--', relGit]).stdout.length > 0;
+  const head = headOf(root);
+  if (listed(['ls-files', '-z', '--cached']) || (head && listed(['ls-tree', '-r', '-z', '--name-only', '--full-tree', head]))) {
+    throw new Error(`--out ${real} is a TRACKED file in the reviewed tree (${root}): the review would overwrite it, and ` +
+      'excluding it from the snapshot would hide that. Write the output outside the tree (or to an ignored path)');
+  }
+  if (gitOut(root, ['check-ignore', '-q', '--', relGit], { okStatus: [0, 1] }).status === 0) return null;
+  return `--out ${real} is inside the reviewed tree (${root}) and not ignored: it is excluded from this review's ` +
+    'snapshot, but a leftover output there changes the next revision. Prefer a path outside the tree or an ignored one';
 }
 /** The ledger record's view of a revision: both parts, so an audit sees which state was reviewed. */
 export function revisionParts(revision) {
@@ -431,7 +460,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +
         (d.again ? ' (revision already counted — no new round)' : '') +
         ` (${q.role} @ ${shortRev(q.revision)})` + (override ? ` — OVER CAP, override recorded: ${override}` : '');
-      return { ok: true, id, res, note };
+      return { ok: true, id, res, note, warning: q.warning };
     });
   } catch (e) {
     return { ok: false, message: failMessage(e) };
@@ -448,7 +477,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
     const d = lstatOrNull(p.dir) ? withLock(p, run) : run(); // no ledger dir: nothing to read, nothing created
     if (d.verdict === 'refuse') return { ok: false, message: REFUSE(d) };
     return { ok: true, note: `${d.where}; next review of ${shortRev(q.revision)} would be round ${d.round}/${REVIEW_ROUND_CAP}` +
-      (d.again ? ' (revision already counted — no new round)' : '') };
+      (d.again ? ' (revision already counted — no new round)' : ''), warning: q.warning };
   } catch (e) {
     return { ok: false, message: failMessage(e) };
   }
@@ -462,11 +491,10 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
  *     this returns ok:false. Chosen over recording against "the state actually reviewed": a tree
  *     edited mid-review was read in no single state, so no state can honestly own the verdict; and
  *     over counting nothing: then editing during a review would make every review free.
+ *  The revision is re-derived UNDER the lock, just before recording (sol r3 TOCTOU).
  *  Never throws: {ok:true, round} | {ok:false, message}. `r` = admit(...).res */
 export function complete(r, out, { home = homedir() } = {}) {
   const p = ledgerPaths(home);
-  let now = null, why = '';
-  try { now = deriveRevision(r?.revArg, r?.cwd, r?.exclude ?? []).id; } catch (e) { why = e.message; }
   try {
     return withLock(p, () => {
       const f = join(p.resDir, `${r?.id}.json`);
@@ -476,6 +504,10 @@ export function complete(r, out, { home = homedir() } = {}) {
         throw new Error(`reservation ${r?.id} is gone, expired or not this launcher's — this verdict is NOT recorded ` +
           `(output kept at ${out ?? r?.out}). Re-run the review to have it counted`);
       }
+      // The final derivation happens HERE, under the lock, immediately before recording (sol r3
+      // TOCTOU): deriving before the lock let an edit made while waiting on it receive a valid verdict.
+      let now = null, why = '';
+      try { now = deriveRevision(r.revArg, r.cwd, r.exclude ?? []).id; } catch (e) { why = e.message; }
       const stable = now === held.revision;
       // audit rotation first (only the verbose log rotates), so a refusal there writes nothing
       const st2 = lstatOrNull(p.audit);

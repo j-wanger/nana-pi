@@ -188,6 +188,21 @@ to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
 
 **When this lands:** `~/.local/bin/pi-worker` must be symlinked to `bin/pi-worker.mjs` (the seat
 does it), beside the existing `~/.local/bin/pi-review` link.
+
+**Release note — `--retries` changed meaning (T2b).** `--retries N` now means N **re-attempts
+after the first** (N+1 attempts total); before T2b it meant N attempts total. An explicit
+`--retries 2` therefore runs **3** attempts where it used to run 2. Defaults are unchanged in
+effect (`pi-review` 3 attempts; `pi-worker` 1). No call site in this repository passes the flag;
+an external caller that does should subtract one. `pi-review` and `pi-worker` print a one-line
+notice whenever `--retries` is passed explicitly.
+
+**`--out` inside the reviewed tree (sol r3).** A review's own output is excluded from its
+snapshot, so `--out` on a **tracked** path (HEAD or index) is **refused** — the exclusion would
+hide the review overwriting a tracked file. Any other in-tree, non-ignored `--out` is admitted
+with a **warning**: a leftover output there changes the next revision and can spend a round slot.
+Write outputs outside the reviewed tree (this repo's practice: another working tree) or to an
+ignored path. `complete()` re-derives the revision **under the ledger lock**, so an edit made
+while a completion waits on the lock is recorded unverified.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
