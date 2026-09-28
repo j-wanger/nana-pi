@@ -148,6 +148,16 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	check("bad utf-8: nothing injected", sp === "BASE");
 	check("bad utf-8: handoff_pickup_failed journaled with the reason", /"handoff_pickup_failed".*ERR_ENCODING_INVALID_ENCODED_DATA/.test(journal()));
 	check("bad utf-8: not journaled as a pickup", !journal().includes('"handoff_pickup"'));
+	check("bad utf-8 (L5 seam): an unreadable entry is NOT journaled as missing", !journal().includes('"handoff_missing"'));
+}
+
+// L5 seam: no store entry at all is journaled as handoff_missing, distinct from a failed read
+{
+	const proj = mk(path.join(base, "never-compacted"));
+	fs.rmSync(JOURNAL, { force: true });
+	check("missing: nothing injected", (await session(proj).prompt()) === "BASE");
+	check("missing: handoff_missing journaled with the store path", journal().includes('"handoff_missing"') && journal().includes(mod.storePathFor(proj)));
+	check("missing: not journaled as a failed pickup", !journal().includes('"handoff_pickup_failed"'));
 }
 
 // a failed write leaves the prior file byte-identical with no temp litter (POSIX read-only store)

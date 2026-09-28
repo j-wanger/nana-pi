@@ -17,8 +17,10 @@
  * repo text is never laundered into the trusted store.
  *
  * Staleness: a summary older than handoff.staleAfterDays (default 7; age from its own
- * `Written:` header, else mtime) is injected as a ≤300-char POINTER (compact path, age,
- * writer), not its text — the stale imperative is one read away, not in the prompt.
+ * `Written:` header, else mtime) is injected as a POINTER (path, age, writer), not its
+ * text — the stale imperative is one read away, not in the prompt. The path always
+ * resolves under pi's read tool (`~/…`, cwd-relative, or absolute in full); ≤300 chars
+ * unless the path alone is longer.
  *
  * Role: a launcher that sets NANA_HANDOFF=off in the child env (pi-review does) marks a
  * non-writer session: no pickup, no write (journal `handoff_skipped_role`). Never inferred
@@ -64,10 +66,42 @@ export function storePathFor(canonical: string): string {
 	return path.join(storeDir(), `${crypto.createHash("sha256").update(key).digest("hex")}.md`);
 }
 
-// cwd-relative when inside the project, absolute otherwise
-function displayPath(cwd: string, file: string): string {
-	const rel = path.relative(cwd, file);
-	return rel && !rel.startsWith("..") && !path.isAbsolute(rel) ? rel : file;
+/**
+ * A path that pi's read tool (`resolveToCwd`: strip one leading `@`, expand `~` / `~/`,
+ * else cwd-relative, else absolute) resolves back to `file` exactly. Only two
+ * abbreviations: cwd-relative (inside `cwd`) and, when `tilde`, `~/…` (under the real
+ * home). Anything else — including any path with a literal `~` or a leading `@` in
+ * the abbreviated form — is absolute and in full. Never truncated.
+ */
+export function resolvablePath(cwd: string, file: string, tilde = false): string {
+	const abs = path.resolve(file); // what fs.readFileSync(file) opened
+	if (abs.includes("~")) return abs; // never mistakable for a home expansion
+	const inside = (base: string) => {
+		const rel = base ? path.relative(base, abs) : "";
+		return rel && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel) ? rel : null;
+	};
+	const cands = [abs];
+	const rel = inside(path.resolve(cwd));
+	if (rel && !rel.startsWith("@")) cands.push(rel);
+	const home = os.homedir();
+	const hrel = tilde && home ? inside(path.resolve(home)) : null;
+	if (hrel) cands.push(`~${path.sep}${hrel}`);
+	return cands.reduce((a, b) => (b.length < a.length ? b : a));
+}
+
+// cwd-relative when inside the project, absolute otherwise (never `~`-ambiguous)
+const displayPath = (cwd: string, file: string) => resolvablePath(cwd, file, false);
+
+/** The outcome of reading a handoff file; L5 must not read "error" as "no handoff here". */
+export type HandoffRead = { kind: "missing" } | { kind: "error"; reason: string } | { kind: "ok"; text: string };
+
+/** fatal UTF-8: corrupt bytes are a failed read, never U+FFFD-laced text. */
+export function readHandoff(file: string): HandoffRead {
+	try {
+		return { kind: "ok", text: new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file)) };
+	} catch (e: any) {
+		return e?.code === "ENOENT" ? { kind: "missing" } : { kind: "error", reason: String(e?.code ?? e).slice(0, 80) };
+	}
 }
 
 function isSymlink(file: string): boolean {
@@ -136,33 +170,28 @@ function ageText(ms: number): string {
 	return d >= 1 ? `${d}d` : `${Math.max(0, Math.floor(ms / 3_600_000))}h`;
 }
 
-/** An absolute path under the home directory as `~/…`; anything else unchanged. */
-export function compactPath(file: string): string {
-	const home = os.homedir();
-	const rel = home ? path.relative(home, file) : "";
-	return path.isAbsolute(file) && rel && !rel.startsWith("..") && !path.isAbsolute(rel) ? `~${path.sep}${rel}` : file;
-}
-
 /**
- * ≤300 chars: path, age, writer — never the summary text. The path is compact (`~/…` under
- * home; a custom path inside the project arrives cwd-relative); if still too long it keeps its
- * tail as `…/<tail>` in whole components, basename always intact (the writer shrinks first if
- * it must).
+ * path, age, writer — never the summary text. `shown` must already be resolvable (see
+ * resolvablePath); it is never shortened. Over 300 chars the authority tail goes, then the
+ * writer is trimmed (then dropped), then the age; if the path alone exceeds the cap, so does
+ * the pointer — a long true path beats a short false one.
  */
-export function stalePointer(file: string, ageMs: number, writer: string): string {
-	let w = oneLine(path.basename(writer), 80);
-	let p = oneLine(compactPath(file), 4096);
-	const head = () => `Stale handoff NOT injected (${ageText(ageMs)} old, writer ${w}): `;
+export function stalePointer(shown: string, ageMs: number, writer: string): string {
+	const p = shown.replace(/[\r\n\t]+/g, " ");
+	let w: string | null = oneLine(path.basename(writer), 80);
+	let a: string | null = ageText(ageMs);
+	const s = () => {
+		const parts = [a && `${a} old`, w != null && `writer ${w}`].filter(Boolean);
+		return `Stale handoff NOT injected${parts.length ? ` (${parts.join(", ")})` : ""}: ${p}`;
+	};
 	const tail = " — lower authority than OBJECTIVE/AGENTS/DOCTRINE; read it if relevant.";
-	if (head().length + p.length > POINTER_CAP) {
-		const over = head().length + 2 + path.basename(p).length - POINTER_CAP; // "…/" + basename
-		if (over > 0) w = w.slice(0, Math.max(0, w.length - over));
-		const keep = p.slice(-(POINTER_CAP - head().length - 1));
-		const cut = keep.indexOf(path.sep);
-		p = `…${cut >= 0 ? keep.slice(cut) : path.sep + path.basename(p)}`;
-	}
-	const s = head() + p;
-	return (s.length + tail.length <= POINTER_CAP ? s + tail : s).slice(0, POINTER_CAP);
+	if (s().length + tail.length <= POINTER_CAP) return s() + tail;
+	if (s().length <= POINTER_CAP) return s();
+	const keep = (w ?? "").length - (s().length - POINTER_CAP);
+	w = keep > 0 ? (w ?? "").slice(0, keep) : null;
+	if (s().length <= POINTER_CAP) return s();
+	a = null;
+	return s();
 }
 
 export default function (pi: ExtensionAPI) {
@@ -206,19 +235,18 @@ export default function (pi: ExtensionAPI) {
 			const custom = cfg.handoff.path;
 			const file = custom ?? storePathFor(canon);
 			const shown = custom ? displayPath(ctx.cwd, custom) : file;
-			let raw: string | null = null;
+			let read: HandoffRead;
 			if (custom && reachedThroughSymlink(ctx.cwd, custom)) {
+				read = { kind: "error", reason: "symlink" };
 				j("handoff_symlink_refused", { op: "read", path: file });
 				if (ctx.hasUI) ctx.ui.notify(`handoff ignored: ${shown} is reached through a symlink`, "warning");
 			} else {
-				try {
-					// fatal: corrupt UTF-8 is a failed pickup, never U+FFFD-laced text
-					raw = new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file));
-				} catch (e: any) {
-					if (e?.code !== "ENOENT") j("handoff_pickup_failed", { path: file, error: String(e?.code ?? e).slice(0, 80) });
-				}
+				read = readHandoff(file);
+				// distinct lines: "missing" (nothing stored here) vs "error" (a store that could not be read)
+				if (read.kind === "missing") j("handoff_missing", { path: file });
+				else if (read.kind === "error") j("handoff_pickup_failed", { path: file, error: read.reason });
 			}
-			const h = raw != null ? parse(raw) : null;
+			const h = read.kind === "ok" ? parse(read.text) : null;
 			if (h && !custom && h.cwd !== canon) {
 				// a store entry must name this directory; never inject another project's
 				j("handoff_cwd_mismatch", { path: file, recorded: h.cwd });
@@ -233,7 +261,7 @@ export default function (pi: ExtensionAPI) {
 				}
 				const age = Date.now() - when;
 				if (age > cfg.handoff.staleAfterDays * DAY_MS) {
-					lines.push(stalePointer(shown, age, h.writer));
+					lines.push(stalePointer(resolvablePath(ctx.cwd, file, true), age, h.writer));
 					j("handoff_stale_pointer", { path: file, ageDays: Math.floor(age / DAY_MS) });
 				} else {
 					lines.push(
@@ -247,7 +275,8 @@ export default function (pi: ExtensionAPI) {
 					j("handoff_pickup", { path: file });
 				}
 				if (ctx.hasUI) ctx.ui.notify(`handoff picked up from ${shown}`, "info");
-			} else if (raw == null && !custom) {
+			} else if (read.kind !== "ok" && !custom) {
+				// unchanged in-session: an unreadable entry also names an ancestor (L5 reads `read.kind`)
 				// (g): a nested dir / worktree never silently borrows an ancestor's handoff
 				for (let dir = path.dirname(canon); ; dir = path.dirname(dir)) {
 					const anc = storePathFor(dir);

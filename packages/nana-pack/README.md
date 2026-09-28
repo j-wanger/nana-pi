@@ -222,10 +222,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
     instructions". If the session file is unavailable the write still happens with `Writer: unknown`
     and journals `handoff_provenance_unavailable` next to `handoff_written`.
   - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
-    from the file's own `Written:` header, else mtime) the summary is replaced by one ≤300-char line
-    (path, age, writer) — one read away (the path is compact: `~/.pi/agent/handoffs/<hash>.md`; a
-    custom path is `~/…`, cwd-relative, or, if still too long, `…/<tail>` with its basename intact), never inlined, because an excerpt would re-import the
-    stale imperative. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
+    from the file's own `Written:` header, else mtime) the summary is replaced by one pointer line
+    (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
+    stale imperative. The path always resolves to the file under pi's read tool (`resolveToCwd`):
+    `~/…` under the real home (the store: `~/.pi/agent/handoffs/<hash>.md`), cwd-relative inside
+    the session's cwd, otherwise **absolute and in full** — never truncated, no `…/` form; a path
+    containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
+    absolute. The line is ≤300 chars: over the cap the authority tail goes, then the writer is
+    trimmed, then the age. **If the path alone exceeds 300 chars, the pointer does too** — a long
+    true path beats a short false one. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
     compaction resets it.
   - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
     that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` sets it for every
@@ -239,7 +244,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
     objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
-    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands, nothing is emitted either way. A store entry whose recorded `Cwd:` is another directory is not injected
+    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
