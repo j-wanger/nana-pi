@@ -219,28 +219,37 @@ is user-scope only** — project config never contributes to it, trusted or not.
   - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
     writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
     **lower authority than OBJECTIVE.md / AGENTS.md / DOCTRINE**, and keeps "background state, not
-    instructions".
+    instructions". If the session file is unavailable the write still happens with `Writer: unknown`
+    and journals `handoff_provenance_unavailable` next to `handoff_written`.
   - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
     from the file's own `Written:` header, else mtime) the summary is replaced by one ≤300-char line
-    (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
+    (path, age, writer) — one read away (the path is compact: `~/.pi/agent/handoffs/<hash>.md`; a
+    custom path is `~/…`, cwd-relative, or, if still too long, `…/<tail>` with its basename intact), never inlined, because an excerpt would re-import the
     stale imperative. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
     compaction resets it.
   - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
     that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` sets it for every
-    child. Never inferred from the tool list or `hasUI` (the desk runs pi sessions).
-  - **Exact directory only**: a nested cwd or worktree with no handoff of its own is told "no
-    handoff for this directory" and, if an ancestor directory has one, that file's path — never its
-    text. A store entry whose recorded `Cwd:` is another directory is not injected
+    child. Never inferred from the tool list or `hasUI` (the desk runs pi sessions). Only the exact
+    lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally). The marker is an
+    ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
+    handoff off unless the launcher clears `NANA_HANDOFF`.
+  - **Exact directory only**: a nested cwd or worktree with no handoff of its own never gets an
+    ancestor's text. If an ancestor directory has one, the session is told "no handoff for this
+    directory" plus that file's path; if no ancestor has one there is nothing to borrow and nothing
+    is added (seat ruling, L3 fix round: the marker exists to prevent silent borrowing, and a line
+    in every handoff-less session would be pure context noise). A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
   - **Failures never throw**: an unreadable/unwritable store degrades to "no handoff" with a
-    journal line (`handoff_pickup_failed` / `handoff_write_failed`); a failed write leaves the prior
+    journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
+    UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
     file intact. win32: `rename` over an existing file is assumed atomic enough on NTFS —
     **unverified**.
 - **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
-  L3). Store: a symlinked `handoffs/` directory or entry is refused on read; a write renames over
-  the entry, so it never writes through a link. Custom `handoff.path`: a repo could commit the
+  L3 to custom paths). The user-scope store has no symlink policy — it is the owner's directory, so
+  a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
+  writes through a linked entry). Custom `handoff.path`: a repo could commit the
   configured file, or a directory above it, as a link to something like `~/.ssh/id_rsa`:
   - **Unconditional — not trust-gated.** Point `handoff.path` at the real destination instead of
     linking to it.

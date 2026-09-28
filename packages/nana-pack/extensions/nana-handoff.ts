@@ -17,21 +17,23 @@
  * repo text is never laundered into the trusted store.
  *
  * Staleness: a summary older than handoff.staleAfterDays (default 7; age from its own
- * `Written:` header, else mtime) is injected as a ≤300-char POINTER (path, age, writer),
- * not its text — the stale imperative is one read away, not in the prompt.
+ * `Written:` header, else mtime) is injected as a ≤300-char POINTER (compact path, age,
+ * writer), not its text — the stale imperative is one read away, not in the prompt.
  *
  * Role: a launcher that sets NANA_HANDOFF=off in the child env (pi-review does) marks a
  * non-writer session: no pickup, no write (journal `handoff_skipped_role`). Never inferred
- * from the tool list or `hasUI`.
+ * from the tool list or `hasUI`. Exact lowercase `off` only; inherited by descendants.
  *
  * A nested directory / worktree with no handoff of its own is never silently given an
- * ancestor's: if an ancestor has one, the session is told its path, not its text.
+ * ancestor's: if an ancestor has one, the session is told its path, not its text (no
+ * ancestor → nothing added).
  *
  * Config (nana-pack.json): handoff.enabled (default true), handoff.path (custom file;
  * honored from user scope always, from project scope only under L1's nana-trust — the
  * symlink refusal applies to it), handoff.staleAfterDays (default 7).
  *
- * Never throws: every pickup/write failure degrades to "no handoff" + a journal line.
+ * Never throws: every pickup/write failure degrades to "no handoff" + a journal line
+ * (invalid UTF-8 included). The store itself has no symlink policy (the owner's directory).
  */
 
 import * as crypto from "node:crypto";
@@ -134,13 +136,33 @@ function ageText(ms: number): string {
 	return d >= 1 ? `${d}d` : `${Math.max(0, Math.floor(ms / 3_600_000))}h`;
 }
 
-/** ≤300 chars: path, age, writer — never the summary text. */
+/** An absolute path under the home directory as `~/…`; anything else unchanged. */
+export function compactPath(file: string): string {
+	const home = os.homedir();
+	const rel = home ? path.relative(home, file) : "";
+	return path.isAbsolute(file) && rel && !rel.startsWith("..") && !path.isAbsolute(rel) ? `~${path.sep}${rel}` : file;
+}
+
+/**
+ * ≤300 chars: path, age, writer — never the summary text. The path is compact (`~/…` under
+ * home; a custom path inside the project arrives cwd-relative); if still too long it keeps its
+ * tail as `…/<tail>` in whole components, basename always intact (the writer shrinks first if
+ * it must).
+ */
 export function stalePointer(file: string, ageMs: number, writer: string): string {
-	const w = oneLine(path.basename(writer), 80);
-	const core = `Stale handoff NOT injected (${ageText(ageMs)} old, writer ${w}): ${file}`;
+	let w = oneLine(path.basename(writer), 80);
+	let p = oneLine(compactPath(file), 4096);
+	const head = () => `Stale handoff NOT injected (${ageText(ageMs)} old, writer ${w}): `;
 	const tail = " — lower authority than OBJECTIVE/AGENTS/DOCTRINE; read it if relevant.";
-	const s = core.length + tail.length <= POINTER_CAP ? core + tail : core;
-	return s.slice(0, POINTER_CAP);
+	if (head().length + p.length > POINTER_CAP) {
+		const over = head().length + 2 + path.basename(p).length - POINTER_CAP; // "…/" + basename
+		if (over > 0) w = w.slice(0, Math.max(0, w.length - over));
+		const keep = p.slice(-(POINTER_CAP - head().length - 1));
+		const cut = keep.indexOf(path.sep);
+		p = `…${cut >= 0 ? keep.slice(cut) : path.sep + path.basename(p)}`;
+	}
+	const s = head() + p;
+	return (s.length + tail.length <= POINTER_CAP ? s + tail : s).slice(0, POINTER_CAP);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -185,12 +207,13 @@ export default function (pi: ExtensionAPI) {
 			const file = custom ?? storePathFor(canon);
 			const shown = custom ? displayPath(ctx.cwd, custom) : file;
 			let raw: string | null = null;
-			if (custom ? reachedThroughSymlink(ctx.cwd, custom) : isSymlink(storeDir()) || isSymlink(file)) {
+			if (custom && reachedThroughSymlink(ctx.cwd, custom)) {
 				j("handoff_symlink_refused", { op: "read", path: file });
 				if (ctx.hasUI) ctx.ui.notify(`handoff ignored: ${shown} is reached through a symlink`, "warning");
 			} else {
 				try {
-					raw = fs.readFileSync(file, "utf-8");
+					// fatal: corrupt UTF-8 is a failed pickup, never U+FFFD-laced text
+					raw = new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file));
 				} catch (e: any) {
 					if (e?.code !== "ENOENT") j("handoff_pickup_failed", { path: file, error: String(e?.code ?? e).slice(0, 80) });
 				}
@@ -275,16 +298,20 @@ export default function (pi: ExtensionAPI) {
 			const custom = cfg.handoff.path;
 			file = custom ?? storePathFor(canon);
 			const shown = custom ? displayPath(ctx.cwd, custom) : file;
-			if (custom ? reachedThroughSymlink(ctx.cwd, custom) : isSymlink(storeDir())) {
+			if (custom && reachedThroughSymlink(ctx.cwd, custom)) {
 				j("handoff_symlink_refused", { op: "write", path: file });
 				if (ctx.hasUI) ctx.ui.notify(`handoff NOT written: ${shown} is reached through a symlink`, "warning");
 				return;
 			}
+			// provenance is best-effort, but a write without it is journaled as degraded (c)
 			let writer = "unknown";
+			let noProvenance: string | null = null;
 			try {
-				writer = (ctx as any).sessionManager?.getSessionFile?.() ?? "unknown";
-			} catch {
-				// provenance is best-effort
+				const f = (ctx as any).sessionManager?.getSessionFile?.();
+				if (typeof f === "string" && f) writer = f;
+				else noProvenance = "no session file";
+			} catch (e: any) {
+				noProvenance = String(e?.message ?? e).slice(0, 80);
 			}
 			fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
 			atomicWrite(
@@ -292,6 +319,7 @@ export default function (pi: ExtensionAPI) {
 				`# Session handoff (nana)\n\nCwd: ${canon}\nWritten: ${new Date().toISOString()}\nWriter: ${oneLine(String(writer), 400)}\nReason: ${oneLine(String((event as any).reason), 40)}\nAgent-written compaction summary. Latest compaction wins; edit the text below by hand freely.\n---\n${summary}\n`,
 			);
 			j("handoff_written", { path: file });
+			if (noProvenance) j("handoff_provenance_unavailable", { path: file, error: noProvenance });
 			if (ctx.hasUI) ctx.ui.notify(`handoff written to ${shown}`, "info");
 		} catch (e: any) {
 			j("handoff_write_failed", { path: file, error: String(e?.code ?? e).slice(0, 80) });

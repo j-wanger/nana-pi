@@ -122,16 +122,32 @@ if (spawnSync("git", ["--version"]).status === 0) {
 	check("cwd mismatch: handoff_cwd_mismatch journaled", journal().includes('"handoff_cwd_mismatch"'));
 }
 
-// adversarial: a symlinked store entry is refused on read; a write replaces the link, never writes through it
-if (process.platform !== "win32") {
-	const proj = mk(path.join(base, "linked"));
-	const secret = path.join(base, "id_rsa");
-	fs.writeFileSync(secret, `# x\n\nCwd: ${proj}\nWritten: ${new Date().toISOString()}\n---\nSUPERSECRET\n`);
+// (c) provenance unavailable: the write still happens, but journals the degradation explicitly
+for (const [label, getSessionFile] of [["throws", () => { throw new Error("no session manager state"); }], ["returns undefined", () => undefined]]) {
+	const proj = mk(path.join(base, `noprov-${label.replace(/\s/g, "-")}`));
+	fs.rmSync(JOURNAL, { force: true });
+	await session(proj, { sessionManager: { getSessionFile } }).compact("NOPROV-STATE");
+	const text = fs.readFileSync(mod.storePathFor(proj), "utf-8");
+	check(`provenance ${label}: write not declined, Writer: unknown`, text.includes("NOPROV-STATE") && /^Writer: unknown$/m.test(text));
+	check(`provenance ${label}: handoff_written AND handoff_provenance_unavailable journaled`, journal().includes('"handoff_written"') && journal().includes('"handoff_provenance_unavailable"'));
+}
+{
+	const proj = mk(path.join(base, "prov-ok"));
+	fs.rmSync(JOURNAL, { force: true });
+	await session(proj).compact("PROV-STATE");
+	check("provenance available: no degradation journaled", journal().includes('"handoff_written"') && !journal().includes('"handoff_provenance_unavailable"'));
+}
+
+// corrupt UTF-8: inject nothing, journal handoff_pickup_failed (never U+FFFD text as a normal pickup)
+{
+	const proj = mk(path.join(base, "badutf8"));
 	const file = mod.storePathFor(proj);
-	fs.symlinkSync(secret, file);
-	check("store symlink: target never injected", !(await session(proj).prompt()).includes("SUPERSECRET"));
-	await session(proj).compact("AFTER-LINK");
-	check("store symlink: link target not written through", fs.readFileSync(secret, "utf-8").includes("SUPERSECRET") && !fs.readFileSync(secret, "utf-8").includes("AFTER-LINK"));
+	fs.writeFileSync(file, Buffer.concat([Buffer.from(`# x\n\nCwd: ${proj}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\nCORRUPT-STATE `), Buffer.from([0xff, 0xfe, 0xc3]), Buffer.from("\n")]));
+	fs.rmSync(JOURNAL, { force: true });
+	const sp = await session(proj).prompt();
+	check("bad utf-8: nothing injected", sp === "BASE");
+	check("bad utf-8: handoff_pickup_failed journaled with the reason", /"handoff_pickup_failed".*ERR_ENCODING_INVALID_ENCODED_DATA/.test(journal()));
+	check("bad utf-8: not journaled as a pickup", !journal().includes('"handoff_pickup"'));
 }
 
 // a failed write leaves the prior file byte-identical with no temp litter (POSIX read-only store)

@@ -100,9 +100,11 @@ setup. What that means while you work here:
   ```
 
 - **Handoff on compaction.** When the context compacts, the pack writes the
-  summary to `.pi/handoff.md` and re-injects it into the next fresh session in this
-  directory — continuity across the context window, no config needed. Treat it as
-  background state; update it in place when it goes stale; only a human deletes it.
+  summary to the user-scope store `~/.pi/agent/handoffs/<sha256(cwd)>.md` (the path is
+  printed on write and pickup) and re-injects it into the next fresh session in this
+  exact directory. Treat it as background state; update that store file in place when it
+  goes stale. A repo `.pi/handoff.md` is never injected (the session gets one pointer line
+  naming it as untrusted repo text) — do not create or maintain it.
 - **Journal.** Session events (start / compact / shutdown) append to
   `~/.pi/agent/nana-journal.jsonl` for observability.
 - **Notify.** A desktop notification fires when the agent settles and is waiting on
