@@ -28,6 +28,15 @@
 2. Windows: the smoke test is still the standing proof gate — confirm the `nana-pack ✓` chip on the Windows box (absence = pack not installed there; `pi install` is user-scope per machine), then the win32 items below.
 3. Let the objective line + knowledge pointers run a week of `pull.log`, then decide the citation checker (measure before more retrieval machinery).
 
+## Open defect in LANDED code — agent-dir resolution is inconsistent across nana-pack (found 2026-09-28, T2c)
+
+`PI_CODING_AGENT_DIR` relocates pi's whole agent directory. nana-pack resolves it in some places and not others, and the inconsistency reaches the **gate**:
+- `lib/config.ts:276` `userConfigPath()` hardcodes `~/.pi/agent/nana-pack.json` — so with the override set, the user-scope config carrying the GATE's deny patterns is read from the default dir while pi reads the overridden one. An owner who puts their config where pi's agent dir actually is gets a gate running on defaults. Fail-open, in LANDED L1/L2 code.
+- `lib/config.ts:550` journal path likewise defaults to `~/.pi/agent`.
+- `lib/config.ts:345` DOES honour it (via pi's own `getAgentDir()`), as do `gate-paths.ts` and (since T2c) `lib/objective.ts` — hence the inconsistency.
+- `nana-setup` still seeds `nana-objective.md` under the default dir.
+**Shape of the fix:** one resolver (`piAgentDir()` in `gate-paths.ts`, already shared by the gate and the objective producer) used by every consumer, with a test that asserts each consumer reads the SAME directory pi would. This is the same failure shape as the sanitization audit astra ruled a separate lane: one property, many components, no single resolution, invisible to any review that reads one file at a time.
+
 ## Landing-day chores (T2b, must happen before the ledger is used)
 
 - `ln -s ~/nana-pi/packages/nana-pack/bin/pi-worker.mjs ~/.local/bin/pi-worker` — the ledger refuses reviews without `--item`, and worker launches now need this binary.
