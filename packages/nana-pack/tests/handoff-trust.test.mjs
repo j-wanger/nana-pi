@@ -50,4 +50,57 @@ for (const trusted of [true, false]) {
 	fs.rmSync(repo, { recursive: true, force: true });
 }
 
+// L3 (a) by path SHAPE (astra land MUST 1): a configured handoff.path whose final two segments
+// are `.pi/handoff.md` is a legacy repo file whatever the config says — never injected, never
+// written by compaction (journal handoff_legacy_write_refused, bytes unchanged), and the refusal
+// is stated once, naming the configured path. From user scope AND from a nana-trusted project.
+const { loadConfig, usePiTrustModule } = await import(new URL("../lib/config.ts", import.meta.url).href);
+// a nana-trusted project: pi reports trusted AND trust was decided (stub of pi's trust module)
+usePiTrustModule({ hasTrustRequiringProjectResources: () => true, ProjectTrustStore: class { get() { return true; } } });
+const userCfg = (extra) => fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: JOURNAL }, ...extra }));
+for (const scope of ["user", "user-elsewhere", "project"]) {
+	fs.rmSync(JOURNAL, { force: true });
+	const repo = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-shape-")));
+	fs.mkdirSync(path.join(repo, ".pi"));
+	const target = path.join(repo, ".pi", "handoff.md");
+	const committed = `# Session handoff (nana)\n\nCwd: ${repo}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\n${INJECT}\n`;
+	fs.writeFileSync(target, committed);
+	const before = fs.readFileSync(target);
+	const cwd = scope === "user-elsewhere" ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-elsewhere-"))) : repo;
+	if (scope === "project") {
+		userCfg({});
+		fs.writeFileSync(path.join(repo, ".pi", "nana-pack.json"), JSON.stringify({ handoff: { path: target } }));
+	} else userCfg({ handoff: { path: target } });
+	const handlers = {};
+	ext({ on: (name, fn) => { handlers[name] = fn; } });
+	const notes = [];
+	const ctx = { cwd, hasUI: true, ui: { notify: (m) => notes.push(m) }, isProjectTrusted: () => true, sessionManager: { getSessionFile: () => "/sessions/s1.jsonl" } };
+	const tag = `custom legacy (${scope})`;
+	check(`${tag}: the configured path IS honored by config (test is not vacuous)`, loadConfig(ctx).handoff.path === target);
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const sp = (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt ?? "BASE";
+	check(`${tag}: the injection string is ABSENT from the system prompt`, !sp.includes(INJECT));
+	const added = sp.slice("BASE".length);
+	const shownRe = /handoff\.path/;
+	const refusal = added.split("\n").filter((l) => shownRe.test(l));
+	check(`${tag}: exactly one line states the refusal and names the configured path`, refusal.length === 1 && (refusal[0].includes(target) || refusal[0].includes(".pi/handoff.md")));
+	check(`${tag}: it says repo-writable and not injected`, /repo-writable/.test(refusal[0] ?? "") && /not injected/i.test(refusal[0] ?? ""));
+	check(`${tag}: pointer is bounded (≤300 chars)`, (refusal[0] ?? "").length <= 300);
+	check(`${tag}: no second statement about the same file`, added.split("\n").filter((l) => l.includes(".pi/handoff.md") || l.includes(target)).length === 1);
+	check(`${tag}: journal names the pickup refusal (handoff_legacy_ignored, configured)`, /"handoff_legacy_ignored"[^\n]*"configured":"handoff\.path"/.test(journal()) && journal().includes(target));
+	check(`${tag}: not journaled as handoff_missing / pickup`, !journal().includes('"handoff_missing"') && !journal().includes('"handoff_pickup"'));
+	await handlers.session_compact({ compactionEntry: { summary: "COMPACTED-OVER-REPO" }, reason: "manual" }, ctx);
+	await handlers.session_compact({ compactionEntry: { summary: "COMPACTED-AGAIN" }, reason: "manual" }, ctx);
+	check(`${tag}: the repo file is byte-identical after compaction attempts`, Buffer.compare(fs.readFileSync(target), before) === 0);
+	check(`${tag}: handoff_legacy_write_refused journaled with the path`, /"handoff_legacy_write_refused"[^\n]*/.test(journal()) && journal().split("\n").some((l) => l.includes('"handoff_legacy_write_refused"') && l.includes(target)));
+	check(`${tag}: no handoff_written`, !journal().includes('"handoff_written"'));
+	check(`${tag}: the write refusal is notified once per session`, notes.filter((m) => /NOT written/.test(m)).length === 1);
+	check(`${tag}: no temp litter beside the repo file`, fs.readdirSync(path.join(repo, ".pi")).every((f) => !f.endsWith(".tmp")));
+	console.log(`  pointer: ${refusal[0]}`);
+	console.log(`  journal: ${journal().trim().split("\n").filter((l) => /legacy/.test(l)).join("\n           ")}`);
+	fs.rmSync(repo, { recursive: true, force: true });
+	if (cwd !== repo) fs.rmSync(cwd, { recursive: true, force: true });
+}
+userCfg({});
+
 process.exit(fails);

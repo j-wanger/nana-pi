@@ -213,9 +213,18 @@ is user-scope only** — project config never contributes to it, trusted or not.
     the "never delete" prompt line are gone with their reason.
   - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
     the-hive 09-13 "do not modify gameplay code yet" summary reached 56 sessions). If one exists the
-    session gets one pointer line naming it as repo-writable and not injected (journal
+    session gets one pointer line naming it as repo-writable and not injected, **left unchanged
+    here, not migrated**, with future summaries written to the user-scope store (journal
     `handoff_legacy_ignored`). Existing files, the-hive's included, are **not deleted and not
-    migrated** — repo text is never laundered into the trusted store; deleting is the owner's call.
+    migrated** — your text was not moved anywhere; repo text is never laundered into the trusted
+    store; deleting is the owner's call. The rule is by **path shape, whatever the config says**:
+    a `handoff.path` (user scope or nana-trusted project scope) whose final two segments are
+    `.pi/handoff.md` — any directory, case-insensitive, also after resolving its parent's real
+    path — is never read and never written. The session gets one line naming the configured path
+    as repo-writable, not injected and never written (journal `handoff_legacy_ignored` with
+    `configured: "handoff.path"`); each compaction is refused and journaled
+    (`handoff_legacy_write_refused`), leaving the file byte-identical, with one UI warning per
+    session.
   - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
     writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
     **lower authority than OBJECTIVE.md / AGENTS.md / DOCTRINE**, and keeps "background state, not
@@ -237,7 +246,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
     absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
     "— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly
     (do not pass it to read as written)" — never claimed readable; the same form is used in
-    the fresh-summary `Source:` line. A **relative** custom `handoff.path` resolves against the
+    the fresh-summary `Source:` line. **Pointer-specific exception, by design:** an escaped
+    pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
+    chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
+    No summary text is inlined in that case, and provenance still lives in the artifact's own
+    `Written:` / `Writer:` header. This omission is pointer-only: an inlined summary always
+    carries writer and timestamp. A **relative** custom `handoff.path` resolves against the
     pi **process** cwd, not the session cwd; the pointer shows that file. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
     compaction resets it.
   - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
@@ -252,7 +266,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
     objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
-    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. A store entry whose recorded `Cwd:` is another directory is not injected
+    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).

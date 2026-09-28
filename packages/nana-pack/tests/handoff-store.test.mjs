@@ -187,5 +187,60 @@ else {
 	check("concurrent: no temp litter", fs.readdirSync(STORE).every((f) => !f.endsWith(".tmp")));
 }
 
+// L5 seam (astra D): a BROKEN store is not an absent one. A dangling store-entry symlink and a
+// dangling `handoffs/` directory symlink both raise ENOENT on read; each must journal
+// handoff_pickup_failed with a reason and NEVER handoff_missing (L5 reads missing as "unadopted").
+if (process.platform === "win32") console.log("SKIP dangling links: POSIX symlinks (win32)");
+else {
+	{
+		const proj = mk(path.join(base, "dangling-entry"));
+		const file = mod.storePathFor(proj);
+		fs.mkdirSync(STORE, { recursive: true });
+		fs.symlinkSync(path.join(base, "no-such-target.md"), file);
+		fs.rmSync(JOURNAL, { force: true });
+		check("dangling entry: nothing injected", (await session(proj).prompt()) === "BASE");
+		check("dangling entry: readHandoff() is an error, not missing", mod.readHandoff(file).kind === "error");
+		check("dangling entry: handoff_pickup_failed journaled with dangling_symlink", /"handoff_pickup_failed".*dangling_symlink/.test(journal()));
+		check("dangling entry: NO handoff_missing", !journal().includes('"handoff_missing"'));
+		console.log(`  journal: ${journal().trim().split("\n").find((l) => l.includes("handoff_pickup_failed"))}`);
+		fs.unlinkSync(file);
+	}
+	{
+		const proj = mk(path.join(base, "dangling-dir"));
+		const aside = `${STORE}.aside`;
+		fs.renameSync(STORE, aside);
+		fs.symlinkSync(path.join(base, "no-such-store-dir"), STORE);
+		fs.rmSync(JOURNAL, { force: true });
+		try {
+			check("dangling handoffs/: nothing injected", (await session(proj).prompt()) === "BASE");
+			check("dangling handoffs/: readHandoff() is an error, not missing", mod.readHandoff(mod.storePathFor(proj)).kind === "error");
+			check("dangling handoffs/: handoff_pickup_failed journaled with dangling_parent", /"handoff_pickup_failed".*dangling_parent/.test(journal()));
+			check("dangling handoffs/: NO handoff_missing", !journal().includes('"handoff_missing"'));
+			console.log(`  journal: ${journal().trim().split("\n").find((l) => l.includes("handoff_pickup_failed"))}`);
+		} finally {
+			fs.unlinkSync(STORE);
+			fs.renameSync(aside, STORE);
+		}
+	}
+	{
+		// legitimate symlink support stays: a RESOLVING handoffs/ link is honored, and an absent
+		// entry under it is still plain missing
+		const proj = mk(path.join(base, "linked-store"));
+		const real = mk(path.join(base, "real-store"));
+		const aside = `${STORE}.aside`;
+		fs.renameSync(STORE, aside);
+		fs.symlinkSync(real, STORE);
+		fs.rmSync(JOURNAL, { force: true });
+		try {
+			check("resolving handoffs/ link, no entry: handoff_missing (genuine absence)", (await session(proj).prompt()) === "BASE" && journal().includes('"handoff_missing"') && !journal().includes('"handoff_pickup_failed"'));
+			await session(proj).compact("LINKED-STATE");
+			check("resolving handoffs/ link: written and picked up", (await session(proj).prompt()).includes("LINKED-STATE"));
+		} finally {
+			fs.unlinkSync(STORE);
+			fs.renameSync(aside, STORE);
+		}
+	}
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 process.exit(fails);
