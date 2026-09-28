@@ -544,18 +544,36 @@ is user-scope only** — project config never contributes to it, trusted or not.
     fix to do first, then `/trust` from the folder: the store itself when it is malformed,
     unreadable, not a regular file, too large, owned by another user or not writable (repair
     or remove it; for another owner's file, or a non-writable one, this may need rights you do
-    not have); or a FOLDER on the store's path when that is not a folder (move it aside) or is
+    not have); a FOLDER on the store's path when that is not a folder (move it aside) or is
     not writable — another owner, its permissions, a read-only volume (make it writable; this
-    may need rights you do not have). It never names a store that does not exist. `/trust`
-    alone cannot be relied on then: pi's own `/trust` reads the store before showing its
-    selector and throws on a malformed file, and its write needs the folder and the file
-    writable. Its rewrite *can* shrink a valid oversized store below the cap, but a store
-    over the cap is not read here, so "too large" still says to repair it first. A store
-    repaired after this read can make the advice stale (it is computed once per session).
+    may need rights you do not have); a DANGLING symbolic link on that path (pi's recursive
+    `mkdir` fails through it — fix or remove the link); or an obstructed lock path. pi locks
+    its store with `mkdir <store>.lock` (proper-lockfile, 10 s stale): only an absent path or an
+    empty folder can be taken, so a file, a link or a non-empty folder there makes every pi
+    trust lookup and `/trust` throw — the label names the lock path and what occupies it. It
+    never names a store that does not exist. `/trust` alone cannot be relied on then: pi's own
+    `/trust` reads the store (under that lock) before showing its selector and throws on a
+    malformed file, and its write needs the folder and the file writable. Its rewrite *can*
+    shrink a valid oversized store below the cap, but a store over the cap is not read here, so
+    "too large" still says to repair it first.
+    **Every remedy names the store that must receive the decision**, because the advice changes
+    the folder pi starts in: with a RELATIVE `PI_CODING_AGENT_DIR`, each pi resolves it against
+    its own start folder, so the remedy also gives the absolute agent dir to start pi with
+    (`PI_CODING_AGENT_DIR=<absolute dir>`); starting pi in the folder with the relative value
+    would record into a different store and leave the original session labelled.
+    **`/trust` is not just dismissing this label**: saving trust also makes pi load that
+    folder's project resources (`.pi` settings, extensions, skills, prompts, themes). Decide on
+    the repo, not on the label.
+    **The advice is computed once per session and can go stale.** Before removing a store,
+    re-check it and back it up: if it was repaired after this session read it, removal
+    discards every saved trust decision, declines included — the emitted removal advice says so.
     `/trust` records the session cwd; a record for a subfolder never vouches for its parent
     (here or in pi), so running `/trust` from a nested cwd leaves the label in place.
-    **Only a recorded affirmative clears the label:** pi's ACTIVE trust store must record
-    `true` for the folder or its nearest recorded ancestor. A recorded `false` (a decline) keeps
+    **Only a recorded affirmative clears the label**, and only while pi itself can read it:
+    pi's ACTIVE trust store must record `true` for the folder or its nearest recorded ancestor,
+    AND pi's own lookup must succeed (folder searchable and writable enough to lock, no
+    dangling link, lock path free or an empty folder) — otherwise pi treats the project as
+    untrusted and so does the label. A recorded `false` (a decline) keeps
     the label, and so does no record at all, whatever `.pi/` resources the folder holds. The
     active store is `trust.json` in pi's agent dir, resolved exactly as pi resolves it:
     `PI_CODING_AGENT_DIR` when set (with pi's `~` expansion; a relative value resolves against
@@ -566,9 +584,10 @@ is user-scope only** — project config never contributes to it, trusted or not.
     than nana-trust (`lib/config.ts`) and pi's own trust. It never consults pi's resource list
     or the live `isProjectTrusted()`, and pi's auto-trust never counts.
     **Consequence:** more folders are labelled than under "trust was decided". Any repo trusted
-    only in-session, without `/trust` saving the decision, carries the label until the owner
-    runs `/trust`. That is intended: the label means "I could not confirm you vouched", and it
-    names the action that clears it in the case at hand.
+    only in-session, without `/trust` saving the decision, carries the label until a usable
+    affirmative record exists for it — `/trust` when the store is usable, the named fix first
+    when it is not. That is intended: the label means "I could not confirm you vouched", and it
+    names the action for the case at hand as seen when the session started.
     The check is pure filesystem code in `lib/objective.ts` (`ownerVouched`), so both runtimes
     reach the same verdict. A store that is unreadable, malformed, not a regular file, a FIFO,
     over 1 MiB or owned by another user counts as "not vouched", so the file is labelled. The

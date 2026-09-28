@@ -71,6 +71,21 @@ export function piAgentDir(): string {
 	}
 }
 
+/**
+ * True when `PI_CODING_AGENT_DIR` is set to a value that stays RELATIVE after pi's normalizePath:
+ * each pi process then resolves it against its OWN start folder (pi dist/main.js:458 getAgentDir →
+ * trust-manager.js:173 resolvePath), so starting pi elsewhere selects a DIFFERENT store. Never throws.
+ */
+export function piAgentDirIsCwdRelative(): boolean {
+	const env = process.env.PI_CODING_AGENT_DIR;
+	if (!env) return false;
+	try {
+		return !path.isAbsolute(piNormalizePath(env));
+	} catch {
+		return !path.isAbsolute(env);
+	}
+}
+
 /** pi's ACTIVE trust store: `<piAgentDir()>/trust.json` (ProjectTrustStore.trustPath). */
 export const piTrustStorePath = (): string => path.join(piAgentDir(), "trust.json");
 

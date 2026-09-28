@@ -13,8 +13,11 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 ## Objective contract (both runtimes, one producer: `packages/nana-pack/lib/objective.ts`)
 
 - Session start injects the nearest `OBJECTIVE.md` walking UP from the session cwd — always, no
-  opt-in; with none found, the user-scope umbrella (`objective.path`, default
-  `~/.pi/agent/nana-objective.md`) governs. Project config can neither choose nor disable it.
+  opt-in; with none found, the user-scope umbrella (`objective.path`) governs. Its default is
+  `nana-objective.md` in pi's ACTIVE agent dir (`piAgentDir()`: `PI_CODING_AGENT_DIR` when set —
+  a relative value resolves against the process cwd — else `~/.pi/agent`), and a relative
+  `objective.path` resolves against that same dir, never the session cwd. Project config can
+  neither choose nor disable it.
 - `objective.projectFile` (user scope) only RENAMES the file looked for — a bare filename; a
   separator, `.` or `..` is refused and `OBJECTIVE.md` is used (`nana-setup doctor` reads ✗).
 - When a product file governs, both program lines (`program objective:` / `program current
@@ -29,8 +32,13 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   instructions. Its second line depends on why: store usable → start pi IN that folder (a
   subfolder's record does not count), run `/trust`, restart; otherwise → name the object that is
   actually wrong — the store (malformed, unreadable, not a regular file, too large, owned by
-  another user, not writable) or a folder on its path (not a folder, not writable) — and the fix
-  to do first, saying when it may need rights the user lacks; never a store that does not exist. It never changes what governs; the umbrella is never
+  another user, not writable), a folder or dangling link on its path, or an obstructed
+  `trust.json.lock` (pi locks by `mkdir`; then even a recorded `true` does not count, as pi's own
+  lookup throws) — and the fix to do first, saying when it may need rights the user lacks; never
+  a store that does not exist. Every remedy names the store that must receive the decision; under
+  a RELATIVE `PI_CODING_AGENT_DIR` it pins the absolute agent dir, since starting pi elsewhere
+  would pick another store. `/trust` also makes pi load the folder's project resources. Removal
+  advice says to re-check and back up first. It never changes what governs; the umbrella is never
   labelled. Defence in depth, not a security boundary.
 
 ## Layout
