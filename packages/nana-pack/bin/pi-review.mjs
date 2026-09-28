@@ -97,7 +97,9 @@ async function runOnce(attempt) {
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `pi-review-a${attempt}-${Date.now() % 100000}`];
-  const child = spawn('pi', args, { stdio: ['ignore', fd, fd], detached: true });
+  // NANA_HANDOFF=off: a review child is a NON-WRITER — it neither picks up nor writes the
+  // nana handoff (L3; the role comes from this explicit marker, never the tool list).
+  const child = spawn('pi', args, { stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off' } });
 
   let spawnErr = null;
   child.on('error', (e) => { spawnErr = e; }); // e.g. ENOENT if pi not on PATH — no uncaught throw

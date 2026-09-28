@@ -280,30 +280,94 @@ is user-scope only** — project config never contributes to it, trusted or not.
   notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
   in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
   an 8 s deadline, so a hung one fails over instead of holding the pipe open.
-- **Handoff** writes the latest compaction summary to `<cwd>/.pi/handoff.md` and
-  re-injects it into the next fresh session in that directory. Disable the writes with
-  `handoff.enabled: false`; relocate the artifact with `handoff.path` (a custom path
-  gets no sibling `.gitignore` — its git semantics are the owner's).
-- **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`) — at
-  session-start pickup, at compaction write, and for the sibling `.pi/.gitignore`. A repo can
-  commit `.pi/handoff.md`, or `.pi` itself, as a link to something like `~/.ssh/id_rsa`: pickup
-  would paste the target into the next session's system prompt and the next compaction would
-  overwrite it. What that means in practice:
-  - **Unconditional — not trust-gated.** A *trusted* project loses symlink-based handoff too.
-    If you want the artifact somewhere else, point `handoff.path` at the real destination
-    instead of linking to it.
+- **Handoff** (L3, 2026-09-28) writes the latest compaction summary to a **user-scope store**,
+  `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` (canonical = realpath; the key is case-folded
+  on win32 only; the cwd is recorded inside), atomically (temp file + rename, latest compaction
+  wins), and injects it into the next fresh session (`startup`/`new`; resume, fork and reload skip)
+  in **that exact directory**. The path is printed on write and on pickup; edit it by hand freely.
+  Disable with `handoff.enabled: false`. Seat rulings behind this:
+  - **Why user scope, not "require trust"**: pi auto-trusts a nana-only `.pi/`, so "require trust"
+    is either a no-op or (with nana-trust) a blackout of handoff in every repo. The store removes
+    the repo-supplied vector and needs no trust. The old sibling `.pi/.gitignore` management and
+    the "never delete" prompt line are gone with their reason.
+  - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
+    the-hive 09-13 "do not modify gameplay code yet" summary reached 56 sessions). If one exists the
+    session gets one pointer line naming it as repo-writable and not injected, **left unchanged
+    here, not migrated**, with future summaries written to the user-scope store (journal
+    `handoff_legacy_ignored`). Existing files, the-hive's included, are **not deleted and not
+    migrated** — your text was not moved anywhere; repo text is never laundered into the trusted
+    store; deleting is the owner's call. The rule is by **path shape, whatever the config says**:
+    a `handoff.path` (user scope or nana-trusted project scope) whose final two segments are
+    `.pi/handoff.md` — any directory, case-insensitive, also after resolving its parent's real
+    path — is never read and never written. The session gets one line naming the configured path
+    as repo-writable, not injected and never written (journal `handoff_legacy_ignored` with
+    `configured: "handoff.path"`); each compaction is refused and journaled
+    (`handoff_legacy_write_refused`), leaving the file byte-identical, with one UI warning per
+    session.
+  - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
+    writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
+    **lower authority than OBJECTIVE.md / AGENTS.md / DOCTRINE**, and keeps "background state, not
+    instructions". If the session file is unavailable the write still happens with `Writer: unknown`
+    and journals `handoff_provenance_unavailable` next to `handoff_written`.
+  - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
+    from the file's own `Written:` header, else mtime) the summary is replaced by one pointer line
+    (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
+    stale imperative. The path always resolves to the file under pi's read tool (`resolveToCwd`):
+    `~/…` under the real home (the store: `~/.pi/agent/handoffs/<hash>.md`), cwd-relative inside
+    the session's cwd, otherwise **absolute and in full** — never truncated, no `…/` form; a path
+    containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
+    absolute. The line is ≤300 chars: over the cap the authority tail goes, then the writer is
+    trimmed, then the age. **If the path alone exceeds 300 chars, the pointer does too** — a long
+    true path beats a short false one. **Caveat — not always one read away:** a custom
+    `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
+    (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
+    written (it could resolve to an ASCII-space sibling). Such a path is shown as the
+    absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
+    "— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly
+    (do not pass it to read as written)" — never claimed readable; the same form is used in
+    the fresh-summary `Source:` line. **Pointer-specific exception, by design:** an escaped
+    pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
+    chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
+    No summary text is inlined in that case, and provenance still lives in the artifact's own
+    `Written:` / `Writer:` header. This omission is pointer-only: an inlined summary always
+    carries writer and timestamp. A **relative** custom `handoff.path` resolves against the
+    pi **process** cwd, not the session cwd; the pointer shows that file. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
+    compaction resets it.
+  - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
+    that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` sets it for every
+    child. Never inferred from the tool list or `hasUI` (the desk runs pi sessions). Only the exact
+    lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally). The marker is an
+    ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
+    handoff off unless the launcher clears `NANA_HANDOFF`.
+  - **Exact directory only**: a nested cwd or worktree with no handoff of its own never gets an
+    ancestor's text. If an ancestor directory has one, the session is told "no handoff for this
+    directory" plus that file's path; if no ancestor has one, nothing is added to the
+    session — but the fact is not discarded: an unadopted directory is a signal addressed to the
+    SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
+    objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
+    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
+    (`handoff_cwd_mismatch`).
+  - **Custom `handoff.path`**: honored from user scope always, from project scope only under
+    nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
+  - **Failures never throw**: an unreadable/unwritable store degrades to "no handoff" with a
+    journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
+    UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
+    file intact. win32: `rename` over an existing file is assumed atomic enough on NTFS —
+    **unverified**.
+- **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
+  L3 to custom paths). The user-scope store has no symlink policy — it is the owner's directory, so
+  a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
+  writes through a linked entry). Custom `handoff.path`: a repo could commit the
+  configured file, or a directory above it, as a link to something like `~/.ssh/id_rsa`:
+  - **Unconditional — not trust-gated.** Point `handoff.path` at the real destination instead of
+    linking to it.
   - **Scope is every path component BELOW the workspace root.** Components at or above the root
-    are deliberately not checked: a workspace legitimately lives under a symlinked parent
-    (macOS `/tmp` → `/private/tmp`), and that is your filesystem, not repo-supplied. A
-    `handoff.path` pointing **outside** the workspace has no repo-controlled prefix to walk, so
-    only its final component is checked.
-  - **Refusals are loud, never silent** — a `handoff_symlink_refused` journal line
-    (`op: "read" | "write" | "gitignore"`) plus a UI warning. The `.gitignore` refusal is
-    announced on its own so the "handoff written" notice cannot imply it succeeded.
-  - **Advisory, not a security boundary, and not atomic.** The `lstat` checks are not atomic
-    with the open that follows, so a link swapped in between them is not caught; and the write
-    is a plain `writeFileSync`, not a temp-file rename, so an interrupted compaction can leave
-    a partially written handoff.
+    are deliberately not checked (macOS `/tmp` → `/private/tmp` is your filesystem). A
+    `handoff.path` **outside** the workspace has only its final component checked.
+  - **Refusals are loud** — a `handoff_symlink_refused` journal line (`op: "read" | "write"`) plus
+    a UI warning.
+  - **Advisory, not a security boundary**: the `lstat` checks are not atomic with the open that
+    follows.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`

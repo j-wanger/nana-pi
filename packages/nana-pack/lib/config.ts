@@ -62,7 +62,8 @@ export interface NanaPackConfig {
 	postEdit: { commands: PostEditCommand[] };
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
-	handoff: { enabled: boolean; path: string | null };
+	/** `staleAfterDays`: a summary older than this is injected as a bounded pointer, not its text. */
+	handoff: { enabled: boolean; path: string | null; staleAfterDays: number };
 	/**
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
@@ -81,7 +82,7 @@ const DEFAULTS: NanaPackConfig = {
 	postEdit: { commands: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
-	handoff: { enabled: true, path: null },
+	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
 	receipts: { enabled: true, dir: null },
 };
@@ -128,6 +129,12 @@ const bool: Leaf = (v, where, problems) => {
 const pathOrNull: Leaf = (v, where, problems) => {
 	if (v === null || typeof v === "string") return { ok: true, value: v };
 	problems.push(`${where}: expected a string or null, got ${kind(v)} — using the default`);
+	return { ok: false };
+};
+
+const positiveNumber: Leaf = (v, where, problems) => {
+	if (typeof v === "number" && Number.isFinite(v) && v > 0) return { ok: true, value: v };
+	problems.push(`${where}: expected a positive number, got ${kind(v)} — using the default`);
 	return { ok: false };
 };
 
@@ -191,7 +198,7 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	postEdit: { commands: commandList },
 	notify: { enabled: bool, headless: bool },
 	journal: { enabled: bool, path: pathOrNull },
-	handoff: { enabled: bool, path: pathOrNull },
+	handoff: { enabled: bool, path: pathOrNull, staleAfterDays: positiveNumber },
 	objective: { enabled: bool, path: pathOrNull, projectFile: pathOrNull },
 	receipts: { enabled: bool, dir: pathOrNull },
 };

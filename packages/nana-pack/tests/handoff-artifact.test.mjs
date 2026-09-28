@@ -9,13 +9,15 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-// Continuity property: the handoff artifact survives tidy agents. Compaction
-// must (a) write .pi/handoff.md, (b) git-ignore exactly that file (appending,
-// never clobbering, an existing .pi/.gitignore — .pi/ itself stays committable),
-// and (c) the injected pickup prompt must tell agents to update, never delete
-// (an agent deleted the "stray untracked file" on 2026-09-03).
+// Continuity property: compaction writes the handoff artifact and the next fresh
+// session picks it up, told to update it in place. L3 moved the artifact out of the
+// repo into the user-scope store (~/.pi/agent/handoffs/<sha256(canonical cwd)>.md), so
+// the three .gitignore checks (sibling .pi/.gitignore management) and "prompt forbids
+// deletion" are GONE with their reason: nothing in the repo can be tidied away anymore,
+// and a repo-writable .pi/handoff.md is never injected (tests/handoff-trust.test.mjs).
 // Run: node --experimental-strip-types <this file>
-const ext = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
+const mod = await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href);
+const ext = mod.default;
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
@@ -25,26 +27,21 @@ ext({ on: (name, fn) => { handlers[name] = fn; } });
 const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-"));
 fs.mkdirSync(path.join(td, ".pi"));
 fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
-fs.writeFileSync(path.join(td, ".pi", ".gitignore"), "scratch/\n");
 const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 
+const store = mod.storePathFor(fs.realpathSync.native(td));
 await handlers.session_compact({ compactionEntry: { summary: "frontier: the state of play" }, reason: "manual" }, ctx);
-check("handoff.md written", fs.readFileSync(path.join(td, ".pi", "handoff.md"), "utf-8").includes("frontier: the state of play"));
-const gi = fs.readFileSync(path.join(td, ".pi", ".gitignore"), "utf-8");
-check("gitignore covers handoff.md", gi.split("\n").includes("handoff.md"));
-check("gitignore append preserves existing entries", gi.includes("scratch/"));
+check("handoff written (to the user-scope store)", fs.readFileSync(store, "utf-8").includes("frontier: the state of play"));
 await handlers.session_compact({ compactionEntry: { summary: "second compaction" }, reason: "auto" }, ctx);
-check("gitignore not duplicated", fs.readFileSync(path.join(td, ".pi", ".gitignore"), "utf-8").split("\n").filter((l) => l === "handoff.md").length === 1);
 
 await handlers.session_start({ reason: "startup" }, ctx);
 const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 check("pickup injects handoff", r?.systemPrompt.includes("second compaction"));
-check("prompt says update in place", r?.systemPrompt.includes("update .pi/handoff.md in place"));
-check("prompt forbids deletion", r?.systemPrompt.includes("Never delete"));
+check("prompt says update in place", r?.systemPrompt.includes(`update ${store} in place`));
 
 // custom handoff.path: the prompt must name THAT file (pi-review MAJOR
 // 2026-09-03), and no .gitignore appears next to it — its git semantics are
-// the owner's
+// the owner's (custom paths are honored from user scope; L3 invariant b)
 const handlers2 = {};
 ext({ on: (name, fn) => { handlers2[name] = fn; } });
 const td2 = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-custom-"));

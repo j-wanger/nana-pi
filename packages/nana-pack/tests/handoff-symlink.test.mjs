@@ -9,21 +9,27 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-// Security property: the handoff artifact is never read or written THROUGH a
-// symlink. A repo can commit `.pi/handoff.md` as a link to e.g. ~/.ssh/id_rsa —
-// pickup would paste the target into the next session's system prompt, and the
-// next compaction would overwrite it. Same for the sibling `.pi/.gitignore`,
-// which is read-then-written. Drives the REAL registered handlers.
+// Security property: a CUSTOM handoff.path is never read or written THROUGH a
+// symlink the repo controls. If handoff.path points into the workspace, a repo can
+// commit that file (or its directory) as a link to e.g. ~/.ssh/id_rsa — pickup would
+// paste the target into the next session's system prompt, and the next compaction
+// would overwrite it. Drives the REAL registered handlers.
+// L3: the DEFAULT location is now the user-scope store, so the default-path forms of
+// these cases are moot (a repo .pi/handoff.md is never read at all — see
+// handoff-trust.test.mjs); each case below keeps its shape with handoff.path = a file
+// under the workspace's `state/` dir. The sibling-.gitignore case (old c) is gone with
+// .gitignore management itself.
 // Run: node --experimental-strip-types <this file>
 const ext = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
+const useCustom = (file) => fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff: { path: file } }));
 function workspace() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-link-"));
-	fs.mkdirSync(path.join(td, ".pi"));
-	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+	fs.mkdirSync(path.join(td, "state"));
+	useCustom(path.join(td, "state", "handoff.md"));
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
@@ -35,7 +41,7 @@ function workspace() {
 	const { td, handlers, ctx } = workspace();
 	const secret = path.join(td, "id_rsa");
 	fs.writeFileSync(secret, "-----BEGIN OPENSSH PRIVATE KEY-----\nSUPERSECRET\n");
-	fs.symlinkSync(secret, path.join(td, ".pi", "handoff.md"));
+	fs.symlinkSync(secret, path.join(td, "state", "handoff.md"));
 
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
@@ -51,7 +57,7 @@ function workspace() {
 	const { td, handlers, ctx } = workspace();
 	const target = path.join(td, "precious.txt");
 	fs.writeFileSync(target, "ORIGINAL\n");
-	const link = path.join(td, ".pi", "handoff.md");
+	const link = path.join(td, "state", "handoff.md");
 	fs.symlinkSync(target, link);
 
 	let threw = false;
@@ -62,23 +68,7 @@ function workspace() {
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
-// (c) the sibling .pi/.gitignore is read-then-written, so it is the same vector.
-{
-	const { td, handlers, ctx } = workspace();
-	const target = path.join(td, "shell-rc");
-	fs.writeFileSync(target, "export SECRET=1\n");
-	fs.symlinkSync(target, path.join(td, ".pi", ".gitignore"));
-
-	let threw = false;
-	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
-	check("c: symlinked .gitignore does not throw at compaction", !threw);
-	check("c: .gitignore symlink target not written through", fs.readFileSync(target, "utf-8") === "export SECRET=1\n");
-	// the artifact itself is a regular file here, so continuity still works
-	check("c: the handoff itself was still written", fs.readFileSync(path.join(td, ".pi", "handoff.md"), "utf-8").includes("state of play"));
-	fs.rmSync(td, { recursive: true, force: true });
-}
-
-// (d)+(e) the LINK ONE LEVEL UP: `.pi` itself committed as a link to an external
+// (d)+(e) the LINK ONE LEVEL UP: `state` itself committed as a link to an external
 // directory. Every component is a regular file, so a final-component-only check
 // waves this through — read and write must both refuse.
 {
@@ -87,22 +77,22 @@ function workspace() {
 	const outside = path.join(td, "outside");
 	fs.mkdirSync(ws);
 	fs.mkdirSync(outside);
-	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+	useCustom(path.join(ws, "state", "handoff.md"));
 	fs.writeFileSync(path.join(outside, "handoff.md"), "EXTERNAL SECRET\n");
-	fs.symlinkSync(outside, path.join(ws, ".pi")); // the whole .pi directory is the link
+	fs.symlinkSync(outside, path.join(ws, "state")); // the whole state directory is the link
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	const ctx = { cwd: ws, hasUI: false, isProjectTrusted: () => true };
 
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
-	check("d: symlinked .pi directory does not throw at session_start", !threw);
+	check("d: symlinked state directory does not throw at session_start", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("d: nothing injected through a symlinked .pi directory", r === undefined);
+	check("d: nothing injected through a symlinked state directory", r === undefined);
 	check("d: external contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("EXTERNAL SECRET"));
 
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
-	check("e: symlinked .pi directory does not throw at compaction", !threw);
+	check("e: symlinked state directory does not throw at compaction", !threw);
 	check("e: external handoff.md not overwritten", fs.readFileSync(path.join(outside, "handoff.md"), "utf-8") === "EXTERNAL SECRET\n");
 	check("e: no .gitignore written into the external directory", !fs.existsSync(path.join(outside, ".gitignore")));
 	fs.rmSync(td, { recursive: true, force: true });
@@ -115,16 +105,15 @@ function workspace() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-linkroot-"));
 	const real = path.join(td, "real");
 	const link = path.join(td, "link"); // the workspace root itself is reached via a link
-	fs.mkdirSync(path.join(real, ".pi"), { recursive: true });
-	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+	fs.mkdirSync(path.join(real, "state"), { recursive: true });
+	useCustom(path.join(link, "state", "handoff.md"));
 	fs.symlinkSync(real, link);
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	const ctx = { cwd: link, hasUI: false, isProjectTrusted: () => true };
 
 	await handlers.session_compact({ compactionEntry: { summary: "under a symlinked root" }, reason: "manual" }, ctx);
-	check("f: symlinked ANCESTOR does not block the write", fs.readFileSync(path.join(real, ".pi", "handoff.md"), "utf-8").includes("under a symlinked root"));
-	check("f: .gitignore still maintained under a symlinked root", fs.readFileSync(path.join(real, ".pi", ".gitignore"), "utf-8").split("\n").includes("handoff.md"));
+	check("f: symlinked ANCESTOR does not block the write", fs.readFileSync(path.join(real, "state", "handoff.md"), "utf-8").includes("under a symlinked root"));
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("f: symlinked ANCESTOR does not block the pickup", (r?.systemPrompt ?? "").includes("under a symlinked root"));
