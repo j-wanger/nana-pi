@@ -84,7 +84,11 @@ counted in a user-scope ledger — never from the output file name, and the same
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
   commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
-  not by this cap). `--revision` is only the fallback when there is no HEAD (outside git); inside
+  not by this cap). A **dirty tree** is its own state: its revision is `<HEAD sha>+diff:<first 16
+  hex of sha256(git diff HEAD)>` (tracked changes only — an untracked scratch file changes nothing),
+  so fix-review-fix-review without committing still counts one round per distinct diff; reverting
+  to an already-reviewed state earns none. Ledger lines carry both parts as `head` and `diff`
+  (`diff: null` when clean). `--revision` is only the fallback when there is no HEAD (outside git); inside
   git it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
 - **Only a completed verdict earns the round.** A stall, an infrastructure failure or a timeout
   returns the reservation. A completion must own a live reservation: an expired (12 h), pruned or
@@ -94,7 +98,7 @@ counted in a user-scope ledger — never from the output file name, and the same
   (`--over-cap --retries` is refused). Every override is written to the ledger with a timestamp.
 - **Ledger** (`~/.pi/agent/`):
   - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: one line per round
-    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"role":…,"launcher":…}`.
+    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"diff":…,"role":…,"launcher":…}`.
     The cap reads only this and the live reservations. A malformed line **refuses** admission
     with `file:line` — a corrupted record never grants a free review.
   - `review-ledger.jsonl` — the verbose audit log (every verdict and override). Past 1 MiB it is
@@ -160,6 +164,8 @@ to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
 - `~/.claude/nana-memory/shared/reference_pi_review_procedure.md` and
   `~/nana-agent-loop/loops/system-map.components.json` describe the old basename rule; update them.
 
+**When this lands:** `~/.local/bin/pi-worker` must be symlinked to `bin/pi-worker.mjs` (the seat
+does it), beside the existing `~/.local/bin/pi-review` link.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).

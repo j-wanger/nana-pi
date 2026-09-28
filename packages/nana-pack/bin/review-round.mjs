@@ -18,7 +18,9 @@
 //    unrelated repository does not. Outside git, repo = "path:" + realpath(cwd).
 //  - A ROUND is a distinct REVISION reviewed for the item. Revision = the reviewed tree's git HEAD
 //    (full sha); --revision is only the fallback when HEAD cannot be resolved (and inside git it
-//    must name that commit). Any number of reviews — any roles — on one revision are ONE round.
+//    must name that commit). A DIRTY tree's revision is "<sha>+diff:<16 hex of sha256(git diff HEAD)>"
+//    (tracked changes only), so fix-review-fix-review without committing still counts each state.
+//    Any number of reviews — any roles — on one revision are ONE round.
 //    --role is audit metadata only.
 //  - only a completed verdict earns the round; a stall / failure returns the reservation.
 //  - complete() must own a live reservation: an expired, pruned or replaced one records nothing.
@@ -34,7 +36,7 @@ import {
 import { homedir } from 'node:os';
 import { join, resolve, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 
 export const REVIEW_ROUND_CAP = 3;
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
@@ -120,8 +122,21 @@ export function treeScope(cwd = process.cwd()) {
     repo: `git:${realpathSync(resolve(cwd, common))}`,
     inGit: true,
     head: git(cwd, ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']),
+    diff: diffDigest(cwd),
   };
 }
+
+/** A dirty tree is its own state of the work: a short digest of `git diff HEAD` (tracked changes
+ *  only — an untracked file does not change it), or null when the tree is clean. */
+function diffDigest(cwd) {
+  let d;
+  try {
+    d = execFileSync('git', ['diff', 'HEAD', '--binary', '--no-color', '--no-ext-diff', '--no-textconv'],
+      { cwd, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 30 });
+  } catch { return null; } // no HEAD yet: nothing to diff against
+  return d.length ? createHash('sha256').update(d).digest('hex').slice(0, 16) : null;
+}
+const withDiff = (sha, scope) => (scope.diff ? `${sha}+diff:${scope.diff}` : sha);
 
 /** The revision a review is counted against. Throws with the reason when it cannot be derived. */
 export function resolveRevision(explicit, scope, cwd = process.cwd()) {
@@ -132,9 +147,9 @@ export function resolveRevision(explicit, scope, cwd = process.cwd()) {
       throw new Error(`--revision ${explicit} is ${sha.slice(0, 12)}, but the reviewed tree's HEAD is ${scope.head.slice(0, 12)}: ` +
         'the revision is derived from HEAD — run the review from a checkout of that commit');
     }
-    return sha;
+    return withDiff(sha, scope);
   }
-  if (scope.head) return scope.head;
+  if (scope.head) return withDiff(scope.head, scope);
   if (!explicit) throw new Error(`no git HEAD at ${cwd}; pass --revision <id>`);
   const r = explicit.trim();
   if (!r || r.length > REVISION_MAX || /[\s\p{Cc}]/u.test(r)) throw new Error(`--revision ${JSON.stringify(r.slice(0, 40))}: 1-${REVISION_MAX} characters, no whitespace`);
@@ -257,6 +272,7 @@ function liveReservations(p, prune) {
   return out;
 }
 
+const shortRev = (r) => r.replace(/^([0-9a-f]{12})[0-9a-f]*/, '$1');
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
 /** The cap decision for {repo, item, revision}. Call under the lock. Every ledger path is
@@ -293,6 +309,11 @@ function parseReview(args, cwd) {
   const revision = resolveRevision(revArg, scope, cwd);
   return { key: { repo: scope.repo, item }, revision, role, overCap, out };
 }
+/** The ledger record's view of a revision: both parts, so an audit sees which state was reviewed. */
+export function revisionParts(revision) {
+  const [head, diff] = String(revision).split('+diff:');
+  return { head, diff: diff ?? null };
+}
 
 const failMessage = (e) => `review ledger: ${e.message}` +
   (['EACCES', 'EPERM', 'EROFS'].includes(e.code) ? ' — the ledger directory (~/.pi/agent) must be writable by this user' : '');
@@ -324,7 +345,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
       const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +
         (d.again ? ' (revision already counted — no new round)' : '') +
-        ` (${q.role} @ ${q.revision.slice(0, 12)})` + (override ? ` — OVER CAP, override recorded: ${override}` : '');
+        ` (${q.role} @ ${shortRev(q.revision)})` + (override ? ` — OVER CAP, override recorded: ${override}` : '');
       return { ok: true, id, res, note };
     });
   } catch (e) {
@@ -341,7 +362,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
     const run = () => decide(p, q.key, q.revision, undefined, false);
     const d = lstatOrNull(p.dir) ? withLock(p, run) : run(); // no ledger dir: nothing to read, nothing created
     if (d.verdict === 'refuse') return { ok: false, message: REFUSE(d) };
-    return { ok: true, note: `${d.where}; next review of ${q.revision.slice(0, 12)} would be round ${d.round}/${REVIEW_ROUND_CAP}` +
+    return { ok: true, note: `${d.where}; next review of ${shortRev(q.revision)} would be round ${d.round}/${REVIEW_ROUND_CAP}` +
       (d.again ? ' (revision already counted — no new round)' : '') };
   } catch (e) {
     return { ok: false, message: failMessage(e) };
@@ -369,10 +390,10 @@ export function complete(r, out, { home = homedir() } = {}) {
       const rounds = readTally(p).filter((x) => sameItem(x, held));
       let idx = rounds.findIndex((x) => x.revision === held.revision);
       if (idx < 0) {
-        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, role: held.role, launcher: held.launcher, override: held.override });
+        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override });
         idx = rounds.length;
       }
-      appendChecked(p.audit, { kind: 'verdict', repo: held.repo, item: held.item, revision: held.revision, role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override });
+      appendChecked(p.audit, { kind: 'verdict', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override });
       unlinkSync(f);
       return { ok: true, round: idx + 1 };
     });

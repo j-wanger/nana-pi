@@ -327,5 +327,37 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4);
 }
 
+// 13. a DIRTY tree is its own state of the work: HEAD + a digest of `git diff HEAD` (T2b fix r2)
+{
+	freshHome("13");
+	const D = repo("D", 2);
+	D.at(1);
+	const f = path.join(D.d, "f");
+	const rev = () => (roundsOf("dirty").at(-1) ?? {});
+	fs.writeFileSync(f, "fix one");
+	const r1 = ledgerRun(["--item", "dirty"], { cwd: D.d });
+	const t1 = rev();
+	check("dirty tree review → round 1, ledger line {revision:<sha>+diff:<16hex>, head:<sha>, diff:<16hex>}",
+		r1.status === 0 && /round 1\/3/.test(r1.stderr) && roundsOf("dirty").length === 1 &&
+		t1.head === D.shas[1] && /^[0-9a-f]{16}$/.test(t1.diff) && t1.revision === `${D.shas[1]}+diff:${t1.diff}`, r1.stderr + JSON.stringify(t1));
+	fs.writeFileSync(f, "fix two");
+	const r2 = ledgerRun(["--item", "dirty"], { cwd: D.d });
+	check("edit a tracked file (uncommitted) → round 2", r2.status === 0 && /round 2\/3/.test(r2.stderr) && roundsOf("dirty").length === 2 && rev().diff !== t1.diff, r2.stderr);
+	fs.writeFileSync(f, "fix one");
+	const r3 = ledgerRun(["--item", "dirty"], { cwd: D.d });
+	check("revert the edit → original revision recognised, no new round", r3.status === 0 && /round 1\/3/.test(r3.stderr) && /already counted/.test(r3.stderr) && roundsOf("dirty").length === 2, r3.stderr);
+	fs.writeFileSync(path.join(D.d, "scratch.txt"), "untracked");
+	const r4 = ledgerRun(["--item", "dirty"], { cwd: D.d });
+	check("touch an untracked file → no new round", r4.status === 0 && /already counted/.test(r4.stderr) && roundsOf("dirty").length === 2, r4.stderr);
+	gitIn(D.d, "commit", "-qam", "fix one");
+	const r5 = ledgerRun(["--item", "dirty"], { cwd: D.d });
+	check("commit the change → a new revision (clean sha, diff null), a new round",
+		r5.status === 0 && /round 3\/3/.test(r5.stderr) && roundsOf("dirty").length === 3 && rev().revision === gitIn(D.d, "rev-parse", "HEAD") && rev().diff === null, r5.stderr + JSON.stringify(rev()));
+	fs.writeFileSync(f, "fix three");
+	const r6 = ledgerRun(["--item", "dirty", "--revision", "HEAD"], { cwd: D.d });
+	check("explicit --revision HEAD on a dirty tree still carries the digest (4th state → refused)", r6.status === 1 && /round 4, over the cap/.test(r6.stderr), r6.stderr);
+	gitIn(D.d, "checkout", "-q", "--", "f");
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 process.exit(fails);
