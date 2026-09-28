@@ -30,7 +30,7 @@
 
 ## Open for Jake
 
-0a. **RULED (Jake 2026-09-28): option (a).** Walk-up stays unconditional; a governing `OBJECTIVE.md` outside a trusted/owned location carries a **provenance label framed as untrusted data** (the framing the knowledge pointers already use). Not trust-gated — that would blank a fresh clone. Implemented in lane T2a.
+0a. **PENDING JAKE — the provenance decision is NOT closed.** He ruled option (a) on 2026-09-28: walk-up stays unconditional and a governing `OBJECTIVE.md` outside a trusted/owned location carries a provenance label framed as untrusted data. **That label is NOT implemented** — lane T2a deliberately left the wording untouched. What T2a DID do is structural: the producer never emits raw file content, only the parsed lines, and no attacker-controlled line break or control character survives on any surface. sol and astra both rule that structural safety does not answer the semantic question — untrusted repo prose can still be labelled `governing` and steer a session before the owner states intent; sol recommends requiring nana-trust instead. **Open: implement the label as ruled, or revisit toward trust-gating; either way record the residual as an explicit risk acceptance.**
 
 0b. **Known intermittent test failure (evidence 2026-09-28):** `apps/desk/test/stage-key-persistence.test.mjs` failed once under the full `npm test` runner and passed 5/5 standalone and on a full rerun; seen twice today (once by the L3 worker). NOT a port collision — the test uses `DESK_PORT=0`. No root cause yet. Matters because `npm test` is the canonical acceptance path for every lane.
 
