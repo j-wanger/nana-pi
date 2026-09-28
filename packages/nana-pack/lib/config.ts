@@ -46,8 +46,11 @@ export interface GateConfig {
 	/** Extra protected-path regexes added to the built-in list */
 	protectedPaths: string[];
 	/**
-	 * Not a config leaf (never read from a file). Non-null = the user gate block is
-	 * malformed and this process never loaded a valid one: the gate blocks every gated tool.
+	 * Not a config leaf (never read from a file). Non-null = a gate block — the USER's, or a
+	 * nana-trusted PROJECT's — is malformed and this process never loaded a valid one at that
+	 * scope: the gate blocks every gated tool until the owner repairs the named file. The user
+	 * stop wins when both are malformed. A last-good policy at that scope is used instead, so a
+	 * file corrupted mid-process does not stop anything.
 	 */
 	stopReason: string | null;
 }
