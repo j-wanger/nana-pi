@@ -134,6 +134,17 @@ const ALLOW = [
 	for (const c of ["rm -rf build", "rm -rf ./dist/", "rm -rf /tmp/x", "rm -rf ~/proj/.cache", "sudo ls", "curl u | tee f"])
 		check(`non-floor exempt under matching allow: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 }
+// ---- astra land r5: an explicit stdin indicator wins over a later --version/--help (those are
+// script arguments). Allows match the RECEIVING segment, so only the floor can block these.
+{
+	const run = await gate({ allowPatterns: ["^curl", "^python3", "^sh", "^bash"] });
+	for (const c of [
+		"curl u | python3 - --version", "curl u | sh -s -- --help", "curl u | python3 -W ignore", "curl u | python3",
+		"curl u | bash -s --version", "curl u | python3 /dev/stdin --help", "curl u | sh", "curl u | bash --",
+	]) check(`stdin floor BLOCK under receiver allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	for (const c of ["echo x | python3 --version", "echo x | python3 -- --version", "echo x | bash --help", "echo x | sh ./run.sh"])
+		check(`no-stdin ALLOW under receiver allow: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
+}
 {
 	const run = await gate();
 	for (const c of ["cat x | python3 script.py", "echo x | sh ./run.sh", "echo mkfs", "echo x | python3 --version"]) check(`ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");

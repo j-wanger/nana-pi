@@ -232,8 +232,8 @@ cycle guard — the desk's does).
   through the same destination guards as context files (no write through a
   symlinked `.pi` or leaf), and every write leaves a `.bak`. Gate edits that *loosen*
   (a new allow pattern, a removed deny) reach a running session only after its next
-  `/reload` (or a new session); tightening edits apply at once. The form's "allow (skip
-  gate)" field exempts one command segment, never a compound or the gate's floor
+  `/reload` (or a new session); tightening edits apply at once. The form's "allow (exempt
+  matching segment; not the floor)" field exempts one command segment, never a compound or the gate's floor
   (`packages/nana-pack/README.md`).
 
 (The wire — a journal-tail lifecycle feed — was removed 2026-09-03: it confused

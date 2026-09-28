@@ -140,8 +140,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
   call with `nana-gate: project nana-pack.json gate block is malformed — repair it
   (<file>:<problem>)` — it never silently drops the project's denies / protected paths or
   brings back a user exception the project had cancelled. (If both files are broken the user
-  stop is reported.) The repair is the owner's, outside the gated agent: fix or delete
-  `<cwd>/.pi/nana-pack.json`.
+  stop is reported.) **Owner recovery, both scopes** (malformed or over-cap — more than 200
+  `extraPatterns` / `protectedPaths` entries): the STOP has no in-pi exception, so repair the
+  named file with **any editor outside pi** — `~/.pi/agent/nana-pack.json` (user) or
+  `<cwd>/.pi/nana-pack.json` (trusted project) — **or delete it**: missing means defaults,
+  which also discards that scope's custom denies and protected paths.
   No copy of the policy is saved to disk: a saved "last good" file could be forged by the very
   agent the gate constrains, so after a restart nothing but a valid `nana-pack.json` can open
   the gate. A missing file is not malformed — it means the defaults (no project contribution).
@@ -215,7 +218,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **The floor — no allow pattern skips it** (the interactive dialog still can): pipe to a
   shell or interpreter (`| sh`, `| bash`, `| zsh`, `| python`, `| node`, …) when it reads its
   program from stdin (no script operand — an option's value such as `-W ignore` is not one —
-  `-`, `/dev/stdin`, a shell's `-s`: `curl u | sh -s arg` and `curl u | python3 -W ignore`
+  `-`, `/dev/stdin`, a shell's `-s` — any of these wins over a later `--version`/`--help`:
+  `curl u | sh -s arg`, `curl u | python3 -W ignore` and `curl u | python3 - --version`
   are floor; `cat x | python3 script.py` and `echo x | python3 --version` are not), `rm` recursive on
   `/`, `~`, `$HOME`, `C:` or an ancestor of home in any lexically equal spelling (`~/.`, `/.`,
   `~//`, `/./`, `${HOME}`, `~/x/..`, a trailing `/`; `rm -rf .` is *not* floor), `mkfs`,
@@ -226,10 +230,19 @@ is user-scope only** — project config never contributes to it, trusted or not.
   one. Past 200, or an entry that does not compile: in `extraPatterns` / `protectedPaths` the
   gate block is malformed (last valid policy, else the conservative STOP naming the file and
   entry) — a deny is never silently dropped; in `allowPatterns` the excess is dropped with a
-  `config_invalid` line naming the entries not considered. A command over 64 KB gets no
-  exception (it is still checked). **Residual:** a catastrophic or polynomial regex in your
-  **own** `nana-pack.json` (`(a+)+$`) can make your own gate slow or hang. Nothing in the pack
-  can fix a pattern you asked it to run; the count and subject caps bound everything else.
+  `config_invalid` line naming the entries not considered. The 200 cap is **per source list
+  per load**; denies accumulated by live tightenings form an **uncapped** session union. A
+  command over 64 KB gets no exception (it is still checked): 64 KB bounds **exception
+  eligibility only**, not the subject of deny regexes nor total analysis work — there is **no
+  global work bound**. **Residual:** a catastrophic or polynomial regex in your **own** (or a
+  trusted project's) `nana-pack.json` (`(a+)+$`) can make the gate slow or hang, and a very
+  large command is scanned in full. Nothing in the pack can fix a pattern you asked it to run.
+- **Interpreter-argument residual.** The stdin floor models interpreter options with a
+  hand-maintained option-arity table (`-W`, `-X`, `-o`, `--rcfile`, …): an explicit stdin
+  indicator (`-`, `/dev/stdin`, a shell's `-s`) wins over any later argument, and a leading
+  `--version` / `--help` (non-shell `-V`) with no indicator reads nothing. An exotic
+  interpreter or option the table does not know can still be mis-modelled (an unknown
+  value-taking option's value read as the script operand → not floor).
 - **Loosening waits for session start.** The gate policy adopted at `session_start`
   (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
   write mid-session — by you, the desk, or anything the gate did not see — can tighten it at

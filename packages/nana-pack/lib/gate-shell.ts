@@ -249,14 +249,19 @@ export function segmentDanger(seg: Segment): Danger | null {
 			const sh = base(t[i] ?? "");
 			const rest = t.slice(i + 1);
 			const isSh = /^(sh|bash|zsh|dash|ksh|fish)$/.test(sh);
-			// the script operand: the first word that is neither an option nor an option's value
+			// the script operand: the first word that is neither an option nor an option's value;
+			// `--` ends options (what follows is an operand/argument, never an interpreter option)
 			let j = 0;
-			while (j < rest.length && /^-./.test(rest[j])) j += VALUE_OPT.test(rest[j]) ? 2 : 1;
-			// the program is read from stdin: no script operand, `-`, /dev/stdin, or a shell's `-s`;
-			// `--version` / `--help` (and a non-shell's `-V`) read nothing
-			const stdin =
-				!rest.some((a) => /^--(version|help)$/.test(a) || (!isSh && a === "-V")) &&
-				(j >= rest.length || rest.some((a) => a === "-" || /^\/dev\/(stdin|fd\/0)$/.test(a)) || (isSh && rest.some((a) => /^-[^-]*s/.test(a))));
+			let info = false; // `--version` / `--help` (non-shell `-V`) in OPTION position
+			while (j < rest.length && /^-./.test(rest[j]) && rest[j] !== "--") {
+				if (/^--(version|help)$/.test(rest[j]) || (!isSh && rest[j] === "-V")) info = true;
+				j += VALUE_OPT.test(rest[j]) ? 2 : 1;
+			}
+			// an explicit stdin indicator (`-`, `-c -`, /dev/stdin, a shell's `-s`) wins over any
+			// other argument; otherwise stdin only when there is no script operand and no info option
+			const explicit =
+				rest.some((a) => a === "-" || /^\/dev\/(stdin|fd\/0)$/.test(a)) || (isSh && rest.some((a) => /^-[^-]*s/.test(a)));
+			const stdin = explicit || (!info && (j >= rest.length || (rest[j] === "--" && j + 1 >= rest.length)));
 			if (SHELLS.has(sh) && stdin) return hit(`pipe to ${sh} (floor)`, true);
 		}
 		// Floor verbs are found behind sudo/doas too (`sudo mkfs`, `sudo -u root dd …`).

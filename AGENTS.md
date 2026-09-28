@@ -148,8 +148,10 @@ can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / 
 and the handoff path. `~/.pi/agent/nana-pack.json` is the user-scope equivalent,
 always read. "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
 `pi -a` / the desk's trust box (one run) is not enough for a nana-only `.pi/`. A malformed
-project `gate` block falls back to the last valid project policy loaded in this process; with
-none (a fresh process), it stops every gated tool until the owner repairs the file.
+(or over-cap) `gate` block, user or project, falls back to the last valid policy for that scope
+loaded in this process; with none (a fresh process), it stops every gated tool until the owner
+repairs the named file with any editor **outside pi**, or deletes it (missing = defaults, which
+discards that scope's custom denies).
 
 ### The desk
 
