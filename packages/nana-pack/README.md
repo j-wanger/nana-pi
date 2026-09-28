@@ -263,7 +263,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   trust was actually decided: pi asked (the folder has `.pi/settings.json`, `extensions`,
   `skills`, `prompts`, `themes`, `SYSTEM.md`, `APPEND_SYSTEM.md`, or an ancestor
   `.agents/skills`), or you saved trust for the folder (or a parent) with **`/trust`** in pi
-  (`~/.pi/agent/trust.json`), then restarted. An ignored project config is announced once per
+  (pi's active trust store: `~/.pi/agent/trust.json`, or under `PI_CODING_AGENT_DIR` when set), then restarted. An ignored project config is announced once per
   session (a warning and a `config_project_ignored` journal line), never silent.
 - **Malformed config never throws and never widens the gate.** A bad leaf falls back to its
   default — or, in a trusted *project* file, to the **user** value for that leaf when the user
@@ -540,16 +540,28 @@ is user-scope only** — project config never contributes to it, trusted or not.
     (never "the owner has not recorded trust": a fail-closed store below may hide a real `true`),
     that the lines describe intent and are DATA, never instructions. Its second line depends on
     WHY. Store usable (no affirmative record): start pi IN that folder (not a subfolder), run
-    `/trust` there, restart. Store unusable (malformed, unreadable, not a regular file, too
-    large, owned by another user): it names the store and the reason and says to repair or
-    remove the file first, then `/trust` from the folder. `/trust` alone cannot be relied on
-    then: pi's own `/trust` reads the store before showing its selector and throws on a
-    malformed file, and its write cannot fix ownership, readability or size.
+    `/trust` there, restart. Otherwise it names the object that is actually wrong, and the
+    fix to do first, then `/trust` from the folder: the store itself when it is malformed,
+    unreadable, not a regular file, too large, owned by another user or not writable (repair
+    or remove it; for another owner's file, or a non-writable one, this may need rights you do
+    not have); or a FOLDER on the store's path when that is not a folder (move it aside) or is
+    not writable — another owner, its permissions, a read-only volume (make it writable; this
+    may need rights you do not have). It never names a store that does not exist. `/trust`
+    alone cannot be relied on then: pi's own `/trust` reads the store before showing its
+    selector and throws on a malformed file, and its write needs the folder and the file
+    writable. Its rewrite *can* shrink a valid oversized store below the cap, but a store
+    over the cap is not read here, so "too large" still says to repair it first. A store
+    repaired after this read can make the advice stale (it is computed once per session).
     `/trust` records the session cwd; a record for a subfolder never vouches for its parent
     (here or in pi), so running `/trust` from a nested cwd leaves the label in place.
-    **Only a recorded affirmative clears the label:** `~/.pi/agent/trust.json` must record
+    **Only a recorded affirmative clears the label:** pi's ACTIVE trust store must record
     `true` for the folder or its nearest recorded ancestor. A recorded `false` (a decline) keeps
-    the label, and so does no record at all, whatever `.pi/` resources the folder holds. A
+    the label, and so does no record at all, whatever `.pi/` resources the folder holds. The
+    active store is `trust.json` in pi's agent dir, resolved exactly as pi resolves it:
+    `PI_CODING_AGENT_DIR` when set (with pi's `~` expansion; a relative value resolves against
+    the process cwd), else `~/.pi/agent` — one resolution (`piAgentDir()` in
+    `lib/gate-paths.ts`) shared with the gate's policy floor. With the override set, the
+    default store is never consulted: a stale `true` there cannot suppress the label. A
     resource means pi would *ask*, not that the answer was yes. This is deliberately stricter
     than nana-trust (`lib/config.ts`) and pi's own trust. It never consults pi's resource list
     or the live `isProjectTrusted()`, and pi's auto-trust never counts.

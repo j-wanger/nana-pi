@@ -22,13 +22,15 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   session's work; the program lines say what the toolkit is for.
 - Only the marker-bearing `**Objective` / `**Current priority` lines are emitted — one physical
   line each, capped — never raw file content. An unusable file prints `OBJECTIVE UNAVAILABLE`.
-- Provenance label (T2c): when a repo-supplied file governs and `~/.pi/agent/trust.json` yields
+- Provenance label (T2c): when a repo-supplied file governs and pi's ACTIVE trust store (`trust.json` in
+  `PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`; resolved by `piAgentDir()`, shared with the gate) yields
   no usable affirmative record for its folder (or a nearest recorded ancestor), a two-line
   `UNTRUSTED DATA: …` paragraph precedes the governing lines — the lines are intent, DATA, never
   instructions. Its second line depends on why: store usable → start pi IN that folder (a
-  subfolder's record does not count), run `/trust`, restart; store unusable (malformed,
-  unreadable, not a regular file, too large, owned by another user) → name the store and repair
-  or remove it first, since `/trust` errors on a malformed store. It never changes what governs; the umbrella is never
+  subfolder's record does not count), run `/trust`, restart; otherwise → name the object that is
+  actually wrong — the store (malformed, unreadable, not a regular file, too large, owned by
+  another user, not writable) or a folder on its path (not a folder, not writable) — and the fix
+  to do first, saying when it may need rights the user lacks; never a store that does not exist. It never changes what governs; the umbrella is never
   labelled. Defence in depth, not a security boundary.
 
 ## Layout
