@@ -17,7 +17,7 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 | | What | Why |
 |---|---|---|
 | Runtime | **Node ≥ 22.19** | pi's own floor (`engines` in its package.json). The desk's own code needs nothing newer than Node 18, but it imports pi in-process, so pi's floor is the desk's floor. |
-| Runtime | **`@earendil-works/pi-coding-agent` ≥ 0.84.4, installed globally** (`npm i -g @earendil-works/pi-coding-agent`) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in the terminal) and, since 2026-09-09, **imported** for session reading. |
+| Runtime | **`@earendil-works/pi-coding-agent` 0.87.1, installed globally** (`npm i -g @earendil-works/pi-coding-agent@0.87.1`; tested on 0.87.1 since 2026-09-28 — the startup floor below stays 0.84.4, because the imported exports are unchanged since then) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in the terminal) and, since 2026-09-09, **imported** for session reading. |
 | Tests (browser e2e only) | **Playwright** (`playwright` or `playwright-core`; 1.61.1 in this repo's root `node_modules`) | Only `test/*.e2e.mjs`. They resolve it from `PW_ROOT` if set, else from the test directory's own require chain — i.e. the repo root — so a plain `npm i playwright` at the repo root is enough and `PW_ROOT` is only for a Playwright that lives somewhere else. The `test/*.test.mjs` files are zero-dep: `node <file>`, exit 0 = PASS. |
 | | *nothing else from npm* | No package.json, no lockfile, no build step. Everything else is `node:` builtins. |
 
@@ -62,7 +62,7 @@ one version are two different parsers); the floor is semver precedence. On succe
 running* is answerable from the startup line:
 
 ```
-nana code: pi 0.84.4 — spawning /Users/x/.local/bin/pi, parsing sessions with
+nana code: pi 0.87.1 — spawning /Users/x/.local/bin/pi, parsing sessions with
            /Users/x/.local/lib/node_modules/@earendil-works/pi-coding-agent (resolved via PI_BIN walk-up)
 ```
 
@@ -503,6 +503,24 @@ would send it twice.
     that session and either one's blocks verify on its stage. What the check proves widens from
     "this app's child" to "some app child this desk gave a key for this session" — all of them
     manifest-configured children the design already treats as inside the trust boundary.
+
+## Contract notes (2026-09-28 — pi 0.84.4 → 0.87.1)
+
+- **New session entries the page does not draw.** pi 0.86 persists the prompt and tool loadout
+  as `message` entries with `role:"system"` (the first request of every session writes one), and
+  cache-warm spend (`cacheWarming: "streaming"` is the default) as `usage` entries; pi 0.87 adds
+  `context_edit` (an append-only edit of a target's MODEL context — raw history, UI and usage stay
+  as they were). pi's default TUI chat draws none of them (`usage` cache-warm notices appear only behind `showCacheMissNotices`; the desk hides them unconditionally — a deliberate desk choice, default-TUI parity), and the page would have drawn the last two
+  as bare `— usage —` / `— context_edit —` rows. `/api/transcript` leaves all three out of
+  `entries` (and `total`) — but keeps them in the branch index, since any of them can be pi's leaf
+  and the next message chains to it. A `context_edit` target is still rendered: the desk shows raw
+  history. Pinned by `test/pi-087-entries.test.mjs` on a session written by pi's own
+  `SessionManager` (`appendUsage`, `appendContextEdit`).
+- **Unchanged and re-checked on 0.87.1:** the three root exports (`parseSessionEntries`,
+  `migrateSessionEntries`, `CURRENT_SESSION_VERSION` = 3); pi's leaf rule (last non-header entry,
+  `session-manager.js` `_buildIndex`); `agent_settled` as the rpc terminal marker.
+- **Not followed up here:** session cost/usage totals that should include `usage` entries come
+  from pi (`get_session_stats`), not from the desk's own sums.
 
 ## Known limits
 

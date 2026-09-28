@@ -357,3 +357,16 @@ protocol upstream itself labels experimental.
 3. Real duplication is narrow: session-JSONL parsing (`server.mjs:551/598/638`) and token math (`bench/lib/usage.mjs`) — pi exports both publicly, `cost` included.
 4. Pi's `RpcClient` cannot replace the desk's child driver: no `extension_ui_response` handler (nana-gate escalations would hang), no global-bin resolution.
 5. Recommendation (b): adopt pi's data types in bench first, then the desk's read path; leave the experimental `pi-server` stack a spike, not a commitment.
+
+---
+
+## Addendum 2026-09-28 — pi 0.84.4 → 0.87.1 (lane U, verified against the installed 0.87.1 `CHANGELOG.md`, `docs/`, `dist/`)
+
+Only what changes the capability map above; the capability rows themselves are not rewritten.
+
+- **Session format (still `CURRENT_SESSION_VERSION` 3; `parseSessionEntries`/`migrateSessionEntries`/`withFileMutationQueue`/`ModelRuntime`/pi-ai `calculateCost` all still root exports).** New persisted entries: `message` with `role:"system"` carrying prompt `sections` + `toolsAdded`/`toolsRemoved` (0.86 — the first request of every session writes one); `usage` (0.86, cache-warm spend, `kind:"cache_warm"`, counts toward session totals); `context_edit` (0.87, `{targetId, replacement|null}`, changes future model context only). The desk now leaves all three out of `/api/transcript` entries (TUI-parity: pi's chat draws none of them by default) while keeping them in the branch index.
+- **Cache warming (0.86)** defaults to `cacheWarming: "streaming"`: 1-token refreshes during long tool runs, surfaced in `--mode json`/rpc as `entry_appended` with a `usage` entry — not as an assistant `message_end`. The bench folds them into own `tokens` (`diagnostics.usageEntries`).
+- **`before_agent_start` → `systemPrompt` (0.86/0.87):** still honoured — the returned text is sent as the provider's leading system prompt for that run — but it is NOT recorded in the transcript's system message (verified: the nana objective heading is absent from the 0.87.1 session file yet the model quotes it). The docs now prefer changing structured `systemPromptOptions` sections so pi appends a cache-friendly transcript delta; nana-objective/nana-handoff still use the whole-prompt form.
+- **Lifecycle boundaries (0.87):** `turn_end` and new `agent_before_settle` are actionable (`BoundaryResult {entries?: SessionBoundaryDraft[], continue?: boolean}`; drafts are `custom`/`custom_message`/`context_edit`/`compaction`). `agent_settled` stays notification-only; runs requested from it are deferred until all settled handlers return. `shouldStopAfterTurn` removed (→ `finishTurn` returning `{action:"end"}`); nana-pi never used it.
+- **Other contract changes nana-pi does not touch today:** `context` handlers no longer see system messages (`context_with_system` does); `user_bash` fails closed; `TranscriptContext` for custom providers; `SessionManager` canonical for `AgentSession` context; invalid `--mode` now exits non-zero.
+- **Operator note:** `pi -p` with a non-TTY stdin that never reaches EOF (e.g. a harness pipe) waits on stdin; run it with `</dev/null`.

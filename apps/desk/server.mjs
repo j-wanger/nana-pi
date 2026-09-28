@@ -1062,6 +1062,17 @@ function stabilizeMigratedIds(fileEntries) {
 	}
 }
 
+// Entries pi ≥ 0.86 writes that pi's DEFAULT TUI chat does not render (0.87.1
+// interactive-mode.js `renderSessionEntries` / docs/session-format.md): the
+// prompt+tool loadout as `role:"system"` messages (0.86), `usage` entries for
+// cache-warm spend (0.86, shown only behind `showCacheMissNotices`), and
+// `context_edit` (0.87 — changes future model context only; raw history and UI
+// stay as they were). Like session_info they stay in the branch index — any of
+// them can be pi's leaf, and the next message chains to it — but are not sent to
+// the page, which would otherwise draw them as bare "— usage —" rows.
+const isPiBookkeeping = (e) =>
+	e.type === "usage" || e.type === "context_edit" || (e.type === "message" && e.message?.role === "system");
+
 // Read side of a session file: pi's parser + pi's migration, then the desk's own
 // branch walk. `migrateSessionEntries` is the reason this is worth importing — a v1
 // file has no id/parentId at all and a v2 file still says `hookMessage`; both used
@@ -1091,6 +1102,7 @@ function parseTranscript(file) {
 			if (typeof e.name === "string") name = e.name || null;
 			continue;
 		}
+		if (isPiBookkeeping(e)) continue;
 		entries.push(e);
 	}
 	// Active branch = parentId chain from the leaf (the file is append-only, so the

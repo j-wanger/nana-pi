@@ -125,6 +125,7 @@ export function parseStream(text, { pricer = null } = {}) {
 	let ownModel = null;
 	let ownProvider = null;
 	let usageMessages = 0;
+	let usageEntries = 0; // pi `usage` entries (cache warming) folded into `tokens`
 	let nestedMessages = 0;
 	let nestedUnknown = false;
 	let nestedUnknownReason = null;
@@ -159,6 +160,13 @@ export function parseStream(text, { pricer = null } = {}) {
 				break;
 			case "agent_settled":
 				settled = true;
+				break;
+			case "entry_appended":
+				// pi ≥ 0.86 persists cache-warm refreshes (cacheWarming "streaming", the default) as a
+				// `usage` SESSION ENTRY, not an assistant message; json mode forwards it as
+				// `entry_appended`. pi counts it in session totals (docs/session-format.md UsageEntry)
+				// and so do we: it is the run's own model spend. Unknown `kind`s count too, per the doc.
+				if (ev.entry?.type === "usage" && addUsage(tokens, ev.entry.usage)) usageEntries++;
 				break;
 			case "compaction_end":
 				compactions++;
@@ -273,7 +281,7 @@ export function parseStream(text, { pricer = null } = {}) {
 	return {
 		complete,
 		settled,
-		tokens, // pi-ai Usage — the run's OWN model calls
+		tokens, // pi-ai Usage — the run's OWN model calls (incl. pi cache-warm refreshes, see usageEntries)
 		nested, // pi-ai Usage — what its tools spent
 		nestedCost, // pi's calculateCost applied per model bucket and summed, or null with a reason
 		// The same arithmetic over only the buckets that priced — a LOWER BOUND, never a total.
@@ -303,6 +311,7 @@ export function parseStream(text, { pricer = null } = {}) {
 		retryEvents,
 		extensionErrors,
 		usageMessages,
+		usageEntries,
 		badLines,
 		dangling,
 		unresolvedFinal,

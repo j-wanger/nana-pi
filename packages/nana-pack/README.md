@@ -56,7 +56,7 @@ would shadow it there anyway) — so the two coexist instead, `/reload` in the T
 **What it will not do:** a session started with a narrowed resource set (`--no-skills` + explicit
 `--skill`, or the desk's spawn toggles) re-applies those flags on reload and gains nothing new;
 neither does an **untrusted** project — reload preserves the session's trust decision, so
-`.pi/skills` in a project you did not approve stays ignored. Verified against pi 0.84.4: a skill
+`.pi/skills` in a project you did not approve stays ignored. Tested host since 2026-09-28: pi 0.87.1 (the pack's events and APIs re-checked there; lane U). The skill claim that follows was verified on pi 0.84.4 and not re-run on 0.87.1: a skill
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
