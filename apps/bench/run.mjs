@@ -594,7 +594,7 @@ export async function executeRun({ study, studyDir, task, profile, rep, block, l
 			mutations: notes,
 			changedFiles: diffs.length,
 			evidence: path.relative(studyDir, evidenceDir),
-			diagnostics: { badLines: parsed.badLines, usageMessages: parsed.usageMessages, settled: parsed.settled, agentEnded: parsed.agentEnded, dangling: parsed.dangling.length },
+			diagnostics: { badLines: parsed.badLines, usageMessages: parsed.usageMessages, usageEntries: parsed.usageEntries, settled: parsed.settled, agentEnded: parsed.agentEnded, dangling: parsed.dangling.length },
 		};
 	} catch (e) {
 		// Preserve the child's measured cost through a post-processing failure.

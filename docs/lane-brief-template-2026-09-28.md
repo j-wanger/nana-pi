@@ -13,7 +13,10 @@
                    green, report what it would take. Never expand the scope to fit.
 ## doneWhen        the exact command(s) that must pass, run from <dir>
 ## NOT             explicit out-of-scope list (the things a capable worker would be
-                   tempted to also fix) — touching one is a scope defect, not initiative
+                   tempted to also fix) — touching one is a scope defect, not initiative.
+                   The NOT-list and the Allowlist must not overlap: the seat checks the
+                   two against each other before launch (lane U 09-28: a NOT line forbade
+                   a directory the allowlist required; sol blocked on the contradiction)
 ## Allowlist       files the lane may edit · files it must not touch
 ## Constraints     host/platform facts that shape the design (from the arch contract)
 ## Roles           builder: <model> · reviewers: <role: model, dimensions> · land: <role: model>

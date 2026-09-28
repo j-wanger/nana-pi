@@ -8,9 +8,9 @@ Cross-platform, `node <file>` tests, no npm dependencies of its own.
 | What | Why | Version |
 |---|---|---|
 | **Node** | the whole harness | **≥ 22.19** — pi's own floor (`engines.node: ">=22.19.0"` in `@earendil-works/pi-coding-agent/package.json`), and the bench spawns pi |
-| **`@earendil-works/pi-coding-agent`, installed globally** | spawned as `pi --mode json` for every measured run, **and imported in-process** so token and cost arithmetic is pi's, not ours | **≥ 0.84.4** (`npm i -g @earendil-works/pi-coding-agent`) |
-| ↳ its bundled **`@earendil-works/pi-ai`** | `calculateCost(model, usage)` and the `Usage` type — both **root exports** (`dist/index.d.ts` → `models.ts` / `types.ts`); never a deep `dist/` path | ships inside pi 0.84.4 |
-| ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 0.84.4 |
+| **`@earendil-works/pi-coding-agent`, installed globally** | spawned as `pi --mode json` for every measured run, **and imported in-process** so token and cost arithmetic is pi's, not ours | **0.87.1** (`npm i -g @earendil-works/pi-coding-agent@0.87.1`; tested 2026-09-28; the startup warning floor stays 0.84.4, below which the exports were never verified) |
+| ↳ its bundled **`@earendil-works/pi-ai`** | `calculateCost(model, usage)` and the `Usage` type — both **root exports** (`dist/index.d.ts` → `models.ts` / `types.ts`); never a deep `dist/` path | ships inside pi 0.87.1 |
+| ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 0.87.1 |
 | **`pi-web-access`** under `apps/bench/.ext/` | profile C **only**. Reviewed, content-pinned by sha256 in `study.json`, deliberately **not vendored** into this repo | **0.28.0** — `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0` |
 | **Playwright** | — | **none.** The bench has no browser tests |
 | anything else from npm | — | **none.** Zero runtime dependencies; the `test/*.test.mjs` files are zero-dep `node <file>` runs with no model calls |
@@ -70,9 +70,15 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 | `fingerprint` | the study-content hash this run belongs to; resume refuses to mix two |
 | `evidence` | where the raw stream, stderr and workspace diff for this run were written |
 | `finalText`, `finalTextSha256` | first 300 chars of the model's last message, plus the hash of all of it |
-| `diagnostics` | parser health: `badLines`, `usageMessages`, `settled`, `agentEnded`, `dangling` |
+| `diagnostics` | parser health: `badLines`, `usageMessages`, `usageEntries` (pi cache-warm `usage` entries folded into `tokens`), `settled`, `agentEnded`, `dangling` |
 
-**Where the numbers come from** (pi 0.84.4, cited so you can re-check them):
+**Where the numbers come from** (pi 0.84.4, re-checked on 0.87.1; cited so you can re-check them):
+
+- pi ≥ 0.86 also spends on **cache warming** (`cacheWarming: "streaming"` by default): a 1-token
+  refresh persisted as a `usage` session entry, which `--mode json` forwards as
+  `{"type":"entry_appended","entry":{"type":"usage","kind":"cache_warm",usage}}` — not as an
+  assistant message. pi counts it in session totals (`docs/session-format.md` UsageEntry), and
+  the parser folds it into `tokens` (own spend), counted in `diagnostics.usageEntries`.
 
 - `--mode json` prints one event per line (`docs/json.md`; `docs/usage.md:175`). It is
   `--mode json`, **not** `--json`.
@@ -300,7 +306,11 @@ and optional `assets/`. Outputs land beside them: `results.jsonl`, `schedule.jso
   "baselineProfile": "pi-defaults",
   "smokeTask": "…", "smokeProfile": "…",
   "model": { "provider": "openai-codex", "id": "gpt-5.6-sol", "thinking": "medium" },
-  "pinnedPiVersion": "0.84.4",    // a different pi aborts rather than quietly changing the study
+  "pinnedPiVersion": "0.87.1",    // a different pi aborts rather than quietly changing the study.
+                                   // A CLOSED study keeps its pin forever: to reproduce it, install
+                                   // that exact pi; to measure on a newer pi, copy the study to a new
+                                   // directory and re-pin there (never edit a closed study's pin —
+                                   // its fingerprint would change and the runs would mix). Lane U 09-28.
   "env": { "PI_OFFLINE": "1" },
   "maxTotalTokens": 3500000, "maxWallMs": 21600000,
   "agentDir": { "dir": "~/.pi/bench-agent", "sourceDir": "~/.pi/agent" },
