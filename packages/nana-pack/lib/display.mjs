@@ -63,8 +63,12 @@ export function displayPath(p, extra = null) {
 	const raw = str(p).toWellFormed();
 	const isUnsafe = (c) => PATH_UNSAFE.test(c) || (extra !== null && extra.includes(c));
 	const unsafe = Array.from(raw).some(isUnsafe);
-	const tok = (c) =>
-		isUnsafe(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
+	// An unsafe token may be an ASTRAL character, which Array.from yields as ONE string of TWO
+	// UTF-16 units: escape both, or the low surrogate is dropped and the path no longer decodes
+	// (sol S2 r3 — reachable only through `extra`, since PATH_UNSAFE holds no astral character).
+	const esc = (c) =>
+		Array.from({ length: c.length }, (_, i) => `\\u${c.charCodeAt(i).toString(16).toUpperCase().padStart(4, "0")}`).join("");
+	const tok = (c) => (isUnsafe(c) ? esc(c) : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c);
 	let toks = Array.from(raw, tok);
 	const len = (t) => t.reduce((a, s) => a + s.length, 0);
 	const cap = unsafe ? PATH_CAP - 2 : PATH_CAP; // the two quotes count

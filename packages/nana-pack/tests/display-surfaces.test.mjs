@@ -51,6 +51,25 @@ const TABLE = [
 check("codeSpan: exactly CODE_SPAN_CAP is rendered", d.codeSpan("/" + "a".repeat(d.CODE_SPAN_CAP - 1)) === `\`/${"a".repeat(d.CODE_SPAN_CAP - 1)}\``);
 check("codeSpan: one over CODE_SPAN_CAP is refused", d.codeSpan("/" + "a".repeat(d.CODE_SPAN_CAP)) === null);
 check("codeSpan: a caller's tighter cap wins", d.codeSpan("/abcdefghij", 5) === null && d.codeSpan("/abc", 5) === "`/abc`");
+
+// displayPath's additive `extra` set: passing nothing is today's output, passing a character only
+// escapes MORE, and the result still decodes to the exact path — including an ASTRAL character,
+// which Array.from yields as one string of two UTF-16 units (sol S2 r3).
+{
+	const plain = "/repo/a — b.md";
+	check("extra: omitted → unchanged", d.displayPath(plain) === plain);
+	const dashed = d.displayPath(plain, "\u2014");
+	check("extra: a BMP character is escaped and the path is quoted", dashed === '"/repo/a \\u2014 b.md"');
+	check("extra: …and it round-trips exactly", JSON.parse(dashed) === plain);
+	const astral = "/repo/a\u{1F600}b.md";
+	const esc = d.displayPath(astral, "\u{1F600}");
+	check("extra: an astral character escapes BOTH units", esc === '"/repo/a\\uD83D\\uDE00b.md"', esc);
+	check("extra: …and it round-trips exactly", JSON.parse(esc) === astral);
+	check("extra: a clean path with no extra match is untouched", d.displayPath("/repo/ok.md", "\u2014") === "/repo/ok.md");
+	const long = "/" + "a".repeat(400) + "—end.md";
+	const cut = d.displayPath(long, "\u2014");
+	check("extra: the cap still holds and the basename tail survives", cut.length <= d.PATH_CAP && cut.includes("…") && cut.endsWith('end.md"'), cut.slice(-40));
+}
 for (const [label, input, p, t, c, l] of TABLE) {
 	check(`table ${label}: promptPath ${j(p).slice(0, 60)}`, d.promptPath(input) === p, j(d.promptPath(input)));
 	check(`table ${label}: uiPath is the same rule`, d.uiPath(input) === p);
