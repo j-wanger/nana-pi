@@ -21,15 +21,18 @@ not an answer.
   pair that A plausibly under-matched (`l3/astra-r1#2` ~ `l3/sol-r2#13`).
 - **No control was run.** The pre-registration's "YES → the rung is not ceremony" is withdrawn for this dataset.
 
-## What this evidence licenses
+## What this evidence is about — and why it licenses no change
 
-**Most of the distinctive functional catches are defects in fixes made after sol's last round, and
-only astra reviewed those fixes. The evidence licenses "review the final fixes again". It does
-not license "use astra", any particular reviewer role, or astra's cost premium.**
+**The distinctive functional catches are concentrated in defects in fixes made after sol's last
+round, and only astra reviewed those fixes. This licenses no process change at all: not "review the
+final fixes again", not "use astra", not any reviewer role, and not astra's cost premium.**
 
 Here the reviewer and the position are the same variable: astra is the only rung that reads the
 post-sol-r3 folds. Nothing in this corpus separates "a second model catches more" from "whoever
-reviews the last fix catches its defects". (The claim that most of these catches are late-fold defects comes from the r1 reading. It was not re-derived row by row for the rebuilt P1 set.)
+reviews the last fix catches its defects". Re-reviewing the final fixes is therefore the
+**hypothesis this data suggests testing**, not a practice to adopt. A sol re-review of the same
+final folds, a seeded-defect control or a clean-patch control would test it. Until one of those has
+run, nothing here is a reason to change what anyone does. (The claim that most of these catches are late-fold defects comes from the r1 reading. It was not re-derived row by row for the rebuilt P1 set.)
 
 **Confirm rounds (astra r2) are not measured here** (see "Confirm rounds" below). "29 findings,
 1 accepted, 1 unique" counts only newly accepted defects.
@@ -206,7 +209,12 @@ The structural stages of the AACR matcher barely fire on this corpus, because CA
 - r3: LAND 9 ×1.
 
 12 of 13 scores follow from the verdict alone (BLOCK → 7, LAND → 9). **After the rebuild, the t2c alignment comes back.** t2c-land, the one deviation at 6, again has the most accepted functional findings: 3, against 1–2 on the other first rulings. It had 2 under the one-relation graph, and that drop came from the `#5` over-merge that sol r2 named. That is one data point in the expected direction, with n = 1.
-- **In this corpus, SCORE carries no information beyond VERDICT that can be detected.** This does not show that SCORE carries none in general. The corpus cannot test that.
+- **Under the registered criterion, the one within-verdict deviation does line up.** SCORE "carries
+  information beyond the verdict" was registered as: it varies within a verdict class AND that
+  variation lines up with the count of accepted functional findings. Both hold here, on exactly
+  **one observation** (n = 1). That is a descriptive alignment, not a result: it does not show that
+  SCORE carries information in general, it licenses no generalization, and it is not a reason to
+  read, weight or act on SCORE anywhere. The corpus cannot test the general claim.
 
 ## Confirm rounds (astra r2): what "29 / 1 / 1" measures
 

@@ -46,7 +46,10 @@ Corpus: `docs/reviews/tranche{1,2}-2026-09-28/`, read-only.
 ## Claims (answers are computed by `catch-ledger.mjs build`, never by prose)
 - **P1 (astra's rung):** astra's first ruling contributes ≥1 seat-accepted **functional** finding not
   matched by any sol finding on the same lane, on **≥2 lanes** (of 6; also reported of the original 5).
-  YES → the rung is not ceremony on this evidence. If all its unique accepted catches are
+  ~~YES → the rung is not ceremony on this evidence.~~ **[WITHDRAWN 2026-09-28 — see the amendment
+  at the foot of this file. The answer depends on the matcher and on a relation definition changed
+  after the data existed; a matcher-dependent answer is UNRESOLVED, not YES. This implication must
+  not be quoted for this dataset.]** If all its unique accepted catches are
   evolvability → "documentation check at ~2.5× sol's token price". Neither answer rules any role
   ceremony (no seeded-defect or clean-patch control was run).
 - **P2 (round cap, H5):** among sol r3 rows: fraction verification vs fold_defect vs new_scope.
