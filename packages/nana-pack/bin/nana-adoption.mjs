@@ -41,7 +41,10 @@ try {
 		const out = [];
 		if (open.length) {
 			const has = (s) => [s.agents && "AGENTS.md", s.sessions && "docs/sessions/"].filter(Boolean).join(", ") || "nothing";
-			const code = (p) => `\`${p.replace(/[\\`]/g, (c) => `\\${c}`).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, "?")}\``;
+			// Every path here already passed printable(): no control character and no backtick, so the
+			// code span cannot be closed from inside it. Nothing is escaped, because a backslash is
+			// literal in a code span and escaping would corrupt the path the seat reads.
+			const code = (p) => `\`${p}\``;
 			const rows = open.slice(0, SHOW).map((r) => `- ${code(r.root)} — has: ${has(r.s)} · last session ${new Date(r.ts).toISOString().slice(0, 10)}`);
 			if (open.length > SHOW) rows.push(`…and ${open.length - SHOW} more`);
 			out.push(
@@ -54,7 +57,7 @@ try {
 				"For each: adopt it with `nana-setup project <dir>` and set its objective with Jake, or dismiss it once with `nana-setup project <dir> --not-a-project`.",
 			);
 		}
-		if (reports.dropped) out.push(...(out.length ? [""] : []), `${reports.dropped} ${reports.dropped === 1 ? "entry was" : "entries were"} not printable (a relative, root, over-long or control-character path, or a bad timestamp) and ${reports.dropped === 1 ? "was" : "were"} skipped.`);
+		if (reports.dropped) out.push(...(out.length ? [""] : []), `${reports.dropped} ${reports.dropped === 1 ? "entry was" : "entries were"} not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and ${reports.dropped === 1 ? "was" : "were"} skipped.`);
 		if (out.length) process.stdout.write(`${TAG}\n${out.join("\n")}\n`);
 	}
 } catch (err) {

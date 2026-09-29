@@ -132,14 +132,21 @@ export function tailLines(file, bytes = TAIL_BYTES) {
 
 /** C0 controls, DEL, C1 controls and the Unicode line/paragraph separators — anything that can break a line. */
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
-/** A root claim the reader may print: absolute, not the filesystem root, ≤ MAX_ROOT, no control character. */
-export const printable = (p) => typeof p === "string" && path.isAbsolute(p) && path.dirname(p) !== p && p.length <= MAX_ROOT && !CONTROL.test(p);
+/**
+ * A root claim the reader may print: absolute, not the filesystem root, ≤ MAX_ROOT, no control
+ * character, and NO BACKTICK. The backtick is refused rather than escaped because a backslash does
+ * not escape one inside a Markdown code span (astra land ruling, executed): a path holding one can
+ * close the span and put its own text outside the quoted region the reader promises. Refusing is
+ * the only representation whose delimiter the path cannot supply.
+ */
+export const printable = (p) =>
+	typeof p === "string" && path.isAbsolute(p) && path.dirname(p) !== p && p.length <= MAX_ROOT && !CONTROL.test(p) && !p.includes("`");
 
 /**
  * `directory_unadopted` reports newer than `sinceMs`, newest first, one per canonical root, plus
  * `dropped`: the number of distinct claims refused BEFORE anything is resolved — a cwd that is not
- * absolute, is the filesystem root, is longer than MAX_ROOT or holds a control character, or a ts
- * that is unparseable or in the future (beyond a 5-minute clock skew). A refused claim is never
+ * absolute, is the filesystem root, is longer than MAX_ROOT, or holds a control character or a
+ * backtick, or a ts that is unparseable or in the future. A refused claim is never
  * canonicalised, re-checked or printed. `now` is injectable for tests.
  */
 export function recentReports(lines, sinceMs, now = Date.now()) {
