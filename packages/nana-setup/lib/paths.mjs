@@ -3,7 +3,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { piAgentDir } from "../../nana-pack/lib/agent-dir.mjs";
+import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
 
 /** <repo>/packages/nana-setup — the files this package ships. */
 export const pkgRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -33,6 +33,9 @@ export function resolveLayout(opts = {}) {
 		claudeSettings: path.join(claudeHome, "settings.json"),
 		piHome,
 		piHomeSource: opts.piHome ? "--pi-home" : opts.home ? "--home" : piHome === path.join(base, ".pi", "agent") ? "default" : "PI_CODING_AGENT_DIR",
+		/** The AMBIENT override is relative: piHome is specific to THIS process's cwd, and pi started
+		 *  elsewhere reads a different dir. `install` refuses it, `doctor` warns (explicit flags never set it). */
+		piHomeCwdRelative: !opts.piHome && !opts.home && piAgentDirIsCwdRelative() ? safeCwd() : null,
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
 		piObjective: path.join(piHome, "nana-objective.md"),
@@ -45,6 +48,14 @@ export function resolveLayout(opts = {}) {
 		 *  touches the live machine (launchctl, `pi install`) may run then. */
 		isRealHome: path.resolve(base) === path.resolve(os.homedir()) && !opts.claudeHome && !opts.piHome,
 	};
+}
+
+function safeCwd() {
+	try {
+		return process.cwd();
+	} catch {
+		return "(the current folder, which no longer exists)";
+	}
 }
 
 /** Test seam: NANA_SETUP_PLATFORM lets the win32 branches be exercised on a Mac. */

@@ -19,7 +19,7 @@ import { SetupError, install } from "../lib/steps.mjs";
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
-  nana-setup doctor  [options]        one ✓/✗ line per piece; exits 1 on any ✗
+  nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
 
 Options
@@ -64,6 +64,12 @@ const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", pr
 
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
+	if (layout.piHomeCwdRelative)
+		throw new SetupError(
+			`PI_CODING_AGENT_DIR is a relative path; here it resolves to ${layout.piHome}, which is specific to the ` +
+				`current working directory (${layout.piHomeCwdRelative}) — pi started in any other folder reads a different ` +
+				"directory. Pass --pi-home <absolute dir>, or set PI_CODING_AGENT_DIR to an absolute path, and re-run.",
+		);
 	console.log(`nana-setup install${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  install root  ${repoRoot}`);
 	console.log(`  claude home   ${tildeify(layout.claudeHome)}`);
@@ -98,12 +104,20 @@ function runDoctor(opts) {
 	const width = Math.max(...checks.map((c) => c.label.length));
 	console.log(`nana-setup doctor — ${repoRoot}\n`);
 	for (const c of checks) {
-		const mark = c.status === STATUS.OK ? "✓" : c.status === STATUS.FAIL ? "✗" : "·";
+		const mark = c.status === STATUS.OK ? "✓" : c.status === STATUS.FAIL ? "✗" : c.status === STATUS.WARN ? "!" : "·";
 		console.log(`  ${mark} ${c.label.padEnd(width)}  ${c.detail ?? ""}`);
 	}
 	const bad = checks.filter((c) => c.status === STATUS.FAIL);
-	console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup install` : "\n  all good.");
-	return bad.length ? 1 : 0;
+	// A ! line is never "all good": it means what was checked may not be what pi reads.
+	const warn = checks.filter((c) => c.status === STATUS.WARN);
+	console.log(
+		bad.length
+			? `\n  ${bad.length} missing — run: nana-setup install${warn.length ? ` (and see the ${warn.length} ! above)` : ""}`
+			: warn.length
+				? `\n  NOT verified — ${warn.length} ! above.`
+				: "\n  all good.",
+	);
+	return bad.length || warn.length ? 1 : 0;
 }
 
 async function runProject(opts) {

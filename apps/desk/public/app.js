@@ -1673,6 +1673,8 @@ function settingsModal(initialTab) {
 		if (e.target === overlay) overlay.remove();
 	};
 	document.body.appendChild(overlay);
+	// relative PI_CODING_AGENT_DIR: say which absolute dir this desk's sessions are pinned to
+	getSettings().then((s) => s.agentDirNote && modal.insertBefore(el("div", "dim agent-dir-note", s.agentDirNote), body)).catch(() => {});
 
 	const TABS = [
 		["skills", "Skills", tabSkills],

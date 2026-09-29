@@ -67,7 +67,7 @@ import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
 import { collectChanges, fileDiff } from "./changes.mjs";
 import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
 import { StageKeyStore } from "./stage-keys.mjs";
-import { piAgentDir } from "../../packages/nana-pack/lib/agent-dir.mjs";
+import { piAgentDir, piAgentDirIsCwdRelative } from "../../packages/nana-pack/lib/agent-dir.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -130,8 +130,14 @@ function childEnv(more = {}) {
 	];
 	const cur = (process.env.PATH || "").split(path.delimiter);
 	const merged = [...new Set([...extra, ...cur])].filter(Boolean);
-	return { ...process.env, PATH: merged.join(path.delimiter), ...more };
+	return { ...process.env, ...AGENT_DIR_PIN, PATH: merged.join(path.delimiter), ...more };
 }
+// A RELATIVE PI_CODING_AGENT_DIR is resolved by each pi against its OWN cwd, so a session spawned in
+// a project would read <project>/rel while this desk shows and edits <desk-cwd>/rel. Pin the desk's
+// resolved absolute dir into every child so desk and sessions share one store (told to the user:
+// /api/settings agentDirNote). Absolute and `~` values are passed through untouched.
+const AGENT_DIR_PINNED = piAgentDirIsCwdRelative();
+const AGENT_DIR_PIN = AGENT_DIR_PINNED ? { PI_CODING_AGENT_DIR: piAgentDir() } : {};
 const SESSIONS_DIR = path.join(piAgentDir(), "sessions"); // pi getSessionsDir(): the ACTIVE agent dir
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
@@ -1322,8 +1328,8 @@ function addPackage(source, baseDir, cwd, out, scope) {
 // ── config files (settings/mcp/nana-pack/context/agents) ──
 // pi's ACTIVE agent dir (PI_CODING_AGENT_DIR, else ~/.pi/agent), by nana-pack's own resolver so
 // the desk edits the file the pack reads. Module constants, not per request: the desk never
-// changes its own env or cwd, and every pi it spawns inherits that same env (childEnv), so the
-// value cannot change under a running desk — an env change means a desk restart.
+// changes its own env or cwd, and every pi it spawns gets this same dir (childEnv — pinned
+// absolute when the override is relative), so it cannot change under a running desk.
 const ACTIVE_AGENT_DIR = PI_DIR;
 const SETTINGS_PATH = path.join(ACTIVE_AGENT_DIR, "settings.json");
 const MCP_PATH = path.join(ACTIVE_AGENT_DIR, "mcp.json");
@@ -2246,6 +2252,9 @@ const server = http.createServer(async (req, res) => {
 				mcpPath: MCP_PATH, mcp: readJsonFile(MCP_PATH) || { mcpServers: {} },
 				nanaPath: NANA_PACK_PATH, nana: readJsonFile(NANA_PACK_PATH) || {},
 				agentsDir: AGENTS_DIR, home: os.homedir(), piDir: PI_DIR,
+				agentDirNote: AGENT_DIR_PINNED
+					? `PI_CODING_AGENT_DIR is a relative path, so each pi would resolve it against its own start folder. This desk resolved it to ${PI_DIR}; every session started here is given that absolute directory, so the settings shown are the ones sessions read. pi started outside the desk still resolves the relative value itself.`
+					: null,
 			});
 		}
 		if (p === "/api/settings" && req.method === "POST") {

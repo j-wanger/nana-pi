@@ -216,6 +216,12 @@ not fail on them.
 --yes                accepted for scripts; the installer never prompts
 ```
 
+A **relative** ambient `PI_CODING_AGENT_DIR` is resolved by each pi against its own start folder,
+so a directory derived from setup's cwd is not the one pi reads elsewhere: `install` refuses it
+(exit 2, naming the resolved dir) until you pass `--pi-home <absolute dir>` or set an absolute
+value, and `doctor` prints a `!` line naming the cwd it resolved against and never says "all good"
+(exit 1). An explicit `--pi-home`, relative or not, is your decision and is used as given.
+
 ## Tests
 
 Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with its failure

@@ -348,7 +348,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
   `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
   `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
-  followed by `/nana-pack.json` or `/trust.json` (either slash). When `nana-pack.json` or
+  followed by `/nana-pack.json` or `/trust.json` (either slash), balanced forms only, matched
+  case-insensitively on purpose (cmd/pwsh names are). When `nana-pack.json` or
   `trust.json` in the active or default agent dir is a symlink, its target is a policy file
   too. What is **not** caught — a path the shell computes at run time, general variable
   expansion included:

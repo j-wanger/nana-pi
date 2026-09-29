@@ -151,7 +151,8 @@ setup. What that means while you work here:
   gate only at the next session start or `/reload`. Policy files are caught through
   `edit`/`write` (every path form) and through targets a command names *literally*, plus one
   variable spelling: `$PI_CODING_AGENT_DIR` / `${PI_CODING_AGENT_DIR}` / `%PI_CODING_AGENT_DIR%` /
-  `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json`. Any other
+  `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json` (balanced forms
+  only; case-insensitive on purpose, as cmd/pwsh names are). Any other
   path the shell computes (relative after `cd` — `cd <dir> && … > nana-pack.json` included —
   other variables and general variable expansion, globs, escapes, a symlink made in the same
   command, script files, interpreter string-building) is NOT caught — gate loosening

@@ -127,7 +127,9 @@ export function policyFileHit(candidates: string[]): string | null {
 
 // A shell word naming a policy file through the agent-dir variable itself — the shell expands it,
 // the gate cannot (`> $PI_CODING_AGENT_DIR/nana-pack.json`, `%PI_CODING_AGENT_DIR%\\trust.json`).
-const AGENT_DIR_VAR_RE = /(\$\{?|\$env:|%)PI_CODING_AGENT_DIR\}?%?[/\\]+(nana-pack|trust)\.json/i;
+// Exactly the four balanced spellings `$NAME`, `${NAME}`, `%NAME%`, `$env:NAME` (README / AGENTS.md);
+// case-insensitive on purpose — cmd and pwsh names are, and over-blocking a variable NAME is harmless.
+const AGENT_DIR_VAR_RE = /(?:\$PI_CODING_AGENT_DIR|\$\{PI_CODING_AGENT_DIR\}|%PI_CODING_AGENT_DIR%|\$env:PI_CODING_AGENT_DIR)[/\\]+(?:nana-pack|trust)\.json/i;
 
 /**
  * A shell command that names a policy file (redirection, `tee`, `sed -i`, `Set-Content`,
