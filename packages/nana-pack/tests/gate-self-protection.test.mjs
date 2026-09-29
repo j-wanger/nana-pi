@@ -16,8 +16,9 @@ process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 const ALT = path.join(HOME, "alt-agent");
 process.env.PI_CODING_AGENT_DIR = ALT;
-const USER_CFG = path.join(HOME, ".pi", "agent", "nana-pack.json");
-fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
+// U2: the user config lives in pi's ACTIVE agent dir (PI_CODING_AGENT_DIR), not ~/.pi/agent.
+const USER_CFG = path.join(ALT, "nana-pack.json");
+fs.mkdirSync(path.join(HOME, ".pi", "agent"), { recursive: true });
 fs.mkdirSync(path.join(HOME, ".claude", "hooks"), { recursive: true });
 fs.mkdirSync(ALT, { recursive: true });
 // symlinked alias of ~/.claude (win32 without symlink privilege: those rows are skipped, said so)

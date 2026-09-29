@@ -8,7 +8,7 @@ setup. What that means while you work here:
   in this project's `.pi/nana-pack.json` (`postEdit.commands`) whose `match` regex
   hits the edited file, and feeds any failure straight back to you to fix before
   moving on (each run also leaves, best-effort, a content-bound receipt under
-  `~/.pi/agent/receipts`). The commands are yours to define — a scaffolded project
+  `receipts/` in the pi agent directory). The commands are yours to define — a scaffolded project
   ships a working set (format / lint / type-check); a project set up with the
   `adopt-structure` skill ships a **placeholder** to replace with your real
   toolchain. Until a real command is in place, post-edit runs nothing. The shape
@@ -41,7 +41,7 @@ setup. What that means while you work here:
   Past 7 days it becomes a one-line pointer. Treat it as background state; update it in
   place when it goes stale. A repo `.pi/handoff.md` is never injected.
 - **Journal.** Session events (start / compact / shutdown) append to
-  `~/.pi/agent/nana-journal.jsonl` for observability.
+  `nana-journal.jsonl` in the pi agent directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`), for observability.
 - **Notify.** A desktop notification fires when the agent settles and is waiting on
   you.
 - **Gate.** Inspects `bash`/`powershell` command strings for dangerous patterns and
@@ -73,8 +73,8 @@ An `AGENTS.override.md` replaces a layer instead of adding to it.
 
 `.pi/nana-pack.json` (project scope) is honored **only in trusted projects** — it
 can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`),
-and the handoff path. `~/.pi/agent/nana-pack.json` is the user-scope equivalent,
-always read. "Trusted" means a real decision: if this repo's `.pi/` holds only nana files, the owner runs `/trust` in pi once (then restarts) — until then the project config is ignored, with a warning.
+and the handoff path. `nana-pack.json` in the pi agent
+directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`) is the user-scope equivalent, always read. "Trusted" means a real decision: if this repo's `.pi/` holds only nana files, the owner runs `/trust` in pi once (then restarts) — until then the project config is ignored, with a warning.
 
 ### The desk
 

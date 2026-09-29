@@ -112,7 +112,7 @@ counted in a user-scope ledger — never from the output file name, and the same
   unless `--over-cap "<what changed>"`. The reason must be non-blank and not a flag
   (`--over-cap --retries` is refused). Every override is written to the audit log with a
   timestamp at admission — also when that review then fails.
-- **Ledger** (`~/.pi/agent/`):
+- **Ledger** (`~/.pi/agent/` — always; `PI_CODING_AGENT_DIR` does not move it, so a shell variable cannot reset the tally):
   - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: one line per round
     earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"diff":…,"role":…,"launcher":…}`.
     The cap reads only this and the live reservations. A malformed line **refuses** admission
@@ -249,8 +249,16 @@ loaded. Not seeing it is not proof of the opposite — it is also absent in prin
 
 ## Config (all optional)
 
-User `~/.pi/agent/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
-read on every event). Every non-gate block applies live, without restarting. The **`gate`
+User `<agent dir>/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project wins,
+read on every event). `<agent dir>` is **pi's active agent dir**, the one pi reads
+`settings.json` / `auth.json` / `models.json` from: `PI_CODING_AGENT_DIR` when set (`~`
+expanded; a relative value resolves against the process's cwd), else `~/.pi/agent`. The
+journal and receipts defaults live there too. If the active dir has no `nana-pack.json` but
+`~/.pi/agent` does, that file is **not read**: a warning and a `config_agent_dir_mismatch`
+journal line name both paths once per session, and the gate runs without a user config.
+Both files — the active one (and its realpath) and `~/.pi/agent/nana-pack.json` — are on the
+gate's policy floor. **Exception:** the review round-cap ledger stays in `~/.pi/agent`
+regardless of `PI_CODING_AGENT_DIR`, so a shell variable cannot reset the tally. Every non-gate block applies live, without restarting. The **`gate`
 block** applies live only when it *tightens* (an added extra/protected pattern, a removed
 allow pattern, a stop); anything that *loosens* it (an added allow pattern, a removed deny)
 takes effect at the next session start or **`/reload`**, and is journaled
@@ -286,7 +294,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   brings back a user exception the project had cancelled. (If both files are broken the user
   stop is reported.) **Owner recovery, both scopes** (malformed or over-cap — more than 200
   `extraPatterns` / `protectedPaths` entries): the STOP has no in-pi exception, so repair the
-  named file with **any editor outside pi** — `~/.pi/agent/nana-pack.json` (user) or
+  named file with **any editor outside pi** — `<agent dir>/nana-pack.json` (user) or
   `<cwd>/.pi/nana-pack.json` (trusted project) — **or delete it**: missing means defaults,
   which also discards that scope's custom denies and protected paths.
   No copy of the policy is saved to disk: a saved "last good" file could be forged by the very
@@ -338,10 +346,16 @@ is user-scope only** — project config never contributes to it, trusted or not.
   is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
   backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
   one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
-  `Out-File`, even `cat`). What is **not** caught — a path the shell computes at run time:
+  `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
+  `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
+  followed by `/nana-pack.json` or `/trust.json` (either slash), balanced forms only, matched
+  case-insensitively on purpose (cmd/pwsh names are). When `nana-pack.json` or
+  `trust.json` in the active or default agent dir is a symlink, its target is a policy file
+  too. What is **not** caught — a path the shell computes at run time, general variable
+  expansion included:
   `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
   and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
-  variable, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
+  variable other than the one spelling above, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
   directory symlink created and written through in the same command, `cd … | xargs tee
   nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
   command text would not close this (every pattern invites the next form), so none is added.
@@ -393,7 +407,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   once but cannot loosen it until the next session start or `/reload`.
 - **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
   later extension can still mutate a checked input, and it reads command *text*: it cannot see
-  what a variable, an alias, a script file or `python`/`node` code does at run time, nor
+  what a variable (other than the `$PI_CODING_AGENT_DIR` spelling above) does, an alias, a script file or `python`/`node` code does at run time, nor
   follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
@@ -417,7 +431,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
   handler pending forever. `timeoutMs: 0` still means no deadline. The win32 tree-kill branch has
   not been exercised on real Windows.
-- **Journal** is best-effort JSONL at `~/.pi/agent/nana-journal.jsonl` (override via
+- **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
 - **Notify** never writes terminal escape codes without an attached UI, so print/RPC
   output stays clean. Headless notifications are opt-in (`notify.headless`). A failing OS
@@ -641,5 +655,5 @@ is user-scope only** — project config never contributes to it, trusted or not.
     workspace root: its own final component is checked, because nobody typed that path — the
     walk found it. Advisory, not a security boundary.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
-  per repo+checker under `~/.pi/agent/receipts`). Turn them off with
+  per repo+checker under `<agent dir>/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.

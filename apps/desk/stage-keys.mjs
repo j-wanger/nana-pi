@@ -12,7 +12,7 @@
  * writes down which keys it issued for which session:
  *
  *   ~/.pi/agent/nana-desk/stage-keys/<pi session id>.json   0700 dir, 0600 files
- *   {"v":1,"keys":["<hex>", …],"updatedAt":<ms>}            ≤8, most recent first
+ *   {"v":1,"keys":["<hex>", …],"updatedAt":<ms>,"sessionsRoot":"<dir>"}   ≤8 keys, most recent first
  *
  * ONE FILE PER SESSION, and that shape is the point. A single shared file needed a
  * read-merge-write, which needed a cross-process lock, which needed stale-lock
@@ -70,15 +70,33 @@ const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 export const defaultStageKeysDir = () =>
 	process.env.DESK_STAGE_KEYS || path.join(os.homedir(), ".pi", "agent", "nana-desk", "stage-keys");
 
+// The sessions root a desk on the DEFAULT agent dir enumerates. A record written before
+// records carried `sessionsRoot` was written by a desk that could only enumerate this one.
+export const defaultSessionsRoot = () => path.join(os.homedir(), ".pi", "agent", "sessions");
+const canonRoot = (p) => {
+	try {
+		return fs.realpathSync(p);
+	} catch {
+		return path.resolve(p);
+	}
+};
+
 export class StageKeyStore {
 	/**
 	 * @param dir             store directory (defaults to ~/.pi/agent/nana-desk/stage-keys)
 	 * @param knownSessionIds () => Set<sessionId> — the desk's OWN session enumeration,
 	 *                        injected so this module never walks the sessions tree itself
+	 * @param sessionsRoot    the sessions directory `knownSessionIds` walks. The store is
+	 *                        SHARED by desks on different agent dirs (it stays at the fixed
+	 *                        ~/.pi/agent path), so an enumeration is evidence only about the
+	 *                        records issued against the SAME root: each record carries the
+	 *                        root it was issued under, and the prune touches only those.
 	 * @param log             one-line warnings (console.error in the desk)
 	 */
-	constructor({ dir = defaultStageKeysDir(), knownSessionIds = null, log = console.error } = {}) {
+	constructor({ dir = defaultStageKeysDir(), knownSessionIds = null, sessionsRoot = defaultSessionsRoot(), log = console.error } = {}) {
 		this.configuredDir = dir;
+		this.sessionsRoot = canonRoot(sessionsRoot);
+		this.isDefaultRoot = this.sessionsRoot === canonRoot(defaultSessionsRoot());
 		this.dir = dir; // replaced by the resolved path at first use
 		this.knownSessionIds = knownSessionIds;
 		this.log = log;
@@ -195,7 +213,11 @@ export class StageKeyStore {
 	}
 
 	// Store hygiene: forget sessions that no longer exist on disk. The id set comes
-	// from the desk's own session enumeration (no second filesystem walk here).
+	// from the desk's own session enumeration (no second filesystem walk here), and it
+	// is evidence ONLY about records issued under this desk's sessions root: a desk on
+	// another agent dir shares this store, and its live sessions are simply not in our
+	// enumeration. A record from another root is kept; a legacy record (no root) is
+	// pruned only by a desk on the default root, the only one that could have issued it.
 	#prune() {
 		if (!this.knownSessionIds) return;
 		let known;
@@ -221,12 +243,27 @@ export class StageKeyStore {
 			// the directory (`operator.notes.json`, say) is someone else's file, and a
 			// hygiene pass has no business deleting it.
 			if (!ID_RE.test(id) || known.has(id)) continue;
+			if (!this.#ownsRecord(path.join(this.dir, f))) continue;
 			try {
 				fs.unlinkSync(path.join(this.dir, f));
 			} catch {
 				/* already gone, or not ours to remove */
 			}
 		}
+	}
+
+	// Whether this desk's enumeration is evidence about the record in `file`. Anything
+	// unreadable is not ours to judge — kept (the next lookup moves a corrupt one aside).
+	#ownsRecord(file) {
+		let doc;
+		try {
+			doc = JSON.parse(fs.readFileSync(file, "utf-8"));
+		} catch {
+			return false;
+		}
+		if (!doc || typeof doc !== "object") return false;
+		if (doc.sessionsRoot === undefined) return this.isDefaultRoot;
+		return typeof doc.sessionsRoot === "string" && canonRoot(doc.sessionsRoot) === this.sessionsRoot;
 	}
 
 	#readRecord(id) {
@@ -267,7 +304,7 @@ export class StageKeyStore {
 			tmp = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
 			// "wx": create it or fail. Never write through a name something else made.
 			fd = fs.openSync(tmp, "wx", 0o600);
-			fs.writeSync(fd, `${JSON.stringify({ v: 1, keys, updatedAt: Date.now() })}\n`);
+			fs.writeSync(fd, `${JSON.stringify({ v: 1, keys, updatedAt: Date.now(), sessionsRoot: this.sessionsRoot })}\n`);
 			fs.closeSync(fd);
 			fd = null;
 			fs.chmodSync(tmp, 0o600); // explicit: the create mode is masked by the umask

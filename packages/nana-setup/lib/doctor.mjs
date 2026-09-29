@@ -12,6 +12,7 @@ import { spawnSync } from "node:child_process";
 const OK = "ok";
 const FAIL = "fail";
 const NOTE = "note";
+const WARN = "warn";
 
 /**
  * ✓ means "this file is the repo's file". On posix that is a symlink and nothing else — a
@@ -130,6 +131,14 @@ export function diagnose(layout, opts = {}) {
 	);
 
 	// --- pi user config ---
+	// Checked where the PACK reads it: layout.piHome is nana-pack's own active-agent-dir resolver
+	// (lib/paths.mjs) unless a flag overrode it, so the default objective below resolves there too.
+	add(NOTE, "pi agent dir", `${layout.piHome} (${layout.piHomeSource})`);
+	if (layout.piHomeCwdRelative)
+		add(WARN, "pi agent dir is cwd-specific", `PI_CODING_AGENT_DIR is relative, resolved against ${layout.piHomeCwdRelative}; pi started in another folder reads a different dir — pass --pi-home <absolute dir> or set an absolute value`);
+	const stranded = path.join(layout.base, ".pi", "agent", "nana-pack.json");
+	if (layout.piHomeSource === "PI_CODING_AGENT_DIR" && path.resolve(stranded) !== path.resolve(layout.piPackConfig) && fs.existsSync(stranded))
+		add(NOTE, "pi default-dir nana-pack.json", `${stranded} exists but is NOT read (PI_CODING_AGENT_DIR is set)`);
 	const cfg = readPiPackConfig(layout);
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : `missing or unparseable: ${layout.piPackConfig}`);
 	const pf = projectFileState(cfg?.objective?.projectFile);
@@ -173,4 +182,4 @@ export function diagnose(layout, opts = {}) {
 	return checks;
 }
 
-export const STATUS = { OK, FAIL, NOTE };
+export const STATUS = { OK, FAIL, NOTE, WARN };

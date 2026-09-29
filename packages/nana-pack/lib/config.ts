@@ -2,7 +2,11 @@
  * Shared config for the nana pack.
  *
  * Sources (project wins over user, both optional — every extension works with defaults):
- *   user:    ~/.pi/agent/nana-pack.json
+ *   user:    <pi's ACTIVE agent dir>/nana-pack.json — gate-paths' piAgentDir(), exactly as pi finds
+ *            settings.json/auth.json/models.json: `PI_CODING_AGENT_DIR` (tilde-expanded; a
+ *            relative value against the process cwd), else ~/.pi/agent. A nana-pack.json left in
+ *            ~/.pi/agent while the active dir has none is NOT read — it is announced once per
+ *            session (`config_agent_dir_mismatch`), and the gate runs without a user config.
  *   project: <cwd>/.pi/nana-pack.json — NANA-TRUSTED PROJECTS ONLY. Project config can
  *   relax the gate (allowPatterns), define post-edit COMMANDS, and redirect the
  *   handoff path, so a repo must not be able to supply it by itself. pi auto-trusts
@@ -31,6 +35,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { piAgentDir } from "./gate-paths.ts";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
 export interface PostEditCommand {
@@ -74,7 +79,7 @@ export interface NanaPackConfig {
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
 	objective: { enabled: boolean; path: string | null; projectFile: string | null };
-	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = ~/.pi/agent/receipts. */
+	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = <pi's active agent dir>/receipts. */
 	receipts: { enabled: boolean; dir: string | null };
 }
 
@@ -252,12 +257,34 @@ export function normalizeRaw(raw: unknown): { blocks: Blocks; problems: string[]
 	return { blocks, problems };
 }
 
+function isLink(p: string): boolean {
+	try {
+		return fs.lstatSync(p).isSymbolicLink();
+	} catch {
+		return false;
+	}
+}
+
+function linkText(p: string): string {
+	try {
+		return fs.readlinkSync(p);
+	} catch {
+		return "?";
+	}
+}
+
 function readConfigFile(p: string): FileRead {
 	let text: string;
 	try {
 		text = fs.readFileSync(p, "utf-8");
 	} catch (e: any) {
-		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") return { present: false, blocks: {}, problems: [], gateValid: true };
+		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") {
+			// Absent only if NOTHING is there. A symlink that resolves nowhere is a policy file
+			// that cannot be read — unusable, so the last-valid / stop rule applies (never a
+			// silent fall to the defaults, which would drop its denies).
+			if (isLink(p)) return { present: true, blocks: {}, problems: [`unreadable (dangling symlink → ${linkText(p)}) — file ignored`], gateValid: false };
+			return { present: false, blocks: {}, problems: [], gateValid: true };
+		}
 		return { present: true, blocks: {}, problems: [`unreadable (${e?.code ?? "error"}) — file ignored`], gateValid: false };
 	}
 	let raw: unknown;
@@ -273,7 +300,8 @@ function readConfigFile(p: string): FileRead {
 
 // ---------------------------------------------------------------- last valid gate (in memory only)
 
-const userConfigPath = () => path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
+const userConfigPath = () => path.join(piAgentDir(), "nana-pack.json");
+const defaultUserConfigPath = () => path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
 
 type GateLeaves = Omit<GateConfig, "stopReason">;
 const gateLeaves = (b: Block | undefined): GateLeaves => ({
@@ -342,7 +370,7 @@ function computeDecided(cwd: string): boolean {
 		// fall through to the store
 	}
 	try {
-		const agentDir = api.getAgentDir?.() ?? path.join(os.homedir(), ".pi", "agent");
+		const agentDir = api.getAgentDir?.() ?? piAgentDir();
 		return new api.ProjectTrustStore(agentDir).get(cwd) === true; // owner-recorded (`/trust`)
 	} catch {
 		return false; // unreadable trust.json → no evidence
@@ -427,13 +455,26 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	let cfg: NanaPackConfig;
 	try {
 		const userFile = userConfigPath();
-		const user = readConfigFile(userFile);
+		// A relative userFile means the agent dir could not be resolved (a relative
+		// PI_CODING_AGENT_DIR under a deleted cwd): which file pi reads is unknowable — unusable.
+		const user: FileRead = path.isAbsolute(userFile)
+			? readConfigFile(userFile)
+			: { present: true, blocks: {}, problems: ["unreadable (agent dir unresolvable: relative PI_CODING_AGENT_DIR and the working directory is gone) — file ignored"], gateValid: false };
 		for (const p of user.problems) notes.push(["config_invalid", userFile, p]);
 
 		// --- user gate: never "default" when the block is malformed
 		let gate: GateConfig;
 		if (!user.present) {
 			gate = { ...gateLeaves(undefined), stopReason: null };
+			// Absence is legitimate (no stop), but a config stranded in the DEFAULT dir while
+			// PI_CODING_AGENT_DIR points elsewhere must not vanish silently. Never read it.
+			const stranded = defaultUserConfigPath();
+			if (path.resolve(stranded) !== path.resolve(userFile) && fs.existsSync(stranded))
+				notes.push([
+					"config_agent_dir_mismatch",
+					userFile,
+					`no user config in pi's active agent dir (PI_CODING_AGENT_DIR); ${stranded} exists but is NOT read — gate extraPatterns/protectedPaths and every other user setting are at their defaults. Move it into the active dir, or unset PI_CODING_AGENT_DIR`,
+				]);
 		} else if (user.gateValid) {
 			const g = gateLeaves(user.blocks.gate);
 			G.lastValidUserGate.set(userFile, g);
@@ -512,7 +553,11 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
 		cfg = structuredClone(DEFAULTS);
-		cfg.gate.stopReason = gateStopReason(userConfigPath(), `config load failed (${String(e).slice(0, 120)})`);
+		// userFile is not in scope here and userConfigPath() may be what threw: name the file
+		// generically (no fs, no cwd, no resolution) — this catch must not throw.
+		cfg.gate.stopReason = gateStopReason(
+			"<pi agent dir>/nana-pack.json",
+			`config load failed (${String(e).slice(0, 120)})`);
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;
@@ -547,7 +592,7 @@ export function compileRegexes(patterns: string[]): RegExp[] {
 }
 
 export function journalFile(cfg: NanaPackConfig): string {
-	return cfg.journal.path ?? path.join(os.homedir(), ".pi", "agent", "nana-journal.jsonl");
+	return cfg.journal.path ?? path.join(piAgentDir(), "nana-journal.jsonl");
 }
 
 /** Best-effort append; observability must never break the agent. */

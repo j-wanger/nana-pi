@@ -18,16 +18,18 @@
  * contents". The status vocabulary is exactly the enum above plus `stale`
  * (a read-side determination). No `verified` / `done` / `complete`.
  *
- * Storage: receipts live OUTSIDE any source tree, best-effort (never crash the
+ * Storage: receipts live in pi's agent dir, not in the repo they describe — which is
+ * OUTSIDE any source tree only for the default ~/.pi/agent: a PI_CODING_AGENT_DIR (or
+ * configured receipts dir) can itself sit inside a checkout. Best-effort (never crash the
  * agent), keyed by repo + checker so the latest receipt for a checker is
- * findable. Default: ~/.pi/agent/receipts/<repoHash>/<checkerHash>.json.
+ * findable. Default: <pi's active agent dir (piAgentDir())>/receipts/<repoHash>/<checkerHash>.json.
  */
 
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import type { NanaPackConfig } from "./config.ts";
+import { piAgentDir } from "./gate-paths.ts";
 
 /** Exit classification — error/timeout/not_run are NEVER folded into passed. */
 export type CheckStatus = "checks_passed" | "checks_failed" | "error" | "timeout" | "not_run";
@@ -141,7 +143,7 @@ export function receiptsDir(cfg: NanaPackConfig): string {
 	// config shape can feed a non-string into path APIs downstream.
 	return typeof cfg.receipts.dir === "string"
 		? cfg.receipts.dir
-		: path.join(os.homedir(), ".pi", "agent", "receipts");
+		: path.join(piAgentDir(), "receipts");
 }
 
 /** One file per (repo, checker) so the latest receipt for a checker is findable. */

@@ -3,6 +3,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { piAgentDir, piAgentDirIsCwdRelative } from "../../nana-pack/lib/agent-dir.mjs";
 
 /** <repo>/packages/nana-setup — the files this package ships. */
 export const pkgRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -14,11 +15,14 @@ export const DESK_LABEL = "com.nana.pi-desk";
 /**
  * `--home H` moves every user-scope location under H (that is how the tests run). The two
  * narrower flags override one half each; anything not named falls back to the real home.
+ * piHome precedence: `--pi-home` → `--home`-derived `<home>/.pi/agent` (hermetic: an ambient
+ * PI_CODING_AGENT_DIR is NOT read) → pi's ACTIVE agent dir (PI_CODING_AGENT_DIR, else
+ * ~/.pi/agent — nana-pack's own resolver, so setup writes the file the pack reads).
  */
 export function resolveLayout(opts = {}) {
 	const base = opts.home ? path.resolve(opts.home) : os.homedir();
 	const claudeHome = opts.claudeHome ? path.resolve(opts.claudeHome) : path.join(base, ".claude");
-	const piHome = opts.piHome ? path.resolve(opts.piHome) : path.join(base, ".pi", "agent");
+	const piHome = opts.piHome ? path.resolve(opts.piHome) : opts.home ? path.join(base, ".pi", "agent") : piAgentDir();
 	return {
 		base,
 		claudeHome,
@@ -28,10 +32,20 @@ export function resolveLayout(opts = {}) {
 		sharedMemoryDir: path.join(claudeHome, "nana-memory", "shared"),
 		claudeSettings: path.join(claudeHome, "settings.json"),
 		piHome,
+		piHomeSource: opts.piHome ? "--pi-home" : opts.home ? "--home" : piHome === path.join(base, ".pi", "agent") ? "default" : "PI_CODING_AGENT_DIR",
+		/** The AMBIENT override is relative: piHome is specific to THIS process's cwd, and pi started
+		 *  elsewhere reads a different dir. `install` refuses it, `doctor` warns (explicit flags never set it). */
+		piHomeCwdRelative: !opts.piHome && !opts.home && piAgentDirIsCwdRelative() ? safeCwd() : null,
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
 		piObjective: path.join(piHome, "nana-objective.md"),
-		knowledgeHome: path.join(piHome, "nana-knowledge"),
+		// NOT piHome when piHome came from the ambient PI_CODING_AGENT_DIR: the nana-knowledge
+		// runtime (packages/nana-knowledge/lib/paths.ts) reads NANA_KNOWLEDGE_HOME or the fixed
+		// <home>/.pi/agent/nana-knowledge and never that variable, so following it here built an
+		// index the hooks and `nana-knowledge build` never read. Moving knowledge storage needs a
+		// deliberate cross-runtime contract; until then it follows the layout's BASE. The explicit
+		// --pi-home / --home flags still place it (they are how tests and hermetic installs run).
+		knowledgeHome: path.join(opts.piHome || opts.home ? piHome : path.join(base, ".pi", "agent"), "nana-knowledge"),
 		deskLog: path.join(piHome, "desk.log"),
 		binDir: path.join(base, ".local", "bin"),
 		launchAgentsDir: path.join(base, "Library", "LaunchAgents"),
@@ -40,6 +54,14 @@ export function resolveLayout(opts = {}) {
 		 *  touches the live machine (launchctl, `pi install`) may run then. */
 		isRealHome: path.resolve(base) === path.resolve(os.homedir()) && !opts.claudeHome && !opts.piHome,
 	};
+}
+
+function safeCwd() {
+	try {
+		return process.cwd();
+	} catch {
+		return "(the current folder, which no longer exists)";
+	}
 }
 
 /** Test seam: NANA_SETUP_PLATFORM lets the win32 branches be exercised on a Mac. */

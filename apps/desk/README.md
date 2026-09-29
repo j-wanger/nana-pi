@@ -17,9 +17,28 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 | | What | Why |
 |---|---|---|
 | Runtime | **Node ≥ 22.19** | pi's own floor (`engines` in its package.json). The desk's own code needs nothing newer than Node 18, but it imports pi in-process, so pi's floor is the desk's floor. |
-| Runtime | **`@earendil-works/pi-coding-agent` 0.87.1, installed globally** (`npm i -g @earendil-works/pi-coding-agent@0.87.1`; tested on 0.87.1 since 2026-09-28 — the startup floor below stays 0.84.4, because the imported exports are unchanged since then) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in the terminal) and, since 2026-09-09, **imported** for session reading. |
+| Runtime | **`@earendil-works/pi-coding-agent` 0.87.1, installed globally** (`npm i -g @earendil-works/pi-coding-agent@0.87.1`; tested on 0.87.1 since 2026-09-28 — the startup floor below stays 0.84.4, because the imported exports are unchanged since then) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in a terminal started with the same `PI_CODING_AGENT_DIR` — see *Agent directory* below for the one qualification) and, since 2026-09-09, **imported** for session reading. |
 | Tests (browser e2e only) | **Playwright** (`playwright` or `playwright-core`; 1.61.1 in this repo's root `node_modules`) | Only `test/*.e2e.mjs`. They resolve it from `PW_ROOT` if set, else from the test directory's own require chain — i.e. the repo root — so a plain `npm i playwright` at the repo root is enough and `PW_ROOT` is only for a Playwright that lives somewhere else. The `test/*.test.mjs` files are zero-dep: `node <file>`, exit 0 = PASS. |
 | | *nothing else from npm* | No package.json, no lockfile, no build step. Everything else is `node:` builtins. |
+
+**Agent directory (U2, 2026-09-28).** The desk works in pi's **active** agent dir, `<agent dir>`
+below: `PI_CODING_AGENT_DIR` when set, else `~/.pi/agent` — resolved once at startup by nana-pack's
+own resolver (`packages/nana-pack/lib/agent-dir.mjs`), so the desk reads and edits exactly the
+files the pack and pi read. That covers the sessions rail (`<agent dir>/sessions/`), Settings
+(`settings.json`, `mcp.json`, `nana-pack.json`, `agents/`) and every child it spawns. There is no
+fallback read of, and no migration from, `~/.pi/agent` when the variable points elsewhere. Callers
+should use the paths `/api/settings` returns, never reconstruct them.
+- **The pin.** A RELATIVE `PI_CODING_AGENT_DIR` is resolved by each pi against its own start
+  folder, so a session spawned in a project would read `<project>/<rel>`. The desk resolves it once
+  against ITS cwd and gives every child that absolute dir, so desk and sessions share one store —
+  which means sessions started here can differ from `pi` started by hand elsewhere with the same
+  relative value. The desk says so in the "Open a session" popover (where sessions are created) and
+  at the top of Settings. Absolute and `~` values are passed through untouched.
+- **Fixed exceptions**, deliberately NOT under `<agent dir>`: the stage-key store
+  (`~/.pi/agent/nana-desk/stage-keys/`, shared by every desk on the machine, see below), the handoff
+  store and the review round-cap ledger.
+- **The launchd service** (`nana-setup install --desk`) is given the installer's chosen dir in its
+  plist when it is not `~/.pi/agent`; a desk started any other way reads its own environment.
 
 **What is imported from pi**, all from the package ROOT export
 (`@earendil-works/pi-coding-agent`, i.e. its `dist/index.js`; never a deep `dist/…`
@@ -91,7 +110,7 @@ cycle guard — the desk's does).
 
 - **Sessions rail** — folds away entirely with the masthead `⟨`/`☰` or Ctrl/Cmd+B
   (the choice persists; with it folded a compact `＋` in the masthead keeps
-  "open a session" one click away). Contents: `~/.pi/agent/sessions/` JSONL trees (newest 15 per workspace),
+  "open a session" one click away). Contents: `<agent dir>/sessions/` JSONL trees (newest 15 per workspace),
   grouped by workspace with collapsible headers (only the most recent starts open;
   choices persist). Titles are inferred from the first user message; ✎ on any row
   renames — live sessions via `set_session_name` RPC, historical ones by appending
@@ -224,7 +243,7 @@ cycle guard — the desk's does).
 - **Settings → Nana pack** — a form over the whole nana-pack schema
   (`packages/nana-pack/lib/config.ts`): gate pattern lists, post-edit commands as
   match/run/timeoutMs rows (with a raw-JSON escape hatch), notify, journal,
-  handoff, receipts. A scope switch edits either `~/.pi/agent/nana-pack.json` or a
+  handoff, receipts. A scope switch edits either `<agent dir>/nana-pack.json` or a
   project's `<dir>/.pi/nana-pack.json` (project overrides user per section, and the
   project file is only read when the project is trusted). The write is a whole-file
   replace, so unknown top-level keys are refused *by name* rather than persisted;
@@ -276,7 +295,7 @@ Two client-visible API changes landed in commit `368f67f`. Both change what a ca
 not just what the server does internally.
 
 - **A config save that cannot be backed up is refused, not completed.** Every write to
-  `~/.pi/agent/settings.json`, `mcp.json`, `nana-pack.json`, a project `AGENTS.md`/`CLAUDE.md`/
+  `<agent dir>/settings.json`, `mcp.json`, `nana-pack.json`, a project `AGENTS.md`/`CLAUDE.md`/
   `AGENTS.override.md`, and a subagent `.md` copies the existing file to `<file>.bak` *first*.
   If that copy fails, the write is aborted and the request answers **500** with the reason —
   previously the failure was swallowed and the file was overwritten anyway. "There was nothing
@@ -430,10 +449,13 @@ would send it twice.
   them on disk.** New directory: `~/.pi/agent/nana-desk/stage-keys/` (`0700` when the desk
   creates it), holding **one file per session**, `<pi session id>.json` (`0600`), written
   temp-file-then-rename so a reader never sees a half-written one:
-  `{"v":1,"keys":["<hex>", …],"updatedAt":<ms>}` — the keys this desk has issued for that
+  `{"v":1,"keys":["<hex>", …],"updatedAt":<ms>,"sessionsRoot":"<dir>"}` — the keys this desk has issued for that
   session, most recent first, at most **8** (the 9th drops the oldest, and blocks signed under a
   dropped key go back to redacted). The first time a desk opens an app it deletes the records of
-  sessions with no file left under `~/.pi/agent/sessions/` — but only if that enumeration
+  sessions with no file left under ITS `<agent dir>/sessions/` — but only records issued under that
+  same sessions root (`sessionsRoot`; a record without one is treated as issued under
+  `~/.pi/agent/sessions/`), because the store is shared by desks on other agent dirs whose live
+  sessions are simply not in this desk's enumeration; and only if that enumeration
   succeeded and came back non-empty (an empty one is indistinguishable from a directory it could
   not read), and a record it fails to unlink is simply left where it is. Records are kept per session precisely
   so there is nothing shared to merge or lock: a session id that is not name-shaped
@@ -560,7 +582,7 @@ is not":
   than merely slow (there is no client-side retry cap). Bounding the maps needs a decision about
   what a *dropped* status or widget means to the page, which the buffer caps did not have to
   make.
-- **`~/.pi/agent/*.json` saves still follow symlinks, on purpose.** `settings.json`, `mcp.json`
+- **`<agent dir>/*.json` saves still follow symlinks, on purpose.** `settings.json`, `mcp.json`
   and `nana-pack.json` are your own paths, and symlinking them into a dotfiles repo is a normal
   setup, so those writes (and their `.bak`) resolve a link rather than refusing it. The two writes
   whose destination comes from a *request* — a context file in a picked directory, a subagent
@@ -571,7 +593,7 @@ is not":
   `0700` the desk says so once and leaves it alone.
 - **The stage-key store is synchronous, on the event loop.** Its small per-session reads and
   writes, and the one-time session enumeration behind its hygiene pass, block the whole desk
-  while they run. A hung filesystem under `~/.pi/agent` stalls the process, not just the request
+  while they run. A hung filesystem under `<agent dir>` stalls the process, not just the request
   that touched it.
 - **Two desks can lose keys for the same session.** A record is read, unioned and written back
   without a lock, so two desks doing that for the *same* session in the *same instant* leave
@@ -604,8 +626,8 @@ is not":
   before it has nothing that can vouch for it and `/api/entries` still returns it as
   `nana-block-rejected`. That is the provenance rule working, not a render bug. The same is true
   of any session whose keys have aged out of its record (8 per session), and of any session with
-  no file left under `~/.pi/agent/sessions/`, whose record the first desk to open an app deletes
-  — though only when that session enumeration succeeded and came back non-empty, and a record it
+  no file left under the sessions root its record was issued under, whose record the first desk on
+  that same root to open an app deletes — though only when that session enumeration succeeded and came back non-empty, and a record it
   fails to unlink is left where it is.
 - **A picker left open across a session switch still acts on the new session.** Selecting a
   session closes any open popover, but a model/thinking/fork picker whose RPC is *already in

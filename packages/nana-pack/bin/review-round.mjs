@@ -64,6 +64,7 @@ export function reservationStaleMs() {
 const CLOCK_SKEW_MS = 60_000; // a reservation dated further in the future than this is stale
 
 export function ledgerPaths(home = homedir()) {
+  // Deliberately ~/.pi/agent, NOT pi's active agent dir: the round cap is user-scope self-governance, and keying it to PI_CODING_AGENT_DIR would let one shell variable reset the tally.
   const dir = join(home, '.pi', 'agent');
   return {
     dir,

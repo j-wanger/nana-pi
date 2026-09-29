@@ -184,4 +184,20 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} }));
 }
 
+// ── U2 fix (MUST B): a DANGLING project nana-pack.json symlink is an unusable file, not absence ──
+{
+	const D = project(null);
+	let linked = true;
+	try {
+		fs.symlinkSync(path.join(D.td, "no-such-target.json"), D.file);
+	} catch {
+		linked = false;
+		console.log("SKIP-NOTE: no symlink privilege — dangling project row skipped");
+	}
+	if (linked) {
+		const r = run(D.td, [["ls", "bash", { command: "ls -la" }]]);
+		check("U2-B: dangling project nana-pack.json symlink in a trusted project → stop (not defaults)", blocked(r.ls) && PSTOP(D.file).test(r.ls.reason) && /dangling symlink/.test(r.ls.reason), JSON.stringify(r));
+	}
+}
+
 process.exit(fails);

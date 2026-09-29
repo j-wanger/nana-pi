@@ -711,6 +711,45 @@ try {
 	check("store: ...and leaves stray temps and moved-aside records alone",
 		fs.existsSync(path.join(d2, "sidR.json.12345.abcdef.tmp")) && ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
 
+	// TWO SESSIONS ROOTS, ONE SHARED STORE (U2 astra land MUST 1). The store stays at the
+	// fixed path while each desk enumerates its OWN agent dir's sessions: an enumeration
+	// is evidence only about records issued under the same root, so neither desk may
+	// prune the other's keys — and a legacy record (no root) is pruned only from the default.
+	const d3 = path.join(td2, "shared-store");
+	const rootDef = path.join(td2, "home-default", "sessions");
+	const rootCus = path.join(td2, "custom-agent", "sessions");
+	for (const r of [rootDef, rootCus]) fs.mkdirSync(r, { recursive: true });
+	const kD = crypto.randomBytes(32).toString("hex"), kC = crypto.randomBytes(32).toString("hex");
+	const kDgone = crypto.randomBytes(32).toString("hex"), kCgone = crypto.randomBytes(32).toString("hex");
+	const kLegacy = crypto.randomBytes(32).toString("hex");
+	const deskD = (known) => new StageKeyStore({ dir: d3, log: () => {}, sessionsRoot: rootDef, knownSessionIds: () => new Set(known) });
+	const deskC = (known) => new StageKeyStore({ dir: d3, log: () => {}, sessionsRoot: rootCus, knownSessionIds: () => new Set(known) });
+	deskD(["liveD", "goneD"]).record("liveD", kD);
+	deskD(["liveD", "goneD"]).record("goneD", kDgone);
+	deskC(["liveC", "goneC"]).record("liveC", kC);
+	deskC(["liveC", "goneC"]).record("goneC", kCgone);
+	const rec3 = (id) => path.join(d3, `${id}.json`);
+	check("two roots: each record carries the sessions root it was issued under",
+		JSON.parse(fs.readFileSync(rec3("liveD"), "utf-8")).sessionsRoot === fs.realpathSync(rootDef)
+		&& JSON.parse(fs.readFileSync(rec3("liveC"), "utf-8")).sessionsRoot === fs.realpathSync(rootCus));
+	// the custom-root desk opens with only its own live session: goneC is its to drop,
+	// liveD and goneD belong to the other root and are NOT evidence it can act on
+	deskC(["liveC"]).keysFor("liveC");
+	check("two roots: the custom-root desk prunes its own vanished session", !fs.existsSync(rec3("goneC")));
+	check("two roots: ...and keeps the default-root desk's records (live AND not in its enumeration)",
+		fs.existsSync(rec3("liveD")) && fs.existsSync(rec3("goneD")) && deskD(["liveD"]).keysFor("liveD")[0] === kD);
+	// and the reverse: the default-root desk prunes goneD, never liveC
+	deskD(["liveD"]).keysFor("liveD");
+	check("two roots: the default-root desk prunes its own vanished session", !fs.existsSync(rec3("goneD")));
+	check("two roots: ...and keeps the custom-root desk's record", fs.existsSync(rec3("liveC")) && deskC(["liveC"]).keysFor("liveC")[0] === kC);
+	// a legacy record (written before records carried a root) is pruned only by a desk
+	// whose root IS the default ~/.pi/agent/sessions (HOME-relative, like the store)
+	fs.writeFileSync(rec3("legacy"), `${JSON.stringify({ v: 1, keys: [kLegacy], updatedAt: 1 })}\n`);
+	deskC(["liveC"]).keysFor("liveC");
+	check("two roots: a legacy record survives a non-default-root prune", fs.existsSync(rec3("legacy")));
+	new StageKeyStore({ dir: d3, log: () => {}, knownSessionIds: () => new Set(["liveD"]) }).keysFor("liveD");
+	check("two roots: ...and is pruned by a default-root desk that does not know it", !fs.existsSync(rec3("legacy")));
+
 	fs.rmSync(td2, { recursive: true, force: true });
 } catch (e) {
 	console.error("HARNESS ERROR", e, log.slice(-3000));

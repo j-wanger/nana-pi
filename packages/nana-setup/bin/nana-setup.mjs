@@ -19,13 +19,13 @@ import { SetupError, install } from "../lib/steps.mjs";
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
-  nana-setup doctor  [options]        one ✓/✗ line per piece; exits 1 on any ✗
+  nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
 
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
   --claude-home <dir>  the .claude directory            (default ~/.claude)
-  --pi-home <dir>      the pi agent directory           (default ~/.pi/agent)
+  --pi-home <dir>      the pi agent directory           (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
   --desk               install + load the desk launchd service (macOS, opt-in)
   --name <n>           project: the project's name      (default: the folder's name)
   --check              project: one ✓/✗ line per file; exits 1 on any ✗
@@ -34,7 +34,7 @@ Options
   -h, --help
 
 What it never touches: an existing ~/.claude/rules/nana-personal.md (private — it is created
-from the example only when absent and never read back), an existing ~/.pi/agent/nana-pack.json,
+from the example only when absent and never read back), an existing nana-pack.json in the pi agent dir,
 and any hook, setting or package entry that is already there.
 `;
 
@@ -62,8 +62,25 @@ function parse(argv) {
 
 const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", problem: "✗" };
 
+/**
+ * An AMBIENT relative PI_CODING_AGENT_DIR resolves against THIS process's cwd, so any command that
+ * reads or writes the user-scope pi directory would act on a directory pi started elsewhere never
+ * sees. Every such command refuses (sol r2/r3); an explicit --pi-home / --home is the user's own
+ * decision and never sets the flag. `doctor` warns instead, because its job is to report.
+ */
+function refuseCwdRelativePiHome(layout, what) {
+	if (!layout.piHomeCwdRelative) return;
+	throw new SetupError(
+		`PI_CODING_AGENT_DIR is a relative path; here it resolves to ${layout.piHome}, which is specific to the ` +
+			`current working directory (${layout.piHomeCwdRelative}) — pi started in any other folder reads a different ` +
+			`directory, so ${what} would act on the wrong one. Pass --pi-home <absolute dir>, or set ` +
+			"PI_CODING_AGENT_DIR to an absolute path, and re-run.",
+	);
+}
+
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
+	refuseCwdRelativePiHome(layout, "this install");
 	console.log(`nana-setup install${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  install root  ${repoRoot}`);
 	console.log(`  claude home   ${tildeify(layout.claudeHome)}`);
@@ -98,20 +115,31 @@ function runDoctor(opts) {
 	const width = Math.max(...checks.map((c) => c.label.length));
 	console.log(`nana-setup doctor — ${repoRoot}\n`);
 	for (const c of checks) {
-		const mark = c.status === STATUS.OK ? "✓" : c.status === STATUS.FAIL ? "✗" : "·";
+		const mark = c.status === STATUS.OK ? "✓" : c.status === STATUS.FAIL ? "✗" : c.status === STATUS.WARN ? "!" : "·";
 		console.log(`  ${mark} ${c.label.padEnd(width)}  ${c.detail ?? ""}`);
 	}
 	const bad = checks.filter((c) => c.status === STATUS.FAIL);
-	console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup install` : "\n  all good.");
-	return bad.length ? 1 : 0;
+	// A ! line is never "all good": it means what was checked may not be what pi reads.
+	const warn = checks.filter((c) => c.status === STATUS.WARN);
+	console.log(
+		bad.length
+			? `\n  ${bad.length} missing — run: nana-setup install${warn.length ? ` (and see the ${warn.length} ! above)` : ""}`
+			: warn.length
+				? `\n  NOT verified — ${warn.length} ! above.`
+				: "\n  all good.",
+	);
+	return bad.length || warn.length ? 1 : 0;
 }
 
 async function runProject(opts) {
 	const dir = path.resolve(opts._[1] || process.cwd());
 	if (opts.check) {
 		// The same layout the setup used: `--check` reads the user-scope pi config so it can
-		// mirror the one decision that depends on it (the pack-config omission).
-		const checks = checkProject(dir, resolveLayout(opts));
+		// mirror the one decision that depends on it (the pack-config omission) — so it needs the
+		// same refusal as `install` (sol r3).
+		const checkLayout = resolveLayout(opts);
+		refuseCwdRelativePiHome(checkLayout, "this check");
+		const checks = checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
 		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
@@ -119,6 +147,8 @@ async function runProject(opts) {
 		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
 		return bad.length ? 1 : 0;
 	}
+	// The user-scope read happens before anything is created, so refuse before the mkdir below.
+	refuseCwdRelativePiHome(resolveLayout(opts), "this project setup");
 	// A missing LEAF folder is created (this is "initiate a project"); a missing parent is the
 	// user's typo, so it still aborts. Dry run reports instead of creating.
 	if (!fs.existsSync(dir)) {
