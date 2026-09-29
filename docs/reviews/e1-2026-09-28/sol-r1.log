@@ -1,0 +1,23 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "e1-catch-ledger" (path:/private/tmp/claude-501/-Users-jwang-nana-agent-loop/3beaf51b-41bb-4cfe-a961-e0a5d433d832/scratchpad/sol-e1): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (sol @ 36a7e34338e6)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.87s flat=0/10
+  [pi-review a1] cpu=1s flat=0/10
+  [pi-review a1] cpu=1.01s flat=0/10
+  [pi-review a1] cpu=1.03s flat=0/10
+  [pi-review a1] cpu=1.06s flat=0/10
+  [pi-review a1] cpu=1.1s flat=0/10
+  [pi-review a1] cpu=1.13s flat=0/10
+  [pi-review a1] cpu=1.14s flat=0/10
+  [pi-review a1] cpu=1.28s flat=0/10
+  [pi-review a1] cpu=1.52s flat=0/10
+  [pi-review a1] cpu=1.62s flat=0/10
+  [pi-review a1] cpu=1.75s flat=0/10
+  [pi-review a1] cpu=1.78s flat=0/10
+  [pi-review a1] cpu=1.84s flat=0/10
+  [pi-review a1] cpu=1.84s flat=1/10
+  [pi-review a1] cpu=1.84s flat=2/10
+  [pi-review a1] cpu=1.85s flat=0/10
+  [pi-review a1] cpu=1.87s flat=0/10
+  [pi-review a1] cpu=2.05s flat=0/10
+[pi-review] SUCCESS on attempt 1 (6444 chars → /Users/jwang/nana-pi/docs/reviews/e1-2026-09-28/sol-r1.md; round 1)
