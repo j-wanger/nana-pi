@@ -35,12 +35,12 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
-| `nana-pack.json` | `~/.pi/agent/` | seeded **only when absent** |
-| `nana-objective.md` | `~/.pi/agent/` | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
-| knowledge index | `~/.pi/agent/nana-knowledge/index.db` | built when absent (`nana-knowledge build` refreshes it) |
+| `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
+| `nana-objective.md` | the pi agent dir | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
+| knowledge index | `nana-knowledge/index.db` in the pi agent dir | built when absent (`nana-knowledge build` refreshes it) |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID` |
-| pi packages | `~/.pi/agent/settings.json` | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
+| pi packages | `settings.json` in the pi agent dir | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
 
 ## `project` — a blank folder becomes a nana project
 
@@ -112,7 +112,7 @@ instructions from the ones pi reads.
 ## What it never does
 
 - **Never overwrites** `~/.claude/rules/nana-personal.md` (private, and never in this repo — the
-  repo ships a placeholder template), `~/.pi/agent/nana-pack.json`, or `~/.pi/agent/nana-objective.md`.
+  repo ships a placeholder template), `nana-pack.json`, or `nana-objective.md` in the pi agent dir.
 - **Never removes or reorders** anything in `settings.json`. A hook counts as present only when
   the command actually **executes** that script: the command is tokenized with shell-quoting
   rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
@@ -210,7 +210,7 @@ not fail on them.
 --check              project: one ✓/✗ line per file; exits 1 on any ✗
 --home <dir>         put every user-scope location under <dir> (tests, dry machines)
 --claude-home <dir>  the .claude directory        (default ~/.claude)
---pi-home <dir>      the pi agent directory       (default ~/.pi/agent)
+--pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
 --desk               install + load the desk launchd service (macOS, opt-in)
 --dry-run            report what would change, write nothing
 --yes                accepted for scripts; the installer never prompts

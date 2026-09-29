@@ -25,7 +25,7 @@ const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
   --claude-home <dir>  the .claude directory            (default ~/.claude)
-  --pi-home <dir>      the pi agent directory           (default ~/.pi/agent)
+  --pi-home <dir>      the pi agent directory           (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
   --desk               install + load the desk launchd service (macOS, opt-in)
   --name <n>           project: the project's name      (default: the folder's name)
   --check              project: one ✓/✗ line per file; exits 1 on any ✗
@@ -34,7 +34,7 @@ Options
   -h, --help
 
 What it never touches: an existing ~/.claude/rules/nana-personal.md (private — it is created
-from the example only when absent and never read back), an existing ~/.pi/agent/nana-pack.json,
+from the example only when absent and never read back), an existing nana-pack.json in the pi agent dir,
 and any hook, setting or package entry that is already there.
 `;
 
