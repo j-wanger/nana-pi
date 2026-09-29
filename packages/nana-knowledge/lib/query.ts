@@ -52,8 +52,8 @@ export function search(db: Db, text: string, limit: number): Hit[] {
 				...renderFields({
 					title: r.title,
 					snippet: r.snip ?? "",
-					// tildeify SHORTENS; promptPath RENDERS. The :loc suffix comes from the number, never a string.
-					display: promptPath(tildeify(str(r.path))) + (Number.isSafeInteger(r.loc) && r.loc > 0 ? `:${r.loc}` : ""),
+					// tildeify SHORTENS; pointerPath RENDERS. The :loc suffix comes from the number, never a string.
+					display: pointerPath(tildeify(str(r.path))) + (Number.isSafeInteger(r.loc) && r.loc > 0 ? `:${r.loc}` : ""),
 				}),
 			});
 		} catch { /* dropped */ }
@@ -63,26 +63,49 @@ export function search(db: Db, text: string, limit: number): Hit[] {
 
 /** 16× the display cap: generous enough that the whitespace collapse below rarely loses words. */
 const PRE_CAP = 16;
-/** The delimiter and its look-alikes (em dash, horizontal bar, two/three-em dash), with any spacing around them. */
-const SEP_LIKE = /\s*[\u2014\u2015\u2e3a\u2e3b]\s*/g;
+/** The delimiter's dash. */
+const DASH = "\u2014";
+
+/**
+ * A path as a pointer's display field. A path is an ADDRESS, so it is never substituted: when its
+ * rendering would hold the exact FIELD_SEP, it is rendered in displayPath's escaped JSON-literal
+ * form with every em dash as \u2014 — exact (JSON.parse returns the path unless it was elided,
+ * which the "…" marks), and free of the literal separator. displayPath escapes only its own unsafe
+ * class, so a C1 char the path does not hold stands in for the dash (the same 6-char escape, so
+ * PATH_CAP and the basename-keeping elision are unchanged) and is named back token by token. A
+ * path holding all 32 C1 chars throws, which costs that pointer only.
+ */
+export function pointerPath(p: unknown): string {
+	const raw = str(p);
+	const plain = promptPath(raw);
+	if (!plain.includes(FIELD_SEP)) return plain;
+	const stand = Array.from({ length: 32 }, (_, i) => String.fromCharCode(0x80 + i)).find((c) => !raw.includes(c));
+	if (stand === undefined) throw new Error("no stand-in for the delimiter");
+	const code = `\\u00${stand.charCodeAt(0).toString(16).toUpperCase()}`;
+	return promptPath(raw.replaceAll(DASH, stand)).replace(/\\(?:u[0-9A-F]{4}|[\\"])/g, (t) => (t === code ? "\\u2014" : t));
+}
 
 /**
  * THE field renderer for a pointer line — search() and renderBlock() both call it, so a raw hit
- * and a searched hit get the same bounded fields. Every field is one line (promptText), capped,
- * and holds no delimiter: a dash that could read as FIELD_SEP becomes " - ". Idempotent on its
- * own output, so rendering a searched hit again changes nothing.
+ * and a searched hit get the same bounded fields. The invariant is ONE sentence: the exact
+ * FIELD_SEP never appears inside a rendered field. Every field is one line (promptText) and capped;
+ * the display field is exact or reversibly escaped (pointerPath); in the prose fields (title,
+ * snippet) an exact FIELD_SEP becomes " - ", which is readability, not the guarantee. Look-alike
+ * dashes (en dash, minus, horizontal bar …) are NOT touched: they can visually mislead a reader,
+ * and the block header already frames every field as data. Idempotent on its own output.
  */
 export function renderFields(h: { title?: unknown; display?: unknown; snippet?: unknown }): { title: string; display: string; snippet: string } {
+	// Already a rendered path: no whitespace collapse, no word cut, no substitution — only one line, capped.
+	const d = promptText(h.display, DISPLAY_MAX * PRE_CAP);
 	return {
 		title: clean(h.title, TITLE_MAX),
-		// Already a rendered path: no whitespace collapse, no word cut — only one line, no delimiter, capped.
-		display: head(promptText(h.display, DISPLAY_MAX * PRE_CAP).replace(SEP_LIKE, " - "), DISPLAY_MAX),
+		display: head(d.includes(FIELD_SEP) ? pointerPath(h.display) : d, DISPLAY_MAX),
 		snippet: clean(h.snippet, SNIPPET_MAX),
 	};
 }
 
-/** promptText is the rule; collapsing whitespace and cutting on a word boundary is a display nicety on top. */
+/** promptText is the rule; collapsing whitespace (BEFORE the substitution, so it cannot form a separator) and cutting on a word boundary are display niceties. */
 function clean(s: unknown, max: number): string {
-	const flat = promptText(s, max * PRE_CAP).replace(SEP_LIKE, " - ").replace(/\s{2,}/g, " ").trim();
+	const flat = promptText(s, max * PRE_CAP).replace(/\s{2,}/g, " ").replaceAll(FIELD_SEP, " - ").trim();
 	return flat.length > max ? head(flat, max - 1).replace(/\s+\S*$/, "") + "…" : flat;
 }

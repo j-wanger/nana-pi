@@ -134,6 +134,14 @@ prints at most one block, capped at 2000 characters:
 - <title> — <path> — <snippet around the best match>
 ```
 
+The exact separator ` — ` never appears inside a field, so every pointer line splits into its
+fields on it. The path field is exact, or — when it would hold the separator or a control
+character — a JSON string literal with those characters escaped as `\uXXXX`, which `JSON.parse`
+turns back into the exact path (only an over-long path is shortened, marked with `…`). In the title
+and snippet, which are prose, an exact separator is replaced by ` - ` for readability. Look-alike
+dashes (en dash, minus, horizontal bar) are left as they are: they can visually mislead a reader,
+and the header already frames every field as data.
+
 Behaviour, in the order it is decided:
 
 - **Fail-open, always.** Malformed stdin, a missing index, a corrupt database, a

@@ -98,7 +98,8 @@ export function renderBlock(hits: Hit[]): string {
 	let total = head.length;
 	for (const h of hits) {
 		// Every field is rendered HERE, with its cap, whatever the Hit holds (idempotent on a searched
-		// hit): so no field holds a line break or FIELD_SEP, and no single field can fill the budget.
+		// hit): so no field holds a line break or the exact FIELD_SEP (the display is exact or escaped,
+		// the prose is substituted), and no single field can fill the budget.
 		// The line pass through the same rule is a no-op on those fields, kept as defence in depth.
 		let line: string;
 		try {
