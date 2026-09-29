@@ -68,7 +68,7 @@ export interface NanaPackConfig {
 	/**
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
-	 * `path` null = ~/.pi/agent/nana-objective.md.
+	 * `path` null = <pi's active agent dir>/nana-objective.md (PI_CODING_AGENT_DIR, else ~/.pi/agent).
 	 * The nearest OBJECTIVE.md walking UP from the session cwd ALWAYS wins over `path`
 	 * (no opt-in). `projectFile` only renames that file: a bare filename, owner-set at
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").

@@ -91,6 +91,19 @@ const CMDS_ALLOW = ["echo x > ~/.pi/agent/handoffs/a.md", "cat src/nana-pack-not
 	// a NON-policy protected path is still exemptible by an allow pattern (pre-L2 behavior kept)
 	check("non-policy protected path (.env) stays exemptible", (await call("write", { path: ".env" })) === "ALLOW");
 }
+// T2c r4: the gate and the provenance label share ONE resolution of pi's active agent dir (piAgentDir),
+// with pi's `~/` expansion — a tilde override protects the same store the label reads.
+{
+	const { piTrustStorePath, policyFileHit, pathCandidates } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
+	process.env.PI_CODING_AGENT_DIR = "~/tilde-agent";
+	try {
+		const active = path.join(HOME, "tilde-agent", "trust.json");
+		check("tilde override: piTrustStorePath() expands ~ like pi", piTrustStorePath() === active, piTrustStorePath());
+		check("tilde override: the gate protects the store the label reads", !!policyFileHit(pathCandidates(active, CWD)));
+	} finally {
+		process.env.PI_CODING_AGENT_DIR = ALT;
+	}
+}
 
 fs.rmSync(HOME, { recursive: true, force: true });
 fs.rmSync(CWD, { recursive: true, force: true });

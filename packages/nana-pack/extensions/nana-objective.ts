@@ -5,7 +5,7 @@
  * Ruled 2026-09-16: every session (Claude Code and pi) starts by seeing the same
  * two lines, so it can say which of them its spend serves. Claude Code gets them
  * through a global SessionStart hook; pi gets them here. One file is the source
- * of truth (default ~/.pi/agent/nana-objective.md, usually pointed at the real
+ * of truth (default <pi's active agent dir>/nana-objective.md, usually pointed at the real
  * OBJECTIVE.md via objective.path) — edit that file, and the next agent start
  * everywhere sees the new text.
  *
@@ -28,8 +28,8 @@
  * and cannot turn the fallback or the whole feature off.
  *
  * Config (nana-pack.json): objective.enabled (default true), objective.path
- * (default ~/.pi/agent/nana-objective.md; "~/" expands, a RELATIVE path resolves
- * against ~/.pi/agent and NEVER against cwd), objective.projectFile (default null
+ * (default <pi's active agent dir>/nana-objective.md — PI_CODING_AGENT_DIR, else ~/.pi/agent;
+ * "~/" expands, a RELATIVE path resolves against that same dir and NEVER against cwd), objective.projectFile (default null
  * = "OBJECTIVE.md"; false also means the default name — the walk is never off). USER SCOPE ONLY — see lib/config.ts.
  *
  * Resolution and rendering live in ONE place, lib/objective.ts (lane T2a,

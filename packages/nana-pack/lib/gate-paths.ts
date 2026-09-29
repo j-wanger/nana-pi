@@ -29,9 +29,9 @@ function normalizeWindowsShellPath(filePath: string): string {
 	return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
 }
 
-function normalizeToolPath(input: string): string {
-	let normalized = input.replace(UNICODE_SPACES, " ");
-	if (normalized.startsWith("@")) normalized = normalized.slice(1);
+/** pi's `normalizePath` with its defaults (dist/utils/paths.js): win32 shell path, `~` / `~/`, file://. */
+function piNormalizePath(input: string): string {
+	let normalized = input;
 	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
 	const home = os.homedir();
 	if (normalized === "~") return home;
@@ -47,6 +47,47 @@ function normalizeToolPath(input: string): string {
 	}
 	return normalized;
 }
+
+function normalizeToolPath(input: string): string {
+	let normalized = input.replace(UNICODE_SPACES, " ");
+	if (normalized.startsWith("@")) normalized = normalized.slice(1);
+	return piNormalizePath(normalized);
+}
+
+/**
+ * pi's ACTIVE agent dir, resolved exactly as pi does — the ONE resolution nana-pack uses for it
+ * (the gate's policy floor and the T2c label's trust store alike). pi: getAgentDir() =
+ * `PI_CODING_AGENT_DIR` (non-empty) through normalizePath, else ~/.pi/agent (dist/config.js);
+ * ProjectTrustStore then resolvePath()s it, so a RELATIVE value resolves against process.cwd()
+ * (dist/core/trust-manager.js). Never throws.
+ */
+export function piAgentDir(): string {
+	const env = process.env.PI_CODING_AGENT_DIR;
+	if (!env) return path.join(os.homedir(), ".pi", "agent");
+	try {
+		return path.resolve(piNormalizePath(env));
+	} catch {
+		return path.resolve(env);
+	}
+}
+
+/**
+ * True when `PI_CODING_AGENT_DIR` is set to a value that stays RELATIVE after pi's normalizePath:
+ * each pi process then resolves it against its OWN start folder (pi dist/main.js:458 getAgentDir →
+ * trust-manager.js:173 resolvePath), so starting pi elsewhere selects a DIFFERENT store. Never throws.
+ */
+export function piAgentDirIsCwdRelative(): boolean {
+	const env = process.env.PI_CODING_AGENT_DIR;
+	if (!env) return false;
+	try {
+		return !path.isAbsolute(piNormalizePath(env));
+	} catch {
+		return !path.isAbsolute(env);
+	}
+}
+
+/** pi's ACTIVE trust store: `<piAgentDir()>/trust.json` (ProjectTrustStore.trustPath). */
+export const piTrustStorePath = (): string => path.join(piAgentDir(), "trust.json");
 
 /** pi's resolution of an edit/write path. Never throws (degrades to the raw input). */
 export function resolveToolPath(filePath: string, cwd: string): string {
@@ -94,11 +135,11 @@ const POLICY_RES: RegExp[] = [
 	/\.claude[/\\](settings(\.local)?\.json|hooks([/\\]|$))/i,
 ];
 
-/** `PI_CODING_AGENT_DIR` moves pi's trust store out of `~/.pi/agent` (docs/environment-variables.md). */
+/** `PI_CODING_AGENT_DIR` moves pi's trust store out of `~/.pi/agent` (docs/environment-variables.md); resolved by piAgentDir(). */
 function altTrustStores(): string[] {
-	const d = process.env.PI_CODING_AGENT_DIR;
-	if (!d) return [];
-	return [path.resolve(d), realish(path.resolve(d))].filter((x): x is string => !!x).map((a) => key(path.join(a, "trust.json")));
+	if (!process.env.PI_CODING_AGENT_DIR) return [];
+	const d = piAgentDir();
+	return [d, realish(d)].filter((x): x is string => !!x).map((a) => key(path.join(a, "trust.json")));
 }
 
 /** The policy file a set of path candidates lands on, or null. */

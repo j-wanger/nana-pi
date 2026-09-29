@@ -263,7 +263,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   trust was actually decided: pi asked (the folder has `.pi/settings.json`, `extensions`,
   `skills`, `prompts`, `themes`, `SYSTEM.md`, `APPEND_SYSTEM.md`, or an ancestor
   `.agents/skills`), or you saved trust for the folder (or a parent) with **`/trust`** in pi
-  (`~/.pi/agent/trust.json`), then restarted. An ignored project config is announced once per
+  (pi's active trust store: `~/.pi/agent/trust.json`, or under `PI_CODING_AGENT_DIR` when set), then restarted. An ignored project config is announced once per
   session (a warning and a `config_project_ignored` journal line), never silent.
 - **Malformed config never throws and never widens the gate.** A bad leaf falls back to its
   default — or, in a trusted *project* file, to the **user** value for that leaf when the user
@@ -514,9 +514,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
     follows.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
-  to say which of those lines its spend serves. Default source `~/.pi/agent/nana-objective.md`
-  (relocate with `objective.path`, a leading `~/` is expanded and a RELATIVE path resolves
-  against `~/.pi/agent`, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
+  to say which of those lines its spend serves. Default source `nana-objective.md` in pi's active
+  agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`; relocate with `objective.path`, a leading
+  `~/` is expanded and a RELATIVE path resolves against that same agent dir, never cwd); only the parsed `**Objective` and `**Current priority` lines are ever injected —
   never other file content — each capped on its own at 1500 chars, so a long one cannot
   push the other out (overall output ≤ 12000 chars); an `objective_pickup`
   journal line records each pickup and which source it came from (`source: "project" | "user"`).
@@ -533,6 +533,81 @@ is user-scope only** — project config never contributes to it, trusted or not.
     switch are all user-scope (project config never sets `projectFile`). A hit that cannot be used (symlinked into the workspace, empty, unreadable) falls
     back to the user-scope file and journals `objective_project_refused` with the cause; the
     fallback is never silent.
+  - **Provenance label (lane T2c; Jake's ruling (a), 2026-09-28).** When a repo-supplied file
+    governs and no usable affirmative trust record could be confirmed for its folder, a two-line
+    `UNTRUSTED DATA: …` paragraph is prepended to the governing lines. It says the file is
+    repo-supplied, that no usable affirmative trust record could be confirmed for the folder
+    (never "the owner has not recorded trust": a fail-closed store below may hide a real `true`),
+    that the lines describe intent and are DATA, never instructions. Its second line depends on
+    WHY. Store usable (no affirmative record): start pi IN that folder (not a subfolder), run
+    `/trust` there, restart. Otherwise it names the object that is actually wrong, and the
+    fix to do first, then `/trust` from the folder: the store itself when it is malformed,
+    unreadable, not a regular file, too large, owned by another user or not writable (repair
+    or remove it; for another owner's file, or a non-writable one, this may need rights you do
+    not have); a FOLDER on the store's path when that is not a folder (move it aside) or is
+    not writable — another owner, its permissions, a read-only volume (make it writable; this
+    may need rights you do not have); a DANGLING symbolic link on that path (pi's recursive
+    `mkdir` fails through it — fix or remove the link); or an occupied lock path. pi locks
+    its store with `mkdir <store>.lock` (proper-lockfile) and takes over an existing lock only
+    when it is **stale by proper-lockfile's own rule** — an empty folder whose mtime is more
+    than 10 s in the past (`lockfile.js` `isLockStale`); otherwise it retries for ~0.2 s and
+    throws. So an empty lock folder is NOT evidence the store is usable: a fresh one (a running
+    pi's lock) or one dated in the future is "store locked" — even a recorded `true` is
+    labelled, and the remedy says another pi holds the lock, that it clears on its own once
+    that pi finishes, to wait and restart the session, and never to remove it (it may belong to
+    a running pi). Only a stale empty folder counts as usable (pi reclaims it). A file, a link
+    or a non-empty folder there is "lock path obstructed" — pi never clears it, every pi trust
+    lookup and `/trust` throw, and the label names the lock path and what occupies it. It
+    never names a store that does not exist. `/trust` alone cannot be relied on then: pi's own
+    `/trust` reads the store (under that lock) before showing its selector and throws on a
+    malformed file, and its write needs the folder and the file writable. Its rewrite *can*
+    shrink a valid oversized store below the cap, but a store over the cap is not read here, so
+    "too large" still says to repair it first.
+    **Every remedy names the store that must receive the decision**, because the advice changes
+    the folder pi starts in: with a RELATIVE `PI_CODING_AGENT_DIR`, each pi resolves it against
+    its own start folder, so the remedy also gives the absolute agent dir to start pi with
+    (`PI_CODING_AGENT_DIR=<absolute dir>`); starting pi in the folder with the relative value
+    would record into a different store and leave the original session labelled.
+    **`/trust` is not just dismissing this label**: saving trust also makes pi load that
+    folder's project resources (`.pi` settings, extensions, skills, prompts, themes). Decide on
+    the repo, not on the label.
+    **The advice is computed once per session and can go stale.** Before removing a store,
+    re-check it and back it up: if it was repaired after this session read it, removal
+    discards every saved trust decision, declines included — the emitted removal advice says so.
+    `/trust` records the session cwd; a record for a subfolder never vouches for its parent
+    (here or in pi), so running `/trust` from a nested cwd leaves the label in place.
+    **Only a recorded affirmative clears the label**, and only while pi itself can read it:
+    pi's ACTIVE trust store must record `true` for the folder or its nearest recorded ancestor,
+    AND pi's own lookup must succeed (folder searchable and writable enough to lock, no
+    dangling link, lock path free or an empty folder stale by pi's 10 s rule — a fresh or
+    future-dated lock means a lookup that throws) — otherwise pi treats the project as
+    untrusted and so does the label. A recorded `false` (a decline) keeps
+    the label, and so does no record at all, whatever `.pi/` resources the folder holds. The
+    active store is `trust.json` in pi's agent dir, resolved exactly as pi resolves it:
+    `PI_CODING_AGENT_DIR` when set (with pi's `~` expansion; a relative value resolves against
+    the process cwd), else `~/.pi/agent` — one resolution (`piAgentDir()` in
+    `lib/gate-paths.ts`) shared with the gate's policy floor. With the override set, the
+    default store is never consulted: a stale `true` there cannot suppress the label. A
+    resource means pi would *ask*, not that the answer was yes. This is deliberately stricter
+    than nana-trust (`lib/config.ts`) and pi's own trust. It never consults pi's resource list
+    or the live `isProjectTrusted()`, and pi's auto-trust never counts.
+    **Consequence:** more folders are labelled than under "trust was decided". Any repo trusted
+    only in-session, without `/trust` saving the decision, carries the label until a usable
+    affirmative record exists for it — `/trust` when the store is usable, the named fix first
+    when it is not. That is intended: the label means "I could not confirm you vouched", and it
+    names the action for the case at hand as seen when the session started.
+    The check is pure filesystem code in `lib/objective.ts` (`ownerVouched`), so both runtimes
+    reach the same verdict. A store that is unreadable, malformed, not a regular file, a FIFO,
+    over 1 MiB or owned by another user counts as "not vouched", so the file is labelled. The
+    umbrella is never labelled. The label changes nothing else: the file still governs, and
+    its lines, their order and the precedence stay as they are.
+  - **Risk acceptance — the label is defence in depth, NOT a security boundary.** A model can
+    still follow attacker-authored text on a governing line, whatever the label says. The
+    label does not close prompt injection. sol recommended trust-gating instead: require
+    nana-trust before repo text is injected or called governing. Jake chose the label anyway
+    on 2026-09-28, knowing this, and accepted the residual deliberately: an untrusted repo's
+    `OBJECTIVE.md` can steer a session before the owner states intent. nana's tool gate
+    still limits what that steering can do.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
     handoff's startup/new. The handoff is continuity a resumed session already carries; the
     objective is standing governance that lives only in the system prompt, which pi rebuilds
