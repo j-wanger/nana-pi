@@ -438,6 +438,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
   notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
   in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
   an 8 s deadline, so a hung one fails over instead of holding the pipe open.
+- **Adoption signal** (L5, 2026-09-29). When a fresh session's store entry is *missing* (never
+  merely unreadable), no `handoff.path` is configured, and the session runs inside a git
+  repository (`.git` directory or file — a linked worktree is its own root) whose **root** has no
+  store entry, no `OBJECTIVE.md` and no `.nana-not-a-project`, the handoff extension journals
+  `{"event":"directory_unadopted","cwd":"<repo root>","has":{"handoff","objective","agents","sessions"}}`
+  — at most once per root per 24 h (a 256 KiB journal tail is checked). **Journal only**: nothing
+  is added to any prompt. The seat's Claude Code SessionStart hook `nana-adoption.sh` runs
+  `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own): the last 7 days of those
+  lines, re-checked at print time (adopted, dismissed or gone roots drop), newest first, at most
+  5 then `…and N more`, under `[nana:adoption]` — and nothing at all when there is nothing.
+  Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
 - **Handoff** (L3, 2026-09-28) writes the latest compaction summary to a **user-scope store**,
   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` (canonical = realpath; the key is case-folded
   on win32 only; the cwd is recorded inside), atomically (temp file + rename, latest compaction

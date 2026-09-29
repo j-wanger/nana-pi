@@ -29,7 +29,7 @@ of those is optional and reports "skipped" with the reason when it is missing.
 
 | Piece | Where | How |
 |---|---|---|
-| `nana-objective.sh`, `nana-shared-memory.sh`, `context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
+| `nana-objective.sh`, `nana-adoption.sh`, `nana-shared-memory.sh`, `context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
 | `nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
 | `nana-personal.md` (private) | `~/.claude/rules/` | **copied from `nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
 | SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
@@ -53,7 +53,14 @@ from Claude Code had no path to them at all. That gap is what `project` closes:
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs project [dir] [--name <n>] [--dry-run]
 node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # ✓/✗ per file; exits 1 on any ✗
+node packages/nana-setup/bin/nana-setup.mjs project <dir> --not-a-project   # dismiss a repo root once
 ```
+
+`--not-a-project` writes `.nana-not-a-project` (one line: what it means and the date) at a git
+repository root and nothing else — commit it, so every clone inherits the decision; the seat's
+`[nana:adoption]` block stops naming that repo. Anywhere but a repository root it refuses with the
+reason. `project` on a folder holding the marker **refuses** (exit 2), naming the marker: delete it
+to adopt. A recorded decision is never silently overwritten.
 
 `dir` defaults to the current directory, the name to its basename. Every step is idempotent and
 **nothing existing is ever overwritten** — a second run prints `nothing to do`.

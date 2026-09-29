@@ -10,7 +10,7 @@ import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.m
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.sh", "nana-shared-memory.sh", "context-size-check.sh"];
+export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "context-size-check.sh"];
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");

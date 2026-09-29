@@ -34,6 +34,12 @@
  * ancestor's: if an ancestor has one, the session is told its path, not its text (no
  * ancestor → nothing added).
  *
+ * Adoption (L5): a "missing" store entry (never an unreadable one) with no configured
+ * handoff.path, in a git repository whose ROOT has no store entry, no OBJECTIVE.md and no
+ * `.nana-not-a-project`, journals `directory_unadopted` for that root — at most once a day
+ * (lib/adoption.mjs). Journal only: nothing reaches the prompt; the seat's
+ * bin/nana-adoption.mjs reads it.
+ *
  * Config (nana-pack.json): handoff.enabled (default true), handoff.path (custom file;
  * honored from user scope always, from project scope only under L1's nana-trust — the
  * symlink refusal applies to it), handoff.staleAfterDays (default 7).
@@ -47,7 +53,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { appendJournal, loadConfig } from "../lib/config.ts";
+import { EVENT as UNADOPTED, isAdopted, recentReports, repoRootOf, rootState, tailLines } from "../lib/adoption.mjs";
+import { appendJournal, journalFile, loadConfig } from "../lib/config.ts";
 
 const INJECT_CAP = 8000;
 const POINTER_CAP = 300;
@@ -337,7 +344,21 @@ export default function (pi: ExtensionAPI) {
 			} else {
 				read = readHandoff(file);
 				// distinct lines: "missing" (nothing stored here) vs "error" (a store that could not be read)
-				if (read.kind === "missing") j("handoff_missing", { path: file });
+				if (read.kind === "missing") {
+					j("handoff_missing", { path: file });
+					// L5: journal-only, never a prompt line; "error" never reports (unreadable ≠ unadopted)
+					if (!custom) {
+						try {
+							const root = repoRootOf(canon);
+							const s = root ? rootState(root, storePathFor(root)) : null;
+							if (root && s && !isAdopted(s) && !recentReports(tailLines(journalFile(cfg)), Date.now() - DAY_MS).some((r) => r.root === root)) {
+								j(UNADOPTED, { cwd: root, has: { handoff: false, objective: false, agents: s.agents, sessions: s.sessions } });
+							}
+						} catch {
+							// best-effort: the report is observability, never the session's problem
+						}
+					}
+				}
 				else if (read.kind === "error") j("handoff_pickup_failed", { path: file, error: read.reason });
 			}
 			const h = read.kind === "ok" ? parse(read.text) : null;
