@@ -326,8 +326,21 @@ is user-scope only** — project config never contributes to it, trusted or not.
 
 ## Behavior notes
 
-- **One renderer per surface** (`lib/display.mjs`, lane S1): every repo-controlled string that
-  reaches a model, a person or a file we write goes through it, chosen by where it LANDS —
+- **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
+  protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
+  a prompt line, notification, status, gate approval dialog, seat Markdown or a header field of a
+  file we write cannot add a line, a heading, a fence, a field or a closed code span to what the
+  consumer receives. **What it does not:** it is not "sanitized model context", and a renderer
+  cannot stop text that is semantically hostile. Intentional exceptions: the handoff summary BODY
+  is payload, injected raw behind its `Source:` / provenance / authority framing, capped at 8000
+  UTF-16 code units; structured serialization (journal JSON) is escaped by `JSON.stringify`, not
+  by these renderers. **Out of scope:** `apps/**` (the desk shortens and places paths itself);
+  `packages/nana-knowledge` (its own `clean()` in `lib/query.ts`, direct interpolation in
+  `lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
+  `nana-setup/claude/hooks/nana-objective.sh`; and any external consumer that copied a renderer,
+  builds its strings itself, or runs an older installed checkout (importers of `lib/objective.ts`
+  get the shared renderers through its re-export; nothing else is certified). Every field is
+  chosen by where it LANDS —
   prompt / model-visible text: `promptPath` (one line; a path holding a control, line-separator
   or bidi character is a quoted JSON-escaped string; ≤320 chars, middle-elided) and `promptText`
   (one line, every control/separator/bidi char → space, capped); UI notification and status:
@@ -469,7 +482,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
   a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
   characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
-  only counted (`N entries were not printable`). A journal that exists but cannot be read prints
+  only counted (`N entries were not printable`). Counting is the READER's, not end-to-end: the
+  producer (`nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
+  refuses is never written and never reaches that count. A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read.
   Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
@@ -517,8 +532,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     written (it could resolve to an ASCII-space sibling); since S1 the same holds for any other
     control, line-separator, bidi character or lone surrogate (`lib/display.mjs` `locator`). Such a path is shown as the
     absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
-    "— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly
-    (do not pass it to read as written)" — never claimed readable; the same form is used in
+    "— path contains characters that are unsafe or rewritten in transit; JSON-escaped here,
+    decode it exactly (do not pass it to read as written)" — never claimed readable; the same form is used in
     the fresh-summary `Source:` line. **Pointer-specific exception, by design:** an escaped
     pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
     chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
@@ -541,6 +556,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
     objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
     `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
+  - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
+    through `fileField` so a directory name cannot forge a header field; pickup from the default
+    store requires the recorded value to equal the canonical cwd exactly. A canonical cwd holding
+    a control character (tab, newline, ESC, C1), U+2028/U+2029 or a bidi control, a lone
+    surrogate, leading/trailing whitespace, or over 4096 UTF-16 code units cannot be recorded
+    losslessly, so its handoff is written but never picked up automatically. The write says so at
+    that moment: a warning notification ("handoff written to `<path>`, but this directory's name
+    contains characters that cannot be recorded losslessly — a future session here will not pick
+    it up automatically") and journal `handoff_cwd_unrecordable` (`path`, rendered `recorded`).
+    The artifact is retained at `<path>` and can be read by hand. A custom `handoff.path` is not
+    affected (no `Cwd:` check). A versioned lossless encoding is deferred.
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
   - **Failures never throw**: an unreadable/unwritable store degrades to "no handoff" with a

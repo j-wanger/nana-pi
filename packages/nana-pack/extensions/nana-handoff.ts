@@ -461,13 +461,25 @@ export default function (pi: ExtensionAPI) {
 				noProvenance = String(e?.message ?? e).slice(0, 80);
 			}
 			fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-			atomicWrite(
-				file,
-				`# Session handoff (nana)\n\nCwd: ${fileField(canon, 4096)}\nWritten: ${new Date().toISOString()}\nWriter: ${fileField(writer, 400)}\nReason: ${fileField((event as any).reason, 40)}\nAgent-written compaction summary. Latest compaction wins; edit the text below by hand freely.\n---\n${summary}\n`,
-			);
+			const text = `# Session handoff (nana)\n\nCwd: ${fileField(canon, 4096)}\nWritten: ${new Date().toISOString()}\nWriter: ${fileField(writer, 400)}\nReason: ${fileField((event as any).reason, 40)}\nAgent-written compaction summary. Latest compaction wins; edit the text below by hand freely.\n---\n${summary}\n`;
+			atomicWrite(file, text);
 			j("handoff_written", { path: file });
 			if (noProvenance) j("handoff_provenance_unavailable", { path: file, error: noProvenance });
-			if (ctx.hasUI) ctx.ui.notify(`handoff written to ${uiPath(shown)}`, "info");
+			// The default store's pickup requires the recorded Cwd to equal the canonical cwd exactly
+			// (session_start above). A cwd the file field cannot hold losslessly (control / bidi / line
+			// separator, over 4096 units, edge whitespace) is recorded rendered, so that check will
+			// refuse it: say so NOW, through the same renderers, rather than let the next session in this
+			// directory silently get nothing. The file stays on disk. A custom handoff.path skips the check.
+			const unrecordable = !custom && parse(text).cwd !== canon;
+			if (unrecordable) j("handoff_cwd_unrecordable", { path: file, recorded: fileField(canon, 4096) });
+			if (ctx.hasUI) {
+				ctx.ui.notify(
+					unrecordable
+						? `handoff written to ${uiPath(shown)}, but this directory's name contains characters that cannot be recorded losslessly — a future session here will not pick it up automatically`
+						: `handoff written to ${uiPath(shown)}`,
+					unrecordable ? "warning" : "info",
+				);
+			}
 		} catch (e: any) {
 			j("handoff_write_failed", { path: file, error: String(e?.code ?? e).slice(0, 80) });
 			if (ctx.hasUI) ctx.ui.notify(`handoff NOT written (${uiText(e?.code ?? e, 40)})`, "warning");
