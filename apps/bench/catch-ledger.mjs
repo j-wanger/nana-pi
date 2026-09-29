@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractCorpus } from "./lib/catch-extract.mjs";
 import { callJudge, GUIDE, labelPrompt, labelSchema, MATCH_GUIDE, matchSchema, MODELS, sha, validateLabels } from "./lib/catch-judge.mjs";
-import { adjacency, buildLedger, claims, cohensKappa, seededSample, stageHints, table } from "./lib/catch-stats.mjs";
+import { adjacency, buildLedger, claims, cohensKappa, matchConfidence, sameBase, seededSample, stageHints, table } from "./lib/catch-stats.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, "../..");
@@ -100,7 +100,10 @@ function matchJobs(c, A) {
 	const jobs = [];
 	for (const lane of [...new Set(c.rows.map((r) => r.lane))]) {
 		const poolRows = c.rows.filter((r) => r.lane === lane && r.kind !== "verification" && A.get(r.id)?.is_finding);
-		const hints = stageHints(poolRows);
+		// HINTS_AS_RUN: matches-a/b.jsonl were prompted with the legacy basename rule (sol r1 MED). The
+		// cache key is the prompt hash, so switching the prompt to path-aware hints would orphan every
+		// cached match and require re-matching spend. `build` measures the bias instead (false_hints).
+		const hints = stageHints(poolRows, 5, sameBase);
 		const prompt = `LANE ${lane}\n\n== ROWS (${poolRows.length}) ==\n${poolRows.map((r) => `${r.id} [${r.rung} ${r.kind} ${r.severity ?? "-"}] refs=${r.refs.map((x) => `${x.base}${x.from != null ? `:${x.from}-${x.to}` : ""}`).join(",") || "-"}\n  ${r.body.replace(/\s+/g, " ").slice(0, 600)}`).join("\n")}\n\n== STAGE HINTS (same file / line±5) ==\n${hints.map((h) => `${h.a} ~ ${h.b} (${h.stage})`).join("\n") || "none"}\n\nOutput same_as for every row id.`;
 		jobs.push({ lane, poolRows, hints, prompt, key: `${lane}|${sha(prompt)}` });
 	}
@@ -171,23 +174,48 @@ function cmdBuild() {
 	const poolAll = c.rows.filter((r) => r.kind !== "verification" && A.get(r.id)?.is_finding);
 	const adjA = adjacency(mA.flatMap((m) => m.matches), poolAll);
 	const { L, findings } = buildLedger(c.rows, A, adjA);
+	for (const r of L) r.match_confidence = matchConfidence(r);
 	// the matcher's stage for each cross-rung match (file / line / semantic-only)
-	const hintStage = new Map(mA.flatMap((m) => m.hints).flatMap((h) => [[`${h.a}|${h.b}`, h.stage], [`${h.b}|${h.a}`, h.stage]]));
+	// Stage accounting uses PATH-AWARE hints. The judge was shown basename hints; a "false hint" is a
+	// shown pair whose path-aware stage differs (no same-path ref at all, or line → file).
+	const lanes = [...new Set(poolAll.map((r) => r.lane))];
+	const pathHints = lanes.flatMap((l) => stageHints(poolAll.filter((r) => r.lane === l)));
+	const shown = mA.flatMap((m) => m.hints);
+	const pk = (h) => `${h.a}|${h.b}`;
+	const hintStage = new Map(pathHints.flatMap((h) => [[`${h.a}|${h.b}`, h.stage], [`${h.b}|${h.a}`, h.stage]]));
 	const stages = { line: 0, file: 0, semantic_only: 0 };
 	for (const [id, s] of adjA) for (const o of s) if (id < o && id.split("#")[0] !== o.split("#")[0]) stages[hintStage.get(`${id}|${o}`) ?? "semantic_only"]++;
 	result.match_pairs_by_stage = stages;
+	const falseHints = shown.filter((h) => hintStage.get(pk(h)) !== h.stage);
+	const edge = (adj, h) => adj.get(h.a)?.has(h.b) ?? false;
+	result.false_hints_shown_to_judge = { shown: shown.length, false: falseHints.length, false_and_matched_by_a: falseHints.filter((h) => edge(adjA, h)).length, ids: falseHints.map((h) => `${pk(h)} (${h.stage}→${hintStage.get(pk(h)) ?? "none"})`) };
 	result.published = true;
 	result.table = table(findings);
 	result.claims = claims(L, findings, c.stats);
-	// matcher robustness for P1: does pass-B matching change which astra-r1 catches are sol-unmatched?
+	// P1 is matcher-dependent (sol r1 HIGH): report it under matcher A, matcher B and their intersection
+	// (a row counts only if it is sol-unmatched under BOTH component graphs). None of these is a finding
+	// on its own; see RESULTS.md.
 	const mB = currentMatches(c, A, "b");
 	if (mB.length) {
 		const adjB = adjacency(mB.flatMap((m) => m.matches), poolAll);
-		const LB = buildLedger(c.rows, A, adjB).findings;
-		const p1 = (F) => new Set(F.filter((r) => r.rung === "astra-r1" && r.disposition === "accepted" && !r.matched_sol).map((r) => r.id));
-		const a = p1(findings), b = p1(LB);
-		result.p1_matcher_agreement = { a: [...a].sort(), b: [...b].sort(), both: [...a].filter((x) => b.has(x)).length, claims_b: claims(buildLedger(c.rows, A, adjB).L, LB, c.stats).P1 };
+		const LB = buildLedger(c.rows, A, adjB);
+		const PB = claims(LB.L, LB.findings, c.stats).P1;
+		const PA = result.claims.P1;
+		const bIds = new Set(PB.unique_accepted_rows.map((r) => r.id));
+		const both = PA.unique_accepted_rows.filter((r) => bIds.has(r.id));
+		const funcLanes = [...new Set(both.filter((r) => r.top === "functional").map((r) => r.id.split("/")[0]))].sort();
+		const o5 = ["l1", "l2", "l3", "t2a", "t2b"];
+		const summ = (P) => ({ functional_lanes: P.functional_lanes, answer_6: P.answer_6, answer_original5: P.answer_original5, n_rows: P.unique_accepted_rows.length, n_functional: P.unique_accepted_rows.filter((r) => r.top === "functional").length });
+		const intersection = { functional_lanes: funcLanes, answer_6: funcLanes.length >= 2 ? "YES" : "NO", answer_original5: funcLanes.filter((l) => o5.includes(l)).length >= 2 ? "YES" : "NO", n_rows: both.length, n_functional: both.filter((r) => r.top === "functional").length, rows: both.map((r) => r.id) };
+		const a = summ(PA), b = summ(PB);
+		const agree = (k) => a[k] === b[k] && b[k] === intersection[k];
+		result.p1_by_matcher = { a, b: { ...b, rows: PB.unique_accepted_rows.map((r) => r.id) }, intersection, resolved_6: agree("answer_6"), resolved_original5: agree("answer_original5") };
 	}
+	// pre-registered match_confidence (structural, from the stored quote; no model call)
+	const conf = { explicit: 0, semantic: 0 };
+	for (const r of findings) if (r.disposition === "accepted") conf[r.match_confidence]++;
+	result.accepted_match_confidence = conf;
+	result.p1_match_confidence = Object.fromEntries(result.claims.P1.unique_accepted_rows.map((r) => [r.id, L.find((x) => x.id === r.id).match_confidence]));
 	fs.writeFileSync(out("results.json"), JSON.stringify(result, null, 1) + "\n");
 	writeJsonl(out("ledger.jsonl"), L.map(({ body, refs, _key, ...r }) => r));
 	const md = ["| model | round | class | found | of which CARRY rows | accepted | unique-accepted |", "|---|---|---|---|---|---|---|", ...result.table.map((t) => `| ${t.model} | ${t.round} | ${t.cls} | ${t.found} | ${t.carry} | ${t.accepted} | ${t.unique_accepted} |`)].join("\n");

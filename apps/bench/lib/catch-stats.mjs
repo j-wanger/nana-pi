@@ -22,8 +22,27 @@ export function seededSample(ids, k, seed) {
 	return [...ids].sort((x, y) => (h(x) < h(y) ? -1 : h(x) > h(y) ? 1 : 0)).slice(0, k).sort();
 }
 
-/** 4-stage matcher, stages 1–2 (structural): same file base, then line ranges within ±k. */
-export function stageHints(rows, k = 5) {
+/**
+ * Same file? Paths as written in reviews are partial ("config.ts", "lib/objective.ts",
+ * "packages/nana-pack/lib/objective.ts"). Two refs name the same file iff, after normalising
+ * ("./", "~/", "../" segments dropped), one path's segments are a suffix of the other's.
+ * `src/one/config.ts` vs `src/two/config.ts` → different; `config.ts` vs `src/one/config.ts` → same
+ * (a bare basename is compatible with any path ending in it — it is only a hint).
+ */
+export function samePath(a, b) {
+	const seg = (f) => String(f).split("/").filter((x) => x && x !== "." && x !== ".." && x !== "~");
+	const x = seg(a), y = seg(b);
+	const [s, l] = x.length <= y.length ? [x, y] : [y, x];
+	if (!s.length) return false;
+	for (let i = 1; i <= s.length; i++) if (s[s.length - i] !== l[l.length - i]) return false;
+	return true;
+}
+/** The legacy (buggy) rule: basename only. Kept ONLY because the cached match runs were prompted with it. */
+export const sameBase = (a, b) => a.base === b.base;
+const sameRef = (a, b) => samePath(a.file ?? a.base, b.file ?? b.base);
+
+/** 4-stage matcher, stages 1–2 (structural): same file (full path, see samePath), then line ranges within ±k. */
+export function stageHints(rows, k = 5, same = sameRef) {
 	const hints = [];
 	for (let i = 0; i < rows.length; i++)
 		for (let j = i + 1; j < rows.length; j++) {
@@ -31,7 +50,7 @@ export function stageHints(rows, k = 5) {
 			let file = false, line = false;
 			for (const x of A)
 				for (const y of B) {
-					if (x.base !== y.base) continue;
+					if (!same(x, y)) continue;
 					file = true;
 					if (x.from != null && y.from != null && x.from - k <= y.to && y.from - k <= x.to) line = true;
 				}
@@ -49,17 +68,37 @@ export function adjacency(matches, pool) {
 }
 
 const rungOf = (id) => id.split("#")[0]; // "<lane>/<model>-r<n>"
+const itemOf = (id) => Number(id.split("#")[1]);
+
+/** Connected components of an adjacency map ("same underlying defect" is an equivalence relation). */
+export function components(adj) {
+	const comp = new Map();
+	let n = 0;
+	for (const start of [...adj.keys()].sort()) {
+		if (comp.has(start)) continue;
+		const stack = [start];
+		comp.set(start, n);
+		while (stack.length) for (const o of adj.get(stack.pop()) ?? []) if (!comp.has(o)) (comp.set(o, n), stack.push(o));
+		n++;
+	}
+	return comp;
+}
 
 /**
  * Build the ledger. rows: extracted; labels: Map id→label (pass A); adj: Map id→Set (pass A).
- * A finding is a "within-report duplicate" if it matches an EARLIER row of the same report.
+ * Matching is over CONNECTED COMPONENTS of the judge's same-defect graph, not direct edges: if
+ * sol-r1 ~ astra-r2 ~ astra-r1, then astra-r1 is matched by sol (sol r1 fix brief attack).
+ * A finding is a "within-report duplicate" if its component holds an EARLIER row of the same report.
  */
 export function buildLedger(rows, labels, adj) {
 	const L = rows.map((r) => ({ ...r, ...(labels.get(r.id) ?? {}) }));
-	const byId = new Map(L.map((r) => [r.id, r]));
+	const comp = components(adj);
+	const members = new Map();
+	for (const r of L) if (comp.has(r.id)) members.set(comp.get(r.id), [...(members.get(comp.get(r.id)) ?? []), r]);
 	for (const r of L) {
-		const ms = [...(adj.get(r.id) ?? [])].map((i) => byId.get(i));
-		r.dup_in_report = ms.some((m) => rungOf(m.id) === rungOf(r.id) && Number(m.id.split("#")[1]) < Number(r.id.split("#")[1]));
+		const ms = comp.has(r.id) ? members.get(comp.get(r.id)).filter((m) => m.id !== r.id) : [];
+		r.component = comp.has(r.id) ? comp.get(r.id) : null;
+		r.dup_in_report = ms.some((m) => rungOf(m.id) === rungOf(r.id) && itemOf(m.id) < itemOf(r.id));
 		r.matched_other_rungs = [...new Set(ms.filter((m) => rungOf(m.id) !== rungOf(r.id)).map((m) => m.rung))].sort();
 		r.matched_sol = ms.some((m) => m.reviewer_model === "sol");
 		r.unique = r.matched_other_rungs.length === 0;
@@ -110,4 +149,27 @@ export function claims(L, findings, stats) {
 	});
 	const P4 = { scores: sc, distribution: cnt(sc, (s) => `${s.round}|${s.verdict}|${s.score}`) };
 	return { P1, P2, P3, P4 };
+}
+
+/**
+ * Pre-registered `match_confidence` for a disposition (PREREG.md "Disposition"), computed
+ * structurally from the verified quote: explicit = the quote names the item (#N, "item N",
+ * "finding N", or "MUST N" for a MUST row) or shares a ≥6-word contiguous span with the finding;
+ * semantic = a verified quote that does neither (it exists in the brief but the tie to THIS
+ * finding is the judge's reading). null when there is no verified disposition quote.
+ */
+export function matchConfidence(r) {
+	if (!r.quote_verified || !["accepted", "overridden", "carried"].includes(r.disposition)) return null;
+	const words = (s) => String(s).toLowerCase().replace(/[`*_"'“”‘’()[\]{}.,;:!?]/g, " ").split(/\s+/).filter(Boolean);
+	const q = r.fix_quote;
+	const n = r.item_no;
+	if (n != null) {
+		const names = [`#${n}\\b`, `\\b(?:item|finding)\\s+${n}\\b`, ...(r.severity === "MUST" ? [`\\bMUST\\s*${n}\\b`] : [])];
+		if (names.some((re) => new RegExp(re, "i").test(q))) return "explicit";
+	}
+	const qw = words(q), bw = words(r.body ?? "");
+	const grams = new Set();
+	for (let i = 0; i + 6 <= bw.length; i++) grams.add(bw.slice(i, i + 6).join(" "));
+	for (let i = 0; i + 6 <= qw.length; i++) if (grams.has(qw.slice(i, i + 6).join(" "))) return "explicit";
+	return "semantic";
 }

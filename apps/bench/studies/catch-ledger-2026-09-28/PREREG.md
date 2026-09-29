@@ -60,3 +60,23 @@ Corpus: `docs/reviews/tranche{1,2}-2026-09-28/`, read-only.
 - Recall against truth: the gold is the seat's own acceptance, which is circular for precision.
 - Role value: role tags exist only on some sol r1 reports; role is confounded with model and round.
 - Independence of catches: astra reads the sol reports before ruling, so "matched" can mean "echoed".
+
+## Amendments (dated; appended after results existed; the text above is unchanged)
+
+- **2026-09-28 (after sol r1 BLOCK): `match_confidence` implemented post hoc.** The definition
+  above was never implemented in the first build: no field was requested, stored or checked.
+  It is now computed **structurally** from the stored, verbatim-verified quote, with no model
+  call, using exactly the rule stated above. A quote is explicit if it names the item (`#N`,
+  "item/finding N", or "MUST N" for a MUST row) or shares a ≥6-word contiguous span with the
+  finding; otherwise it is semantic. The rule was written after labels existed, so it is not
+  blind. It changes no disposition and is reported alongside them only.
+- **2026-09-28: "unique" and within-report duplicates are computed over connected components**
+  of the judge's same-defect graph, not over direct edges ("same underlying defect" is an
+  equivalence relation). The first build used direct edges, which was a defect found by sol r1.
+- **2026-09-28: κ sample.** The seeded 40 were drawn over all non-verification *rows*, not over 40
+  judge-labelled findings as the wording above says. Among the rows both judges call findings,
+  κ(top) = 0.735 (n = 35), so the gate outcome is unchanged.
+- **2026-09-28: P1 interpretation withdrawn.** "YES → the rung is not ceremony on this evidence" does
+  not hold when the answer depends on the matcher. P1 is reported under both matchers and their
+  intersection. A matcher-dependent answer is unresolved, not YES.
+- **2026-09-28: P3 is not for operational use.** It is descriptive only (κ(origin) < 0.6).

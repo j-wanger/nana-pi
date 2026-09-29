@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { answeredReport, extractCorpus, parseReport } from "../lib/catch-extract.mjs";
 import { callJudge, labelSchema, validateLabels } from "../lib/catch-judge.mjs";
-import { adjacency, buildLedger, cohensKappa, seededSample, stageHints } from "../lib/catch-stats.mjs";
+import { adjacency, buildLedger, claims, components, cohensKappa, matchConfidence, sameBase, samePath, seededSample, stageHints } from "../lib/catch-stats.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REVIEWS = path.resolve(here, "../../../docs/reviews");
@@ -120,6 +120,48 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("cross-rung match → not unique, matched_sol", !g("z/astra-r1#1").unique && g("z/astra-r1#1").matched_sol);
 	check("same-report restatement → later row is a duplicate, earlier stays unique", g("z/astra-r1#3").dup_in_report && !g("z/astra-r1#2").dup_in_report && g("z/astra-r1#2").unique);
 	check("duplicates are excluded from findings", findings.length === 4 && !findings.some((r) => r.id === "z/astra-r1#3"));
+}
+// sol r1 HIGH regression: uniqueness over CONNECTED COMPONENTS. Judge edges sol-r1 ~ astra-r2 and
+// astra-r2 ~ astra-r1 only (no direct sol–astra-r1 edge). astra-r1 is the same defect as sol's.
+{
+	const R = (id, model, round) => ({ id, lane: "z", reviewer_model: model, round, rung: `${model}-r${round}`, kind: "finding", refs: [], report: id.split("#")[0] });
+	const rows = [R("z/sol-r1#1", "sol", 1), R("z/astra-r2#1", "astra", 2), R("z/astra-r1#1", "astra", 1), R("z/astra-r1#2", "astra", 1)];
+	const labels = new Map(rows.map((r) => [r.id, { is_finding: true, top: "functional", disposition: "accepted" }]));
+	const adj = adjacency([{ id: "z/sol-r1#1", same_as: ["z/astra-r2#1"] }, { id: "z/astra-r2#1", same_as: ["z/astra-r1#1"] }, { id: "z/astra-r1#2", same_as: [] }], rows);
+	const { L, findings } = buildLedger(rows, labels, adj);
+	const g = (id) => L.find((r) => r.id === id);
+	check("chain sol-r1 ~ astra-r2 ~ astra-r1: astra-r1 matched_sol via component", g("z/astra-r1#1").matched_sol && !g("z/astra-r1#1").unique);
+	check("chain: matched_other_rungs spans the whole component", g("z/astra-r1#1").matched_other_rungs.join() === "astra-r2,sol-r1");
+	const stats = [{ rung: "astra-r1", lane: "z", report: "z-astra-land" }];
+	const P1 = claims(L, findings, stats).P1;
+	check("chain: claims() does not count astra-r1#1 as sol-unmatched", P1.unique_accepted_rows.map((r) => r.id).join() === "z/astra-r1#2");
+	// within-report duplicates are component-based too: #3 ~ sol ~ #1 → #3 restates #1
+	const rows2 = [R("z/astra-r1#1", "astra", 1), R("z/sol-r1#1", "sol", 1), R("z/astra-r1#3", "astra", 1)];
+	const adj2 = adjacency([{ id: "z/astra-r1#1", same_as: ["z/sol-r1#1"] }, { id: "z/sol-r1#1", same_as: ["z/astra-r1#3"] }], rows2);
+	const L2 = buildLedger(rows2, labels, adj2).L;
+	check("component: later same-report row in the component is a duplicate", L2.find((r) => r.id === "z/astra-r1#3").dup_in_report && !L2.find((r) => r.id === "z/astra-r1#1").dup_in_report);
+	check("components(): singleton for an isolated row", components(adj).get("z/astra-r1#2") !== components(adj).get("z/astra-r1#1"));
+}
+// sol r1 MED regression: same basename, different directories is NOT the same file.
+{
+	const R = (id, refs) => ({ id, refs });
+	const f = (file, from) => ({ file, base: file.split("/").pop(), from, to: from });
+	const h = stageHints([R("x#1", [f("src/one/config.ts", 10)]), R("x#2", [f("src/two/config.ts", 12)])]);
+	check("stage: src/one/config.ts vs src/two/config.ts → no hint", h.length === 0, JSON.stringify(h));
+	check("stage: legacy basename rule still conflates them (kept only for cache keys)", stageHints([R("x#1", [f("src/one/config.ts", 10)]), R("x#2", [f("src/two/config.ts", 12)])], 5, sameBase).length === 1);
+	check("samePath: bare basename is compatible with a full path", samePath("config.ts", "packages/nana-pack/lib/config.ts"));
+	check("samePath: partial suffix compatible", samePath("lib/objective.ts", "packages/nana-pack/lib/objective.ts"));
+	check("samePath: different parent dirs differ", !samePath("apps/desk/README.md", "packages/nana-pack/README.md"));
+	check("samePath: ~ and .. segments ignored", samePath("~/.pi/agent/../agent/trust.json", "agent/trust.json"));
+}
+// pre-registered match_confidence (explicit | semantic), structural
+{
+	const r = (o) => ({ quote_verified: true, disposition: "accepted", item_no: 3, severity: "HIGH", body: "the gate accepts a symlinked path outside the repo root", fix_quote: "", ...o });
+	check("confidence: quote names #N → explicit", matchConfidence(r({ fix_quote: "sol #3 — close the symlink hole" })) === "explicit");
+	check("confidence: 6-word shared span → explicit", matchConfidence(r({ fix_quote: "Fix: the gate accepts a symlinked path outside" })) === "explicit");
+	check("confidence: verified quote without either → semantic", matchConfidence(r({ fix_quote: "resolve realpath before the check" })) === "semantic");
+	check("confidence: MUST N only counts for a MUST row", matchConfidence(r({ fix_quote: "MUST 3 — realpath" })) === "semantic" && matchConfidence(r({ severity: "MUST", fix_quote: "MUST 3 — realpath" })) === "explicit");
+	check("confidence: no verified disposition → null", matchConfidence(r({ quote_verified: false, fix_quote: "x" })) === null);
 }
 
 // ── judge: fail-closed, no mock ─────────────────────────────────────────────────────────────

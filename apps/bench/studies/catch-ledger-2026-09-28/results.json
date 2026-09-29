@@ -61,6 +61,24 @@
   "file": 4,
   "semantic_only": 83
  },
+ "false_hints_shown_to_judge": {
+  "shown": 241,
+  "false": 11,
+  "false_and_matched_by_a": 0,
+  "ids": [
+   "t2b/astra-r1#1|t2b/sol-r1#5 (file→none)",
+   "t2b/astra-r2#7|t2b/sol-r1#5 (file→none)",
+   "t2b/sol-r1#1|t2b/sol-r1#5 (file→none)",
+   "t2b/sol-r1#2|t2b/sol-r1#5 (file→none)",
+   "t2b/sol-r1#3|t2b/sol-r1#5 (file→none)",
+   "t2b/sol-r1#4|t2b/sol-r1#5 (file→none)",
+   "t2b/sol-r1#5|t2b/sol-r1#6 (file→none)",
+   "t2b/sol-r1#5|t2b/sol-r1#7 (file→none)",
+   "t2b/sol-r1#5|t2b/sol-r1#8 (file→none)",
+   "t2c/astra-r1#1|t2c/sol-r2#5 (file→none)",
+   "t2c/astra-r1#1|t2c/sol-r2#6 (file→none)"
+  ]
+ },
  "published": true,
  "table": [
   {
@@ -76,10 +94,10 @@
    "model": "astra",
    "round": "r1",
    "cls": "functional",
-   "found": 28,
-   "carry": 18,
-   "accepted": 11,
-   "unique_accepted": 7
+   "found": 25,
+   "carry": 16,
+   "accepted": 10,
+   "unique_accepted": 6
   },
   {
    "model": "astra",
@@ -94,8 +112,8 @@
    "model": "astra",
    "round": "r2",
    "cls": "functional",
-   "found": 21,
-   "carry": 18,
+   "found": 19,
+   "carry": 17,
    "accepted": 1,
    "unique_accepted": 1
   },
@@ -130,8 +148,8 @@
    "model": "sol",
    "round": "r1",
    "cls": "functional",
-   "found": 40,
-   "carry": 10,
+   "found": 39,
+   "carry": 9,
    "accepted": 31,
    "unique_accepted": 25
   },
@@ -139,7 +157,7 @@
    "model": "sol",
    "round": "r2",
    "cls": "evolvability",
-   "found": 15,
+   "found": 14,
    "carry": 9,
    "accepted": 5,
    "unique_accepted": 5
@@ -148,28 +166,28 @@
    "model": "sol",
    "round": "r2",
    "cls": "functional",
-   "found": 24,
+   "found": 20,
    "carry": 4,
-   "accepted": 19,
-   "unique_accepted": 14
+   "accepted": 15,
+   "unique_accepted": 10
   },
   {
    "model": "sol",
    "round": "r3",
    "cls": "evolvability",
-   "found": 6,
-   "carry": 4,
-   "accepted": 3,
-   "unique_accepted": 3
+   "found": 4,
+   "carry": 2,
+   "accepted": 2,
+   "unique_accepted": 2
   },
   {
    "model": "sol",
    "round": "r3",
    "cls": "functional",
-   "found": 18,
-   "carry": 10,
-   "accepted": 11,
-   "unique_accepted": 9
+   "found": 14,
+   "carry": 8,
+   "accepted": 9,
+   "unique_accepted": 7
   }
  ],
  "claims": {
@@ -262,12 +280,6 @@
      "claim": "HIGH — Folder writability does not establish pi lock usability."
     },
     {
-     "id": "t2c/astra-r1#3",
-     "top": "functional",
-     "sub": "check",
-     "claim": "MEDIUM — A dangling agent-directory symlink is mistaken for absence."
-    },
-    {
      "id": "t2c/astra-r1#6",
      "top": "evolvability",
      "sub": "documentation",
@@ -292,26 +304,25 @@
    "all_unique_evolvability": false
   },
   "P2": {
-   "sol_r3_items": 56,
+   "sol_r3_items": 50,
    "by": {
     "verification": 32,
-    "restates_prior": 5,
-    "fold_defect": 15,
-    "new_scope": 4
+    "restates_prior": 4,
+    "fold_defect": 11,
+    "new_scope": 3
    },
    "per_lane": {
     "l1:verification": 1,
     "l1:restates_prior": 1,
     "l2:verification": 13,
-    "l2:fold_defect": 4,
+    "l2:fold_defect": 2,
     "l2:restates_prior": 2,
     "l3:verification": 4,
     "l3:fold_defect": 2,
     "l3:new_scope": 1,
-    "l3:restates_prior": 1,
     "t2a:verification": 8,
-    "t2a:fold_defect": 4,
-    "t2a:new_scope": 2,
+    "t2a:fold_defect": 2,
+    "t2a:new_scope": 1,
     "t2a:restates_prior": 1,
     "t2b:verification": 5,
     "t2b:fold_defect": 4,
@@ -322,17 +333,17 @@
    "new_scope_share_of_findings": 0.16666666666666666
   },
   "P3": {
-   "accepted": 95,
+   "accepted": 87,
    "by_origin": {
-    "seat_spec": 19,
-    "worker_impl": 71,
+    "seat_spec": 18,
+    "worker_impl": 65,
     "pre_existing": 2,
-    "unclear": 3
+    "unclear": 2
    },
-   "seat_spec_share": 0.2,
+   "seat_spec_share": 0.20689655172413793,
    "per_lane": {
     "l1": 3,
-    "l2": 5,
+    "l2": 4,
     "l3": 2,
     "l4": 1,
     "t2a": 1,
@@ -348,7 +359,7 @@
      "verdict": "BLOCK",
      "score": 7,
      "accepted_functional": 2,
-     "findings": 7
+     "findings": 6
     },
     {
      "report": "l1-astra-r2",
@@ -356,7 +367,7 @@
      "verdict": "LAND",
      "score": 9,
      "accepted_functional": 0,
-     "findings": 7
+     "findings": 6
     },
     {
      "report": "l2-astra-land",
@@ -364,7 +375,7 @@
      "verdict": "BLOCK",
      "score": 7,
      "accepted_functional": 1,
-     "findings": 7
+     "findings": 6
     },
     {
      "report": "l2-astra-r2",
@@ -388,7 +399,7 @@
      "verdict": "LAND",
      "score": 9,
      "accepted_functional": 0,
-     "findings": 4
+     "findings": 3
     },
     {
      "report": "t2a-astra-land",
@@ -427,8 +438,8 @@
      "round": "astra-r1",
      "verdict": "BLOCK",
      "score": 6,
-     "accepted_functional": 3,
-     "findings": 7
+     "accepted_functional": 2,
+     "findings": 6
     },
     {
      "report": "t2c-astra-r2",
@@ -456,88 +467,74 @@
    }
   }
  },
- "p1_matcher_agreement": {
-  "a": [
-   "l1/astra-r1#1",
-   "l1/astra-r1#2",
-   "l1/astra-r1#4",
-   "l2/astra-r1#1",
-   "l3/astra-r1#1",
-   "l3/astra-r1#5",
-   "t2a/astra-r1#1",
-   "t2a/astra-r1#3",
-   "t2b/astra-r1#2",
-   "t2b/astra-r1#3",
-   "t2b/astra-r1#7",
-   "t2c/astra-r1#1",
-   "t2c/astra-r1#2",
-   "t2c/astra-r1#3",
-   "t2c/astra-r1#6",
-   "t2c/astra-r1#9"
-  ],
-  "b": [
-   "l1/astra-r1#2",
-   "l3/astra-r1#1",
-   "l3/astra-r1#5",
-   "t2a/astra-r1#3",
-   "t2c/astra-r1#2",
-   "t2c/astra-r1#3"
-  ],
-  "both": 6,
-  "claims_b": {
-   "astra_lanes": [
+ "p1_by_matcher": {
+  "a": {
+   "functional_lanes": [
     "l1",
     "l2",
     "l3",
-    "t2a",
     "t2b",
     "t2c"
    ],
-   "unique_accepted_rows": [
-    {
-     "id": "l1/astra-r1#2",
-     "top": "evolvability",
-     "sub": "documentation",
-     "claim": "Update owner-facing trust/recovery guidance in setup, desk and root AGENTS.md; distinguish nana-trust from the desk checkbox and explain external owner repair."
-    },
-    {
-     "id": "l3/astra-r1#1",
-     "top": "functional",
-     "sub": "check",
-     "claim": "Enforce the legacy-file exclusion even through custom configuration; pin user-scope and nana-trusted project cases, absence of injected text, and preservation of existing repo bytes."
-    },
-    {
-     "id": "l3/astra-r1#5",
-     "top": "evolvability",
-     "sub": "documentation",
-     "claim": "Low: migration wording and explicit documentation of pointer-only provenance omissions."
-    },
-    {
-     "id": "t2a/astra-r1#3",
-     "top": "evolvability",
-     "sub": "documentation",
-     "claim": "Reconcile HANDOFF.md: the clean patch deletes both the live flaky-test entry and policy entry."
-    },
-    {
-     "id": "t2c/astra-r1#2",
-     "top": "functional",
-     "sub": "check",
-     "claim": "HIGH — Folder writability does not establish pi lock usability."
-    },
-    {
-     "id": "t2c/astra-r1#3",
-     "top": "functional",
-     "sub": "check",
-     "claim": "MEDIUM — A dangling agent-directory symlink is mistaken for absence."
-    }
-   ],
+   "answer_6": "YES",
+   "answer_original5": "YES",
+   "n_rows": 15,
+   "n_functional": 7
+  },
+  "b": {
    "functional_lanes": [
     "l3",
     "t2c"
    ],
    "answer_6": "YES",
    "answer_original5": "NO",
-   "all_unique_evolvability": false
-  }
+   "n_rows": 4,
+   "n_functional": 2,
+   "rows": [
+    "l1/astra-r1#2",
+    "l3/astra-r1#1",
+    "t2a/astra-r1#3",
+    "t2c/astra-r1#2"
+   ]
+  },
+  "intersection": {
+   "functional_lanes": [
+    "l3",
+    "t2c"
+   ],
+   "answer_6": "YES",
+   "answer_original5": "NO",
+   "n_rows": 4,
+   "n_functional": 2,
+   "rows": [
+    "l1/astra-r1#2",
+    "l3/astra-r1#1",
+    "t2a/astra-r1#3",
+    "t2c/astra-r1#2"
+   ]
+  },
+  "resolved_6": true,
+  "resolved_original5": false
+ },
+ "accepted_match_confidence": {
+  "explicit": 14,
+  "semantic": 73
+ },
+ "p1_match_confidence": {
+  "l1/astra-r1#1": "semantic",
+  "l1/astra-r1#2": "semantic",
+  "l1/astra-r1#4": "semantic",
+  "l2/astra-r1#1": "semantic",
+  "l3/astra-r1#1": "semantic",
+  "l3/astra-r1#5": "semantic",
+  "t2a/astra-r1#1": "semantic",
+  "t2a/astra-r1#3": "semantic",
+  "t2b/astra-r1#2": "semantic",
+  "t2b/astra-r1#3": "semantic",
+  "t2b/astra-r1#7": "semantic",
+  "t2c/astra-r1#1": "semantic",
+  "t2c/astra-r1#2": "semantic",
+  "t2c/astra-r1#6": "semantic",
+  "t2c/astra-r1#9": "semantic"
  }
 }
