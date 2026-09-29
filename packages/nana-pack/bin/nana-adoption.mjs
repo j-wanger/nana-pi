@@ -9,18 +9,20 @@
 // (.nana-not-a-project), gone or no longer a repository root. No cursor file.
 // Output: "[nana:adoption]" then the block; NOTHING when nothing is open and nothing was refused.
 // An existing journal that cannot be read prints "ADOPTION UNAVAILABLE: <why>" — never silence.
-// Paths are rendered as DATA: one per line, in backticks (\ and ` escaped), after they were
-// refused for control characters — a directory name cannot open a heading, a list or a new line.
+// Paths are rendered as DATA: one per line, in a code span (lib/display.mjs codeSpan), after any
+// that could close it or break its line was refused (a control, separator or bidi char, a backtick) — a directory name cannot open a heading, a list or a new line.
 // Plain .mjs, no .ts import. Always exits 0 — a hook must never fail the session start.
 import * as fs from "node:fs";
 
 const TAG = "[nana:adoption]";
 const WINDOW_MS = 7 * 86_400_000;
 const SHOW = 5;
+// Deliberately NOT lib/display.mjs: this allow-list must work when the import below fails.
 const oneLine = (e) => String(e?.code ?? e?.message ?? "failed").replace(/[^\w .:-]/g, "").slice(0, 60);
 
 try {
 	const { adoptionSettings, isAdopted, recentReports, repoRootOf, rootState, tailLines } = await import("../lib/adoption.mjs");
+	const { codeSpan } = await import("../lib/display.mjs");
 	const { journal, objectiveFile } = adoptionSettings();
 	let lines = [];
 	let unavailable = null;
@@ -41,10 +43,10 @@ try {
 		const out = [];
 		if (open.length) {
 			const has = (s) => [s.agents && "AGENTS.md", s.sessions && "docs/sessions/"].filter(Boolean).join(", ") || "nothing";
-			// Every path here already passed printable(): no control character and no backtick, so the
-			// code span cannot be closed from inside it. Nothing is escaped, because a backslash is
-			// literal in a code span and escaping would corrupt the path the seat reads.
-			const code = (p) => `\`${p}\``;
+			// Markdown for the seat: lib/display.mjs codeSpan. Every root already passed printable()
+			// (codeSpanSafe), so it always renders; the objective file name is user-scope config and,
+			// if it could close the span, is named without it rather than escaped.
+			const code = (p) => codeSpan(p) ?? "(the configured objective file)";
 			const rows = open.slice(0, SHOW).map((r) => `- ${code(r.root)} — has: ${has(r.s)} · last session ${new Date(r.ts).toISOString().slice(0, 10)}`);
 			if (open.length > SHOW) rows.push(`…and ${open.length - SHOW} more`);
 			out.push(

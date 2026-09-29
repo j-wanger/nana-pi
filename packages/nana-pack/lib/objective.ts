@@ -39,11 +39,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
+// The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
+// re-exported here unchanged, so every existing import and the T2c goldens are untouched.
+import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
+export { PATH_CAP, displayPath, displayText };
 
 /** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
-/** Rendered length bound of one displayed path, quotes included. */
-export const PATH_CAP = 320;
 export const OUTPUT_CAP = 12000;
 const FILE_READ_MAX = 256 * 1024;
 export const HEADING = "## Objective and current priority (nana)";
@@ -184,12 +186,6 @@ function decodeEnd(buf: Buffer, n: number): number {
 	return Math.min(n, Math.max(FILE_READ_MAX, s + len));
 }
 
-/** First n UTF-16 units, never ending on half a surrogate pair (a lone surrogate prints differently per runtime). */
-function head(s: string, n: number): string {
-	const c = s.charCodeAt(n - 1);
-	return s.slice(0, c >= 0xd800 && c <= 0xdbff ? n - 1 : n);
-}
-
 /** One line, capped on its own: truncation stays INSIDE the line, never removes the next one. */
 function capLine(s: string): { body: string; truncated: boolean } {
 	return s.length > LINE_CAP
@@ -199,8 +195,6 @@ function capLine(s: string): { body: string; truncated: boolean } {
 
 /** Every physical-line break: LF, CR (CRLF is CR then LF), NEL, LINE SEPARATOR, PARAGRAPH SEPARATOR. */
 const LINE_BREAK = /\r\n|[\n\r\u0085\u2028\u2029]/;
-/** C0 (TAB included), DEL, C1, and the bidi marks/embeddings/overrides/isolates. */
-const CONTROL = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
 /** A marker line, canonicalised: the ONE physical line it starts, with every control removed. Never a continuation line. */
 function markerLine(physical: string[], prefix: string): string | null {
@@ -211,50 +205,6 @@ function markerLine(physical: string[], prefix: string): string | null {
 function lines(text: string): { objective: string | null; priority: string | null } {
 	const ls = text.split(LINE_BREAK);
 	return { objective: markerLine(ls, "**Objective"), priority: markerLine(ls, "**Current priority") };
-}
-
-/** Anything the hook's stdout and pi's prompt would render differently or that could break a line. */
-const PATH_UNSAFE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/;
-
-/**
- * A path as prompt DISPLAY text — the one renderer for every interpolated path (governing
- * line, refusal, markers, precedence, notices). A clean path prints as-is. A path holding a
- * control char, line separator or bidi control is shown as a JSON string literal: `\` and `"`
- * escaped, every unsafe char as `\uXXXX` — so it is always ONE line and no control byte
- * reaches the prompt. The result, quotes included, is at most PATH_CAP chars: over it the
- * middle is elided ("…"), keeping the basename WHOLE when its rendering fits in half the cap,
- * else only the basename's TAIL. Lone surrogates are made well-formed first (runtime parity).
- */
-export function displayPath(p: string): string {
-	const raw = p.toWellFormed();
-	const unsafe = PATH_UNSAFE.test(raw);
-	const tok = (c: string) =>
-		PATH_UNSAFE.test(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
-	let toks = Array.from(raw, tok);
-	const len = (t: string[]) => t.reduce((a, s) => a + s.length, 0);
-	const cap = unsafe ? PATH_CAP - 2 : PATH_CAP; // the two quotes count
-	if (len(toks) > cap) {
-		const baseToks = Array.from(path.basename(raw), tok);
-		// the basename (with its separator) is kept whole when it fits in half the cap; otherwise its tail is kept
-		const tailBudget = len(baseToks) + 1 <= cap / 2 ? len(baseToks) + 1 : Math.floor(cap / 2);
-		const tail: string[] = [];
-		for (let i = toks.length - 1, used = 0; i >= 0 && used + toks[i].length <= tailBudget; i--) { tail.unshift(toks[i]); used += toks[i].length; }
-		const front: string[] = [];
-		for (let i = 0, used = 0; used + toks[i].length <= cap - 1 - len(tail); i++) { front.push(toks[i]); used += toks[i].length; }
-		toks = [...front, "…", ...tail];
-	}
-	const s = toks.join("");
-	return unsafe ? `"${s}"` : s;
-}
-
-/**
- * Arbitrary text (an error message, a config problem) as ONE line of display text: lone
- * surrogates made well-formed, every control, line break and bidi control replaced by a
- * space, then bounded to `cap` UTF-16 units (never ending on half a pair). Letters survive;
- * structure — a line an attacker could start — never does.
- */
-export function displayText(s: string, cap = 400): string {
-	return head(String(s).toWellFormed().replace(CONTROL, " ").replace(/[\u2028\u2029]/g, " "), cap);
 }
 
 /** The two parsed lines, each capped on its own; null when the file has neither (nothing from it is emitted). */

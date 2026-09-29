@@ -326,6 +326,18 @@ is user-scope only** — project config never contributes to it, trusted or not.
 
 ## Behavior notes
 
+- **One renderer per surface** (`lib/display.mjs`, lane S1): every repo-controlled string that
+  reaches a model, a person or a file we write goes through it, chosen by where it LANDS —
+  prompt / model-visible text: `promptPath` (one line; a path holding a control, line-separator
+  or bidi character is a quoted JSON-escaped string; ≤320 chars, middle-elided) and `promptText`
+  (one line, every control/separator/bidi char → space, capped); UI notification and status:
+  `uiPath` / `uiText`, the SAME rule (U+001B and C1 are in its class, so no ANSI sequence reaches
+  the TUI); Markdown read by the seat: `codeSpan`, which REFUSES (never escapes) a string holding
+  a backtick or any of those characters; a field of a file we write: `fileField` (one line,
+  bounded); an exact prompt locator: `locator` (never elided, JSON-escaped when unsafe, decodes
+  to the exact path). No other module carries its own escaping rule. The two pre-import
+  allow-lists in `bin/nana-adoption.mjs` / `bin/nana-objective.mjs` are deliberate exceptions:
+  they run where that import may have failed.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
   outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
   Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,
@@ -411,7 +423,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
-  successes stay out of its context and are reported by the status chip instead. `{file}` is
+  successes stay out of its context and are reported by the status chip instead. Each failure
+  is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the
+  last 2000 chars kept and a truncation stated); the edited path is `promptPath`-rendered. `{file}` is
   shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.
 - **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
   pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
@@ -453,8 +467,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   computes the same file: the last 7 days of those lines, re-checked at print time (adopted,
   dismissed, gone or no-longer-a-repo roots drop), newest first, at most 5 then `…and N more`,
   under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
-  backticks (`` ` `` and `\` escaped); a claim that is relative, the filesystem root, over 512
-  characters, holds a control character, or carries a future/unparseable `ts` is never printed —
+  a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
+  characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
   only counted (`N entries were not printable`). A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read.
@@ -500,7 +514,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     true path beats a short false one. **Caveat — not always one read away:** a custom
     `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
     (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
-    written (it could resolve to an ASCII-space sibling). Such a path is shown as the
+    written (it could resolve to an ASCII-space sibling); since S1 the same holds for any other
+    control, line-separator, bidi character or lone surrogate (`lib/display.mjs` `locator`). Such a path is shown as the
     absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
     "— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly
     (do not pass it to read as written)" — never claimed readable; the same form is used in
