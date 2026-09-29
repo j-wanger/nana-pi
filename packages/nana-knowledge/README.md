@@ -9,8 +9,11 @@ Research only gets used when it is surfaced *at a live decision* — so the trig
 prompt text, not session start. Pointers, not content: a title, a path, and 160 characters
 of context, so the agent can decide whether to open the file.
 
-**Dependencies:** none. Node ≥ 22.18 and nothing else — `node:sqlite` (bundled SQLite,
-FTS5 enabled) does the indexing, the `.ts` files run directly on Node's type stripping,
+**Dependencies:** no npm dependency, but not standalone. Node ≥ 22.18, plus one sibling
+file in this repo: `../nana-pack/lib/display.mjs`, imported by relative path. It is nana-pack's
+one renderer for model-visible text, and every knowledge pointer (title, path, snippet) goes
+through it, so the escaping rule has exactly one copy; this package therefore only works inside
+the nana-pi repo layout. `node:sqlite` (bundled SQLite, FTS5 enabled) does the indexing, the `.ts` files run directly on Node's type stripping,
 and there is no build step, no lockfile, no npm install. pi is an *optional*
 peerDependency: the pi extension below is a thin wrapper that spawns the same CLI, so
 nothing in this package needs pi to be installed. Tests are zero-dep

@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 import { indexAgeMs } from "./build.ts";
 import { openDb } from "./db.ts";
 import { paths } from "./paths.ts";
-import { search, type Hit } from "./query.ts";
-import { promptText, str } from "../../nana-pack/lib/display.mjs";
+import { FIELD_SEP, renderFields, search, type Hit } from "./query.ts";
+import { promptText } from "../../nana-pack/lib/display.mjs";
 import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
@@ -83,6 +83,12 @@ function appendLog(line: Record<string, unknown>): void {
 	} catch { /* best effort */ }
 }
 
+/**
+ * N hits render as exactly N+1 lines (header + one "- title — display[ — snippet]" line each),
+ * except that the block budget (BLOCK_MAX_CHARS) may end the list early — and no single hostile
+ * field can trigger that cut, because every field is capped before the budget is counted. A hit
+ * whose fields cannot be rendered at all costs its own pointer, never the block.
+ */
 export function renderBlock(hits: Hit[]): string {
 	// The file text on the other end of these pointers is arbitrary markdown from the
 	// owner's stores — including review corpora full of imperative prose. Say what it
@@ -91,11 +97,15 @@ export function renderBlock(hits: Hit[]): string {
 	const lines = [head];
 	let total = head.length;
 	for (const h of hits) {
-		// search() already rendered every field; rendering the LINE again through the same rule is
-		// idempotent on those and is what makes N hits exactly N+1 lines whatever a Hit holds.
+		// Every field is rendered HERE, with its cap, whatever the Hit holds (idempotent on a searched
+		// hit): so no field holds a line break or FIELD_SEP, and no single field can fill the budget.
+		// The line pass through the same rule is a no-op on those fields, kept as defence in depth.
 		let line: string;
-		try { line = promptText(`- ${str(h.title)} — ${str(h.display)}${h.snippet ? ` — ${str(h.snippet)}` : ""}`, BLOCK_MAX_CHARS); }
-		catch { continue; }
+		try {
+			const f = renderFields(h);
+			line = promptText(`- ${f.title}${FIELD_SEP}${f.display}${f.snippet ? `${FIELD_SEP}${f.snippet}` : ""}`, BLOCK_MAX_CHARS);
+		} catch { continue; }
+		// The block budget is the ONE documented cut: it ends the list, dropping trailing pointers only.
 		if (total + 1 + line.length > BLOCK_MAX_CHARS) break;
 		lines.push(line);
 		total += 1 + line.length;
