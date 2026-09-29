@@ -1,0 +1,22 @@
+## Findings
+
+- **HIGH — `nana-setup project` still consumes the wrong agent directory under an ambient relative override** — **executed + source-read** — `packages/nana-setup/bin/nana-setup.mjs:123-149`, `packages/nana-setup/lib/project.mjs:141-144`, `packages/nana-setup/lib/project.mjs:224-227`, `packages/nana-setup/lib/project.mjs:365-366`. From a setup cwd different from the target project, I placed user `postEdit.commands` in `<project>/rel-agent/nana-pack.json`; `project --dry-run` instead inspected `<setup-cwd>/rel-agent`, proposed creating `.pi/nana-pack.json`, and looked for the knowledge index in the setup-relative tree. That empty project config can shadow the real user-scope post-edit checks when pi later starts in the project. `project --check` has the same wrong-directory read. It therefore needs the same refusal as `install` unless `--pi-home`/`--home` makes the choice explicit.
+
+- **Round-2 MUST 1 — FIXED** — **executed + source-read** — `apps/desk/server.mjs:124-141`, `apps/desk/server.mjs:362-453`, `apps/desk/server.mjs:1567-1580`, `apps/desk/server.mjs:2255-2256`, `apps/desk/public/app.js:1677`. The parity test genuinely separates three roots: test process, desk, and spawned session. Relative values are pinned to the desk-resolved absolute directory; absolute, tilde, and unset values reach the child unchanged. Both desk pi launch paths (`spawnChild` and headless `runPi`) use `childEnv`; app sessions delegate to `spawnChild`. Other subprocesses are not pi sessions. The settings UI announces the pin and names the directory. Pinned-and-announced is materially better than silently showing settings from a directory sessions do not use.
+
+- **Round-2 MUST 2 — PARTIAL** — **executed + source-read** — `packages/nana-setup/bin/nana-setup.mjs:65-72`, `packages/nana-setup/bin/nana-setup.mjs:101-120`, `packages/nana-setup/lib/doctor.mjs:134-138`. `install` correctly refuses with exit 2, naming the resolved directory, cwd, and both real remedies; explicit `--pi-home` works. `doctor` warns, cannot report healthy, and exits 1. The remaining `project` defect is above.
+
+- **Round-2 MUST 3 — FIXED** — **executed + source-read** — `packages/nana-pack/lib/gate-paths.ts:129-145`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs:17-36`. Exactly the four balanced spellings block case-insensitively for both policy files, slash and backslash forms, repeated separators, quotes, and mixed case. Malformed mixed forms no longer match. Literal active-dir and default-dir policy paths still block.
+
+- **No regression in the NOT-list; one resolver still holds** — **executed + source-read**. Active-dir `settings.json`/`auth.json` remain outside the floor; handoff storage, round-cap ledger, desk stage keys, deleted-cwd STOP, migration policy, and key schema did not move. The repository-wide resolver assertion passed, and `server.mjs` does not independently read `PI_CODING_AGENT_DIR`.
+
+- **Acceptance suite passed** — **executed**: `env -u NANA_HANDOFF npm test` → **76 files, 75 PASS, 0 FAIL, 1 SKIP; 4717 checks passed**. Focused parity, setup, regex, and `git diff --check ab01f1a..HEAD` probes also passed.
+
+## Final ruling
+
+This does **not** land as presented: the smallest landing change is to apply the existing ambient-relative refusal to both `nana-setup project` and `project --check`, while preserving explicit `--pi-home`/`--home`; no wider redesign is needed. Across the three rounds, I independently executed this round’s desk/session split, setup refusal, regex matrix, project counterexample, and full suite; I source-read the launch paths, resolver, NOT-list, and prior symlink/dangling/deleted-cwd fixes, while the historical before-fix outputs were read from the round-2 report rather than recreated now. Residuals priced by cost-of-error: **HIGH** if carried—the project command may create a project config that shadows real user post-edit checks; **LOW/accepted**—pi launched outside the desk continues normal cwd-relative resolution, explicitly disclosed in the UI; **LOW/accepted**—deleted-cwd relative resolution retains the previously approved STOP behavior.
+
+SCORE: 8/10  
+MUST: Refuse ambient relative `PI_CODING_AGENT_DIR` in `nana-setup project` and `project --check`, with the same explicit-override remedy.  
+CARRY: HIGH — project/setup cwd split if landed unchanged; LOW — disclosed outside-desk relative semantics and approved deleted-cwd STOP.  
+VERDICT: BLOCK
