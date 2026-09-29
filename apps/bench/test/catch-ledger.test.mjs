@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { answeredReport, extractCorpus, parseReport } from "../lib/catch-extract.mjs";
 import { callJudge, labelSchema, validateLabels } from "../lib/catch-judge.mjs";
-import { adjacency, buildLedger, claims, components, cohensKappa, matchConfidence, sameBase, samePath, seededSample, stageHints } from "../lib/catch-stats.mjs";
+import { buildLedger, claims, components, matchGraph, cohensKappa, matchConfidence, sameBase, samePath, seededSample, stageHints } from "../lib/catch-stats.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REVIEWS = path.resolve(here, "../../../docs/reviews");
@@ -113,10 +113,19 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("stage: no refs → no hint (semantic stage only)", !h.some((x) => x.b === "z/astra-r1#2"));
 	const labels = new Map(rows.map((r) => [r.id, { is_finding: true, top: "functional", disposition: "accepted" }]));
 	// judge says: astra#1 == sol#1 (cross-rung); astra#3 restates astra#2 (same report); one-sided output
-	const adj = adjacency([{ id: "z/astra-r1#1", same_as: ["z/sol-r1#1"] }, { id: "z/astra-r1#3", same_as: ["z/astra-r1#2", "not-in-pool"] }], rows);
-	const { L, findings } = buildLedger(rows, labels, adj);
+	const G = matchGraph([{ id: "z/astra-r1#1", same_as: ["z/sol-r1#1"], covers: [] }, { id: "z/astra-r1#3", same_as: ["z/astra-r1#2"], covers: [] }], rows);
+	const { L, findings } = buildLedger(rows, labels, G);
 	const g = (id) => L.find((r) => r.id === id);
-	check("adjacency is symmetrised", adj.get("z/sol-r1#1").has("z/astra-r1#1"));
+	check("same_as is symmetrised", G.eq.get("z/sol-r1#1").has("z/astra-r1#1"));
+	let thrown = "";
+	try { matchGraph([{ id: "z/astra-r1#3", same_as: ["not-in-pool"], covers: [] }], rows); } catch (e) { thrown = e.message; }
+	check("matchGraph: unknown id in same_as throws", /unknown id not-in-pool/.test(thrown), thrown);
+	thrown = "";
+	try { matchGraph([{ id: "z/astra-r1#3", same_as: [], covers: ["not-in-pool"] }], rows); } catch (e) { thrown = e.message; }
+	check("matchGraph: unknown id in covers throws", /unknown id not-in-pool/.test(thrown), thrown);
+	thrown = "";
+	try { matchGraph([{ id: "z/astra-r1#3", same_as: ["z/astra-r1#2"], covers: ["z/astra-r1#2"] }], rows); } catch (e) { thrown = e.message; }
+	check("matchGraph: an id in both same_as and covers throws", /both same_as and covers/.test(thrown), thrown);
 	check("cross-rung match → not unique, matched_sol", !g("z/astra-r1#1").unique && g("z/astra-r1#1").matched_sol);
 	check("same-report restatement → later row is a duplicate, earlier stays unique", g("z/astra-r1#3").dup_in_report && !g("z/astra-r1#2").dup_in_report && g("z/astra-r1#2").unique);
 	check("duplicates are excluded from findings", findings.length === 4 && !findings.some((r) => r.id === "z/astra-r1#3"));
@@ -127,7 +136,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	const R = (id, model, round) => ({ id, lane: "z", reviewer_model: model, round, rung: `${model}-r${round}`, kind: "finding", refs: [], report: id.split("#")[0] });
 	const rows = [R("z/sol-r1#1", "sol", 1), R("z/astra-r2#1", "astra", 2), R("z/astra-r1#1", "astra", 1), R("z/astra-r1#2", "astra", 1)];
 	const labels = new Map(rows.map((r) => [r.id, { is_finding: true, top: "functional", disposition: "accepted" }]));
-	const adj = adjacency([{ id: "z/sol-r1#1", same_as: ["z/astra-r2#1"] }, { id: "z/astra-r2#1", same_as: ["z/astra-r1#1"] }, { id: "z/astra-r1#2", same_as: [] }], rows);
+	const adj = matchGraph([{ id: "z/sol-r1#1", same_as: ["z/astra-r2#1"], covers: [] }, { id: "z/astra-r2#1", same_as: ["z/astra-r1#1"], covers: [] }, { id: "z/astra-r1#2", same_as: [], covers: [] }], rows);
 	const { L, findings } = buildLedger(rows, labels, adj);
 	const g = (id) => L.find((r) => r.id === id);
 	check("chain sol-r1 ~ astra-r2 ~ astra-r1: astra-r1 matched_sol via component", g("z/astra-r1#1").matched_sol && !g("z/astra-r1#1").unique);
@@ -137,10 +146,47 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("chain: claims() does not count astra-r1#1 as sol-unmatched", P1.unique_accepted_rows.map((r) => r.id).join() === "z/astra-r1#2");
 	// within-report duplicates are component-based too: #3 ~ sol ~ #1 → #3 restates #1
 	const rows2 = [R("z/astra-r1#1", "astra", 1), R("z/sol-r1#1", "sol", 1), R("z/astra-r1#3", "astra", 1)];
-	const adj2 = adjacency([{ id: "z/astra-r1#1", same_as: ["z/sol-r1#1"] }, { id: "z/sol-r1#1", same_as: ["z/astra-r1#3"] }], rows2);
+	const adj2 = matchGraph([{ id: "z/astra-r1#1", same_as: ["z/sol-r1#1"], covers: [] }, { id: "z/sol-r1#1", same_as: ["z/astra-r1#3"], covers: [] }], rows2);
 	const L2 = buildLedger(rows2, labels, adj2).L;
 	check("component: later same-report row in the component is a duplicate", L2.find((r) => r.id === "z/astra-r1#3").dup_in_report && !L2.find((r) => r.id === "z/astra-r1#1").dup_in_report);
-	check("components(): singleton for an isolated row", components(adj).get("z/astra-r1#2") !== components(adj).get("z/astra-r1#1"));
+	check("components(): singleton for an isolated row", components(adj.eq).get("z/astra-r1#2") !== components(adj.eq).get("z/astra-r1#1"));
+}
+// sol r2 HIGH regression: a BUNDLE (t2c/astra-r1#5 shape) summarises two distinct defects #2 and #3.
+// Containment never merges: #2 and #3 stay distinct, the bundle is the within-report duplicate
+// (whatever its position), and a sol match on #2 does not leak to #3 through the bundle.
+{
+	const R = (id, model, round) => ({ id, lane: "z", reviewer_model: model, round, rung: `${model}-r${round}`, kind: "finding", refs: [], report: id.split("#")[0] });
+	const labels = new Map(["z/astra-r1#1", "z/astra-r1#2", "z/astra-r1#3", "z/astra-r1#5", "z/sol-r1#1", "z/sol-r1#2"].map((i) => [i, { is_finding: true, top: "functional", disposition: "accepted" }]));
+	const rows = [R("z/astra-r1#1", "astra", 1), R("z/astra-r1#2", "astra", 1), R("z/astra-r1#3", "astra", 1), R("z/astra-r1#5", "astra", 1), R("z/sol-r1#1", "sol", 1)];
+	const G = matchGraph([
+		{ id: "z/astra-r1#5", same_as: [], covers: ["z/astra-r1#2", "z/astra-r1#3"] },
+		{ id: "z/astra-r1#2", same_as: ["z/sol-r1#1"], covers: [] },
+		{ id: "z/astra-r1#3", same_as: [], covers: [] },
+	], rows);
+	const { L, findings } = buildLedger(rows, labels, G);
+	const g = (id) => L.find((r) => r.id === id);
+	check("bundle: #2 and #3 stay in different components", g("z/astra-r1#2").component !== g("z/astra-r1#3").component);
+	check("bundle: #3 is NOT a within-report duplicate", !g("z/astra-r1#3").dup_in_report && !g("z/astra-r1#2").dup_in_report);
+	check("bundle: the bundle #5 is the within-report duplicate", g("z/astra-r1#5").dup_in_report && !findings.some((r) => r.id === "z/astra-r1#5"));
+	check("bundle: sol match on #2 does not leak to #3 through the bundle", g("z/astra-r1#2").matched_sol && !g("z/astra-r1#3").matched_sol && g("z/astra-r1#3").unique);
+	// a bundle EARLIER in the report than its atoms is still the one dropped
+	const G2 = matchGraph([{ id: "z/astra-r1#1", same_as: [], covers: ["z/astra-r1#2", "z/astra-r1#3"] }], rows);
+	const L2 = buildLedger(rows, labels, G2).L;
+	check("bundle first: bundle dropped, atoms kept", L2.find((r) => r.id === "z/astra-r1#1").dup_in_report && !L2.find((r) => r.id === "z/astra-r1#2").dup_in_report && !L2.find((r) => r.id === "z/astra-r1#3").dup_in_report);
+	// containment denies uniqueness (either direction) but never merges; nothing dropped across reports
+	const rows3 = [R("z/astra-r1#2", "astra", 1), R("z/sol-r1#1", "sol", 1), R("z/sol-r1#2", "sol", 1)];
+	const G3 = matchGraph([{ id: "z/sol-r1#1", same_as: [], covers: ["z/astra-r1#2"] }], rows3);
+	const L3 = buildLedger(rows3, labels, G3).L;
+	const a3 = L3.find((r) => r.id === "z/astra-r1#2"), s3 = L3.find((r) => r.id === "z/sol-r1#1");
+	check("covered by a sol bundle → matched_sol, not unique, via containment only", a3.matched_sol && !a3.unique && a3.matched_via_containment_only);
+	check("covering an astra row → the sol bundle is matched too (either direction)", s3.matched_other_rungs.join() === "astra-r1");
+	check("cross-report covers never drops", !a3.dup_in_report && !s3.dup_in_report && a3.component !== s3.component);
+	check("claims(): row covered by sol is not sol-unmatched", !claims(L3, L3, [{ rung: "astra-r1", lane: "z", report: "z-astra-land" }]).P1.unique_accepted_rows.some((r) => r.id === "z/astra-r1#2"));
+	// mutual containment is a contradiction → resolved as same_as and counted; same_as-vs-covers → covers, counted
+	const G4 = matchGraph([{ id: "z/sol-r1#1", same_as: [], covers: ["z/astra-r1#2"] }, { id: "z/astra-r1#2", same_as: [], covers: ["z/sol-r1#1"] }, { id: "z/sol-r1#2", same_as: ["z/astra-r1#2"], covers: [] }], rows3);
+	check("mutual covers → same_as, counted", G4.eq.get("z/sol-r1#1").has("z/astra-r1#2") && !G4.cov.get("z/sol-r1#1").has("z/astra-r1#2") && G4.stats.mutual_covers_as_same_as === 1, JSON.stringify(G4.stats));
+	const G5 = matchGraph([{ id: "z/sol-r1#1", same_as: ["z/astra-r1#2"], covers: [] }, { id: "z/astra-r1#2", same_as: [], covers: ["z/sol-r1#1"] }], rows3);
+	check("same_as one side, covers other side → covers (non-merging), counted", G5.cov.get("z/astra-r1#2").has("z/sol-r1#1") && !G5.eq.get("z/sol-r1#1").size && G5.stats.same_as_vs_covers_as_covers === 1, JSON.stringify(G5.stats));
 }
 // sol r1 MED regression: same basename, different directories is NOT the same file.
 {
@@ -152,7 +198,9 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("samePath: bare basename is compatible with a full path", samePath("config.ts", "packages/nana-pack/lib/config.ts"));
 	check("samePath: partial suffix compatible", samePath("lib/objective.ts", "packages/nana-pack/lib/objective.ts"));
 	check("samePath: different parent dirs differ", !samePath("apps/desk/README.md", "packages/nana-pack/README.md"));
-	check("samePath: ~ and .. segments ignored", samePath("~/.pi/agent/../agent/trust.json", "agent/trust.json"));
+	check("samePath: ~ ignored, .. resolved canonically", samePath("~/.pi/agent/../agent/trust.json", "agent/trust.json"));
+	check("samePath: a/b/../c → a/c", samePath("a/b/../c", "a/c") && !samePath("a/b/../c", "b/c"));
+	check("samePath: .. is not deleted (x/b/../c ≠ b/c)", !samePath("x/b/../c.ts", "b/c.ts"));
 }
 // pre-registered match_confidence (explicit | semantic), structural
 {

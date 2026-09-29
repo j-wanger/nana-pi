@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractCorpus } from "./lib/catch-extract.mjs";
 import { callJudge, GUIDE, labelPrompt, labelSchema, MATCH_GUIDE, matchSchema, MODELS, sha, validateLabels } from "./lib/catch-judge.mjs";
-import { adjacency, buildLedger, claims, cohensKappa, matchConfidence, sameBase, seededSample, stageHints, table } from "./lib/catch-stats.mjs";
+import { buildLedger, claims, cohensKappa, matchConfidence, sameBase, componentSizes, matchGraph, seededSample, stageHints, table } from "./lib/catch-stats.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, "../..");
@@ -104,8 +104,9 @@ function matchJobs(c, A) {
 		// cache key is the prompt hash, so switching the prompt to path-aware hints would orphan every
 		// cached match and require re-matching spend. `build` measures the bias instead (false_hints).
 		const hints = stageHints(poolRows, 5, sameBase);
-		const prompt = `LANE ${lane}\n\n== ROWS (${poolRows.length}) ==\n${poolRows.map((r) => `${r.id} [${r.rung} ${r.kind} ${r.severity ?? "-"}] refs=${r.refs.map((x) => `${x.base}${x.from != null ? `:${x.from}-${x.to}` : ""}`).join(",") || "-"}\n  ${r.body.replace(/\s+/g, " ").slice(0, 600)}`).join("\n")}\n\n== STAGE HINTS (same file / line±5) ==\n${hints.map((h) => `${h.a} ~ ${h.b} (${h.stage})`).join("\n") || "none"}\n\nOutput same_as for every row id.`;
-		jobs.push({ lane, poolRows, hints, prompt, key: `${lane}|${sha(prompt)}` });
+		const prompt = `LANE ${lane}\n\n== ROWS (${poolRows.length}) ==\n${poolRows.map((r) => `${r.id} [${r.rung} ${r.kind} ${r.severity ?? "-"}] refs=${r.refs.map((x) => `${x.base}${x.from != null ? `:${x.from}-${x.to}` : ""}`).join(",") || "-"}\n  ${r.body.replace(/\s+/g, " ").slice(0, 600)}`).join("\n")}\n\n== STAGE HINTS (same file / line±5) ==\n${hints.map((h) => `${h.a} ~ ${h.b} (${h.stage})`).join("\n") || "none"}\n\nOutput same_as and covers for every row id.`;
+		// the key hashes the system guide and schema too: a change to the relation definition re-runs the matcher
+		jobs.push({ lane, poolRows, hints, prompt, key: `${lane}|${sha(MATCH_GUIDE + JSON.stringify(matchSchema) + prompt)}` });
 	}
 	return jobs;
 }
@@ -128,6 +129,7 @@ function cmdMatch(pass, lanes) {
 		const got = new Set(o.matches.map((m) => m.id));
 		const missing = j.poolRows.map((r) => r.id).filter((i) => !got.has(i));
 		if (missing.length) throw new Error(`match: judge omitted ${missing.join(",")}`);
+		matchGraph(o.matches, j.poolRows); // fail-closed: unknown ids, an id in both fields → throw before caching
 		fs.appendFileSync(file, JSON.stringify({ key: j.key, lane: j.lane, model: MODELS[pass], cost, secs: Math.round((Date.now() - t0) / 1000), hints: j.hints, matches: o.matches }) + "\n");
 		console.log(`match ${pass} ${j.lane}: ${j.poolRows.length} rows, ${j.hints.length} hints · $${cost?.toFixed(3)}`);
 	}
@@ -172,8 +174,10 @@ function cmdBuild() {
 	}
 	const mA = currentMatches(c, A, "a");
 	const poolAll = c.rows.filter((r) => r.kind !== "verification" && A.get(r.id)?.is_finding);
-	const adjA = adjacency(mA.flatMap((m) => m.matches), poolAll);
-	const { L, findings } = buildLedger(c.rows, A, adjA);
+	const gA = matchGraph(mA.flatMap((m) => m.matches), poolAll);
+	const { L, findings } = buildLedger(c.rows, A, gA);
+	const { groups_ge3: groupsA, ...sizesA } = componentSizes(gA.eq);
+	result.match_graph = { a: { ...gA.stats, ...sizesA, components_ge3: groupsA.map((g) => g.join(" ")) } };
 	for (const r of L) r.match_confidence = matchConfidence(r);
 	// the matcher's stage for each cross-rung match (file / line / semantic-only)
 	// Stage accounting uses PATH-AWARE hints. The judge was shown basename hints; a "false hint" is a
@@ -183,12 +187,13 @@ function cmdBuild() {
 	const shown = mA.flatMap((m) => m.hints);
 	const pk = (h) => `${h.a}|${h.b}`;
 	const hintStage = new Map(pathHints.flatMap((h) => [[`${h.a}|${h.b}`, h.stage], [`${h.b}|${h.a}`, h.stage]]));
-	const stages = { line: 0, file: 0, semantic_only: 0 };
-	for (const [id, s] of adjA) for (const o of s) if (id < o && id.split("#")[0] !== o.split("#")[0]) stages[hintStage.get(`${id}|${o}`) ?? "semantic_only"]++;
+	const stages = { same_as: { line: 0, file: 0, semantic_only: 0 }, covers: { line: 0, file: 0, semantic_only: 0 } };
+	for (const [id, s] of gA.eq) for (const o of s) if (id < o && id.split("#")[0] !== o.split("#")[0]) stages.same_as[hintStage.get(`${id}|${o}`) ?? "semantic_only"]++;
+	for (const [id, s] of gA.cov) for (const o of s) if (id.split("#")[0] !== o.split("#")[0]) stages.covers[hintStage.get(`${id}|${o}`) ?? "semantic_only"]++;
 	result.match_pairs_by_stage = stages;
 	const falseHints = shown.filter((h) => hintStage.get(pk(h)) !== h.stage);
-	const edge = (adj, h) => adj.get(h.a)?.has(h.b) ?? false;
-	result.false_hints_shown_to_judge = { shown: shown.length, false: falseHints.length, false_and_matched_by_a: falseHints.filter((h) => edge(adjA, h)).length, ids: falseHints.map((h) => `${pk(h)} (${h.stage}→${hintStage.get(pk(h)) ?? "none"})`) };
+	const edge = (g, h) => g.eq.get(h.a)?.has(h.b) || g.cov.get(h.a)?.has(h.b) || g.cov.get(h.b)?.has(h.a) || false;
+	result.false_hints_shown_to_judge = { shown: shown.length, false: falseHints.length, false_and_matched_by_a: falseHints.filter((h) => edge(gA, h)).length, ids: falseHints.map((h) => `${pk(h)} (${h.stage}→${hintStage.get(pk(h)) ?? "none"})`) };
 	result.published = true;
 	result.table = table(findings);
 	result.claims = claims(L, findings, c.stats);
@@ -197,8 +202,10 @@ function cmdBuild() {
 	// on its own; see RESULTS.md.
 	const mB = currentMatches(c, A, "b");
 	if (mB.length) {
-		const adjB = adjacency(mB.flatMap((m) => m.matches), poolAll);
-		const LB = buildLedger(c.rows, A, adjB);
+		const gB = matchGraph(mB.flatMap((m) => m.matches), poolAll);
+		const LB = buildLedger(c.rows, A, gB);
+		const { groups_ge3: groupsB, ...sizesB } = componentSizes(gB.eq);
+		result.match_graph.b = { ...gB.stats, ...sizesB, components_ge3: groupsB.map((g) => g.join(" ")) };
 		const PB = claims(LB.L, LB.findings, c.stats).P1;
 		const PA = result.claims.P1;
 		const bIds = new Set(PB.unique_accepted_rows.map((r) => r.id));

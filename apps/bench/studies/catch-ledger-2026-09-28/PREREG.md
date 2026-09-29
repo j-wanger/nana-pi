@@ -80,3 +80,16 @@ Corpus: `docs/reviews/tranche{1,2}-2026-09-28/`, read-only.
   not hold when the answer depends on the matcher. P1 is reported under both matchers and their
   intersection. A matcher-dependent answer is unresolved, not YES.
 - **2026-09-28: P3 is not for operational use.** It is descriptive only (κ(origin) < 0.6).
+- **2026-09-28 (after sol r2 BLOCK): the match relation is split into `same_as` and `covers`.** This
+  was decided after labelling and after two matcher runs. The earlier matcher guide made one relation do
+  two jobs: a row matched another if it was "a restatement, summary, or subset" of it. The stats then
+  took connected components over that relation. Containment is neither symmetric nor transitive, so a
+  bundling row (e.g. `t2c/astra-r1#5`, which summarises `#2` and `#3`) welded distinct defects into
+  one component. The judge now outputs two lists: `same_as` (equivalence: the same single defect,
+  and fixing either fixes the other) and `covers` (directed containment: the other row is part of this
+  row's broader or bundled claim). Components are taken over `same_as` only. Containment still
+  denies uniqueness, one hop in either direction, but never merges. Mutual containment resolves to
+  `same_as` and is counted. A row that covers another row of the same report is the within-report
+  duplicate. **All matcher output was regenerated** (`match a`, `match b`), and every count was rebuilt.
+  Labels (`label a/b/c`) are unaffected and were not re-run. The superseded match records stay in
+  `matches-a/b.jsonl` under their old prompt-hash keys, and `build` ignores them.

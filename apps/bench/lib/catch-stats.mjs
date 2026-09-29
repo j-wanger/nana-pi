@@ -24,14 +24,23 @@ export function seededSample(ids, k, seed) {
 
 /**
  * Same file? Paths as written in reviews are partial ("config.ts", "lib/objective.ts",
- * "packages/nana-pack/lib/objective.ts"). Two refs name the same file iff, after normalising
- * ("./", "~/", "../" segments dropped), one path's segments are a suffix of the other's.
+ * "packages/nana-pack/lib/objective.ts"). Two refs name the same file iff, after canonical
+ * normalisation ("", "." and "~" segments dropped; "x/.." resolved: `a/b/../c` → `a/c`; a leading
+ * ".." that cannot be resolved is dropped), one path's segments are a suffix of the other's.
  * `src/one/config.ts` vs `src/two/config.ts` → different; `config.ts` vs `src/one/config.ts` → same
  * (a bare basename is compatible with any path ending in it — it is only a hint).
  */
+export function canonSegments(f) {
+	const out = [];
+	for (const x of String(f).split("/")) {
+		if (!x || x === "." || x === "~") continue;
+		if (x === "..") out.pop();
+		else out.push(x);
+	}
+	return out;
+}
 export function samePath(a, b) {
-	const seg = (f) => String(f).split("/").filter((x) => x && x !== "." && x !== ".." && x !== "~");
-	const x = seg(a), y = seg(b);
+	const x = canonSegments(a), y = canonSegments(b);
 	const [s, l] = x.length <= y.length ? [x, y] : [y, x];
 	if (!s.length) return false;
 	for (let i = 1; i <= s.length; i++) if (s[s.length - i] !== l[l.length - i]) return false;
@@ -59,52 +68,113 @@ export function stageHints(rows, k = 5, same = sameRef) {
 	return hints;
 }
 
-/** Symmetric adjacency from judge match output restricted to the pool. */
-export function adjacency(matches, pool) {
+/**
+ * The judge's two relations, validated and resolved (sol r2 HIGH). Returns
+ *   eq:  Map id→Set  symmetric `same_as` (equivalence) — the ONLY edges components are taken over;
+ *   cov: Map id→Set  directed `covers`: cov.get(A).has(B) ⇔ A is broader and B's defect is part of A's;
+ *   stats: { same_as_pairs, covers_pairs, mutual_covers_as_same_as, same_as_vs_covers_as_covers }.
+ * Fail-closed: an unknown id (not in the pool) in either field, or an id in both fields of one
+ * row, throws. Pair resolution, deterministic:
+ *   - A covers B and B covers A (a contradiction the judge may make) → same_as, counted;
+ *   - one side says same_as, the other side says covers (one direction) → covers, counted. Covers
+ *     never merges but still denies uniqueness, so this is the non-merging, conservative reading.
+ * Self-references are ignored.
+ */
+export function matchGraph(matches, pool) {
 	const ids = new Set(pool.map((r) => r.id));
-	const adj = new Map([...ids].map((i) => [i, new Set()]));
-	for (const m of matches) for (const o of m.same_as) if (ids.has(m.id) && ids.has(o) && o !== m.id) (adj.get(m.id).add(o), adj.get(o).add(m.id));
-	return adj;
+	const rawEq = new Set(), rawCov = new Set(); // "a|b" (eq: sorted pair; cov: broader|narrower)
+	for (const m of matches) {
+		if (!ids.has(m.id)) throw new Error(`match: unknown row id ${m.id}`);
+		const sa = m.same_as ?? [], cv = m.covers ?? [];
+		for (const o of [...sa, ...cv]) if (!ids.has(o)) throw new Error(`match: ${m.id} names unknown id ${o}`);
+		const both = sa.filter((o) => cv.includes(o) && o !== m.id);
+		if (both.length) throw new Error(`match: ${m.id} lists ${both.join(",")} in both same_as and covers`);
+		for (const o of sa) if (o !== m.id) rawEq.add([m.id, o].sort().join("|"));
+		for (const o of cv) if (o !== m.id) rawCov.add(`${m.id}|${o}`);
+	}
+	const eq = new Map([...ids].map((i) => [i, new Set()]));
+	const cov = new Map([...ids].map((i) => [i, new Set()]));
+	const stats = { same_as_pairs: 0, covers_pairs: 0, mutual_covers_as_same_as: 0, same_as_vs_covers_as_covers: 0 };
+	const pairs = new Set([...rawEq, ...[...rawCov].map((k) => k.split("|").sort().join("|"))]);
+	for (const k of [...pairs].sort()) {
+		const [a, b] = k.split("|");
+		const ab = rawCov.has(`${a}|${b}`), ba = rawCov.has(`${b}|${a}`);
+		if ((ab && ba) || (!ab && !ba)) {
+			if (ab && ba) stats.mutual_covers_as_same_as++;
+			eq.get(a).add(b), eq.get(b).add(a), stats.same_as_pairs++;
+		} else {
+			if (rawEq.has(k)) stats.same_as_vs_covers_as_covers++;
+			ab ? cov.get(a).add(b) : cov.get(b).add(a);
+			stats.covers_pairs++;
+		}
+	}
+	return { eq, cov, stats };
 }
 
 const rungOf = (id) => id.split("#")[0]; // "<lane>/<model>-r<n>"
 const itemOf = (id) => Number(id.split("#")[1]);
 
-/** Connected components of an adjacency map ("same underlying defect" is an equivalence relation). */
-export function components(adj) {
+/** Connected components of the `same_as` graph ONLY (equivalence). Containment never merges. */
+export function components(eq) {
 	const comp = new Map();
 	let n = 0;
-	for (const start of [...adj.keys()].sort()) {
+	for (const start of [...eq.keys()].sort()) {
 		if (comp.has(start)) continue;
 		const stack = [start];
 		comp.set(start, n);
-		while (stack.length) for (const o of adj.get(stack.pop()) ?? []) if (!comp.has(o)) (comp.set(o, n), stack.push(o));
+		while (stack.length) for (const o of eq.get(stack.pop()) ?? []) if (!comp.has(o)) (comp.set(o, n), stack.push(o));
 		n++;
 	}
 	return comp;
 }
 
 /**
- * Build the ledger. rows: extracted; labels: Map id→label (pass A); adj: Map id→Set (pass A).
- * Matching is over CONNECTED COMPONENTS of the judge's same-defect graph, not direct edges: if
- * sol-r1 ~ astra-r2 ~ astra-r1, then astra-r1 is matched by sol (sol r1 fix brief attack).
- * A finding is a "within-report duplicate" if its component holds an EARLIER row of the same report.
+ * Build the ledger. rows: extracted; labels: Map id→label (pass A); graph: matchGraph(...) output.
+ * - Components are over `same_as` only.
+ * - Matched at rung R (denies uniqueness): another member of the row's component is at R, OR the row
+ *   has a containment edge (either direction, one hop) to a row whose component contains an R row.
+ *   Containment denies uniqueness but never merges: A covers {B, C} does not make B and C one defect.
+ * - Within-report duplicate: an EARLIER same-report row is in the row's component, OR the row covers
+ *   another row of the same report (the bundle is dropped, the atomic rows stay, whatever the order).
+ *   Nothing is ever dropped across reports.
  */
-export function buildLedger(rows, labels, adj) {
+export function buildLedger(rows, labels, graph) {
+	const { eq, cov } = graph;
 	const L = rows.map((r) => ({ ...r, ...(labels.get(r.id) ?? {}) }));
-	const comp = components(adj);
+	const byId = new Map(L.map((r) => [r.id, r]));
+	const comp = components(eq);
 	const members = new Map();
 	for (const r of L) if (comp.has(r.id)) members.set(comp.get(r.id), [...(members.get(comp.get(r.id)) ?? []), r]);
+	const compOf = (id) => (comp.has(id) ? members.get(comp.get(id)) : []);
+	const coveredBy = new Map();
+	for (const [a, s] of cov) for (const b of s) coveredBy.set(b, [...(coveredBy.get(b) ?? []), a]);
 	for (const r of L) {
-		const ms = comp.has(r.id) ? members.get(comp.get(r.id)).filter((m) => m.id !== r.id) : [];
+		const ms = compOf(r.id).filter((m) => m.id !== r.id);
+		const covers = [...(cov.get(r.id) ?? [])].sort();
+		const covered_by = [...(coveredBy.get(r.id) ?? [])].sort();
+		const viaCov = [...covers, ...covered_by].flatMap((o) => compOf(o));
+		const matched = [...ms, ...viaCov].filter((m) => rungOf(m.id) !== rungOf(r.id));
 		r.component = comp.has(r.id) ? comp.get(r.id) : null;
-		r.dup_in_report = ms.some((m) => rungOf(m.id) === rungOf(r.id) && itemOf(m.id) < itemOf(r.id));
-		r.matched_other_rungs = [...new Set(ms.filter((m) => rungOf(m.id) !== rungOf(r.id)).map((m) => m.rung))].sort();
-		r.matched_sol = ms.some((m) => m.reviewer_model === "sol");
+		r.covers = covers;
+		r.covered_by = covered_by;
+		r.dup_in_report = ms.some((m) => rungOf(m.id) === rungOf(r.id) && itemOf(m.id) < itemOf(r.id)) || covers.some((o) => rungOf(o) === rungOf(r.id) && byId.has(o));
+		r.matched_other_rungs = [...new Set(matched.map((m) => m.rung))].sort();
+		r.matched_via_containment_only = matched.length > 0 && !ms.some((m) => rungOf(m.id) !== rungOf(r.id));
+		r.matched_sol = matched.some((m) => m.reviewer_model === "sol");
 		r.unique = r.matched_other_rungs.length === 0;
 	}
 	const findings = L.filter((r) => r.kind !== "verification" && r.is_finding && !r.dup_in_report);
 	return { L, findings };
+}
+
+/** Size summary of the same_as components (rows in the pool only). */
+export function componentSizes(eq) {
+	const c = components(eq);
+	const g = new Map();
+	for (const [id, n] of c) g.set(n, [...(g.get(n) ?? []), id]);
+	const groups = [...g.values()].map((v) => v.sort());
+	const sz = groups.map((v) => v.length);
+	return { components: sz.length, multi_row: sz.filter((x) => x > 1).length, ge3: sz.filter((x) => x >= 3).length, max: Math.max(0, ...sz), groups_ge3: groups.filter((v) => v.length >= 3).sort((a, b) => b.length - a.length || a[0].localeCompare(b[0])) };
 }
 
 export function table(findings) {

@@ -47,19 +47,67 @@
  "judge_cost_usd": {
   "label_a": 4.555064,
   "label_b": 1.4953116,
-  "match_a": 0.6599216,
-  "match_b": 2.693766,
+  "match_a": 1.3409446,
+  "match_b": 5.8555438,
   "label_c": 0.7021615999999999,
-  "total_including_superseded": 10.1062248
+  "total_including_superseded": 13.9490256
  },
  "disposition_quotes": {
   "claimed": 145,
   "verified": 145
  },
+ "match_graph": {
+  "a": {
+   "same_as_pairs": 58,
+   "covers_pairs": 66,
+   "mutual_covers_as_same_as": 0,
+   "same_as_vs_covers_as_covers": 0,
+   "components": 189,
+   "multi_row": 45,
+   "ge3": 5,
+   "max": 4,
+   "components_ge3": [
+    "t2a/astra-r1#4 t2a/astra-r2#5 t2a/sol-r1#1 t2a/sol-r3#17",
+    "l3/astra-r2#9 l3/sol-r2#13 l3/sol-r3#11",
+    "t2c/astra-r1#7 t2c/astra-r2#13 t2c/astra-r3#7",
+    "t2c/astra-r2#10 t2c/astra-r2#6 t2c/astra-r3#3",
+    "t2c/astra-r2#12 t2c/astra-r2#8 t2c/astra-r3#5"
+   ]
+  },
+  "b": {
+   "same_as_pairs": 91,
+   "covers_pairs": 92,
+   "mutual_covers_as_same_as": 0,
+   "same_as_vs_covers_as_covers": 0,
+   "components": 173,
+   "multi_row": 50,
+   "ge3": 10,
+   "max": 4,
+   "components_ge3": [
+    "l3/astra-r1#2 l3/astra-r2#9 l3/sol-r2#13 l3/sol-r3#11",
+    "t2a/astra-r1#4 t2a/astra-r2#5 t2a/sol-r1#1 t2a/sol-r3#17",
+    "t2a/sol-r2#14 t2a/sol-r2#9 t2a/sol-r3#15 t2a/sol-r3#18",
+    "t2b/sol-r2#11 t2b/sol-r2#16 t2b/sol-r2#17 t2b/sol-r2#18",
+    "t2b/sol-r2#12 t2b/sol-r2#19 t2b/sol-r3#6 t2b/sol-r3#8",
+    "t2c/astra-r1#2 t2c/astra-r2#11 t2c/astra-r2#7 t2c/astra-r3#4",
+    "t2c/astra-r1#3 t2c/astra-r2#10 t2c/astra-r2#6 t2c/astra-r3#3",
+    "t2a/sol-r2#12 t2a/sol-r2#15 t2a/sol-r2#7",
+    "t2c/astra-r1#7 t2c/astra-r2#13 t2c/astra-r3#7",
+    "t2c/astra-r2#12 t2c/astra-r2#8 t2c/astra-r3#5"
+   ]
+  }
+ },
  "match_pairs_by_stage": {
-  "line": 0,
-  "file": 4,
-  "semantic_only": 83
+  "same_as": {
+   "line": 0,
+   "file": 1,
+   "semantic_only": 30
+  },
+  "covers": {
+   "line": 0,
+   "file": 1,
+   "semantic_only": 33
+  }
  },
  "false_hints_shown_to_judge": {
   "shown": 241,
@@ -85,8 +133,8 @@
    "model": "astra",
    "round": "r1",
    "cls": "evolvability",
-   "found": 12,
-   "carry": 6,
+   "found": 11,
+   "carry": 5,
    "accepted": 9,
    "unique_accepted": 8
   },
@@ -94,10 +142,10 @@
    "model": "astra",
    "round": "r1",
    "cls": "functional",
-   "found": 25,
-   "carry": 16,
-   "accepted": 10,
-   "unique_accepted": 6
+   "found": 28,
+   "carry": 18,
+   "accepted": 11,
+   "unique_accepted": 9
   },
   {
    "model": "astra",
@@ -112,8 +160,8 @@
    "model": "astra",
    "round": "r2",
    "cls": "functional",
-   "found": 19,
-   "carry": 17,
+   "found": 23,
+   "carry": 20,
    "accepted": 1,
    "unique_accepted": 1
   },
@@ -122,7 +170,7 @@
    "round": "r3",
    "cls": "functional",
    "found": 5,
-   "carry": 4,
+   "carry": 5,
    "accepted": 0,
    "unique_accepted": 0
   },
@@ -133,7 +181,7 @@
    "found": 16,
    "carry": 6,
    "accepted": 5,
-   "unique_accepted": 5
+   "unique_accepted": 4
   },
   {
    "model": "sol",
@@ -148,46 +196,46 @@
    "model": "sol",
    "round": "r1",
    "cls": "functional",
-   "found": 39,
-   "carry": 9,
+   "found": 40,
+   "carry": 10,
    "accepted": 31,
-   "unique_accepted": 25
+   "unique_accepted": 26
   },
   {
    "model": "sol",
    "round": "r2",
    "cls": "evolvability",
-   "found": 14,
+   "found": 15,
    "carry": 9,
+   "accepted": 6,
+   "unique_accepted": 6
+  },
+  {
+   "model": "sol",
+   "round": "r2",
+   "cls": "functional",
+   "found": 27,
+   "carry": 8,
+   "accepted": 22,
+   "unique_accepted": 20
+  },
+  {
+   "model": "sol",
+   "round": "r3",
+   "cls": "evolvability",
+   "found": 8,
+   "carry": 5,
    "accepted": 5,
    "unique_accepted": 5
   },
   {
    "model": "sol",
-   "round": "r2",
-   "cls": "functional",
-   "found": 20,
-   "carry": 4,
-   "accepted": 15,
-   "unique_accepted": 10
-  },
-  {
-   "model": "sol",
-   "round": "r3",
-   "cls": "evolvability",
-   "found": 4,
-   "carry": 2,
-   "accepted": 2,
-   "unique_accepted": 2
-  },
-  {
-   "model": "sol",
    "round": "r3",
    "cls": "functional",
-   "found": 14,
-   "carry": 8,
-   "accepted": 9,
-   "unique_accepted": 7
+   "found": 18,
+   "carry": 10,
+   "accepted": 11,
+   "unique_accepted": 11
   }
  ],
  "claims": {
@@ -226,10 +274,22 @@
      "claim": "packages/nana-pack/lib/gate-shell.ts:257–260 suppresses stdin detection whenever any remaining argument equals --help, --version or non-shell -V."
     },
     {
+     "id": "l2/astra-r1#3",
+     "top": "evolvability",
+     "sub": "documentation",
+     "claim": "Correct cap/subject claims and stale desk wording; explicitly publish external-editor/delete recovery for both scopes."
+    },
+    {
      "id": "l3/astra-r1#1",
      "top": "functional",
      "sub": "check",
      "claim": "Enforce the legacy-file exclusion even through custom configuration; pin user-scope and nana-trusted project cases, absence of injected text, and preservation of existing repo bytes."
+    },
+    {
+     "id": "l3/astra-r1#2",
+     "top": "functional",
+     "sub": "check",
+     "claim": "Distinguish genuine absence from dangling-entry/parent-link failures; pin both broken-store cases as errors with no handoff_missing, while retaining legitimate symlink support."
     },
     {
      "id": "l3/astra-r1#5",
@@ -238,16 +298,16 @@
      "claim": "Low: migration wording and explicit documentation of pointer-only provenance omissions."
     },
     {
-     "id": "t2a/astra-r1#1",
-     "top": "evolvability",
-     "sub": "documentation",
-     "claim": "Complete consumer declarations in AGENTS.md, templates/_shared/, and runtime documentation; reconcile the Node ≥22 versus ≥22.18 support promise."
-    },
-    {
      "id": "t2a/astra-r1#3",
      "top": "evolvability",
      "sub": "documentation",
      "claim": "Reconcile HANDOFF.md: the clean patch deletes both the live flaky-test entry and policy entry."
+    },
+    {
+     "id": "t2b/astra-r1#1",
+     "top": "functional",
+     "sub": "check",
+     "claim": "Tracked-output protection: bin/review-round.mjs:407–414 resolves only the parent, not a final symlink; an external output symlink can overwrite a tracked file before completion rejects drift."
     },
     {
      "id": "t2b/astra-r1#2",
@@ -280,6 +340,12 @@
      "claim": "HIGH — Folder writability does not establish pi lock usability."
     },
     {
+     "id": "t2c/astra-r1#3",
+     "top": "functional",
+     "sub": "check",
+     "claim": "MEDIUM — A dangling agent-directory symlink is mistaken for absence."
+    },
+    {
      "id": "t2c/astra-r1#6",
      "top": "evolvability",
      "sub": "documentation",
@@ -304,50 +370,51 @@
    "all_unique_evolvability": false
   },
   "P2": {
-   "sol_r3_items": 50,
+   "sol_r3_items": 58,
    "by": {
     "verification": 32,
-    "restates_prior": 4,
-    "fold_defect": 11,
-    "new_scope": 3
+    "restates_prior": 5,
+    "fold_defect": 17,
+    "new_scope": 4
    },
    "per_lane": {
     "l1:verification": 1,
     "l1:restates_prior": 1,
     "l2:verification": 13,
-    "l2:fold_defect": 2,
+    "l2:fold_defect": 4,
     "l2:restates_prior": 2,
     "l3:verification": 4,
-    "l3:fold_defect": 2,
+    "l3:fold_defect": 3,
     "l3:new_scope": 1,
+    "l3:restates_prior": 1,
     "t2a:verification": 8,
-    "t2a:fold_defect": 2,
-    "t2a:new_scope": 1,
+    "t2a:fold_defect": 4,
+    "t2a:new_scope": 2,
     "t2a:restates_prior": 1,
     "t2b:verification": 5,
     "t2b:fold_defect": 4,
     "t2c:verification": 1,
     "t2c:new_scope": 1,
-    "t2c:fold_defect": 1
+    "t2c:fold_defect": 2
    },
-   "new_scope_share_of_findings": 0.16666666666666666
+   "new_scope_share_of_findings": 0.15384615384615385
   },
   "P3": {
-   "accepted": 87,
+   "accepted": 101,
    "by_origin": {
-    "seat_spec": 18,
-    "worker_impl": 65,
+    "seat_spec": 22,
+    "worker_impl": 74,
     "pre_existing": 2,
-    "unclear": 2
+    "unclear": 3
    },
-   "seat_spec_share": 0.20689655172413793,
+   "seat_spec_share": 0.21782178217821782,
    "per_lane": {
     "l1": 3,
-    "l2": 4,
-    "l3": 2,
+    "l2": 5,
+    "l3": 3,
     "l4": 1,
     "t2a": 1,
-    "t2b": 1,
+    "t2b": 3,
     "t2c": 6
    }
   },
@@ -359,7 +426,7 @@
      "verdict": "BLOCK",
      "score": 7,
      "accepted_functional": 2,
-     "findings": 6
+     "findings": 7
     },
     {
      "report": "l1-astra-r2",
@@ -367,7 +434,7 @@
      "verdict": "LAND",
      "score": 9,
      "accepted_functional": 0,
-     "findings": 6
+     "findings": 7
     },
     {
      "report": "l2-astra-land",
@@ -375,7 +442,7 @@
      "verdict": "BLOCK",
      "score": 7,
      "accepted_functional": 1,
-     "findings": 6
+     "findings": 7
     },
     {
      "report": "l2-astra-r2",
@@ -383,7 +450,7 @@
      "verdict": "LAND",
      "score": 9,
      "accepted_functional": 0,
-     "findings": 4
+     "findings": 5
     },
     {
      "report": "l3-astra-land",
@@ -399,7 +466,7 @@
      "verdict": "LAND",
      "score": 9,
      "accepted_functional": 0,
-     "findings": 3
+     "findings": 5
     },
     {
      "report": "t2a-astra-land",
@@ -407,7 +474,7 @@
      "verdict": "BLOCK",
      "score": 7,
      "accepted_functional": 1,
-     "findings": 7
+     "findings": 6
     },
     {
      "report": "t2a-astra-r2",
@@ -438,8 +505,8 @@
      "round": "astra-r1",
      "verdict": "BLOCK",
      "score": 6,
-     "accepted_functional": 2,
-     "findings": 6
+     "accepted_functional": 3,
+     "findings": 7
     },
     {
      "report": "t2c-astra-r2",
@@ -478,62 +545,82 @@
    ],
    "answer_6": "YES",
    "answer_original5": "YES",
-   "n_rows": 15,
-   "n_functional": 7
+   "n_rows": 18,
+   "n_functional": 10
   },
   "b": {
    "functional_lanes": [
+    "l1",
+    "l2",
     "l3",
+    "t2b",
     "t2c"
    ],
    "answer_6": "YES",
-   "answer_original5": "NO",
-   "n_rows": 4,
-   "n_functional": 2,
+   "answer_original5": "YES",
+   "n_rows": 10,
+   "n_functional": 5,
    "rows": [
     "l1/astra-r1#2",
+    "l1/astra-r1#4",
+    "l2/astra-r1#1",
     "l3/astra-r1#1",
+    "l3/astra-r1#5",
+    "t2a/astra-r1#1",
     "t2a/astra-r1#3",
-    "t2c/astra-r1#2"
+    "t2b/astra-r1#2",
+    "t2c/astra-r1#1",
+    "t2c/astra-r1#6"
    ]
   },
   "intersection": {
    "functional_lanes": [
+    "l1",
+    "l2",
     "l3",
+    "t2b",
     "t2c"
    ],
    "answer_6": "YES",
-   "answer_original5": "NO",
-   "n_rows": 4,
-   "n_functional": 2,
+   "answer_original5": "YES",
+   "n_rows": 9,
+   "n_functional": 5,
    "rows": [
     "l1/astra-r1#2",
+    "l1/astra-r1#4",
+    "l2/astra-r1#1",
     "l3/astra-r1#1",
+    "l3/astra-r1#5",
     "t2a/astra-r1#3",
-    "t2c/astra-r1#2"
+    "t2b/astra-r1#2",
+    "t2c/astra-r1#1",
+    "t2c/astra-r1#6"
    ]
   },
   "resolved_6": true,
-  "resolved_original5": false
+  "resolved_original5": true
  },
  "accepted_match_confidence": {
   "explicit": 14,
-  "semantic": 73
+  "semantic": 87
  },
  "p1_match_confidence": {
   "l1/astra-r1#1": "semantic",
   "l1/astra-r1#2": "semantic",
   "l1/astra-r1#4": "semantic",
   "l2/astra-r1#1": "semantic",
+  "l2/astra-r1#3": "semantic",
   "l3/astra-r1#1": "semantic",
+  "l3/astra-r1#2": "semantic",
   "l3/astra-r1#5": "semantic",
-  "t2a/astra-r1#1": "semantic",
   "t2a/astra-r1#3": "semantic",
+  "t2b/astra-r1#1": "semantic",
   "t2b/astra-r1#2": "semantic",
   "t2b/astra-r1#3": "semantic",
   "t2b/astra-r1#7": "semantic",
   "t2c/astra-r1#1": "semantic",
   "t2c/astra-r1#2": "semantic",
+  "t2c/astra-r1#3": "semantic",
   "t2c/astra-r1#6": "semantic",
   "t2c/astra-r1#9": "semantic"
  }

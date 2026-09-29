@@ -74,14 +74,23 @@ export const matchSchema = {
 			items: {
 				type: "object",
 				additionalProperties: false,
-				required: ["id", "same_as"],
-				properties: { id: { type: "string" }, same_as: { type: "array", items: { type: "string" } } },
+				required: ["id", "same_as", "covers"],
+				properties: { id: { type: "string" }, same_as: { type: "array", items: { type: "string" } }, covers: { type: "array", items: { type: "string" } } },
 			},
 		},
 	},
 };
 
-export const MATCH_GUIDE = `You decide which code-review findings describe the SAME underlying defect. Rows come from different reviewers/rounds on one lane (and sometimes restate each other inside one report). Two rows match if fixing one would fix the other, or one is a restatement, summary, or subset of the other (e.g. a CARRY bullet that summarises an earlier finding). Rows about the same file but different defects do NOT match. STAGE HINTS list pairs that share a cited file (and lines within ±5); they are hints, not decisions. For EVERY row id output same_as = the ids of all OTHER rows that match it (possibly empty). Be symmetric.`;
+// Two relations, never one (sol r2 HIGH): `same_as` is equivalence and is the ONLY relation the
+// stats take components over; `covers` is directed containment (a bundle/summary over narrower rows)
+// and never merges. A single "restatement, summary, or subset" relation welded distinct defects.
+export const MATCH_GUIDE = `You relate code-review findings for a measurement study. Rows come from different reviewers/rounds on one lane (and sometimes restate each other inside one report). For EVERY row id output two lists:
+
+same_as = EQUIVALENCE ONLY. The ids of OTHER rows that describe the SAME single defect as this row: fixing either one fixes the other completely, in both directions. A restatement of the same single defect (e.g. a CARRY line that repeats exactly one earlier finding) is same_as. Symmetric: if you list B under A, list A under B.
+
+covers = CONTAINMENT, DIRECTED. The ids of OTHER rows whose defect is only PART of what this row claims: this row bundles two or more distinct defects (e.g. a CARRY or summary bullet naming several findings), or is strictly broader and the other row is one instance of it. List only rows NARROWER than this row. Do not list the reverse here: the narrower row lists nothing under covers for the broader one, and does not list it under same_as either.
+
+Rules: an id must never appear in both same_as and covers for the same row. If two rows are about different defects in the same file, they are neither. When a row bundles defects X and Y, it covers X and covers Y; X and Y are NOT same_as each other unless they are the same single defect. STAGE HINTS list pairs that share a cited file (and lines within ±5); they are hints, not decisions. Use only ids from the ROWS list. Lists may be empty.`;
 
 export const sha = (s) => crypto.createHash("sha256").update(s).digest("hex").slice(0, 16);
 

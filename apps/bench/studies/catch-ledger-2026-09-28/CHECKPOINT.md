@@ -1,5 +1,11 @@
 # E1 checkpoint: advisory size ceiling crossed (2026-09-28)
 
+> **Land posture (after sol r2, final round).** If this lands, it lands as **measurement tooling
+> only**. Before anyone changes review practice, model choice, roles or spend on the strength of
+> these numbers, two controls are prerequisites: a **seeded-defect control** (known defects planted,
+> recall measured) and a **clean-patch control** (a patch with no defect, false-positive rate
+> measured). **P1 is UNRESOLVED.** See `RESULTS.md`.
+
 **Crossed:** the advisory cap was ≤10 files / ≤600 LOC. The lane has:
 - 783 LOC of tool code (`catch-ledger.mjs` 212, `lib/catch-extract.mjs` 310, `lib/catch-judge.mjs` 148, `lib/catch-stats.mjs` 113);
 - 166 LOC of tests;
