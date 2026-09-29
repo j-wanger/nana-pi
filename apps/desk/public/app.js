@@ -1862,7 +1862,7 @@ async function tabContext(body) {
 		saveBtn("Save compaction", () => patchSettings({
 			compaction: { enabled: en.checked, reserveTokens: Number(reserve.value) || 16384, keepRecentTokens: Number(keep.value) || 20000 },
 		})),
-		el("div", "sec-head", "Global instructions — ~/.pi/agent/AGENTS.md (every session)"),
+		el("div", "sec-head", `Global instructions — ${s.piDir}/AGENTS.md (every session)`),
 	);
 	const g = await fetch(`/api/context-file?dir=${encodeURIComponent(s.piDir)}&name=AGENTS.md`).then((r) => r.json());
 	const ga = area(g.content, 8);
@@ -2064,7 +2064,9 @@ async function tabNana(body) {
 	const mode = body.dataset.nanaScope === "project" ? "project" : "user";
 	const dir = body.dataset.nanaDir || "";
 	const scopeSel = el("select");
-	for (const [v, label] of [["user", "User — ~/.pi/agent/nana-pack.json"], ["project", "Project — <dir>/.pi/nana-pack.json"]]) {
+	// the user file's path comes from the server (pi's ACTIVE agent dir), never rebuilt here
+	const nanaPath = await fetch("/api/settings").then((r) => r.json()).then((s) => s.nanaPath).catch(() => null);
+	for (const [v, label] of [["user", `User — ${nanaPath || "user nana-pack.json"}`], ["project", "Project — <dir>/.pi/nana-pack.json"]]) {
 		const o = el("option", "", label);
 		o.value = v;
 		scopeSel.appendChild(o);
@@ -2145,11 +2147,11 @@ async function tabNana(body) {
 	const notifyEn = checkbox(n.notify?.enabled !== false);
 	const notifyHeadless = checkbox(n.notify?.headless === true);
 	const journalEn = checkbox(n.journal?.enabled !== false);
-	const journalPath = txtInput(n.journal?.path ?? "", "blank = ~/.pi/agent/nana-journal.jsonl");
+	const journalPath = txtInput(n.journal?.path ?? "", "blank = <pi agent dir>/nana-journal.jsonl");
 	const handoffEn = checkbox(n.handoff?.enabled !== false);
 	const handoffPath = txtInput(n.handoff?.path ?? "", "blank = the pack's default");
 	const receiptsEn = checkbox(n.receipts?.enabled !== false);
-	const receiptsDir = txtInput(n.receipts?.dir ?? "", "blank = ~/.pi/agent/receipts");
+	const receiptsDir = txtInput(n.receipts?.dir ?? "", "blank = <pi agent dir>/receipts");
 	body.append(
 		el("div", "sec-head", "Notifications"),
 		field("enabled", notifyEn), field("also when headless", notifyHeadless),

@@ -200,7 +200,15 @@ export default function (pi: ExtensionAPI) {
 			},
 		};
 	};
-	const cwdOf = (ctx: any) => path.resolve(String(ctx?.cwd ?? "."));
+	// Total: path.resolve of a relative cwd throws once process.cwd() is gone — keep the raw key.
+	const cwdOf = (ctx: any) => {
+		const raw = String(ctx?.cwd ?? ".");
+		try {
+			return path.resolve(raw);
+		} catch {
+			return raw;
+		}
+	};
 
 	pi.on("session_start", async (event, ctx) => {
 		try {
@@ -231,7 +239,13 @@ export default function (pi: ExtensionAPI) {
 		}
 		checked += 1;
 
-		const { gate: live } = livePolicy(ctx);
+		let live: Policy;
+		try {
+			live = livePolicy(ctx).gate;
+		} catch (e) {
+			// loadConfig is total by contract; if it ever is not, the handler still must not throw.
+			live = { extraPatterns: [], allowPatterns: [], protectedPaths: [], stopReason: `policy load failed (${displayText(String(e).slice(0, 120))}) — every gated tool is blocked` };
+		}
 		const k = cwdOf(ctx);
 		let base = baseline.get(k);
 		if (!base) {

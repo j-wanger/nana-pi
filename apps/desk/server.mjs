@@ -4,7 +4,7 @@
  * imports for session parsing (see pi-session.mjs). Node >= 22.19 (pi's floor).
  *
  * Surfaces:
- *   GET  /api/sessions              historical sessions from ~/.pi/agent/sessions
+ *   GET  /api/sessions              historical sessions from <agent dir>/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
  *   POST /api/pick-dir              open the NATIVE OS folder picker (Finder/Explorer/zenity); → {id}
  *   GET  /api/pick-dir?id=          poll it → {pending:true} | {path} | {cancelled:true} | {error}
@@ -19,15 +19,16 @@
  *                                   via set_session_name RPC + a desk_renamed event, others as
  *                                   session_info entries; both surface via normal refresh)
  *   GET  /api/settings              pi settings.json + mcp.json + nana-pack.json + agents dir (with paths)
- *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into ~/.pi/agent/settings.json
- *   POST /api/mcp                   {mcpServers} → rewrite that key of ~/.pi/agent/mcp.json
- *   GET  /api/nana-pack?dir=        read nana-pack config — no dir = user scope (~/.pi/agent/
+ *   POST /api/settings              {patch} → shallow-merge WHITELISTED keys into <agent dir>/settings.json
+ *   POST /api/mcp                   {mcpServers} → rewrite that key of <agent dir>/mcp.json
+ *   GET  /api/nana-pack?dir=        read nana-pack config — no dir = user scope (<agent dir>/
  *                                   nana-pack.json), dir = that project's .pi/nana-pack.json
  *   POST /api/nana-pack             {config, dir?} → rewrite that file (whole-file replace,
  *                                   unknown top-level keys refused; project scope goes through
  *                                   the same destination guards as /api/context-file)
  *   GET/POST /api/context-file      read/write AGENTS.md | CLAUDE.md | AGENTS.override.md in a directory
- *   GET/POST/DELETE /api/agents     pi-subagents definitions under ~/.pi/agent/agents/
+ *   GET/POST/DELETE /api/agents     pi-subagents definitions under <agent dir>/agents/
+ *                                   (<agent dir> = pi's ACTIVE one: PI_CODING_AGENT_DIR, else ~/.pi/agent)
  *                                   (every config write backs up the previous file to <file>.bak)
  *   GET  /api/live                  currently running RPC children
  *   POST /api/spawn                 {cwd, session?, name?, approve?, resources?, excludeTools?} →
@@ -66,6 +67,7 @@ import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
 import { collectChanges, fileDiff } from "./changes.mjs";
 import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
 import { StageKeyStore } from "./stage-keys.mjs";
+import { piAgentDir } from "../../packages/nana-pack/lib/agent-dir.mjs";
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -130,7 +132,7 @@ function childEnv(more = {}) {
 	const merged = [...new Set([...extra, ...cur])].filter(Boolean);
 	return { ...process.env, PATH: merged.join(path.delimiter), ...more };
 }
-const SESSIONS_DIR = path.join(os.homedir(), ".pi", "agent", "sessions");
+const SESSIONS_DIR = path.join(piAgentDir(), "sessions"); // pi getSessionsDir(): the ACTIVE agent dir
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const MAX_CHILDREN = 4;
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
@@ -1173,7 +1175,7 @@ function isDirectory(p) {
 		return false;
 	}
 }
-const PI_DIR = path.join(os.homedir(), ".pi", "agent");
+const PI_DIR = piAgentDir(); // pi's ACTIVE agent dir (global skills/extensions/settings/AGENTS.md)
 
 function readJsonFile(p) {
 	try {
@@ -1318,10 +1320,15 @@ function addPackage(source, baseDir, cwd, out, scope) {
 }
 
 // ── config files (settings/mcp/nana-pack/context/agents) ──
-const SETTINGS_PATH = path.join(os.homedir(), ".pi", "agent", "settings.json");
-const MCP_PATH = path.join(os.homedir(), ".pi", "agent", "mcp.json");
-const NANA_PACK_PATH = path.join(os.homedir(), ".pi", "agent", "nana-pack.json");
-const AGENTS_DIR = path.join(os.homedir(), ".pi", "agent", "agents");
+// pi's ACTIVE agent dir (PI_CODING_AGENT_DIR, else ~/.pi/agent), by nana-pack's own resolver so
+// the desk edits the file the pack reads. Module constants, not per request: the desk never
+// changes its own env or cwd, and every pi it spawns inherits that same env (childEnv), so the
+// value cannot change under a running desk — an env change means a desk restart.
+const ACTIVE_AGENT_DIR = PI_DIR;
+const SETTINGS_PATH = path.join(ACTIVE_AGENT_DIR, "settings.json");
+const MCP_PATH = path.join(ACTIVE_AGENT_DIR, "mcp.json");
+const NANA_PACK_PATH = path.join(ACTIVE_AGENT_DIR, "nana-pack.json");
+const AGENTS_DIR = path.join(ACTIVE_AGENT_DIR, "agents");
 // Only keys the desk UI actually exposes — never a whole-file replace, so a
 // stale client can't clobber packages/auth-adjacent settings.
 const SETTINGS_PATCH_KEYS = new Set(["defaultProvider", "defaultModel", "defaultThinkingLevel", "compaction", "skills", "extensions", "defaultTools"]);
@@ -1391,7 +1398,7 @@ function reachedThroughSymlink(root, file) {
 //     the write AND its .bak land on the target;
 //   · a component above it: `<repo>/docs -> /etc` makes `<repo>/docs/AGENTS.md` a
 //     perfectly ordinary file outside the repo, with both leaves regular.
-// NOT applied to ~/.pi/agent/*.json: those paths are the user's own, and symlinking
+// NOT applied to <agent dir>/*.json: those paths are the user's own, and symlinking
 // them into a dotfiles repo is a normal setup.
 // TOCTOU: none of these lstats is atomic with the write that follows, so a link
 // swapped into a component in between is not caught — advisory, exactly like the
@@ -2338,8 +2345,8 @@ const server = http.createServer(async (req, res) => {
 			const body = await readBody(req);
 			const name = String(body.name || "");
 			if (!/^[\w.-]{1,64}$/.test(name)) return json(res, 400, { error: "agent name: letters/digits/._- only" });
-			// root = ~/.pi/agent: `agents/` itself is walked (a planted symlink there
-			// would redirect every agent write), while a symlinked ~/.pi stays exempt
+			// root = the active agent dir: `agents/` itself is walked (a planted symlink there
+			// would redirect every agent write), while a symlinked agent dir stays exempt
 			assertNoSymlinkWrite(path.dirname(AGENTS_DIR), path.join(AGENTS_DIR, `${name}.md`));
 			backupWrite(path.join(AGENTS_DIR, `${name}.md`), String(body.content ?? ""));
 			return json(res, 200, { ok: true, path: path.join(AGENTS_DIR, `${name}.md`) });

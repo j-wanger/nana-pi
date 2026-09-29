@@ -2,7 +2,8 @@
  * nana-lifecycle — session lifecycle observability.
  *
  * Appends session events (start/compaction/shutdown) as JSONL to the nana
- * journal (~/.pi/agent/nana-journal.jsonl by default) and surfaces compaction
+ * journal (<pi's active agent dir>/nana-journal.jsonl by default — PI_CODING_AGENT_DIR,
+ * else ~/.pi/agent; lib/config.ts journalFile) and surfaces compaction
  * in the UI. The footer shows "nana-pack ✓" so a loaded pack is visible.
  *
  * Also owns /reload-runtime — the only way a non-TUI host (the desk, any RPC

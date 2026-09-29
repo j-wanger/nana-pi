@@ -99,7 +99,9 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    purpose, so the "only these files" hard rule above still holds. The same
    throwaway render also carries the step-6 seeds, so one render serves both.
 
-5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check `~/.pi/agent/nana-pack.json`: if the user
+5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check the user-scope config — `$PI_CODING_AGENT_DIR/nana-pack.json` when
+   `PI_CODING_AGENT_DIR` is set, else `~/.pi/agent/nana-pack.json` (that is the one the pack
+   reads; a file in the other location is ignored): if the user
    already has user-scope `postEdit.commands`, do NOT write this starter —
    project config replaces user config per key-group, so a project `postEdit`
    block would SHADOW their global checks in this project; say the global checks
@@ -130,8 +132,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    `postEdit` placeholder if it is missing. Never overwrite real commands with the placeholder. Tell the
    user where to fill in their real `match`/`run`, and that this file takes effect
    **only in a trusted project** (pi's project-trust gate) — an untrusted repo's
-   **project** config is ignored, though any user-scope `~/.pi/agent/nana-pack.json`
-   commands still run. Tell the user to run `/trust` in pi once for this folder (then restart): pi auto-trusts a `.pi/` holding only nana files, and nana does not count that, so the seeded config stays inert (with a warning) until they do.
+   **project** config is ignored, though any user-scope `nana-pack.json` commands (the one in pi's
+   active agent dir, as above) still run. Tell the user to run `/trust` in pi once for this folder (then restart): pi auto-trusts a `.pi/` holding only nana files, and nana does not count that, so the seeded config stays inert (with a warning) until they do.
 
 6. **The three frontier seeds — only when absent.** A project the pack can
    actually run a session in needs `OBJECTIVE.md` (what session start prints and

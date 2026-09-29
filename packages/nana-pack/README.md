@@ -346,10 +346,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
   is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
   backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
   one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
-  `Out-File`, even `cat`). What is **not** caught — a path the shell computes at run time:
+  `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
+  `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
+  followed by `/nana-pack.json` or `/trust.json` (either slash). When `nana-pack.json` or
+  `trust.json` in the active or default agent dir is a symlink, its target is a policy file
+  too. What is **not** caught — a path the shell computes at run time, general variable
+  expansion included:
   `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
   and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
-  variable, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
+  variable other than the one spelling above, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
   directory symlink created and written through in the same command, `cd … | xargs tee
   nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
   command text would not close this (every pattern invites the next form), so none is added.
@@ -401,7 +406,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   once but cannot loosen it until the next session start or `/reload`.
 - **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
   later extension can still mutate a checked input, and it reads command *text*: it cannot see
-  what a variable, an alias, a script file or `python`/`node` code does at run time, nor
+  what a variable (other than the `$PI_CODING_AGENT_DIR` spelling above) does, an alias, a script file or `python`/`node` code does at run time, nor
   follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;

@@ -257,12 +257,34 @@ export function normalizeRaw(raw: unknown): { blocks: Blocks; problems: string[]
 	return { blocks, problems };
 }
 
+function isLink(p: string): boolean {
+	try {
+		return fs.lstatSync(p).isSymbolicLink();
+	} catch {
+		return false;
+	}
+}
+
+function linkText(p: string): string {
+	try {
+		return fs.readlinkSync(p);
+	} catch {
+		return "?";
+	}
+}
+
 function readConfigFile(p: string): FileRead {
 	let text: string;
 	try {
 		text = fs.readFileSync(p, "utf-8");
 	} catch (e: any) {
-		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") return { present: false, blocks: {}, problems: [], gateValid: true };
+		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") {
+			// Absent only if NOTHING is there. A symlink that resolves nowhere is a policy file
+			// that cannot be read — unusable, so the last-valid / stop rule applies (never a
+			// silent fall to the defaults, which would drop its denies).
+			if (isLink(p)) return { present: true, blocks: {}, problems: [`unreadable (dangling symlink → ${linkText(p)}) — file ignored`], gateValid: false };
+			return { present: false, blocks: {}, problems: [], gateValid: true };
+		}
 		return { present: true, blocks: {}, problems: [`unreadable (${e?.code ?? "error"}) — file ignored`], gateValid: false };
 	}
 	let raw: unknown;
@@ -433,7 +455,11 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	let cfg: NanaPackConfig;
 	try {
 		const userFile = userConfigPath();
-		const user = readConfigFile(userFile);
+		// A relative userFile means the agent dir could not be resolved (a relative
+		// PI_CODING_AGENT_DIR under a deleted cwd): which file pi reads is unknowable — unusable.
+		const user: FileRead = path.isAbsolute(userFile)
+			? readConfigFile(userFile)
+			: { present: true, blocks: {}, problems: ["unreadable (agent dir unresolvable: relative PI_CODING_AGENT_DIR and the working directory is gone) — file ignored"], gateValid: false };
 		for (const p of user.problems) notes.push(["config_invalid", userFile, p]);
 
 		// --- user gate: never "default" when the block is malformed
@@ -527,7 +553,11 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.
 		cfg = structuredClone(DEFAULTS);
-		cfg.gate.stopReason = gateStopReason(userConfigPath(), `config load failed (${String(e).slice(0, 120)})`);
+		// userFile is not in scope here and userConfigPath() may be what threw: name the file
+		// generically (no fs, no cwd, no resolution) — this catch must not throw.
+		cfg.gate.stopReason = gateStopReason(
+			"<pi agent dir>/nana-pack.json",
+			`config load failed (${String(e).slice(0, 120)})`);
 	}
 	for (const [event, file, problem] of notes) surface(ctx, cfg, event, file, problem);
 	return cfg;

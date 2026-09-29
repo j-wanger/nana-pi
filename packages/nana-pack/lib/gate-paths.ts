@@ -3,7 +3,7 @@
  *
  * Policy files are the gate's own policy and the trust evidence behind it: `nana-pack.json`
  * (user and project scope) and pi's `trust.json` — each in the default agent dir AND in pi's
- * active one (`PI_CODING_AGENT_DIR`, and its realpath),
+ * active one (`PI_CODING_AGENT_DIR`, and its realpath), and wherever a symlinked policy file points,
  * and the Claude policy files `.claude/settings.json`, `.claude/settings.local.json`,
  * `.claude/hooks/**` (user `~/.claude` and project scope alike). A tool call touching one is on the gate's FLOOR: no allow pattern
  * exempts it. Matching is case-insensitive and slash-agnostic on every platform (macOS and
@@ -15,39 +15,11 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { piAgentDir, piAgentDirIsCwdRelative, piNormalizePath } from "./agent-dir.mjs";
 
-// Mirrors pi's `resolveToCwd` (dist/core/tools/path-utils.js), copied from nana-post-edit.ts
-// (not imported: post-edit is another lane's file): unicode spaces folded, leading `@`
-// stripped, win32 shell paths converted, `~` expanded, file:// converted.
+// Mirrors pi's `resolveToCwd` (dist/core/tools/path-utils.js): unicode spaces folded, leading `@`
+// stripped, then pi's normalizePath (lib/agent-dir.mjs: win32 shell paths, `~`, file://).
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
-
-function normalizeWindowsShellPath(filePath: string): string {
-	if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
-	const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
-	if (!match) return filePath;
-	const suffix = match[2]?.replaceAll("/", "\\");
-	return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
-}
-
-/** pi's `normalizePath` with its defaults (dist/utils/paths.js): win32 shell path, `~` / `~/`, file://. */
-function piNormalizePath(input: string): string {
-	let normalized = input;
-	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
-	const home = os.homedir();
-	if (normalized === "~") return home;
-	if (normalized.startsWith("~/") || (process.platform === "win32" && normalized.startsWith("~\\"))) {
-		return path.join(home, normalized.slice(2));
-	}
-	if (/^file:\/\//.test(normalized)) {
-		try {
-			return fileURLToPath(normalized);
-		} catch {
-			return normalized;
-		}
-	}
-	return normalized;
-}
 
 function normalizeToolPath(input: string): string {
 	let normalized = input.replace(UNICODE_SPACES, " ");
@@ -55,37 +27,8 @@ function normalizeToolPath(input: string): string {
 	return piNormalizePath(normalized);
 }
 
-/**
- * pi's ACTIVE agent dir, resolved exactly as pi does — the ONE resolution nana-pack uses for it
- * (the gate's policy floor and the T2c label's trust store alike). pi: getAgentDir() =
- * `PI_CODING_AGENT_DIR` (non-empty) through normalizePath, else ~/.pi/agent (dist/config.js);
- * ProjectTrustStore then resolvePath()s it, so a RELATIVE value resolves against process.cwd()
- * (dist/core/trust-manager.js). Never throws.
- */
-export function piAgentDir(): string {
-	const env = process.env.PI_CODING_AGENT_DIR;
-	if (!env) return path.join(os.homedir(), ".pi", "agent");
-	try {
-		return path.resolve(piNormalizePath(env));
-	} catch {
-		return path.resolve(env);
-	}
-}
-
-/**
- * True when `PI_CODING_AGENT_DIR` is set to a value that stays RELATIVE after pi's normalizePath:
- * each pi process then resolves it against its OWN start folder (pi dist/main.js:458 getAgentDir →
- * trust-manager.js:173 resolvePath), so starting pi elsewhere selects a DIFFERENT store. Never throws.
- */
-export function piAgentDirIsCwdRelative(): boolean {
-	const env = process.env.PI_CODING_AGENT_DIR;
-	if (!env) return false;
-	try {
-		return !path.isAbsolute(piNormalizePath(env));
-	} catch {
-		return !path.isAbsolute(env);
-	}
-}
+// pi's ACTIVE agent dir: ONE implementation, shared with the desk and nana-setup (lib/agent-dir.mjs).
+export { piAgentDir, piAgentDirIsCwdRelative };
 
 /** pi's ACTIVE trust store: `<piAgentDir()>/trust.json` (ProjectTrustStore.trustPath). */
 export const piTrustStorePath = (): string => path.join(piAgentDir(), "trust.json");
@@ -110,6 +53,14 @@ function realish(p: string): string | null {
 		} catch {
 			return null;
 		}
+	}
+}
+
+function linkTarget(p: string): string | null {
+	try {
+		return path.resolve(path.dirname(p), fs.readlinkSync(p));
+	} catch {
+		return null;
 	}
 }
 
@@ -138,14 +89,28 @@ const POLICY_RES: RegExp[] = [
 
 /**
  * The policy files that live in pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` moves it out of
- * `~/.pi/agent`, docs/environment-variables.md): the trust store and the user `nana-pack.json`,
- * at piAgentDir() and at its realpath (a symlinked agent dir). The shape regexes above keep the
- * DEFAULT dir's files protected even when they are not the active ones.
+ * `~/.pi/agent`, docs/environment-variables.md) and in the DEFAULT one: the trust store and the
+ * user `nana-pack.json` — at the dir, at the dir's realpath (a symlinked agent dir), and at the
+ * realpath of each FILE (a symlinked `nana-pack.json` / `trust.json`: the gate reads and enforces
+ * the TARGET, so the target is policy too). The shape regexes above keep the default dir's
+ * names protected; this list adds what no shape can see.
  */
 function activeDirPolicyFiles(): string[] {
-	const d = piAgentDir();
-	const dirs = [d, realish(d)].filter((x): x is string => !!x);
-	return dirs.flatMap((a) => ["trust.json", "nana-pack.json"].map((f) => key(path.join(a, f))));
+	const out = new Set<string>();
+	for (const d of [piAgentDir(), path.join(os.homedir(), ".pi", "agent")]) {
+		for (const dir of [d, realish(d)]) {
+			if (!dir) continue;
+			for (const f of ["trust.json", "nana-pack.json"]) {
+				const file = path.join(dir, f);
+				out.add(key(file));
+				const target = realish(file);
+				if (target) out.add(key(target));
+				const next = linkTarget(file); // a dangling link: realpath fails, its first hop does not
+				if (next) out.add(key(next));
+			}
+		}
+	}
+	return [...out];
 }
 
 /** The policy file a set of path candidates lands on, or null. */
