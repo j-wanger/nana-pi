@@ -20,14 +20,14 @@
  *
  * Storage: receipts live OUTSIDE any source tree, best-effort (never crash the
  * agent), keyed by repo + checker so the latest receipt for a checker is
- * findable. Default: ~/.pi/agent/receipts/<repoHash>/<checkerHash>.json.
+ * findable. Default: <pi's active agent dir (piAgentDir())>/receipts/<repoHash>/<checkerHash>.json.
  */
 
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import type { NanaPackConfig } from "./config.ts";
+import { piAgentDir } from "./gate-paths.ts";
 
 /** Exit classification — error/timeout/not_run are NEVER folded into passed. */
 export type CheckStatus = "checks_passed" | "checks_failed" | "error" | "timeout" | "not_run";
@@ -141,7 +141,7 @@ export function receiptsDir(cfg: NanaPackConfig): string {
 	// config shape can feed a non-string into path APIs downstream.
 	return typeof cfg.receipts.dir === "string"
 		? cfg.receipts.dir
-		: path.join(os.homedir(), ".pi", "agent", "receipts");
+		: path.join(piAgentDir(), "receipts");
 }
 
 /** One file per (repo, checker) so the latest receipt for a checker is findable. */

@@ -2,7 +2,8 @@
  * gate-paths — resolve tool paths the way pi does, and recognise POLICY files (L2).
  *
  * Policy files are the gate's own policy and the trust evidence behind it: `nana-pack.json`
- * (user and project scope), pi's `trust.json` (default agent dir and `PI_CODING_AGENT_DIR`),
+ * (user and project scope) and pi's `trust.json` — each in the default agent dir AND in pi's
+ * active one (`PI_CODING_AGENT_DIR`, and its realpath),
  * and the Claude policy files `.claude/settings.json`, `.claude/settings.local.json`,
  * `.claude/hooks/**` (user `~/.claude` and project scope alike). A tool call touching one is on the gate's FLOOR: no allow pattern
  * exempts it. Matching is case-insensitive and slash-agnostic on every platform (macOS and
@@ -135,24 +136,33 @@ const POLICY_RES: RegExp[] = [
 	/\.claude[/\\](settings(\.local)?\.json|hooks([/\\]|$))/i,
 ];
 
-/** `PI_CODING_AGENT_DIR` moves pi's trust store out of `~/.pi/agent` (docs/environment-variables.md); resolved by piAgentDir(). */
-function altTrustStores(): string[] {
-	if (!process.env.PI_CODING_AGENT_DIR) return [];
+/**
+ * The policy files that live in pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` moves it out of
+ * `~/.pi/agent`, docs/environment-variables.md): the trust store and the user `nana-pack.json`,
+ * at piAgentDir() and at its realpath (a symlinked agent dir). The shape regexes above keep the
+ * DEFAULT dir's files protected even when they are not the active ones.
+ */
+function activeDirPolicyFiles(): string[] {
 	const d = piAgentDir();
-	return [d, realish(d)].filter((x): x is string => !!x).map((a) => key(path.join(a, "trust.json")));
+	const dirs = [d, realish(d)].filter((x): x is string => !!x);
+	return dirs.flatMap((a) => ["trust.json", "nana-pack.json"].map((f) => key(path.join(a, f))));
 }
 
 /** The policy file a set of path candidates lands on, or null. */
 export function policyFileHit(candidates: string[]): string | null {
 	try {
 		for (const c of candidates) if (POLICY_RES.some((re) => re.test(c))) return c;
-		const alt = altTrustStores();
+		const alt = activeDirPolicyFiles();
 		for (const c of candidates) if (alt.includes(key(c))) return c;
 		return null;
 	} catch {
 		return null;
 	}
 }
+
+// A shell word naming a policy file through the agent-dir variable itself — the shell expands it,
+// the gate cannot (`> $PI_CODING_AGENT_DIR/nana-pack.json`, `%PI_CODING_AGENT_DIR%\\trust.json`).
+const AGENT_DIR_VAR_RE = /(\$\{?|\$env:|%)PI_CODING_AGENT_DIR\}?%?[/\\]+(nana-pack|trust)\.json/i;
 
 /**
  * A shell command that names a policy file (redirection, `tee`, `sed -i`, `Set-Content`,
@@ -165,7 +175,7 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 		const text = command
 			.replace(/["']/g, "")
 			.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
-		const direct = POLICY_RES.find((re) => re.test(text));
+		const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
 		if (direct) return String(direct);
 		for (const w of text.split(/[\s;|&<>()=,`]+/)) {
 			if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
