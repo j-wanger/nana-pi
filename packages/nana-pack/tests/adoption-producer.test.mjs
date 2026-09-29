@@ -48,7 +48,14 @@ const repo = (name, files = []) => {
 };
 const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-")));
 
-check("the shared predicate's store path equals the extension's storePathFor", [base, "/", "/tmp/x y", NANA_HOME].every((p) => lib.storeEntryFor(p) === mod.storePathFor(p)));
+// ONE store resolver (sol r1 MUST 3): the extension re-exports lib/adoption.mjs's functions — the
+// same objects, not an agreeing copy — and its source no longer hashes a store key of its own.
+{
+	const src = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
+	check("one store: extension storePathFor/storeDir/canonicalCwd ARE lib/adoption.mjs's", mod.storePathFor === lib.storePathFor && mod.storeDir === lib.storeDir && mod.canonicalCwd === lib.canonicalCwd);
+	check("one store: no createHash / storeDir definition left in the extension", !src.includes("createHash") && !/(const|function) (storeDir|storePathFor|canonicalCwd)\b/.test(src));
+	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
+}
 
 // (a) written once for a repo root with nothing — the line as emitted
 {
@@ -159,6 +166,64 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	cfg({ journal: { enabled: true, path: path.join(base, "missing-dir", "j.jsonl") } });
 	check("journal unwritable: prompt still BASE, no throw", (await prompt(r)) === "BASE");
 	cfg();
+}
+
+// producer and reader agree on ONE journal (sol r1 MUST 2): a project-scope journal.path never
+// captures the event, a relative user-scope path is not honoured for it — both land in
+// <agent dir>/nana-journal.jsonl, which is exactly where the reader looks.
+{
+	const BIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin", "nana-adoption.mjs");
+	const DEFAULT_J = path.join(NANA_HOME, ".pi", "agent", "nana-journal.jsonl");
+	const readerEnv = { ...process.env, HOME: NANA_HOME, USERPROFILE: NANA_HOME };
+	const reader = (cwd) => spawnSync(process.execPath, [BIN], { cwd, env: readerEnv, encoding: "utf8" });
+	const listed = (out, r) => out.includes(`- \`${r}\` —`);
+	// project-scope override (trusted project)
+	const r = repo("project-override");
+	const projJ = path.join(base, "project-journal.jsonl");
+	mk(path.join(r, ".pi"));
+	fs.writeFileSync(path.join(r, ".pi", "nana-pack.json"), JSON.stringify({ journal: { path: projJ } }));
+	const { loadConfig, usePiTrustModule } = await import(new URL("../lib/config.ts", import.meta.url).href);
+	usePiTrustModule({ hasTrustRequiringProjectResources: () => true, ProjectTrustStore: class { get() { return true; } } }); // nana-trusted
+	check("journal: the project journal.path IS honoured by config (test is not vacuous)", loadConfig({ cwd: r, hasUI: false, isProjectTrusted: () => true }).journal.path === projJ);
+	await prompt(r);
+	check("journal: project journal.path does NOT capture directory_unadopted", !(fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"directory_unadopted"')));
+	check("journal: …the user-scope journal does", reportsFor(r).length === 1);
+	check("journal: …other events still follow the project journal.path", fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"handoff_missing"'));
+	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
+	// relative user-scope path: producer (pi cwd = r2) and reader (another cwd) both use the default
+	const r2 = repo("relative-user");
+	cfg({ journal: { enabled: true, path: "rel-journal.jsonl" } });
+	await prompt(r2);
+	const out = reader(NANA_HOME).stdout;
+	cfg();
+	const inDefault = fs.existsSync(DEFAULT_J) && fs.readFileSync(DEFAULT_J, "utf8").split("\n").some((l) => l.includes('"directory_unadopted"') && l.includes(JSON.stringify(r2)));
+	check("journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl", inDefault);
+	check("journal: …not to a cwd-relative file", !fs.existsSync(path.join(r2, "rel-journal.jsonl")) || !fs.readFileSync(path.join(r2, "rel-journal.jsonl"), "utf8").includes('"directory_unadopted"'));
+	check("journal: …and the reader, from another cwd, lists it", listed(out, r2), out);
+}
+// a root the reader would refuse (a newline in its name) is never journaled — not once, not daily
+{
+	const r = repo("nl\n## FORGED");
+	await prompt(r);
+	await prompt(r);
+	check("unprintable root: no directory_unadopted line", reportsFor(r).length === 0 && !fs.readFileSync(JOURNAL, "utf8").includes("FORGED\",\"has"));
+}
+// the configured objective filename counts as adoption (sol r1 MUST 5), in producer and reader alike
+{
+	const r = repo("renamed-objective", ["GOALS.md"]);
+	cfg({ objective: { projectFile: "GOALS.md" } });
+	await prompt(r);
+	check("objective: GOALS.md with objective.projectFile=GOALS.md → adopted, no line", reportsFor(r).length === 0);
+	check("objective: adoptionSettings() names it", lib.adoptionSettings().objectiveFile === "GOALS.md");
+	const { projectFileName } = await import(new URL("../lib/objective.ts", import.meta.url).href);
+	for (const v of ["GOALS.md", "", ".", "..", "a/b", "a\\b", 7, null, false]) {
+		cfg({ objective: { projectFile: v } });
+		check(`objective: adoption's name agrees with lib/objective.ts for ${JSON.stringify(v)}`, lib.adoptionSettings().objectiveFile === projectFileName({ projectFile: v }));
+	}
+	cfg();
+	const r2 = repo("default-objective-only", ["GOALS.md"]);
+	await prompt(r2);
+	check("objective: without the setting GOALS.md is not an objective → line", reportsFor(r2).length === 1);
 }
 
 // (e) the session prompt is byte-identical to the pre-L5 extension (eca3de4), same scenarios

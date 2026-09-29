@@ -25,7 +25,7 @@ const marker = path.join(dir, ".nana-not-a-project");
 // the reader names the repo before the dismissal
 fs.writeFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), event: "directory_unadopted", cwd: dir, has: {} })}\n`);
 const read = () => spawnSync(process.execPath, [reader], { env, encoding: "utf8" });
-check("before: the reader names the repo", read().stdout.includes(`- ${dir} —`));
+check("before: the reader names the repo", read().stdout.includes(`- \`${dir}\` —`)); // paths render in backticks (L5 sol r1 MUST 1)
 
 const dry = setup(dir, "--not-a-project", "--dry-run");
 check("dry run writes nothing", dry.status === 0 && !fs.existsSync(marker), dry.stdout + dry.stderr);

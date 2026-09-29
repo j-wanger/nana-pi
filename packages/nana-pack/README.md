@@ -441,13 +441,23 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Adoption signal** (L5, 2026-09-29). When a fresh session's store entry is *missing* (never
   merely unreadable), no `handoff.path` is configured, and the session runs inside a git
   repository (`.git` directory or file — a linked worktree is its own root) whose **root** has no
-  store entry, no `OBJECTIVE.md` and no `.nana-not-a-project`, the handoff extension journals
+  store entry, no objective file (user-scope `objective.projectFile`, default `OBJECTIVE.md`) and
+  no `.nana-not-a-project`, the handoff extension journals
   `{"event":"directory_unadopted","cwd":"<repo root>","has":{"handoff","objective","agents","sessions"}}`
   — at most once per root per 24 h (a 256 KiB journal tail is checked). **Journal only**: nothing
-  is added to any prompt. The seat's Claude Code SessionStart hook `nana-adoption.sh` runs
-  `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own): the last 7 days of those
-  lines, re-checked at print time (adopted, dismissed or gone roots drop), newest first, at most
-  5 then `…and N more`, under `[nana:adoption]` — and nothing at all when there is nothing.
+  is added to any prompt. This line is **user-scope state**: it goes to the user-scope
+  `journal.path` when that is ABSOLUTE, else `<pi's active agent dir>/nana-journal.jsonl` — a
+  project-scope `journal.path` never captures it, and a relative user-scope one is not honoured
+  for it (every other journal event is unchanged). The seat's Claude Code SessionStart hook
+  `nana-adoption.sh` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
+  computes the same file: the last 7 days of those lines, re-checked at print time (adopted,
+  dismissed, gone or no-longer-a-repo roots drop), newest first, at most 5 then `…and N more`,
+  under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
+  backticks (`` ` `` and `\` escaped); a claim that is relative, the filesystem root, over 512
+  characters, holds a control character, or carries a future/unparseable `ts` is never printed —
+  only counted (`N entries were not printable`). A journal that exists but cannot be read prints
+  `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
+  (file, directory, symlink) counts: it is a decision record whose content is never read.
   Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
 - **Handoff** (L3, 2026-09-28) writes the latest compaction summary to a **user-scope store**,
   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` (canonical = realpath; the key is case-folded
