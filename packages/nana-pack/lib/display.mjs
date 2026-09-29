@@ -113,11 +113,17 @@ export const fileField = displayText;
  * bidi controls). A backslash does not escape a backtick in a code span, so escaping is not an
  * option: an unsafe string is REFUSED (codeSpan returns null) and the caller counts or omits it.
  */
-export function codeSpanSafe(s) {
-	return typeof s === "string" && !PATH_UNSAFE.test(s) && !s.includes("`");
+export const CODE_SPAN_CAP = 512;
+export function codeSpanSafe(s, cap = CODE_SPAN_CAP) {
+	return typeof s === "string" && s.length <= cap && !PATH_UNSAFE.test(s) && !s.includes("`");
 }
-/** `s` as a Markdown code span, or null when codeSpanSafe(s) is false. Nothing is escaped. */
-export const codeSpan = (s) => (codeSpanSafe(s) ? `\`${s}\`` : null);
+/**
+ * `s` as a Markdown code span, or null when codeSpanSafe(s) is false. Nothing is escaped.
+ * Over-long is refused like any other unsafe value (sol r1 #3): a 4 KB span is unreadable to the
+ * person it is written for, and every caller already has a "refused" branch. A caller with its own
+ * tighter bound passes it as `cap`.
+ */
+export const codeSpan = (s, cap = CODE_SPAN_CAP) => (codeSpanSafe(s, cap) ? `\`${s}\`` : null);
 
 /** Lone surrogates: escaped (never replaced) so a locator decodes to the exact path. */
 const LONE = /^[\ud800-\udfff]$/;

@@ -44,15 +44,20 @@ function quote(file: string): string {
 
 /** Cap on one failure's checker output as fed to the model (its TAIL is kept: errors print last). */
 const FAILURE_CAP = 2000;
+const CMD_CAP = 400; // the repo-configured command, shown to the model; its truncation is stated
 
 /**
  * One failure as ONE line of model-visible text (lib/display.mjs promptText): the command and the
  * checker's output are repo-controlled, so neither may start a line, a heading or a fence of its
  * own. Output line breaks are shown as " ⏎ " so the lines stay legible; the tail FAILURE_CAP chars
- * are kept and a truncation is stated.
+ * are kept, and BOTH truncations — command and output — are stated.
  */
 function failureLine(cmd: string, what: string, out?: string): string {
-	const head = `- check ${promptText(cmd, 400)} ${what}`;
+	// The COMMAND is repo-configured too, so its truncation is stated like the output's (sol r1 #1):
+	// a silently cut command leaves the model reading something the project never configured.
+	const shownCmd = promptText(cmd, CMD_CAP);
+	const cmdCut = String(cmd).length > CMD_CAP;
+	const head = `- check ${shownCmd}${cmdCut ? ` (command truncated: first ${CMD_CAP} of ${String(cmd).length} chars shown)` : ""} ${what}`;
 	if (out === undefined) return head;
 	const o = String(out);
 	const cut = o.length > FAILURE_CAP;

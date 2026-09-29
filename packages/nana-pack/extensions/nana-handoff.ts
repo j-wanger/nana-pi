@@ -220,13 +220,16 @@ function ageText(ms: number): string {
 }
 
 /**
- * Characters pi's read tool rewrites (resolveToCwd folds this Unicode-space class to " ")
- * or that cannot survive a one-line pointer (tab, CR, LF). A path containing any of them
- * is not addressable as written — emitted verbatim it could resolve to an ASCII-space decoy.
+ * Characters that make a path unaddressable as written, for either of two reasons: pi's read tool
+ * REWRITES them (resolveToCwd folds this Unicode-space class to " ", so a verbatim path could
+ * resolve to an ASCII-space decoy), or they cannot survive a one-line pointer at all (tab, CR, LF).
+ * The locator also escapes a third class the renderer refuses everywhere — controls, bidi controls,
+ * line separators, lone surrogates — which the read tool does NOT rewrite; the mark below covers
+ * all three, so it names the consequence and not one cause (sol r1 #4).
  */
 const UNADDRESSABLE = /[  -   　\t\r\n]/;
 export const UNADDRESSABLE_MARK =
-	"— path contains characters the read tool rewrites; JSON-escaped here, decode it exactly (do not pass it to read as written)";
+	"— path contains characters that are unsafe or rewritten in transit; JSON-escaped here, decode it exactly (do not pass it to read as written)";
 
 /**
  * A locator for `file` as shown in the prompt (lib/display.mjs locator: exact, never elided).
