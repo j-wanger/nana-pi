@@ -3,6 +3,10 @@
 import type { Db } from "./db.ts";
 import { ftsQuery, meaningfulTokens } from "./tokenize.ts";
 import { tildeify } from "./paths.ts";
+// nana-pack's ONE renderer for model-visible text (lane S2). A cross-package relative import,
+// the shape apps/desk uses for nana-stage's sign.mjs: both packages ship in this one repo and
+// one install, and a second copy of the escaping rule is exactly the drift S1 closed.
+import { head, promptPath, promptText, str } from "../../nana-pack/lib/display.mjs";
 
 export interface Hit {
 	key: string;
@@ -30,19 +34,31 @@ export function search(db: Db, text: string, limit: number): Hit[] {
 	let rows: any[];
 	try { rows = db.prepare(SQL).all(ftsQuery(tokens), limit); }
 	catch { return []; }
-	return rows.map((r) => ({
-		key: r.key,
-		path: r.path,
-		display: tildeify(r.path) + (r.loc ? `:${r.loc}` : ""),
-		loc: r.loc ?? null,
-		kind: r.kind,
-		title: clean(r.title, 90),
-		snippet: clean(r.snip ?? "", SNIPPET_MAX),
-		score: r.score,
-	}));
+	const hits: Hit[] = [];
+	// A row that cannot be rendered costs its pointer, never the search.
+	for (const r of rows) {
+		try {
+			hits.push({
+				key: r.key,
+				path: r.path,
+				// tildeify SHORTENS; promptPath RENDERS. The :loc suffix comes from the number, never a string.
+				display: promptPath(tildeify(str(r.path))) + (Number.isSafeInteger(r.loc) && r.loc > 0 ? `:${r.loc}` : ""),
+				loc: r.loc ?? null,
+				kind: r.kind,
+				title: clean(r.title, 90),
+				snippet: clean(r.snip ?? "", SNIPPET_MAX),
+				score: r.score,
+			});
+		} catch { /* dropped */ }
+	}
+	return hits;
 }
 
-function clean(s: string, max: number): string {
-	const flat = String(s).replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
-	return flat.length > max ? flat.slice(0, max - 1).replace(/\s+\S*$/, "") + "…" : flat;
+/** 16× the display cap: generous enough that the whitespace collapse below rarely loses words. */
+const PRE_CAP = 16;
+
+/** promptText is the rule; collapsing whitespace and cutting on a word boundary is a display nicety on top. */
+function clean(s: unknown, max: number): string {
+	const flat = promptText(s, max * PRE_CAP).replace(/\s{2,}/g, " ").trim();
+	return flat.length > max ? head(flat, max - 1).replace(/\s+\S*$/, "") + "…" : flat;
 }

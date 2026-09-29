@@ -8,6 +8,7 @@ import { indexAgeMs } from "./build.ts";
 import { openDb } from "./db.ts";
 import { paths } from "./paths.ts";
 import { search, type Hit } from "./query.ts";
+import { promptText, str } from "../../nana-pack/lib/display.mjs";
 import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
@@ -90,7 +91,11 @@ export function renderBlock(hits: Hit[]): string {
 	const lines = [head];
 	let total = head.length;
 	for (const h of hits) {
-		const line = `- ${h.title} — ${h.display}${h.snippet ? ` — ${h.snippet}` : ""}`;
+		// search() already rendered every field; rendering the LINE again through the same rule is
+		// idempotent on those and is what makes N hits exactly N+1 lines whatever a Hit holds.
+		let line: string;
+		try { line = promptText(`- ${str(h.title)} — ${str(h.display)}${h.snippet ? ` — ${str(h.snippet)}` : ""}`, BLOCK_MAX_CHARS); }
+		catch { continue; }
 		if (total + 1 + line.length > BLOCK_MAX_CHARS) break;
 		lines.push(line);
 		total += 1 + line.length;
