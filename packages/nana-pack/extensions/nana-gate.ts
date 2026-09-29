@@ -33,7 +33,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
-import { displayText } from "../lib/objective.ts";
+import { displayPath, displayText } from "../lib/objective.ts";
 import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
@@ -145,10 +145,6 @@ function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
 	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
 	return p ? { label: "protected path", reason: String(p) } : null;
-}
-
-function truncate(s: string, n: number): string {
-	return s.length <= n ? s : `${s.slice(0, n)}…`;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -281,8 +277,11 @@ export default function (pi: ExtensionAPI) {
 			return { block: true, reason: `nana-gate: ${hit.label} blocked (headless fail-closed): ${hit.reason}` };
 		}
 
+		// DISPLAY only: the raw subject above decided the hit; the person sees it through the shared
+		// renderers — a command as one line of text (cut shown with …), a path as an escaped path.
+		const shown = isCommand ? `${displayText(subject, 400)}${subject.length > 400 ? "…" : ""}` : displayPath(subject);
 		const choice = await ctx.ui.select(
-			`nana-gate — ${hit.label} (${hit.reason}) in ${event.toolName}:\n\n  ${truncate(subject, 400)}\n\nAllow?`,
+			`nana-gate — ${displayText(hit.label, 80)} (${displayText(hit.reason, 400)}) in ${displayText(event.toolName, 40)}:\n\n  ${shown}\n\nAllow?`,
 			["Block", "Allow once"],
 		);
 		if (choice !== "Allow once") {

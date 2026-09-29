@@ -24,6 +24,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 import {
 	type CheckStatus,
 	computeInputsDigest,
@@ -41,8 +42,27 @@ function quote(file: string): string {
 	return `"${file.replace(/(["\\$`])/g, "\\$1")}"`;
 }
 
-function tail(s: string, n: number): string {
-	return s.length <= n ? s : `…${s.slice(-n)}`;
+/** Cap on one failure's checker output as fed to the model (its TAIL is kept: errors print last). */
+const FAILURE_CAP = 2000;
+const CMD_CAP = 400; // the repo-configured command, shown to the model; its truncation is stated
+
+/**
+ * One failure as ONE line of model-visible text (lib/display.mjs promptText): the command and the
+ * checker's output are repo-controlled, so neither may start a line, a heading or a fence of its
+ * own. Output line breaks are shown as " ⏎ " so the lines stay legible; the tail FAILURE_CAP chars
+ * are kept, and BOTH truncations — command and output — are stated.
+ */
+function failureLine(cmd: string, what: string, out?: string): string {
+	// The COMMAND is repo-configured too, so its truncation is stated like the output's (sol r1 #1):
+	// a silently cut command leaves the model reading something the project never configured.
+	const shownCmd = promptText(cmd, CMD_CAP);
+	const cmdCut = String(cmd).length > CMD_CAP;
+	const head = `- check ${shownCmd}${cmdCut ? ` (command truncated: first ${CMD_CAP} of ${String(cmd).length} chars shown)` : ""} ${what}`;
+	if (out === undefined) return head;
+	const o = String(out);
+	const cut = o.length > FAILURE_CAP;
+	const body = promptText((cut ? o.slice(-FAILURE_CAP) : o).replace(/\r\n|[\n\r\u0085\u2028\u2029]/g, " ⏎ "), FAILURE_CAP * 3);
+	return `${head}${cut ? ` (output truncated: last ${FAILURE_CAP} of ${o.length} chars shown)` : ""}: ${body}`;
 }
 
 /** Per-check outcome for the status line: pi's own statuses plus the lock refusal. */
@@ -436,7 +456,7 @@ export default function (pi: ExtensionAPI) {
 					digestBefore: null,
 					inputsStableDuringCheck: false,
 				});
-				failures.push(`\`${cmd}\` did not run — could not lock ${abs} for checking: ${lockError}`);
+				failures.push(failureLine(cmd, `did not run — could not lock ${promptPath(abs)} for checking: ${promptText(lockError, 300)}`));
 				outcomes.push("lock");
 				continue;
 			}
@@ -472,9 +492,9 @@ export default function (pi: ExtensionAPI) {
 			// pass path stays silent.
 			if (status === "timeout" || status === "error") {
 				const why = status === "timeout" ? "did not complete (timed out)" : "could not run";
-				failures.push(`\`${cmd}\` ${why}:\n${tail(out, 2000)}`);
+				failures.push(failureLine(cmd, why, out));
 			} else if (code !== 0) {
-				failures.push(`\`${cmd}\` exited ${code}:\n${tail(out, 2000)}`);
+				failures.push(failureLine(cmd, `exited ${code}`, out));
 			}
 		}
 
@@ -484,7 +504,7 @@ export default function (pi: ExtensionAPI) {
 		// throw out of the tool_result handler and take the edit's result with it.
 		if (ctx.hasUI && outcomes.length > 0) {
 			try {
-				const s = statusLine(outcomes, path.basename(abs));
+				const s = statusLine(outcomes, uiPath(path.basename(abs)));
 				ctx.ui.setStatus("nana-post-edit", ctx.ui.theme.fg(s.color, s.text));
 			} catch {
 				// observability only
@@ -493,13 +513,13 @@ export default function (pi: ExtensionAPI) {
 
 		if (failures.length === 0) return undefined;
 
-		if (ctx.hasUI) ctx.ui.notify(`post-edit checks failed: ${file}`, "warning");
+		if (ctx.hasUI) ctx.ui.notify(`post-edit checks failed: ${uiPath(file)}`, "warning");
 		return {
 			content: [
 				...event.content,
 				{
 					type: "text" as const,
-					text: `[nana-post-edit] ${failures.length} check(s) failed after editing ${file}:\n\n${failures.join("\n\n")}\n\nFix these before proceeding.`,
+					text: `[nana-post-edit] ${failures.length} check(s) failed after editing ${promptPath(file)}:\n\n${failures.join("\n")}\n\nFix these before proceeding.`,
 				},
 			],
 		};
