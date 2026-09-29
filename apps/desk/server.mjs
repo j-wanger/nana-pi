@@ -205,8 +205,11 @@ let nextId = 1;
 // (stage-keys.mjs). Its hygiene pass reuses the desk's OWN session enumeration —
 // uncapped, because listSessions' 15-per-directory cap is a rail for the UI and
 // dropping a key for a session that merely fell off that list would put the stage
-// back where this change found it.
+// back where this change found it. The store itself stays at the fixed ~/.pi/agent path
+// and is shared with desks on other agent dirs, so it is told which sessions root this
+// enumeration covers and prunes only records issued under that root.
 const stageKeys = new StageKeyStore({
+	sessionsRoot: SESSIONS_DIR,
 	knownSessionIds: () => new Set(listSessions({ perDir: Infinity }).flatMap((g) => g.sessions.map((s) => s.id))),
 });
 

@@ -2661,6 +2661,12 @@ function spawnPopover(anchor) {
 	popover(anchor || $("btn-spawn"), (pop) => {
 		pop.classList.add("spawn-pop");
 		pop.appendChild(el("div", "pop-title", "Open a session"));
+		// The relative-agent-dir pin decides which settings, credentials, packages and trust every
+		// session opened here reads, so it is said HERE, where sessions are created — not only in
+		// Settings, which a user may never open (U2 astra land MUST 4).
+		const pinNote = el("div", "dim agent-dir-note");
+		pop.appendChild(pinNote);
+		getSettings().then((s) => { if (s.agentDirNote) pinNote.textContent = s.agentDirNote; else pinNote.remove(); }).catch(() => pinNote.remove());
 
 		const pathRow = el("div", "path-row");
 		const pathIn = el("input", "pop-filter");

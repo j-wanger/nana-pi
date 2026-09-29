@@ -187,8 +187,10 @@ An `AGENTS.override.md` replaces a layer instead of adding to it.
 can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`),
 and the handoff path. `<agent dir>/nana-pack.json` is the user-scope equivalent, always
 read — `<agent dir>` is pi's ACTIVE agent dir: `PI_CODING_AGENT_DIR` when set, else
-`~/.pi/agent`; with the variable set, `~/.pi/agent/nana-pack.json` is NOT read (the pack
-says so once per session). "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
+`~/.pi/agent`. When the variable resolves to a directory OTHER than `~/.pi/agent`,
+`~/.pi/agent/nana-pack.json` is NOT read (no fallback, no migration); the pack notes that once
+per session only when BOTH the active `<agent dir>/nana-pack.json` is absent AND a stranded
+`~/.pi/agent/nana-pack.json` exists — otherwise it says nothing. "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
 `pi -a` / the desk's trust box (one run) is not enough for a nana-only `.pi/`. A malformed
 (or over-cap) `gate` block, user or project, falls back to the last valid policy for that scope
 loaded in this process; with none (a fresh process), it stops every gated tool until the owner

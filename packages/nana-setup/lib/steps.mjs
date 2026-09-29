@@ -334,11 +334,16 @@ export function stepPath(layout, o) {
 
 const xml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-export function renderPlist(vars) {
+// `PI_CODING_AGENT_DIR` (optional): the agent dir the installer chose, when it is not the
+// default for the layout's base. launchd does not inherit the installing shell's environment,
+// so without it the service desk would start on ~/.pi/agent while the pack was installed
+// elsewhere. Absent → the entry is omitted and the plist is byte-identical to before.
+export function renderPlist({ PI_CODING_AGENT_DIR, ...vars }) {
+	vars.AGENT_DIR_ENV = PI_CODING_AGENT_DIR ? `\n\t\t<key>PI_CODING_AGENT_DIR</key><string>${xml(PI_CODING_AGENT_DIR)}</string>` : "";
 	const tmpl = fs.readFileSync(path.join(pkgRoot, "launchd", "com.nana.pi-desk.plist.tmpl"), "utf8");
 	return tmpl.replace(/\{\{(\w+)\}\}/g, (m, k) => {
 		if (!(k in vars)) throw new SetupError(`plist template placeholder {{${k}}} has no value`);
-		return xml(vars[k]);
+		return k === "AGENT_DIR_ENV" ? vars[k] : xml(vars[k]);
 	});
 }
 
@@ -352,6 +357,8 @@ export function stepDesk(layout, o) {
 		WORKDIR: repoRoot,
 		PATH: process.env.PATH || "",
 		LOG: layout.deskLog,
+		// always absolute here: install refuses an ambient relative override, flags are resolved
+		PI_CODING_AGENT_DIR: path.resolve(layout.piHome) === path.join(layout.base, ".pi", "agent") ? "" : path.resolve(layout.piHome),
 	});
 	const w = writeIfChanged(layout.plistPath, contents, o);
 	const out = [{ label: "desk plist", ...w }];
