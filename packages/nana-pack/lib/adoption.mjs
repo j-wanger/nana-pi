@@ -17,7 +17,6 @@ export const MARKER = ".nana-not-a-project";
 export const TAIL_BYTES = 256 * 1024;
 /** A claimed root longer than this is not printed (and not re-checked). */
 export const MAX_ROOT = 512;
-const SKEW_MS = 5 * 60_000;
 
 const present = (p) => {
 	try {
@@ -157,17 +156,20 @@ export function recentReports(lines, sinceMs, now = Date.now()) {
 		if (e?.event !== EVENT) continue;
 		const t = Date.parse(e.ts);
 		const cwd = e.cwd;
-		if (!printable(cwd) || !(t <= now + SKEW_MS)) {
+		// Age first, THEN validate: a claim already outside the window is simply gone, and must not
+		// keep a "not printable" count on screen for seven days (sol r2). A future timestamp is
+		// refused outright — no clock-skew tolerance, since `t > now` cannot order anything.
+		if (!(t > sinceMs) && !Number.isNaN(t)) continue;
+		if (!printable(cwd) || Number.isNaN(t) || t > now) {
 			bad.add(typeof cwd === "string" ? cwd.slice(0, MAX_ROOT + 1) : lines[i].slice(0, MAX_ROOT + 1));
 			continue;
 		}
-		if (!(t > sinceMs)) continue;
 		const root = canonicalCwd(cwd);
 		if (!printable(root)) {
 			bad.add(cwd);
 			continue;
 		}
-		const ts = Math.min(t, now);
+		const ts = t;
 		if (!(out.get(root) >= ts)) out.set(root, ts); // newest ts per root, whatever the line order
 	}
 	const reports = [...out].map(([root, ts]) => ({ root, ts })).sort((a, b) => b.ts - a.ts);

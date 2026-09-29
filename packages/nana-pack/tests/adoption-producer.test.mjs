@@ -192,13 +192,17 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
 	// relative user-scope path: producer (pi cwd = r2) and reader (another cwd) both use the default
 	const r2 = repo("relative-user");
-	cfg({ journal: { enabled: true, path: "rel-journal.jsonl" } });
+	// A RELATIVE path is the point of this case, but `appendJournal` resolves it against the test
+	// process cwd — so point it at the temp home, or ordinary handoff events litter the repository
+	// (sol r2 found a committed rel-journal.jsonl). Still relative as written.
+	const relJ = path.relative(process.cwd(), path.join(NANA_HOME, "rel-journal.jsonl"));
+	cfg({ journal: { enabled: true, path: relJ } });
 	await prompt(r2);
 	const out = reader(NANA_HOME).stdout;
 	cfg();
 	const inDefault = fs.existsSync(DEFAULT_J) && fs.readFileSync(DEFAULT_J, "utf8").split("\n").some((l) => l.includes('"directory_unadopted"') && l.includes(JSON.stringify(r2)));
 	check("journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl", inDefault);
-	check("journal: …not to a cwd-relative file", !fs.existsSync(path.join(r2, "rel-journal.jsonl")) || !fs.readFileSync(path.join(r2, "rel-journal.jsonl"), "utf8").includes('"directory_unadopted"'));
+	check("journal: …not to a cwd-relative file", !fs.existsSync(path.resolve(relJ)) || !fs.readFileSync(path.resolve(relJ), "utf8").includes('"directory_unadopted"'));
 	check("journal: …and the reader, from another cwd, lists it", listed(out, r2), out);
 }
 // a root the reader would refuse (a newline in its name) is never journaled — not once, not daily
