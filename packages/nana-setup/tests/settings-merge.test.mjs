@@ -21,13 +21,13 @@ const check = (n, ok, extra) => {
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("four hook entries are wanted", wanted.length === 4);
+check("five hook entries are wanted", wanted.length === 5);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
 	const w = desiredHooks({ hooksDir: "/Users/Jane Doe/.claude/hooks", repoRoot: "/Users/Jane Doe/nana-pi" });
 	check("bash commands single-quote the path", w[0].entry.command === "bash '/Users/Jane Doe/.claude/hooks/nana-objective.sh'");
-	check("the node command single-quotes the path", w[3].entry.command === "NODE_NO_WARNINGS=1 node '/Users/Jane Doe/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
+	check("the node command single-quotes the path", w.find((x) => x.label === "UserPromptSubmit knowledge pull").entry.command === "NODE_NO_WARNINGS=1 node '/Users/Jane Doe/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
 	check("a quote inside a path is escaped", shq("/a/b'c/d") === `'/a/b'\\''c/d'`);
 	for (const entry of w) check(`quoted command still matches its own spec (${entry.label})`, commandInvokes(entry.entry.command, entry.spec));
 }
@@ -101,7 +101,7 @@ check("four hook entries are wanted", wanted.length === 4);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all four added", r.added.length === 4);
+	check("empty settings: all five added", r.added.length === 5);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
 }
@@ -122,9 +122,9 @@ check("four hook entries are wanted", wanted.length === 4);
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
 	check("an existing unquoted `~` context-size hook is recognised, not re-added", !r.added.includes("UserPromptSubmit context-size"));
-	check("the other three are added", r.added.length === 3);
+	check("the other four are added", r.added.length === 4);
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
-	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 3 && s.hooks.SessionStart.length === 1);
+	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 4 && s.hooks.SessionStart.length === 1);
 	check("a matcher-scoped group is left alone", s.hooks.UserPromptSubmit[0].matcher === "Bash" && s.hooks.UserPromptSubmit[0].hooks.length === 1);
 	check("the knowledge hook went into the un-matched group", s.hooks.UserPromptSubmit[1].hooks.length === 2);
 	check("unrelated events untouched", JSON.stringify(s.hooks.Stop) === before);
