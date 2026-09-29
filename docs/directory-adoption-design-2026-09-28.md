@@ -26,6 +26,8 @@ The 2026-09-16 plan called for a decision collector in nana-pi and it was never 
 {"event":"directory_unadopted","cwd":"<canonical>","has":{"handoff":false,"objective":false,"agents":true,"memory":false},"ts":"…"}
 ```
 
+*Substitution (L5 build, 2026-09-29):* `has.memory` became `has.sessions` (`docs/sessions/` at the repo root). `memory` would mean reaching into the Claude home from a pi extension, which the producer must not do; `has` reports only what the repository root itself shows. Per Jake's rulings the reported `cwd` is the **repository root**, not the session's subdirectory.
+
 Bounded and deduped: one line per cwd per day, so a directory opened forty times does not write forty lines. The session sees nothing added to its prompt — the seat's ruling on noise stands for the in-session surface.
 
 **Reader** — a collector the seat runs at session start, beside the objective print. It reports unadopted directories seen since the last session, newest first, capped (five lines, then a count). It reads the journal only; it never walks the filesystem looking for candidates, so an unopened directory never appears.

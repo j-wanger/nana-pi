@@ -13,7 +13,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { platform, repoRoot } from "./paths.mjs";
-import { KNOWLEDGE_CLI, readPiPackConfig } from "./steps.mjs";
+import { KNOWLEDGE_CLI, SetupError, readPiPackConfig } from "./steps.mjs";
 
 /** The single source of the three seeds — shared with the copier templates and the skill. */
 export const SHARED_DIR = path.join(repoRoot, "templates", "_shared");
@@ -242,6 +242,29 @@ export async function stepKnowledgeRefresh(layout, o) {
 	return { label, status: UNCHANGED, detail: (rows || "rebuilt").trim() };
 }
 
+/* ------------------------------------------------------------------- dismissal (L5) */
+
+/** A committed marker at a repository root: the seat's adoption block stops naming this repo. */
+export const NOT_A_PROJECT = ".nana-not-a-project";
+
+export function notAProjectText(date) {
+	return `Not a nana project — dismissed by \`nana-setup project --not-a-project\` on ${date}; the seat stops reporting this repository. Delete this file to adopt it.\n`;
+}
+
+/** Write the marker at `dir`, which must be a git repository root (`.git` file or directory). */
+export function dismissProject(dir, opts = {}) {
+	if (!lstat(path.join(dir, ".git"))) {
+		throw new SetupError(`${dir} is not a git repository root (no .git there) — --not-a-project is recorded only at a repository root`);
+	}
+	return { label: NOT_A_PROJECT, ...seedFile(path.join(dir, NOT_A_PROJECT), notAProjectText(opts.date || today()), { dryRun: Boolean(opts.dryRun) }) };
+}
+
+/** `project` never silently overrides a recorded dismissal. */
+export function refuseIfDismissed(dir) {
+	const marker = path.join(dir, NOT_A_PROJECT);
+	if (lstat(marker)) throw new SetupError(`${marker} records that this is not a nana project — delete it to adopt this folder, then re-run`);
+}
+
 /* -------------------------------------------------------------------------------- run */
 
 export function projectName(dir, opts = {}) {
@@ -249,6 +272,7 @@ export function projectName(dir, opts = {}) {
 }
 
 export async function setupProject(dir, layout, opts = {}) {
+	refuseIfDismissed(dir);
 	const o = { dryRun: Boolean(opts.dryRun) };
 	const name = projectName(dir, opts);
 	const date = opts.date || today();

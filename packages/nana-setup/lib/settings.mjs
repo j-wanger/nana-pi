@@ -103,6 +103,7 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 		spec: { interpreters: ["bash", "sh", "zsh"], script: name },
 	});
 	const objective = sh("nana-objective.sh");
+	const adoption = sh("nana-adoption.sh");
 	const shared = sh("nana-shared-memory.sh");
 	const context = sh("context-size-check.sh");
 	const knowledgeCli = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
@@ -113,6 +114,15 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 			marker: "nana-objective.sh",
 			spec: objective.spec,
 			entry: { type: "command", command: objective.command, timeout: 5, statusMessage: "nana: objective + current priority" },
+		},
+		{
+			// L5: prints nothing unless a session ran in a git repository nobody has adopted.
+			// Placed after the objective so the seat reads "what governs here" before "what has no owner".
+			event: "SessionStart",
+			label: "SessionStart adoption",
+			marker: "nana-adoption.sh",
+			spec: adoption.spec,
+			entry: { type: "command", command: adoption.command, timeout: 5, statusMessage: "nana: unadopted repositories" },
 		},
 		{
 			event: "SessionStart",

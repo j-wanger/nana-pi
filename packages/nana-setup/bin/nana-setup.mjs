@@ -13,7 +13,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
-import { checkProject, projectName, setupProject } from "../lib/project.mjs";
+import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { SetupError, install } from "../lib/steps.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
@@ -29,6 +29,8 @@ Options
   --desk               install + load the desk launchd service (macOS, opt-in)
   --name <n>           project: the project's name      (default: the folder's name)
   --check              project: one ✓/✗ line per file; exits 1 on any ✗
+  --not-a-project      project: dismiss a git repository root once (writes .nana-not-a-project,
+                       commit it); the seat stops reporting it. Delete the file to adopt later.
   --dry-run            report what would change, write nothing
   --yes                accepted for scripts; the installer never prompts
   -h, --help
@@ -51,6 +53,7 @@ function parse(argv) {
 			if (!opts.name) throw new SetupError("--name needs a value");
 		} else if (a === "--check") opts.check = true;
 		else if (a === "--desk") opts.desk = true;
+		else if (a === "--not-a-project") opts.notAProject = true;
 		else if (a === "--dry-run") opts.dryRun = true;
 		else if (a === "--yes" || a === "-y") opts.yes = true;
 		else if (a === "-h" || a === "--help") opts.help = true;
@@ -147,6 +150,13 @@ async function runProject(opts) {
 		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
 		return bad.length ? 1 : 0;
 	}
+	if (opts.notAProject) {
+		const r = dismissProject(dir, opts);
+		console.log(`nana-setup project --not-a-project${opts.dryRun ? " (dry run)" : ""}\n\n  ${SYMBOL[r.status] ?? "?"} ${r.label}  ${r.status}  ${path.join(dir, r.label)}`);
+		if (!opts.dryRun && r.status === "created") console.log("  next: commit it, so every clone inherits the decision.");
+		return r.status === "problem" ? 1 : 0;
+	}
+	refuseIfDismissed(dir); // before the mkdir / any seed: a recorded decision is never overridden
 	// The user-scope read happens before anything is created, so refuse before the mkdir below.
 	refuseCwdRelativePiHome(resolveLayout(opts), "this project setup");
 	// A missing LEAF folder is created (this is "initiate a project"); a missing parent is the
