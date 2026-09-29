@@ -547,10 +547,17 @@ is user-scope only** — project config never contributes to it, trusted or not.
     not have); a FOLDER on the store's path when that is not a folder (move it aside) or is
     not writable — another owner, its permissions, a read-only volume (make it writable; this
     may need rights you do not have); a DANGLING symbolic link on that path (pi's recursive
-    `mkdir` fails through it — fix or remove the link); or an obstructed lock path. pi locks
-    its store with `mkdir <store>.lock` (proper-lockfile, 10 s stale): only an absent path or an
-    empty folder can be taken, so a file, a link or a non-empty folder there makes every pi
-    trust lookup and `/trust` throw — the label names the lock path and what occupies it. It
+    `mkdir` fails through it — fix or remove the link); or an occupied lock path. pi locks
+    its store with `mkdir <store>.lock` (proper-lockfile) and takes over an existing lock only
+    when it is **stale by proper-lockfile's own rule** — an empty folder whose mtime is more
+    than 10 s in the past (`lockfile.js` `isLockStale`); otherwise it retries for ~0.2 s and
+    throws. So an empty lock folder is NOT evidence the store is usable: a fresh one (a running
+    pi's lock) or one dated in the future is "store locked" — even a recorded `true` is
+    labelled, and the remedy says another pi holds the lock, that it clears on its own once
+    that pi finishes, to wait and restart the session, and never to remove it (it may belong to
+    a running pi). Only a stale empty folder counts as usable (pi reclaims it). A file, a link
+    or a non-empty folder there is "lock path obstructed" — pi never clears it, every pi trust
+    lookup and `/trust` throw, and the label names the lock path and what occupies it. It
     never names a store that does not exist. `/trust` alone cannot be relied on then: pi's own
     `/trust` reads the store (under that lock) before showing its selector and throws on a
     malformed file, and its write needs the folder and the file writable. Its rewrite *can*
@@ -572,7 +579,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     **Only a recorded affirmative clears the label**, and only while pi itself can read it:
     pi's ACTIVE trust store must record `true` for the folder or its nearest recorded ancestor,
     AND pi's own lookup must succeed (folder searchable and writable enough to lock, no
-    dangling link, lock path free or an empty folder) — otherwise pi treats the project as
+    dangling link, lock path free or an empty folder stale by pi's 10 s rule — a fresh or
+    future-dated lock means a lookup that throws) — otherwise pi treats the project as
     untrusted and so does the label. A recorded `false` (a decline) keeps
     the label, and so does no record at all, whatever `.pi/` resources the folder holds. The
     active store is `trust.json` in pi's agent dir, resolved exactly as pi resolves it:

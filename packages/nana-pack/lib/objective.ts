@@ -284,36 +284,51 @@ const canonical = (p: string) => {
  */
 export type TrustStoreProblem =
 	| "malformed" | "unreadable" | "not a regular file" | "too large" | "owned by another user" | "not writable"
-	| "folder not writable" | "path is not a folder" | "dangling link" | "lock path obstructed";
+	| "folder not writable" | "path is not a folder" | "dangling link" | "lock path obstructed" | "store locked";
 
 /** Problems on the store's PATH or LOCK, not in the store: pi's own get() throws there, so even a `true` is not vouched. */
-const PATH_PROBLEMS: ReadonlySet<TrustStoreProblem> = new Set(["folder not writable", "path is not a folder", "dangling link", "lock path obstructed"]);
+const PATH_PROBLEMS: ReadonlySet<TrustStoreProblem> = new Set(["folder not writable", "path is not a folder", "dangling link", "lock path obstructed", "store locked"]);
 
 type WriteProblem = { problem: TrustStoreProblem; object: string; detail?: string };
 
+/** proper-lockfile's default stale interval (lockfile.js:208 `stale: 10000`); pi's lockSync passes none (trust-manager.js:113). */
+const PI_LOCK_STALE_MS = 10_000;
+
 /**
- * What occupies pi's lock path, when pi can never take the lock there; null when pi can. pi's lock
- * (proper-lockfile via trust-manager.js:105-133, lockfilePath `<store>.lock`, stale 10 s) is
- * mkdir(lock): EEXIST → stat(lock) (follows links); fresh → ELOCKED, retried 10×20 ms then thrown;
- * stale → rmdir(lock) then mkdir again. So only an EMPTY real folder can ever be taken over (a live
- * lock of a concurrent pi is fresh for milliseconds; a stale one pi removes itself). A file, a link
- * (rmdir → ENOTDIR; a dangling one → ELOCKED forever) or a non-empty folder (rmdir → ENOTEMPTY) blocks
- * EVERY get() and set().
+ * Whether pi can take its lock at `lock` right now; null when it can. pi's lock (trust-manager.js:105-133:
+ * lockfile.lockSync(dir, {realpath: false, lockfilePath: `<store>.lock`}), ELOCKED retried 10×20 ms then
+ * thrown) is proper-lockfile's acquireLock (lockfile.js:25-82): mkdir(lock); EEXIST → stat(lock) (follows
+ * links); NOT stale → ELOCKED; stale → rmdir(lock) then mkdir again. Stale is lockfile.js:84-85
+ * `stat.mtime.getTime() < Date.now() - options.stale`, stale 10000. So pi can use an OCCUPIED lock path
+ * only when it is an empty real folder that is stale by that exact comparison — then pi reclaims it, and
+ * since time only moves forward, a folder stale now is stale when pi looks. Otherwise every get()/set() throws:
+ * - "lock path obstructed": a file, a link (rmdir → ENOTDIR; a dangling one → ELOCKED) or a non-empty
+ *   folder (rmdir → ENOTEMPTY) — never cleared by pi;
+ * - "store locked": an empty folder that is NOT stale — a live pi's lock, or one dated in the future
+ *   (held until 10 s past that date). Not evidence of usability: our verdict is startup-only.
  */
-function lockObstruction(lock: string): string | null {
+function lockProblem(lock: string): WriteProblem | null {
 	let st: fs.Stats;
 	try {
 		st = fs.lstatSync(lock);
 	} catch {
 		return null; // absent: pi creates it
 	}
-	if (st.isSymbolicLink()) return "a symbolic link";
-	if (!st.isDirectory()) return st.isFile() ? "a file" : "a non-folder entry";
+	const obstructed = (detail: string): WriteProblem => ({ problem: "lock path obstructed", object: lock, detail });
+	if (st.isSymbolicLink()) return obstructed("a symbolic link");
+	if (!st.isDirectory()) return obstructed(st.isFile() ? "a file" : "a non-folder entry");
 	try {
-		return fs.readdirSync(lock).length ? "a non-empty folder" : null;
+		if (fs.readdirSync(lock).length) return obstructed("a non-empty folder");
 	} catch {
-		return "an unreadable folder";
+		return obstructed("an unreadable folder");
 	}
+	const mtime = st.mtime.getTime();
+	const now = Date.now();
+	if (mtime < now - PI_LOCK_STALE_MS) return null; // pi's own isLockStale: it removes this and locks
+	const detail = mtime > now
+		? `dated in the future (${new Date(mtime).toISOString()}), so pi treats it as held until 10 s after that time`
+		: "less than 10 s old, so pi treats it as held";
+	return { problem: "store locked", object: lock, detail };
 }
 
 /**
@@ -321,7 +336,8 @@ function lockObstruction(lock: string): string | null {
  * in place (trust-manager.js:102-113: mkdirSync(dirname, recursive) + lockfile + writeFileSync), so it
  * needs: every existing component of the folder a folder, none a dangling link (recursive mkdir
  * through one fails ENOENT); the nearest existing one writable and searchable (a read-only volume
- * reports EROFS here); the lock path free or an empty folder; and an existing store writable.
+ * reports EROFS here); the lock path free or an empty folder pi's own rule calls stale (lockProblem);
+ * and an existing store writable.
  * Returns the problem and the object that is actually wrong, or null.
  */
 function writeProblem(store: string, storeExists: boolean): WriteProblem | null {
@@ -356,8 +372,8 @@ function writeProblem(store: string, storeExists: boolean): WriteProblem | null 
 		}
 		// A missing component BELOW a non-folder shows as ENOTDIR on the way up; the loop found it.
 		const lock = `${store}.lock`;
-		const obstruction = lockObstruction(lock);
-		if (obstruction) return { problem: "lock path obstructed", object: lock, detail: obstruction };
+		const locked = lockProblem(lock);
+		if (locked) return locked;
 		if (storeExists) {
 			try {
 				fs.accessSync(store, fs.constants.W_OK);
@@ -378,7 +394,7 @@ export interface TrustRecord {
 	problem: TrustStoreProblem | null;
 	/** What the remedy must name: the store, the folder or link on its path, or its lock path — whichever is actually wrong. */
 	object: string;
-	/** "lock path obstructed" only: what occupies the lock path ("a file", "a symbolic link", …). */
+	/** Lock problems only: what occupies the lock path ("a file", "a symbolic link", …) or why pi treats it as held. */
 	detail?: string;
 }
 
@@ -399,7 +415,7 @@ export interface TrustRecord {
  * A missing store is "nothing recorded". When not vouched, `problem` also covers what would stop
  * /trust WRITING (writeProblem): a folder problem outranks a store problem, since fixing the
  * store needs the folder. ONE exception where the predicate depends on writability: a path or lock
- * problem (PATH_PROBLEMS: folder not writable / not a folder / dangling link / obstructed lock path)
+ * problem (PATH_PROBLEMS: folder not writable / not a folder / dangling link / obstructed or held lock path)
  * makes even an affirmative record NOT vouched, because pi's own get() locks there and throws, so
  * pi treats the project as untrusted.
  * Opened non-blocking so a FIFO can never stall a hook.
@@ -496,6 +512,9 @@ export function trustRemedy(dir: string, t: { store: string; problem: TrustStore
 			return `To clear this label: pi's trust store belongs at ${S}, but ${O} is a symbolic link to something that does not exist, so pi cannot create the store through it — fix or remove that link first (check where it was meant to point), ${then}`;
 		case "lock path obstructed":
 			return `To clear this label: pi locks its trust store ${S} by creating the folder ${O}, but ${t.detail ?? "something"} is in the way there, so pi's own trust check and /trust both fail — check what it holds and move it aside first (pi's own lock is an empty folder it removes itself), ${then}`;
+		case "store locked":
+			// Never advise removal: the lock may belong to a running pi, and it is not stale by pi's rule.
+			return `To clear this label: pi's trust store ${S} is locked by another pi process — its lock folder ${O} is ${t.detail ?? "held"}, and while it is held pi's own trust check and /trust both fail (even a recorded decision is not read). The lock clears on its own once that pi finishes and removes it; do not remove it yourself (it may belong to a running pi). Wait for that pi to complete and restart this session; if the label remains, ${steps}`;
 		case "folder not writable":
 			return `To clear this label: pi's trust store belongs at ${S}, but the folder ${O} is not writable (another owner, its permissions, or a read-only volume), so /trust cannot record a decision — make that folder writable first (this may need rights you do not have), ${then}`;
 		case "not writable":

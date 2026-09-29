@@ -33,8 +33,10 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   subfolder's record does not count), run `/trust`, restart; otherwise → name the object that is
   actually wrong — the store (malformed, unreadable, not a regular file, too large, owned by
   another user, not writable), a folder or dangling link on its path, or an obstructed
-  `trust.json.lock` (pi locks by `mkdir`; then even a recorded `true` does not count, as pi's own
-  lookup throws) — and the fix to do first, saying when it may need rights the user lacks; never
+  `trust.json.lock` (pi locks by `mkdir` and reclaims only a lock stale by proper-lockfile's 10 s
+  mtime rule, so a file, link, non-empty folder, or a fresh or future-dated empty folder means
+  pi's own lookup throws and even a recorded `true` does not count; a held lock's remedy says
+  another pi holds it — wait and restart, never remove it) — and the fix to do first, saying when it may need rights the user lacks; never
   a store that does not exist. Every remedy names the store that must receive the decision; under
   a RELATIVE `PI_CODING_AGENT_DIR` it pins the absolute agent dir, since starting pi elsewhere
   would pick another store. `/trust` also makes pi load the folder's project resources. Removal

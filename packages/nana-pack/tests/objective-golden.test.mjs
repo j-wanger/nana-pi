@@ -44,6 +44,7 @@ const REMEDY_REPAIR = (dir, store, problem, object = store, detail) => {
 		case "path is not a folder": return `To clear this label: pi's trust store belongs at ${store}, but ${object} is not a folder, so /trust cannot create the store — move ${object} aside first (check what it holds before you do), ${then}`;
 		case "dangling link": return `To clear this label: pi's trust store belongs at ${store}, but ${object} is a symbolic link to something that does not exist, so pi cannot create the store through it — fix or remove that link first (check where it was meant to point), ${then}`;
 		case "lock path obstructed": return `To clear this label: pi locks its trust store ${store} by creating the folder ${object}, but ${detail} is in the way there, so pi's own trust check and /trust both fail — check what it holds and move it aside first (pi's own lock is an empty folder it removes itself), ${then}`;
+		case "store locked": return `To clear this label: pi's trust store ${store} is locked by another pi process — its lock folder ${object} is ${detail}, and while it is held pi's own trust check and /trust both fail (even a recorded decision is not read). The lock clears on its own once that pi finishes and removes it; do not remove it yourself (it may belong to a running pi). Wait for that pi to complete and restart this session; if the label remains, ${STEPS(dir, store)}`;
 		case "folder not writable": return `To clear this label: pi's trust store belongs at ${store}, but the folder ${object} is not writable (another owner, its permissions, or a read-only volume), so /trust cannot record a decision — make that folder writable first (this may need rights you do not have), ${then}`;
 		case "not writable": return `To clear this label: the trust store ${store} is not writable, so /trust cannot record a decision — make that file writable first (on a read-only volume or another owner's file this may need rights you do not have), ${then}`;
 		case "owned by another user": return `To clear this label: the trust store ${store} is owned by another user, so it is not read and /trust alone will not reliably clear this label — have it repaired or removed first (this may need rights you do not have; ${REMOVAL}), ${then}`;
@@ -959,10 +960,51 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			await provenance(`lock path is ${detail}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "lock path obstructed", object: lock, detail });
 		}
 	}
-	// pi's OWN leftover lock (an empty folder, stale): pi removes it and reads the record — so do we
-	const w = productWorld(); writeStore(w, { [w.product]: true });
-	const lock = `${store(w)}.lock`; fs.mkdirSync(lock); const old = new Date(Date.now() - 60000); fs.utimesSync(lock, old, old);
-	await provenance("stale empty lock folder (pi recovers), affirmative record", w, false);
+	// r7 (astra BLOCKER): an EMPTY lock folder is usable only when pi's own rule calls it stale —
+	// proper-lockfile lockfile.js:84-85 isLockStale: mtime < Date.now() - stale, stale 10000 (:208, pi
+	// passes none). pi takes over ONLY a stale lock; a fresh one outlasts its 10×20 ms retries and a
+	// future-dated one stays "held" until 10 s past its date. Each case: our verdict, pi's get()/set(), both runtimes.
+	const piOps = (w) => {
+		enter(w);
+		let eGet = null, eSet = null, got;
+		try { got = new piMod.ProjectTrustStore(piMod.getAgentDir()).get(w.product); } catch (e) { eGet = e; }
+		try { new piMod.ProjectTrustStore(piMod.getAgentDir()).set(w.product, true); } catch (e) { eSet = e; }
+		leave();
+		return { eGet, eSet, got };
+	};
+	const future = new Date(Math.ceil(Date.now() / 1000) * 1000 + 3600e3); // whole second: its ISO text is exact
+	const held = {
+		"fresh empty lock folder": { make: (l) => { fs.mkdirSync(l, { recursive: true }); const t = new Date(); fs.utimesSync(l, t, t); }, detail: "less than 10 s old, so pi treats it as held" },
+		"future-dated empty lock folder": { make: (l) => { fs.mkdirSync(l, { recursive: true }); fs.utimesSync(l, future, future); }, detail: `dated in the future (${future.toISOString()}), so pi treats it as held until 10 s after that time` },
+	};
+	for (const [k, { make, detail }] of Object.entries(held)) {
+		for (const rec of [true, undefined]) {
+			const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
+			const lock = `${store(w)}.lock`; make(lock);
+			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
+			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
+			if (piMod) {
+				make(lock); // re-date: the runtimes above took time
+				const { eGet, eSet } = piOps(w);
+				check(`T17 WHY (${k}, ${rec ? "affirmative" : "no"} record): pi's get() AND /trust's set() throw ELOCKED`, eGet?.code === "ELOCKED" && eSet?.code === "ELOCKED", `${eGet?.code} / ${eSet?.code}`);
+				check(`T17 ${k}: pi left the lock in place`, fs.existsSync(lock));
+			}
+		}
+	}
+	// pi's OWN leftover lock (an empty folder, stale by pi's rule): pi removes it and reads the record — so do we
+	for (const rec of [true, undefined]) {
+		const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
+		const lock = `${store(w)}.lock`;
+		const makeStale = () => { fs.mkdirSync(lock, { recursive: true }); const old = new Date(Date.now() - 60000); fs.utimesSync(lock, old, old); };
+		makeStale();
+		await provenance(`stale empty lock folder (pi recovers), ${rec ? "affirmative" : "no"} record`, w, !rec);
+		if (piMod) {
+			makeStale(); // pi's oracle inside provenance() reclaimed it
+			const { eGet, eSet, got } = piOps(w);
+			check(`T17 WHY (stale empty lock, ${rec ? "affirmative" : "no"} record): pi's get() and set() succeed, get() === ${rec === true}`, !eGet && !eSet && (got === true) === (rec === true), `${eGet?.code} / ${eSet?.code} / ${got}`);
+		}
+	}
 }
 // T18 (r6, astra MED): a DANGLING link on the agent dir path is not absence — pi's recursive mkdir fails
 // through it (ENOENT), so ordinary /trust cannot work; the link itself is named.
