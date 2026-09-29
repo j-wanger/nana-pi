@@ -62,14 +62,25 @@ function parse(argv) {
 
 const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", problem: "✗" };
 
+/**
+ * An AMBIENT relative PI_CODING_AGENT_DIR resolves against THIS process's cwd, so any command that
+ * reads or writes the user-scope pi directory would act on a directory pi started elsewhere never
+ * sees. Every such command refuses (sol r2/r3); an explicit --pi-home / --home is the user's own
+ * decision and never sets the flag. `doctor` warns instead, because its job is to report.
+ */
+function refuseCwdRelativePiHome(layout, what) {
+	if (!layout.piHomeCwdRelative) return;
+	throw new SetupError(
+		`PI_CODING_AGENT_DIR is a relative path; here it resolves to ${layout.piHome}, which is specific to the ` +
+			`current working directory (${layout.piHomeCwdRelative}) — pi started in any other folder reads a different ` +
+			`directory, so ${what} would act on the wrong one. Pass --pi-home <absolute dir>, or set ` +
+			"PI_CODING_AGENT_DIR to an absolute path, and re-run.",
+	);
+}
+
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
-	if (layout.piHomeCwdRelative)
-		throw new SetupError(
-			`PI_CODING_AGENT_DIR is a relative path; here it resolves to ${layout.piHome}, which is specific to the ` +
-				`current working directory (${layout.piHomeCwdRelative}) — pi started in any other folder reads a different ` +
-				"directory. Pass --pi-home <absolute dir>, or set PI_CODING_AGENT_DIR to an absolute path, and re-run.",
-		);
+	refuseCwdRelativePiHome(layout, "this install");
 	console.log(`nana-setup install${opts.dryRun ? " (dry run)" : ""}`);
 	console.log(`  install root  ${repoRoot}`);
 	console.log(`  claude home   ${tildeify(layout.claudeHome)}`);
@@ -124,8 +135,11 @@ async function runProject(opts) {
 	const dir = path.resolve(opts._[1] || process.cwd());
 	if (opts.check) {
 		// The same layout the setup used: `--check` reads the user-scope pi config so it can
-		// mirror the one decision that depends on it (the pack-config omission).
-		const checks = checkProject(dir, resolveLayout(opts));
+		// mirror the one decision that depends on it (the pack-config omission) — so it needs the
+		// same refusal as `install` (sol r3).
+		const checkLayout = resolveLayout(opts);
+		refuseCwdRelativePiHome(checkLayout, "this check");
+		const checks = checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
 		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
@@ -133,6 +147,8 @@ async function runProject(opts) {
 		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
 		return bad.length ? 1 : 0;
 	}
+	// The user-scope read happens before anything is created, so refuse before the mkdir below.
+	refuseCwdRelativePiHome(resolveLayout(opts), "this project setup");
 	// A missing LEAF folder is created (this is "initiate a project"); a missing parent is the
 	// user's typo, so it still aborts. Dry run reports instead of creating.
 	if (!fs.existsSync(dir)) {

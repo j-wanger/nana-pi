@@ -2,6 +2,8 @@
 // process's own cwd, so a normal `install` would seed <setup-cwd>/rel/nana-pack.json that pi started
 // anywhere else never reads. `install` refuses it (naming the dir, the cwd and the remedy); an
 // explicit `--pi-home` is honoured; `doctor` warns (`!`, the cwd named) and never says "all good".
+// U2 fix round 3 (sol r3 HIGH): `project` and `project --check` read the user-scope config too, so
+// they refuse on the same terms.
 // Nothing here touches the real machine: HOME is a temp dir, and the refusal writes nothing.
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -47,6 +49,23 @@ try {
 	check("…and nothing in the ambient-relative dir", !fs.existsSync(resolved));
 	const relExplicit = run("install", "--pi-home", REL, "--dry-run");
 	check("an explicit RELATIVE --pi-home is not refused (resolved as given)", !/specific to the current working directory/.test(relExplicit.stdout + relExplicit.stderr) && relExplicit.stdout.includes(REL), relExplicit.stdout + relExplicit.stderr);
+
+	// ── project / project --check: the same refusal (sol r3 HIGH) ──
+	// `project` reads the user-scope pi config to decide whether to write a project one, so under an
+	// ambient relative value it would read <setup-cwd>/rel-agent and could seed a project config that
+	// shadows the real user-scope postEdit checks.
+	const target = path.join(HOME, "a-project");
+	fs.mkdirSync(target, { recursive: true });
+	for (const args of [["project", target], ["project", target, "--dry-run"], ["project", target, "--check"]]) {
+		const r = run(...args);
+		const out = r.stdout + r.stderr;
+		check(`${args.join(" ")}: ambient relative value exits non-zero`, r.status !== 0 && r.status !== null, `status ${r.status}\n${out}`);
+		check(`${args.join(" ")}: names the resolved dir and the cwd`, out.includes(resolved) && out.includes(CWD), out);
+		check(`${args.join(" ")}: gives the remedy`, out.includes("--pi-home <absolute dir>"), out);
+	}
+	check("the project refusal created nothing in the target", !fs.existsSync(path.join(target, ".pi")) && !fs.existsSync(path.join(target, "AGENTS.md")), fs.readdirSync(target).join(","));
+	const pOk = run("project", target, "--pi-home", path.join(HOME, "explicit-agent"), "--dry-run");
+	check("project --pi-home <abs> is not refused", !/specific to the current working directory/.test(pOk.stdout + pOk.stderr), pOk.stdout + pOk.stderr);
 
 	// ── doctor, ambient relative, even with a seeded file there → warning, never healthy ──
 	fs.mkdirSync(resolved, { recursive: true });
