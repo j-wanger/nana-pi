@@ -1,0 +1,600 @@
+{
+ "reports": [
+  {
+   "report": "l1-astra-land",
+   "lane": "l1",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 7,
+   "finding": 2,
+   "carry": 5,
+   "answered_by": [
+    "tranche1-2026-09-28/l1-fix2-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l1-astra-r2",
+   "lane": "l1",
+   "rung": "astra-r2",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 10,
+   "verification": 2,
+   "finding": 1,
+   "carry": 7,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l1-sol-r1",
+   "lane": "l1",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 7,
+   "finding": 2,
+   "carry": 5,
+   "answered_by": [
+    "tranche1-2026-09-28/l1-fix-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l1-sol-r2",
+   "lane": "l1",
+   "rung": "sol-r2",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 6,
+   "verification": 2,
+   "finding": 4,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l1-sol-r3",
+   "lane": "l1",
+   "rung": "sol-r3",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 2,
+   "verification": 1,
+   "carry": 1,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l2-astra-land",
+   "lane": "l2",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 8,
+   "finding": 3,
+   "carry": 5,
+   "answered_by": [
+    "tranche1-2026-09-28/l2-fix4-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l2-astra-r2",
+   "lane": "l2",
+   "rung": "astra-r2",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 8,
+   "verification": 3,
+   "carry": 5,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l2-sol-r1",
+   "lane": "l2",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 10,
+   "finding": 6,
+   "carry": 4,
+   "answered_by": [
+    "tranche1-2026-09-28/l2-fix-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l2-sol-r2",
+   "lane": "l2",
+   "rung": "sol-r2",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 19,
+   "verification": 6,
+   "finding": 8,
+   "carry": 5,
+   "answered_by": [
+    "tranche1-2026-09-28/l2-fix3-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l2-sol-r3",
+   "lane": "l2",
+   "rung": "sol-r3",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 22,
+   "verification": 13,
+   "finding": 4,
+   "carry": 5,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l3-astra-land",
+   "lane": "l3",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 5,
+   "finding": 2,
+   "carry": 3,
+   "answered_by": [
+    "tranche1-2026-09-28/l3-fix4-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l3-astra-r2",
+   "lane": "l3",
+   "rung": "astra-r2",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 11,
+   "verification": 2,
+   "finding": 5,
+   "carry": 4,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "l3-sol-r1",
+   "lane": "l3",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 10,
+   "finding": 7,
+   "carry": 3,
+   "answered_by": [
+    "tranche1-2026-09-28/l3-fix-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l3-sol-r2",
+   "lane": "l3",
+   "rung": "sol-r2",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 16,
+   "verification": 7,
+   "finding": 6,
+   "carry": 3,
+   "answered_by": [
+    "tranche1-2026-09-28/l3-fix2-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l3-sol-r3",
+   "lane": "l3",
+   "rung": "sol-r3",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 13,
+   "verification": 4,
+   "finding": 5,
+   "carry": 4,
+   "answered_by": [
+    "tranche1-2026-09-28/l3-fix3-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l4-sol-r1",
+   "lane": "l4",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 7,
+   "finding": 5,
+   "carry": 2,
+   "answered_by": [
+    "tranche1-2026-09-28/l4-fix-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "l4-sol-r2",
+   "lane": "l4",
+   "rung": "sol-r2",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 12,
+   "finding": 2,
+   "verification": 5,
+   "carry": 5,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "u-sol-r1",
+   "lane": "u",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 8,
+   "finding": 4,
+   "carry": 4,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "u-sol-r2",
+   "lane": "u",
+   "rung": "sol-r2",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 7,
+   "verification": 4,
+   "carry": 3,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "t2a-astra-land",
+   "lane": "t2a",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 7,
+   "finding": 3,
+   "carry": 4,
+   "answered_by": [
+    "tranche2-2026-09-28/t2a-fix5-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2a-astra-r2",
+   "lane": "t2a",
+   "rung": "astra-r2",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 8,
+   "verification": 3,
+   "finding": 1,
+   "carry": 4,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "t2a-sol-r1",
+   "lane": "t2a",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 8,
+   "finding": 5,
+   "carry": 3,
+   "answered_by": [
+    "tranche2-2026-09-28/t2a-fix2-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2a-sol-r2",
+   "lane": "t2a",
+   "rung": "sol-r2",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 15,
+   "verification": 5,
+   "finding": 4,
+   "carry": 6,
+   "answered_by": [
+    "tranche2-2026-09-28/t2a-fix3-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2a-sol-r3",
+   "lane": "t2a",
+   "rung": "sol-r3",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 19,
+   "verification": 8,
+   "carry": 11,
+   "answered_by": [
+    "tranche2-2026-09-28/t2a-fix4-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2b-astra-land",
+   "lane": "t2b",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 7,
+   "finding": 3,
+   "carry": 4,
+   "answered_by": [
+    "tranche2-2026-09-28/t2b-fix5-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2b-astra-r2",
+   "lane": "t2b",
+   "rung": "astra-r2",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 12,
+   "verification": 3,
+   "finding": 6,
+   "carry": 3,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "t2b-sol-r1",
+   "lane": "t2b",
+   "rung": "sol-r1",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 16,
+   "finding": 9,
+   "carry": 7,
+   "answered_by": [
+    "tranche2-2026-09-28/t2b-fix-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2b-sol-r2",
+   "lane": "t2b",
+   "rung": "sol-r2",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 22,
+   "verification": 9,
+   "finding": 5,
+   "carry": 8,
+   "answered_by": [
+    "tranche2-2026-09-28/t2b-fix3-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2b-sol-r3",
+   "lane": "t2b",
+   "rung": "sol-r3",
+   "verdict": "LAND",
+   "score": null,
+   "rows": 11,
+   "verification": 5,
+   "finding": 2,
+   "carry": 4,
+   "answered_by": [
+    "tranche2-2026-09-28/t2b-fix4-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2c-astra-land",
+   "lane": "t2c",
+   "rung": "astra-r1",
+   "verdict": "BLOCK",
+   "score": 6,
+   "rows": 10,
+   "finding": 6,
+   "carry": 4,
+   "answered_by": [
+    "tranche2-2026-09-28/t2c-fix6-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2c-astra-r2",
+   "lane": "t2c",
+   "rung": "astra-r2",
+   "verdict": "BLOCK",
+   "score": 7,
+   "rows": 13,
+   "verification": 4,
+   "finding": 2,
+   "carry": 7,
+   "answered_by": [
+    "tranche2-2026-09-28/t2c-fix7-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2c-astra-r3",
+   "lane": "t2c",
+   "rung": "astra-r3",
+   "verdict": "LAND",
+   "score": 9,
+   "rows": 7,
+   "verification": 1,
+   "finding": 1,
+   "carry": 5,
+   "answered_by": [],
+   "parsed": true
+  },
+  {
+   "report": "t2c-sol-r1",
+   "lane": "t2c",
+   "rung": "sol-r1",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 6,
+   "finding": 3,
+   "carry": 3,
+   "answered_by": [
+    "tranche2-2026-09-28/t2c-fix2-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2c-sol-r2",
+   "lane": "t2c",
+   "rung": "sol-r2",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 6,
+   "verification": 3,
+   "finding": 2,
+   "carry": 1,
+   "answered_by": [
+    "tranche2-2026-09-28/t2c-fix3-brief.md"
+   ],
+   "parsed": true
+  },
+  {
+   "report": "t2c-sol-r3",
+   "lane": "t2c",
+   "rung": "sol-r3",
+   "verdict": "BLOCK",
+   "score": null,
+   "rows": 6,
+   "verification": 1,
+   "finding": 2,
+   "carry": 3,
+   "answered_by": [
+    "tranche2-2026-09-28/t2c-fix4-brief.md"
+   ],
+   "parsed": true
+  }
+ ],
+ "fix_briefs": [
+  {
+   "file": "tranche1-2026-09-28/l1-fix-brief.md",
+   "answers": "l1-sol-r1"
+  },
+  {
+   "file": "tranche1-2026-09-28/l1-fix2-brief.md",
+   "answers": "l1-astra-land"
+  },
+  {
+   "file": "tranche1-2026-09-28/l2-fix-brief.md",
+   "answers": "l2-sol-r1"
+  },
+  {
+   "file": "tranche1-2026-09-28/l2-fix2-brief.md",
+   "answers": null
+  },
+  {
+   "file": "tranche1-2026-09-28/l2-fix3-brief.md",
+   "answers": "l2-sol-r2"
+  },
+  {
+   "file": "tranche1-2026-09-28/l2-fix4-brief.md",
+   "answers": "l2-astra-land"
+  },
+  {
+   "file": "tranche1-2026-09-28/l3-fix-brief.md",
+   "answers": "l3-sol-r1"
+  },
+  {
+   "file": "tranche1-2026-09-28/l3-fix2-brief.md",
+   "answers": "l3-sol-r2"
+  },
+  {
+   "file": "tranche1-2026-09-28/l3-fix3-brief.md",
+   "answers": "l3-sol-r3"
+  },
+  {
+   "file": "tranche1-2026-09-28/l3-fix4-brief.md",
+   "answers": "l3-astra-land"
+  },
+  {
+   "file": "tranche1-2026-09-28/l4-fix-brief.md",
+   "answers": "l4-sol-r1"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2a-fix-brief.md",
+   "answers": null
+  },
+  {
+   "file": "tranche2-2026-09-28/t2a-fix2-brief.md",
+   "answers": "t2a-sol-r1"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2a-fix3-brief.md",
+   "answers": "t2a-sol-r2"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2a-fix4-brief.md",
+   "answers": "t2a-sol-r3"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2a-fix5-brief.md",
+   "answers": "t2a-astra-land"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2b-fix-brief.md",
+   "answers": "t2b-sol-r1"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2b-fix2-brief.md",
+   "answers": null
+  },
+  {
+   "file": "tranche2-2026-09-28/t2b-fix3-brief.md",
+   "answers": "t2b-sol-r2"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2b-fix4-brief.md",
+   "answers": "t2b-sol-r3"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2b-fix5-brief.md",
+   "answers": "t2b-astra-land"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix-brief.md",
+   "answers": null
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix2-brief.md",
+   "answers": "t2c-sol-r1"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix3-brief.md",
+   "answers": "t2c-sol-r2"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix4-brief.md",
+   "answers": "t2c-sol-r3"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix5-brief.md",
+   "answers": null
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix6-brief.md",
+   "answers": "t2c-astra-land"
+  },
+  {
+   "file": "tranche2-2026-09-28/t2c-fix7-brief.md",
+   "answers": "t2c-astra-r2"
+  }
+ ]
+}
