@@ -53,12 +53,18 @@ export function head(s, n) {
  * reaches the prompt. The result, quotes included, is at most PATH_CAP chars: over it the
  * middle is elided ("…"), keeping the basename WHOLE when its rendering fits in half the cap,
  * else only the basename's TAIL. Lone surrogates are made well-formed first (runtime parity).
+ *
+ * `extra` (optional) names ADDITIONAL characters to treat as unsafe, for a caller whose own
+ * surface has a character it cannot allow through — a field delimiter, say. Adding one only ever
+ * escapes MORE, never less, and a caller that passes nothing gets exactly today's output, which
+ * the objective goldens pin (S2: this replaced a stand-in-character trick in nana-knowledge).
  */
-export function displayPath(p) {
+export function displayPath(p, extra = null) {
 	const raw = str(p).toWellFormed();
-	const unsafe = PATH_UNSAFE.test(raw);
+	const isUnsafe = (c) => PATH_UNSAFE.test(c) || (extra !== null && extra.includes(c));
+	const unsafe = Array.from(raw).some(isUnsafe);
 	const tok = (c) =>
-		PATH_UNSAFE.test(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
+		isUnsafe(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : unsafe && (c === "\\" || c === '"') ? `\\${c}` : c;
 	let toks = Array.from(raw, tok);
 	const len = (t) => t.reduce((a, s) => a + s.length, 0);
 	const cap = unsafe ? PATH_CAP - 2 : PATH_CAP; // the two quotes count

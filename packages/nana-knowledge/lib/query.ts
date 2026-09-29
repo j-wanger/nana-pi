@@ -68,21 +68,15 @@ const DASH = "\u2014";
 
 /**
  * A path as a pointer's display field. A path is an ADDRESS, so it is never substituted: when its
- * rendering would hold the exact FIELD_SEP, it is rendered in displayPath's escaped JSON-literal
- * form with every em dash as \u2014 — exact (JSON.parse returns the path unless it was elided,
- * which the "…" marks), and free of the literal separator. displayPath escapes only its own unsafe
- * class, so a C1 char the path does not hold stands in for the dash (the same 6-char escape, so
- * PATH_CAP and the basename-keeping elision are unchanged) and is named back token by token. A
- * path holding all 32 C1 chars throws, which costs that pointer only.
+ * rendering would hold the exact FIELD_SEP, promptPath escapes the separator's dash as \u2014 along
+ * with its own unsafe class, and returns the JSON-literal form. Exact and reversible —
+ * JSON.parse gives the path back, unless it was elided, which the "…" marks — and free of the
+ * literal separator. The `extra` argument is displayPath's additive escape set (S2: it replaced a
+ * stand-in-character trick, which had a path shape it could not render at all).
  */
 export function pointerPath(p: unknown): string {
-	const raw = str(p);
-	const plain = promptPath(raw);
-	if (!plain.includes(FIELD_SEP)) return plain;
-	const stand = Array.from({ length: 32 }, (_, i) => String.fromCharCode(0x80 + i)).find((c) => !raw.includes(c));
-	if (stand === undefined) throw new Error("no stand-in for the delimiter");
-	const code = `\\u00${stand.charCodeAt(0).toString(16).toUpperCase()}`;
-	return promptPath(raw.replaceAll(DASH, stand)).replace(/\\(?:u[0-9A-F]{4}|[\\"])/g, (t) => (t === code ? "\\u2014" : t));
+	const plain = promptPath(p);
+	return plain.includes(FIELD_SEP) ? promptPath(p, DASH) : plain;
 }
 
 /**

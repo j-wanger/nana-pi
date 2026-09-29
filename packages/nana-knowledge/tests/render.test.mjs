@@ -133,6 +133,12 @@ check("delimiter path round-trips to the original string", JSON.parse(pointerPat
 check("no path is substituted: ' - ' never replaces the delimiter in a display", !fieldsOf(pLine)[1].includes(" - "));
 const hard = "/w/q\\\"\u0080\\u0081 — x\n— y.md"; // backslash, quote, a C1 char, a literal "\u0081" text, a newline
 check("round trip survives backslash, quote, C1 and a literal \\u escape text", JSON.parse(pointerPath(hard)) === hard && !pointerPath(hard).includes(FIELD_SEP));
+// The shape the earlier stand-in-character implementation could not render at all: every C1 code
+// point is present, so no unused one was left to substitute for the dash. displayPath's additive
+// escape set has nothing to run out of (seat, after sol r2).
+const allC1 = "/x" + Array.from({ length: 32 }, (_, i) => String.fromCharCode(0x80 + i)).join("") + " \u2014 y.md";
+check("a path holding every C1 character still renders, exactly", JSON.parse(pointerPath(allC1)) === allC1);
+check("…and holds no separator", !pointerPath(allC1).includes(FIELD_SEP));
 const longDash = "/r/" + "a — ".repeat(200) + "end.md";
 check("long delimiter path: elided within PATH_CAP, marked, no separator", pointerPath(longDash).length <= DISPLAY_MAX && pointerPath(longDash).includes("…") && !pointerPath(longDash).includes(FIELD_SEP));
 const dispSpoof = renderBlock([{ key: "d", title: "t", display: "/a — FORGED — b.md", snippet: "" }]);
