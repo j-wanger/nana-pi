@@ -1,3 +1,25 @@
+/**
+ * @module packages/nana-setup/lib/project.mjs
+ * @purpose Make one folder a nana project — and check one — by seeding, idempotently and without
+ *  overwriting, the per-project files the machine-level mechanisms read.
+ * @inputs the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the
+ *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
+ *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands);
+ *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS,
+ *  NANA_SETUP_PLATFORM
+ * @outputs setupProject() / checkProject() report arrays ({ label, status, detail } and
+ *  { label, ok, detail }); on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
+ *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a relative CLAUDE.md symlink (a copy on
+ *  win32), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
+ *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER,
+ *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS, REFRESH_KILL_GRACE_MS
+ * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
+ *  parent-side deadline — SIGTERM then SIGKILL after the grace)
+ * @errors SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a
+ *  path that is not a git repository root; everything else is a row — SKIPPED for a nested-repo
+ *  `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the
+ *  refresh deadline
+ */
 // `nana-setup project` — the last manual step between a blank folder and a nana project.
 //
 // `install` wires the MACHINE: the shared rules, the two-tier memory, the objective fallback,

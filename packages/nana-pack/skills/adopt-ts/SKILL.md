@@ -31,7 +31,9 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    lint/format stack (ESLint/Prettier/Biome), test runner, layout, CI. Note
    whether the project is ESM or CJS and whether `strict` is already on.
 2. **Present the plan and get an OK** — what lands (tsconfig pins, biome.json,
-   `.pi` post-edit preset, CI, root AGENTS.md, answers file), what gets merged
+   `.pi` post-edit preset, CI, root AGENTS.md, answers file, and the
+   requirements rail: `REQUIREMENTS.md`, the map generator and three files under
+   `tests/` — see step 3), what gets merged
    (their package.json fields/deps with the pinned scripts + devDeps), what is
    never touched (source tree and tests). If they run ESLint/Prettier, the
    plan must say so explicitly: Biome replaces them only with the user's OK —
@@ -60,9 +62,24 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    (One line on purpose — it must work in PowerShell too, where bash's `\`
    continuation breaks.)
 
-   Adopt mode emits configs only: package.json, tsconfig + tsconfig.build,
-   biome.json, CI, root AGENTS.md, `.pi/nana-pack.json`,
-   `.copier-answers.yml`. No README/src/tests starters, no pnpm-workspace.
+   Adopt mode emits the configs AND the requirements rail — no source code:
+
+   - configs: package.json, tsconfig + tsconfig.build, biome.json, CI, root
+     AGENTS.md, `.pi/nana-pack.json`, `.copier-answers.yml`;
+   - `REQUIREMENTS.md` with the standard `Part G` block, every G row
+     `untested` and no product rows — the project's own behaviour is step 7's
+     work;
+   - `code-map.config.json` and the generator `scripts/code-map.mjs`;
+   - a PLACEHOLDER `docs/code-map.md`. The first `--check` reports it stale and
+     names the one command that regenerates it (`node scripts/code-map.mjs` —
+     it needs no dependencies);
+   - three rail files under `tests/`: the trace lib `tests/requirements-trace.ts`
+     and its self-tests `tests/requirements-trace.test.ts` and
+     `tests/code-map.test.ts`. Their markers render as `req-candidate:`, not
+     `req:`, so the rail stays green until a row is promoted — promote one by
+     renaming its marker to `req:` and citing the test in the row.
+
+   No README/src/tests starters beyond those three, and no pnpm-workspace.
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure:
    - `package.json`: restore their fields (name, version, deps, engines, bin,
      exports…); merge scripts — keep theirs where names collide, add the
@@ -88,6 +105,12 @@ the reconciliation surface — nothing is lost because the tree starts clean.
      Layout section, fix Commands to their package manager (and, on the
      keep-your-linter path, to their linter/formatter — the template's Rules
      name Biome), one screen.
+   - **The rail files, if those names were already taken.** `--overwrite` means
+     a same-named rail file (a `tests/code-map.test.ts` of their own, say) was
+     REPLACED, not merged. The `git diff` this step already reads is the
+     recovery: restore their content next to the template's, keeping both. A
+     project whose tests do not live in `tests/` moves the three rail files into
+     the real test directory and updates the citations that name them.
 5. **Stage the strictness** — pins stay, escapes are recorded:
    - Run format + lint across the repo; fix the cheap remainder, targeted
      suppressions with a `// ratchet:` comment for the rest.
@@ -97,9 +120,22 @@ the reconciliation surface — nothing is lost because the tree starts clean.
      (NOT `strict`) with a ratchet note in AGENTS.md.
 6. **Per-folder AGENTS.md**: author a lean one (one screen max) for each major
    source folder whose purpose isn't obvious from its name.
-7. **Validate**: install with their package manager, then typecheck + lint +
+7. **Run the requirements audit mode — BEFORE the gates.** The suite cannot be
+   honestly green until this is done: the rail's project-wide self-test fails
+   while mapped modules have no contract header, and the first `--check` fails
+   while `docs/code-map.md` is still the placeholder. The overlay brings the
+   toolchain and a `REQUIREMENTS.md` whose `Part G` rows exist, but the project's
+   own behaviour is nowhere in it — and an adopted codebase is exactly where
+   nobody knows what it promises. Use the `requirements` skill in audit mode:
+   extract EARS rows from the design docs, `HANDOFF.md` and the test suite with
+   read-only workers, place the `// req:` markers, then do the conflicts +
+   failing-now pass and carry the conflicts in `Open questions` with whose call
+   each one is. Generate the real map once (`node scripts/code-map.mjs`). Expect
+   `Part G` rows to land `violated` on a legacy codebase — that is the honest
+   state and the ratchet list, same as the `@ts-expect-error` escapes.
+8. **Validate**: install with their package manager, then typecheck + lint +
    test all green.
-8. **Commit the adoption as one commit** (including `.copier-answers.yml` —
+9. **Commit the adoption as one commit** (including `.copier-answers.yml` —
    the update relationship needs it git-tracked), then prove the
    relationship: `uvx copier update --pretend --defaults` runs clean.
 

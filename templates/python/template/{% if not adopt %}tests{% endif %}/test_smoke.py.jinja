@@ -1,7 +1,17 @@
-"""Scaffold smoke test — replace with real feature tests."""
+"""@module tests/test_smoke.py
+@purpose Pin the scaffold's one example requirement row, to be replaced by real feature tests.
+@inputs the package entry point
+@outputs a pytest assertion
+@effects none
+@errors none
+
+The `# req:` comment below is the trace rail: it says which REQUIREMENTS.md rows
+this test evidences. Every test that pins a requirement carries one.
+"""
 
 import {{ package_name }}
 
 
+# req: R-001
 def test_package_imports() -> None:
     assert {{ package_name }}.__version__ == "0.1.0"

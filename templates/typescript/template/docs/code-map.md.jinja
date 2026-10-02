@@ -1,0 +1,125 @@
+{% if adopt %}# Code map
+
+PLACEHOLDER — not generated yet. This project was adopted into the nana stack, so no
+map has been rendered from its code.
+
+Run `pnpm map` (or `node scripts/code-map.mjs` — the generator needs no
+dependencies) ONCE. That replaces this file with the real map, and
+`node scripts/code-map.mjs --check` is green from then on. Until you do, `--check`
+fails and names the command.
+
+Do not hand-edit the generated file: it is rendered from the import graph and the
+contract header at the top of each module (G-009, G-010).
+{% else %}# Code map
+
+Generated — do not edit. `pnpm map` rewrites it from the import graph and the
+contract header at the top of each module; `pnpm map:check` fails when this file
+and the code disagree (G-009, G-010). `pnpm map:impact -- <file...>` prints a
+change's transitive callers and callees (G-011).
+
+Covers `src`, `scripts`, `tests` — 8 modules, as declared in
+`code-map.config.json`.
+
+**Layer direction** (G-007): a module may import from its own layer or the one
+directly after it, never an earlier one and never skipping one.
+
+**Effects vocabulary** (G-004): `none` · `disk` · `database` · `network` · `process`, with an optional
+parenthetical qualifier. Rendering into the DOM is an *output*, not an effect;
+browser `localStorage` and `sessionStorage` count as `disk`.
+
+1. **Tests** — The suite. Its root is layerExempt, so a test may import any layer (G-007) - but nothing below may import a test.
+2. **Scripts** — Entry-point scripts and generators. They may import src/; src/ may not import them.
+3. **Application** — Every module under src/. Split this into real layers as the project grows - a module may import its own layer or the one directly after it, never an earlier one and never skipping one (G-007).
+
+## Tests
+
+The suite. Its root is layerExempt, so a test may import any layer (G-007) - but nothing below may import a test.
+
+### `tests/code-map.test.ts`
+
+- **purpose** — Pin the code map — the header parser, the renderer, the layer rules, the impact walk, and this project's own headers and rendered map.
+- **inputs** — the exports of scripts/code-map.mjs, fixture module sources, a scratch project carrying the real CLI, and this project root
+- **outputs** — vitest assertions and the check summary line on stdout
+- **effects** — disk (reads this project; writes and removes a scratch project under the OS temp dir), process (spawns the real CLI)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — `scripts/code-map.mjs`
+
+### `tests/readme-check.test.ts`
+
+- **purpose** — Pin the README checker — the claim readers, every problem class it reports, and this project's own README.
+- **inputs** — the exports of scripts/readme-check.mjs, fixture README text, scratch projects carrying the real CLI, and this project root
+- **outputs** — vitest assertions and the checker's summary line on stdout
+- **effects** — disk (reads this project; writes and removes scratch projects under the OS temp dir), process (spawns the real CLI)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — `scripts/readme-check.mjs`
+
+### `tests/requirements-trace.test.ts`
+
+- **purpose** — Pin the requirements rail — the checker against fixtures, then this project's REQUIREMENTS.md against the markers its suite carries.
+- **inputs** — the exports of tests/requirements-trace.ts, small fixture strings, a scratch project in a temp dir, and this project root
+- **outputs** — vitest assertions and the summary line on stdout
+- **effects** — disk (reads this project; writes and removes a scratch project under the OS temp dir)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — `tests/requirements-trace.ts`
+
+### `tests/requirements-trace.ts`
+
+- **purpose** — Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries.
+- **inputs** — REQUIREMENTS.md and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
+- **outputs** — the parsed rows, the traced ids, a list of human-readable problems and a one-line summary
+- **effects** — disk (reads REQUIREMENTS.md and the test sources)
+- **errors** — a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
+- **callers** — `tests/requirements-trace.test.ts`
+- **callees** — —
+
+### `tests/smoke.test.ts`
+
+- **purpose** — Scaffold smoke test, to be replaced by real feature tests.
+- **inputs** — the package entry point
+- **outputs** — a vitest assertion
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — `src/index.ts`
+
+## Scripts
+
+Entry-point scripts and generators. They may import src/; src/ may not import them.
+
+### `scripts/code-map.mjs`
+
+- **purpose** — Generate, check and query this project's code map from the import graph and the contract headers (G-004, G-007, G-009, G-010, G-011).
+- **inputs** — code-map.config.json at the project root, the module sources under its roots, and (for --check) the rendered map on disk
+- **outputs** — the rendered map written to disk, an --impact report on stdout, a --check problem list on stdout; the exported functions return plain data
+- **effects** — disk (reads the config and the module sources, writes the map), process (exits non-zero from --check as a CLI)
+- **errors** — a problem list naming each missing or malformed header, unlayered module, reverse or layer-skipping import, cross-package relative import, unresolved relative import, stale or drifted map entry; a thrown Error for a bad config or a bad CLI invocation
+- **callers** — `tests/code-map.test.ts`
+- **callees** — —
+
+### `scripts/readme-check.mjs`
+
+- **purpose** — Check that every command, path, flag and script name a README states exists and runs as written, and that a reader can install, run and test from it alone (G-012).
+- **inputs** — README.md (plus any README named in readme-check.config.json), package.json, the files under scripts/, and the project root
+- **outputs** — a claim list, a problem list and a summary line on stdout; the exported functions return plain data
+- **effects** — disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero from the CLI when a claim does not hold)
+- **errors** — a problem list naming each README line whose claim fails; a thrown Error for a bad config or a bad CLI invocation
+- **callers** — `tests/readme-check.test.ts`
+- **callees** — —
+
+## Application
+
+Every module under src/. Split this into real layers as the project grows - a module may import its own layer or the one directly after it, never an earlier one and never skipping one (G-007).
+
+### `src/index.ts`
+
+- **purpose** — The package entry point for {{ project_name }}, to be replaced by its real public surface.
+- **inputs** — nothing
+- **outputs** — the package version
+- **effects** — none
+- **errors** — none
+- **callers** — `tests/smoke.test.ts`
+- **callees** — —
+{% endif %}

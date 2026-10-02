@@ -1,0 +1,570 @@
+{%- set rq = '// req-candidate:' if adopt else '// req:' -%}
+/**
+ * @module tests/code-map.test.ts
+ * @purpose Pin the code map — the header parser, the renderer, the layer rules, the impact walk, and this project's own headers and rendered map.
+ * @inputs the exports of scripts/code-map.mjs, fixture module sources, a scratch project carrying the real CLI, and this project root
+ * @outputs vitest assertions and the check summary line on stdout
+ * @effects disk (reads this project; writes and removes a scratch project under the OS temp dir), process (spawns the real CLI)
+ * @errors none beyond assertion failures
+ */
+// The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+// `req-candidate:` instead: nothing is claimed about this project until the audit
+// promotes the row, and then the marker is renamed to `req:`.
+//
+// The failure paths run through the REAL CLI: a temp project gets a copy of
+// scripts/code-map.mjs plus a code-map.config.json, and the test spawns it
+// there, so what is checked is the command the suite and the post-edit gate
+// actually run, including its exit code.
+import { execFileSync } from "node:child_process";
+import {
+	copyFileSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, expect, test } from "vitest";
+
+import {
+	buildGraph,
+	checkRepo,
+	HEADER_TAGS,
+	impact,
+	isLayerExempt,
+	loadConfig,
+	mapEntries,
+	parseConfig,
+	parseContractHeader,
+	parseRelativeImports,
+	renderMap,
+	resolveImport,
+} from "../scripts/code-map.mjs";
+
+const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+// the same shape the template ships: src, the scripts and the test root, the test
+// root exempt from the layer direction (G-007)
+const FIXTURE_CONFIG = {
+	roots: ["src", "scripts", { path: "tests", layerExempt: true }],
+	moduleExtensions: [".ts", ".mjs"],
+	mapPath: "docs/code-map.md",
+	packages: [{ id: "root", prefix: "" }],
+	layers: [
+		{ id: "tests", title: "Tests", blurb: "The suite.", match: "^tests/" },
+		{ id: "scripts", title: "Scripts", blurb: "The CLIs.", match: "^scripts/" },
+		{ id: "ui", title: "UI", blurb: "The screens.", match: "^src/ui/" },
+		{ id: "api", title: "API", blurb: "The wire.", match: "^src/api/" },
+		{ id: "core", title: "Core", blurb: "The model.", match: "^src/" },
+	],
+};
+const config = parseConfig(JSON.stringify(FIXTURE_CONFIG));
+
+const header = (path: string, over: Record<string, string> = {}): string => {
+	const f: Record<string, string> = {
+		module: path,
+		purpose: "Do the one thing this module is for.",
+		inputs: "a thing",
+		outputs: "another thing",
+		effects: "none",
+		errors: "none",
+		...over,
+	};
+	return `/**\n${HEADER_TAGS.map((t: string) => ` * @${t} ${f[t]}`).join("\n")}\n */\n`;
+};
+
+const mod = (
+	path: string,
+	imports: string[] = [],
+	over: Record<string, string> = {},
+) => ({
+	path,
+	source: `${header(path, over)}${imports.map((i) => `import { x } from "${i}";`).join("\n")}\n`,
+});
+
+const scratch: string[] = [];
+afterAll(() => {
+	for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
+
+/** A temp project carrying the real CLI, so the spawned command is the real one. */
+function makeProject(
+	files: Record<string, string>,
+	config: object = FIXTURE_CONFIG,
+): string {
+	const root = mkdtempSync(join(tmpdir(), "code-map-"));
+	scratch.push(root);
+	mkdirSync(join(root, "scripts"));
+	copyFileSync(
+		join(PROJECT, "scripts", "code-map.mjs"),
+		join(root, "scripts", "code-map.mjs"),
+	);
+	mkdirSync(join(root, "docs"));
+	writeFileSync(
+		join(root, "code-map.config.json"),
+		JSON.stringify(config, null, 2),
+	);
+	for (const [path, source] of Object.entries(files)) {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), source);
+	}
+	return root;
+}
+
+function cli(root: string, args: string[]): { code: number; stdout: string } {
+	try {
+		return {
+			code: 0,
+			stdout: execFileSync(
+				process.execPath,
+				[join(root, "scripts", "code-map.mjs"), ...args],
+				{
+					cwd: root,
+					encoding: "utf8",
+				},
+			),
+		};
+	} catch (err) {
+		const e = err as { status?: number; stdout?: string; stderr?: string };
+		return {
+			code: e.status ?? 1,
+			stdout: `${e.stdout ?? ""}${e.stderr ?? ""}`,
+		};
+	}
+}
+
+{{ rq }} G-004
+test("a contract header parses into the six fixed fields", () => {
+	const source = `${header("src/core/thing.ts", {
+		effects: "database (reads read-only), disk (writes the pointer)",
+		errors: "NotFound",
+	})}\n// the prose header stays below the contract block\nexport const x = 1;\n`;
+	const parsed = parseContractHeader(source);
+	if (!parsed.ok) throw new Error(parsed.problem);
+	expect(Object.keys(parsed.fields)).toEqual([...HEADER_TAGS]);
+	expect(parsed.fields.module).toBe("src/core/thing.ts");
+	// a parenthetical qualifier may carry commas without splitting the effects list
+	expect(parsed.fields.effects).toBe(
+		"database (reads read-only), disk (writes the pointer)",
+	);
+});
+
+{{ rq }} G-004
+test("a wrapped header field joins its continuation lines, and a shebang may precede the block", () => {
+	const source =
+		"#!/usr/bin/env node\n/**\n * @module src/core/p.ts\n * @purpose One thing.\n * @inputs the first part\n *   and the wrapped rest\n * @outputs a value\n * @effects disk\n * @errors none\n */\n";
+	const parsed = parseContractHeader(source);
+	if (!parsed.ok) throw new Error(parsed.problem);
+	expect(parsed.fields.inputs).toBe("the first part and the wrapped rest");
+});
+
+{{ rq }} G-004 G-010
+test("a malformed contract header is a named problem rather than a silent pass", () => {
+	const cases: [string, RegExp][] = [
+		["export const x = 1;\n", /no contract header/],
+		[
+			"/**\n * @module src/a.ts\n * @purpose One.\n * @inputs i\n * @outputs o\n * @errors none\n */\n",
+			/no @effects/,
+		],
+		[
+			"/**\n * @module src/a.ts\n * @inputs i\n * @purpose One.\n * @outputs o\n * @effects none\n * @errors none\n */\n",
+			/out of order/,
+		],
+		[header("src/a.ts", { effects: "filesystem" }), /not one of none \| disk/],
+		[header("src/a.ts", { effects: "none, disk" }), /'none' alongside disk/],
+		[
+			header("src/a.ts", { purpose: "One thing. And a second thing." }),
+			/more than one sentence/,
+		],
+		[header("src/a.ts", { inputs: "" }), /@inputs is empty/],
+		[
+			"/**\n * @module src/a.ts\n * @purpose One.\n * @inputs i\n",
+			/never closed/,
+		],
+	];
+	for (const [source, expected] of cases) {
+		const parsed = parseContractHeader(source);
+		if (parsed.ok)
+			throw new Error(`expected a problem for: ${source.slice(0, 40)}`);
+		expect(parsed.problem).toMatch(expected);
+	}
+	// a header naming the wrong path is a graph problem, not a parse one
+	const graph = buildGraph(
+		[mod("src/core/a.ts", [], { module: "src/core/b.ts" })],
+		config,
+	);
+	expect(graph.problems.join("\n")).toMatch(
+		/src\/core\/a\.ts: the header's @module says 'src\/core\/b\.ts'/,
+	);
+});
+
+{{ rq }} G-009
+test("the rendered map carries one entry per module under its layer", () => {
+	const graph = buildGraph(
+		[
+			mod("src/api/ops.ts", ["../core/model.js"]),
+			mod("src/core/model.ts"),
+			mod("src/ui/screen.ts", ["../api/ops.js"]),
+		],
+		config,
+	);
+	expect(graph.problems).toEqual([]);
+	const markdown = renderMap(graph);
+	expect(mapEntries(markdown).sort()).toEqual([
+		"src/api/ops.ts",
+		"src/core/model.ts",
+		"src/ui/screen.ts",
+	]);
+	// the ui entry comes before the api entry, which comes before the core one
+	const at = (p: string) => markdown.indexOf(`### \`${p}\``);
+	expect(at("src/ui/screen.ts")).toBeLessThan(at("src/api/ops.ts"));
+	expect(at("src/api/ops.ts")).toBeLessThan(at("src/core/model.ts"));
+	expect(markdown).toMatch(/- \*\*callers\*\* — `src\/api\/ops\.ts`/);
+	expect(markdown).toMatch(/- \*\*callees\*\* — `src\/core\/model\.ts`/);
+	// deterministic: rendering the same graph twice gives the same bytes
+	expect(renderMap(graph)).toBe(markdown);
+});
+
+{{ rq }} G-009
+test("the import reader finds static, bare and dynamic specifiers and resolves the NodeNext .js spelling", () => {
+	// The fixture spells its quotes as @ and swaps them in: a real import specifier
+	// written out here would be read as an import OF THIS FILE once tests/ is mapped.
+	const source = `${[
+		"import { a } from @./a.js@;",
+		"import @./b.js@;",
+		"const { c } = await import(@./sub/c.js@);",
+		"import { d } from @node:fs@;",
+	]
+		.join("\n")
+		.replace(/@/g, '"')}\n`;
+	expect(parseRelativeImports(source)).toEqual([
+		"./a.js",
+		"./b.js",
+		"./sub/c.js",
+	]);
+	expect(
+		resolveImport(
+			"src/ui/screen.ts",
+			"../api/ops.js",
+			new Set(["src/api/ops.ts"]),
+		),
+	).toBe("src/api/ops.ts");
+	expect(
+		resolveImport("src/core/a.ts", "./b.ts", new Set(["src/core/b.ts"])),
+	).toBe("src/core/b.ts");
+});
+
+// NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin
+// the CHECK, not this project's own layering, so that row stays `untested` until
+// the project declares real layers and a test pins them.
+test("a reverse or layer-SKIPPING import is a problem, and an adjacent one is not", () => {
+	const reverse = buildGraph(
+		[mod("src/api/ops.ts", ["../ui/screen.js"]), mod("src/ui/screen.ts")],
+		config,
+	);
+	expect(reverse.problems.join("\n")).toMatch(
+		/src\/api\/ops\.ts: imports src\/ui\/screen\.ts against the layer direction \(api -> ui\)/,
+	);
+
+	const skipping = buildGraph(
+		[mod("src/ui/screen.ts", ["../core/model.js"]), mod("src/core/model.ts")],
+		config,
+	);
+	expect(skipping.problems.join("\n")).toMatch(
+		/src\/ui\/screen\.ts: imports src\/core\/model\.ts SKIPPING a layer \(ui -> core, past api\)/,
+	);
+
+	const adjacent = buildGraph(
+		[mod("src/ui/screen.ts", ["../api/ops.js"]), mod("src/api/ops.ts")],
+		config,
+	);
+	expect(adjacent.problems).toEqual([]);
+
+	const dangling = buildGraph([mod("src/core/a.ts", ["./gone.js"])], config);
+	expect(dangling.problems.join("\n")).toMatch(
+		/resolves to src\/core\/gone\.js, which is not a mapped module/,
+	);
+});
+
+test("a test may import any layer, but nothing below may import a test", () => {
+	// G-007 says tests may import anything: the test root is declared layerExempt, so a
+	// test reaching past a layer is fine while a module reaching INTO tests is not.
+	const exempt = buildGraph(
+		[
+			mod("tests/model.test.ts", ["../src/core/model.js"]),
+			mod("src/core/model.ts"),
+		],
+		config,
+	);
+	expect(exempt.problems).toEqual([]);
+	expect(exempt.modules.get("src/core/model.ts")?.callers).toEqual([
+		"tests/model.test.ts",
+	]);
+
+	const inward = buildGraph(
+		[
+			mod("src/core/model.ts", ["../../tests/model.test.js"]),
+			mod("tests/model.test.ts"),
+		],
+		config,
+	);
+	expect(inward.problems.join("\n")).toMatch(
+		/against the layer direction \(core -> tests\)/,
+	);
+});
+
+{{ rq }} G-004 G-010
+test("--check fails on a header dropped outside src/", () => {
+	// "every module" is every module under the configured roots — tests and scripts
+	// included, so a header dropped there fails the same check.
+	const root = makeProject({
+		"src/core/a.ts": mod("src/core/a.ts").source,
+		"tests/a.test.ts": "export const x = 1;\n",
+		"scripts/tool.mjs": "export const x = 1;\n",
+	});
+	const run = cli(root, ["--check"]);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/tests\/a\.test\.ts: no contract header/);
+	expect(run.stdout).toMatch(/scripts\/tool\.mjs: no contract header/);
+	expect(run.stdout).toMatch(/2 without a usable contract header/);
+});
+
+{{ rq }} G-010
+test("--check exits non-zero on a missing header, a stale map or a reverse import", () => {
+	const root = makeProject({
+		"src/core/good.ts": mod("src/core/good.ts").source,
+		"src/core/bad.ts": "export const x = 1;\n",
+	});
+	expect(cli(root, ["--write"]).code).toBe(1); // writing reports the problem too
+	const missing = cli(root, ["--check"]);
+	expect(missing.code).toBe(1);
+	expect(missing.stdout).toMatch(/src\/core\/bad\.ts: no contract header/);
+	expect(missing.stdout).toMatch(/1 without a usable contract header/);
+
+	const clean = makeProject({ "src/core/a.ts": mod("src/core/a.ts").source });
+	expect(cli(clean, ["--check"]).stdout).toMatch(
+		/docs\/code-map\.md does not exist/,
+	);
+	expect(cli(clean, ["--write"]).code).toBe(0);
+	expect(cli(clean, ["--check"]).code).toBe(0);
+
+	// the module changes, the map does not
+	writeFileSync(
+		join(clean, "src/core/a.ts"),
+		mod("src/core/a.ts", [], { purpose: "Do something else entirely." }).source,
+	);
+	const stale = cli(clean, ["--check"]);
+	expect(stale.code).toBe(1);
+	expect(stale.stdout).toMatch(/docs\/code-map\.md is stale against the code/);
+
+	// a new module with no entry, then an entry whose module is gone
+	cli(clean, ["--write"]);
+	writeFileSync(join(clean, "src/core/b.ts"), mod("src/core/b.ts").source);
+	expect(cli(clean, ["--check"]).stdout).toMatch(
+		/src\/core\/b\.ts has no entry in docs\/code-map\.md/,
+	);
+	cli(clean, ["--write"]);
+	rmSync(join(clean, "src/core/b.ts"));
+	expect(cli(clean, ["--check"]).stdout).toMatch(
+		/lists src\/core\/b\.ts, which is not a module/,
+	);
+
+	// a reverse import against the declared layer direction
+	const reversed = makeProject({
+		"src/api/ops.ts": mod("src/api/ops.ts", ["../ui/screen.js"]).source,
+		"src/ui/screen.ts": mod("src/ui/screen.ts").source,
+	});
+	const bad = cli(reversed, ["--check"]);
+	expect(bad.code).toBe(1);
+	expect(bad.stdout).toMatch(/against the layer direction/);
+});
+
+{{ rq }} G-004 G-010
+test("a declared exemption keeps the module in the map without a header", () => {
+	// A module whose CONTENT is pinned elsewhere (a fixture a published study hashes)
+	// cannot take a header without invalidating that pin. It stays mapped and keeps its
+	// edges; what it loses is the header — and it has to say why.
+	const reason = "content-pinned by study sha256 abc123";
+	const pinned = parseConfig(
+		JSON.stringify({
+			...FIXTURE_CONFIG,
+			exempt: [{ path: "src/core/pinned.ts", reason }],
+		}),
+	);
+	const graph = buildGraph(
+		[
+			mod("src/core/a.ts", ["./pinned.js"]),
+			{
+				path: "src/core/pinned.ts",
+				source: "export const ROWS = [1, 2, 3];\n",
+			},
+		],
+		pinned,
+	);
+	expect(graph.problems).toEqual([]);
+	expect(graph.modules.get("src/core/pinned.ts")?.exemptReason).toBe(reason);
+	const markdown = renderMap(graph);
+	expect(mapEntries(markdown)).toContain("src/core/pinned.ts");
+	expect(markdown).toContain(`- **exempt** — ${reason}`);
+	expect(markdown.split("### `src/core/pinned.ts`")[1]).not.toMatch(
+		/\*\*purpose\*\*/,
+	);
+	// the edge still counts, so --impact still sees it
+	expect(graph.modules.get("src/core/pinned.ts")?.callers).toEqual([
+		"src/core/a.ts",
+	]);
+
+	// through the real CLI: the exempt module is exempt, not headerless
+	const root = makeProject(
+		{ "src/core/pinned.ts": "export const ROWS = [1, 2, 3];\n" },
+		{ ...FIXTURE_CONFIG, exempt: [{ path: "src/core/pinned.ts", reason }] },
+	);
+	expect(cli(root, ["--write"]).code).toBe(0);
+	const run = cli(root, ["--check"]);
+	expect(run.code, run.stdout).toBe(0);
+	expect(run.stdout).toMatch(/0 without a usable contract header; 1 exempt/);
+});
+
+{{ rq }} G-010
+test("an exemption must name a real module and say why", () => {
+	const noReason = parseConfig(
+		JSON.stringify({ ...FIXTURE_CONFIG, exempt: [{ path: "src/core/a.ts" }] }),
+	);
+	expect(
+		buildGraph(
+			[{ path: "src/core/a.ts", source: "export const x = 1;\n" }],
+			noReason,
+		).problems.join("\n"),
+	).toMatch(/exempt path 'src\/core\/a\.ts' has no reason/);
+
+	const gone = parseConfig(
+		JSON.stringify({
+			...FIXTURE_CONFIG,
+			exempt: [{ path: "src/core/gone.ts", reason: "pinned" }],
+		}),
+	);
+	expect(buildGraph([mod("src/core/a.ts")], gone).problems.join("\n")).toMatch(
+		/exempt path 'src\/core\/gone\.ts' is not a module/,
+	);
+
+	// a malformed entry is a config error, not a silent skip
+	expect(() =>
+		parseConfig(
+			JSON.stringify({ ...FIXTURE_CONFIG, exempt: [{ reason: "no path" }] }),
+		),
+	).toThrow(/exempt\[0\] must be an object with a non-empty 'path'/);
+});
+
+test("testRoots is shorthand for a layerExempt root", () => {
+	const config = parseConfig(
+		JSON.stringify({
+			...FIXTURE_CONFIG,
+			roots: ["src", "scripts", "tests"],
+			testRoots: ["tests"],
+		}),
+	);
+	expect(isLayerExempt(config, "tests/a.test.ts")).toBe(true);
+	expect(
+		buildGraph(
+			[
+				mod("tests/a.test.ts", ["../src/core/model.js"]),
+				mod("src/core/model.ts"),
+			],
+			config,
+		).problems,
+	).toEqual([]);
+	expect(() =>
+		parseConfig(JSON.stringify({ ...FIXTURE_CONFIG, testRoots: ["nope"] })),
+	).toThrow(/is not one of 'roots'/);
+});
+
+{{ rq }} G-004 G-010
+test("an ignored path is outside the map: not collected, and importing it is allowed", () => {
+	// `ignore` is how a root that also holds non-source — a recorded fixture tree, a
+	// browser-only e2e suite — stays mappable: the subtree is not collected, so no
+	// header is demanded of it, and an import that lands there is external, not broken.
+	const config = {
+		...FIXTURE_CONFIG,
+		ignore: ["src/api/fixtures", "**/*.e2e.ts"],
+	};
+	const root = makeProject(
+		{
+			"src/core/a.ts": mod("src/core/a.ts", ["../api/fixtures/recorded.js"])
+				.source,
+			"src/api/fixtures/recorded.ts": "export const x = 1;\n",
+			"src/api/wire.e2e.ts": "export const x = 1;\n",
+		},
+		config,
+	);
+	expect(cli(root, ["--write"]).code).toBe(0);
+	const run = cli(root, ["--check"]);
+	expect(run.code).toBe(0);
+	// the scratch project carries the real CLI under scripts/, so it is mapped too
+	expect(run.stdout).toMatch(/code map: 2 modules/);
+	expect(mapEntries(readFileSync(join(root, "docs/code-map.md"), "utf8"))).toEqual(
+		["scripts/code-map.mjs", "src/core/a.ts"],
+	);
+	expect(() =>
+		parseConfig(JSON.stringify({ ...FIXTURE_CONFIG, ignore: [""] })),
+	).toThrow(/'ignore' must be an array of paths/);
+});
+
+{{ rq }} G-011
+test("--impact gives the transitive callers and callees of a change", () => {
+	const graph = buildGraph(
+		[
+			mod("src/core/a.ts", ["./b.js"]),
+			mod("src/core/b.ts", ["./c.js"]),
+			mod("src/core/c.ts"),
+			mod("src/core/d.ts", ["./b.js"]),
+			mod("src/core/unrelated.ts"),
+		],
+		config,
+	);
+	expect(graph.problems).toEqual([]);
+
+	const leaf = impact(graph, ["src/core/c.ts"]);
+	expect(leaf.per[0]?.callers).toEqual([
+		"src/core/a.ts",
+		"src/core/b.ts",
+		"src/core/d.ts",
+	]);
+	expect(leaf.per[0]?.callees).toEqual([]);
+
+	const top = impact(graph, ["src/core/a.ts"]);
+	expect(top.per[0]?.callees).toEqual(["src/core/b.ts", "src/core/c.ts"]);
+	expect(top.per[0]?.callers).toEqual([]);
+
+	// the union over several changed files excludes the changed files themselves
+	const both = impact(graph, ["src/core/b.ts", "src/core/c.ts"]);
+	expect(both.callers).toEqual(["src/core/a.ts", "src/core/d.ts"]);
+	expect(both.callees).toEqual([]);
+
+	// a path that is not a module is reported as such, not answered with an empty closure
+	expect(impact(graph, ["src/core/nope.ts"]).per[0]?.known).toBe(false);
+
+	// and through the real CLI
+	const root = makeProject({
+		"src/core/a.ts": mod("src/core/a.ts", ["./b.js"]).source,
+		"src/core/b.ts": mod("src/core/b.ts").source,
+	});
+	const run = cli(root, ["--impact", "src/core/b.ts"]);
+	expect(run.code).toBe(0);
+	expect(run.stdout).toMatch(/transitive callers \(1\): src\/core\/a\.ts/);
+	expect(run.stdout).toMatch(/transitive callees \(0\): —/);
+});
+
+{{ rq }} G-004 G-009 G-010
+test("this project: every module has a contract header and docs/code-map.md is current", () => {
+	const { problems, graph, line } = checkRepo(PROJECT);
+	console.log(line);
+	expect(problems, `${line}\n${problems.join("\n")}`).toEqual([]);
+	const mapPath = loadConfig(PROJECT).mapPath;
+	expect(mapEntries(readFileSync(join(PROJECT, mapPath), "utf8")).length).toBe(
+		graph.order.length,
+	);
+	expect(cli(PROJECT, ["--check"]).code).toBe(0);
+});

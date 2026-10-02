@@ -1,0 +1,126 @@
+{% if adopt %}# Code map
+
+PLACEHOLDER — not generated yet. This project was adopted into the nana stack, so no
+map has been rendered from its code.
+
+Run `uv run python scripts/code_map.py` (or `python3 scripts/code_map.py` — the generator needs no
+dependencies) ONCE. That replaces this file with the real map, and
+`python3 scripts/code_map.py --check` is green from then on. Until you do, `--check`
+fails and names the command.
+
+Do not hand-edit the generated file: it is rendered from the import graph and the
+contract header at the top of each module (G-009, G-010).
+{% else %}# Code map
+
+Generated — do not edit. `uv run python scripts/code_map.py` rewrites it from the
+import graph and the contract header at the top of each module;
+`uv run python scripts/code_map.py --check` fails when this file and the code
+disagree (G-009, G-010). `--impact <file...>` prints a change's transitive callers
+and callees (G-011).
+
+Covers `src/{{ package_name }}`, `scripts`, `tests` — 8 modules, as declared in
+`code-map.config.json`.
+
+**Layer direction** (G-007): a module may import from its own layer or the one
+directly after it, never an earlier one and never skipping one.
+
+**Effects vocabulary** (G-004): `none` · `disk` · `database` · `network` · `process`, with an optional
+parenthetical qualifier. A value a caller is handed back is an *output*, not an
+effect; a file written under the project counts as `disk`.
+
+1. **Tests** — The suite. Its root is layerExempt, so a test may import any layer (G-007) - but nothing below may import a test.
+2. **Scripts** — Entry-point scripts and generators. They may import the package; the package may not import them.
+3. **Application** — Every module in the package. Split this into real layers as the project grows - a module may import its own layer or the one directly after it, never an earlier one and never skipping one (G-007).
+
+## Tests
+
+The suite. Its root is layerExempt, so a test may import any layer (G-007) - but nothing below may import a test.
+
+### `tests/conftest.py`
+
+- **purpose** — Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry.
+- **inputs** — REQUIREMENTS.md and every tests/**/test_*.py source, read from the pytest rootdir
+- **outputs** — the parsed rows, the traced ids, a problem list, a summary line on the terminal, and a non-zero exit status on a full run that disagrees
+- **effects** — disk (reads REQUIREMENTS.md and the test sources), process (sets the session exit status)
+- **errors** — pytest.UsageError for a malformed requirements table or a bad or orphan marker
+- **callers** — —
+- **callees** — —
+
+### `tests/test_code_map.py`
+
+- **purpose** — Pin the code map -- the header parser, the renderer, the layer rules, the impact walk, and this project's own headers and rendered map.
+- **inputs** — the functions of scripts/code_map.py, fixture module sources, a scratch project carrying the real CLI, and this project root
+- **outputs** — pytest assertions and the check summary line on stdout
+- **effects** — disk (reads this project; writes scratch projects under the tmp dir), process (spawns the real CLI)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — —
+
+### `tests/test_readme_check.py`
+
+- **purpose** — Pin the README checker -- the claim readers, every problem class it reports, and this project's own README.
+- **inputs** — the functions of scripts/readme_check.py, fixture README text, scratch projects carrying the real CLI, and this project root
+- **outputs** — pytest assertions and the checker's summary line on stdout
+- **effects** — disk (reads this project; writes scratch projects under the tmp dir), process (spawns the real CLI)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — —
+
+### `tests/test_requirements_trace.py`
+
+- **purpose** — Pin the requirements rail in tests/conftest.py against fixtures and against a real pytest run.
+- **inputs** — the functions of tests/conftest.py, fixture requirement tables, and pytester projects
+- **outputs** — pytest assertions
+- **effects** — disk (pytester writes and removes scratch projects under the tmp dir), process (pytester runs pytest in a subprocess)
+- **errors** — none beyond assertion failures
+- **callers** — —
+- **callees** — —
+
+### `tests/test_smoke.py`
+
+- **purpose** — Pin the scaffold's one example requirement row, to be replaced by real feature tests.
+- **inputs** — the package entry point
+- **outputs** — a pytest assertion
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — `src/{{ package_name }}/__init__.py`
+
+## Scripts
+
+Entry-point scripts and generators. They may import the package; the package may not import them.
+
+### `scripts/code_map.py`
+
+- **purpose** — Generate, check and query this project's code map from the import graph and the contract headers (G-004, G-007, G-009, G-010, G-011).
+- **inputs** — code-map.config.json at the project root, the module sources under its roots, and (for --check) the rendered map on disk
+- **outputs** — the rendered map written to disk, an --impact report on stdout, a --check problem list on stdout; the module functions return plain data
+- **effects** — disk (reads the config and the module sources, writes the map), process (exits non-zero from --check as a CLI)
+- **errors** — a problem list naming each missing or malformed header, unlayered module, reverse or layer-skipping import, unresolved intra-package import, unmapped dynamic import, stale or drifted map entry; SystemExit for a bad config or a bad CLI invocation
+- **callers** — —
+- **callees** — —
+
+### `scripts/readme_check.py`
+
+- **purpose** — Check that every command, path, flag and script name a README states exists and runs as written, and that a reader can install, run and test from it alone (G-012).
+- **inputs** — README.md (plus any README named in readme-check.config.json), package.json or the files under scripts/, and the project root
+- **outputs** — a claim list, a problem list and a summary line on stdout; the module functions return plain data
+- **effects** — disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero from the CLI when a claim does not hold)
+- **errors** — a problem list naming each README line whose claim fails; SystemExit for a bad CLI invocation
+- **callers** — —
+- **callees** — —
+
+## Application
+
+Every module in the package. Split this into real layers as the project grows - a module may import its own layer or the one directly after it, never an earlier one and never skipping one (G-007).
+
+### `src/{{ package_name }}/__init__.py`
+
+- **purpose** — The package entry point for {{ project_name }}, to be replaced by its real public surface.
+- **inputs** — nothing
+- **outputs** — the package version
+- **effects** — none
+- **errors** — none
+- **callers** — `tests/test_smoke.py`
+- **callees** — —
+{% endif %}

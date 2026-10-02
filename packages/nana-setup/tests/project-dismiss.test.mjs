@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/project-dismiss.test.mjs
+ * @purpose Pins the `--not-a-project` marker — written at a repository root, honored by the adoption reader, and refused with a reason on a marked dir or a non-root
+ * @inputs bin/nana-setup.mjs, nana-pack's bin/nana-adoption.mjs, and throwaway git repositories
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (throwaway repositories, markers and a throwaway home), process (spawns the setup CLI, the reader and git)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // L5 (d): `nana-setup project <dir> --not-a-project` writes `.nana-not-a-project` at a git
 // repository root; the seat's adoption reader then ignores that root; `project` on a marked dir
 // refuses, naming the marker and the remedy; a non-root refuses with the reason. Throwaway dirs only.
@@ -32,15 +40,22 @@ check("dry run writes nothing", dry.status === 0 && !fs.existsSync(marker), dry.
 const r = setup(dir, "--not-a-project");
 check("--not-a-project exits 0", r.status === 0, r.stdout + r.stderr);
 const text = fs.existsSync(marker) ? fs.readFileSync(marker, "utf8") : "";
+// req: R-340
 check("the marker is one line saying what it means and when", /^Not a nana project — .*\d{4}-\d{2}-\d{2}.*\n$/.test(text) && text.split("\n").length === 2, JSON.stringify(text));
+// req: R-340
 check("nothing else was created", JSON.stringify(fs.readdirSync(dir).sort()) === JSON.stringify([".git", ".nana-not-a-project"]));
+// req: R-340
 check("after: the reader ignores that root", read().stdout === "");
 const again = setup(dir, "--not-a-project");
+// req: R-340
 check("a second --not-a-project leaves the recorded file alone", again.status === 0 && fs.readFileSync(marker, "utf8") === text);
 
 const refuse = setup(dir);
+// req: R-340
 check("project on a marked dir refuses (exit 2)", refuse.status === 2, refuse.stdout + refuse.stderr);
+// req: R-340
 check("…naming the marker and the remedy", refuse.stderr.includes(marker) && /delete it to adopt/.test(refuse.stderr), refuse.stderr);
+// req: R-340
 check("…and seeds nothing", !fs.existsSync(path.join(dir, "OBJECTIVE.md")) && fs.readFileSync(marker, "utf8") === text);
 
 // a linked worktree (.git FILE) is a repository root; a subdirectory / a plain folder is not
@@ -52,6 +67,7 @@ const sub = path.join(dir, "src");
 fs.mkdirSync(sub);
 for (const [label, d] of [["a subdirectory of a repo", sub], ["a plain folder", path.join(root, "home")], ["a missing folder", path.join(root, "nope")]]) {
 	const x = setup(d, "--not-a-project");
+	// req: R-340
 	check(`--not-a-project on ${label} refuses with the reason`, x.status === 2 && x.stderr.includes("is not a git repository root") && !fs.existsSync(path.join(d, ".nana-not-a-project")), x.stdout + x.stderr);
 }
 

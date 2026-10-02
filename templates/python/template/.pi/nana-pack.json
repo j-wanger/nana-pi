@@ -12,6 +12,14 @@
       {
         "match": "\\.py$",
         "run": "uv run mypy"
+      },
+      {
+        "match": "\\.py$",
+        "run": "uv run python scripts/code_map.py --check"
+      },
+      {
+        "match": "README\\.md$",
+        "run": "uv run python scripts/readme_check.py"
       }
     ]
   }

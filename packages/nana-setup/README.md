@@ -10,18 +10,19 @@ line, whether a machine actually has it.
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs install      # install / repair everything
-node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓/✗ per piece; exits 1 on any ✗
+node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓ or ✗ per piece; exits 1 on any ✗ or !
 node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
 ```
 
 Runtime dependencies: **Node ≥ 22.18** and nothing else. The floor is set by the installed
-`nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that CLI imports
-`lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
+`claude/hooks/nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
+CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
 22.18). On an older Node the hook prints `OBJECTIVE UNAVAILABLE: Node <v> is older than 22.18 …`
 (and `… node not found on PATH …` with no `node` at all) instead of the objective, and `doctor`'s
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
-the packages, and only when they are not registered yet), to `node` (to build the knowledge
+the packages, and only when they are not registered yet — and it probes `pi --version` first, so a
+machine without pi on PATH reports `skipped` with the install command instead of failing), to `node` (to build the knowledge
 index) and to `launchctl` (only with `--desk`, only on macOS, only against the real home) — each
 of those is optional and reports "skipped" with the reason when it is missing.
 
@@ -29,15 +30,17 @@ of those is optional and reports "skipped" with the reason when it is missing.
 
 | Piece | Where | How |
 |---|---|---|
-| `nana-objective.sh`, `nana-adoption.sh`, `nana-shared-memory.sh`, `context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
-| `nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
-| `nana-personal.md` (private) | `~/.claude/rules/` | **copied from `nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
+| `claude/hooks/nana-objective.sh`, `claude/hooks/nana-adoption.sh`, `claude/hooks/nana-shared-memory.sh`, `claude/hooks/context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
+| `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
+| `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
+| the `requirements` skill | `~/.claude/skills/requirements` | **symlink** to `packages/nana-pack/skills/requirements` — the directory pi already reads, so Claude Code and pi get ONE source and a `git pull` updates both. A regular directory already sitting there is someone else's skill: it is reported ✗ and **left untouched** (a `requirements.bak-<date>` directory inside `~/.claude/skills/` would be loaded as a second skill claiming the same name), so install exits 1 until you move it. A symlink pointing elsewhere is relinked |
+| `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
 | SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
 | `nana-objective.md` | the pi agent dir | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
-| knowledge index | `nana-knowledge/index.db` under `~/.pi/agent/` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
+| knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID`. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute) and the service desk opens the dir the pack was installed into. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
@@ -52,7 +55,7 @@ from Claude Code had no path to them at all. That gap is what `project` closes:
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs project [dir] [--name <n>] [--dry-run]
-node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # ✓/✗ per file; exits 1 on any ✗
+node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # one ✓ or ✗ per file; exits 1 on any ✗
 node packages/nana-setup/bin/nana-setup.mjs project <dir> --not-a-project   # dismiss a repo root once
 ```
 
@@ -89,9 +92,12 @@ only nana files stays ignored under it. Existing projects need the same one-time
 What it will not do is decide your objective. The two `(DRAFT — ratify by editing this line)`
 lines are the owner's, and the command says so when it finishes.
 
-**Present means present, not readable.** Every "is it already there?" decision is `lstat`, not
-`existsSync`: a **dangling** symlink reads as absent to `existsSync`, and seeding "the missing
-file" would write straight through the link to whatever it names. A symlink of any kind, or a
+**Present means present, not readable.** Every "is it already there?" decision about a file this
+installer WRITES is `lstat`, not `existsSync`: a **dangling** symlink reads as absent to
+`existsSync`, and seeding "the missing file" would write straight through the link to whatever it
+names. (The two steps that only ask whether something OTHER than a seed exists — the knowledge
+index and the desk server file — and `doctor`'s presence rows for the memory index, the objective
+file and the knowledge index, use `existsSync`: nothing is written through those paths.) A symlink of any kind, or a
 directory, at a seed path is reported `skipped` naming what was found, and nothing is written
 through it.
 
@@ -170,8 +176,11 @@ instructions from the ones pi reads.
 Re-running is the normal case: the second run prints `nothing to do — everything was already in
 place`. `--dry-run` reports the same decisions and writes nothing.
 
-**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — something
-on disk is wrong and only you can fix it (today: a private rule that is not a regular file).
+**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — and `doctor`
+also exits 1 on a `!` row, which says what was checked may not be what pi reads, so it never
+reports "all good" — something
+on disk is wrong and only you can fix it (today: a private rule that is not a regular file, or a
+non-symlink directory sitting where the `requirements` skill symlink belongs).
 Exiting 0 there would tell a script the machine is set up when it is not. `--dry-run` reports
 the same ✗ and exits 1 with it.
 
@@ -182,12 +191,12 @@ Claude Code keeps per-project auto-memory under `~/.claude/projects/<key>/memory
 and are symlinked in as `shared/`.
 
 Linking that per project would mean an installer step per repo, forever. Instead
-`nana-shared-memory.sh` does it at session start for whatever project the session is in:
+`claude/hooks/nana-shared-memory.sh` does it at session start for whatever project the session is in:
 
 - it prefers the **exact** directory the harness names in `transcript_path` (when that path sits
   directly under `<claude home>/projects`);
 - otherwise it derives `<key>` the way Claude Code does — every character outside `[A-Za-z0-9]`
-  becomes `-` (verified 2026-09-18 against CLI 2.1.269: `p.replace(/[^a-zA-Z0-9]/g, "-")`, and
+  becomes `-` (verified 2026-09-18 against CLI 2.1.269 — `p.replace` of every non-alphanumeric with `-`, and
   beyond 200 characters truncated to 200 with `-<hash>`, `hash` being the 32-bit rolling string
   hash in base 36 — the hook reproduces that arithmetic rather than guessing);
 - and it **never picks a directory by pattern**: two projects can share their first 200
@@ -206,15 +215,18 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` �
 macOS and Linux install everything except the desk service (launchd is macOS-only). On **win32**
 every posix-only step reports `skipped (win32)` instead of failing: the three bash hooks and
 their settings entries, the `~/.local/bin` symlink and the desk service. The rules are installed
-as copies there (no usable symlink — with the same backup guarantee as everywhere else), and the knowledge hook is wired without the
+as copies there (no usable symlink — with the same backup guarantee as everywhere else), the skill is
+mirrored in file by file through that same copy path (a hand-written `../nana-pack/skills/requirements/SKILL.md` copy is backed up beside
+itself as a `.bak-<date>` FILE, never a second skill directory; files you added are left alone, and
+`doctor` reads ✗ naming any file whose copy has gone stale), and the knowledge hook is wired without the
 `NODE_NO_WARNINGS=1` prefix, which `cmd.exe` cannot run. `doctor` marks those lines `·` and does
 not fail on them.
 
-## Options
+## Usage and options
 
 ```
 --name <n>           project: the project's name  (default: the folder's name)
---check              project: one ✓/✗ line per file; exits 1 on any ✗
+--check              project: one ✓ or ✗ line per file; exits 1 on any ✗
 --home <dir>         put every user-scope location under <dir> (tests, dry machines)
 --claude-home <dir>  the .claude directory        (default ~/.claude)
 --pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
@@ -240,7 +252,7 @@ Environment switches (tests and CI only):
 
 | Variable | Effect |
 |---|---|
-| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — it exists so a machine that cannot render never drops the byte-equality and `_skip_if_exists` invariants silently. **Residual (2026-09-18): this repo has no CI workflow at all** — the only `.github/workflows` here belong to the two project *templates*, and nothing in the repo runs these tests automatically. Until there is one, set this by hand on any machine that is meant to exercise the renders; when a repo workflow is added, the job that runs these tests must install `uv` and set `NANA_SETUP_REQUIRE_COPIER: "1"` |
+| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `tests/project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — it exists so a machine that cannot render never drops the byte-equality and `_skip_if_exists` invariants silently. **Residual (2026-09-18): this repo has no CI workflow at all** — the only `.github/workflows` here belong to the two project *templates*, and nothing in the repo runs these tests automatically. Until there is one, set this by hand on any machine that is meant to exercise the renders; when a repo workflow is added, the job that runs these tests must install `uv` and set `NANA_SETUP_REQUIRE_COPIER: "1"` |
 | `NANA_SETUP_PLATFORM` | forces the win32 branches on a Mac |
 | `NANA_SETUP_KNOWLEDGE_CLI` | points the knowledge refresh at a stub binary |
 | `NANA_SETUP_KNOWLEDGE_DEADLINE_MS` / `NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS` | shrink the refresh deadline and the SIGTERM→SIGKILL grace so the deadline is testable in under a second |
@@ -250,11 +262,12 @@ loudly and counted, never silent.
 
 | File | Covers |
 |---|---|
-| `install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
-| `settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
-| `project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
-| `shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |
-| `pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
-| `win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
-| `desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
-| `project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md alias reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |
+| `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
+| `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
+| `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
+| `tests/shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |
+| `tests/pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
+| `tests/win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
+| `tests/desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
+| `tests/skills-and-standards.test.mjs` | the `requirements` skill and the `claude/rules/nana-standards.md` rule: the frontmatter name and every trigger phrase the description must carry, a fresh machine getting both as symlinks into the repo, idempotence, doctor ✓ or ✗ with the fix named, a **regular directory** already at `~/.claude/skills/requirements` reported with install **exit 1** and the owner's file untouched and nothing backed up into the skills dir, a symlink pointing elsewhere relinked, and the forced win32 branch (a real directory of byte-equal copies, a stale copy caught by doctor and refreshed, a hand-written file backed up beside itself) |
+| `tests/project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md alias reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |

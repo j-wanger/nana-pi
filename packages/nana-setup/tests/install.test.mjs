@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/install.test.mjs
+ * @purpose Pins that `install` is idempotent, additive, and never destroys what the owner wrote by hand
+ * @inputs bin/nana-setup.mjs, lib/settings.mjs, and a throwaway --home
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: `install` is idempotent, additive, and never destroys what the owner wrote by hand.
 // Every run here goes into a throwaway --home; nothing touches the real machine.
 import { spawnSync } from "node:child_process";
@@ -47,11 +55,19 @@ const link = (p) => {
 	}
 };
 for (const h of ["nana-objective.sh", "nana-shared-memory.sh", "context-size-check.sh"]) {
+	// req: R-301
 	check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 }
+// req: R-301
 check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
+// req: R-301
+check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
+// Claude Code reads the pack's own skill — one source for both runtimes (skills-and-standards.test.mjs owns the detail)
+// req: R-302
+check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));
 const personal = path.join(home, ".claude", "rules", "nana-personal.md");
 check("private rule is a REGULAR file (never a link into the repo)", fs.lstatSync(personal).isFile());
+// req: R-306
 check("private rule is not in the repo", !fs.existsSync(path.join(pkg, "claude", "rules", "nana-personal.md")));
 
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
@@ -59,15 +75,21 @@ const commands = Object.values(settings.hooks).flatMap((groups) => groups.flatMa
 for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
 	check(`settings.json wires ${w.marker}`, commands.some((c) => commandInvokes(c, w.spec)));
 }
+// req: R-321
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
 check("knowledge hook points at this install root", commands.some((c) => c.includes(path.join(repo, "packages", "nana-knowledge"))));
 
+// req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));
 check("pi nana-pack.json seeded", JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), "utf8")).objective.projectFile === "OBJECTIVE.md");
 check("pi nana-objective.md seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-objective.md")));
+// req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
+// req: R-311
 check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
+// req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
+// req: R-311
 check("nana-pack package.json declares the pi-review bin", JSON.parse(fs.readFileSync(path.join(repo, "packages", "nana-pack", "package.json"), "utf8")).bin?.["pi-review"] === "bin/pi-review.mjs");
 check("no desk plist without --desk", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
@@ -75,8 +97,11 @@ check("no desk plist without --desk", !fs.existsSync(path.join(home, "Library", 
 const before = JSON.stringify(walk(home));
 const second = run(["install", "--home", home]);
 check("second install exits 0", second.status === 0, second.stderr);
+// req: R-300
 check("second install reports nothing to do", second.stdout.includes("nothing to do"));
+// req: R-300
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
+// req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
@@ -85,9 +110,12 @@ fs.mkdirSync(path.join(collide, ".claude", "hooks"), { recursive: true });
 fs.writeFileSync(path.join(collide, ".claude", "hooks", "nana-objective.sh"), "# hand-written\n");
 const bak = run(["install", "--home", collide]);
 const baks = fs.readdirSync(path.join(collide, ".claude", "hooks")).filter((f) => f.includes(".bak-"));
+// req: R-312
 check("collision: exactly one backup written", baks.length === 1, baks.join(","));
+// req: R-312
 check("collision: backup keeps the old content", fs.readFileSync(path.join(collide, ".claude", "hooks", baks[0]), "utf8") === "# hand-written\n");
 check("collision: target is now the repo symlink", link(path.join(collide, ".claude", "hooks", "nana-objective.sh")) === path.join(pkg, "claude", "hooks", "nana-objective.sh"));
+// req: R-312
 check("collision: the backup is reported", bak.stdout.includes("backed up"));
 
 /* --- 4. what the installer must never overwrite --------------------------------------- */
@@ -97,7 +125,9 @@ fs.writeFileSync(path.join(keep, ".claude", "rules", "nana-personal.md"), "MINE\
 fs.writeFileSync(path.join(keep, ".pi", "agent", "nana-pack.json"), '{"objective":{"path":"/somewhere/OBJECTIVE.md"}}');
 fs.writeFileSync(path.join(keep, ".pi", "agent", "nana-objective.md"), "MY OBJECTIVE\n");
 run(["install", "--home", keep]);
+// req: R-306
 check("existing nana-personal.md untouched", fs.readFileSync(path.join(keep, ".claude", "rules", "nana-personal.md"), "utf8") === "MINE\n");
+// req: R-309
 check("existing nana-pack.json untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-pack.json"), "utf8") === '{"objective":{"path":"/somewhere/OBJECTIVE.md"}}');
 check("existing nana-objective.md untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-objective.md"), "utf8") === "MY OBJECTIVE\n");
 
@@ -105,6 +135,7 @@ check("existing nana-objective.md untouched", fs.readFileSync(path.join(keep, ".
 const absent = freshHome();
 run(["install", "--home", absent]);
 const seeded = fs.readFileSync(path.join(absent, ".claude", "rules", "nana-personal.md"), "utf8");
+// req: R-306
 check("private rule is seeded from the example", seeded === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-personal.example.md"), "utf8"));
 check("the example carries the same top heading as the real rule", seeded.startsWith("# Who you're working with"));
 
@@ -113,13 +144,17 @@ const ok = run(["doctor", "--home", home]);
 check("doctor exits 0 after install", ok.status === 0, ok.stdout);
 check("doctor prints no ✗ after install", !ok.stdout.includes("✗"));
 // the seed writes projectFile "OBJECTIVE.md" explicitly — that is the default, not a rename
+// req: R-343
 check("doctor calls the seeded projectFile the default, not a rename",
 	/objective\.projectFile\s+per-repo OBJECTIVE\.md \(the default name\)/.test(ok.stdout) && !ok.stdout.includes("renamed"), ok.stdout);
 fs.unlinkSync(path.join(home, ".claude", "hooks", "nana-shared-memory.sh"));
 const bad = run(["doctor", "--home", home]);
+// req: R-341
 check("doctor exits 1 on a missing piece", bad.status === 1);
+// req: R-341
 check("doctor marks the missing piece with ✗", /✗ hook nana-shared-memory\.sh/.test(bad.stdout));
 run(["install", "--home", home]);
+// req: R-341
 check("doctor exits 0 again after a repair install", run(["doctor", "--home", home]).status === 0);
 
 /* --- 7. --dry-run writes nothing ------------------------------------------------------ */
@@ -127,7 +162,9 @@ const dry = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-dry-"));
 tmps.push(dry);
 const dryRun = run(["install", "--home", dry, "--dry-run"]);
 check("dry run exits 0", dryRun.status === 0, dryRun.stderr);
+// req: R-313
 check("dry run says would change", dryRun.stdout.includes("would change"));
+// req: R-313
 check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSync(dry).join(","));
 
 /* --- 8. a home with a SPACE in it: the generated commands must actually run ------------- */
@@ -152,6 +189,7 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 		input: "",
 		env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
 	});
+	// req: R-319
 	check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
 	check("space in home: doctor exits 0", run(["doctor", "--home", spaced]).status === 0);
 }
@@ -165,21 +203,26 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	fs.writeFileSync(objectiveElsewhere, "**Objective:** x\n");
 	fs.writeFileSync(path.join(elsewhere, ".pi", "agent", "nana-pack.json"), JSON.stringify({ objective: { path: objectiveElsewhere, projectFile: "OBJECTIVE.md" } }));
 	const dry = run(["install", "--home", elsewhere, "--dry-run"]);
+	// req: R-313
 	check("objective seed: the dry run does not offer to create it", /pi nana-objective\.md\s+unchanged\s+not needed/.test(dry.stdout), dry.stdout);
 	const r = run(["install", "--home", elsewhere]);
+	// req: R-309
 	check("objective seed: not created when nana-pack.json points elsewhere", !fs.existsSync(path.join(elsewhere, ".pi", "agent", "nana-objective.md")));
+	// req: R-309
 	check("objective seed: the reason is reported", /not needed — objective\.path already points at/.test(r.stdout));
 	check("objective seed: doctor is still green", run(["doctor", "--home", elsewhere]).status === 0, run(["doctor", "--home", elsewhere]).stdout);
 
 	// and when the config IS ours, the starter file is created
 	const ours = freshHome();
 	run(["install", "--home", ours]);
+	// req: R-309
 	check("objective seed: created alongside a freshly seeded nana-pack.json", fs.existsSync(path.join(ours, ".pi", "agent", "nana-objective.md")));
 
 	// an existing config that points AT the default file still gets it
 	const pointsHere = freshHome();
 	fs.writeFileSync(path.join(pointsHere, ".pi", "agent", "nana-pack.json"), JSON.stringify({ objective: { path: "~/.pi/agent/nana-objective.md" } }));
 	run(["install", "--home", pointsHere]);
+	// req: R-309
 	check("objective seed: created when objective.path resolves to it", fs.existsSync(path.join(pointsHere, ".pi", "agent", "nana-objective.md")));
 }
 
@@ -196,14 +239,21 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	fs.renameSync(personal, elsewhere);
 	fs.symlinkSync(elsewhere, personal);
 	const r = run(["install", "--home", home]);
+	// req: R-307
 	check("private rule symlink: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
+	// req: R-313
 	check("private rule symlink: --dry-run exits 1 too", run(["install", "--home", home, "--dry-run"]).status === 1);
+	// req: R-307
 	check("private rule symlink: install reports ✗ with the fix", /rule nana-personal\.md \(private\)\s+problem\s+private rule is a symlink — replace with a regular file/.test(r.stdout), r.stdout);
 	check("private rule symlink: the ✗ symbol is printed", /✗ rule nana-personal\.md \(private\)/.test(r.stdout), r.stdout);
+	// req: R-307
 	check("private rule symlink: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
+	// req: R-307
 	check("private rule symlink: nothing is written through the link", fs.lstatSync(personal).isSymbolicLink());
 	const d = run(["doctor", "--home", home]);
+	// req: R-307
 	check("private rule symlink: doctor reads ✗ with the same message", /✗ rule nana-personal\.md\s+private rule is a symlink — replace with a regular file/.test(d.stdout), d.stdout);
+	// req: R-307
 	check("private rule symlink: doctor exits 1", d.status === 1, String(d.status));
 	// and a regular file is healthy again
 	fs.unlinkSync(personal);

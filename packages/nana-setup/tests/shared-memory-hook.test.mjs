@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/shared-memory-hook.test.mjs
+ * @purpose Pins that the shared-memory SessionStart hook self-heals and is fail-open, since it runs in every session in every repository
+ * @inputs claude/hooks/nana-shared-memory.sh, lib/project-key.mjs, and a throwaway HOME with CLAUDE_PROJECT_DIR overridden
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (throwaway home layouts, memory dirs and symlinks), process (runs the bash hook)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: the shared-memory SessionStart hook self-heals. It runs in EVERY session in EVERY repo,
 // so it must (a) never print a broken session into existence — fail-open, and (b) create this
 // project's memory dir + `shared` symlink itself, which is why the installer has no per-project
@@ -37,6 +45,7 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: "/Users/x/repo" });
 	check("no index: exit 0", r.status === 0);
 	check("no index: prints nothing", r.stdout === "");
+	// req: R-348
 	check("no index: creates nothing", !fs.existsSync(path.join(home, ".claude", "projects")));
 }
 
@@ -47,8 +56,10 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	const mem = path.join(home, ".claude", "projects", projectKey(project), "memory");
 	check("self-heal: exit 0", r.status === 0, r.stderr);
+	// req: R-308
 	check("self-heal: memory dir created at the derived key", fs.existsSync(mem), mem);
 	const link = path.join(mem, "shared");
+	// req: R-308
 	check("self-heal: `shared` is a symlink", fs.lstatSync(link).isSymbolicLink());
 	check("self-heal: it points at the shared dir", fs.realpathSync(link) === fs.realpathSync(path.join(home, ".claude", "nana-memory", "shared")));
 	check("self-heal: prints the index header", r.stdout.includes("[nana:shared-memory]"));
@@ -71,6 +82,7 @@ const run = (home, env = {}, stdin = "") =>
 	const stdin = JSON.stringify({ session_id: "s1", transcript_path: path.join(exact, "abc.jsonl"), cwd: "/elsewhere", hook_event_name: "SessionStart" });
 	const r = run(home, { CLAUDE_PROJECT_DIR: "/Users/x/some-other-guess" }, stdin);
 	check("transcript_path: exit 0", r.status === 0, r.stderr);
+	// req: R-348
 	check("transcript_path: links the dir the harness named", fs.lstatSync(path.join(exact, "memory", "shared")).isSymbolicLink());
 	check("transcript_path: does not use the derived key", !fs.existsSync(path.join(home, ".claude", "projects", projectKey("/Users/x/some-other-guess"))));
 }
@@ -81,6 +93,7 @@ const run = (home, env = {}, stdin = "") =>
 	const project = "/Users/x/fallback-repo";
 	const stdin = JSON.stringify({ transcript_path: "/var/folders/zz/agents/sub/abc.jsonl" });
 	const r = run(home, { CLAUDE_PROJECT_DIR: project }, stdin);
+	// req: R-348
 	check("foreign transcript_path: falls back to the derived key", fs.existsSync(path.join(home, ".claude", "projects", projectKey(project), "memory", "shared")));
 	check("foreign transcript_path: exit 0", r.status === 0);
 }
@@ -94,7 +107,9 @@ const run = (home, env = {}, stdin = "") =>
 	fs.writeFileSync(path.join(mem, "shared", "mine.md"), "mine\n");
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	check("existing shared/: exit 0", r.status === 0, r.stderr);
+	// req: R-348
 	check("existing shared/: left as a real directory", fs.lstatSync(path.join(mem, "shared")).isDirectory() && !fs.lstatSync(path.join(mem, "shared")).isSymbolicLink());
+	// req: R-348
 	check("existing shared/: contents untouched", fs.readFileSync(path.join(mem, "shared", "mine.md"), "utf8") === "mine\n");
 }
 
@@ -139,6 +154,7 @@ const run = (home, env = {}, stdin = "") =>
 	check("precondition: the two keys share their first 200 chars", projectKey(a).slice(0, 200) === projectKey(b).slice(0, 200));
 	const r = run(home, { CLAUDE_PROJECT_DIR: a });
 	check("shared prefix: exit 0", r.status === 0, r.stderr);
+	// req: R-348
 	check("shared prefix: project B's memory dir was NOT linked", !fs.existsSync(path.join(bDir, "shared")));
 	check("shared prefix: project A got its own dir", fs.lstatSync(path.join(home, ".claude", "projects", projectKey(a), "memory", "shared")).isSymbolicLink());
 }
@@ -161,6 +177,7 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	check("non-ASCII long path: exit 0 (fail-open)", r.status === 0, r.stderr);
 	check("non-ASCII long path: the index is still printed", r.stdout.includes("- [One](one.md)"));
+	// req: R-348
 	check("non-ASCII long path: it says the self-heal skipped", /self-heal skipped/.test(r.stdout), r.stdout);
 	check("non-ASCII long path: nothing was created", !fs.existsSync(path.join(home, ".claude", "projects")), fs.existsSync(path.join(home, ".claude", "projects")) ? fs.readdirSync(path.join(home, ".claude", "projects")).join(" ") : "");
 }
@@ -174,6 +191,7 @@ const run = (home, env = {}, stdin = "") =>
 	const project = "/Users/x/alt-config-repo";
 	const r = run(home, { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: cfg });
 	check("CLAUDE_CONFIG_DIR: prints from the alternate config dir", r.stdout.includes("- [A](a.md)"));
+	// req: R-348
 	check("CLAUDE_CONFIG_DIR: links under the alternate projects dir", fs.lstatSync(path.join(cfg, "projects", projectKey(project), "memory", "shared")).isSymbolicLink());
 }
 

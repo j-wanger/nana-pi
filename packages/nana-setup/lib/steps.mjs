@@ -1,3 +1,28 @@
+/**
+ * @module packages/nana-setup/lib/steps.mjs
+ * @purpose The install steps and the `install` sequencer: each step links, seeds, merges or
+ *  registers one piece of the experience and reports { label, status, detail }.
+ * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
+ *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
+ *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and
+ *  packages/nana-pack/skills; the live <claudeHome>/settings.json, <piHome>/nana-pack.json and
+ *  <piHome>/settings.json; NANA_SETUP_PLATFORM
+ * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules
+ *  and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries
+ *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
+ *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
+ *  <piHome>/nana-pack.json and nana-objective.md, <knowledgeHome>/index.db,
+ *  <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also
+ *  exports HOOKS, CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI,
+ *  DESK_SERVER, SetupError and the helpers doctor reuses
+ * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
+ *  `pi --version` / `pi install`, `git rev-parse`)
+ * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
+ *  edit; the settings lock already held; settings.json changed on disk during the run; a plist
+ *  placeholder with no value. Every other failure is a row: PROBLEM for a non-regular
+ *  nana-personal.md or anything already sitting where the skill symlink belongs, SKIPPED for win32,
+ *  a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
+ */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
 import { spawnSync } from "node:child_process";
@@ -11,6 +36,11 @@ import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.m
 export class SetupError extends Error {}
 
 export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "context-size-check.sh"];
+/** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here. */
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md"];
+/** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
+export const CLAUDE_SKILLS = ["requirements"];
+export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
@@ -39,12 +69,14 @@ export function stepHooks(layout, o) {
 
 export function stepRules(layout, o) {
 	const out = [];
-	const soul = linkFile(path.join(layout.rulesDir, "nana-soul.md"), path.join(pkgRoot, "claude", "rules", "nana-soul.md"), {
-		...o,
-		// Windows needs a privilege for symlinks; a copy still gets the identity in place.
-		copyInstead: win(),
-	});
-	out.push({ label: "rule nana-soul.md", ...soul });
+	for (const rule of CLAUDE_RULES) {
+		const r = linkFile(path.join(layout.rulesDir, rule), path.join(pkgRoot, "claude", "rules", rule), {
+			...o,
+			// Windows needs a privilege for symlinks; a copy still gets the identity in place.
+			copyInstead: win(),
+		});
+		out.push({ label: `rule ${rule}`, ...r });
+	}
 	// PRIVATE, and never in the repo: created from the example only when absent, then never
 	// touched again — not even to compare it. It must be a REGULAR file: a symlink there points
 	// the owner's private text at some other file — plausibly one inside this repo, which is how
@@ -65,6 +97,123 @@ export function stepRules(layout, o) {
 	const personal = seedFile(personalPath, fs.readFileSync(path.join(pkgRoot, "claude", "rules", "nana-personal.example.md"), "utf8"), o);
 	out.push({ label: "rule nana-personal.md (private)", ...personal });
 	return out;
+}
+
+/* ----------------------------------------------------------------------------- claude skills */
+
+/** Every file a skill directory ships, relative to its root (recursive, sorted). */
+export function skillFiles(root) {
+	const out = [];
+	const walk = (rel) => {
+		for (const e of fs.readdirSync(path.join(root, rel), { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+			const r = rel ? path.join(rel, e.name) : e.name;
+			if (e.isDirectory()) walk(r);
+			else if (e.isFile()) out.push(r);
+		}
+	};
+	walk("");
+	return out;
+}
+
+/**
+ * Every directory the win32 mirror would write into, root first: the skill root plus one entry per
+ * subdirectory the source ships. Sorted, so an ancestor is always judged before its children.
+ */
+export function mirrorDirs(target, files) {
+	const dirs = new Set([target]);
+	for (const f of files) {
+		let rel = path.dirname(f);
+		while (rel && rel !== "." && rel !== path.sep) {
+			dirs.add(path.join(target, rel));
+			rel = path.dirname(rel);
+		}
+	}
+	return [...dirs].sort();
+}
+
+/**
+ * Refuse, WITHOUT traversing, any mirror directory that is not a real directory created at that
+ * path. `lstat` never follows, so a symlink or junction is seen as itself; absent is fine (the
+ * mirror creates it). This is the guard that keeps the copy path inside `~/.claude`: resolving
+ * `target/<file>` through a directory link hands `linkFile` a regular file in someone else's tree,
+ * which it cannot tell apart from a hand-written file of ours — it would back it up and replace it.
+ */
+export function mirrorDirsProblem(target, files) {
+	for (const dir of mirrorDirs(target, files)) {
+		const st = lstatSafe(dir);
+		if (!st) continue;
+		if (st.isSymbolicLink())
+			return {
+				status: PROBLEM,
+				detail: `a symlink or junction is already at ${dir} — left untouched and NOT written through; move or remove it, then re-run`,
+			};
+		if (!st.isDirectory())
+			return {
+				status: PROBLEM,
+				detail: `a regular file is already at ${dir} — left untouched; move or remove it, then re-run`,
+			};
+	}
+	return null;
+}
+
+/**
+ * `~/.claude/skills/<name>` -> `packages/nana-pack/skills/<name>`, so Claude Code and pi read ONE
+ * source: the skill is authored once in the pack and a `git pull` updates both runtimes.
+ *
+ * posix: a symlink to the directory, and nothing else. A regular directory (or file) already
+ * sitting there is someone else's skill or a stale copy — it is REPORTED and left exactly as it
+ * is, never backed up into `~/.claude/skills/` (a `requirements.bak-<date>` directory there would
+ * be loaded as a SECOND skill claiming the same name) and never written through.
+ *
+ * win32 has no usable symlink, so the source files are mirrored in one by one through the same
+ * copy path the rules use — which backs a hand-written file up beside itself (`SKILL.md.bak-<date>`
+ * is a file, not a second skill) and never writes through a link. Files the owner added are left.
+ *
+ * The win32 mirror checks the DIRECTORIES it is about to write into before it touches a file
+ * (sol r1, CRITICAL): `linkFile` only ever sees the leaf, so a directory symlink/junction at
+ * `~/.claude/skills/requirements` used to be traversed silently — the mirror backed up and
+ * overwrote the SKILL.md of whatever tree that link pointed at, a write outside `~/.claude`.
+ */
+export function linkSkill(target, source, o = {}) {
+	if (win()) {
+		const files = skillFiles(source);
+		const dirProblem = mirrorDirsProblem(target, files);
+		if (dirProblem) return dirProblem;
+		const results = files.map((f) => linkFile(path.join(target, f), path.join(source, f), { ...o, copyInstead: true }));
+		const problem = results.find((r) => r.status === PROBLEM);
+		if (problem) return problem;
+		const changed = results.filter((r) => r.status !== UNCHANGED);
+		const detail = `${files.length} file${files.length === 1 ? "" : "s"} copied (no symlink on this platform)`;
+		if (!changed.length) return { status: UNCHANGED, detail };
+		return { status: changed.length === files.length && !results.some((r) => r.status === UPDATED) ? CREATED : UPDATED, detail };
+	}
+	const st = lstatSafe(target);
+	const resolved = path.resolve(source);
+	if (st?.isSymbolicLink()) {
+		const current = path.resolve(path.dirname(target), fs.readlinkSync(target));
+		if (current === resolved) return { status: UNCHANGED, detail: null };
+		if (o.dryRun) return { status: UPDATED, detail: `would relink (was ${current})` };
+		fs.unlinkSync(target);
+		fs.symlinkSync(resolved, target);
+		return { status: UPDATED, detail: `relinked (was ${current})` };
+	}
+	if (st) {
+		return {
+			status: PROBLEM,
+			detail: `${st.isDirectory() ? "a directory" : "a regular file"} is already at ${target} — left untouched; move or remove it, then re-run`,
+		};
+	}
+	if (o.dryRun) return { status: CREATED, detail: "would link" };
+	fs.mkdirSync(path.dirname(target), { recursive: true });
+	fs.symlinkSync(resolved, target);
+	return { status: CREATED, detail: null };
+}
+
+export function stepSkills(layout, o) {
+	return CLAUDE_SKILLS.map((name) => ({
+		label: `skill ${name}`,
+		...linkSkill(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name), o),
+	}));
 }
 
 /* -------------------------------------------------------------------- claude settings.json */
@@ -529,6 +678,7 @@ export function install(layout, opts = {}) {
 	const results = [];
 	results.push(...stepHooks(layout, o));
 	results.push(...stepRules(layout, o));
+	results.push(...stepSkills(layout, o));
 	results.push(...stepSettings(layout, o, settingsState));
 	results.push(...stepSharedMemory(layout, o));
 	results.push(...stepPiConfig(layout, o));

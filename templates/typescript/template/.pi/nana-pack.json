@@ -12,6 +12,14 @@
 			{
 				"match": "\\.(ts|tsx)$",
 				"run": "pnpm exec tsc --noEmit"
+			},
+			{
+				"match": "\\.(ts|tsx|mjs)$",
+				"run": "node scripts/code-map.mjs --check"
+			},
+			{
+				"match": "README\\.md$",
+				"run": "node scripts/readme-check.mjs"
 			}
 		]
 	}

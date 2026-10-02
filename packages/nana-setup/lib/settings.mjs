@@ -1,3 +1,18 @@
+/**
+ * @module packages/nana-setup/lib/settings.mjs
+ * @purpose Pure merge of the nana hook entries into a parsed Claude Code settings.json object,
+ *  adding only the entries an argv-accurate match says are absent.
+ * @inputs a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot };
+ *  the command strings already in settings.hooks
+ * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean;
+ *  desiredHooks() — the SessionStart objective / adoption / shared-memory entries and the
+ *  UserPromptSubmit context-size and knowledge-pull entries, each with event, label, marker, spec,
+ *  entry; validateShape() reason string or null; hasHook() boolean; mergeHooks() { settings
+ *  (mutated in place), added labels, changed }; serialize() pretty JSON text with a trailing newline
+ * @effects none (no file is opened here)
+ * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
+ *  command that is unparseable or carries a shell operator reads as NOT installed
+ */
 // The Claude Code settings.json merge. Pure functions: the file is read and written by the
 // caller, so the merge itself is trivially testable and can never half-write.
 //
@@ -96,7 +111,7 @@ export function commandInvokes(command, { interpreters, script, args = [] }) {
 	return args.every((a, n) => argv[i + 2 + n] === a);
 }
 
-/** The four hook entries the nana experience needs, in the order they are added. */
+/** The five hook entries the nana experience needs, in the order they are added. */
 export function desiredHooks({ hooksDir, repoRoot }) {
 	const sh = (name) => ({
 		command: `bash ${shq(`${hooksDir}/${name}`)}`,

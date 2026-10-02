@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/relative-agent-dir.test.mjs
+ * @purpose Pins that an AMBIENT relative PI_CODING_AGENT_DIR is refused by `install`, `project` and `project --check` with the cwd and the remedy named, while an explicit --pi-home is honoured and `doctor` warns
+ * @inputs bin/nana-setup.mjs with a relative PI_CODING_AGENT_DIR in the environment, and throwaway home and project dirs
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (throwaway home and project dirs), process (sets PI_CODING_AGENT_DIR, spawns the setup CLI)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // U2 fix round 2 (sol r2 HIGH): an AMBIENT relative PI_CODING_AGENT_DIR resolves against each
 // process's own cwd, so a normal `install` would seed <setup-cwd>/rel/nana-pack.json that pi started
 // anywhere else never reads. `install` refuses it (naming the dir, the cwd and the remedy); an
@@ -32,11 +40,16 @@ try {
 	for (const args of [["install"], ["install", "--dry-run"]]) {
 		const r = run(...args);
 		const out = r.stdout + r.stderr;
+		// req: R-345
 		check(`${args.join(" ")}: ambient relative value exits non-zero`, r.status !== 0 && r.status !== null, `status ${r.status}\n${out}`);
+		// req: R-345
 		check(`${args.join(" ")}: names the resolved dir`, out.includes(resolved), out);
+		// req: R-345
 		check(`${args.join(" ")}: says it is specific to the current working directory`, out.includes("specific to the current working directory") && out.includes(CWD), out);
+		// req: R-345
 		check(`${args.join(" ")}: gives the remedy`, out.includes("--pi-home <absolute dir>") && /absolute path/.test(out), out);
 	}
+	// req: R-345
 	check("the refusal wrote no nana-pack.json anywhere", !fs.existsSync(resolved) && !fs.existsSync(path.join(HOME, ".pi")) && !fs.existsSync(path.join(HOME, ".claude")));
 
 	// ── install with an explicit --pi-home (the user's decision) → proceeds, into exactly that dir ──
@@ -48,6 +61,7 @@ try {
 	check("…and seeds nana-pack.json in the --pi-home dir", fs.existsSync(path.join(explicit, "nana-pack.json")));
 	check("…and nothing in the ambient-relative dir", !fs.existsSync(resolved));
 	const relExplicit = run("install", "--pi-home", REL, "--dry-run");
+	// req: R-346
 	check("an explicit RELATIVE --pi-home is not refused (resolved as given)", !/specific to the current working directory/.test(relExplicit.stdout + relExplicit.stderr) && relExplicit.stdout.includes(REL), relExplicit.stdout + relExplicit.stderr);
 
 	// ── project / project --check: the same refusal (sol r3 HIGH) ──
@@ -59,10 +73,14 @@ try {
 	for (const args of [["project", target], ["project", target, "--dry-run"], ["project", target, "--check"]]) {
 		const r = run(...args);
 		const out = r.stdout + r.stderr;
+		// req: R-345
 		check(`${args.join(" ")}: ambient relative value exits non-zero`, r.status !== 0 && r.status !== null, `status ${r.status}\n${out}`);
+		// req: R-345
 		check(`${args.join(" ")}: names the resolved dir and the cwd`, out.includes(resolved) && out.includes(CWD), out);
+		// req: R-345
 		check(`${args.join(" ")}: gives the remedy`, out.includes("--pi-home <absolute dir>"), out);
 	}
+	// req: R-345
 	check("the project refusal created nothing in the target", !fs.existsSync(path.join(target, ".pi")) && !fs.existsSync(path.join(target, "AGENTS.md")), fs.readdirSync(target).join(","));
 	const pOk = run("project", target, "--pi-home", path.join(HOME, "explicit-agent"), "--dry-run");
 	check("project --pi-home <abs> is not refused", !/specific to the current working directory/.test(pOk.stdout + pOk.stderr), pOk.stdout + pOk.stderr);
@@ -71,10 +89,14 @@ try {
 	fs.mkdirSync(resolved, { recursive: true });
 	fs.copyFileSync(path.join(explicit, "nana-pack.json"), path.join(resolved, "nana-pack.json"));
 	const d = run("doctor");
+	// req: R-346
 	check("doctor still runs (not a refusal) and reads the cwd-relative file", d.stdout.includes(`✓ pi nana-pack.json`) || d.stdout.includes(path.join(resolved, "nana-pack.json")), d.stdout + d.stderr);
 	const warnLine = d.stdout.split("\n").find((l) => l.trim().startsWith("!"));
+	// req: R-346
 	check("doctor prints a ! warning line naming the cwd it resolved against", !!warnLine && warnLine.includes(CWD) && /relative/.test(warnLine), d.stdout);
+	// req: R-346
 	check("doctor never says 'all good' with the warning", !d.stdout.includes("all good"), d.stdout);
+	// req: R-341 R-346
 	check("doctor exits non-zero with the warning", d.status === 1, `status ${d.status}`);
 	const dx = spawnSync(process.execPath, [cli, "doctor", "--pi-home", explicit], { cwd: CWD, env, encoding: "utf-8" });
 	check("doctor --pi-home <abs>: no cwd-specific warning", !dx.stdout.split("\n").some((l) => l.trim().startsWith("!")), dx.stdout);

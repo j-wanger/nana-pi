@@ -1,0 +1,241 @@
+{%- set rq = '# req-candidate:' if adopt else '# req:' -%}
+"""@module tests/test_readme_check.py
+@purpose Pin the README checker -- the claim readers, every problem class it reports, and
+  this project's own README.
+@inputs the functions of scripts/readme_check.py, fixture README text, scratch projects
+  carrying the real CLI, and this project root
+@outputs pytest assertions and the checker's summary line on stdout
+@effects disk (reads this project; writes scratch projects under the tmp dir), process
+  (spawns the real CLI)
+@errors none beyond assertion failures
+
+The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+`req-candidate:` instead: nothing is claimed about this project until the audit
+promotes the row, and then the marker is renamed to `req:`.
+
+The failure paths run through the REAL CLI: a temp project gets a copy of
+scripts/readme_check.py plus a README and the files it names, and the test spawns it
+there, so what is checked is the command the suite and the post-edit gate actually run,
+including its exit code.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import readme_check
+from readme_check import (
+    check_project,
+    claims,
+    command_span,
+    first_paragraph,
+    inline_command_claims,
+    looks_like_path,
+    shell_lines,
+)
+
+PROJECT = Path(__file__).resolve().parent.parent
+
+FENCE = "```"
+
+CLEAN = f"""# Demo
+
+What this project is for, in one sentence.
+
+## Setup
+
+{FENCE}bash
+uv sync
+{FENCE}
+
+## Usage
+
+{FENCE}bash
+$ uv run python scripts/readme_check.py
+{FENCE}
+
+## Test
+
+{FENCE}bash
+uv run pytest
+{FENCE}
+
+`scripts/tool.py --check` does the thing, and the notes are in `docs/notes.md`.
+"""
+
+TOOL = '"""A fixture tool."""\n\nMODE = "--check"\n'
+
+
+def write_project(root: Path, readme: str, **extra: str) -> Path:
+    """A temp project carrying the real CLI, so the spawned command is the real one."""
+    (root / "scripts").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(PROJECT / "scripts" / "readme_check.py", root / "scripts" / "readme_check.py")
+    (root / "scripts" / "tool.py").write_text(TOOL, encoding="utf-8")
+    (root / "docs").mkdir(exist_ok=True)
+    (root / "docs" / "notes.md").write_text("notes\n", encoding="utf-8")
+    (root / "README.md").write_text(readme, encoding="utf-8")
+    for rel, source in extra.items():
+        f = root / rel.replace("__", "/")
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(source, encoding="utf-8")
+    return root
+
+
+def cli(root: Path, *args: str) -> tuple[int, str]:
+    """Run the real CLI in a project and return ``(exit code, output)``."""
+    run = subprocess.run(  # noqa: S603
+        [sys.executable, str(root / "scripts" / "readme_check.py"), *args],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return run.returncode, run.stdout + run.stderr
+
+
+def test_shell_lines_reads_only_shell_fences_and_strips_the_prompt() -> None:
+    text = f"{FENCE}bash\n$ pnpm install\n{FENCE}\n{FENCE}json\n[1, 2]\n{FENCE}\n"
+    assert shell_lines(text) == [(2, "pnpm install")]
+
+
+def test_looks_like_path_skips_placeholders_urls_and_prose() -> None:
+    assert looks_like_path("docs/code-map.md") == "docs/code-map.md"
+    assert looks_like_path("src/") == "src"
+    assert looks_like_path("README.md") == "README.md"
+    for token in ("<file...>", "https://example.com/x", "tests/a.py::test_x", "--check", "0.1.0", "node:fs"):
+        assert looks_like_path(token) is None, token
+
+
+def test_first_paragraph_is_the_prose_under_the_title() -> None:
+    assert first_paragraph(CLEAN) == "What this project is for, in one sentence."
+    assert first_paragraph("# Title\n\n## Setup\n") == ""
+
+
+def test_claims_are_line_ordered_commands_paths_and_flags() -> None:
+    kinds = {c.kind for c in claims(CLEAN)}
+    assert kinds == {"command", "path", "flag"}
+    assert any(c.kind == "flag" and c.text == "scripts/tool.py --check" for c in claims(CLEAN))
+
+
+def test_a_clean_readme_passes_and_list_prints_its_claims(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "clean", CLEAN)
+    code, out = cli(root)
+    assert code == 0, out
+    assert "0 problem(s)" in out
+    listed = cli(root, "--list")[1]
+    assert "command: uv run pytest" in listed
+    assert "path: docs/notes.md" in listed
+
+
+def test_command_span_reads_a_command_and_skips_prose() -> None:
+    assert command_span("npm test") == "npm test"
+    assert command_span(" ./scripts/tool.py --check ") == "./scripts/tool.py --check"
+    for span in ("docs/notes.md", "README.md", "--check", "the npm test", "node:fs"):
+        assert command_span(span) is None, span
+    # one span can chain two commands, and both are claims
+    assert [c.text for c in inline_command_claims("Use `npm test && npm nope` here.")] == ["npm test", "npm nope"]
+    # a fenced line is not an inline span: command_claims must not count it twice
+    assert inline_command_claims(f"{FENCE}bash\nuv run pytest\n{FENCE}\n") == []
+
+
+# a command named inline in prose is a claim, same as a fenced one
+{{ rq }} G-012
+def test_an_inline_npm_test_in_prose_is_checked(tmp_path: Path) -> None:
+    prose = "Run `npm test` to see it pass."
+    readme = f"{CLEAN}\n{prose}\n"
+    line = readme.split("\n").index(prose) + 1
+    root = write_project(tmp_path / "inline", readme)
+    (root / "package.json").write_text(json.dumps({"scripts": {"test": "pytest"}}), encoding="utf-8")
+    code, out = cli(root)
+    assert code == 0, out
+
+    (root / "README.md").write_text(readme.replace("`npm test`", "`npm nope`"), encoding="utf-8")
+    code, out = cli(root)
+    assert code == 1, out
+    assert f"README.md:{line}: 'npm nope' is not a script in package.json" in out
+
+
+def test_a_readme_naming_a_missing_script_fails(tmp_path: Path) -> None:
+    readme = CLEAN.replace("uv run pytest", "pnpm nope")
+    root = write_project(tmp_path / "script", readme)
+    (root / "package.json").write_text(json.dumps({"scripts": {"test": "pytest"}}), encoding="utf-8")
+    code, out = cli(root)
+    assert code == 1
+    assert "'pnpm nope' is not a script in package.json" in out
+
+
+def test_a_readme_naming_a_missing_path_fails(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "path", CLEAN.replace("docs/notes.md", "docs/gone.md"))
+    code, out = cli(root)
+    assert code == 1
+    assert "'docs/gone.md' does not exist" in out
+
+
+def test_a_missing_section_or_first_paragraph_fails(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "section", CLEAN.replace("## Test", "## Afterword"))
+    code, out = cli(root)
+    assert code == 1
+    assert "no heading for how to test it" in out
+
+    bare = write_project(tmp_path / "bare", CLEAN.replace("What this project is for, in one sentence.\n", ""))
+    code, out = cli(bare)
+    assert code == 1
+    assert "no first paragraph" in out
+
+
+def test_a_flag_the_named_script_does_not_have_fails(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "flag", CLEAN.replace("scripts/tool.py --check", "scripts/tool.py --nope"))
+    code, out = cli(root)
+    assert code == 1
+    assert "'scripts/tool.py' has no '--nope' flag" in out
+
+
+def test_an_undocumented_script_fails_unless_the_config_says_why(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "undocumented", CLEAN)
+    (root / "scripts" / "extra.py").write_text(TOOL, encoding="utf-8")
+    code, out = cli(root)
+    assert code == 1
+    assert "script 'extra.py' is not documented in any README" in out
+
+    # declared with a reason: allowed. Declared without one: the declaration is the problem.
+    config = root / "readme-check.config.json"
+    config.write_text(
+        json.dumps({"undocumented": [{"name": "extra.py", "reason": "a one-off migration kept for the record"}]}),
+        encoding="utf-8",
+    )
+    assert cli(root)[0] == 0
+
+    config.write_text(json.dumps({"undocumented": [{"name": "extra.py"}]}), encoding="utf-8")
+    code, out = cli(root)
+    assert code == 1
+    assert "undocumented 'extra.py' has no reason" in out
+
+
+def test_a_runner_the_project_does_not_have_fails(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "runner", CLEAN.replace("uv run pytest", "make test"))
+    code, out = cli(root)
+    assert code == 1
+    assert "'make' is not this project's runner" in out
+
+
+def test_a_configured_readme_that_does_not_exist_fails(tmp_path: Path) -> None:
+    root = write_project(tmp_path / "missing", CLEAN)
+    (root / "readme-check.config.json").write_text(
+        json.dumps({"readmes": ["README.md", "docs/README.md"]}), encoding="utf-8"
+    )
+    code, out = cli(root)
+    assert code == 1
+    assert "docs/README.md:1: does not exist" in out
+
+
+{{ rq }} G-012
+def test_this_project_readme_passes() -> None:
+    found, problems, line = check_project(PROJECT)
+    print(line)  # the suite's own summary line
+    assert problems == [], f"{line}\n" + "\n".join(problems)
+    assert found, "the README makes no checkable claim at all"
+    assert readme_check.main([], PROJECT) == 0

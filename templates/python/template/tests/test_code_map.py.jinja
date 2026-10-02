@@ -1,0 +1,485 @@
+{%- set rq = '# req-candidate:' if adopt else '# req:' -%}
+"""@module tests/test_code_map.py
+@purpose Pin the code map -- the header parser, the renderer, the layer rules, the
+  impact walk, and this project's own headers and rendered map.
+@inputs the functions of scripts/code_map.py, fixture module sources, a scratch
+  project carrying the real CLI, and this project root
+@outputs pytest assertions and the check summary line on stdout
+@effects disk (reads this project; writes scratch projects under the tmp dir), process (spawns the real CLI)
+@errors none beyond assertion failures
+
+The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+`req-candidate:` instead: nothing is claimed about this project until the audit
+promotes the row, and then the marker is renamed to `req:`.
+
+The failure paths run through the REAL CLI: a temp project gets a copy of
+scripts/code_map.py plus a code-map.config.json, and the test spawns it there, so
+what is checked is the command the suite and the post-edit gate actually run,
+including its exit code.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import code_map
+from code_map import (
+    HEADER_TAGS,
+    Config,
+    ConfigError,
+    build_graph,
+    check_project,
+    impact,
+    load_config,
+    map_entries,
+    parse_config,
+    parse_contract_header,
+    render_map,
+)
+
+PROJECT = Path(__file__).resolve().parent.parent
+
+FIXTURE_CONFIG = {
+    # the same shape the template ships: the package, the scripts and the test root,
+    # the test root exempt from the layer direction (G-007)
+    "roots": ["src/demo", "scripts", {"path": "tests", "layerExempt": True}],
+    "moduleExtensions": [".py"],
+    "mapPath": "docs/code-map.md",
+    "layers": [
+        {"id": "tests", "title": "Tests", "blurb": "The suite.", "match": "^tests/"},
+        {"id": "scripts", "title": "Scripts", "blurb": "The CLIs.", "match": "^scripts/"},
+        {"id": "ui", "title": "UI", "blurb": "The screens.", "match": "^src/demo/ui/"},
+        {"id": "api", "title": "API", "blurb": "The wire.", "match": "^src/demo/api/"},
+        {"id": "core", "title": "Core", "blurb": "The model.", "match": "^src/demo/"},
+    ],
+}
+CONFIG: Config = parse_config(json.dumps(FIXTURE_CONFIG))
+
+
+def header(path: str, **over: str) -> str:
+    """A well-formed contract header docstring for a module path."""
+    fields = {
+        "module": path,
+        "purpose": "Do the one thing this module is for.",
+        "inputs": "a thing",
+        "outputs": "another thing",
+        "effects": "none",
+        "errors": "none",
+        **over,
+    }
+    body = "\n".join(f"@{tag} {fields[tag]}" for tag in HEADER_TAGS)
+    return f'"""{body}\n"""\n'
+
+
+def mod(path: str, imports: list[str] | None = None, **over: str) -> str:
+    """A fixture module: a header plus the given import statements."""
+    return header(path, **over) + "".join(f"{line}\n" for line in (imports or []))
+
+
+def write_project(root: Path, files: dict[str, str]) -> Path:
+    """A temp project carrying the real CLI, so the spawned command is the real one."""
+    (root / "scripts").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(PROJECT / "scripts" / "code_map.py", root / "scripts" / "code_map.py")
+    (root / "docs").mkdir(exist_ok=True)
+    (root / "code-map.config.json").write_text(json.dumps(FIXTURE_CONFIG, indent=2), encoding="utf-8")
+    for path, source in files.items():
+        f = root / path
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(source, encoding="utf-8")
+    return root
+
+
+def cli(root: Path, *args: str) -> tuple[int, str]:
+    """Run the real CLI in a project and return ``(exit code, output)``."""
+    run = subprocess.run(  # noqa: S603
+        [sys.executable, str(root / "scripts" / "code_map.py"), *args],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return run.returncode, run.stdout + run.stderr
+
+
+{{ rq }} G-004
+def test_contract_header_parses_into_six_fields() -> None:
+    source = header(
+        "src/demo/thing.py",
+        effects="database (reads read-only), disk (writes the pointer)",
+        errors="NotFound",
+    )
+    fields, problem = parse_contract_header(source + "\nVALUE = 1\n")
+    assert problem is None, problem
+    assert fields is not None
+    assert list(fields) == list(HEADER_TAGS)
+    assert fields["module"] == "src/demo/thing.py"
+    # a parenthetical qualifier may carry commas without splitting the effects list
+    assert fields["effects"] == "database (reads read-only), disk (writes the pointer)"
+
+
+{{ rq }} G-004
+def test_a_wrapped_header_field_joins_its_continuation_lines() -> None:
+    source = (
+        '"""@module src/demo/p.py\n@purpose One thing.\n@inputs the first part\n'
+        "  and the wrapped rest\n@outputs a value\n@effects disk\n@errors none\n\n"
+        'Prose may follow a blank line.\n"""\n'
+    )
+    fields, problem = parse_contract_header(source)
+    assert problem is None, problem
+    assert fields is not None
+    assert fields["inputs"] == "the first part and the wrapped rest"
+
+
+{{ rq }} G-004 G-010
+def test_a_malformed_contract_header_is_a_named_problem() -> None:
+    cases = [
+        ("VALUE = 1\n", "no contract header"),
+        ('"""@module src/demo/a.py\n@purpose One.\n@inputs i\n@outputs o\n@errors none\n"""\n', "no @effects"),
+        (
+            '"""@module src/demo/a.py\n@inputs i\n@purpose One.\n@outputs o\n@effects none\n@errors none\n"""\n',
+            "out of order",
+        ),
+        (header("src/demo/a.py", effects="filesystem"), "is not one of none | disk"),
+        (header("src/demo/a.py", effects="none, disk"), "'none' alongside disk"),
+        (header("src/demo/a.py", purpose="One thing. And a second thing."), "more than one sentence"),
+        (header("src/demo/a.py", inputs=""), "@inputs is empty"),
+        ('"""Just prose, no tags."""\n', "must open with @module"),
+    ]
+    for source, expected in cases:
+        fields, problem = parse_contract_header(source)
+        assert fields is None, f"expected a problem for: {source[:40]!r}"
+        assert problem is not None
+        assert expected in problem, f"{expected!r} not in {problem!r}"
+    # a header naming the wrong path is a graph problem, not a parse one
+    graph = build_graph({"src/demo/a.py": mod("src/demo/b.py")}, CONFIG)
+    assert any("the header's @module says 'src/demo/b.py'" in p for p in graph.problems)
+
+
+{{ rq }} G-009
+def test_rendered_map_carries_one_entry_per_module() -> None:
+    graph = build_graph(
+        {
+            "src/demo/__init__.py": mod("src/demo/__init__.py"),
+            "src/demo/api/ops.py": mod("src/demo/api/ops.py", ["from ..core import model"]),
+            "src/demo/core/model.py": mod("src/demo/core/model.py"),
+            "src/demo/ui/screen.py": mod("src/demo/ui/screen.py", ["from demo.api import ops"]),
+        },
+        CONFIG,
+    )
+    assert graph.problems == []
+    markdown = render_map(graph)
+    assert sorted(map_entries(markdown)) == [
+        "src/demo/__init__.py",
+        "src/demo/api/ops.py",
+        "src/demo/core/model.py",
+        "src/demo/ui/screen.py",
+    ]
+    # the ui entry comes before the api entry, which comes before the core ones
+    at = markdown.index
+    assert at("### `src/demo/ui/screen.py`") < at("### `src/demo/api/ops.py`")
+    assert at("### `src/demo/api/ops.py`") < at("### `src/demo/core/model.py`")
+    assert "- **callers** — `src/demo/ui/screen.py`" in markdown
+    assert "- **callees** — `src/demo/core/model.py`" in markdown
+    # deterministic: rendering the same graph twice gives the same bytes
+    assert render_map(graph) == markdown
+
+
+def test_relative_and_absolute_intra_package_imports_both_resolve() -> None:
+    sources = {
+        "src/demo/__init__.py": mod("src/demo/__init__.py", ["from .core import model"]),
+        "src/demo/core/__init__.py": mod("src/demo/core/__init__.py"),
+        "src/demo/core/model.py": mod("src/demo/core/model.py", ["import demo.core.helper"]),
+        "src/demo/core/helper.py": mod("src/demo/core/helper.py", ["import json"]),
+    }
+    graph = build_graph(sources, CONFIG)
+    assert graph.problems == []
+    assert graph.modules["src/demo/__init__.py"].callees == ["src/demo/core/model.py"]
+    assert graph.modules["src/demo/core/model.py"].callees == ["src/demo/core/helper.py"]
+    # an intra-package import that resolves to nothing is a problem, a stdlib one is not
+    dangling = build_graph({"src/demo/a.py": mod("src/demo/a.py", ["from .gone import x"])}, CONFIG)
+    assert any("does not resolve to a mapped module" in p for p in dangling.problems)
+
+
+def test_a_reverse_or_layer_skipping_import_is_a_problem() -> None:
+    # NOTE: G-007 is deliberately NOT claimed by this project. These fixtures pin
+    # the CHECK, not this project's own layering, so that row stays `untested`
+    # until the project declares real layers and a test pins them.
+    reverse = build_graph(
+        {
+            "src/demo/api/ops.py": mod("src/demo/api/ops.py", ["from ..ui import screen"]),
+            "src/demo/ui/screen.py": mod("src/demo/ui/screen.py"),
+        },
+        CONFIG,
+    )
+    assert any("against the layer direction (api -> ui)" in p for p in reverse.problems)
+
+    skipping = build_graph(
+        {
+            "src/demo/ui/screen.py": mod("src/demo/ui/screen.py", ["from ..core import model"]),
+            "src/demo/core/model.py": mod("src/demo/core/model.py"),
+        },
+        CONFIG,
+    )
+    assert any("SKIPPING a layer (ui -> core, past api)" in p for p in skipping.problems)
+
+    adjacent = build_graph(
+        {
+            "src/demo/ui/screen.py": mod("src/demo/ui/screen.py", ["from ..api import ops"]),
+            "src/demo/api/ops.py": mod("src/demo/api/ops.py"),
+        },
+        CONFIG,
+    )
+    assert adjacent.problems == []
+
+
+def test_a_test_may_import_any_layer_but_nothing_below_may_import_a_test() -> None:
+    # G-007 says tests may import anything: the test root is declared layerExempt, so a
+    # test reaching past a layer is fine while a module reaching INTO tests is not.
+    exempt = build_graph(
+        {
+            "tests/test_model.py": mod("tests/test_model.py", ["from demo.core import model"]),
+            "src/demo/core/model.py": mod("src/demo/core/model.py"),
+        },
+        CONFIG,
+    )
+    assert exempt.problems == []
+    assert exempt.modules["src/demo/core/model.py"].callers == ["tests/test_model.py"]
+
+    inward = build_graph(
+        {
+            "src/demo/core/model.py": mod("src/demo/core/model.py", ["from tests import test_model"]),
+            "tests/test_model.py": mod("tests/test_model.py"),
+        },
+        CONFIG,
+    )
+    assert any("against the layer direction (core -> tests)" in p for p in inward.problems)
+
+
+{{ rq }} G-009
+def test_a_literal_dynamic_import_is_an_edge_and_a_computed_one_is_a_problem() -> None:
+    for line in (
+        'importlib.import_module("demo.late")',
+        'importlib.import_module(".late", __package__)',
+        '__import__("demo.late")',
+    ):
+        graph = build_graph(
+            {
+                "src/demo/__init__.py": mod("src/demo/__init__.py", ["import importlib", line]),
+                "src/demo/late.py": mod("src/demo/late.py"),
+            },
+            CONFIG,
+        )
+        assert graph.problems == [], f"{line}: {graph.problems}"
+        assert graph.modules["src/demo/__init__.py"].callees == ["src/demo/late.py"], line
+        assert graph.modules["src/demo/late.py"].callers == ["src/demo/__init__.py"], line
+
+    # a name the generator cannot read is reported, never silently dropped
+    computed = build_graph(
+        {
+            "src/demo/__init__.py": mod("src/demo/__init__.py", ["import importlib", "importlib.import_module(name)"]),
+            "src/demo/late.py": mod("src/demo/late.py"),
+        },
+        CONFIG,
+    )
+    assert any("unmapped dynamic import" in p for p in computed.problems), computed.problems
+    assert computed.modules["src/demo/__init__.py"].callees == []
+
+
+{{ rq }} G-004 G-010
+def test_check_fails_on_a_dropped_header_outside_src(tmp_path: Path) -> None:
+    # "every module" is every module under the configured roots -- tests and scripts
+    # included, so a header dropped there fails the same check.
+    root = write_project(
+        tmp_path / "outside",
+        {
+            "src/demo/a.py": mod("src/demo/a.py"),
+            "tests/test_a.py": "VALUE = 1\n",
+            "scripts/tool.py": "VALUE = 1\n",
+        },
+    )
+    code, out = cli(root, "--check")
+    assert code == 1
+    assert "tests/test_a.py: no contract header" in out
+    assert "scripts/tool.py: no contract header" in out
+    assert "2 without a usable contract header" in out
+
+
+{{ rq }} G-010
+def test_check_exits_non_zero_on_missing_header_stale_map_or_reverse_import(tmp_path: Path) -> None:
+    headerless = write_project(
+        tmp_path / "headerless",
+        {"src/demo/good.py": mod("src/demo/good.py"), "src/demo/bad.py": "VALUE = 1\n"},
+    )
+    assert cli(headerless, "--write")[0] == 1  # writing reports the problem too
+    code, out = cli(headerless, "--check")
+    assert code == 1
+    assert "src/demo/bad.py: no contract header" in out
+    assert "1 without a usable contract header" in out
+
+    clean = write_project(tmp_path / "clean", {"src/demo/a.py": mod("src/demo/a.py")})
+    assert "docs/code-map.md does not exist" in cli(clean, "--check")[1]
+    assert cli(clean)[0] == 0
+    assert cli(clean, "--check")[0] == 0
+
+    # the module changes, the map does not
+    (clean / "src/demo/a.py").write_text(mod("src/demo/a.py", purpose="Do something else entirely."), encoding="utf-8")
+    code, out = cli(clean, "--check")
+    assert code == 1
+    assert "docs/code-map.md is stale against the code" in out
+
+    # a new module with no entry, then an entry whose module is gone
+    cli(clean)
+    (clean / "src/demo/b.py").write_text(mod("src/demo/b.py"), encoding="utf-8")
+    assert "src/demo/b.py has no entry in docs/code-map.md" in cli(clean, "--check")[1]
+    cli(clean)
+    (clean / "src/demo/b.py").unlink()
+    assert "lists src/demo/b.py, which is not a module" in cli(clean, "--check")[1]
+
+    reversed_layers = write_project(
+        tmp_path / "reversed",
+        {
+            "src/demo/api/ops.py": mod("src/demo/api/ops.py", ["from ..ui import screen"]),
+            "src/demo/ui/screen.py": mod("src/demo/ui/screen.py"),
+        },
+    )
+    code, out = cli(reversed_layers, "--check")
+    assert code == 1
+    assert "against the layer direction" in out
+
+
+{{ rq }} G-004 G-010
+def test_a_declared_exemption_keeps_the_module_in_the_map_without_a_header(tmp_path: Path) -> None:
+    # A module whose CONTENT is pinned elsewhere (a fixture a published study hashes)
+    # cannot take a header without invalidating that pin. It stays mapped and keeps its
+    # edges; what it loses is the header -- and it has to say why.
+    config = {
+        **FIXTURE_CONFIG,
+        "exempt": [{"path": "src/demo/pinned.py", "reason": "content-pinned by study sha256 abc123"}],
+    }
+    pinned = parse_config(json.dumps(config))
+    graph = build_graph(
+        {
+            "src/demo/__init__.py": mod("src/demo/__init__.py", ["from . import pinned"]),
+            "src/demo/pinned.py": "ROWS = [1, 2, 3]\n",
+        },
+        pinned,
+    )
+    assert graph.problems == []
+    assert graph.modules["src/demo/pinned.py"].exempt_reason == "content-pinned by study sha256 abc123"
+    markdown = render_map(graph)
+    assert "src/demo/pinned.py" in map_entries(markdown)
+    assert "- **exempt** — content-pinned by study sha256 abc123" in markdown
+    assert "- **purpose**" not in markdown.split("### `src/demo/pinned.py`")[1]
+    # the edge still counts, so --impact still sees it
+    assert graph.modules["src/demo/pinned.py"].callers == ["src/demo/__init__.py"]
+
+    # through the real CLI: the exempt module is exempt, not headerless
+    root = tmp_path / "exempt"
+    (root / "scripts").mkdir(parents=True)
+    shutil.copyfile(PROJECT / "scripts" / "code_map.py", root / "scripts" / "code_map.py")
+    (root / "docs").mkdir()
+    (root / "code-map.config.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
+    (root / "src" / "demo").mkdir(parents=True)
+    (root / "src" / "demo" / "pinned.py").write_text("ROWS = [1, 2, 3]\n", encoding="utf-8")
+    cli(root)
+    code, out = cli(root, "--check")
+    assert code == 0, out
+    assert "0 without a usable contract header; 1 exempt" in out
+
+
+{{ rq }} G-010
+def test_an_exemption_must_name_a_real_module_and_say_why() -> None:
+    no_reason = parse_config(json.dumps({**FIXTURE_CONFIG, "exempt": [{"path": "src/demo/a.py"}]}))
+    graph = build_graph({"src/demo/a.py": "ROWS = []\n"}, no_reason)
+    assert any("exempt path 'src/demo/a.py' has no reason" in p for p in graph.problems)
+
+    gone = parse_config(json.dumps({**FIXTURE_CONFIG, "exempt": [{"path": "src/demo/gone.py", "reason": "pinned"}]}))
+    graph = build_graph({"src/demo/a.py": mod("src/demo/a.py")}, gone)
+    assert any("exempt path 'src/demo/gone.py' is not a module" in p for p in graph.problems)
+
+    # a malformed entry is a config error, not a silent skip
+    try:
+        parse_config(json.dumps({**FIXTURE_CONFIG, "exempt": [{"reason": "no path"}]}))
+    except ConfigError as err:
+        assert "exempt[0] must be an object with a non-empty 'path'" in str(err)
+    else:  # pragma: no cover - the assertion above is the point
+        raise AssertionError("a malformed exempt entry must raise")
+
+
+def test_test_roots_is_shorthand_for_a_layer_exempt_root() -> None:
+    config = parse_config(
+        json.dumps({**FIXTURE_CONFIG, "roots": ["src/demo", "scripts", "tests"], "testRoots": ["tests"]})
+    )
+    assert config.is_layer_exempt("tests/test_a.py")
+    graph = build_graph(
+        {
+            "tests/test_a.py": mod("tests/test_a.py", ["from demo.core import model"]),
+            "src/demo/core/model.py": mod("src/demo/core/model.py"),
+        },
+        config,
+    )
+    assert graph.problems == []
+    try:
+        parse_config(json.dumps({**FIXTURE_CONFIG, "testRoots": ["nope"]}))
+    except ConfigError as err:
+        assert "is not one of 'roots'" in str(err)
+    else:  # pragma: no cover
+        raise AssertionError("a testRoots entry outside roots must raise")
+
+
+{{ rq }} G-011
+def test_impact_gives_transitive_callers_and_callees(tmp_path: Path) -> None:
+    graph = build_graph(
+        {
+            "src/demo/a.py": mod("src/demo/a.py", ["from . import b"]),
+            "src/demo/b.py": mod("src/demo/b.py", ["from . import c"]),
+            "src/demo/c.py": mod("src/demo/c.py"),
+            "src/demo/d.py": mod("src/demo/d.py", ["from . import b"]),
+            "src/demo/unrelated.py": mod("src/demo/unrelated.py"),
+        },
+        CONFIG,
+    )
+    assert graph.problems == []
+
+    leaf = impact(graph, ["src/demo/c.py"])
+    assert leaf.per[0].callers == ["src/demo/a.py", "src/demo/b.py", "src/demo/d.py"]
+    assert leaf.per[0].callees == []
+
+    top = impact(graph, ["src/demo/a.py"])
+    assert top.per[0].callees == ["src/demo/b.py", "src/demo/c.py"]
+    assert top.per[0].callers == []
+
+    # the union over several changed files excludes the changed files themselves
+    both = impact(graph, ["src/demo/b.py", "src/demo/c.py"])
+    assert both.callers == ["src/demo/a.py", "src/demo/d.py"]
+    assert both.callees == []
+
+    # a path that is not a module is reported as such, not answered with an empty closure
+    assert impact(graph, ["src/demo/nope.py"]).per[0].known is False
+
+    # and through the real CLI
+    root = write_project(
+        tmp_path / "impact",
+        {
+            "src/demo/a.py": mod("src/demo/a.py", ["from . import b"]),
+            "src/demo/b.py": mod("src/demo/b.py"),
+        },
+    )
+    code, out = cli(root, "--impact", "src/demo/b.py")
+    assert code == 0
+    assert "transitive callers (1): src/demo/a.py" in out
+    assert "transitive callees (0): —" in out
+
+
+{{ rq }} G-004
+def test_this_project_headers_and_map_are_current() -> None:
+    graph, _markdown, problems, line = check_project(PROJECT)
+    print(line)  # the suite's own summary line
+    assert problems == [], f"{line}\n" + "\n".join(problems)
+    on_disk = (PROJECT / load_config(PROJECT).map_path).read_text(encoding="utf-8")
+    assert len(map_entries(on_disk)) == len(graph.order)
+    assert code_map.main(["--check"], PROJECT) == 0

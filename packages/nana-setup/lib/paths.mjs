@@ -1,3 +1,18 @@
+/**
+ * @module packages/nana-setup/lib/paths.mjs
+ * @purpose The single resolver for every path the installer touches, so `install`, `doctor` and
+ *  `project` can never disagree about where a piece lives.
+ * @inputs opts.home / opts.claudeHome / opts.piHome; os.homedir(); nana-pack's agent-dir resolver
+ *  (PI_CODING_AGENT_DIR, else ~/.pi/agent) and its cwd-relative probe; process.cwd();
+ *  NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
+ * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
+ *  base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings,
+ *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome
+ *  (always under the layout BASE unless --pi-home/--home named it), deskLog, binDir,
+ *  launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
+ * @effects none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
+ * @errors none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
+ */
 // Where everything lives. One resolver so `install` and `doctor` can never disagree, and so
 // every test can point the whole installer at a temp home with `--home`.
 import * as os from "node:os";
@@ -28,6 +43,7 @@ export function resolveLayout(opts = {}) {
 		claudeHome,
 		hooksDir: path.join(claudeHome, "hooks"),
 		rulesDir: path.join(claudeHome, "rules"),
+		skillsDir: path.join(claudeHome, "skills"),
 		projectsDir: path.join(claudeHome, "projects"),
 		sharedMemoryDir: path.join(claudeHome, "nana-memory", "shared"),
 		claudeSettings: path.join(claudeHome, "settings.json"),

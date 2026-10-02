@@ -11,6 +11,13 @@ with an 85% coverage floor, src/ layout, folder-by-feature, lean per-folder
 AGENTS.md files, and a `.pi/nana-pack.json` post-edit preset (format+lint on
 every edit, 500-line module cap, mypy).
 
+It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
+standard general-engineering block (`Part G`, G-001 to G-012 — sealed tunables
+with provenance, the six-tag module header, named exports, injected resources,
+layer direction, the code map, the README contract), the `# req: R-nnn` trace
+check in the suite, and `scripts/code_map.py` with `--check` and `--impact`
+wired into the post-edit checks (`uv run python scripts/code_map.py --check` / `--impact`).
+
 ## Steps
 
 1. Need from the user (ask only for what's missing): destination directory and
@@ -33,6 +40,12 @@ every edit, 500-line module cap, mypy).
 4. Then complete the printed next steps: `git init` + first commit, `uv sync`,
    `uv run pre-commit install`, `uv run pytest` — and confirm the smoke test
    passes before handing over.
+
+5. **The first real step after scaffolding is writing the project's first
+   requirement rows** — `Part G` arrives filled in, the product rows are empty.
+   Use the `requirements` skill: one EARS `shall` row per behaviour the project
+   promises, each `planned` until a test with a `req:` marker pins it. Do this
+   before the first feature, not after.
 
 ## Notes
 

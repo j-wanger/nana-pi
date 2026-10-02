@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/project.test.mjs
+ * @purpose Pins that `nana-setup project` turns a blank folder into a nana project, never overwrites what a folder already has, and emits the same seeds the copier templates render
+ * @inputs bin/nana-setup.mjs, the shared templates, and throwaway target dirs with a throwaway --home
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (throwaway project dirs, seeds, symlinks, a throwaway home), process (spawns the setup CLI and git)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: `nana-setup project` turns a blank folder into a nana project, never overwrites what a
 // folder already has, and emits exactly the same three seeds the copier templates render.
 // Every run is in a throwaway dir with a throwaway --home; nothing touches the real machine.
@@ -60,20 +68,30 @@ function walk(dir) {
 	const first = run(["project", dir, "--home", home]);
 	check("project exits 0", first.status === 0, first.stderr);
 	for (const rel of ["OBJECTIVE.md", "HANDOFF.md", "docs/sessions/README.md", `docs/sessions/${stamp.slice(0, 7)}.md`, "AGENTS.md", ".pi/nana-pack.json"]) {
+		// req: R-327
 		check(`created ${rel}`, fs.existsSync(path.join(dir, ...rel.split("/"))));
 	}
+	// req: R-328
 	check("git initialized", fs.existsSync(path.join(dir, ".git")));
+	// req: R-329
 	check("CLAUDE.md is a RELATIVE symlink to AGENTS.md", fs.readlinkSync(path.join(dir, "CLAUDE.md")) === "AGENTS.md");
+	// req: R-329
 	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).endsWith(read(path.join(shared, "working-under-nana-pi.md"))));
 	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
+	// req: R-330
 	check("pack starter is an empty postEdit list", JSON.parse(read(path.join(dir, ".pi", "nana-pack.json"))).postEdit.commands.length === 0);
+	// req: R-331
 	check("knowledge refresh is skipped with a reason when there is no index", /knowledge index\s+skipped.*run `nana-setup install` first/.test(first.stdout), first.stdout);
 
 	// <date> and <name> filled; the DRAFT placeholders left for the owner
 	const objective = read(path.join(dir, "OBJECTIVE.md"));
+	// req: R-327
 	check("<name> filled from the folder basename", objective.startsWith("# Objective and current priority — widget-shop"));
+	// req: R-327
 	check("<date> filled with today", objective.includes(`**Objective (since ${stamp}):**`) && objective.includes(`**Current priority (since ${stamp}):**`));
+	// req: R-327
 	check("no <date>/<name> placeholder survives", !objective.includes("<date>") && !objective.includes("<name>"));
+	// req: R-327
 	check("the DRAFT lines are left to ratify", (objective.match(/DRAFT — ratify by editing this line/g) || []).length === 2);
 	check("the objective hook's two lines are greppable", /^\*\*Objective \(since /m.test(objective) && /^\*\*Current priority \(since /m.test(objective));
 	const handoff = read(path.join(dir, "HANDOFF.md"));
@@ -81,6 +99,7 @@ function walk(dir) {
 	check("HANDOFF has Where things stand / Open / NEXT", /## Where things stand \(\d{4}-\d{2}-\d{2}\)/.test(handoff) && handoff.includes("## Open") && handoff.includes("## NEXT"));
 	const sessions = read(path.join(dir, "docs", "sessions", "README.md"));
 	check("sessions README keeps its own <headline> placeholder", sessions.includes("## YYYY-MM-DD — <headline>") && sessions.includes("YYYY-MM.md"));
+	// req: R-327
 	check("month file is a header only", read(path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`)).split("\n").filter((l) => l.trim()).length === 2);
 
 	// --check is green now
@@ -90,6 +109,7 @@ function walk(dir) {
 	const before = walk(dir).filter(([p]) => !p.startsWith(".git" + path.sep));
 	const second = run(["project", dir, "--home", home]);
 	check("second run says nothing to do", /nothing to do/.test(second.stdout), second.stdout);
+	// req: R-334
 	check("second run changed no bytes", JSON.stringify(walk(dir).filter(([p]) => !p.startsWith(".git" + path.sep))) === JSON.stringify(before));
 }
 
@@ -108,11 +128,13 @@ function walk(dir) {
 	fs.mkdirSync(path.join(dir, "docs", "sessions"), { recursive: true });
 	fs.writeFileSync(path.join(dir, "docs", "sessions", "README.md"), "MY SESSIONS\n");
 	const r = run(["project", dir, "--home", home]);
+	// req: R-334
 	check("existing OBJECTIVE.md untouched", read(path.join(dir, "OBJECTIVE.md")) === "MINE\n");
 	check("existing AGENTS.md untouched", read(path.join(dir, "AGENTS.md")) === "MY AGENTS\n");
 	check("existing sessions README untouched", read(path.join(dir, "docs", "sessions", "README.md")) === "MY SESSIONS\n");
 	check("no CLAUDE.md written next to an AGENTS.md the project already had", !fs.existsSync(path.join(dir, "CLAUDE.md")));
 	check("the missing HANDOFF.md is still seeded", read(path.join(dir, "HANDOFF.md")).startsWith("# Handoff —"));
+	// req: R-334
 	check("what was left alone is reported", /OBJECTIVE\.md\s+unchanged/.test(r.stdout), r.stdout);
 }
 
@@ -121,6 +143,7 @@ function walk(dir) {
 	const { dir, home } = freshProject();
 	fs.writeFileSync(path.join(dir, "CLAUDE.md"), "MY CLAUDE\n");
 	run(["project", dir, "--home", home]);
+	// req: R-329
 	check("CLAUDE.md-only: no AGENTS.md written", !fs.existsSync(path.join(dir, "AGENTS.md")));
 	check("CLAUDE.md-only: the file is untouched", read(path.join(dir, "CLAUDE.md")) === "MY CLAUDE\n");
 	check("CLAUDE.md-only: --check is still green", run(["project", dir, "--check", "--home", home]).status === 0);
@@ -132,7 +155,9 @@ function walk(dir) {
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "\\.py$", run: "ruff check {file}" }] } }));
 	const r = run(["project", dir, "--home", home]);
+	// req: R-330
 	check("no project pack config written over user-scope commands", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")));
+	// req: R-330
 	check("and the reason is reported", /would shadow them here/.test(r.stdout), r.stdout);
 }
 
@@ -142,7 +167,9 @@ function walk(dir) {
 	const r = run(["project", dir, "--home", home, "--dry-run"]);
 	check("dry run exits 0", r.status === 0, r.stderr);
 	check("dry run reports what it would do", /would change/.test(r.stdout), r.stdout);
+	// req: R-338
 	check("dry run wrote nothing", fs.readdirSync(dir).length === 0, fs.readdirSync(dir).join(","));
+	// req: R-336
 	check("--check on an empty folder exits 1", run(["project", dir, "--check", "--home", home]).status === 1);
 }
 
@@ -154,18 +181,26 @@ function walk(dir) {
 	fs.mkdirSync(path.join(dir, "HANDOFF.md")); // a directory where a file is expected
 	const r = run(["project", dir, "--home", home]);
 	check("dangling symlink: exits 0", r.status === 0, r.stderr);
+	// req: R-333
 	check("dangling symlink: nothing written through it", !fs.existsSync(victim));
+	// req: R-333
 	check("dangling symlink: the link itself is untouched", fs.lstatSync(path.join(dir, "OBJECTIVE.md")).isSymbolicLink() && fs.readlinkSync(path.join(dir, "OBJECTIVE.md")) === victim);
+	// req: R-333
 	check("dangling symlink: reported as skipped, naming what was found", /OBJECTIVE\.md\s+skipped\s+a symlink -> .*nothing written through it/.test(r.stdout), r.stdout);
+	// req: R-333
 	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
+	// req: R-333
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).
 	const c = run(["project", dir, "--check", "--home", home]);
+	// req: R-337
 	check("--check: a dangling symlink at OBJECTIVE.md reads ✗", /✗ OBJECTIVE\.md\s+a symlink -> .* is there — not a readable OBJECTIVE\.md/.test(c.stdout), c.stdout);
+	// req: R-337
 	check("--check: a directory at HANDOFF.md reads ✗", /✗ HANDOFF\.md\s+a directory is there — not a readable HANDOFF\.md/.test(c.stdout), c.stdout);
+	// req: R-337
 	check("--check: exits 1 on those", c.status === 1, String(c.status));
 }
 
@@ -178,7 +213,9 @@ function walk(dir) {
 	const nasty = `$& $' $1 $(touch ${canary}) \`touch ${canary}\` ; touch ${canary}`;
 	const r = run(["project", dir, "--home", home, "--name", nasty]);
 	check("nasty name: exits 0", r.status === 0, r.stderr);
+	// req: R-335
 	check("nasty name: nothing was executed", !fs.existsSync(canary));
+	// req: R-335
 	check("nasty name: written LITERALLY into the seed ($& is not a regex replacement)", read(path.join(dir, "OBJECTIVE.md")).startsWith(`# Objective and current priority — ${nasty}\n`), read(path.join(dir, "OBJECTIVE.md")).split("\n")[0]);
 	check("nasty name: literal in HANDOFF.md too", read(path.join(dir, "HANDOFF.md")).startsWith(`# Handoff — ${nasty} frontier`));
 	check("nasty name: literal in the AGENTS.md stub", read(path.join(dir, "AGENTS.md")).startsWith(`# ${nasty}\n`));
@@ -192,16 +229,17 @@ function walk(dir) {
 	const skillText = read(skillFile);
 	const copierLines = skillText.split("\n").filter((l) => l.includes("uvx copier"));
 	check("SKILL.md: the fallback renders with a project name at all", copierLines.length >= 2, String(copierLines.length));
-	check(
-		"SKILL.md: every fallback command takes the name from an env var",
+	// req: R-335
+	check("SKILL.md: every fallback command takes the name from an env var",
 		copierLines.every((l) => /--data project_name=(?:"\$NANA_PROJECT_NAME"|\$env:NANA_PROJECT_NAME)(?:\s|$)/.test(l)),
 		copierLines.join(" | "),
 	);
-	check(
-		"SKILL.md: no fallback command interpolates a name placeholder into the command text",
+	// req: R-335
+	check("SKILL.md: no fallback command interpolates a name placeholder into the command text",
 		copierLines.every((l) => !/project_name=["']?</.test(l)),
 		copierLines.join(" | "),
 	);
+	// req: R-335
 	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
 }
 
@@ -214,8 +252,10 @@ function walk(dir) {
 	fs.mkdirSync(inner);
 	const home = path.join(tmp("nana-home-"), "h");
 	const setup = run(["project", inner, "--home", home]);
+	// req: R-328
 	check("inside a repo: no nested git init", !fs.existsSync(path.join(inner, ".git")) && /inside .* already — no nested repo created/.test(setup.stdout), setup.stdout);
 	const c1 = run(["project", inner, "--check", "--home", home]);
+	// req: R-336
 	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 0 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout), c1.stdout);
 
 	// b. pack config deliberately omitted because user-scope postEdit.commands exist
@@ -224,6 +264,7 @@ function walk(dir) {
 	fs.writeFileSync(path.join(home2, ".pi", "agent", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "\\.py$", run: "ruff check {file}" }] } }));
 	run(["project", dir, "--home", home2]);
 	const c2 = run(["project", dir, "--check", "--home", home2]);
+	// req: R-336
 	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
 	check("--check: the CLAUDE.md alias reads ✓ as a symlink to AGENTS.md", /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(c2.stdout), c2.stdout);
 
@@ -240,8 +281,8 @@ function walk(dir) {
 		fs.symlinkSync(target, claude);
 		const bad = run(["project", dir, "--check", "--home", home2]);
 		const dangling = shape !== "a link to another project's AGENTS.md";
-		check(
-			`--check: CLAUDE.md as ${shape} reads ✗ naming the target`,
+		// req: R-337
+		check(`--check: CLAUDE.md as ${shape} reads ✗ naming the target`,
 			bad.status === 1 && new RegExp(`✗ CLAUDE\\.md\\s+a symlink -> ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} — ${dangling ? "dangling" : "not this project's AGENTS\\.md"}`).test(bad.stdout),
 			`${bad.status} ${bad.stdout}`,
 		);
@@ -250,6 +291,7 @@ function walk(dir) {
 	fs.unlinkSync(claude);
 	fs.symlinkSync("AGENTS.md", claude);
 	const good = run(["project", dir, "--check", "--home", home2]);
+	// req: R-337
 	check("--check: CLAUDE.md -> AGENTS.md resolves to this project and reads ✓", good.status === 0 && /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(good.stdout), good.stdout);
 	// and it is still ✗ when it is simply missing for no reason
 	const { dir: bare } = freshProject();
@@ -269,8 +311,11 @@ function walk(dir) {
 	fs.writeFileSync(path.join(kh, "build.lock"), JSON.stringify({ pid: process.pid, at: Date.now() }));
 	const r = run(["project", dir, "--home", home]);
 	check("build lock held: exits 0", r.status === 0, r.stderr);
+	// req: R-331
 	check("build lock held: reported as skipped (build lock held)", /knowledge index\s+skipped\s+skipped \(build lock held\)/.test(r.stdout), r.stdout);
+	// req: R-331
 	check("build lock held: never claims a rebuild", !/knowledge index\s+unchanged/.test(r.stdout), r.stdout);
+	// req: R-332
 	check("build lock held: the lock is left alone", fs.existsSync(path.join(kh, "build.lock")));
 }
 
@@ -292,8 +337,11 @@ function walk(dir) {
 	});
 	const ms = Date.now() - t0;
 	check("deadline: the command still exits 0", r.status === 0, r.stderr);
+	// req: R-331
 	check("deadline: reported as a timeout, not a rebuild", /knowledge index\s+skipped\s+timeout after/.test(r.stdout), r.stdout);
+	// req: R-332
 	check("deadline: settles instead of hanging", ms < 15_000, `${ms}ms`);
+	// req: R-332
 	check("deadline: the rest of the project still got seeded", fs.existsSync(path.join(dir, "OBJECTIVE.md")));
 }
 
@@ -303,7 +351,9 @@ function walk(dir) {
 	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
 	check("win32: project exits 0", r.status === 0, r.stderr);
 	check("win32: CLAUDE.md is a regular file, not a link", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile());
+	// req: R-329
 	check("win32: CLAUDE.md is byte-identical to AGENTS.md", read(path.join(dir, "CLAUDE.md")) === read(path.join(dir, "AGENTS.md")));
+	// req: R-329
 	check("win32: the reason is reported", /win32: no usable symlink/.test(r.stdout), r.stdout);
 }
 
@@ -333,8 +383,10 @@ function walk(dir) {
 			for (const rel of ["OBJECTIVE.md", "HANDOFF.md", "docs/sessions/README.md"]) {
 				const want = read(path.join(shared, ...rel.split("/"))).split("<name>").join("_t");
 				const got = fs.existsSync(path.join(out, ...rel.split("/"))) ? read(path.join(out, ...rel.split("/"))) : null;
+				// req: R-339
 				check(`${language}: ${rel} is byte-equal to templates/_shared (after <name>)`, got === want, got === null ? "not rendered" : "differs");
 			}
+			// req: R-339
 			check(`${language}: <date> is left literal for the skill / nana-setup to fill`, read(path.join(out, "OBJECTIVE.md")).includes("(since <date>)"));
 			// Pins the adopt-structure fallback rule: copier bakes <name> in at RENDER time, so a
 			// throwaway rendered with a dummy name would seed that dummy into the adopted project.
@@ -347,6 +399,7 @@ function walk(dir) {
 		fs.writeFileSync(path.join(adopt, "OBJECTIVE.md"), "MINE\n");
 		const r = render(["--data", "language=python", "--data", "adopt=true"], adopt);
 		check("adopt: copier render succeeds", r.status === 0, (r.stderr || "").trim().split("\n").slice(-3).join(" "));
+		// req: R-339
 		check("adopt: a pre-existing OBJECTIVE.md is NOT overwritten", read(path.join(adopt, "OBJECTIVE.md")) === "MINE\n");
 		check("adopt: the missing HANDOFF.md is still emitted", fs.existsSync(path.join(adopt, "HANDOFF.md")));
 		check("adopt: docs/sessions/README.md is still emitted", fs.existsSync(path.join(adopt, "docs", "sessions", "README.md")));
@@ -360,10 +413,12 @@ for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 	tmps.push(parent);
 	const leaf = path.join(parent, "new-thing");
 	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });
+	// req: R-338
 	check("dry run reports the folder it would create and creates nothing", /would create/.test(dry.stdout) && !fs.existsSync(leaf), dry.stdout);
 	const r = spawnSync(process.execPath, [cli, "project", leaf, "--home", parent], { encoding: "utf8" });
 	check("a missing leaf folder is created and seeded", r.status === 0 && fs.existsSync(path.join(leaf, "OBJECTIVE.md")), r.stdout + r.stderr);
 	const bad = spawnSync(process.execPath, [cli, "project", path.join(parent, "nope", "deeper"), "--home", parent], { encoding: "utf8" });
+	// req: R-338
 	check("a missing parent still aborts", bad.status !== 0 && /does not exist/.test(bad.stderr), bad.stderr);
 }
 

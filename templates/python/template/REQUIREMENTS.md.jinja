@@ -1,0 +1,92 @@
+{%- set g_status = 'untested' if adopt else 'implemented' -%}
+# {{ project_name }} requirements
+
+The standing, numbered requirement set for this project. Rows are **EARS** form (Easy
+Approach to Requirements Syntax: one `shall` sentence per row, from the Ubiquitous,
+WHEN, WHILE, IF-THEN and WHERE templates) and they spec the **contract, not the design**.
+
+- **IDs are stable and never renumbered or reused.** A requirement removed from the
+  product keeps its ID with status `retired`. WHEN a row is split, the first clause keeps
+  the original ID and the rest take new ones.
+- **Statuses:** `implemented` (a test asserts it, and the evidence cell names that test),
+  `untested` (the code does it, nothing pins it), `planned` (designed, not built),
+  `violated` (the code contradicts a documented rule; the evidence says where), `retired`.
+- **Cells contain no `|` character** — it breaks the table and the parser says so.
+- **Evidence** for an `implemented` row cites `tests/<file>::<test name>`, backticked so a
+  comma inside a name survives — nested paths included (`tests/billing/test_caps.py::test_cap`).
+  Prose, a doc link or an empty cell is NOT evidence for `implemented`. Evidence that lives
+  in another repo carries that repo as a prefix (`other-repo:tests/...`), is traced in that
+  repo's suite, and is exempt from the local-marker rule here.
+- **Sealed tunables.** A contract number (a threshold, cap, budget or deadline a row names)
+  is defined ONCE in this package's configuration surface, with provenance naming the row
+  it serves, and is pinned by one test. Retuning it is a requirement diff first, then the
+  number — never a number changed under a row that still claims the old one.
+
+**Trace rail.** A full `uv run pytest` fails when a status disagrees with the suite. A test
+declares the rows it evidences with a comment directly above its `def test_...` line (decorators may
+sit in between), and stacked comment lines merge:
+
+```python
+# req: R-001 G-004
+def test_a_bounded_page_never_repeats_a_row() -> None:
+    assert ids(page) == sorted(set(ids(page)))
+```
+
+An `implemented` row with no marker and no external evidence fails; an `implemented` row
+whose evidence names no test in this repo fails; an `untested`, `planned` or `violated` row
+that a marker traces fails; a marker naming an unknown id fails; and an `implemented` row
+citing a test that does not exist, or that does not carry that row's marker, fails. The rail
+is the plugin in `tests/conftest.py`; it scans `tests/` recursively, fails a full run and
+only reports on a partial one.
+
+**ID blocks:** `R-001` onward are this project's rows. `G-001` onward are Part G, the
+general engineering requirements every nana project carries — they arrive with the
+template, are never renumbered, and only their Status and Evidence are yours to change.
+
+**New behaviour in this project: requirement diff, then tagged tests, then code.**
+{% if adopt %}
+**First run in an adopted project.** This render added the rail (`tests/conftest.py`), its
+self-tests (`tests/test_requirements_trace.py`, `tests/test_code_map.py`), the generator
+(`scripts/code_map.py`) and a PLACEHOLDER `docs/code-map.md`. Run
+`uv run python scripts/code_map.py` once (or `python3 scripts/code_map.py` — it needs no
+dependencies) to generate the real map; after that `--check` is green. If this project's
+tests do not live in `tests/`, move those three files into the real test directory and
+update the citations. Every Part G row below starts `untested`: promote one only when a
+test in this repo pins it and the evidence cell names that test. The self-tests arrive carrying
+`req-candidate:` markers instead of `req:` for exactly that reason — rename one to `req:`
+when you promote its row. Until every mapped module carries a contract header, the
+self-test that checks THIS project's headers and map fails: that is the audit's work, not
+a reason to delete the test.
+G-012 arrives the same way: `scripts/readme_check.py` checks that this project's README names
+nothing that does not exist — run it, fix what it reports (or the README), and promote the
+row when it is green.
+
+## 1. The product
+
+No product rows yet. Add one per promise this project already makes — the
+`requirements` skill's audit mode extracts them from the code — starting at `R-001`.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+{% else %}
+## 1. The product
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-001 | The package shall expose its version as `__version__`. | implemented | `tests/test_smoke.py::test_package_imports` |
+{% endif %}
+{% include "templates/_shared/requirements-general.md" %}
+
+## Open questions
+
+Unruled decisions, numbered, each one a sentence ending in a question mark. A question
+answered becomes a row; it does not stay here as prose.
+
+1. _(none yet)_
+
+## Deliberate omissions
+
+What this project will NOT do, and why — so a future reader does not read an absence as an
+oversight and build it.
+
+- _(none yet)_

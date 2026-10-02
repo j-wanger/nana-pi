@@ -1,3 +1,20 @@
+/**
+ * @module packages/nana-setup/lib/doctor.mjs
+ * @purpose Judge one machine and return an ordered check list covering the Node floor, the Claude
+ *  Code half, the two-tier auto-memory, pi's user config, the knowledge index, PATH and the desk
+ *  service.
+ * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
+ *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
+ *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
+ *  nana-pack.json and the objective file it names, <knowledgeHome>/index.db, <binDir>/pi-review,
+ *  the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+ * @outputs an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR
+ *  ("22.18"); nodeMeetsFloor(); skillLinkState() { ok, detail }; projectFileState() { status, kind,
+ *  detail }
+ * @effects disk (reads only), process (spawns node and launchctl to probe)
+ * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
+ *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
+ */
 // `doctor` — one ✓/✗ line per piece of the experience. This is the instrument a fresh machine
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry and (when asked for) the desk service are actually in place.
@@ -6,7 +23,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { DESK_SERVER, HOOKS, PI_REVIEW_BIN, lstatSafe, objectiveTarget, readPiPackConfig, registrationState } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -30,6 +47,36 @@ function linkOk(target, source) {
 	} catch {
 		return false;
 	}
+}
+
+/**
+ * A skill ✓ means Claude Code is reading the pack's own copy. posix: a symlink to that directory
+ * and nothing else — a regular directory there is someone's own skill, not ours. win32 has no
+ * usable symlink, so the installed state is a copy of every file the source ships.
+ */
+export function skillLinkState(target, source) {
+	const st = lstatSafe(target);
+	if (!st) return { ok: false, detail: `missing — run \`nana-setup install\`` };
+	if (st.isSymbolicLink()) {
+		let current = null;
+		try {
+			current = path.resolve(path.dirname(target), fs.readlinkSync(target));
+		} catch {
+			/* unreadable link */
+		}
+		return current === path.resolve(source) ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
+	}
+	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
+	// win32: a copy of every file the source ships, byte for byte
+	const missing = [];
+	for (const f of skillFiles(source)) {
+		try {
+			if (!fs.readFileSync(path.join(target, f)).equals(fs.readFileSync(path.join(source, f)))) missing.push(f);
+		} catch {
+			missing.push(f);
+		}
+	}
+	return missing.length ? { ok: false, detail: `copy is stale or incomplete (${missing.join(", ")}) — re-run \`nana-setup install\`` } : { ok: true, detail: `copied from ${source} (no symlink on this platform)` };
 }
 
 /**
@@ -84,8 +131,10 @@ export function diagnose(layout, opts = {}) {
 		if (win) add(NOTE, `hook ${h}`, "skipped (win32)");
 		else add(linkOk(path.join(layout.hooksDir, h), src) ? OK : FAIL, `hook ${h}`, `-> ${src}`);
 	}
-	const soul = path.join(pkgRoot, "claude", "rules", "nana-soul.md");
-	add(linkOk(path.join(layout.rulesDir, "nana-soul.md"), soul) ? OK : FAIL, "rule nana-soul.md", `-> ${soul}`);
+	for (const rule of CLAUDE_RULES) {
+		const src = path.join(pkgRoot, "claude", "rules", rule);
+		add(linkOk(path.join(layout.rulesDir, rule), src) ? OK : FAIL, `rule ${rule}`, `-> ${src}`);
+	}
 	// lstat, not existsSync: this file must be a REGULAR file. A symlink here aims the owner's
 	// private text at another file — possibly one in this repo — and existsSync would call that ✓.
 	const personal = path.join(layout.rulesDir, "nana-personal.md");
@@ -101,6 +150,11 @@ export function diagnose(layout, opts = {}) {
 					? "private rule is not a regular file — replace with a regular file"
 					: "private rule is missing — run `nana-setup install` to seed it",
 	);
+
+	for (const name of CLAUDE_SKILLS) {
+		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
+		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
+	}
 
 	let settings = null;
 	let parseError = null;

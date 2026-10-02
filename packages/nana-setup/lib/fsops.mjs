@@ -1,3 +1,19 @@
+/**
+ * @module packages/nana-setup/lib/fsops.mjs
+ * @purpose The installer's non-destructive file primitives, each reporting the status of what it
+ *  did instead of acting silently.
+ * @inputs target and source paths, file contents, { dryRun, copyInstead }, a Date for the backup
+ *  stamp; the filesystem — linkFile and seedFile decide presence with lstat, never existsSync, so a
+ *  dangling symlink reads as present and is left untouched (ensureDir and backupPath are the
+ *  exceptions and use existsSync)
+ * @outputs { status, detail } with status one of CREATED | UPDATED | UNCHANGED | SKIPPED | PROBLEM;
+ *  on disk: symlinks (linkFile), byte copies on a platform without symlinks, files written only
+ *  when absent (seedFile), directories (ensureDir), content-compared writes (writeIfChanged) and
+ *  <name>.bak-<YYYYMMDD> backups of anything replaced
+ * @effects disk (symlink, unlink, mkdir -p, writeFile, rename-to-backup; nothing under dryRun)
+ * @errors none typed — an unreadable source or an undeletable target propagates the raw fs error;
+ *  a symlink or directory in the way is returned as SKIPPED and never written through
+ */
 // File operations shared by the steps. Every one of them reports what it did rather than
 // doing it silently, and none of them destroys anything: a regular file in the way is backed
 // up before a symlink replaces it.

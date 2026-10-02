@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-setup/tests/project-key.test.mjs
+ * @purpose Pins the project-key mapping the shared-memory hook has to reproduce, including the truncation-plus-hash form, cross-checked against this machine's real project directories when they exist
+ * @inputs lib/project-key.mjs and the machine's ~/.claude/projects directory names when present
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (reads ~/.claude/projects when it exists; writes nothing)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: the project-key mapping. Claude Code stores per-project state (transcripts, auto-memory)
 // under ~/.claude/projects/<key>; the shared-memory hook has to derive the same <key> or the
 // `shared` symlink lands in a directory nobody reads.
@@ -28,19 +36,23 @@ const cases = [
 	["/Users/x/a b.c", "-Users-x-a-b-c"], // space and dot too
 	["C:\\dev\\repo", "C--dev-repo"],
 ];
+// req: R-347
 for (const [input, want] of cases) check(`key(${input}) = ${want}`, projectKey(input) === want, projectKey(input));
 
 /* --- over-long paths: truncate at 200 + hash -------------------------------------------- */
 {
 	const long = "/Users/jwang/" + "a".repeat(300);
 	const key = projectKey(long);
+	// req: R-347
 	check("an over-long key is truncated to 200 + a hash", key.length > KEY_MAX && key.startsWith(slug(long).slice(0, KEY_MAX) + "-"));
+	// req: R-347
 	check("the hash is base 36", /^[0-9a-z]+$/.test(key.slice(KEY_MAX + 1)));
 	check("the hash is stable", projectKey(long) === key);
 	check("a 200-char key is NOT hashed", projectKey("/" + "a".repeat(199)).length === KEY_MAX);
 	// the CLI's hash: h = (h << 5) - h + charCode, 32-bit, |0
 	let h = 0;
 	for (let i = 0; i < long.length; i++) h = ((h << 5) - h + long.charCodeAt(i)) | 0;
+	// req: R-347
 	check("pathHash matches the CLI's 32-bit string hash", pathHash(long) === Math.abs(h).toString(36));
 }
 
@@ -56,6 +68,7 @@ if (!fs.existsSync(projects)) {
 		.filter((d) => d.isDirectory())
 		.map((d) => path.join(os.homedir(), d.name))
 		.filter((p) => dirs.has(projectKey(p)));
+	// req: R-347
 	check(`at least 3 real project dirs map exactly (${candidates.length} matched)`, candidates.length >= 3, candidates.join(" "));
 	for (const p of candidates.slice(0, 5)) check(`  real: ${p} -> ${projectKey(p)}`, dirs.has(projectKey(p)));
 	// And the inverse: every existing dir name is a valid key shape.

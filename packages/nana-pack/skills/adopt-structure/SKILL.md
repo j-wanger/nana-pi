@@ -160,12 +160,25 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    On a machine that has `nana-setup`, `nana-setup project <dir>` does exactly
    this step (plus the month's session file) from any shell, pi or not.
 
-7. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
+7. **Run the requirements audit mode — before the report, not after it.** What
+   the audit finds is the most important thing the report carries, and a report
+   written first would describe a project whose promises are still unknown. The
+   navigation layer tells an agent where things are; it does not say what the
+   project promises. Offer the `requirements` skill's audit mode: extract EARS
+   rows from the design docs, `HANDOFF.md` and the test suite with read-only
+   workers, add the standard `Part G` engineering block, place the `req:`
+   markers, then do the conflicts + failing-now pass with each conflict carried
+   in `Open questions` naming whose call it is. This skill writes no
+   `REQUIREMENTS.md` itself — it is not one of the files the hard rule above
+   permits.
+
+8. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
    vs. left alone (and, when you used the fallback render, that the seeds carry
-   this project's name and today's date), and whether the `.pi/nana-pack.json` was
-   created or reconciled. Point the user at the two edits they still owe: the two
-   DRAFT objective lines, and replacing the post-edit placeholder with their
-   formatter/linter.
+   this project's name and today's date), whether the `.pi/nana-pack.json` was
+   created or reconciled, and what the audit left behind (rows drafted, conflicts
+   open, rows that are honestly `violated`). Point the user at the two edits they
+   still owe: the two DRAFT objective lines, and replacing the post-edit
+   placeholder with their formatter/linter.
 
 ## Notes
 

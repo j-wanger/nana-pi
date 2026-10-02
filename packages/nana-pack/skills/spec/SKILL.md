@@ -9,6 +9,15 @@ A spec prevents the #1 agent failure mode: executing a reasonable
 interpretation of an ambiguous contract for hours. Constraints matter more than
 objectives — negative boundaries are the safety rails.
 
+**A spec is PER-TASK and dies when the task closes.** It is the contract for one
+piece of work, not the project's standing set. The standing, numbered contract —
+`REQUIREMENTS.md`, its `req:` trace rail, the sealed-tunable and code-map rules —
+is the `requirements` skill, and that file evolves and is never thrown away. New
+behaviour starts with a requirement diff there; a spec may cite rows (`R-nnn`) in
+its Objective and Exit Criteria, and should, but it never replaces them. If the
+work you are about to spec changes what the product promises, run `requirements`
+first and come back.
+
 ## Steps
 
 1. **Gather context**: existing `specs/`, recent git log, project AGENTS.md.

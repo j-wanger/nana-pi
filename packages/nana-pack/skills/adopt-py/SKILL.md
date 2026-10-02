@@ -31,7 +31,9 @@ reconciliation surface — nothing is lost because the tree starts clean.
    package name. Measure the baseline: does the suite pass, at what coverage
    (`pytest --cov` if cheap). You need the coverage number for step 5.
 2. **Present the plan and get an OK** — what lands (tool pins, `.pi` post-edit
-   preset, CI workflow, root AGENTS.md, answers file), what gets merged (their
+   preset, CI workflow, root AGENTS.md, answers file, and the requirements rail:
+   `REQUIREMENTS.md`, the map generator and three files under `tests/` — see
+   step 3), what gets merged (their
    `[project]` metadata + deps into the pinned pyproject, .gitignore union),
    what is never touched (source tree and tests — adopt does not restructure
    code), and the staged-strictness expectations from step 5.
@@ -44,8 +46,24 @@ reconciliation surface — nothing is lost because the tree starts clean.
    (One line on purpose — it must work in PowerShell too, where bash's `\`
    continuation breaks.)
 
-   Adopt mode emits configs only: pyproject, pre-commit, CI, root AGENTS.md,
-   `.pi/nana-pack.json`, `.copier-answers.yml`. No README/src/tests starters.
+   Adopt mode emits the configs AND the requirements rail — no source code:
+
+   - configs: pyproject, pre-commit, CI, root AGENTS.md, `.pi/nana-pack.json`,
+     `.copier-answers.yml`;
+   - `REQUIREMENTS.md` with the standard `Part G` block, every G row
+     `untested` and no product rows — the project's own behaviour is step 7's
+     work;
+   - `code-map.config.json` and the generator `scripts/code_map.py`;
+   - a PLACEHOLDER `docs/code-map.md`. The first `--check` reports it stale and
+     names the one command that regenerates it (`uv run python
+     scripts/code_map.py`, or `python3 scripts/code_map.py` — it needs no deps);
+   - three rail files under `tests/`: the trace plugin `tests/conftest.py` and
+     its self-tests `tests/test_requirements_trace.py` and
+     `tests/test_code_map.py`. Their markers render as `req-candidate:`, not
+     `req:`, so the rail stays green until a row is promoted — promote one by
+     renaming its marker to `req:` and citing the test in the row.
+
+   No README/src/tests starters beyond those three.
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure,
    file by file:
    - `pyproject.toml`: restore their `[project]` table (name, version, deps,
@@ -64,6 +82,13 @@ reconciliation surface — nothing is lost because the tree starts clean.
    - `AGENTS.md`: fold any existing AGENTS/CLAUDE.md content in, write the
      real Layout section (the template leaves a placeholder comment), keep it
      one screen.
+   - **The rail files, if those names were already taken.** `--overwrite` means
+     an existing `tests/conftest.py` — or any same-named rail file — was
+     REPLACED, not merged. The `git diff` this step already reads is the
+     recovery: fold their conftest content (fixtures, plugins, path setup) back
+     in alongside the template's plugin, keeping both. A project whose tests do
+     not live in `tests/` moves the three rail files into the real test
+     directory and updates the citations that name them.
 5. **Stage the strictness** — legacy code won't be green day one; pins stay,
    escapes are recorded:
    - `uv run ruff format .`, then `ruff check --fix`; fix the cheap remainder,
@@ -81,9 +106,22 @@ reconciliation surface — nothing is lost because the tree starts clean.
      85, not the step-1 baseline; note the ratchet target in AGENTS.md.
 6. **Per-folder AGENTS.md**: author a lean one (one screen max) for each major
    source folder whose purpose isn't obvious from its name.
-7. **Validate**: `uv sync`, `uv run pre-commit install`, then all four gates —
+7. **Run the requirements audit mode — BEFORE the gates.** The suite cannot be
+   honestly green until this is done: the rail's project-wide self-test fails
+   while mapped modules have no contract header, and the first `--check` fails
+   while `docs/code-map.md` is still the placeholder. The overlay brings the
+   toolchain and a `REQUIREMENTS.md` whose `Part G` rows exist, but the project's
+   own behaviour is nowhere in it — and an adopted codebase is exactly where
+   nobody knows what it promises. Use the `requirements` skill in audit mode:
+   extract EARS rows from the design docs, `HANDOFF.md` and the test suite with
+   read-only workers, place the `# req:` markers, then do the conflicts +
+   failing-now pass and carry the conflicts in `Open questions` with whose call
+   each one is. Generate the real map once (`uv run python scripts/code_map.py`).
+   Expect `Part G` rows to land `violated` on a legacy codebase — that is the
+   honest state and the ratchet list, same as the mypy overrides.
+8. **Validate**: `uv sync`, `uv run pre-commit install`, then all four gates —
    `ruff check .`, `ruff format --check .`, `mypy`, `pytest` — green.
-8. **Commit the adoption as one commit** (it must include
+9. **Commit the adoption as one commit** (it must include
    `.copier-answers.yml` — the update relationship needs it git-tracked), then
    prove the relationship: `uvx copier update --pretend --defaults` runs clean.
 

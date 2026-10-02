@@ -18,6 +18,8 @@
 - `pnpm check` — typecheck + lint + test, the full gate
 - `pnpm typecheck` / `pnpm lint` / `pnpm test` — individually
 - `pnpm format` — Biome format
+- `pnpm map` / `pnpm map:check` / `pnpm map:impact -- <file...>` — the code map
+- `pnpm readme:check` — the README contract (G-012); `--list` prints what it checks
 
 ## Rules
 
@@ -32,5 +34,8 @@
   no `@ts-ignore` — use `@ts-expect-error` with a reason comment if unavoidable.
 - No barrel re-export files beyond a feature's own entry point.
 - ESM only (`type: module`); imports use explicit `.js` extensions per NodeNext.
+- Requirements-first: `REQUIREMENTS.md` changes before the code, every module opens
+  with the six-tag contract header, `docs/code-map.md` is generated, and the README
+  names nothing that does not exist — see **Requirements-first** below.
 
 {% include "templates/_shared/working-under-nana-pi.md" %}

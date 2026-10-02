@@ -1,3 +1,15 @@
+/**
+ * @module packages/nana-setup/lib/project-key.mjs
+ * @purpose Reproduce Claude Code's ~/.claude/projects/<key> directory name for a project path and
+ *  report whether that project's memory dir carries the `shared` symlink.
+ * @inputs a project's absolute path; the layout's projectsDir and sharedMemoryDir; the filesystem
+ *  (lstat + readlink of <projectsDir>/<key>/memory/shared)
+ * @outputs KEY_MAX (200); slug() and pathHash() strings; projectKey() (the slug, or 200 chars plus
+ *  "-<base36 32-bit hash>"); projectMemoryDir() path; sharedLinkState() — "absent" |
+ *  "not-a-symlink" | "linked" | "elsewhere"
+ * @effects disk (lstat and readlink only, read-only)
+ * @errors none — a missing or unreadable link reads as "absent"
+ */
 // Claude Code's per-project directory name (~/.claude/projects/<key>).
 //
 // Verified 2026-09-18 against the installed CLI (2.1.269): the key is the project path with

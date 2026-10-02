@@ -1,4 +1,23 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-setup/bin/nana-setup.mjs
+ * @purpose The nana-setup CLI: parse argv, resolve one layout, run the install / doctor / project
+ *  command it names, and print one marked line per piece.
+ * @inputs argv (`install` | `doctor` | `project [dir]`, plus --home, --claude-home, --pi-home,
+ *  --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
+ *  defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR,
+ *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
+ * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
+ *  <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for
+ *  doctor), a closing summary and the "next:" hint; stderr: the usage text and error messages;
+ *  process.exitCode.
+ * @effects disk (through install / setupProject / dismissProject), process (the child processes
+ *  those steps spawn; sets process.exitCode)
+ * @errors exit 2 for an unknown option or command, no command, a SetupError (including a relative
+ *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); exit 1
+ *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr);
+ *  exit 0 otherwise
+ */
 // nana-setup — one command that makes this repo own the WHOLE nana experience: the Claude Code
 // half (hooks, rules, settings wiring, two-tier auto-memory), the user-scope pi config, the
 // PATH entry for pi-review, and — opt-in — the desk service.

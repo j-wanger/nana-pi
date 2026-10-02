@@ -10,7 +10,9 @@ Sibling repo to `~/nana-agent-loop`.
 - `packages/` — our pi packages, chiefly the nana extension pack covering the four hook
   classes (pre-tool permission gating, post-edit format/lint/test triggers, session lifecycle,
   notifications/observability) plus scaffold + dev-workflow skills. Installable via
-  `pi install git:` or a local path.
+  `pi install git:` or a local path — which ships the extensions of `nana-pack` and
+  `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
+  `nana-stage`'s extension is NOT in that manifest: the desk loads it per app.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
@@ -27,7 +29,7 @@ Sibling repo to `~/nana-agent-loop`.
   decision. Zero dependencies; read-only on every source. See
   `packages/nana-knowledge/README.md`.
 - `packages/nana-setup/` — the one-command bootstrap for everything that is NOT a pi extension:
-  the Claude Code half (hooks, rules, `settings.json` wiring, the two-tier auto-memory), the
+  the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the
   user-scope pi config, `pi-review` on PATH, and the desk service. `nana-setup doctor` is the
   ✓/✗ instrument for a fresh machine. See `packages/nana-setup/README.md`.
 - `apps/desk/` — nana code, a local browser dashboard over pi sessions: no npm dependencies
@@ -37,6 +39,28 @@ Sibling repo to `~/nana-agent-loop`.
   correctness. Studies live in `apps/bench/studies/`; see `apps/bench/README.md`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
+
+## Requirements-first
+
+A project here keeps a standing, numbered contract — `REQUIREMENTS.md` — alongside its code, and
+new behaviour starts there: a requirement diff (add, split or retire a row; IDs are never
+renumbered), then tests carrying `req: R-nnn` markers, then the code. A trace check in the suite
+fails when a status disagrees with the markers, so the ledger cannot quietly overclaim; before a
+row is flipped to `implemented` somebody has to name the clause each cited test pins, and an
+independent reviewer asks exactly that. The same file carries the general engineering bar as rows
+(`Part G`): tunables defined once in a declared config surface with their provenance and no inline
+literals, a six-tag contract header on every module, named exports and injected resources, and a
+generated code map whose `--check` is in the suite and whose `--impact` gives a change's blast
+radius before you touch a module. Both templates ship the file, the rail and the map script, and nana-pi runs them on ITSELF:
+`npm run map` rewrites `docs/code-map.md`, `npm run map:check` fails when the map and the code
+disagree, `npm run map:impact -- <file...>` prints a change's blast radius, and
+`npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
+three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
+`scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
+all three run inside `npm test` as well. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
+extracts rows from a project that has none yet) into both pi and Claude Code, plus a
+`packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in `~/aml-desk`
+(2026-10-01/02) before it was promoted here.
 
 ## Dependencies
 
@@ -50,7 +74,7 @@ the pi-hosted ones. Per component:
 | `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; the ones that load a real extension skip themselves when pi is not installed globally. |
 | `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
 | `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
-| `packages/nana-knowledge/` (the knowledge pull) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, no npm dependencies, no model calls, and pi is not required (it is an optional peerDependency for manifest consistency only). | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
+| `packages/nana-knowledge/` (the knowledge pull) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, no npm dependencies, no model calls. pi is an optional peerDependency — the index, the `nana-knowledge` CLI and the Claude Code `UserPromptSubmit` hook run without it — but the package also ships a live pi extension (`packages/nana-knowledge/extensions/nana-knowledge.ts`, manifested in the root `package.json`) that pi loads when the pack is installed. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
 | `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (tested on 0.87.1, 2026-09-28)** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
 
@@ -59,7 +83,9 @@ the pi-hosted ones. Per component:
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
 and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
 temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
-if any file fails. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
+if any file fails — also when no file matched the filter, or a `--self-test` fixture missed
+its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
+active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
 deliberately failing file to prove the runner turns red.
 
@@ -77,15 +103,17 @@ The experience has **two halves**, and both are installed from this repo:
    ```bash
    node packages/nana-setup/bin/nana-setup.mjs install          # idempotent; re-run any time
    node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
-   node packages/nana-setup/bin/nana-setup.mjs doctor           # one ✓/✗ per piece; exits 1 on any ✗
+   node packages/nana-setup/bin/nana-setup.mjs doctor           # one ✓ or ✗ per piece; exits 1 on any ✗
    ```
 
    `doctor` is the check to run on a fresh machine, and whenever a session feels
-   under-informed. Hooks and rules are installed as **symlinks into the clone**, so a `git pull`
-   updates them with no reinstall.
+   under-informed. Hooks, rules and the `requirements` skill are installed as **symlinks into the
+   clone**, so a `git pull` updates them with no reinstall — and the skill symlink points at the
+   same `packages/nana-pack/skills/requirements` directory pi reads, so both runtimes get one
+   source, never two drifting copies.
 
    **What stays private:** `~/.claude/rules/nana-personal.md` — who you are, how you want to be
-   talked to. It is never in this repo. The repo ships `nana-personal.example.md`, and the
+   talked to. It is never in this repo. The repo ships `packages/nana-setup/claude/rules/nana-personal.example.md`, and the
    installer copies it into place **only when the file is absent**, then never reads or rewrites
    it. **What it never overwrites:** that file, an existing `~/.pi/agent/nana-pack.json` or
    objective file, and any hook, setting or package entry already present — a hook already wired
@@ -208,5 +236,5 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
   no `copier update` relationship; layer `adopt-py`/`adopt-ts` on top later for
   the pinned stack. Outside pi, `nana-setup project` does the seed half.
 
-Canonical upstream coordinates: repo `earendil-works/pi`, npm `@earendil-works/pi-coding-agent`
+Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.

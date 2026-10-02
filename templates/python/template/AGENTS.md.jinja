@@ -19,6 +19,8 @@
 - `uv run ruff check .` then `uv run ruff format .` — lint + format (two commands;
   `&&` breaks in Windows PowerShell 5.1)
 - `uv run mypy` — strict type-check
+- `uv run python scripts/code_map.py` (add `--check` or `--impact <file...>`) — the code map
+- `uv run python scripts/readme_check.py` (add `--list`) — the README contract (G-012)
 
 ## Rules
 
@@ -33,5 +35,8 @@
 - New feature = new folder {% if adopt %}in the package{% else %}under `src/{{ package_name }}/`{% endif %}, not new code
   smeared across existing modules.
 - Warnings are errors in tests; fix the cause, don't filter.
+- Requirements-first: `REQUIREMENTS.md` changes before the code, every module opens
+  with the six-tag contract header, `docs/code-map.md` is generated, and the README
+  names nothing that does not exist — see **Requirements-first** below.
 
 {% include "templates/_shared/working-under-nana-pi.md" %}

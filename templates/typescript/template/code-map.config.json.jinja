@@ -1,0 +1,26 @@
+{
+	"roots": ["src", "scripts", { "path": "tests", "layerExempt": true }],
+	"moduleExtensions": [".ts", ".tsx", ".mjs"],
+	"mapPath": "docs/code-map.md",
+	"packages": [{ "id": "root", "name": "{{ project_slug }}", "prefix": "" }],
+	"layers": [
+		{
+			"id": "tests",
+			"title": "Tests",
+			"blurb": "The suite. Its root is layerExempt, so a test may import any layer (G-007) - but nothing below may import a test.",
+			"match": "^tests/"
+		},
+		{
+			"id": "scripts",
+			"title": "Scripts",
+			"blurb": "Entry-point scripts and generators. They may import src/; src/ may not import them.",
+			"match": "^scripts/"
+		},
+		{
+			"id": "app",
+			"title": "Application",
+			"blurb": "Every module under src/. Split this into real layers as the project grows - a module may import its own layer or the one directly after it, never an earlier one and never skipping one (G-007).",
+			"match": "^src/"
+		}
+	]
+}

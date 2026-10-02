@@ -12,7 +12,11 @@
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"test": "vitest --run",
-		"check": "pnpm typecheck && pnpm lint && pnpm test"
+		"map": "node scripts/code-map.mjs",
+		"map:check": "node scripts/code-map.mjs --check",
+		"map:impact": "node scripts/code-map.mjs --impact",
+		"readme:check": "node scripts/readme-check.mjs",
+		"check": "pnpm typecheck && pnpm lint && pnpm test && pnpm readme:check"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.0",

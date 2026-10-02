@@ -1,0 +1,235 @@
+"""@module tests/test_requirements_trace.py
+@purpose Pin the requirements rail in tests/conftest.py against fixtures and against a real pytest run.
+@inputs the functions of tests/conftest.py, fixture requirement tables, and pytester projects
+@outputs pytest assertions
+@effects disk (pytester writes and removes scratch projects under the tmp dir),
+  process (pytester runs pytest in a subprocess)
+@errors none beyond assertion failures
+
+Fixture test sources are built from one-line f-strings on purpose: a marker
+comment spelled on its own line in this file would be picked up as a real marker
+when the rail scans this very file.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from conftest import Row, load_requirements, scan_dir, scan_source, summary, trace_problems
+
+CONFTEST_SRC = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+
+REQS = """# reqs
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-001 | The system shall do one thing. | implemented | `tests/test_a.py::test_one` |
+| R-002 | The system shall do another. | untested | — |
+| R-003 | The system shall do a third. | planned | docs/x.md |
+| G-004 | The sibling shall hold. | implemented | `other-repo:tests/test_b.py::test_holds` |
+"""
+
+MARK = "# req: "
+
+
+def load_requirements_text(text: str, tmp: Path) -> dict[str, Row]:
+    """Parse a fixture table through the real reader, which takes a path."""
+    target = tmp / "REQUIREMENTS.md"
+    target.write_text(text, encoding="utf-8")
+    return load_requirements(target)
+
+
+def _test_src(rid: str = "R-001", name: str = "test_one") -> str:
+    """One marked test as source text, with the marker assembled rather than written out."""
+    return f"{MARK}{rid}\ndef {name}() -> None:\n    assert True\n"
+
+
+def test_load_requirements_reads_id_status_and_external_evidence(tmp_path: Path) -> None:
+    f = tmp_path / "REQUIREMENTS.md"
+    f.write_text(REQS, encoding="utf-8")
+    rows = load_requirements(f)
+    assert list(rows) == ["R-001", "R-002", "R-003", "G-004"]
+    assert rows["R-001"] == Row(status="implemented", external=False, local=["tests/test_a.py::test_one"])
+    assert rows["G-004"] == Row(status="implemented", external=True, local=[])
+
+
+def test_load_requirements_missing_file_is_empty(tmp_path: Path) -> None:
+    assert load_requirements(tmp_path / "nope.md") == {}
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        ("| R-001 | dup | untested | — |", "duplicate id R-001"),
+        ("| R-009 | bad | done | — |", "unknown status 'done'"),
+        ("| R-010 | a \\| b | untested | — |", "R-010 has 5 cells, expected 4"),
+    ],
+)
+def test_load_requirements_rejects_bad_rows(tmp_path: Path, row: str, message: str) -> None:
+    f = tmp_path / "REQUIREMENTS.md"
+    f.write_text(REQS + row + "\n", encoding="utf-8")
+    with pytest.raises(pytest.UsageError, match=message):
+        load_requirements(f)
+
+
+def test_scan_source_binds_markers_merges_stacked_and_skips_decorators() -> None:
+    src = f"{MARK}R-001 R-002\ndef test_first() -> None:\n    pass\n"
+    src += f"{MARK}R-003\n{MARK}G-004\n@pytest.mark.parametrize('x', [1])\n"
+    src += "async def test_second(x: int) -> None:\n    pass\n"
+    assert scan_source(src, "x") == [(["R-001", "R-002"], "test_first"), (["R-003", "G-004"], "test_second")]
+
+
+def test_scan_source_binds_a_marker_to_a_mid_line_call() -> None:
+    # a table-driven suite declares its cases through a helper, mid-line
+    src = f"{MARK}R-001\nfor case in CASES: check('a bounded page never repeats a row', case)\n"
+    assert scan_source(src, "x") == [(["R-001"], "a bounded page never repeats a row")]
+    nested = f'{MARK}R-002\n    enter(w); try: check("holds under reentry", w)\n'
+    assert scan_source(nested, "x") == [(["R-002"], "holds under reentry")]
+    # a def still wins, and the name is the function's
+    assert scan_source(_test_src(), "x") == [(["R-001"], "test_one")]
+
+
+def test_scan_source_rejects_an_orphan_marker_or_a_bad_id() -> None:
+    with pytest.raises(pytest.UsageError, match="must sit directly above"):
+        scan_source(f"{MARK}R-001\nx = 1\n", "x")
+    with pytest.raises(pytest.UsageError, match="bad requirement id 'R1'"):
+        scan_source(f"{MARK}R1\ndef test_t() -> None:\n    pass\n", "x")
+
+
+def test_trace_problems_flags_each_mismatch() -> None:
+    rows = {
+        "R-001": Row("implemented", local=["tests/test_a.py::test_one"]),
+        "R-002": Row("untested"),
+        "R-003": Row("planned"),
+        "R-004": Row("retired"),
+        "R-005": Row("violated"),
+    }
+    traced = {
+        "R-002": ["t::a"],
+        "R-003": ["t::b"],
+        "R-004": ["t::c"],
+        "R-005": ["t::e"],
+        "R-099": ["t::d"],
+    }
+    problems = trace_problems(rows, traced)
+    assert [p.split(" ", 1)[0] for p in problems] == ["R-099", "R-001", "R-001", "R-002", "R-003", "R-005"]
+    assert "set status to implemented" in problems[3]
+
+
+def test_trace_problems_clean_when_status_matches() -> None:
+    rows = {"R-001": Row("implemented", local=["tests/test_a.py::test_one"]), "R-002": Row("untested")}
+    assert trace_problems(rows, {"R-001": ["tests/test_a.py::test_one"]}) == []
+
+
+def test_trace_problems_flags_a_citation_no_test_carries() -> None:
+    rows = {"R-001": Row("implemented", local=["tests/test_a.py::test_one"])}
+    assert trace_problems(rows, {"R-001": ["tests/test_a.py::test_other"]}) == [
+        "R-001 cites 'tests/test_a.py::test_one' but no test with that name carries '# req: R-001'"
+    ]
+
+
+def test_scan_dir_recurses_into_nested_test_folders(tmp_path: Path) -> None:
+    tests = tmp_path / "tests"
+    (tests / "feature").mkdir(parents=True)
+    (tests / "test_a.py").write_text(_test_src(), encoding="utf-8")
+    (tests / "feature" / "test_b.py").write_text(_test_src(rid="R-002", name="test_two"), encoding="utf-8")
+    assert scan_dir(tests) == {
+        "R-001": ["tests/test_a.py::test_one"],
+        "R-002": ["tests/feature/test_b.py::test_two"],
+    }
+
+
+def test_a_nested_marker_counts_and_a_nested_citation_resolves(pytester: pytest.Pytester) -> None:
+    reqs = REQS.replace(
+        "| R-002 | The system shall do another. | untested | — |",
+        "| R-002 | The system shall do another. | implemented | `tests/feature/test_b.py::test_two` |",
+    )
+    _project(pytester, reqs, _test_src(), nested={"feature/test_b.py": _test_src(rid="R-002", name="test_two")})
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret == 0
+    result.stdout.fnmatch_lines(["requirements: 4 total (3 implemented · 1 planned); 2 traced by tests"])
+
+
+def test_a_nested_unknown_id_fails_the_run(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src(), nested={"feature/test_b.py": _test_src(rid="R-999", name="test_two")})
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret == pytest.ExitCode.TESTS_FAILED
+    result.stdout.fnmatch_lines(["*R-999 is marked on 1 test(s) but is not in REQUIREMENTS.md*"])
+
+
+EVIDENCE_REQS = """# reqs
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-100 | No evidence at all. | implemented | — |
+| R-101 | Prose instead of a test. | implemented | docs/design.md says so |
+| R-102 | A half-written citation. | implemented | `tests/test_a.py` |
+| R-103 | External plus local. | implemented | `other-repo:tests/test_b.py::test_b`, `tests/test_a.py::test_one` |
+"""
+
+
+def test_implemented_evidence_must_name_a_test_in_this_repo(tmp_path: Path) -> None:
+    rows = load_requirements_text(EVIDENCE_REQS, tmp_path)
+    assert rows["R-102"].local == []
+    assert rows["R-102"].other == ["tests/test_a.py"]
+    traced = {rid: [f"t::{rid}"] for rid in ("R-100", "R-101", "R-102")}
+    traced["R-103"] = ["tests/test_a.py::test_one"]
+    problems = "\n".join(trace_problems(rows, traced))
+    assert "R-100 is 'implemented' but its evidence names no test in this repo" in problems
+    assert "R-101 evidence 'docs/design.md says so' is not a test citation" in problems
+    assert "R-102 evidence 'tests/test_a.py' is not a test citation" in problems
+    assert "R-102 is 'implemented' but its evidence names no test in this repo" in problems
+    # a row whose evidence mixes an external reference with a local one is satisfied
+    assert "R-103" not in problems
+
+
+def test_summary_counts_statuses() -> None:
+    rows = {"R-001": Row("implemented"), "R-002": Row("untested"), "R-003": Row("untested")}
+    assert summary(rows, {"R-001": ["t::a"]}) == "requirements: 3 total (1 implemented · 2 untested); 1 traced by tests"
+
+
+def _project(pytester: pytest.Pytester, reqs: str, body: str, nested: dict[str, str] | None = None) -> None:
+    pytester.makeini("[pytest]\ntestpaths = tests\n")
+    pytester.makeconftest(CONFTEST_SRC.replace('pytest_plugins = ["pytester"]', ""))
+    pytester.makefile(".md", REQUIREMENTS=reqs)
+    pytester.mkdir("tests")
+    (pytester.path / "tests" / "test_a.py").write_text(body, encoding="utf-8")
+    for rel, source in (nested or {}).items():
+        f = pytester.path / "tests" / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(source, encoding="utf-8")
+
+
+def test_full_run_passes_when_status_matches(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src())
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret == 0
+    result.stdout.fnmatch_lines(["requirements: 4 total (2 implemented · 1 planned · 1 untested); 1 traced by tests"])
+
+
+def test_full_run_fails_on_unknown_id(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src(rid="R-042"))
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret == pytest.ExitCode.TESTS_FAILED
+    result.stdout.fnmatch_lines(["*R-042 is marked on 1 test(s) but is not in REQUIREMENTS.md*"])
+    result.stdout.fnmatch_lines(["*R-001 is 'implemented' but no test carries*"])
+
+
+def test_full_run_fails_on_stale_untested_status(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src() + _test_src(rid="R-002", name="test_two"))
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret == pytest.ExitCode.TESTS_FAILED
+    result.stdout.fnmatch_lines(["*R-002 is 'untested' but 1 test(s) trace it; set status to implemented*"])
+
+
+def test_partial_run_only_reports(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src(rid="R-042"))
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider", "tests/test_a.py")
+    assert result.ret == 0
+    result.stdout.fnmatch_lines(["*requirements trace (partial run, informational):*"])
+
+
+def test_bad_marker_id_is_a_usage_error(pytester: pytest.Pytester) -> None:
+    _project(pytester, REQS, _test_src(rid="R1"))
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    assert result.ret != 0
+    result.stdout.re_match_lines([r".*bad requirement id 'R1'.*"])

@@ -1,0 +1,312 @@
+{%- set rq = '// req-candidate:' if adopt else '// req:' -%}
+/**
+ * @module tests/readme-check.test.ts
+ * @purpose Pin the README checker — the claim readers, every problem class it reports, and this project's own README.
+ * @inputs the exports of scripts/readme-check.mjs, fixture README text, scratch projects carrying the real CLI, and this project root
+ * @outputs vitest assertions and the checker's summary line on stdout
+ * @effects disk (reads this project; writes and removes scratch projects under the OS temp dir), process (spawns the real CLI)
+ * @errors none beyond assertion failures
+ */
+// The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+// `req-candidate:` instead: nothing is claimed about this project until the audit
+// promotes the row, and then the marker is renamed to `req:`.
+//
+// The failure paths run through the REAL CLI: a temp project gets a copy of
+// scripts/readme-check.mjs plus a README and the files it names, and the test spawns it
+// there, so what is checked is the command the suite and the post-edit gate actually run,
+// including its exit code.
+import { execFileSync } from "node:child_process";
+import {
+	copyFileSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, expect, test } from "vitest";
+
+import {
+	checkProject,
+	claims,
+	commandSpan,
+	firstParagraph,
+	inlineCommandClaims,
+	looksLikePath,
+	shellLines,
+} from "../scripts/readme-check.mjs";
+
+const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const FENCE = "```";
+
+const CLEAN = [
+	"# Demo",
+	"",
+	"What this project is for, in one sentence.",
+	"",
+	"## Setup",
+	"",
+	`${FENCE}bash`,
+	"pnpm install",
+	FENCE,
+	"",
+	"## Usage",
+	"",
+	`${FENCE}bash`,
+	"$ node scripts/readme-check.mjs",
+	FENCE,
+	"",
+	"## Test",
+	"",
+	`${FENCE}bash`,
+	"pnpm test",
+	FENCE,
+	"",
+	"`scripts/tool.mjs --check` does the thing, and the notes are in `docs/notes.md`.",
+	"",
+].join("\n");
+
+const TOOL = 'export const MODE = "--check";\n';
+
+const scratch: string[] = [];
+afterAll(() => {
+	for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
+
+/** A temp project carrying the real CLI, so the spawned command is the real one. */
+function makeProject(
+	readme: string,
+	extra: Record<string, string> = {},
+): string {
+	const root = mkdtempSync(join(tmpdir(), "readme-check-"));
+	scratch.push(root);
+	mkdirSync(join(root, "scripts"));
+	copyFileSync(
+		join(PROJECT, "scripts", "readme-check.mjs"),
+		join(root, "scripts", "readme-check.mjs"),
+	);
+	writeFileSync(join(root, "scripts", "tool.mjs"), TOOL);
+	mkdirSync(join(root, "docs"));
+	writeFileSync(join(root, "docs", "notes.md"), "notes\n");
+	writeFileSync(join(root, "README.md"), readme);
+	writeFileSync(
+		join(root, "package.json"),
+		JSON.stringify({ scripts: { test: "vitest --run" } }, null, 2),
+	);
+	for (const [path, source] of Object.entries(extra)) {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), source);
+	}
+	return root;
+}
+
+function cli(
+	root: string,
+	args: string[] = [],
+): { code: number; stdout: string } {
+	try {
+		return {
+			code: 0,
+			stdout: execFileSync(
+				process.execPath,
+				[join(root, "scripts", "readme-check.mjs"), ...args],
+				{ cwd: root, encoding: "utf8" },
+			),
+		};
+	} catch (err) {
+		const e = err as { status?: number; stdout?: string; stderr?: string };
+		return {
+			code: e.status ?? 1,
+			stdout: `${e.stdout ?? ""}${e.stderr ?? ""}`,
+		};
+	}
+}
+
+test("shellLines reads only shell fences and strips the prompt", () => {
+	const text = `${FENCE}bash\n$ pnpm install\n${FENCE}\n${FENCE}json\n[1, 2]\n${FENCE}\n`;
+	expect(shellLines(text)).toEqual([[2, "pnpm install"]]);
+});
+
+test("looksLikePath skips placeholders, URLs and prose", () => {
+	expect(looksLikePath("docs/code-map.md")).toBe("docs/code-map.md");
+	expect(looksLikePath("src/")).toBe("src");
+	expect(looksLikePath("README.md")).toBe("README.md");
+	for (const token of [
+		"<file...>",
+		"https://example.com/x",
+		"tests/a.test.ts::title",
+		"--check",
+		"0.1.0",
+		"node:fs",
+	]) {
+		expect(looksLikePath(token), token).toBeNull();
+	}
+});
+
+test("firstParagraph is the prose under the title", () => {
+	expect(firstParagraph(CLEAN)).toBe(
+		"What this project is for, in one sentence.",
+	);
+	expect(firstParagraph("# Title\n\n## Setup\n")).toBe("");
+});
+
+test("claims are line-ordered commands, paths and flags", () => {
+	const kinds = new Set(claims(CLEAN).map((c) => c.kind));
+	expect([...kinds].sort()).toEqual(["command", "flag", "path"]);
+	expect(claims(CLEAN).some((c) => c.text === "scripts/tool.mjs --check")).toBe(
+		true,
+	);
+});
+
+test("a clean README passes and --list prints its claims", () => {
+	const root = makeProject(CLEAN);
+	const run = cli(root);
+	expect(run.code, run.stdout).toBe(0);
+	expect(run.stdout).toMatch(/0 problem\(s\)/);
+	const listed = cli(root, ["--list"]).stdout;
+	expect(listed).toMatch(/command: pnpm test/);
+	expect(listed).toMatch(/path: docs\/notes\.md/);
+});
+
+test("commandSpan reads a command out of a span, and skips prose", () => {
+	expect(commandSpan("npm test")).toBe("npm test");
+	expect(commandSpan(" ./scripts/tool.mjs --check ")).toBe(
+		"./scripts/tool.mjs --check",
+	);
+	for (const span of [
+		"docs/notes.md",
+		"README.md",
+		"--check",
+		"the npm test",
+		"node:fs",
+	]) {
+		expect(commandSpan(span), span).toBeNull();
+	}
+	// one span can chain two commands, and both are claims
+	expect(
+		inlineCommandClaims("Use `pnpm lint && pnpm nope` here.").map(
+			(c) => c.text,
+		),
+	).toEqual(["pnpm lint", "pnpm nope"]);
+	// a fenced line is not an inline span: commandClaims must not count it twice
+	expect(inlineCommandClaims(`${FENCE}bash\npnpm test\n${FENCE}\n`)).toEqual(
+		[],
+	);
+});
+
+// a command named inline in prose is a claim, same as a fenced one
+{{ rq }} G-012
+test("an inline `pnpm test` in prose is checked like a fenced command", () => {
+	const prose = "Run `pnpm test` to see it pass.";
+	const readme = `${CLEAN}\n${prose}\n`;
+	const line = readme.split("\n").indexOf(prose) + 1;
+	const clean = cli(makeProject(readme));
+	expect(clean.code, clean.stdout).toBe(0);
+
+	const broken = cli(makeProject(readme.replace("`pnpm test`", "`pnpm nope`")));
+	expect(broken.code, broken.stdout).toBe(1);
+	expect(broken.stdout).toContain(
+		`README.md:${line}: 'pnpm nope' is not a script in package.json`,
+	);
+});
+
+test("a README naming a missing script fails", () => {
+	const root = makeProject(CLEAN.replace("pnpm test", "pnpm nope"));
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/'pnpm nope' is not a script in package\.json/);
+});
+
+test("a README naming a missing path fails", () => {
+	const root = makeProject(CLEAN.replace("docs/notes.md", "docs/gone.md"));
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/'docs\/gone\.md' does not exist/);
+});
+
+test("a missing section or first paragraph fails", () => {
+	const noTest = makeProject(CLEAN.replace("## Test", "## Afterword"));
+	const run = cli(noTest);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/no heading for how to test it/);
+
+	const bare = makeProject(
+		CLEAN.replace("What this project is for, in one sentence.\n", ""),
+	);
+	const run2 = cli(bare);
+	expect(run2.code).toBe(1);
+	expect(run2.stdout).toMatch(/no first paragraph/);
+});
+
+test("a flag the named script does not have fails", () => {
+	const root = makeProject(
+		CLEAN.replace("scripts/tool.mjs --check", "scripts/tool.mjs --nope"),
+	);
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/'scripts\/tool\.mjs' has no '--nope' flag/);
+});
+
+test("an undocumented script fails unless the config says why", () => {
+	const root = makeProject(CLEAN, { "scripts/extra.mjs": TOOL });
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(
+		/script 'extra\.mjs' is not documented in any README/,
+	);
+
+	// declared with a reason: allowed. Declared without one: the declaration is the problem.
+	const config = join(root, "readme-check.config.json");
+	writeFileSync(
+		config,
+		JSON.stringify({
+			undocumented: [
+				{
+					name: "extra.mjs",
+					reason: "a one-off migration kept for the record",
+				},
+			],
+		}),
+	);
+	expect(cli(root).code).toBe(0);
+
+	writeFileSync(
+		config,
+		JSON.stringify({ undocumented: [{ name: "extra.mjs" }] }),
+	);
+	const run2 = cli(root);
+	expect(run2.code).toBe(1);
+	expect(run2.stdout).toMatch(/undocumented 'extra\.mjs' has no reason/);
+});
+
+test("a runner the project does not have fails", () => {
+	const root = makeProject(CLEAN.replace("pnpm test", "make test"));
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/'make' is not this project's runner/);
+});
+
+test("a configured README that does not exist fails", () => {
+	const root = makeProject(CLEAN);
+	writeFileSync(
+		join(root, "readme-check.config.json"),
+		JSON.stringify({ readmes: ["README.md", "docs/README.md"] }),
+	);
+	const run = cli(root);
+	expect(run.code).toBe(1);
+	expect(run.stdout).toMatch(/docs\/README\.md:1: does not exist/);
+});
+
+{{ rq }} G-012
+test("this project: the README passes its own check", () => {
+	const { claims: found, problems, line } = checkProject(PROJECT);
+	console.log(line);
+	expect(problems, `${line}\n${problems.join("\n")}`).toEqual([]);
+	expect(
+		found.length,
+		"the README makes no checkable claim at all",
+	).toBeGreaterThan(0);
+	expect(cli(PROJECT).code).toBe(0);
+});
