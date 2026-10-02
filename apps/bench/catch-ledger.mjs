@@ -1,4 +1,20 @@
 #!/usr/bin/env node
+/**
+ * @module apps/bench/catch-ledger.mjs
+ * @purpose CLI for the retroactive catch ledger — extract reviewer findings, label and match them
+ *  with judge models, then build the kappa table and the pre-registered claims.
+ * @inputs argv subcommand (extract | label a|b|c [lane..] | match a|b [lane..] | build); env
+ *  CATCH_REVIEWS (default docs/reviews) and CATCH_OUT (default
+ *  apps/bench/studies/catch-ledger-2026-09-28); the review markdown corpus and any cached
+ *  label/match jsonl under CATCH_OUT
+ * @outputs under CATCH_OUT: rows.jsonl, skipped.jsonl, reports.json, per-pass label-*.jsonl and
+ *  match-*.jsonl caches, kappa-pairs.json, results.json, table.md; progress and claims JSON on
+ *  stdout
+ * @effects disk (reads the corpus, writes and appends the ledger files), process (spawns the
+ *  judge CLI, exits non-zero), network (judge model calls made by that child)
+ * @errors exit 2 on an unknown subcommand; exit 1 on any judge failure or a missing label
+ *  (fail-closed); build writes the refusal instead of table.md when kappa(top-level class) < 0.6
+ */
 // catch-ledger.mjs — the retroactive catch ledger (lane E1). Which reviewer rung caught which class
 // of defect, and did the seat accept it. Method: research/raw/2026-09-28-eval/eval-methods.md §2.
 //

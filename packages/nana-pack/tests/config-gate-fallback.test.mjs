@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/config-gate-fallback.test.mjs
+ * @purpose Pins that a malformed USER gate block never widens the gate — mid-session the last valid policy is kept in memory, and a fresh process stops every gated tool class with the repair reason
+ * @inputs extensions/nana-gate.ts and malformed nana-pack.json files under fresh temp HOMEs
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOMEs and config files), process (sets HOME, spawns child node processes for the fresh-process cases)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -68,13 +76,17 @@ const A = freshHome();
 	const call = gate();
 	check("a: valid config — terraform destroy blocked", blocked(await bash(call, "terraform destroy")));
 	check("a: valid config — allow pattern applies", (await bash(call, "git status")) === undefined);
+	// req: R-066
 	check("a: nothing persisted beside the config (no policy file to forge)", eq(fs.readdirSync(path.dirname(A.cfg)).filter((f) => f !== "nana-journal.jsonl"), ["nana-pack.json"]));
 	fs.writeFileSync(A.cfg, TRAILING); // corrupted mid-session
+	// req: R-063
 	check("a: corrupted mid-session — terraform destroy STILL blocked", blocked(await bash(call, "terraform destroy")));
 	check("a: corrupted mid-session — rm -rf /tmp/x blocked", blocked(await bash(call, "rm -rf /tmp/x")));
+	// req: R-063
 	check("a: corrupted mid-session — benign command still allowed", (await bash(call, "ls -la")) === undefined);
 	const lines = fs.readFileSync(A.journal, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
 	check("a: one config_invalid line names the file", lines.filter((l) => l.event === "config_invalid" && l.file === A.cfg).length === 1);
+	// req: R-063
 	check("a: the fallback is journaled (config_gate_fallback)", lines.some((l) => l.event === "config_gate_fallback" && l.file === A.cfg));
 }
 
@@ -90,8 +102,10 @@ const A = freshHome();
 		["read", "read", { path: "src/a.ts" }],
 	]);
 	for (const k of ["tf", "ls", "ps", "edit", "write"])
+		// req: R-064
 		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
 	check("b: the reason names the problem (invalid JSON)", /invalid JSON/.test(out.ls?.reason ?? ""), out.ls?.reason);
+	// req: R-038
 	check("b: tools outside the gate's scope untouched (read)", out.read === null);
 }
 
@@ -102,14 +116,17 @@ const A = freshHome();
 	const out = freshProcess(C.home, [["ls", "bash", { command: "ls -la" }], ["edit", "edit", { path: "src/a.ts" }]]);
 	for (const k of ["ls", "edit"])
 		check(`c: malformed leaf, fresh process — ${k} blocked`, out[k]?.block === true && STOP(C.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
+	// req: R-064
 	check("c: the reason names the malformed leaf", /gate\.allowPatterns/.test(out.ls?.reason ?? ""), out.ls?.reason);
 	// interactive sessions stop too — no dialog can re-open a gate whose policy is unknown
 	let dialogs = 0;
 	const call = gate({ hasUI: true, ui: { select: async () => { dialogs++; return "Allow once"; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } } });
 	const r = await bash(call, "ls");
+	// req: R-064
 	check("c: interactive + fresh malformed — blocked without a dialog", blocked(r) && dialogs === 0 && STOP(C.cfg).test(r.reason));
 	// repairing the file restores normal service in the same session
 	fs.writeFileSync(C.cfg, JSON.stringify({ gate: {} }));
+	// req: R-065
 	check("c: repaired file — benign command allowed again", (await bash(call, "ls")) === undefined);
 }
 
@@ -148,6 +165,7 @@ const A = freshHome();
 	});
 	const po = JSON.parse(planted.trim().split("\n").at(-1));
 	check("d: planted wider policy files after restart — rm -rf blocked", po.rm?.block === true, JSON.stringify(po));
+	// req: R-066
 	check("d: planted wider policy files after restart — gate still STOPPED (not widened)", po.ls?.block === true && STOP(D.cfg).test(po.ls.reason), JSON.stringify(po));
 }
 

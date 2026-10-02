@@ -1,4 +1,20 @@
 /**
+ * @module packages/nana-pack/lib/objective.ts
+ * @purpose THE objective producer — resolve the governing objective file and render the exact block both
+ *  runtimes print.
+ * @inputs the session cwd, the user-scope objective settings (path, projectFile), the nearest OBJECTIVE.md
+ *  walking up from cwd, and pi's active agent dir with its trust store, that store's folder, permissions
+ *  and lock
+ * @outputs ObjectiveResult {text, unavailable, events, notices} — the heading, the **Objective and
+ *  **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label, the precedence note
+ *  and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends in exactly one
+ *  newline
+ * @effects disk (bounded sync reads of at most FILE_READ_MAX bytes per file, plus lstat / stat / access of
+ *  the objective files, the trust store, its folder and its lock)
+ * @errors none — produceObjective never throws; an unreadable or symlink-reached file, a missing line,
+ *  invalid UTF-8 or an internal error each become a named marker plus a journal event and a UI notice
+ */
+/**
  * The ONE objective producer (lane T2a, 2026-09-28). Both runtimes print what this
  * returns, byte for byte: pi's nana-objective extension imports it, and the Claude
  * Code SessionStart hook is a thin launcher for bin/nana-objective.mjs, which calls it.

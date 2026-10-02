@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/study-tasks.test.mjs
+ * @purpose Pre-flight for the shipped study with no model calls — the fixture still matches its pin, every mutation applies, and the edit tasks discriminate against the known ways to game them
+ * @inputs lib/checkers.mjs, lib/fixture.mjs, run.mjs, and the shipped study dir with its pinned fixture
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp materialized workspaces; reads the study and fixture)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Pre-flight for the shipped study, with no model calls: does the fixture still match its pin,
 // does every mutation apply, and do the two EDIT tasks actually DISCRIMINATE — including against
 // the specific ways astra showed they could be gamed?
@@ -252,9 +260,12 @@ for (const [k, want] of Object.entries(study.pinnedSha ?? {})) {
 		continue;
 	}
 	const got = createHash("sha256").update(await fs.readFile(path.resolve(studyDir, rel))).digest("hex");
+	// req: R-534
 	check(`pinnedSha ${k} matches the file on disk`, got === want, `${got.slice(0, 12)} vs ${String(want).slice(0, 12)}`);
 }
+// req: R-534
 check("the sidecar's accounting module is pinned, not just the wrapper", Boolean(study.pinnedSha?.["ext:sidecar-lib"]) && Boolean(study.sidecarLib));
+// req: R-534
 check("the trusted evaluator is pinned too", Boolean(study.pinnedSha?.["trusted-evaluator"]) && Boolean(study.evaluator));
 
 process.exit(fails ? 1 : 0);

@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/gate-config-robustness.test.mjs
+ * @purpose Pins that a malformed gate config never throws out of the tool_call handler, since a throw there is upstream-blocked and would wrongly refuse a benign edit
+ * @inputs extensions/nana-gate.ts and nana-pack.json files with null gate arrays under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and config files), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -47,6 +55,7 @@ function setup(gate) {
 	const { td, call } = setup({ allowPatterns: null });
 	let res, threw = false;
 	try { res = await call("edit", { path: path.join(td, "src", "foo.ts") }); } catch { threw = true; }
+	// req: R-070
 	check("a: null allowPatterns does not throw", !threw);
 	check("a: benign edit returns normally (not blocked)", res === undefined);
 	fs.rmSync(td, { recursive: true, force: true });
@@ -58,7 +67,9 @@ function setup(gate) {
 	const { td, call } = setup({ allowPatterns: null, extraPatterns: null, protectedPaths: null });
 	let res, threw = false;
 	try { res = await call("bash", { command: "rm -rf /tmp/whatever" }); } catch { threw = true; }
+	// req: R-070
 	check("b: all-null gate arrays do not throw", !threw);
+	// req: R-070
 	check("b: built-in dangerous pattern still blocks headless", res?.block === true);
 	fs.rmSync(td, { recursive: true, force: true });
 }

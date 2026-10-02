@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/notify-fallback.test.mjs
+ * @purpose Pins that a failing, erroring or hung OS notifier is reported rather than silently dropped, including the Windows toast path that swallowed its own errors
+ * @inputs extensions/nana-notify.ts and stub notifier executables under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, stub notifier scripts), process (sets HOME, spawns and kills the stub notifiers)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -115,23 +123,31 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 // (a) the classifier: every shape execFile can report a failure in, and the
 // benign output that must NOT be read as one.
 {
+	// req: R-169
 	check("a: spawn failure (no notifier binary) is a failure",
 		(notifierFailure(Object.assign(new Error("spawn powershell.exe ENOENT"), { code: "ENOENT" }), "") ?? "").includes("ENOENT"));
+	// req: R-169
 	check("a: non-zero exit is a failure (execFile reports it through err.code)",
 		notifierFailure(Object.assign(new Error("Command failed"), { code: 1 }), "") !== null);
 	check("a: the deadline is a failure, and names the kill signal",
 		(notifierFailure({ killed: true, signal: "SIGTERM", code: null, message: "Command failed" }, "") ?? "").includes("SIGTERM"));
+	// req: R-169
 	check("a: exit 0 with a PowerShell error record on stderr is a failure",
 		notifierFailure(null, "At line:1 char:1\n    + CategoryInfo          : ObjectNotFound: (x:String) []\n    + FullyQualifiedErrorId : CommandNotFoundException") !== null);
+	// req: R-169
 	check("a: exit 0 with a failed WinRT member call is a failure",
 		notifierFailure(null, 'Exception calling "Show" with "1" argument(s): "Element not found."') !== null);
 	check("a: a clean run is not a failure", notifierFailure(null, "") === null);
+	// req: R-170
 	check("a: benign stderr chatter is not a failure", notifierFailure(null, "warning: shell profile skipped") === null);
 	// the word "exception" alone is not a failure — it is an ordinary path component
+	// req: R-170
 	check("a: a benign path containing 'Exception' is not a failure",
 		notifierFailure(null, "wrote report to C:\\Exception Reports\\2026-09-08.txt") === null);
+	// req: R-170
 	check("a: 'exception' in prose without a record shape is not a failure",
 		notifierFailure(null, "no exception was raised") === null);
+	// req: R-168
 	check("a: the reason is bounded (it lands in a journal line)",
 		(notifierFailure(Object.assign(new Error("x".repeat(5000)), { code: 1 }), "") ?? "").length <= 300);
 }
@@ -147,11 +163,13 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 		await fire();
 		await waitFor(() => notifies.length > 0);
 	}));
+	// req: R-168
 	check("b: a failed OS notifier falls back to the in-app notification",
 		notifies.length === 1 && notifies[0].message === "Ready for input" && notifies[0].type === "info");
 	const lines = journal().trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 	const entry = lines.find((l) => l.event === "notify_fallback");
 	check("b: the fallback is journalled as notify_fallback", !!entry);
+	// req: R-168
 	check("b: the journal line carries the platform that failed", entry?.platform === MISSING_NOTIFIER_PLATFORM);
 	check("b: the journal line carries a reason", typeof entry?.reason === "string" && entry.reason.length > 0);
 	check("b: the reason names the missing notifier", /ENOENT/.test(entry?.reason ?? ""));
@@ -176,7 +194,9 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 	await sleep(50);
 	process.off("unhandledRejection", onUnhandled);
 	process.off("uncaughtException", onUnhandled);
+	// req: R-172
 	check("c: headless failure is still journalled", journal().includes("notify_fallback"));
+	// req: R-172
 	check("c: a missing ctx.ui raises nothing into the agent process", unhandled === null);
 	fs.rmSync(emptyDir, { recursive: true, force: true });
 	fs.rmSync(td, { recursive: true, force: true });
@@ -201,7 +221,9 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 		await handlers.agent_settled({}, ctx);
 		await sleep(300);
 	}));
+	// req: R-167
 	check("d: notify.enabled false raises no notification", notifies.length === 0);
+	// req: R-167
 	check("d: notify.enabled false writes no fallback line",
 		!(fs.existsSync(journalPath) ? fs.readFileSync(journalPath, "utf-8") : "").includes("notify_fallback"));
 	fs.rmSync(emptyDir, { recursive: true, force: true });
@@ -250,7 +272,9 @@ if (!POSIX) {
 			await ok.fire();
 			await sleep(400);
 		}));
+		// req: R-166
 		check("f: a working notifier raises no fallback notification", ok.notifies.length === 0);
+		// req: R-166
 		check("f: a working notifier writes no fallback line", !ok.journal().includes("notify_fallback"));
 		fs.rmSync(okDir, { recursive: true, force: true });
 		fs.rmSync(ok.td, { recursive: true, force: true });
@@ -271,9 +295,12 @@ if (!POSIX) {
 			await waitFor(() => notifies.length > 0, NOTIFIER_TIMEOUT_MS + 7000);
 		}));
 		const elapsed = Date.now() - startedAt;
+		// req: R-171
 		check("g: a hung notifier still falls back", notifies.length === 1 && notifies[0].message === "Ready for input");
+		// req: R-171
 		check("g: the hang is journalled with the kill signal",
 			/notify_fallback/.test(journal()) && /killed \(SIG/.test(journal()));
+		// req: R-171
 		check("g: the fallback is bounded by the deadline, not by the hung child",
 			elapsed >= NOTIFIER_TIMEOUT_MS && elapsed < NOTIFIER_TIMEOUT_MS + 6000);
 		fs.rmSync(binDir, { recursive: true, force: true });

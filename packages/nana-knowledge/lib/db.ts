@@ -1,3 +1,15 @@
+/**
+ * @module packages/nana-knowledge/lib/db.ts
+ * @purpose Open the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or
+ *  write the meta table.
+ * @inputs the database file path and {create, readonly}; node:sqlite imported dynamically with its SQLite
+ *  ExperimentalWarning muted
+ * @outputs a Db handle (exec / prepare / close), a meta value or null, and SCHEMA_VERSION
+ * @effects disk (mkdirs the parent and creates the database file on the create path), database (WAL
+ *  pragmas, the docs/files/docs_fts schema and its triggers, meta upserts)
+ * @errors openDb rejects with whatever node:sqlite throws (absent file, unreadable, locked); getMeta
+ *  swallows and returns null
+ */
 // node:sqlite (Node >= 22.5, bundled SQLite has FTS5). Imported dynamically so the
 // ExperimentalWarning can be muted first — the hook writes to stdout and its stderr is
 // shown to the user; a warning per prompt would be intolerable.

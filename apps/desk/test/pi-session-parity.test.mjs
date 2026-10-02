@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/pi-session-parity.test.mjs
+ * @purpose The parity contract for reading sessions with pi's own parser — resolution ties the parser to the binary, the answers match the old parser on what a reader uses, and pi is the judge of the branch
+ * @inputs apps/desk/server.mjs, apps/desk/pi-session.mjs, and sessions written by pi's own SessionManager
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // The desk's session READ path is now pi's own parser (`parseSessionEntries` +
 // `migrateSessionEntries`, imported from the installed package root — see
 // apps/desk/pi-session.mjs). This test is the parity contract for that swap:
@@ -136,6 +144,7 @@ try {
 	const pi = await loadPiSession(PI_BIN);
 	check("the parser comes from the install tied to the pi we spawn", !!pi.root && !!pi.via, `${pi.via} → ${pi.root}`);
 	check("…and it is a real package.json with a version", !!pi.version, String(pi.version));
+	// req: R-405
 	check("…exporting parseSessionEntries + migrateSessionEntries + CURRENT_SESSION_VERSION",
 		typeof pi.parseSessionEntries === "function" && typeof pi.migrateSessionEntries === "function" && typeof pi.CURRENT_SESSION_VERSION === "number",
 		`v${pi.CURRENT_SESSION_VERSION}`);
@@ -206,7 +215,9 @@ try {
 		await new Promise((r) => setTimeout(r, 250));
 	}
 	if (!BASE) throw new Error(`desk server never reported a port. stdout:\n${stdout}\nstderr:\n${stderr}`);
+	// req: R-400
 	check("the server reports the port it actually bound (DESK_PORT=0)", /^http:\/\/127\.0\.0\.1:[1-9]\d{3,4}$/.test(BASE), BASE);
+	// req: R-401
 	check("…and the startup line names the pi install it parses with", /parsing sessions with .*pi-coding-agent .*resolved via /.test(stdout), stdout.split("\n")[0]);
 	// (that the Host/Origin rules still bite on a port-0 desk is host-rule.test.mjs's
 	// job — it owns the rebind evidence and speaks raw sockets, which fetch cannot:
@@ -230,8 +241,10 @@ try {
 	const oldMeta = oldReadSessionMeta(FILE);
 	check("the pi-written session appears in /api/sessions", !!row, JSON.stringify(rows.map((r) => path.basename(r.file))));
 	check("title identical to the old parser's", row?.title === oldMeta.title, `${row?.title} vs ${oldMeta.title}`);
+	// req: R-406
 	check("…and it is the first user message, whitespace-collapsed", row?.title === "parity fixture first message", String(row?.title));
 	check("name identical to the old parser's", row?.name === oldMeta.name, `${row?.name} vs ${oldMeta.name}`);
+	// req: R-406
 	check("…and it is what pi itself reports", row?.name === mgr.getSessionName(), `${row?.name} vs ${mgr.getSessionName()}`);
 	check("session id identical to the old parser's", row?.id === oldMeta.id && row?.id === mgr.getSessionId(), `${row?.id} vs ${oldMeta.id}`);
 
@@ -246,6 +259,7 @@ try {
 
 	// ── 3. pi is the judge: the branch the desk shows is the branch pi resumes ──
 	const piBranch = mgr.getBranch().filter((e) => e.type !== "session_info").map((e) => e.id);
+	// req: R-408
 	check("active branch equals SessionManager.getBranch()", JSON.stringify(branchOf(t)) === JSON.stringify(piBranch), `${branchOf(t).join(",")} vs ${piBranch.join(",")}`);
 	// branching from the FIRST user message abandons the two entries that followed it
 	check("…the abandoned entries are present but off-branch",
@@ -268,10 +282,12 @@ try {
 	const v1 = await transcript(V1);
 	const oldV1 = oldParseTranscript(V1);
 	check("v1 session: old parser rendered nothing", oldV1.total === 0, String(oldV1.total));
+	// req: R-407
 	check("v1 session: pi's migration makes both entries readable", v1.total === 2, String(v1.total));
 	check("…with ids and a parent chain the old file never had", v1.entries.every((e) => !!e.id) && v1.entries[1].parentId === v1.entries[0].id);
 	check("…the legacy hookMessage role is migrated to custom", v1.entries[1].message?.role === "custom", String(v1.entries[1].message?.role));
 	check("…the reported version is the ON-DISK one, not the migrated one", v1.version === 1, String(v1.version));
+	// req: R-405
 	check("…and the file on disk is byte-identical (a read never rewrites)", fs.readFileSync(V1).equals(v1Before));
 	const v1Row = rowFor(await sessionRows(), V1);
 	check("v1 session still lists with its inferred title", v1Row?.title === "legacy v1 session", String(v1Row?.title));
@@ -279,14 +295,17 @@ try {
 	// come back with different ids on every refresh — the client's keys, the branch
 	// walk and anything the user copied all moved under them.
 	const v1again = await transcript(V1);
+	// req: R-407
 	check("…and a second read of the unchanged file returns the SAME ids",
 		JSON.stringify(v1again.entries.map((e) => [e.id, e.parentId])) === JSON.stringify(v1.entries.map((e) => [e.id, e.parentId])),
 		JSON.stringify(v1again.entries.map((e) => e.id)));
+	// req: R-407
 	check("…ids derived from position, so they survive a desk restart too",
 		v1.entries.map((e) => e.id).join(",") === "v1-000000,v1-000001", v1.entries.map((e) => e.id).join(","));
 
 	// ── corruption the swap could have regressed ──
 	const sc = await transcript(SCALAR);
+	// req: R-406
 	check("a session line that is valid JSON but not an object does not 500 the read",
 		sc.total === 1 && sc.entries[0].id === "s1", JSON.stringify(sc).slice(0, 120));
 	check("…and the same file still lists (one stray line ≠ every session gone)",
@@ -297,12 +316,14 @@ try {
 	const badRow = rowFor(await sessionRows(), BADCONTENT);
 	check("…and the same file still lists", !!badRow, JSON.stringify(badRow));
 	check("…with the title taken from the first user message that HAS text", badRow?.title === "the real first line", String(badRow?.title));
+	// req: R-406
 	check("a header with no id is not listed (pi keys resume/rename on it)", !rowFor(await sessionRows(), NOID), JSON.stringify(rowFor(await sessionRows(), NOID)));
 
 	// a file that is not a pi session at all is refused, the way pi refuses it
 	const NOT = path.join(SESS, "2026-01-01T00-00-02-000Z_not.jsonl");
 	fs.writeFileSync(NOT, `${JSON.stringify({ type: "message", id: "x", parentId: null, message: { role: "user", content: "no header" } })}\n`);
 	const notRow = rowFor(await sessionRows(), NOT);
+	// req: R-406
 	check("a headerless file is not listed as a session", !notRow, JSON.stringify(notRow));
 } catch (e) {
 	console.log("FAIL harness", e?.stack || e);

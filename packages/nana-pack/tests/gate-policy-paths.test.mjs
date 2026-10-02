@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/gate-policy-paths.test.mjs
+ * @purpose Pins that tool writes to the gate's own policy files and to pi's trust store are gated in every path form, because both are trust evidence for project-scope config
+ * @inputs extensions/nana-gate.ts and a temp HOME standing in for the default agent dir
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (a temp HOME), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // L1 (2026-09-28, sol r2 HIGH): tool writes to the gate's own policy files and to pi's trust
 // store are gated, because both are trust EVIDENCE for project-scope config — an agent that can
 // plant `~/.pi/agent/trust.json` for its cwd makes a repo-supplied `.pi/nana-pack.json` honored
@@ -39,7 +47,9 @@ const BLOCK = [
 	"C:\\Users\\x\\.pi\\agent\\trust.json", ".PI\\NANA-PACK.JSON",
 ];
 const ALLOW = ["src/nana-pack-notes.md", "docs/trust.md", ".pi/handoff.md", "/tmp/proj/README.md", "nana-pack.json.example"];
+// req: R-035 R-038 R-051
 for (const p of BLOCK) for (const t of ["write", "edit"]) check(`${t} ${p} is gated`, (await decide(t, p)) === "BLOCK");
+// req: R-051
 for (const p of TRAVERSAL) for (const t of ["write", "edit"]) check(`${t} ${p} is gated after resolution`, (await decide(t, p)) === "BLOCK");
 for (const p of ALLOW) for (const t of ["write", "edit"]) check(`${t} ${p} is not gated`, (await decide(t, p)) === "ALLOW");
 // A path that only LOOKS like a policy file after resolution must still be allowed.

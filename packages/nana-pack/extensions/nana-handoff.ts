@@ -1,4 +1,20 @@
 /**
+ * @module packages/nana-pack/extensions/nana-handoff.ts
+ * @purpose Carry a compaction summary across sessions through the user-scope handoff store, injecting it
+ *  only into a fresh session in the same directory.
+ * @inputs pi `session_start` / `before_agent_start` / `session_compact` events (reason,
+ *  compactionEntry.summary, systemPrompt), the handoff config block, env NANA_HANDOFF, and the store file
+ *  for the canonical cwd (or an ancestor's, or a configured path)
+ * @outputs a labelled handoff block appended to the system prompt (≤ INJECT_CAP) or a bounded pointer line
+ *  (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to
+ *  the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored,
+ *  handoff_legacy_write_refused, directory_unadopted)
+ * @effects disk (reads the store, writes it temp-file-plus-rename, lstats the configured path and the repo
+ *  root, appends the journal)
+ * @errors never throws — every pickup or write failure, invalid UTF-8 included, degrades to no handoff plus
+ *  one journal line
+ */
+/**
  * nana-handoff — session continuity via a USER-SCOPE handoff store.
  *
  * Compaction summaries survive INSIDE a session but are invisible to the next one.

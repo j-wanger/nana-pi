@@ -1,3 +1,17 @@
+/**
+ * @module apps/bench/lib/plan.mjs
+ * @purpose Decide what to run in what order and refuse to mix measurements: the study
+ *  fingerprint, the seeded block schedule and resume over an existing results file.
+ * @inputs a study dir with study.json, tasks, fixture and extension contents, the pi version and
+ *  pinned settings; an existing schedule.json and results.jsonl when resuming
+ * @outputs exports
+ *  tupleKey/rng/shuffle/profilesFor/buildSchedule/filterPlan/loadOrCreateSchedule/OPERATIONAL_KEYS/studyFingerprint/fileSha/readJsonl/readResults/assertFingerprint;
+ *  persists schedule.json and quarantines a torn results tail
+ * @effects disk (reads the study dir and results.jsonl, writes schedule.json and the quarantined
+ *  tail)
+ * @errors assertFingerprint throws when a results file was written under a different fingerprint;
+ *  readJsonl reports a torn tail rather than parsing it
+ */
 // What to run, in what order, and whether an existing results file belongs to THIS experiment.
 //
 // Three jobs, all of them about not silently mixing measurements:

@@ -1,3 +1,16 @@
+/**
+ * @module packages/nana-knowledge/lib/sources.ts
+ * @purpose Resolve which knowledge roots to index, seeding sources.json on first run and discovering roots
+ *  by convention.
+ * @inputs sources.json at paths.sources (`roots` plus an optional `discover` block), os.homedir(), and the
+ *  directory entries of every configured parent
+ * @outputs the de-nested, de-duplicated root list (explicit roots first, then discovered ones) with the
+ *  extra skip names, plus DEFAULT_DISCOVER and SKIP_DIRS
+ * @effects disk (reads sources.json, readdirs each parent and stats each candidate subdir; writes a seeded
+ *  sources.json when the file is absent)
+ * @errors none — bad JSON yields no roots, and a missing parent, missing subdir or unwritable home is
+ *  skipped silently
+ */
 // sources.json: the only knob. { "roots": [{ "path": "...", "kind": "articles"|"ledger" }] }
 // Missing roots are skipped silently at build time — a store can be deleted or a repo
 // moved without breaking the pull.

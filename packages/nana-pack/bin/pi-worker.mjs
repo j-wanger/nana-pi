@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-pack/bin/pi-worker.mjs
+ * @purpose Run a `pi` WORKER under the liveness watchdog, touching no review ledger and not retrying by
+ *  default.
+ * @inputs argv (--out, --stall-secs, --retries, --poll, then `--` and the pi args)
+ * @outputs the worker's output written to --out (partial output included), plus usage, the explicit-retries
+ *  notices and a SUCCESS / FAILED line on stderr
+ * @effects disk (writes --out), process (the watchdog's `pi` child and this process's exit code)
+ * @errors exit 1 on bad args, on any review-only flag (--item, --role, --revision, --over-cap, --worker)
+ *  and when every attempt failed; exit 0 when an attempt produced output
+ */
 // pi-worker.mjs — run a `pi` WORKER (a build/implementation agent, not a review) under the same
 // liveness watchdog as pi-review (pi-watchdog.mjs). It never imports or touches the review
 // ledger: it records nothing and can admit no verdict. It exists so that the review command

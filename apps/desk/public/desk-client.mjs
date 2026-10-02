@@ -1,3 +1,19 @@
+/**
+ * @module apps/desk/public/desk-client.mjs
+ * @purpose The shared, DOM-id-free client core both the desk page and the stage host render with,
+ *  so neither forks the other's rendering.
+ * @inputs explicit arguments only — a render ctx {container, toolRows, summarize?, decorate?},
+ *  message and tool-event objects, extension_ui_request payloads, and URLs for the transport
+ *  helpers
+ * @outputs exports
+ *  stripAnsi/el/contentBlocks/renderImage/argSummary/ARG_KEYS/toolActivity/activityVerb/parseSkillMessage/skillLabel/matchesUserEcho/toolRow/setToolStreaming/renderDiff/finishToolRow/buildDialog/openEventStream/postJson/rpcCall/JSON_HEADERS;
+ *  returns detached DOM nodes, strings and parsed JSON
+ * @effects network (openEventStream opens an EventSource; postJson and rpcCall POST JSON)
+ * @errors rpcCall rejects with Error(r.error) when the RPC reports an error or !success; postJson
+ *  resolves to the server's {error} body rather than rejecting; openEventStream reports transport
+ *  failures through its onError callback and drops an unparsable event line silently; the render
+ *  helpers throw nothing
+ */
 // desk-client.mjs — the reusable nana code client core, extracted from app.js (2026-09-04).
 //
 // Pure module: no document ids, no globals, no desk state. Everything takes its

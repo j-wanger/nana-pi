@@ -1,3 +1,17 @@
+/**
+ * @module packages/nana-knowledge/lib/build.ts
+ * @purpose Build the knowledge index incrementally under an atomic build lock, re-indexing only files whose
+ *  bytes changed.
+ * @inputs the roots from sources.json, the `.md` files under them (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS
+ *  skipped), the existing `files` table as the stat/hash cache, and the `rebuild` option
+ * @outputs BuildStats (per-root files/rows/skipped, reindexed, unchanged, removed, preserved, missingRoots,
+ *  ms, dbBytes), the index's meta rows, the index age in ms, and a doc count
+ * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
+ *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
+ *  transactions, a WAL truncate checkpoint)
+ * @errors BuildLockedError when another live builder holds the lock; node:sqlite's own throws on an
+ *  unusable database; an unreadable source file or missing root is skipped, never purged
+ */
 // Incremental index build. Read-only on every source: we stat, read, hash. Nothing is
 // ever written back into a knowledge store.
 import * as crypto from "node:crypto";

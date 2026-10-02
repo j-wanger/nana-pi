@@ -1,12 +1,30 @@
 #!/usr/bin/env node
+/**
+ * @module scripts/test.mjs
+ * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
+ *  fresh temp HOME and report one line each.
+ * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST and NANA_TEST_TIMEOUT_MS,
+ *  and the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e,
+ *  studies and fixture dirs excluded)
+ * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the failing tail of a red
+ *  file, a totals line with warnings and the self-test verdict, and the exit code
+ * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
+ *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on
+ *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
+ *  fixtures, all removed on every exit path)
+ * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, or a self-test fixture
+ *  missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
+ */
 // The canonical test path: `npm test` from the repo root.
 //
 // Runs every packages/*/tests/*.test.mjs, apps/desk/test/*.test.mjs (unit only — the *.e2e.mjs
 // browser suites bind fixed ports and are never run here) and apps/bench/test/*.test.mjs (stub
 // children, zero model calls), one file at a time, each as `node --experimental-strip-types
 // <file>` from its package dir, each with a FRESH temp HOME and USERPROFILE so no file can read
-// (or write) the real machine's dotfiles. Nothing under apps/bench/studies/** or any fixture(s)/
-// directory is ever collected.
+// (or write) the real machine's dotfiles, and with every ambient NANA_* (but the NANA_TEST_* runner
+// knobs) plus PI_CODING_AGENT_DIR scrubbed from the child env, so the caller's context cannot
+// change what the suite tests. Nothing under apps/bench/studies/** or any fixture(s)/ directory is
+// ever collected.
 //
 // One line per file — PASS / FAIL / SKIP — then a total; exits 1 if any file failed.
 // The verdict is the exit code: a file FAILs if it exits non-zero, dies on a signal, or times
@@ -226,6 +244,25 @@ function runFile(file, cwd, env, timeoutMs) {
 
 const count = (out, word) => out.split(/\r?\n/).filter((l) => new RegExp(`^\\s*${word}\\b`).test(l)).length;
 
+// ── a hermetic child env ─────────────────────────────────────────────────────────────────────
+// Every NANA_* var the pack honours changes nana-pack's runtime behaviour, so an ambient one
+// silently rewrites what the suite is testing. The live case: a review worker runs under
+// NANA_HANDOFF=off (pi-review sets it to mark a non-writer role), the handoff extension then
+// skips every write, and handoff-artifact + handoff-symlink go red for a reason that has
+// nothing to do with the code under test — which is why the review briefs all say
+// `env -u NANA_HANDOFF npm test`. Scrub them here instead, so `npm test` means the same thing
+// in every context. NANA_TEST_* is kept: those are the knobs that steer THIS runner.
+// PI_CODING_AGENT_DIR goes too, for the same reason HOME does: it moves ~/.pi/agent, so a session
+// that has it set (a run started from inside pi) makes objective-injection red — it drives the
+// real handlers against the DEFAULT location under its fake HOME. The rest of PI_* stays: those
+// name pi's install (PI_BIN, PI_ROOT, PI_PACKAGE…) and every test that cares sets them itself.
+const SCRUB = (k) => (/^NANA_/.test(k) && !/^NANA_TEST_/.test(k)) || k === "PI_CODING_AGENT_DIR";
+const BASE_ENV = (() => {
+	const e = { ...process.env };
+	for (const k of Object.keys(e)) if (SCRUB(k)) delete e[k];
+	return e;
+})();
+
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
 const files = collect();
 scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-test-runner-"));
@@ -263,7 +300,7 @@ try {
 		}
 		const fx = fixtureOf.get(file);
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
-		const env = { ...process.env, HOME: home, USERPROFILE: home };
+		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home };
 		// run from the package dir (the dir holding tests/ or test/), the way every file was written
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
 		const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;

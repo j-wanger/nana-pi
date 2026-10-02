@@ -1,3 +1,16 @@
+/**
+ * @module packages/nana-knowledge/lib/hook.ts
+ * @purpose One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
+ * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index
+ *  at paths.db, and the per-session shown file
+ * @outputs HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one
+ *  pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and one JSON line to
+ *  pull.log
+ * @effects disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25
+ *  search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
+ * @errors none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason,
+ *  no-index(<freshness>), budget, db-open-failed, no-hits, all-shown, empty-block
+ */
 // UserPromptSubmit hook. Contract: whatever goes wrong, print nothing and exit 0.
 // A knowledge pull is never allowed to be the reason a prompt does not run.
 import { spawn } from "node:child_process";

@@ -1,3 +1,16 @@
+/**
+ * @module apps/bench/lib/catch-extract.mjs
+ * @purpose Structurally extract reviewer findings from the markdown review corpus into rows,
+ *  recording a reason for every item it does not turn into a row.
+ * @inputs a reviews root directory of tranche<N>-2026-09-28 dirs holding reviewer reports and fix
+ *  briefs
+ * @outputs exports
+ *  REPORT_RE/FIX_RE/listCorpus/answeredReport/splitOutsideTicks/refsOf/firstSentence/parseReport/extractCorpus;
+ *  returns {rows, skipped, stats, fixBriefs} in memory
+ * @effects disk (reads the review markdown only)
+ * @errors none — unparsable items are returned in `skipped` with a reason; a missing reviews root
+ *  surfaces as the underlying fs error
+ */
 // catch-extract.mjs — STRUCTURAL extraction of reviewer findings from the markdown review corpus.
 // No model is used here. Every top-level list item / bold-led paragraph that does not become a row
 // is returned in `skipped` with a reason, so nothing is dropped silently.

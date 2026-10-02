@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/config-normalize.test.mjs
+ * @purpose Pins that loadConfig never throws for any bytes and always returns a fully typed config, with the user gate block the one leaf that never falls back to a default
+ * @inputs lib/config.ts and arbitrary nana-pack.json bytes under a fresh temp HOME per case
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOMEs and config files), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -105,11 +113,14 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 		check(`${tag}: typed`, isTyped(r.cfg));
 		const blockValid = v !== null && typeof v === "object" && !Array.isArray(v);
 		if (block === "gate") {
+			// req: R-081
 			check(`${tag}: never widens`, r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
+			// req: R-081
 			check(`${tag}: malformed gate → conservative stop (fresh process, no valid policy)`, blockValid ? r.cfg.gate.stopReason === null : STOP.test(r.cfg.gate.stopReason ?? ""));
 		} else {
 			check(`${tag}: block = defaults`, eq(r.cfg[block], DEFAULTS[block]));
 		}
+		// req: R-080
 		for (const [b2, blk] of Object.entries(VALID)) if (b2 !== block && b2 !== "gate") check(`${tag}: sibling block ${b2} survives`, eq(r.cfg[b2], { ...DEFAULTS[b2], ...blk }));
 	}
 	for (const [leaf, [kind]] of Object.entries(leaves)) {
@@ -121,10 +132,13 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 			check(`${tag}: typed`, isTyped(r.cfg));
 			const ok = validFor(kind, v);
 			if (block === "gate") {
+				// req: R-081
 				check(`${tag}: never widens`, r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
 				check(`${tag}: ${ok ? "valid → applied" : "malformed → conservative stop"}`, ok ? eq(r.cfg.gate[leaf], v) && r.cfg.gate.stopReason === null : r.cfg.gate.stopReason !== null);
 			} else {
+				// req: R-080
 				check(`${tag}: ${ok ? "valid → applied" : "invalid → default"}`, eq(r.cfg[block][leaf], ok ? v : DEFAULTS[block][leaf]));
+				// req: R-080
 				for (const [l2, [, sv]] of Object.entries(leaves)) if (l2 !== leaf) check(`${tag}: sibling ${block}.${l2} survives`, eq(r.cfg[block][l2], sv));
 			}
 		}
@@ -140,6 +154,7 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 			check(`${tag}: no throw`, !r.threw);
 			if (r.threw) continue;
 			check(`${tag}: typed`, isTyped(r.cfg));
+			// req: R-081
 			check(`${tag}: never widens`, r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
 			// a malformed project GATE leaf stops (fresh cwd = no last-good project gate);
 			// any other block's malformed leaf never touches the gate
@@ -148,6 +163,7 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 			const ok = validFor(kind, v);
 			// objective is USER SCOPE ONLY; a malformed project gate block contributes nothing
 			const expected = block === "objective" || !ok ? VALID[block][leaf] : v;
+			// req: R-080
 			check(`${tag}: ${block === "objective" ? "ignored (user scope only)" : ok ? "valid → applied" : "invalid → user value kept"}`, eq(r.cfg[block][leaf], expected));
 		}
 	}
@@ -155,11 +171,13 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 		const tag = `project ${block}=${JSON.stringify(v)}`;
 		const r = load(env({ user: VALID, project: { [block]: v } }));
 		check(`${tag}: no throw + typed`, !r.threw && isTyped(r.cfg));
+		// req: R-081
 		check(`${tag}: never widens`, !r.threw && r.cfg.gate.allowPatterns.every((p) => VALID.gate.allowPatterns.includes(p)));
 	}
 }
 for (const v of VALUES) {
 	const r = load(env({ user: VALID, projectText: JSON.stringify(v) }));
+	// req: R-008
 	check(`project file = ${JSON.stringify(v)}: no throw, typed, user config intact`, !r.threw && isTyped(r.cfg) && eq(r.cfg.notify, VALID.notify));
 }
 console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total} checks (7 blocks × leaves × ${VALUES.length} values, user + trusted project)`);

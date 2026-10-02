@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-pack/lib/display.mjs
+ * @purpose THE renderers for every repo-controlled string nana-pack puts into a prompt, the UI, Markdown or
+ *  a file it writes.
+ * @inputs any value (string or not), an optional length cap, and an optional set of extra characters to
+ *  treat as unsafe
+ * @outputs one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤
+ *  PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a
+ *  space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never
+ *  elided)
+ * @effects none
+ * @errors none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe
+ *  code span is refused with null rather than escaped
+ */
+/**
  * display — THE renderer for every repo-controlled string nana-pack interpolates into something a
  * model reads, a person sees, or a file we write (lane S1). Pick the renderer by the SURFACE the
  * string lands on, never by where it came from; no other module carries its own escaping rule.

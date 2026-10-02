@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/post-edit-status.test.mjs
+ * @purpose Pins that post-edit reports EVERY run through ctx.ui.setStatus, so a working hook never looks identical to an absent one
+ * @inputs extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, and a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -72,12 +80,16 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "one\n");
 	await fire(file);
 
+	// req: R-086
 	check("a: a passing run sets a status (the happy path is visible at all)", statuses.length === 1);
+	// req: R-099
 	check("a: status key is nana-post-edit", last(statuses)?.key === "nana-post-edit");
+	// req: R-084
 	check("a: status text counts the checks and names the file",
 		last(statuses)?.text === "[dim]post-edit ✓ 2 checks · foo.txt");
 	// (the pack may emit its one-time "file-mutation queue unavailable" warning here,
 	// since this harness is not running inside pi — that is not a check-failure toast)
+	// req: R-086
 	check("a: a passing run raises no check-failure toast",
 		!notifies.some((n) => n.message.includes("checks failed")));
 	fs.rmSync(td, { recursive: true, force: true });
@@ -94,10 +106,12 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "x\n");
 	const ret = await fire(file);
 
+	// req: R-099
 	check("b: failure chip is ✗ n/m in the error color",
 		last(statuses)?.text === "[error]post-edit ✗ 1/2 · bar.txt");
 	check("b: failure toast unchanged",
 		notifies.some((n) => n.type === "warning" && n.message === `post-edit checks failed: ${path.join(td, "bar.txt")}`));
+	// req: R-085
 	check("b: failure tool-result text unchanged",
 		typeof ret?.content?.at(-1)?.text === "string" && /] 1 check\(s\) failed/.test(ret.content.at(-1).text));
 	fs.rmSync(td, { recursive: true, force: true });
@@ -114,7 +128,9 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "y\n");
 	await fire(file);
 
+	// req: R-099
 	check("c: timeout chip says timeout", last(statuses)?.text === "[warning]post-edit ⏱ timeout · slow.txt");
+	// req: R-098
 	check("c: timeout is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -129,6 +145,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "z\n");
 	await fire(file);
 
+	// req: R-096
 	check("d: aborted turn chip says skipped (aborted)",
 		last(statuses)?.text === "[warning]post-edit – skipped (aborted) · abort.txt");
 	check("d: aborted run is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));
@@ -142,6 +159,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	const file = path.join(td, "nomatch.txt");
 	fs.writeFileSync(file, "q\n");
 	await fire(file);
+	// req: R-084
 	check("e: a run where no command matched sets no status", statuses.length === 0);
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -154,7 +172,9 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "h\n");
 	let ret, threw = false;
 	try { ret = await fire(file); } catch { threw = true; }
+	// req: R-100
 	check("f: headless run does not throw (no ctx.ui to call)", !threw);
+	// req: R-085
 	check("f: headless failure feedback still returned",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	fs.rmSync(td, { recursive: true, force: true });
@@ -170,6 +190,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "b\n");
 	let threw = false;
 	try { await fire(file); } catch { threw = true; }
+	// req: R-100
 	check("g: a throwing setStatus does not throw out of the handler", !threw);
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -232,8 +253,10 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 		} finally {
 			fs.chmodSync(vault, 0o755);
 		}
+		// req: R-098
 		check("h: unlockable file chip says skipped (lock)",
 			last(statuses)?.text === "[warning]post-edit – skipped (lock) · locked.txt");
+		// req: R-098
 		check("h: a check that never ran is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));
 		fs.rmSync(td, { recursive: true, force: true });
 	}

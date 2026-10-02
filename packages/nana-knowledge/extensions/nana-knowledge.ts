@@ -1,4 +1,16 @@
 /**
+ * @module packages/nana-knowledge/extensions/nana-knowledge.ts
+ * @purpose pi extension that injects the prompt's knowledge pointers by running the pull CLI
+ *  out-of-process, fail-open.
+ * @inputs pi `before_agent_start` events (prompt), the session id from ctx.sessionManager, ctx.cwd, and
+ *  bin/nana-knowledge.ts invoked through node
+ * @outputs a `nana-knowledge` custom message (display: true) carrying whatever the CLI printed, or nothing
+ * @effects process (spawns the CLI with the prompt on stdin under a TIMEOUT_MS deadline, then SIGKILLs it
+ *  best-effort)
+ * @errors none — a spawn throw, ENOENT, non-zero exit, deadline kill, blown maxBuffer, a non-string prompt
+ *  or a missing session id all yield no pointers
+ */
+/**
  * nana-knowledge — the same prompt-time knowledge pull pi already gets in Claude
  * Code, as a pi extension.
  *

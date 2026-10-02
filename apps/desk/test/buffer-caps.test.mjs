@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/buffer-caps.test.mjs
+ * @purpose Pins the bounded-buffer property — no local producer can grow the desk process without bound or cost the operator the other sessions
+ * @inputs apps/desk/server.mjs with the four caps lowered by environment, a stub `pi` that floods, and an SSE client that stops reading
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Bounded-buffer property (2026-09-09): a LOCAL producer — a pi child, an extension
 // inside it, an app `data` command, or a browser tab that stops reading — cannot grow
 // this process without bound, and cannot cost the operator the other sessions. The desk
@@ -207,10 +215,13 @@ try {
 		sleep(15000).then(() => TIMEOUT),
 	]);
 	check("an over-cap line does not take the desk down", await alive(), `${Date.now() - t0} ms`);
+	// req: R-429
 	check("…the RPC whose response was discarded is rejected, not left on its timer", pr !== TIMEOUT && pr.status === 409 && /exceeded/.test(String(pr.body?.error)), JSON.stringify(pr).slice(0, 200));
+	// req: R-429
 	check("…clients are TOLD, once, that a line was dropped", seen1.filter((e) => e.type === "desk_event_dropped" && /stdout line/.test(String(e.reason))).length === 1, JSON.stringify(seen1.filter((e) => e.type === "desk_event_dropped")));
 	check("…the desk logs it once", (log.match(/stdout line over cap/g) || []).length === 1, log.split("\n").filter((l) => /stdout line/.test(l)).join(" | "));
 	check("…the NEXT line is processed normally", await waitFor(async () => seen1.some((e) => e.type === "desk_test_alive" && e.after === "bigline")), JSON.stringify(seen1.map((e) => e.type)));
+	// req: R-429
 	check("…and the child is still running (a bad line does not cost the session)", (await live()).find((c) => c.id === c1.id)?.state === "running", JSON.stringify(await live()));
 	const still = await post(BASE, `/api/session/${c1.id}/rpc`, { command: { type: "get_state" } });
 	check("…and the session still answers RPCs afterwards", still.status === 200, String(still.status));
@@ -220,6 +231,7 @@ try {
 	// past the cap is the same chunk that terminates the line, so it used to be parsed
 	// and broadcast like any other event.
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "bigcomplete please" });
+	// req: R-429
 	check("…a terminated line over the cap is dropped too, not parsed and broadcast", await waitFor(async () => seen1.some((e) => e.type === "desk_test_alive" && e.after === "bigcomplete")) && !seen1.some((e) => e.type === "desk_test_big"), JSON.stringify(seen1.map((e) => e.type)));
 	check("…and its clients are told about that one as well", seen1.filter((e) => e.type === "desk_event_dropped" && /stdout line/.test(String(e.reason))).length === 2, String(seen1.filter((e) => e.type === "desk_event_dropped").length));
 	check("…the child survives it too", (await live()).find((c) => c.id === c1.id)?.state === "running", JSON.stringify(await live()));
@@ -233,13 +245,17 @@ try {
 	await sleep(500); // let the deaf client's GET land and join the fan-out
 	await post(BASE, `/api/session/${c2.id}/prompt`, { message: "flood please" });
 	const sawEnd = await waitFor(async () => healthy.some((e) => e.type === "desk_test_alive" && e.after === "flood"), 30000);
+	// req: R-430
 	check("a client that stops reading does not stall the flood for everyone", sawEnd, `${healthy.length} frames`);
 	const dropLine = log.split("\n").find((l) => /SSE client over cap/.test(l));
 	const dropped = Number(/(\d+) bytes/.exec(dropLine || "")?.[1] ?? -1);
+	// req: R-430
 	check("…the desk disconnects it once its write buffer passes the cap", dropped > SSE_CAP, dropLine || log.split("\n").filter((l) => /SSE/.test(l)).join(" | "));
 	deaf.drain();
+	// req: R-430
 	check("…and its response is really ended, not left open and buffering", await waitFor(async () => deaf.closed, 10000), `closed=${deaf.closed} after ${deaf.bytes} bytes`);
 	check("…having been sent a BOUNDED slice of the flood, not all 10 MB of it", deaf.bytes < FLOOD_N * 64 * 1024, `${deaf.bytes} bytes of ${FLOOD_N * 64 * 1024}`);
+	// req: R-430
 	check("…the healthy client on the same session kept every event", healthy.filter((e) => e.type === "desk_test_flood").length === FLOOD_N, String(healthy.filter((e) => e.type === "desk_test_flood").length));
 	check("…and the desk is still serving", await alive());
 	deaf.destroy();
@@ -254,8 +270,11 @@ try {
 			post(BASE, `/api/session/${c3.id}/rpc`, { command: { type: "get_state" } }).then(async (r) => ({ status: r.status, body: await r.json() }))),
 	);
 	const over = burst.filter((r) => r.status === 429);
+	// req: R-431
 	check(`the ${PENDING_CAP + 1}th concurrent RPC fails fast with 429`, over.length === 1 && /in-flight/.test(String(over[0].body?.error)), JSON.stringify(burst.map((r) => r.status)));
+	// req: R-431
 	check(`…the first ${PENDING_CAP} are untouched and still answer on their own timers`, burst.filter((r) => r.status === 200).length === PENDING_CAP, JSON.stringify(burst.map((r) => r.status)));
+	// req: R-431
 	check("…and the cap is on IN-FLIGHT work only: the next RPC after they drain is fine", (await post(BASE, `/api/session/${c3.id}/rpc`, { command: { type: "get_state" } })).status === 200);
 	await fetch(`${BASE}/api/session/${c3.id}`, { method: "DELETE" });
 
@@ -267,9 +286,12 @@ try {
 		post(APP, "/api/data/huge", {}).then(async (r) => ({ status: r.status, body: await r.json() })),
 		sleep(15000).then(() => "TIMEOUT"),
 	]);
+	// req: R-432
 	check("a data command past the output cap → 500 naming the cap", dr !== "TIMEOUT" && dr.status === 500 && new RegExp(`data output exceeded cap \\(${DATA_CAP} bytes\\)`).test(String(dr.body?.error)), JSON.stringify(dr).slice(0, 200));
+	// req: R-432
 	check("…and it is killed on SIZE, well before the 20 s timeout", Date.now() - dt0 < 10000, `${Date.now() - dt0} ms`);
 	const dataPid = Number(fs.readFileSync(DATA_PID, "utf-8"));
+	// req: R-432
 	check("…the process is reaped, not left flooding a dead pipe", await waitFor(async () => gone(dataPid), 8000), `pid ${dataPid}`);
 	check("…the app listener still serves after it", (await post(APP, "/api/data/small", {}).then((r) => r.json())).ok === true);
 	check("desk still serving at the end", await alive());

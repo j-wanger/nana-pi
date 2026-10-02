@@ -1,3 +1,14 @@
+/**
+ * @module packages/nana-knowledge/lib/query.ts
+ * @purpose BM25 search over the index, rendered as the bounded pointer fields a prompt can carry safely.
+ * @inputs an open Db handle, the query text, and a row limit
+ * @outputs Hit records {key, path, display, loc, kind, title, snippet, score} whose every field is one
+ *  line, capped (TITLE_MAX / DISPLAY_MAX / SNIPPET_MAX) and free of the literal FIELD_SEP, the display path
+ *  exact or reversibly JSON-escaped
+ * @effects database (one SELECT over docs_fts joined to docs)
+ * @errors none — a failing MATCH yields no hits, and a row that cannot be rendered loses only its own
+ *  pointer
+ */
 // BM25 over title+body. Title is weighted up: a pointer is only useful if its handle
 // tells you whether to open it.
 import type { Db } from "./db.ts";

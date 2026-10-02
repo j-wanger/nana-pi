@@ -1,4 +1,20 @@
 /**
+ * @module apps/desk/stage-keys.mjs
+ * @purpose Durable issuance record of the stage provenance keys the desk minted per pi session,
+ *  so a desk restart or resume never blanks an existing stage.
+ * @inputs {dir (default ~/.pi/agent/nana-desk/stage-keys, DESK_STAGE_KEYS), knownSessionIds,
+ *  sessionsRoot, log}; the per-session JSON records already on disk
+ * @outputs exports KEYS_PER_SESSION/defaultStageKeysDir/defaultSessionsRoot/StageKeyStore;
+ *  keysFor(id) returns the session's keys most-recent-first, record(id,key) and seed(id,keys)
+ *  write one 0600 file per session under a 0700 dir ({v:1, keys, updatedAt, sessionsRoot}, at
+ *  most 8 keys)
+ * @effects disk (creates the store dir, reads a record on every call — the file is authority, not
+ *  a cache — and rewrites one session's record per write)
+ * @errors none thrown — an invalid session id yields no keys, and a failed write is logged and
+ *  held in `pending` so this desk still verifies its own blocks without overwriting another
+ *  desk's record
+ */
+/**
  * stage-keys.mjs — the desk's ISSUANCE RECORD for stage provenance keys
  * (design B, docs/agent-frontend-design-2026-09-04.md §3.2 addendum 2026-09-09).
  *

@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/teardown-invariants.test.mjs
+ * @purpose Pins that the desk never stops counting a child it cannot prove is gone, so every freed capacity slot corresponds to a process that really ended
+ * @inputs apps/desk/server.mjs, a stub `pi`, and the preload fixture that makes a kill fail the way EPERM does
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and apps dir), network (HTTP to the desk it binds), process (spawns the desk and unkillable stub children, and signals them)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Teardown property (2026-09-08, whole-unit review): the desk NEVER stops counting
 // a child it cannot prove is gone. Every capacity slot it frees must correspond to
 // a process that really ended — otherwise `MAX_CHILDREN` bounds nothing and a
@@ -114,6 +122,7 @@ try {
 	// past SIGKILL + the deadline: a timer is not evidence of death
 	await sleep(GRACE * 3.5);
 	rec = (await live()).find((x) => x.id === c.id);
+	// req: R-460
 	check("after the SIGKILL deadline the record is RETAINED (pid still alive)", !!rec, JSON.stringify(await live()));
 	check("…still marked exiting, not exited", rec?.state === "exiting", String(rec?.state));
 	check("…and the desk said so once", /still alive after SIGKILL/.test(log), log.split("\n").filter((l) => /session/.test(l)).slice(-2).join(" | "));
@@ -123,6 +132,7 @@ try {
 	for (let i = 0; i < 3; i++) fillers.push(await post("/api/spawn", { cwd: repo }).then((r) => r.json()));
 	check("three more children spawn (4 counted with the dying one)", fillers.every((f) => typeof f.id === "string"), JSON.stringify(fillers));
 	const over = await post("/api/spawn", { cwd: repo });
+	// req: R-460
 	check("the retained child still occupies a slot: the 5th spawn is refused", over.status >= 400 && /max 4 live sessions/.test((await over.json()).error || ""), String(over.status));
 
 	// duplicate teardown is a no-op, not a second lifecycle
@@ -134,6 +144,7 @@ try {
 
 	// the record comes back only when the pid really goes
 	process.kill(pid, "SIGKILL");
+	// req: R-460
 	check("once the pid is really gone the record is dropped", await waitFor(async () => !(await live()).some((x) => x.id === c.id), GRACE * 6), JSON.stringify(await live()));
 	check("…and the slot is free again", (await post("/api/spawn", { cwd: repo })).status === 200);
 

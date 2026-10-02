@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-knowledge/tests/tokenize.test.mjs
+ * @purpose Pins what the prompt hook decides to search on and what it refuses to search on at all
+ * @inputs lib/tokenize.ts
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects none
+ * @errors a failed check prints FAIL and the run exits 1
+ */
 // Gate: what the hook decides to search on, and what it refuses to search on at all.
 // Run: node packages/nana-knowledge/tests/tokenize.test.mjs
 const { tokenize, meaningfulTokens, skipReason, ftsQuery, STOPWORDS } =
@@ -23,6 +31,7 @@ check("skip: exactly 11 chars", skipReason("12345678901") === "too-short");
 check("no skip: 12 chars with 2 tokens", skipReason("review rounds") === null);
 check("skip: slash command", skipReason("/compact now please explain") === "slash-command");
 check("skip: slash command after trim", skipReason("   /loop-init start here") === "slash-command");
+// req: R-226
 check("skip: fewer than 2 meaningful tokens",
 	skipReason("the the the and and for you") === "too-few-tokens");
 check("skip: one long token among stopwords",

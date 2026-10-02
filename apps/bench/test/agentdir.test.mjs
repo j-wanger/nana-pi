@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/agentdir.test.mjs
+ * @purpose Pins the prepared agent dir — the study never runs against the operator's own settings, and it never runs without credentials
+ * @inputs lib/agentdir.mjs and a temp fake source agent dir
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp agent dirs and settings files; the real ~/.pi is never touched)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // The prepared agent dir. Two failure modes it must not have: running a study against the
 // operator's own settings (so pi's default auto-retry and auto-compaction quietly change what a
 // run costs), and running without credentials so every run fails one API error at a time.
@@ -16,11 +24,16 @@ const check = (n, ok, extra = "") => {
 
 // The pinned values, against docs/settings.md. Each of these is a documented DEFAULT that would
 // otherwise be on and would change the measurement.
+// req: R-513
 check("retry.enabled pinned off (settings.md:143 default true)", PINNED_SETTINGS.retry.enabled === false);
 check("retry.maxRetries pinned 0 (settings.md:144 default 3)", PINNED_SETTINGS.retry.maxRetries === 0);
+// req: R-513
 check("retry.provider.maxRetries pinned 0 (settings.md:147)", PINNED_SETTINGS.retry.provider.maxRetries === 0);
+// req: R-513
 check("compaction pinned off (settings.md:118 default true)", PINNED_SETTINGS.compaction.enabled === false);
+// req: R-513
 check("no defaultTools key — --tools must be the only thing choosing tools", !("defaultTools" in PINNED_SETTINGS));
+// req: R-513
 check("project trust pinned to never (usage.md:126-128)", PINNED_SETTINGS.defaultProjectTrust === "never");
 check("the default bench dir is OUTSIDE the repo and separate from ~/.pi/agent", defaultBenchDir() !== defaultSourceDir() && defaultBenchDir().includes(".pi"));
 
@@ -32,8 +45,10 @@ try {
 	await fs.mkdir(src, { recursive: true });
 	let threw = null;
 	try { await prepareAgentDir({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
+	// req: R-514
 	check("refuses to prepare a dir with no auth.json", threw !== null);
 	check("…and says where it looked and what to do", /auth\.json/.test(threw ?? "") && /cannot run isolated/.test(threw ?? ""), (threw ?? "").split("\n")[0]);
+	// req: R-514
 	check("…and creates nothing", !(await fs.stat(dir).catch(() => null)));
 
 	// 2. with credentials → prepared, pinned, permissioned
@@ -44,12 +59,15 @@ try {
 	const prep = await prepareAgentDir({ dir, sourceDir: src });
 	const written = JSON.parse(await fs.readFile(path.join(dir, "settings.json"), "utf8"));
 	check("prepared", prep.dir === dir && prep.seeded.includes("models.json"));
+	// req: R-513
 	check("settings.json is OURS, not the operator's", written.retry.enabled === false && written.compaction.enabled === false);
+	// req: R-513
 	check("the operator's defaultTools does not survive", !("defaultTools" in written));
 	check("the operator's AGENTS.md is not copied", !(await fs.stat(path.join(dir, "AGENTS.md")).catch(() => null)));
 	// The credential is SHARED, not copied: two diverging auth.json files are not isolated,
 	// because an OAuth refresh rotates the token server-side (astra, 2026-09-09).
 	check("credentials are reachable through the bench dir", (await fs.readFile(path.join(dir, "auth.json"), "utf8")).includes("SECRET"));
+	// req: R-514
 	check("…as a SYMLINK, not a copy", prep.credentialMode === "symlink", prep.credentialMode);
 	check("…pointing at the operator's file", path.resolve(dir, await fs.readlink(path.join(dir, "auth.json"))) === path.join(src, "auth.json"));
 	check("models.json copied when present (a catalog, not a credential)", prep.seeded.includes("models.json"));
@@ -76,6 +94,7 @@ try {
 	await fs.rm(path.join(src, "auth.json"));
 	threw = null;
 	try { await verifyAuth({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
+	// req: R-514
 	check("verifyAuth refuses to run without credentials", /refusing to run without credentials/.test(threw ?? ""), threw ?? "no throw");
 	// a dangling link is just as fatal as a missing source
 	await fs.writeFile(path.join(src, "auth.json"), "{}");
@@ -83,10 +102,12 @@ try {
 	await fs.symlink(path.join(src, "nope.json"), path.join(dir, "auth.json"));
 	threw = null;
 	try { await verifyAuth({ dir, sourceDir: src }); } catch (e) { threw = e.message; }
+	// req: R-514
 	check("a DANGLING credential symlink is refused", /missing or dangling|points at/.test(threw ?? ""), threw ?? "no throw");
 
 	// 7. the fingerprint input never carries a secret
 	const { settingsFingerprintInput } = await import("../lib/agentdir.mjs");
+	// req: R-514
 	check("the settings fingerprint contains no credential material", !/SECRET|ROTATED|BENCH-LOCAL|token/i.test(settingsFingerprintInput()));
 } finally {
 	await fs.rm(root, { recursive: true, force: true });

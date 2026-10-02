@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-pack/lib/receipts.ts
+ * @purpose Record and read content-bound evidence that a configured post-edit check ran over specific file
+ *  bytes.
+ * @inputs the nana-pack config (receipts.enabled, receipts.dir), the repo root and checker template as
+ *  keys, a CheckReceipt to store, and the declared input files' bytes
+ * @outputs the receipts dir and per-(repo, checker) receipt path, a sha256 digest over the sorted declared
+ *  inputs with their per-file entries, the receipt JSON on disk, the parsed receipt, and a `current` /
+ *  `stale` freshness verdict
+ * @effects disk (reads and realpaths the declared inputs, mkdirs the receipt dir, writes and reads the
+ *  receipt JSON)
+ * @errors none — a write failure is swallowed (best-effort by design), an unreadable or vanished input
+ *  yields null or `stale`, and a status outside the enum is forced to not_run
+ */
+/**
  * Check receipts — content-bound evidence for post-edit checks.
  *
  * A receipt records that a configured check RAN over specific file CONTENTS and

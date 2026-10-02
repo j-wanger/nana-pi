@@ -9,16 +9,17 @@ something they install), and `package.json` declares no `dependencies` or
 `devDependencies`. Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; the
 ones that load a real extension skip themselves when pi is not installed globally.
 
-## Skills (v0.4.0)
+## Skills
 
 | Skill | What it does |
 |---|---|
-| `scaffold-py` / `scaffold-ts` | Generate a project via copier from `github.com/j-wanger/nana-pi` (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
+| `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
 | `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship. |
 | `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a postEdit-only starter `.pi/nana-pack.json`, and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
+| `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
 Six extensions giving pi the hook coverage we require (Claude Code parity classes):
 
@@ -38,6 +39,15 @@ pi install git:github.com/j-wanger/nana-pi       # canonical — the repo-root p
 pi install /path/to/nana-pi/packages/nana-pack   # local dev
 pi remove ...                                     # uninstall
 ```
+
+## Tests
+
+```bash
+npm test -- nana-pack     # from the repo root: every packages/nana-pack/tests/*.test.mjs
+```
+
+Zero-dep `node <file>` runs, one process each with a fresh temp `HOME`; the files that load a real
+extension skip themselves when pi is not installed globally.
 
 ## Commands
 
@@ -223,7 +233,7 @@ Write outputs outside the reviewed tree (this repo's practice: another working t
 ignored path. `complete()` re-derives the revision **under the ledger lock**, so an edit made
 while a completion waits on the lock is recorded unverified.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
-it used to live in. `nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
+it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
 ## What you will see
@@ -335,9 +345,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   is payload, injected raw behind its `Source:` / provenance / authority framing, capped at 8000
   UTF-16 code units; structured serialization (journal JSON) is escaped by `JSON.stringify`, not
   by these renderers. **Out of scope:** `apps/**` (the desk shortens and places paths itself);
-  `packages/nana-knowledge` (its own `clean()` in `lib/query.ts`, direct interpolation in
-  `lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
-  `nana-setup/claude/hooks/nana-objective.sh`; and any external consumer that copied a renderer,
+  `packages/nana-knowledge` (its own `clean()` in `packages/nana-knowledge/lib/query.ts`, direct interpolation in
+  `packages/nana-knowledge/lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
+  `packages/nana-setup/claude/hooks/nana-objective.sh`; and any external consumer that copied a renderer,
   builds its strings itself, or runs an older installed checkout (importers of `lib/objective.ts`
   get the shared renderers through its re-export; nothing else is certified). Every field is
   chosen by where it LANDS —
@@ -476,14 +486,14 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `journal.path` when that is ABSOLUTE, else `<pi's active agent dir>/nana-journal.jsonl` — a
   project-scope `journal.path` never captures it, and a relative user-scope one is not honoured
   for it (every other journal event is unchanged). The seat's Claude Code SessionStart hook
-  `nana-adoption.sh` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
+  `packages/nana-setup/claude/hooks/nana-adoption.sh` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
   computes the same file: the last 7 days of those lines, re-checked at print time (adopted,
   dismissed, gone or no-longer-a-repo roots drop), newest first, at most 5 then `…and N more`,
   under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
   a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
   characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
   only counted (`N entries were not printable`). Counting is the READER's, not end-to-end: the
-  producer (`nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
+  producer (`extensions/nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
   refuses is never written and never reaches that count. A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read.
@@ -554,7 +564,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
     objective and start accumulating its knowledge (Jake's ruling 2026-09-28;
-    `docs/directory-adoption-design-2026-09-28.md`). Until L5 lands the session sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
+    `docs/directory-adoption-design-2026-09-28.md`). L5 landed on 2026-09-29 (**Adoption signal** above) and it is journal-only, so the session still sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
     (`handoff_cwd_mismatch`).
   - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
     through `fileField` so a directory name cannot forge a header field; pickup from the default

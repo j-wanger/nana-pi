@@ -1,4 +1,20 @@
 /**
+ * @module apps/desk/pi-session.mjs
+ * @purpose Resolve the single pi install the desk both spawns and imports, and expose pi's own
+ *  session parser from that package root without ever rewriting a session file.
+ * @inputs env DESK_PI_BIN, DESK_PI_ROOT, PATH, npm_config_prefix, BUN_INSTALL, VOLTA_HOME; the pi
+ *  binary and the package.json files found walking up from it
+ * @outputs exports
+ *  PI_PACKAGE/PI_MIN_VERSION/parseSemver/compareSemver/sameVersion/resolvePiBin/piBinVersion/walkUpToPackage/piRootCandidates/resolvePiPackage/loadPiSession;
+ *  loadPiSession returns {parseSessionEntries, migrateSessionEntries, CURRENT_SESSION_VERSION}
+ *  from the same install the desk spawns
+ * @effects disk (reads package.json files and dynamic-imports the pi package), process
+ *  (execFileSync of the pi binary for --version, 8 s timeout)
+ * @errors throws Error when no pi binary is found, when its package root cannot be resolved, when
+ *  the version is below PI_MIN_VERSION, or when the imported install's version differs from the
+ *  binary's
+ */
+/**
  * How the desk finds pi — the binary it SPAWNS and the package it IMPORTS — and the
  * rule that those two are the same install.
  *

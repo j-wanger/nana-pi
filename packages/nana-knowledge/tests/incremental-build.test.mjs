@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-knowledge/tests/incremental-build.test.mjs
+ * @purpose Pins that the index build is incremental on CONTENT HASH rather than mtime, and that the things it must skip stay skipped
+ * @inputs the build and database modules under lib/, and a temp source tree under a temp NANA_KNOWLEDGE_HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp source tree), database (the temp sqlite index it builds), process (sets NANA_KNOWLEDGE_HOME)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: the build is incremental on CONTENT HASH, not on mtime. Rebuilding 19k files
 // every prompt-triggered background build would be the thing that makes this unusable.
 import * as fs from "node:fs";
@@ -36,10 +44,15 @@ let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 
 const s1 = await build();
+// req: R-201
 check("first build indexes both articles", s1.files === 3 && s1.reindexed === 3);
+// req: R-201
 check("first build rows = 2 articles + 2 ledger entries", s1.rows === 4);
+// req: R-202
 check("node_modules skipped", !JSON.stringify(s1).includes("node_modules"));
+// req: R-202
 check("files > 1 MB skipped", s1.skippedLarge === 1);
+// req: R-207
 check("missing root reported, not fatal", s1.missingRoots.length === 1);
 check("per-root counts", s1.roots.find((r) => r.root === src).files === 2 && s1.roots.find((r) => r.root === ledger).rows === 2);
 
@@ -47,6 +60,7 @@ check("per-root counts", s1.roots.find((r) => r.root === src).files === 2 && s1.
 const later = Date.now() / 1000 + 120;
 fs.utimesSync(path.join(src, "one.md"), later, later);
 const s2 = await build();
+// req: R-206
 check("touch (mtime only) does NOT re-index", s2.reindexed === 0);
 check("touch keeps the same row count", s2.rows === 4 && s2.unchanged === 3);
 
@@ -57,11 +71,13 @@ check("second no-op build re-indexes nothing", s3.reindexed === 0 && s3.unchange
 // real edit
 fs.writeFileSync(path.join(src, "one.md"), "# One\nalpha bravo kilo lima\n");
 const s4 = await build();
+// req: R-206
 check("content change re-indexes exactly one file", s4.reindexed === 1 && s4.unchanged === 2);
 
 let db = await openDb(path.join(home, "index.db"), {});
 check("edited body is searchable", search(db, "kilo lima", 5).length === 1);
 check("removed body is NOT searchable", search(db, "charlie", 5).length === 0);
+// req: R-206
 check("no duplicate row for the re-indexed file",
 	db.prepare("SELECT COUNT(*) AS n FROM docs WHERE path = ?").get(path.join(src, "one.md")).n === 1);
 db.close();
@@ -69,6 +85,7 @@ db.close();
 // deletion
 fs.rmSync(path.join(src, "sub", "two.md"));
 const s5 = await build();
+// req: R-207
 check("deleted file is removed from the index", s5.removed === 1 && s5.rows === 3);
 db = await openDb(path.join(home, "index.db"), {});
 check("deleted body is no longer searchable", search(db, "foxtrot", 5).length === 0);
@@ -76,6 +93,7 @@ db.close();
 
 // --rebuild from scratch
 const s6 = await build({ rebuild: true });
+// req: R-208
 check("--rebuild re-indexes everything", s6.reindexed === 2 && s6.unchanged === 0 && s6.rows === 3);
 check("build reports a db size", s6.dbBytes > 0);
 
@@ -88,7 +106,9 @@ fs.writeFileSync(newShown, "{}");
 const eightDaysAgo = Date.now() / 1000 - 8 * 86400;
 fs.utimesSync(oldShown, eightDaysAgo, eightDaysAgo);
 await build();
+// req: R-210
 check("shown files older than 7 days pruned", !fs.existsSync(oldShown));
+// req: R-210
 check("recent shown files kept", fs.existsSync(newShown));
 
 // --- a configured root that is temporarily MISSING keeps its rows ---
@@ -99,8 +119,10 @@ fs.renameSync(src, away);
 const s7 = await build();
 check("missing root: nothing is removed", s7.removed === 0);
 check("missing root: its rows are preserved and still counted", s7.preserved === 1 && s7.rows === 3);
+// req: R-207
 check("missing root: it is still reported missing", s7.missingRoots.includes(src));
 db = await openDb(path.join(home, "index.db"), {});
+// req: R-207
 check("missing root: its rows are still searchable", search(db, "kilo lima", 5).length === 1);
 db.close();
 
@@ -113,6 +135,7 @@ check("restored root: same row count as before it vanished", s8.rows === 3 && s8
 // change, not an absent directory.
 fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({ roots: [{ path: ledger, kind: "ledger" }] }));
 const s9 = await build();
+// req: R-207
 check("root dropped from sources.json: its rows are purged", s9.removed === 1 && s9.rows === 2);
 db = await openDb(path.join(home, "index.db"), {});
 check("purged rows are no longer searchable", search(db, "kilo lima", 5).length === 0);

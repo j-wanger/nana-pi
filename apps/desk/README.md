@@ -6,6 +6,11 @@ npm dependencies of its own** — no `package.json`, no `node_modules`, nothing 
 install — but it is **not standalone: it requires the installed pi**, which it both
 spawns and imports (see below).
 
+## Install and run
+
+Nothing to install for the desk itself (it has no `package.json`); what it needs is the globally
+installed pi from **Dependencies** below. Then, from the repo root:
+
 ```bash
 node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change;
                               #    not 4317 — that's OTLP, and VPN/telemetry
@@ -93,7 +98,7 @@ with pi's own `SessionManager` and checks the desk reads it identically, and
 install layouts (shim, mismatched versions, two indistinguishable installs).
 
 Two consequences worth knowing. **Migrated v1 sessions get synthetic entry ids**
-(`v1-000001`, …): pi's v1→v2 migration mints random ids, which would change on every
+(`v1-000000`, `v1-000001`, … — the counter starts at zero): pi's v1→v2 migration mints random ids, which would change on every
 refresh, so the desk derives them from position instead — stable across reads and
 restarts, meaningful only within that file. **The rail's name scan is bounded** (64 KB
 head + 32 KB tail): a rename buried in the middle of a multi-megabyte session shows as
@@ -105,6 +110,15 @@ Two pieces of session handling stay ours because pi exports no equivalent: the
 loads every session file to build a row) and the **tail/leaf walk** behind the
 historical rename (pi's parser is whole-file, and its own branch walks have no
 cycle guard — the desk's does).
+
+## Tests
+
+```bash
+npm test -- apps/desk     # from the repo root: every apps/desk/test/*.test.mjs, zero-dep
+```
+
+The `test/*.e2e.mjs` browser suites are NOT in that set: they need Playwright and bind fixed
+ports, so they are run by hand, one at a time (`node apps/desk/test/<name>.e2e.mjs`).
 
 ## What it does (TUI parity map)
 
@@ -266,13 +280,13 @@ path reference; it does not attach file contents the way TUI submit does.
 ## Design decisions
 
 Visual language = the nana loop-desk system ("Orchestr — light / studio",
-`nana-agent-loop/app/src/styles.css`): warm paper surfaces, mono for structure +
+`~/nana-agent-loop/app/src/styles.css`): warm paper surfaces, mono for structure +
 tool output, sans for prose, semantic go/warn/stop, terracotta accent for
 interactive/live. All color lives in two token blocks in `public/styles.css`
 (`:root` = light, `[data-theme="dark"]` = dark studio); reskins touch only that
 file. A masthead toggle cycles auto/light/dark — auto follows the system live,
 the choice persists in localStorage, and an inline pre-CSS script in
-`index.html` applies the saved theme before first paint so there is no flash.
+`public/index.html` applies the saved theme before first paint so there is no flash.
 
 RPC subprocess over in-process SDK (extension/auth fidelity — the gate rides
 along; decoupled from SDK churn); strict LF-only JSONL framing per upstream docs

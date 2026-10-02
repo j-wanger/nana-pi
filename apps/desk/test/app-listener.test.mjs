@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/app-listener.test.mjs
+ * @purpose Pins the per-app listeners — manifest validation at load, what a manifest exposes, and the pages and prompts each app port serves
+ * @inputs apps/desk/server.mjs, app manifests in a temp apps dir, packages/nana-stage/lib/blocks.mjs, and a stub `pi` first on PATH
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Deterministic tests for the per-app listeners (design §6 deliverable 3).
 // Drives the REAL desk server with two app manifests against a STUB `pi`
 // that records its argv + cwd and speaks just enough RPC. Zero-dep.
@@ -138,12 +146,15 @@ try {
 		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); await fetch(Dl + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
+	// req: R-447
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
+	// req: R-447
 	check("empty-tools app has no listener", await fetch("http://127.0.0.1:4406/api/manifest").then(() => false).catch(() => true));
 
 	// ── route table: none of the desk's surfaces exist on an app port ──
 	for (const [method, p] of [["GET", "/api/live"], ["POST", "/api/spawn"], ["POST", "/api/session/1/bash"], ["GET", "/api/settings"], ["GET", "/api/sessions"], ["DELETE", "/api/session/1"], ["POST", "/api/session/1/rpc"]]) {
 		const r = await fetch(A + p, { method, headers: { "content-type": "application/json", origin: A }, body: method === "GET" ? undefined : "{}" });
+		// req: R-447
 		check(`app port has no ${method} ${p}`, r.status === 404, String(r.status));
 	}
 	check("manifest is read-only public info", (await get(A, "/api/manifest")).name === "alpha");
@@ -158,6 +169,7 @@ try {
 	check("alpha (no page) has no /app.js", (await fetch(A + "/app.js")).status === 404);
 	check("alpha (no page) serves the kit stage page", /<title>stage<\/title>/.test(await fetch(A + "/").then((r) => r.text())));
 	const tape = await post(G, "/api/data/tape?x=1&argv=evil", { argv: ["evil"] }).then((r) => r.json());
+	// req: R-453
 	check("data command runs with fixed argv in the app cwd; query string and body ignored", tape.label === "live" && tape.cwd === fs.realpathSync(cwdA) && JSON.stringify(tape.argv) === "[]", JSON.stringify(tape));
 	let dr = await post(G, "/api/data/boom", {});
 	check("failing data command → 500 with its stderr, never a guess", dr.status === 500 && /exit 3/.test((await dr.json()).error), String(dr.status));
@@ -167,10 +179,14 @@ try {
 	check("unstartable command → 500", dr.status === 500 && /failed to start/.test((await dr.json()).error));
 	check("unknown data key → 404", (await post(G, "/api/data/nope", {})).status === 404);
 	dr = await post(G, "/api/data/slow", {});
+	// req: R-453
 	check("data command over the timeout → 504, killed", dr.status === 504 && /timed out/.test((await dr.json()).error), String(dr.status));
 	// the route is a POST under the Origin + JSON rule: no GET exists, cross-site POSTs cannot run the command
+	// req: R-453
 	check("GET /api/data → 404 (no command-running GET exists for legacy cross-site fetches)", (await fetch(G + "/api/data/tape")).status === 404);
+	// req: R-453
 	check("cross-origin POST /api/data → 403", (await post(G, "/api/data/tape", {}, A)).status === 403);
+	// req: R-453
 	check("text/plain POST /api/data (a form/simple request) → 403", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "text/plain", origin: G }, body: "{}" })).status === 403);
 	check("same-origin JSON POST /api/data → 200", (await post(G, "/api/data/tape", {})).status === 200);
 	check("curl-style POST (no Origin, JSON) → 200", (await fetch(G + "/api/data/tape", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status === 200);
@@ -184,13 +200,18 @@ try {
 	const body = { cwd: "/etc", tools: ["bash"], approve: true, appendSystemPrompt: "pwned", resources: { extensions: ["/x"] } };
 	const [s1, s1b, s1c] = await Promise.all([post(A, "/api/session", body), post(A, "/api/session", body), post(A, "/api/session", body)].map((p) => p.then((r) => r.json())));
 	check("spawn returns a child", typeof s1.id === "string" && s1.state === "running", JSON.stringify(s1));
+	// req: R-449
 	check("three concurrent POST /api/session → ONE child", s1.id === s1b.id && s1b.id === s1c.id && stubRuns().length === 1, `${stubRuns().length} runs`);
 	const run = stubRuns().at(-1);
 	check("child received a per-session NANA_STAGE_KEY", run.hasKey === true);
+	// req: R-448
 	check("child cwd is the manifest cwd, not the body's", run.cwd === fs.realpathSync(cwdA), run.cwd);
 	const argv = run.argv.join(" ");
+	// req: R-448
 	check("argv: -t from manifest (body tools ignored)", /-t read,player_card\b/.test(argv) && !/bash/.test(argv), argv);
+	// req: R-448
 	check("argv: -na for trust=no-approve (body approve ignored)", /\s-na\b/.test(` ${argv}`) && !/\s-a\b/.test(` ${argv}`), argv);
+	// req: R-448
 	check("argv: --no-extensions + manifest -e in order (nana-stage last)", argv.includes("--no-extensions") && argv.indexOf(`-e ${extA}`) < argv.indexOf(`-e ${extStage}`), argv);
 	check("argv: --no-skills, no system prompt from body", argv.includes("--no-skills") && !argv.includes("--append-system-prompt"), argv);
 	const s2 = await post(A, "/api/session", {}).then((r) => r.json());
@@ -203,8 +224,10 @@ try {
 	// ── fail-closed readiness: a child that never reports is UNREPORTED after the bound, never ready ──
 	const t0 = Date.now();
 	const sD = await post(Dl, "/api/session", {}).then((r) => r.json());
+	// req: R-450
 	check("silent child: POST /api/session held until the bound, then tools = unreported", sD.tools === "unreported" && Date.now() - t0 >= 1200, `${sD.tools} after ${Date.now() - t0} ms`);
 	const rD = await post(Dl, "/api/prompt", { message: "hi" });
+	// req: R-450
 	check("silent child: prompts refused (409) — never run the model without the app's tools", rD.status === 409 && /unreported/.test((await rD.json()).error), String(rD.status));
 	check("silent child: GET /api/session shows unreported", (await get(Dl, "/api/session")).tools === "unreported");
 	// a child that EXITS before reporting: the spawn answers with an error, never a 200 "waiting"
@@ -216,12 +239,15 @@ try {
 	try {
 		for (let i = 0; i < 40; i++) { try { await fetch("http://127.0.0.1:4412/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
 		const rE = await post("http://127.0.0.1:4412", "/api/session", {});
+		// req: R-450
 		check("dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting", rE.status === 502 && /exited before its tools/.test((await rE.json()).error), String(rE.status));
 	} finally { server2.kill(); }
 
 	// ── manifest session written back atomically after spawn ──
 	const mA = JSON.parse(fs.readFileSync(path.join(appsDir, "alpha.json"), "utf-8"));
+	// req: R-449
 	check("manifest.session = sessionFile from get_state", typeof mA.session === "string" && mA.session.startsWith("/tmp/stub-"), String(mA.session));
+	// req: R-449
 	check("no temp file left behind", !fs.readdirSync(appsDir).some((f) => f.endsWith(".tmp")));
 
 	// ── isolation: beta cannot see alpha; beta spawns its own with its own trust ──
@@ -233,6 +259,7 @@ try {
 
 	// ── Origin rule per port: A's origin cannot POST to B; own origin can ──
 	let r = await post(B, "/api/prompt", { message: "hi" }, A);
+	// req: R-459
 	check("cross-origin (port A → port B) POST → 403", r.status === 403, String(r.status));
 	r = await post(B, "/api/prompt", { message: "hi" }, D);
 	check("desk origin → app port POST → 403", r.status === 403, String(r.status));
@@ -244,7 +271,9 @@ try {
 	// ── entries passthrough ──
 	const ent = await get(A, "/api/entries");
 	check("entries: leafId + signed nana-block entry pass through", ent.leafId === "e4" && ent.entries.some((e) => e.customType === "nana-block" && e.data.id === "blk_ok"));
+	// req: R-451
 	check("entries: FORGED (unsigned) nana-block entry REDACTED, other custom entries kept", !ent.entries.some((e) => e.customType === "nana-block" && e.data?.id === "blk_forged") && ent.entries.some((e) => e.customType === "nana-block-rejected") && ent.entries.some((e) => e.customType === "other"));
+	// req: R-451
 	check("entries: topology preserved — the forged node stays as a parent, so the reducer still reaches the valid block", ent.entries.length === 4 && ent.entries[2].id === "e3" && reduceEntries(ent.entries, ent.leafId).map((b) => b.id).join() === "blk_ok");
 	// live path: only the block signed by THIS event reaches the SSE clients
 	const liveBlocks = await new Promise((resolve, reject) => {
@@ -259,6 +288,7 @@ try {
 			resolve(JSON.parse(line.slice(6)).result.details.blocks.map((b) => b.id));
 		}).catch(reject);
 	});
+	// req: R-451
 	check("live: unsigned + other-call carriers stripped before broadcast", JSON.stringify(liveBlocks) === JSON.stringify(["blk_live_ok"]), JSON.stringify(liveBlocks));
 	await new Promise((r) => setTimeout(r, 200));
 	const ent2 = await get(A, "/api/entries?since=e1");
@@ -277,12 +307,15 @@ try {
 			resolve(JSON.parse(text.split("\n").find((l) => l.startsWith("data: ")).slice(6)));
 		}).catch(reject);
 	});
+	// req: R-452
 	check("desk_hello on the app port names the app and carries the pending dialog", hello.app === "alpha" && hello.dialogs.length === 1 && hello.dialogs[0].id === "ui-1", JSON.stringify(hello.dialogs));
 	r = await post(A, "/api/ui-response", { id: "ui-1", value: "Allow" }, B);
+	// req: R-452
 	check("foreign origin cannot answer the dialog", r.status === 403);
 	r = await post(A, "/api/ui-response", { id: "ui-1", value: "Allow" });
 	check("own origin answers the dialog", r.status === 200 && (await r.json()).ok === true);
 	r = await post(A, "/api/ui-response", { id: "ui-1", value: "Allow" });
+	// req: R-452
 	check("answering twice → 409 (dialog no longer open)", r.status === 409);
 
 	// a TIMED dialog expires server-side too: after its timeout the snapshot no longer lists it
@@ -292,6 +325,7 @@ try {
 	await new Promise((r) => setTimeout(r, 900));
 	check("timed dialog gone from the snapshot after its timeout", (await get(A, "/api/session")).openDialogs === 0);
 	r = await post(A, "/api/ui-response", { id: "ui-t", confirmed: true });
+	// req: R-452
 	check("answering an expired dialog → 409", r.status === 409);
 } catch (e) {
 	console.log("HARNESS ERROR", e, "\n--- server log ---\n" + serverLog);

@@ -1,3 +1,17 @@
+/**
+ * @module packages/nana-stage/lib/blocks.mjs
+ * @purpose The pure block contract — validate, render, extract and reduce the code-authored blocks a stage
+ *  shows.
+ * @inputs block objects authored by app-tool code, a tool result's `details` carrier (details.blocks or
+ *  details.mcpResult.structuredContent.blocks), and session entries {id, parentId, type, customType, data}
+ * @outputs a validation verdict with its error list, the canonical model-visible text of a block
+ *  (byte-capped), the stage's upserted block array for a leaf, and the tool_result patch plus the
+ *  `nana-block` entries to append
+ * @effects none
+ * @errors never throws — validateBlock returns {ok:false, errors} (bad type, bad field, over MAX_TABLE_ROWS
+ *  / MAX_CHART_POINTS_TOTAL / MAX_BLOCK_BYTES, an uninspectable block) and processToolResult returns an
+ *  isError patch with the carrier stripped
+ */
 // blocks.mjs — the block contract (design: docs/agent-frontend-design-2026-09-04.md §3.1).
 //
 // Pure ESM, zero deps, runs in the browser, in node tests, and inside the pi

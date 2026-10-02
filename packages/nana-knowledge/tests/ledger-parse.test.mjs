@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-knowledge/tests/ledger-parse.test.mjs
+ * @purpose Pins that a line-oriented ledger indexes as one row per ENTRY — not per file, not per physical line — against a fixture mirroring the doctrine ledger exactly
+ * @inputs lib/parse.ts and a doctrine-shaped markdown fixture written to a temp dir
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (a temp fixture file)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: a line-oriented ledger indexes as one row per ENTRY, not one row per file and
 // not one row per physical line. Fixture mirrors loops/DOCTRINE.md exactly: a fenced
 // contract block full of template lines, 3-physical-line entries, prose between sections.
@@ -45,23 +53,32 @@ fs.writeFileSync(f, FIXTURE);
 
 const rows = parseLedger(f, fs.readFileSync(f, "utf8"));
 
+// req: R-204
 check("fenced template lines are not rows", rows.length === 4);
 check("entry keys are unique", new Set(rows.map((r) => r.key)).size === rows.length);
+// req: R-205
 check("key is path#Lnn", rows.every((r) => r.key === `${f}#L${r.loc}`));
 check("all rows share the source path", rows.every((r) => r.path === f));
 
 const multi = rows[0];
+// req: R-204
 check("3-physical-line entry folds into one row", multi.body.includes("freedom beat") && multi.body.includes("findings). src:"));
 check("continuation lines are joined with a space", !/\n/.test(multi.body));
+// req: R-205
 check("loc points at the entry's FIRST line", FIXTURE.split("\n")[multi.loc - 1].startsWith("- [uses:4]"));
+// req: R-205
 check("title strips uses/pinned/tag bookkeeping", multi.title.startsWith("doctrine(spec): Spec the contract"));
+// req: R-205
 check("title is bounded", rows.every((r) => r.title.length <= 130));
 
+// req: R-204
 check("numbered entry line is a row", rows.some((r) => r.body.startsWith("1. [uses:9]")));
+// req: R-204
 check("bullet without [uses:] is not a row", !rows.some((r) => r.body.includes("no uses marker")));
 check("inline prose mention is not a row", !rows.some((r) => r.body.includes("should not become a row")));
 
 check("isEntryLine: dash + uses", isEntryLine("- [uses:2] (ops) x"));
+// req: R-204
 check("isEntryLine: digit + uses", isEntryLine("12. [uses:2] (ops) x"));
 check("isEntryLine: dash without uses", !isEntryLine("- plain bullet"));
 check("isEntryLine: indented continuation", !isEntryLine("  freedom beat design-prescribing"));
@@ -81,9 +98,12 @@ if (fs.existsSync(REAL)) {
 // --- articles ---
 const a = path.join(td, "a.md");
 fs.writeFileSync(a, "---\ntitle: From Frontmatter\n---\n# An H1\nbody text\n");
+// req: R-201
 check("frontmatter title wins", parseArticle(a, fs.readFileSync(a, "utf8"))[0].title === "From Frontmatter");
 check("frontmatter stripped from body", !parseArticle(a, fs.readFileSync(a, "utf8"))[0].body.includes("title:"));
+// req: R-201
 check("H1 used when no frontmatter", articleTitle(a, {}, "# An H1\nbody") === "An H1");
+// req: R-201
 check("filename used when neither", articleTitle(path.join(td, "some-doc.md"), {}, "body") === "some doc");
 check("splitFrontmatter no-op without fence", splitFrontmatter("# x").body === "# x");
 

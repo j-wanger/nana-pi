@@ -1,4 +1,27 @@
 /**
+ * @module apps/desk/server.mjs
+ * @purpose The desk's loopback HTTP server: static page, the /api surfaces over live `pi --mode
+ *  rpc` children, and read/write access to pi's session and config files.
+ * @inputs HTTP requests on 127.0.0.1 (port DESK_PORT, default 7317); env DESK_APPS_DIR,
+ *  DESK_KILL_GRACE_MS, DESK_MAX_PENDING_RPC, DESK_SSE_BUFFER_CAP, DESK_STDOUT_LINE_CAP,
+ *  DESK_TAIL_BUDGET, PATH; pi's ACTIVE agent dir (sessions/, settings.json, mcp.json,
+ *  nana-pack.json, agents/), per-project .pi/nana-pack.json and AGENTS.md-family files, app
+ *  manifests, and public/ assets
+ * @outputs JSON responses and the per-session SSE stream (desk_hello then live RPC events);
+ *  spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json,
+ *  mcp.json, nana-pack.json, agents definitions and context files (each after a .bak copy);
+ *  session HTML export; the startup URL on stdout
+ * @effects disk (session and config reads and writes), process (spawns pi, git, the native folder
+ *  picker and headless title derivation; exits on signals), network (binds 127.0.0.1 only; the
+ *  model calls its pi children make)
+ * @errors per-route JSON {error} at 400 (bad body or argument), 403 (Host/Origin rejection — a
+ *  request must address the desk by a loopback name), 404 (unknown session, or a path resolving
+ *  outside the sessions dir), 409 (refusals and lifecycle conflicts: a write through or below a
+ *  symlink, a non-session file, a session file another process is writing, a dialog that is not
+ *  open, a session that is not running), 500 (child or filesystem failure); exit 1 when the desk
+ *  cannot start (pi unresolvable, port taken), exit 0 after draining children on SIGINT/SIGTERM
+ */
+/**
  * nana code (the desk) — local server. Binds 127.0.0.1 only. No npm dependencies of
  * its own; requires the installed pi, which it both spawns (`pi --mode rpc`) and
  * imports for session parsing (see pi-session.mjs). Node >= 22.19 (pi's floor).

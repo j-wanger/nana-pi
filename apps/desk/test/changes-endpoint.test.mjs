@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/changes-endpoint.test.mjs
+ * @purpose Pins that the changes endpoints answer from git and that nothing a request names can reach outside the session's own work tree
+ * @inputs apps/desk/changes.mjs and apps/desk/server.mjs, temp git repositories, and a stub `pi` first on PATH
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, git repositories and work trees), network (HTTP to the desk it binds), process (spawns the desk, the stub pi and git)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // The changes endpoints answer from git, and nothing a request names can reach
 // outside the session's own work tree.
 //
@@ -66,12 +74,17 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	check("staged add is A, counted", f["staged.txt"]?.status === "A" && f["staged.txt"].added === 2, JSON.stringify(f["staged.txt"]));
 	check("unstaged delete is D, counted", f["gone.txt"]?.status === "D" && f["gone.txt"].removed === 4, JSON.stringify(f["gone.txt"]));
 	check("staged rename is R at its NEW path", f["renamed.txt"]?.status === "R" && !f["old.txt"], Object.keys(f).join(","));
+	// req: R-422
 	check("untracked file is ?? and its lines are counted", f["new.md"]?.status === "??" && f["new.md"].added === 3, JSON.stringify(f["new.md"]));
 	check("untracked binary is flagged, not counted", f["blob.bin"]?.binary === true && f["blob.bin"].added === null, JSON.stringify(f["blob.bin"]));
+	// req: R-422
 	check("paths are posix and root-relative", (r.body.files || []).every((x) => !x.path.includes("\\") && !path.isAbsolute(x.path)), "");
+	// req: R-422
 	check("files are sorted by path", JSON.stringify(r.body.files.map((x) => x.path)) === JSON.stringify(r.body.files.map((x) => x.path).slice().sort()), "");
 	const t = r.body.totals;
+	// req: R-422
 	check("totals count the rows we returned", t.files === r.body.files.length, JSON.stringify(t));
+	// req: R-422
 	check("totals sum added/removed", t.added === 1 + 2 + 3 && t.removed === 4, JSON.stringify(t));
 }
 
@@ -111,6 +124,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	const outside = path.join(TD, "outside-secret.txt");
 	fs.writeFileSync(outside, "secret\n");
 	fs.symlinkSync(outside, path.join(repo, "escape.txt"));
+	// req: R-425
 	check("path rejected: a symlink that resolves outside the root", !!resolveInRoot(root, "escape.txt").error, JSON.stringify(resolveInRoot(root, "escape.txt")));
 	const viaLink = await fileDiff(repo, "escape.txt");
 	check("the endpoint refuses that symlink with 400", viaLink.status === 400, JSON.stringify(viaLink));
@@ -120,6 +134,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	// would be a fact from outside the work tree
 	fs.symlinkSync(outside, path.join(repo, "peek.txt"));
 	const listed = byPath((await collectChanges(repo)).body)["peek.txt"];
+	// req: R-425
 	check("an untracked symlink is listed but not counted", listed && listed.added === null, JSON.stringify(listed));
 	fs.rmSync(path.join(repo, "peek.txt"));
 
@@ -128,6 +143,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	// untracked branch lstats the path as given before it reads anything.
 	fs.symlinkSync(path.join(repo, "keep.txt"), path.join(repo, "inside-link.txt"));
 	const inside = await fileDiff(repo, "inside-link.txt");
+	// req: R-425
 	check("the file endpoint refuses an untracked symlink inside the root", inside.status === 409 && /symlink/.test(inside.body.error || ""), JSON.stringify(inside));
 	fs.rmSync(path.join(repo, "inside-link.txt"));
 
@@ -150,12 +166,15 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	write(path.join(big, "seed.txt"), many); // tracked: git's own diff
 	process.env.DESK_DIFF_CAP = "2048";
 	const t = await fileDiff(big, "seed.txt");
+	// req: R-423
 	check("tracked diff past the cap is truncated", t.status === 200 && t.body.truncated === true, JSON.stringify(t.body).slice(0, 80));
+	// req: R-423
 	check("tracked diff past the cap is cut AT the cap", t.body.diff.length <= 2048, String(t.body.diff.length));
 	const u = await fileDiff(big, "grown.txt");
 	check("synthesized diff past the cap is truncated", u.status === 200 && u.body.truncated === true && u.body.diff.length <= 2048, `${u.body.truncated} ${u.body.diff.length}`);
 	delete process.env.DESK_DIFF_CAP;
 	const full = await fileDiff(big, "seed.txt");
+	// req: R-423
 	check("the cap is read per call, so the default returns the whole diff", full.body.truncated === false && full.body.diff.length > 2048, `${full.body.truncated} ${full.body.diff.length}`);
 }
 
@@ -182,6 +201,7 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	fs.mkdirSync(plain);
 	fs.writeFileSync(path.join(plain, "a.txt"), "hi\n");
 	const r = await collectChanges(plain);
+	// req: R-422
 	check("a non-repo cwd answers repo:false, not an error", r.status === 200 && r.body.repo === false && !r.body.error, JSON.stringify(r.body));
 	const d = await fileDiff(plain, "a.txt");
 	check("the file endpoint says so with 409", d.status === 409, JSON.stringify(d));
@@ -194,12 +214,14 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 	fs.mkdirSync(process.env.PATH, { recursive: true });
 	const r = await collectChanges(repo);
 	process.env.PATH = savedPath;
+	// req: R-422
 	check("no git on PATH: repo:false with a reason, never a throw", r.status === 200 && r.body.repo === false && r.body.reason === "git not found", JSON.stringify(r.body));
 }
 
 // ── A9. a cwd that no longer exists (the worktree was removed under a session) ──
 {
 	const r = await collectChanges(path.join(TD, "never-existed"));
+	// req: R-422
 	check("a vanished cwd says so, and is not blamed on git", r.status === 200 && r.body.repo === false && r.body.reason === "working directory is gone", JSON.stringify(r.body));
 }
 
@@ -347,7 +369,9 @@ fs.writeFileSync(path.join(repo, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x0
 		delete process.env.DESK_UNTRACKED_TOTAL_CAP;
 	}
 	const f = byPath(r.body);
+	// req: R-424
 	check("raced: a file that grew under the read is listed with NO count", f["grow.txt"] && f["grow.txt"].added === null, JSON.stringify(f["grow.txt"]));
+	// req: R-424
 	check("raced: …and the answer says it is partial, and why", r.body.partial === true && /budget/.test(r.body.partialReason || ""), JSON.stringify(r.body.partialReason));
 	check("raced: the bytes actually read never exceed the budget", bytesRead <= BUDGET, `${bytesRead} bytes read against a ${BUDGET}-byte budget`);
 	check("raced: a file that did not move is still counted", f["small.txt"]?.added === 1, JSON.stringify(f["small.txt"]));
@@ -416,7 +440,9 @@ if (process.platform !== "win32") {
 	try {
 		fs.writeFileSync(swap, "mine\n");
 		const one = await fileDiff(repo, "swapme.txt");
+		// req: R-425
 		check("swap: the diff window refuses a path that became a symlink after the check", one.status === 409 && /symlink/.test(one.body.error || ""), JSON.stringify(one));
+		// req: R-425
 		check("swap: …and nothing from the target is in the answer", !JSON.stringify(one.body).includes("secret"), JSON.stringify(one.body));
 
 		fs.rmSync(swap);
@@ -472,6 +498,7 @@ if (process.platform !== "win32") {
 	const f = byPath(r.body);
 	check("edge: a file of exactly the per-file cap is counted", f["at-cap.txt"]?.added === 1024, JSON.stringify(f["at-cap.txt"]));
 	check("edge: one byte past the cap is a row with no count", f["over-cap.txt"]?.added === null && f["over-cap.txt"]?.binary === true, JSON.stringify(f["over-cap.txt"]));
+	// req: R-424
 	check("edge: …and the refresh read exactly the budget, no probe byte", bytesRead === CAP, `${bytesRead} bytes read against a ${CAP}-byte budget`);
 }
 
@@ -524,7 +551,9 @@ if (process.platform !== "win32") {
 	const f = byPath(r.body);
 	const counted = names.filter((n) => f[n]?.added === 5);
 	check(`pool: a budget for ${ADMIT} counts exactly ${ADMIT} of ${N}`, counted.length === ADMIT, `${counted.length} counted`);
+	// req: R-424
 	check("pool: …and they are the first ones in path order", counted.join(",") === names.slice(0, ADMIT).join(","), counted.join(","));
+	// req: R-424
 	check("pool: …and the rest are rows with no number", names.slice(ADMIT).every((n) => f[n] && f[n].added === null), JSON.stringify(names.slice(ADMIT).map((n) => f[n]?.added)));
 }
 
@@ -577,6 +606,7 @@ if (process.platform !== "win32") {
 		delete process.env.DESK_UNTRACKED_TOTAL_CAP;
 	}
 	const f = byPath(r.body);
+	// req: R-424
 	check("race8: eight reads in flight spend the budget ONCE", bytesRead <= BUDGET, `${bytesRead} bytes read against a ${BUDGET}-byte budget`);
 	check("race8: …so exactly one of the eight is counted", names.filter((n) => f[n]?.added === 10).length === 1, JSON.stringify(names.map((n) => f[n]?.added)));
 	check("race8: …and the other seven are rows with no number", names.filter((n) => f[n]?.added === null).length === 7, JSON.stringify(names.map((n) => f[n]?.added)));
@@ -668,6 +698,7 @@ try {
 	{
 		const r = await fetch(`${BASE}/api/session/${spawned.id}/changes`);
 		const body = await r.json();
+		// req: R-422
 		check("route: /changes answers 200 with the file list", r.status === 200 && body.repo === true && body.files.length > 0, JSON.stringify(body).slice(0, 140));
 		check("route: the totals match the module's", byPath(body)["keep.txt"]?.added === 1, JSON.stringify(byPath(body)["keep.txt"]));
 	}

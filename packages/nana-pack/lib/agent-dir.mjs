@@ -1,4 +1,14 @@
 /**
+ * @module packages/nana-pack/lib/agent-dir.mjs
+ * @purpose Resolve pi's ACTIVE agent dir exactly as pi does, and flag a PI_CODING_AGENT_DIR that stays
+ *  cwd-relative.
+ * @inputs env PI_CODING_AGENT_DIR, os.homedir(), process.platform, process.cwd()
+ * @outputs the resolved agent dir, pi's normalizePath result for any input (win32 shell path, `~`,
+ *  file://), and whether the configured value resolves per-process
+ * @effects none
+ * @errors none — every function is total and returns a value even when process.cwd() no longer exists
+ */
+/**
  * agent-dir — pi's ACTIVE agent dir, resolved exactly as pi does. The ONE implementation in the
  * repo: nana-pack (lib/gate-paths.ts re-exports it), the desk (apps/desk/server.mjs) and
  * nana-setup (lib/paths.mjs) all import this file, so they cannot disagree about which

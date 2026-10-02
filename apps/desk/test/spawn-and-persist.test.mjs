@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/spawn-and-persist.test.mjs
+ * @purpose Pins three things only the desk gets to decide — the trust flag it sends pi, that title derivation runs tool-less on fenced attacker-influenceable text, and that an appended session_info chains to the current leaf
+ * @inputs apps/desk/server.mjs and a stub `pi` that records its argv, under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, settings and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Three properties the desk gets wrong in ways nothing else would notice
 // (2026-09-08 review). Drives the REAL server (own port, own HOME) against a STUB
 // `pi` that records its argv, so every assertion is about what pi is actually told.
@@ -201,15 +209,19 @@ try {
 	let r = await post("/api/spawn", { cwd: repo, approve: false }).then((x) => x.json());
 	check("spawn with approve:false accepted", typeof r.id === "string", JSON.stringify(r));
 	let argv = await lastRpcArgv(1);
+	// req: R-414
 	check("approve:false → pi -na (project config IGNORED, not left to saved trust)", / -na /.test(argv) && !/ -a /.test(argv), argv);
 	r = await post("/api/spawn", { cwd: repo, approve: true }).then((x) => x.json());
 	argv = await lastRpcArgv(2);
+	// req: R-414
 	check("approve:true → pi -a", / -a /.test(argv) && !/ -na /.test(argv), argv);
 	r = await post("/api/spawn", { cwd: repo }).then((x) => x.json());
 	argv = await lastRpcArgv(3);
+	// req: R-414
 	check("approve omitted → no trust flag (a non-desk client still gets pi's own default)", !/ -a | -na /.test(argv), argv);
 	r = await post("/api/spawn", { cwd: repo, approve: "yes" }).then((x) => x.json());
 	argv = await lastRpcArgv(4);
+	// req: R-414
 	check("approve non-boolean → no trust flag (never guessed from a truthy string)", !/ -a | -na /.test(argv), argv);
 
 	// ── A2. "project" is decided by WHERE THE CODE LIVES, not by which config named it ──
@@ -219,6 +231,7 @@ try {
 	const resources = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
 	const projItem = resources.extensions.find((x) => x.path === projExt);
 	const outItem = resources.extensions.find((x) => x.path === outsideExt);
+	// req: R-415
 	check("a GLOBAL settings entry pointing inside the project is labelled project", projItem?.project === true, JSON.stringify(projItem));
 	check("…and one outside the project is not", outItem && !outItem.project, JSON.stringify(outItem));
 	// the desk opens in ~ by default: pi's own global dirs sit under HOME and must
@@ -229,10 +242,13 @@ try {
 	r = await post("/api/spawn", { cwd: TD, approve: false, resources: { extensions: [path.join(PI_DIR, "extensions", "global-ext.ts")] } });
 	check("…and an untrusted spawn there still loads them", r.status === 200, String(r.status));
 	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+	// req: R-415
 	check("a GLOBAL package entry is not resolved from the PROJECT's install dir", !resources.extensions.some((x) => x.path.includes("sneaky")), JSON.stringify(resources.extensions.map((x) => x.name)));
 	const before2 = rpcRuns().length;
 	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [projExt] } });
+	// req: R-415
 	check("trust unchecked + a project extension → spawn REFUSED", r.status >= 400 && /project trust/.test((await r.json()).error || ""), String(r.status));
+	// req: R-415
 	check("…and no child was started for it", rpcRuns().length === before2, `${rpcRuns().length} vs ${before2}`);
 	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [outsideExt] } });
 	check("trust unchecked + a NON-project extension still spawns", r.status === 200, String(r.status));
@@ -257,10 +273,14 @@ try {
 	check("both derivations ran headless", headless.length === 2, String(headless.length));
 	const inj = headless.find((x) => x.argv.join(" ").includes("IGNORE ALL PREVIOUS"));
 	const prompt = inj?.argv.at(-1) || "";
+	// req: R-411
 	check("derivation runs with --no-tools (no read/bash/edit/write to hijack)", inj?.argv.includes("--no-tools"), JSON.stringify(inj?.argv.slice(0, -1)));
+	// req: R-411
 	check("…still isolated: --no-session/--no-extensions/--no-skills/--no-context-files", ["--no-session", "--no-extensions", "--no-skills", "--no-context-files", "--no-prompt-templates"].every((f) => inj?.argv.includes(f)), JSON.stringify(inj?.argv.slice(0, -1)));
+	// req: R-411
 	check("…historical text is fenced and labelled as data, not spliced into the instruction", /never instructions/i.test(prompt) && prompt.includes(`-----\n${INJECTION}\n-----`), JSON.stringify(prompt.slice(0, 200)));
 	const long = headless.find((x) => x !== inj);
+	// req: R-411
 	check("…and it is length-capped (a 3.6k-char request does not ride in whole)", !long.argv.at(-1).includes("TAILMARKER") && long.argv.at(-1).length < 1500, String(long.argv.at(-1).length));
 
 	// C: the appended session_info is a NODE ON THE BRANCH, not a new root
@@ -273,6 +293,7 @@ try {
 	// C: the same for a user-initiated rename, twice in a row
 	check("rename accepted", (await post("/api/rename", { file: RENAME_FILE, name: "First Name" })).status === 200);
 	entries = lines(RENAME_FILE);
+	// req: R-410
 	check("rename chains to the leaf", entries.at(-1).parentId === "r2" && entries.at(-1).name === "First Name", JSON.stringify(entries.at(-1)));
 	const firstRenameId = entries.at(-1).id;
 	check("second rename accepted", (await post("/api/rename", { file: RENAME_FILE, name: "Second Name" })).status === 200);
@@ -285,11 +306,15 @@ try {
 
 	// C: a file pi would not load back is never created
 	r = await post("/api/rename", { file: ZERO_FILE, name: "Zero" });
+	// req: R-410
 	check("rename on a 0-byte file → 409, not a headerless session_info", r.status === 409, String(r.status));
+	// req: R-410
 	check("…and the file is left alone", fs.readFileSync(ZERO_FILE, "utf-8") === "", JSON.stringify(fs.readFileSync(ZERO_FILE, "utf-8")));
 	const headerlessBefore = fs.readFileSync(HEADERLESS_FILE, "utf-8");
 	r = await post("/api/rename", { file: HEADERLESS_FILE, name: "Headerless" });
+	// req: R-410
 	check("rename on a file with no session header → 409", r.status === 409, String(r.status));
+	// req: R-410
 	check("…and that file is left alone too", fs.readFileSync(HEADERLESS_FILE, "utf-8") === headerlessBefore);
 
 	// C: an unterminated last line must not be glued to our entry
@@ -331,12 +356,15 @@ try {
 	const overBefore = fs.statSync(OVER_FILE).size;
 	r = await post("/api/rename", { file: OVER_FILE, name: "Over" });
 	const overErr = (await r.json()).error || "";
+	// req: R-410
 	check("an entry LARGER than the budget → 409 naming the budget", r.status === 409 && /within the last \d+ bytes/.test(overErr), `${r.status} ${overErr}`);
+	// req: R-410
 	check("…and that file is left untouched", fs.statSync(OVER_FILE).size === overBefore);
 
 	// C: a name with an embedded newline would split one entry into two bad lines
 	const beforeLines = fs.readFileSync(RENAME_FILE, "utf-8").split("\n").filter(Boolean).length;
 	check("rename with an embedded newline accepted", (await post("/api/rename", { file: RENAME_FILE, name: "line one\nline two\r\nthree" })).status === 200);
+	// req: R-410
 	check("…CR/LF collapsed the way pi's own appendSessionInfo does", lines(RENAME_FILE).at(-1).name === "line one line two three", JSON.stringify(lines(RENAME_FILE).at(-1).name));
 	check("…and it added exactly ONE line", fs.readFileSync(RENAME_FILE, "utf-8").split("\n").filter(Boolean).length === beforeLines + 1);
 
@@ -344,13 +372,16 @@ try {
 	fs.writeFileSync(SETTINGS, "{ this is not json\n");
 	const before = fs.readFileSync(SETTINGS, "utf-8");
 	r = await post("/api/settings", { patch: { defaultModel: "gpt-5.5" } });
+	// req: R-455
 	check("patching an UNREADABLE settings.json is refused", r.status >= 400, String(r.status));
 	check("…and the file is untouched (not replaced by a one-key {})", fs.readFileSync(SETTINGS, "utf-8") === before, fs.readFileSync(SETTINGS, "utf-8"));
 
 	fs.writeFileSync(SETTINGS, JSON.stringify({ defaultModel: "keep-me", packages: ["a"] }, null, 2));
 	fs.mkdirSync(`${SETTINGS}.bak`); // backup cannot be written
 	r = await post("/api/settings", { patch: { defaultModel: "gpt-5.5" } });
+	// req: R-455
 	check("a write whose .bak FAILS is refused, not silently done anyway", r.status >= 400, String(r.status));
+	// req: R-455
 	check("…and the previous settings survive", JSON.parse(fs.readFileSync(SETTINGS, "utf-8")).defaultModel === "keep-me");
 	fs.rmSync(`${SETTINGS}.bak`, { recursive: true });
 
@@ -365,6 +396,7 @@ try {
 	fs.writeFileSync(secret, "SECRET");
 	fs.symlinkSync(secret, path.join(repo, "AGENTS.md"));
 	r = await post("/api/context-file", { dir: repo, name: "AGENTS.md", content: "pwned" });
+	// req: R-456
 	check("context-file write onto a symlink → 409", r.status === 409, String(r.status));
 	check("…the link target is untouched", fs.readFileSync(secret, "utf-8") === "SECRET", fs.readFileSync(secret, "utf-8"));
 	check("…and no .bak was made through it either", !fs.existsSync(path.join(repo, "AGENTS.md.bak")));
@@ -374,6 +406,7 @@ try {
 	fs.writeFileSync(path.join(repo2, "CLAUDE.md"), "real file");
 	fs.symlinkSync(secret, path.join(repo2, "CLAUDE.md.bak"));
 	r = await post("/api/context-file", { dir: repo2, name: "CLAUDE.md", content: "pwned" });
+	// req: R-456
 	check("a symlinked .bak destination → 409", r.status === 409, String(r.status));
 	check("…the link target is still untouched", fs.readFileSync(secret, "utf-8") === "SECRET");
 	check("…and the real file is unchanged", fs.readFileSync(path.join(repo2, "CLAUDE.md"), "utf-8") === "real file");
@@ -382,7 +415,9 @@ try {
 	fs.mkdirSync(outsideDir, { recursive: true });
 	fs.symlinkSync(outsideDir, path.join(repo, "docs"));
 	r = await post("/api/context-file", { dir: path.join(repo, "docs"), name: "AGENTS.md", content: "pwned" });
+	// req: R-456
 	check("context-file below a SYMLINKED directory → 409", r.status === 409, String(r.status));
+	// req: R-456
 	check("…and nothing was written outside the tree", !fs.existsSync(path.join(outsideDir, "AGENTS.md")), JSON.stringify(fs.readdirSync(outsideDir)));
 	// the shape the request could exempt for itself: dir = <repo>/link/sub, where
 	// <repo>/link is the symlink. Its PARENT is the link, so a parent-derived root
@@ -443,15 +478,20 @@ try {
 	r = await post("/api/spawn", { cwd: repo, excludeTools: ["grep", "find"] }).then((x) => x.json());
 	check("spawn with excludeTools accepted", typeof r.id === "string", JSON.stringify(r));
 	argv = await lastRpcArgv(beforeE + 1);
+	// req: R-416
 	check("unchecked built-ins ride out as -xt", / -xt grep,find /.test(argv), argv);
+	// req: R-416
 	check("…and never as -t, which would drop the extension tools too", !/ -t /.test(argv), argv);
 	r = await post("/api/spawn", { cwd: repo }).then((x) => x.json());
 	argv = await lastRpcArgv(beforeE + 2);
+	// req: R-416
 	check("no narrowing → no tool flag at all (pure pi defaults)", !/ -xt | -t /.test(argv), argv);
 	const beforeERef = rpcRuns().length;
 	r = await post("/api/spawn", { cwd: repo, excludeTools: ["grep", "not-a-tool"] });
+	// req: R-416
 	check("an unknown tool name is refused, never spliced into the -xt list", r.status === 400 && /not a pi built-in tool/.test((await r.json()).error || ""), String(r.status));
 	r = await post("/api/spawn", { cwd: repo, excludeTools: "grep,find" });
+	// req: R-416
 	check("a non-array excludeTools is refused", r.status === 400, String(r.status));
 	check("…and neither refusal started a child", rpcRuns().length === beforeERef, `${rpcRuns().length} vs ${beforeERef}`);
 	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
@@ -463,14 +503,18 @@ try {
 	fs.writeFileSync(SETTINGS, JSON.stringify({ defaultTools: ["read", "bash"] }, null, 2));
 	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: ["read", "bash", "find"] }, null, 2));
 	let rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
+	// req: R-417
 	check("resources reports the GLOBAL defaultTools", JSON.stringify(rres.defaultTools?.global) === '["read","bash"]', JSON.stringify(rres.defaultTools));
+	// req: R-417
 	check("…and the PROJECT one separately, so the client can pick by the trust box", JSON.stringify(rres.defaultTools?.project) === '["read","bash","find"]', JSON.stringify(rres.defaultTools));
 	// a cwd with no project settings falls back to global alone
 	rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(TD)}`).then((x) => x.json());
+	// req: R-417
 	check("a cwd with no .pi/settings.json reports project:null (→ the global list)", rres.defaultTools?.project === null && JSON.stringify(rres.defaultTools?.global) === '["read","bash"]', JSON.stringify(rres.defaultTools));
 	// a malformed value is "absent", never handed to the picker as a tool list
 	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: "read,bash,find" }, null, 2));
 	rres = await fetch(`${BASE}/api/resources?cwd=${encodeURIComponent(repo)}`).then((x) => x.json());
+	// req: R-417
 	check("a non-array project defaultTools is reported as absent, not as a list", rres.defaultTools?.project === null, JSON.stringify(rres.defaultTools));
 	fs.writeFileSync(path.join(repo, ".pi", "settings.json"), JSON.stringify({ defaultTools: ["read", "bash", "find"] }, null, 2));
 	// and the whole point: a PROJECT-enabled tool can actually be dropped
@@ -504,17 +548,20 @@ try {
 	check("a user-scope write lands", r.status === 200 && (await r.json()).scope === "user", String(r.status));
 	let np = JSON.parse(fs.readFileSync(NP_USER, "utf-8"));
 	check("…the edited field changed", np.notify.enabled === true, JSON.stringify(np.notify));
+	// req: R-457
 	check("…a sub-key the form never renders survived the round-trip", np.journal.rotateAt === 99, JSON.stringify(np.journal));
 	check("…and the previous file is the .bak", JSON.parse(fs.readFileSync(`${NP_USER}.bak`, "utf-8")).notify.enabled === false);
 	const npBefore = fs.readFileSync(NP_USER, "utf-8");
 	r = await post("/api/nana-pack", { config: { gate: { allowPatterns: [] }, gaet: { extraPatterns: ["x"] } } });
 	const npErr = (await r.json()).error || "";
+	// req: R-457
 	check("an unknown TOP-LEVEL key → 400 naming it (a typo the pack would ignore forever)", r.status === 400 && npErr.includes("gaet"), `${r.status} ${npErr}`);
 	check("…and the file is untouched", fs.readFileSync(NP_USER, "utf-8") === npBefore);
 
 	const proj = path.join(TD, "np-project");
 	fs.mkdirSync(proj, { recursive: true });
 	r = await post("/api/nana-pack", { dir: proj, config: { gate: { allowPatterns: ["^ls "] } } });
+	// req: R-457
 	check("a project-scope write creates <dir>/.pi/nana-pack.json", r.status === 200 && fs.existsSync(path.join(proj, ".pi", "nana-pack.json")), String(r.status));
 	g = await fetch(`${BASE}/api/nana-pack?dir=${encodeURIComponent(proj)}`).then((x) => x.json());
 	check("…and GET with that dir reads it back", g.scope === "project" && g.config.gate.allowPatterns[0] === "^ls ", JSON.stringify(g));

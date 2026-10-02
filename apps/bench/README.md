@@ -21,13 +21,19 @@ error at startup** — a bench that quietly substitutes its own arithmetic is th
 replaces. See `lib/pi-exports.mjs` for the verified export list and for the short list of things
 that are still ours because pi does not export them.
 
+## Install, run and test
+
+Nothing to install beyond the Dependencies above (`npm i -g @earendil-works/pi-coding-agent`);
+the bench itself has no `package.json` and no `node_modules`. To run it, and to test it:
+
 ```bash
 node apps/bench/run.mjs <study-dir>            # DRY RUN (default) — the schedule + the exact argv
 node apps/bench/run.mjs <study-dir> --smoke    # exactly ONE real model call
 node apps/bench/run.mjs <study-dir> --go       # the whole study, resumable
 node apps/bench/run.mjs <study-dir> --go --task code-bugfix --profile lean-code --rep 0
 node apps/bench/aggregate.mjs <study-dir>      # results.jsonl → summary.md + summary.json
-node apps/bench/test/plan.test.mjs             # each test: exit 0 = all PASS
+node apps/bench/test/plan.test.mjs             # one test: exit 0 = all PASS
+npm test -- apps/bench                        # every bench test, from the repo root
 ```
 
 `--go` is mandatory for real spend: with no flag the runner only prints. `--keep` leaves each run's
@@ -54,7 +60,7 @@ Per run, one JSON line in `<study-dir>/results.jsonl`:
 |---|---|
 | `state` | `ok` · `fail` · `run-error` · `grader-error` · `blocked` |
 | `ok` | `true`/`false` for a decided run, **`null` when the grader or the harness failed** — those never count as model failures |
-| `tokens` / `totalTokens` | the run's OWN model calls — assistant messages only — as `{in, out, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
+| `tokens` / `totalTokens` | the run's OWN model calls — assistant messages only — as pi-ai's own field names `{input, output, cacheRead, cacheWrite}` (disjoint buckets) and their sum |
 | `nestedTokens` / `nestedCalls` | LLM calls an extension made on the run's behalf. Kept strictly apart from `tokens`, so `spend` adds them exactly once |
 | `spend` | `totalTokens + nestedTokens` — the run's true cost |
 | `cost` / `ownCost` / `nestedCost` / `pricedNestedCost` | money, from pi's own `calculateCost`. `cost` is `null` **with a reason** whenever any part of the run was unmeasured or unpriced — including any run flagged `nestedUnknown` — and the RECORD says so, rather than leaving the reader's helper to correct it. The priced part is available separately as an explicit lower bound, never as a total: `pricedNestedCost` keeps the nested buckets that DID price when another model made `nestedCost` null, and the budget spends that bound so known dollars are not counted as zero |
@@ -132,7 +138,7 @@ from here. `observedRequests` (all traffic in the window, LLM or not) is recorde
 tell "this tool made no model call" from "we saw nothing at all".
 
 **Partial coverage is not coverage.** pi's Codex API speaks over a **WebSocket**
-(`pi-ai/dist/api/openai-codex-responses.js` — 95 WebSocket references, zero `fetch(` calls), so any
+(`pi-ai/dist/api/openai-codex-responses.js` — a WebSocket client throughout, with no `fetch(` call in the file at all; re-counted on pi 0.87.1, 2026-10-02), so any
 nested call routed through pi-ai's `complete`/`completeSimple` never reaches a fetch wrapper, while
 an extension's own hand-rolled HTTP request does. Measuring one and reporting the other as nothing
 is the failure this guards: the sidecar wraps `globalThis.WebSocket` and flags a window in which a
@@ -187,7 +193,9 @@ forge the signature, and it cannot change what the signature covers. **No signed
 failure, never a pass.** An UNFINISHED evaluation is a **grader error**, not a failure: a module that
 exits during import, or a top-level `await` that never settles (Node exits 13 before any timeout),
 tells us nothing about the behaviour asked for. A hang is a grader error too, by the parent's
-spawn timeout.
+spawn timeout. **Except** when the partial verdict already carries a FAILING probe: wrong behaviour
+was observed and signed before the evaluation died, so that is a failure — otherwise a module could
+trade a failure for an exclusion by killing the process after its first bad answer.
 
 **Threat model.** In scope: everything the module can do from inside its own process — tampering
 with globals, prototypes, stdout, exit status, fd 3, the filesystem. Out of scope: scanning this
@@ -306,7 +314,9 @@ and optional `assets/`. Outputs land beside them: `results.jsonl`, `schedule.jso
   "baselineProfile": "pi-defaults",
   "smokeTask": "…", "smokeProfile": "…",
   "model": { "provider": "openai-codex", "id": "gpt-5.6-sol", "thinking": "medium" },
-  "pinnedPiVersion": "0.87.1",    // a different pi aborts rather than quietly changing the study.
+  "pinnedPiVersion": "0.87.1",    // an OPERATIONAL key (lib/plan.mjs OPERATIONAL_KEYS): it is not in
+                                   // the study fingerprint, so re-pinning does not invalidate recorded
+                                   // runs. A different pi aborts rather than quietly changing the study.
                                    // A CLOSED study keeps its pin forever: to reproduce it, install
                                    // that exact pi; to measure on a newer pi, copy the study to a new
                                    // directory and re-pin there (never edit a closed study's pin —
@@ -361,7 +371,11 @@ recorded mix.) Extension paths may be relative to the study dir.
 `assets` are copied in **after** the model exits — a grading probe it can neither read nor edit —
 and are never counted as the model's own edits.
 
-### Checkers (all deterministic — there is no LLM judge, and there never should be)
+### Checkers (all deterministic — there is no LLM judge in the grading path, and there never should be)
+
+Scope: this is about **grading a run**. The catch ledger (`catch-ledger.mjs`) is a separate tool that
+does use a model — see `lib/catch-judge.mjs`, the only place in `apps/bench` a model is called for
+classification — and it never grades a benchmark run.
 
 | type | passes when |
 |---|---|
@@ -422,8 +436,12 @@ lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateC
 lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict over fd 3
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
+catch-ledger.mjs    the catch ledger CLI: extract, label, match, stats over review findings
+lib/catch-extract.mjs  pull candidate findings out of a review corpus
+lib/catch-judge.mjs    the ONLY model call in apps/bench: label + match prompts, schemas, validation
+lib/catch-stats.mjs    the ledger's tallies and rates
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               thirteen test files, no model calls (stub-child integration + every
+test/               fourteen test files, no model calls (stub-child integration + every
                     orchestration path incl. a real-fixture run + an adversarial matrix against
                     the trusted evaluator)
 studies/            one directory per study

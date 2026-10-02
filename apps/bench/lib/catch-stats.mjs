@@ -1,3 +1,14 @@
+/**
+ * @module apps/bench/lib/catch-stats.mjs
+ * @purpose Pure deterministic arithmetic over the ledger's rows and stored labels: Cohen's kappa,
+ *  seeded sampling, finding-equivalence graphs, the table and the pre-registered claims.
+ * @inputs in-memory rows, label objects, match records and stage hints — no files, no model
+ * @outputs exports
+ *  cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence;
+ *  returns plain objects and markdown strings
+ * @effects none
+ * @errors throws Error when kappa is given empty or unequal-length label vectors
+ */
 // catch-stats.mjs — pure, deterministic arithmetic over rows + stored labels: κ, stage hints,
 // the table and the pre-registered claims. No I/O, no model.
 import crypto from "node:crypto";

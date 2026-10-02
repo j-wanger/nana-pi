@@ -1,4 +1,16 @@
 #!/usr/bin/env node
+/**
+ * @module apps/bench/aggregate.mjs
+ * @purpose Turn a study's recorded runs into per-family, per-profile summary statistics and a
+ *  markdown report, without re-running or judging anything.
+ * @inputs argv[2] = study dir; that dir's study.json, schedule.json (optional) and results.jsonl
+ * @outputs exports stats/aggregate/toMarkdown/spendOf/costOf; as a CLI writes summary.json and
+ *  summary.md into the study dir and prints one confirmation line
+ * @effects disk (reads the study dir, writes summary.json + summary.md), process (exits non-zero
+ *  as a CLI)
+ * @errors throws Error when results.jsonl holds no parsable runs; CLI exit 1 with the message on
+ *  stderr
+ */
 // Aggregate a study's results.jsonl into summary.json + summary.md.
 //   node apps/bench/aggregate.mjs <study-dir>
 // Pure arithmetic on the recorded runs — no model calls, no judging, no re-running.

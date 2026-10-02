@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/nested.test.mjs
+ * @purpose Pins nested-LLM-spend accounting against the four defects it had — own-call contamination, lost late usage, double counting, and a suppressed unmeasurable call
+ * @inputs lib/nested.mjs, lib/usage.mjs, and captured event-stream fixtures
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (reads the fixtures)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Nested-LLM-spend accounting. Each block below is a defect astra reproduced; the assertions are
 // written so that the OLD behaviour fails them.
 //   1. own-call contamination — pi's own Codex requests also go through globalThis.fetch
@@ -45,7 +53,9 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 {
 	const r = createRecorder({ watch: ["web_search"] });
 	// pi's agent-loop request: same URL, same process, but NO tool is executing.
+	// req: R-504
 	check("a request outside any tool window is NOT counted", r.note(CODEX) === null);
+	// req: R-504
 	check("…and is recorded as a skipped own call", r.skippedOwnCalls === 1);
 	check("…so the window has nothing to report", r.snapshot("web_search") === null);
 
@@ -59,12 +69,14 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	check("the report says how many own calls were skipped", snap.details.skippedOwnCalls === 1);
 
 	// After the window closes, pi's next model call must not be attributed to the extension.
+	// req: R-504
 	check("a request AFTER the window closes is not counted", r.note(CODEX) === null);
 	check("…and the accumulator stays empty", r.snapshot("web_search") === null);
 }
 {
 	const r = createRecorder({ watch: ["web_search"] });
 	r.openWindow("bash"); // an UNwatched tool is not a window
+	// req: R-504
 	check("an unwatched tool does not open a counting window", r.note(CODEX) === null && r.skippedOwnCalls === 1);
 	r.closeWindow("bash");
 }
@@ -90,6 +102,7 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	// The body read has NOT finished. Snapshotting now must not claim "nothing happened".
 	r.markPendingUnknown();
 	const snap = r.snapshot("web_search");
+	// req: R-505
 	check("an unfinished body read is reported as unknown, not as no-spend", snap !== null && snap.details.unknown === true);
 	check("…with no usage object, because nothing was measured", snap.usage === undefined);
 }
@@ -97,6 +110,7 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	const r = createRecorder({ watch: ["web_search"] });
 	r.openWindow("web_search");
 	r.fail(r.note(CODEX));
+	// req: R-505
 	check("a failed request (network error) marks unknown", r.snapshot("web_search").details.unknown === true);
 }
 {
@@ -104,6 +118,7 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	r.openWindow("web_search");
 	r.resolve(r.note(CODEX), "<html>gateway error</html>");
 	const snap = r.snapshot("web_search");
+	// req: R-505
 	check("an unparseable body marks unknown rather than 0", snap.details.unknown === true && snap.usage === undefined);
 }
 
@@ -116,8 +131,11 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	r.openWindow("web_search");
 	r.closeWindow("web_search");
 	const snap = r.snapshot("web_search");
+	// req: R-505
 	check("a watched tool that produced NO observable network is unknown, not free", snap !== null && snap.details.unknown === true);
+	// req: R-505
 	check("…with a reason a reviewer can act on", snap.details.unknownReason === "no-network-observed", String(snap.details.unknownReason));
+	// req: R-505
 	check("…and no usage invented for it", snap.usage === undefined);
 }
 {
@@ -144,8 +162,10 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	const found = r.notePaths({ summary: { phase: "summary-model", model: "openai-codex/gpt-5.6-luna", fallbackUsed: false } });
 	r.closeWindow("web_search");
 	const snap = r.snapshot("web_search");
+	// req: R-505
 	check("a model phase we never measured is detected from the tool's own report", found.length === 1 && found[0].model === "openai-codex/gpt-5.6-luna");
 	check("…the measured tokens are still reported", snap.usage.totalTokens === 3100, String(snap.usage.totalTokens));
+	// req: R-505
 	check("…AND the window is unknown, despite having measured traffic", snap.details.unknown === true && snap.details.unknownReason === "unobserved-path:summary-model");
 	check("…naming the path, so a reviewer can go and fix coverage", snap.details.unobservedPaths.includes("summary-model:openai-codex/gpt-5.6-luna"));
 }
@@ -174,6 +194,7 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 	r.noteUnobservable("websocket-transport-unobservable");
 	r.closeWindow("web_search");
 	const snap = r.snapshot("web_search");
+	// req: R-505
 	check("a WebSocket model connection inside a window marks it unknown", snap.details.unknown === true && snap.details.unknownReason === "websocket-transport-unobservable");
 	check("…and counts as observed traffic, so the silence rule does not double-report", snap.details.observedRequests === 1, String(snap.details.observedRequests));
 }
@@ -218,6 +239,7 @@ check("a stream with usage but no terminal frame still counts once", harvestTerm
 const nu = parseStream(read("nested-usage-stream.jsonl"));
 check("own tokens are the ASSISTANT messages only", totalTokens(nu.tokens) === 1530, String(totalTokens(nu.tokens)));
 check("nested tokens are the tool-carried usage only", totalTokens(nu.nested) === 4810, String(totalTokens(nu.nested)));
+// req: R-504
 check("own + nested = the true total (astra's 1,530 + 4,810 = 6,340)", totalTokens(nu.tokens) + totalTokens(nu.nested) === 6340);
 check("tool usage is NOT also inside `tokens`", totalTokens(nu.tokens) !== 6340);
 
@@ -250,6 +272,7 @@ check("a legacy tool-usage record still lands in `nested`, not `tokens`", totalT
 	const p = parseStream(twoModels, { pricer });
 	check("two nested models are bucketed separately", JSON.stringify(p.nestedByModel) === JSON.stringify({ "gpt-5.6-terra": 110, "gpt-5.6-luna": 220 }), JSON.stringify(p.nestedByModel));
 	// Pooling and pricing with the FIRST model would give 330×1 = 330; per-bucket gives the truth.
+	// req: R-506
 	check("each bucket is priced with ITS OWN model, not the first one seen", p.nestedCost.total === 110 * 1 + 220 * 10, String(p.nestedCost.total));
 	check("the per-model breakdown is reported", p.nestedCostByModel["gpt-5.6-luna"] === 2200);
 	const partial = parseStream(twoModels, { pricer: (u, { model }) => (model === "gpt-5.6-terra" ? { cost: { total: 110 }, reason: null } : { cost: null, reason: "no catalog entry" }) });

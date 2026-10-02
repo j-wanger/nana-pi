@@ -1,4 +1,21 @@
 /**
+ * @module packages/nana-pack/lib/config.ts
+ * @purpose Load, normalize and merge the nana-pack user and project config into a fully typed value no file
+ *  bytes can make throw.
+ * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
+ *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
+ *  hasUI, ui, sessionManager)
+ * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, receipts) with
+ *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
+ *  allow/extra/protected regexes, and the user-scope objective block alone
+ * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
+ *  journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions
+ *  and last-valid gate on globalThis)
+ * @errors never throws — a malformed leaf falls back and is surfaced once per session as a `config_invalid`
+ *  or `config_agent_dir_mismatch` journal line plus one UI warning, and a malformed gate block with no
+ *  last-good policy yields gate.stopReason, which blocks every gated tool
+ */
+/**
  * Shared config for the nana pack.
  *
  * Sources (project wins over user, both optional — every extension works with defaults):

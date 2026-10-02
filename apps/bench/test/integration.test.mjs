@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/integration.test.mjs
+ * @purpose Drives the integrated runner paths against stub children with no model calls — probe to evidence to ledger, and run to parse to evidence, including what survives when post-processing throws
+ * @inputs run.mjs, stub child executables, and temp run directories
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp run dirs, evidence and ledger files), process (spawns the stub children)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // INTEGRATION, with a stub child and NO model calls. The registration probe crashed after its
 // paid call because it referenced an out-of-scope `opts` — a ReferenceError that left no evidence
 // and no ledger line, so a restart paid for the same probe again. That escaped every unit test
@@ -97,8 +105,11 @@ try {
 		const dir = await freshStudyDir("probe-missing");
 		const bin = await stub("missing.mjs", emitScript(streamOf({ text: JSON.stringify(["read", "web_search"]) })));
 		const p = await registrationProbe({ study, studyDir: dir, profile: profileFor(bin), launcher: { cmd: process.execPath, pre: [bin] }, agentDir: null, pricer: null });
+		// req: R-515
 		check("probe: fails when a declared tool is not registered", p.ok === false && p.detail.includes("fetch_content"), p.detail);
+		// req: R-516
 		check("probe: a FAILED probe still reports its spend", p.tokens === 110, String(p.tokens));
+		// req: R-516
 		check("probe: a FAILED probe still wrote evidence", Boolean(p.evidence));
 	}
 
@@ -116,9 +127,13 @@ try {
 		const dir = await freshStudyDir("probe-timeout");
 		const bin = await stub("hang.mjs", emitScript(streamOf({ text: JSON.stringify(["read", ...TOOLS]) }), { hang: true }));
 		const p = await registrationProbe({ study, studyDir: dir, profile: profileFor(bin), launcher: { cmd: process.execPath, pre: [bin] }, agentDir: null, pricer: null, timeoutMs: 900 });
+		// req: R-516
 		check("probe: a hanging probe times out rather than blocking the study", p.timedOut === true && p.ok === false, p.detail);
+		// req: R-516
 		check("probe: …and confirms the child is dead", p.killedCleanly === true, String(p.killedCleanly));
+		// req: R-516
 		check("probe: …and still reports the tokens the call had already spent", p.tokens === 110, String(p.tokens));
+		// req: R-516
 		check("probe: …and still wrote evidence", Boolean(p.evidence));
 	}
 
@@ -127,7 +142,9 @@ try {
 		const dir = await freshStudyDir("probe-nobin");
 		const bin = await stub("real.mjs", "");
 		const p = await registrationProbe({ study, studyDir: dir, profile: profileFor(bin), launcher: { cmd: path.join(root, "no-such-binary"), pre: [] }, agentDir: null, pricer: null });
+		// req: R-516
 		check("probe: an unspawnable child is a failure, not a pass", p.ok === false);
+		// req: R-516
 		check("probe: …and reports zero spend honestly", p.tokens === 0, String(p.tokens));
 	}
 
@@ -139,6 +156,7 @@ try {
 		const rows = await readLedger(dir);
 		check("ledger: a torn tail is dropped but the good row survives", rows.length === 1 && rows[0].tokens === 110);
 		check("ledger: the file is REPAIRED so the next append is readable", (await fs.readFile(file, "utf8")).endsWith("\n"));
+		// req: R-512
 		check("ledger: the torn bytes are quarantined, not lost", (await fs.readFile(`${file}.quarantine`, "utf8")).includes("torn-tail"));
 		await fs.appendFile(file, `${JSON.stringify({ kind: "registration-probe", profile: "b", tokens: 7, ok: true })}\n`);
 		check("ledger: …and the NEXT append is readable (the torn row did not eat it)", (await readLedger(dir)).length === 2);
@@ -153,10 +171,14 @@ try {
 			study, studyDir: dir, task, profile: profileFor(bin), rep: 0, block: "stub-task|0",
 			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
 		});
+		// req: R-507
 		check("executeRun: a passing run is state ok", rec.state === "ok" && rec.ok === true, `${rec.state} ${rec.error ?? ""}`);
 		check("executeRun: spend is own + nested, counted once", spendOf(rec) === 510, String(spendOf(rec)));
+		// req: R-532
 		check("executeRun: evidence written under raw/<task>/<profile>/rep<N>", (await fs.readFile(path.join(dir, rec.evidence, "stream.jsonl"), "utf8")).includes("agent_settled"));
+		// req: R-532
 		check("executeRun: argv recorded as evidence", (await fs.readFile(path.join(dir, rec.evidence, "argv.txt"), "utf8")).includes("--mode json"));
+		// req: R-507
 		check("executeRun: the checker verdict is carried", rec.check.pass === true);
 	}
 
@@ -170,6 +192,7 @@ try {
 			study, studyDir: dir, task, profile: profileFor(bin), rep: 0, block: "stub-task|0",
 			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
 		});
+		// req: R-531
 		check("executeRun: a post-processing failure is a grader error, not a model failure", rec.state === "grader-error" && rec.ok === null, rec.state);
 		check("executeRun: …and the child's measured spend is PRESERVED, not zeroed", spendOf(rec) === 910, String(spendOf(rec)));
 		check("executeRun: …with the token count named in the error", /already spent 910 tokens/.test(rec.error ?? ""), rec.error ?? "");
@@ -271,12 +294,15 @@ try {
 		// THE defect: a failed ledger append used to print a warning and keep spending.
 		const { calls, error } = await orchestration({ ledgerFails: true });
 		check("orchestration: a FAILED ledger append STOPS the study", error !== null, error ?? "no error");
+		// req: R-517
 		check("orchestration: …saying the probe's spend could not be recorded", /could not record the .* registration probe \(700 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 130));
+		// req: R-517
 		check("orchestration: …and NO further paid child is spawned", calls.runs === 0, `runs=${calls.runs}`);
 		check("orchestration: …and it does not silently retry the probe", calls.probes === 1);
 	}
 	{
 		const { calls, error } = await orchestration({ probeOk: false });
+		// req: R-515
 		check("orchestration: a failed probe stops the study before any graded run", error !== null && calls.runs === 0, `${error ?? ""} runs=${calls.runs}`);
 		check("orchestration: …but its spend was recorded first", calls.ledger === 1);
 	}
@@ -303,6 +329,7 @@ try {
 			priorRecords: [{ state: "ok", spend: 0, wallMs: 4900 }],
 			deps: { ledger: [], blockKeys: new Map(), log: () => {}, executeRun: async () => { ran++; return null; }, appendResult: async () => {} },
 		});
+		// req: R-518
 		check("wall cap: with almost no allowance left, the study STOPS instead of granting 30s", ran === 0, `ran=${ran}`);
 		await fs.rm(dir, { recursive: true, force: true });
 	}

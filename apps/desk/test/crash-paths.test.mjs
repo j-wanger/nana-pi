@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/crash-paths.test.mjs
+ * @purpose Pins that nothing a request or a child can say takes the desk process down, wedges its event loop, or leaves a live pi process untracked
+ * @inputs apps/desk/server.mjs, hostile request targets, and a stub `pi` emitting hostile child events
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Robustness property (2026-09-08): NOTHING a request or a child can say takes
 // the desk process down, wedges its event loop, or leaves a live pi process
 // untracked. The desk is a single Node process holding every live session — one
@@ -199,16 +207,20 @@ try {
 
 	// ── 8. a manifest that is valid JSON but not an object costs ONE app, not the desk ──
 	check("desk came up despite a `null` app manifest", await alive());
+	// req: R-461
 	check("…the bad manifest was logged and skipped", /broken\.json/.test(log), log.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
+	// req: R-461
 	check("…and the OTHER app's listener is serving", (await fetch(`${APP}/api/manifest`).then((r) => r.json())).name === "good");
 
 	// ── 1. malformed request targets ──
 	for (const target of ["///", "//[", "/\\", "//%"]) {
 		const status = await rawStatus(target);
+		// req: R-461
 		check(`GET ${target} → 400, desk survives`, /^HTTP\/1\.1 400\b/.test(status) && (await alive()), status);
 		if (deskExit !== null) throw new Error("desk died on a malformed request target");
 	}
 	check("GET /// on an APP port → 400, desk survives", /^HTTP\/1\.1 400\b/.test(await rawStatus("///", APP_PORT)) && (await alive()));
+	// req: R-461
 	check("a normal target still routes", (await fetch(`${BASE}/api/live`)).status === 200);
 
 	// ── 9. a body that is valid JSON but not an object ──
@@ -226,9 +238,11 @@ try {
 	]);
 	const t0 = Date.now();
 	const ring = await transcript(RING_FILE);
+	// req: R-408
 	check("two-entry parentId ring answers (no infinite walk)", ring !== WEDGED && ring.total === 3, `${Date.now() - t0} ms ${JSON.stringify(ring).slice(0, 100)}`);
 	check("…each ring member is visited exactly once, off-branch entries stay off", JSON.stringify(ring?.entries?.map((e) => [e.id, e.onBranch])) === '[["aa",true],["cc",false],["bb",true]]', JSON.stringify(ring?.entries?.map((e) => [e.id, e.onBranch])));
 	const self = await transcript(SELF_FILE);
+	// req: R-408
 	check("self-referential parentId answers too", self !== WEDGED && JSON.stringify(self?.entries?.map((e) => [e.id, e.onBranch])) === '[["dd",false],["ee",true]]', JSON.stringify(self?.entries?.map((e) => [e.id, e.onBranch])));
 	check("…desk still serving after the cyclic files", await alive());
 
@@ -246,6 +260,7 @@ try {
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "deepnest please" });
 	await waitFor(async () => seen1.some((e) => e.after === "deep"));
 	check("a 50k-deep child event does not take the desk down", await alive());
+	// req: R-461
 	check("…the client is TOLD the event was dropped, not silently starved", seen1.some((e) => e.type === "desk_event_dropped" && e.eventType === "desk_test_deep"), JSON.stringify(seen1.map((e) => e.type)));
 	check("…and the stream keeps working after it", seen1.some((e) => e.type === "desk_test_alive" && e.after === "deep"), JSON.stringify(seen1.map((e) => e.after)));
 
@@ -262,6 +277,7 @@ try {
 	gone.stop();
 	await waitFor(async () => false, 300); // let the abort reach the server
 	await post(BASE, `/api/session/${c1.id}/prompt`, { message: "nullline again" });
+	// req: R-461
 	check("a broadcast with a disconnected client in the fan-out does not kill the desk", await waitFor(async () => stays.some((e) => e.type === "desk_test_alive")) && (await alive()));
 	check("…the disconnected client stopped receiving", !gone.some((e) => e.after === "null"), JSON.stringify(gone.map((e) => e.type)));
 
@@ -278,6 +294,7 @@ try {
 	check("…desk still serving after the EPIPE", await alive());
 	// the child is STILL ALIVE (it ignores SIGTERM): it must be counted, not written off
 	const epipeRec = (await live()).find((c) => c.id === c2.id);
+	// req: R-460
 	check("…a child whose stdin failed is not written off as exited while it still runs", epipeRec?.state === "exiting", JSON.stringify(epipeRec));
 	check("…it goes through the same escalation and is really killed", await waitFor(() => { try { process.kill(epipePid, 0); return false; } catch { return true; } }, 4 * GRACE), `pid ${epipePid}`);
 	check("…and only then is it dropped from the map", await waitFor(async () => !(await live()).some((c) => c.id === c2.id), 4 * GRACE), JSON.stringify(await live()));
@@ -294,6 +311,7 @@ try {
 	const rec = (await live()).find((c) => c.id === c3.id);
 	check("a child that ignores SIGTERM is still TRACKED right after DELETE", !!rec, JSON.stringify(await live()));
 	check("…and still holds its slot: spawning is still refused while it is dying", (await post(BASE, "/api/spawn", { cwd: plainCwd })).status >= 400, String(rec?.state));
+	// req: R-460
 	check("…the desk escalates to SIGKILL and the process is really gone", await waitFor(() => { try { process.kill(stubbornPid, 0); return false; } catch { return true; } }, 4 * GRACE), `pid ${stubbornPid}`);
 	check("…the record is dropped once it exits", await waitFor(async () => !(await live()).some((c) => c.id === c3.id), 4 * GRACE), JSON.stringify(await live()));
 	check("…and only THEN is the slot free", (await post(BASE, "/api/spawn", { cwd: plainCwd })).status === 200);

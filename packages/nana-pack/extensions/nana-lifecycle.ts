@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-pack/extensions/nana-lifecycle.ts
+ * @purpose Journal session lifecycle events, surface compaction in the UI, and own the /reload-runtime
+ *  command.
+ * @inputs pi `session_start`, `session_before_compact`, `session_compact`, `session_compact_failed` and
+ *  `session_shutdown` events, the /reload-runtime invocation, the loaded config, and ctx (cwd, hasUI, ui)
+ * @outputs one JSONL journal line per event (ts, event, cwd, pid, reason), a dim `nana-pack ✓` footer
+ *  status, compaction info/error notifications, and a reloaded runtime
+ * @effects disk (appends the journal through lib/config.ts), process (primeNanaTrust imports pi's trust
+ *  module; ctx.reload() re-reads settings.json and re-discovers extensions, skills, prompts and context
+ *  files)
+ * @errors none of its own — appendJournal is best-effort, and a ctx.reload() failure propagates to pi's
+ *  command handler
+ */
+/**
  * nana-lifecycle — session lifecycle observability.
  *
  * Appends session events (start/compaction/shutdown) as JSONL to the nana

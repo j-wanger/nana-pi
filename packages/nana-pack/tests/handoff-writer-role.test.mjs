@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/handoff-writer-role.test.mjs
+ * @purpose Pins that a session whose launcher set NANA_HANDOFF=off neither picks up nor writes the handoff, and that the role is never inferred from the tool list or the UI
+ * @inputs extensions/nana-handoff.ts, bin/pi-review.mjs, a stub `pi` on PATH, and a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, store files), process (sets HOME and NANA_HANDOFF, spawns pi-review with the stub pi on PATH)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -46,15 +54,20 @@ fs.rmSync(JOURNAL, { force: true });
 {
 	const s = session(repo, true); // hasUI true: the UI is not a role signal
 	await s.compact("REVIEWER-STATE");
+	// req: R-137
 	check("marker: session_compact leaves the store byte-identical", Buffer.compare(before, fs.readFileSync(file)) === 0);
 	check("marker: no temp litter", fs.readdirSync(path.dirname(file)).every((f) => !f.endsWith(".tmp")));
+	// req: R-137
 	check("marker: before_agent_start injects nothing", (await s.prompt()) === "BASE");
 	const lines = journal().split("\n").filter((l) => l.includes('"handoff_skipped_role"'));
+	// req: R-137
 	check("marker: handoff_skipped_role journaled for write AND pickup", lines.some((l) => l.includes('"op":"write"')) && lines.some((l) => l.includes('"op":"pickup"')));
 }
 process.env.NANA_HANDOFF = "on";
+// req: R-138
 check("any other marker value: normal behaviour (picks up)", (await session(repo).prompt()).includes("WRITER-STATE"));
 delete process.env.NANA_HANDOFF;
+// req: R-138
 check("no marker: normal behaviour (picks up)", (await session(repo).prompt()).includes("WRITER-STATE"));
 
 // pi-review's child spawn env carries the marker (stub `pi` prints its env; zero model calls)
@@ -71,6 +84,7 @@ else {
 		timeout: 60_000,
 	});
 	const text = fs.existsSync(out) ? fs.readFileSync(out, "utf-8") : "";
+	// req: R-139
 	check("pi-review: child spawn env contains NANA_HANDOFF=off", r.status === 0 && text.includes("NANA_HANDOFF=off"));
 	if (r.status !== 0) console.log(r.stderr);
 	fs.rmSync(bin, { recursive: true, force: true });

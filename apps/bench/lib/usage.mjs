@@ -1,3 +1,17 @@
+/**
+ * @module apps/bench/lib/usage.mjs
+ * @purpose Parse a pi `--mode json` event stream into deterministic per-run metrics, keeping the
+ *  run's own model spend strictly apart from what its tools spent.
+ * @inputs the raw stream text of one run plus an optional pricer; pi-ai Usage objects carried on
+ *  message_end and tool results
+ * @outputs exports
+ *  emptyUsage/addUsage/totalTokens/costTotal/costOfRecord/observedCostOfRecord/costUnknownReason/parseStream/incompleteReason;
+ *  parseStream returns {tokens, nested, cost, finalText, settled, toolCalls, retries,
+ *  compactions, errors}
+ * @effects none
+ * @errors none thrown — an unterminated or malformed stream is reported through `settled: false`
+ *  and incompleteReason(), and an unpriceable run through costUnknownReason()
+ */
 // Parse a pi `--mode json` event stream into deterministic per-run metrics.
 //
 // TOKENS AND COST ARE PI'S ARITHMETIC, NOT OURS. Verified against pi 0.84.4 (2026-09-09):

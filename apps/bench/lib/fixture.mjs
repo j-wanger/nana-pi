@@ -1,3 +1,16 @@
+/**
+ * @module apps/bench/lib/fixture.mjs
+ * @purpose Build, hash, verify and materialize the frozen directories a bench task runs in,
+ *  pinned by a sha256 manifest.
+ * @inputs CLI `build <src> <dest> [--exclude a,b,c]` or `hash <dir>`; as a library a source dir,
+ *  a destination dir, mutation specs, study asset lists and before/after text
+ * @outputs exports
+ *  listFiles/hashDir/verifyFixture/materialize/applyMutations/copyAssets/unifiedDiff/lineDiff;
+ *  writes the materialized fixture tree and prints the manifest sha as a CLI
+ * @effects disk (reads the source tree, copies and mutates the destination tree)
+ * @errors verifyFixture rejects on a manifest sha mismatch naming the drifted file; CLI exit 1 on
+ *  a failed command and exit 2 on a bad invocation
+ */
 // A FIXTURE is a frozen directory the model works in. It is pinned by a sha256 manifest
 // (one `<sha256>  <posix-relpath>` line per file, sorted, LF) and the manifest's own sha256
 // is the single number a reviewer checks.

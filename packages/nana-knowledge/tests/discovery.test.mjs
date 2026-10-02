@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-knowledge/tests/discovery.test.mjs
+ * @purpose Pins knowledge roots BY CONVENTION — a repository under a configured parent is indexed with no edit to sources.json, and the things that are not knowledge stay out
+ * @inputs the discovery path in lib/ plus the build CLI, and temp parent directories holding fake repositories and worktrees
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp directories and markdown fixtures), process (spawns the build CLI)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: roots BY CONVENTION. A repo under a configured parent is indexed without anyone
 // editing sources.json — and the things that are not knowledge (a non-repo, an excluded
 // name, a repo without the subdir) stay out.
@@ -71,15 +79,20 @@ const has = (roots, p) => roots.some((r) => r.path === p);
 // --- discoverRoots, on its own ---
 const d = discoverRoots(DISCOVER);
 const paths_ = d.map((r) => r.path);
+// req: R-211
 check("repo with .git DIR contributes each convention subdir it has",
 	has(d, path.join(parent, "repoA", "docs")) && has(d, path.join(parent, "repoA", "research")));
+// req: R-211
 check("a git WORKTREE (.git file) counts as a repo", has(d, path.join(parent, "repoC", "knowledge")));
+// req: R-211
 check("a directory WITHOUT .git is not a repo", !has(d, path.join(parent, "repoB", "docs")));
 check("a repo without any listed subdir contributes nothing",
 	!paths_.some((p) => p.startsWith(path.join(parent, "repoD"))));
+// req: R-213
 check("an excluded child NAME is skipped even when it is a repo",
 	!paths_.some((p) => p.includes("node_modules")));
 check("a missing parent is skipped silently", d.length === 3); // repoA docs+research, repoC knowledge
+// req: R-211
 check("discovered roots are articles, and marked", d.every((r) => r.kind === "articles" && r.discovered === true));
 
 // --- sources.json integration ---
@@ -95,11 +108,14 @@ writeSources(h1, {
 	discover: DISCOVER,
 });
 const s1 = loadSources();
+// req: R-212
 check("explicit + discovered are unioned", s1.roots.length === 4 && has(s1.roots, ledger));
+// req: R-212
 check("a path in both appears once, keeping the explicit entry",
 	s1.roots.filter((r) => r.path === path.join(parent, "repoA", "docs")).length === 1 &&
 	s1.roots.find((r) => r.path === path.join(parent, "repoA", "docs")).discovered === undefined);
 check("exclude is handed to the builder", s1.exclude.includes("drafts"));
+// req: R-213
 check("skipNames extends the built-in set, never replaces it",
 	skipNames(["drafts"]).has("drafts") && [...SKIP_DIRS].every((n) => skipNames(["drafts"]).has(n)));
 
@@ -107,19 +123,23 @@ const h2 = homeFor("nodiscover");
 writeSources(h2, { roots: [{ path: path.join(parent, "repoB", "docs"), kind: "articles" }] });
 const s2 = loadSources();
 check("no discover block = no discovery", s2.roots.length === 1 && s2.exclude.length === 0);
+// req: R-215
 check("an existing sources.json is NOT rewritten with a discover block",
 	!("discover" in JSON.parse(fs.readFileSync(path.join(h2, "sources.json"), "utf8"))));
 
 const h3 = homeFor("malformed");
 writeSources(h3, { roots: [], discover: { parents: parent, subdirs: 7 } });
+// req: R-215
 check("a malformed discover block degrades to defaults, never throws",
 	Array.isArray(loadRoots()) && loadRoots().length === 0);
 
 const h4 = homeFor("seed");
 loadRoots(); // no sources.json yet -> seed
 const seeded = JSON.parse(fs.readFileSync(path.join(h4, "sources.json"), "utf8"));
+// req: R-215
 check("a freshly seeded sources.json carries the discover block",
 	JSON.stringify(seeded.discover) === JSON.stringify(DEFAULT_DISCOVER));
+// req: R-215
 check("seeding does not invent roots outside the literal list + wikis",
 	Array.isArray(seeded.roots) && seeded.roots.every((r) => r.kind === "articles" || r.kind === "ledger"));
 
@@ -131,6 +151,7 @@ writeSources(hN1, { roots: [
 	{ path: path.join(parent2, "repoF", "doc"), kind: "articles" },
 ], discover: DISCOVER2 });
 const n1 = loadSources().roots;
+// req: R-214
 check("a discovered root CONTAINING an explicit root is dropped (explicit wins)",
 	has(n1, path.join(parent2, "repoE", "research", "knowledge")) && !has(n1, path.join(parent2, "repoE", "research")));
 check("an unrelated discovered root is untouched by that drop", has(n1, path.join(parent2, "repoF", "docs")));
@@ -138,14 +159,17 @@ check("an unrelated discovered root is untouched by that drop", has(n1, path.joi
 const hN2 = homeFor("nest-discovered-inside");
 writeSources(hN2, { roots: [{ path: path.join(parent2, "repoE"), kind: "articles" }], discover: DISCOVER2 });
 const n2 = loadSources().roots;
+// req: R-214
 check("a discovered root INSIDE an explicit root is dropped too",
 	has(n2, path.join(parent2, "repoE")) && !has(n2, path.join(parent2, "repoE", "research")));
 
 const hN3 = homeFor("nest-discovered-pair");
 writeSources(hN3, { roots: [], discover: { ...DISCOVER2, parents: [parent2, path.join(parent2, "repoF", "docs")] } });
 const n3 = loadSources().roots;
+// req: R-214
 check("between two discovered roots the ANCESTOR is kept and the descendant dropped",
 	has(n3, path.join(parent2, "repoF", "docs")) && !has(n3, path.join(parent2, "repoF", "docs", "nested", "docs")));
+// req: R-214
 check("a shared PREFIX is not containment (…/repoF/doc does not swallow …/repoF/docs)",
 	has(n1, path.join(parent2, "repoF", "docs")));
 
@@ -156,6 +180,7 @@ try { nestStats = await build(); } catch (e) { nestErr = e; }
 check("a REAL build with an explicit root nested in a discovered one does not throw",
 	nestErr === null && nestStats !== null);
 if (nestErr) console.log("     build threw:", nestErr.message);
+// req: R-214
 check("each file is indexed exactly once", nestStats && nestStats.files === 3 && nestStats.rows === 3);
 const dbN = await openDb(path.join(hN4, "index.db"), {});
 check("the explicit (nested) root is the one that survives", search(dbN, "oscar papa", 5).length === 1);
@@ -170,8 +195,10 @@ const stats = await build();
 check("a discovered root is indexed", stats.files === 3 && stats.rows === 3);
 const db = await openDb(path.join(h5, "index.db"), {});
 check("its article is searchable", search(db, "alpha bravo", 5).length === 1);
+// req: R-202
 check("a default-excluded dir under a discovered root is not walked (reviews/)",
 	search(db, "reviewer prose", 5).length === 0);
+// req: R-213
 check("a CONFIGURED exclude name is skipped the same way (drafts/)",
 	search(db, "echoecho", 5).length === 0);
 db.close();
@@ -179,7 +206,9 @@ db.close();
 // --- status marks them ---
 const status = cp.spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "status"],
 	{ encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: h5 } });
+// req: R-216
 check("status exits 0", status.status === 0);
+// req: R-216
 check("status marks discovered roots", (status.stdout.match(/\(discovered\)/g) ?? []).length === 3);
 
 fs.rmSync(td, { recursive: true, force: true });

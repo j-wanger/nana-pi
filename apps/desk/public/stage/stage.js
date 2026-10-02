@@ -1,3 +1,19 @@
+/**
+ * @module apps/desk/public/stage/stage.js
+ * @purpose The stage host page: stage, drawer and gate bar over one app listener, filling an
+ *  app-owned layout from signed nana-blocks.
+ * @inputs the DOM of stage/index.html; /api/manifest, /api/session, /api/entries and the
+ *  /api/events SSE stream on that app's own origin; /blocks.mjs for the reducer, /desk-client.mjs
+ *  and /md.js; mouse and key events; localStorage key stage-drawer
+ * @outputs renders the stage blocks, the turns drawer and the gate bar; exports compose(text,
+ *  {send}) and publishes window.stage for the app page; POSTs prompts, ui-responses and aborts to
+ *  its listener; persists the drawer state to localStorage
+ * @effects network (fetch and EventSource against the app's own loopback origin), disk (browser
+ *  localStorage only)
+ * @errors none thrown — a failed request, a rejected prompt, an extension_error or a session exit
+ *  surfaces as an error toast and clears the open gates, and a reconnect (a second desk_hello)
+ *  triggers a full replay instead of a partial paint
+ */
 // stage.js — the stage host (design §3.3): stage + drawer + gate bar over one
 // app listener. Second consumer of desk-client.mjs; the reducer/contract come
 // from blocks.mjs. The layout is fixed and app-owned; the agent only fills it.

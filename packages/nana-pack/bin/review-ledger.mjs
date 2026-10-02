@@ -1,4 +1,18 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-pack/bin/review-ledger.mjs
+ * @purpose The review round cap as a hook for any launcher — `run` reserves a round around a command and
+ *  records its verdict, `check` asks whether one would be admitted.
+ * @inputs argv (`run --item <slug> --out <file> [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
+ *  `check --item <slug> [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
+ * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
+ *  `check`, and the admission note, warnings and refusals on stderr
+ * @effects process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the
+ *  exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files)
+ * @errors exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
+ *  admission, an unwritable --out, or a non-zero / non-review-shaped result (the reservation is returned
+ *  and no round consumed); exit 0 otherwise
+ */
 // review-ledger.mjs — the review round cap for ANY launcher (T2b). Same ledger and rules as
 // pi-review (see review-round.mjs); this is the hook a hand-rolled launcher calls.
 //

@@ -1,0 +1,251 @@
+{
+  "$comment": "G-012: every README this repo ships is a contract — every command, path, flag and script name it states must exist and run as written, and a reader must be able to install, run and test from it alone. Checked by scripts/readme-check.mjs, a shim over the checker the templates ship. A path claim is read relative to the README that makes it AND to the repo root; 'externalPaths' declares, with a reason each, the tokens that name something this project does not own.",
+  "readmes": [
+    "README.md",
+    "packages/nana-pack/README.md",
+    "packages/nana-knowledge/README.md",
+    "packages/nana-stage/README.md",
+    "packages/nana-setup/README.md",
+    "apps/desk/README.md",
+    "apps/bench/README.md"
+  ],
+  "undocumented": [],
+  "externalPaths": [
+    {
+      "path": "auth.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "settings.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "models.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "mcp.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "trust.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "nana-pack.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "nana-objective.md",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "handoffs",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "agents",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": "nana-desk/stage-keys",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
+    },
+    {
+      "path": ".pi",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".pi/",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".claude/settings.json",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".agents/skills",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "OBJECTIVE.md",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "docs/sessions/README.md",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".copier-answers.yml",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "AGENTS.override.md",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": ".github/workflows",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "SYSTEM.md",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "APPEND_SYSTEM.md",
+      "reason": "a file in a project that INSTALLS this pack, not in this repo — nana-pi has no `.pi/`, no `.claude/` and no OBJECTIVE.md of its own (the umbrella objective lives in ~/nana-agent-loop)"
+    },
+    {
+      "path": "dist",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "dist/",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "pi-ai/",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "models.ts",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "types.ts",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "session-manager.js",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "lockfile.js",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "docs/json.md",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "docs/session-format.md",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "docs/windows.md",
+      "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
+    },
+    {
+      "path": "sources.json",
+      "reason": "a file in a knowledge store or knowledge home on the machine (`NANA_KNOWLEDGE_HOME`, else `~/.pi/agent/nana-knowledge/`), or a directory name INSIDE a wiki root"
+    },
+    {
+      "path": "build.lock",
+      "reason": "a file in a knowledge store or knowledge home on the machine (`NANA_KNOWLEDGE_HOME`, else `~/.pi/agent/nana-knowledge/`), or a directory name INSIDE a wiki root"
+    },
+    {
+      "path": "raw",
+      "reason": "a file in a knowledge store or knowledge home on the machine (`NANA_KNOWLEDGE_HOME`, else `~/.pi/agent/nana-knowledge/`), or a directory name INSIDE a wiki root"
+    },
+    {
+      "path": "reviews",
+      "reason": "a file in a knowledge store or knowledge home on the machine (`NANA_KNOWLEDGE_HOME`, else `~/.pi/agent/nana-knowledge/`), or a directory name INSIDE a wiki root"
+    },
+    {
+      "path": "study.json",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "schedule.json",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "summary.json",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "summary.md",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "fingerprint.txt",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "argv.txt",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "stderr.txt",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "assets",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "fixture",
+      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
+    },
+    {
+      "path": "review-ledger.lock",
+      "reason": "written beside a review ledger at run time, never committed"
+    },
+    {
+      "path": "review-ledger.reservations",
+      "reason": "written beside a review ledger at run time, never committed"
+    },
+    {
+      "path": "out.md",
+      "reason": "written beside a review ledger at run time, never committed"
+    },
+    {
+      "path": "foo.ts",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "script.py",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "..notes.md",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "1/2",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "String/Number/Array/Object/Function/Error/TextEncoder/Uint8Array",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "Usage/calculateCost/ModelRuntime",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "missing/AGENTS.md",
+      "reason": "an illustration in the prose — an example filename, a sample of the pack's own chip output, a list of JS globals — not a path here"
+    },
+    {
+      "path": "shared",
+      "reason": "the per-project symlink name under `~/.claude/projects/<key>/memory/`, created by the SessionStart hook"
+    },
+    {
+      "path": "nana-pi/",
+      "reason": "relative to the directory you cloned INTO — the install snippet's `git clone` puts `nana-pi/` beside you — not a path inside this repo"
+    },
+    {
+      "path": ".aws/credentials",
+      "reason": "a credential path on the machine that the gate's protected floor names; never a file in this repo"
+    },
+    {
+      "path": ".config/gh/hosts.yml",
+      "reason": "a credential path on the machine that the gate's protected floor names; never a file in this repo"
+    }
+  ]
+}

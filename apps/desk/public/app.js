@@ -1,3 +1,18 @@
+/**
+ * @module apps/desk/public/app.js
+ * @purpose The desk page: it drives every view (rail, live transcript, composer, historical
+ *  sessions, settings, spawn popover) against the desk's /api surfaces.
+ * @inputs the DOM of public/index.html; the /api/* JSON routes and the per-session SSE stream;
+ *  keyboard, paste, scroll and visibility events; localStorage keys nana-code-theme,
+ *  nana-code-rail, desk-collapsed and desk-append-sp
+ * @outputs renders the whole page and its dialogs; POSTs prompts, steers, bash, aborts, spawns,
+ *  renames, title derivation, settings/mcp/nana-pack/agents/context-file writes and session
+ *  exports; persists view preferences to localStorage
+ * @effects network (fetch and EventSource against the desk origin), disk (browser localStorage
+ *  only)
+ * @errors none thrown to the host — a failed request surfaces as a toast or an inline error, and
+ *  a response for a stage the user has left is dropped without painting
+ */
 import { mdToHtml } from "./md.js";
 
 import {

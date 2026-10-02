@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-knowledge/tests/extension.test.mjs
+ * @purpose Pins that the pi extension is ONE thin wrapper around the hook CLI — fail-open on every child failure, never a reject out of before_agent_start, and no sqlite inside pi's process
+ * @inputs extensions/nana-knowledge.ts, bin/nana-knowledge.ts, and a temp NANA_KNOWLEDGE_HOME with a markdown source tree
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Gate: the pi extension is ONE THIN WRAPPER around the hook CLI — fail-open on every
 // child failure, never a reject out of before_agent_start, and no node:sqlite inside
 // pi's own process. It runs on every prompt the owner types; a throw here is a dead turn.
@@ -35,6 +43,7 @@ const HEADER = "[nana:knowledge] untrusted search pointers for this prompt";
 // The real default export, driven through a fake pi that just records handlers.
 const handlers = {};
 ext({ on: (name, fn) => { handlers[name] = fn; } });
+// req: R-233
 check("registers exactly one before_agent_start handler", Object.keys(handlers).join(",") === "before_agent_start");
 
 const ctxFor = (sessionId) => ({
@@ -50,20 +59,27 @@ const logLines = () => {
 // (1) a real prompt injects a displayed nana-knowledge message
 const r1 = await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s1"));
 check("1: a real prompt returns a message", !!r1?.message);
+// req: R-233
 check("1: customType is nana-knowledge", r1?.message?.customType === "nana-knowledge");
+// req: R-233
 check("1: display is true (the owner sees what the agent sees)", r1?.message?.display === true);
+// req: R-233
 check("1: content is the untrusted-pointers block", typeof r1?.message?.content === "string" && r1.message.content.startsWith(HEADER));
+// req: R-233
 check("1: no systemPrompt mutation", r1 !== undefined && !("systemPrompt" in r1));
 
 // (2) the pull is logged as a pi pull, under pi's session id
 {
 	const last = logLines().at(-1);
+	// req: R-234
 	check("2: pull.log carries the pi session id", last?.session_id === "pi-s1");
+	// req: R-231 R-234
 	check('2: pull.log carries source "pi"', last?.source === "pi");
 	check("2: pull.log carries the cwd the extension was given", last?.cwd === td);
 }
 
 // (3) dedup lives in the CHILD: the same prompt in the same session injects nothing
+// req: R-234
 check("3: same prompt, same session → undefined", (await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s1"))) === undefined);
 
 // (4) ...and a different session id gets the pointers again
@@ -81,6 +97,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	const t0 = Date.now();
 	const out = await makePull({ bin: hang, timeoutMs: 200 })({ prompt: "pi review round cap", sessionId: "pi-hang", cwd: td });
 	const ms = Date.now() - t0;
+	// req: R-234
 	check("5: a hung child yields null", out === null);
 	check(`5: and the deadline actually fires (${ms} ms)`, ms < 1500);
 }
@@ -104,6 +121,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 		new Promise((r) => setTimeout(() => r("STILL-HANGING"), 3000)),
 	]);
 	const ms = Date.now() - t0;
+	// req: R-234
 	check("5b: a child whose callback never fires still yields null", out === null);
 	check(`5b: ...near the deadline, on the handler's OWN timer (${ms} ms)`, ms >= 150 && ms < 1000);
 	check("5b: the kill is attempted after resolving, with SIGKILL", kills.length === 1 && kills[0] === "SIGKILL");
@@ -115,6 +133,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	let out = "unset";
 	try { out = await makePull({ bin: "/nonexistent/x.ts" })({ prompt: "pi review round cap", sessionId: "pi-enoent", cwd: td }); }
 	catch { threw = true; }
+	// req: R-234
 	check("6: a missing bin does not throw", !threw);
 	check("6: a missing bin yields null", out === null);
 }
@@ -133,6 +152,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 // past the cap, so a pull that found them would prove the whole prompt went down the pipe.
 {
 	const fat = "x".repeat(PROMPT_MAX_CHARS + 500) + " pi review round cap reviewer repeats";
+	// req: R-227
 	check("8: tokens past the cap do not drive the query", (await handlers.before_agent_start({ prompt: fat }, ctxFor("pi-cap"))) === undefined);
 	// ...and directly: an echo child reports the length it actually received.
 	const echo = path.join(td, "echo-len.mjs");
@@ -162,6 +182,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	]) + "process.stdout.write((r?.message ? 'PULLED' : 'NOPULL') + ' ' + (hits.length ? hits.join('|') : 'NONE'));\n");
 	const out = execFileSync(process.execPath, [probe], { encoding: "utf8", env: { ...process.env, NODE_NO_WARNINGS: "1" } });
 	check(`9: a real pull happened in the probe (${out})`, out.startsWith("PULLED "));
+	// req: R-233
 	check("9: ...and node:sqlite never loaded in the extension's process", out.endsWith(" NONE"));
 	// Control, so the check above is measuring something real rather than a filter that
 	// can never match: node:sqlite is loaded LAZILY (lib/db.ts loadSqlite), so the thing
@@ -194,6 +215,7 @@ for (const [label, prompt] of [["undefined", undefined], ["a number", 12345], ["
 	let r = "unset";
 	try { r = await handlers.before_agent_start({ prompt: "" }, ctxFor("pi-empty")); } catch { threw = true; }
 	check("11: an empty prompt does not throw", !threw);
+	// req: R-234
 	check("11: ...and injects nothing (the producer skips it)", r === undefined);
 }
 

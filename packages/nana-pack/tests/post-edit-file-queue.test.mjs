@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/post-edit-file-queue.test.mjs
+ * @purpose Pins that a post-edit checker holds pi's per-file mutation queue while it runs and REFUSES to run when it cannot hold it, so no formatter overwrites a newer sibling edit
+ * @inputs extensions/nana-post-edit.ts, pi's file-mutation-queue module, and a temp HOME with a workspace and configured checkers
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -59,6 +67,7 @@ const jiti = createJiti(import.meta.url, {
 const ext = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
 // the same resolved file URL the alias points at, so this is pi's own instance
 const { withFileMutationQueue } = await import(pathToFileURL(packageIndex).href);
+// req: R-090
 check("pi's file-mutation queue is importable", typeof withFileMutationQueue === "function");
 
 const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-queue-"));
@@ -100,12 +109,14 @@ const readOrder = () => (fs.existsSync(orderLog) ? fs.readFileSync(orderLog, "ut
 	// bounded wait: if the checker is NOT gated it runs immediately, and this catches it
 	const deadline = Date.now() + 1500;
 	while (Date.now() < deadline && !readOrder().includes("checker")) await sleep(25);
+	// req: R-090
 	check("checker is gated while pi holds the file's mutation queue", !readOrder().includes("checker"));
 
 	fs.appendFileSync(orderLog, "released\n");
 	release();
 	await holder;
 	await fired;
+	// req: R-090
 	check("checker ran strictly after the queue was released", readOrder() === "released\nchecker\n");
 }
 
@@ -129,9 +140,12 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 		fs.chmodSync(vault, 0o755);
 	}
 	const text = ret?.content?.at(-1)?.text ?? "";
+	// req: R-091
 	check("b: unlockable file does not silently run the checker", readOrder() === before);
+	// req: R-091
 	check("b: refusal is fed back to the model", text.includes("did not run") && text.includes("could not lock"));
 	const r = readLatestReceipt(loadConfig(ctx), ws, cmd);
+	// req: R-091
 	check("b: receipt records not_run (never passed)", r?.status === "not_run");
 	check("b: receipt claims no content binding", Array.isArray(r?.inputs) && r.inputs.length === 0 && r.digest === "");
 }

@@ -1,3 +1,23 @@
+/**
+ * @module apps/desk/apps.mjs
+ * @purpose Run one dedicated loopback listener per app manifest, each its own browser origin
+ *  carrying only the routes a stage page needs.
+ * @inputs the apps dir of <name>.json manifests (default ~/.pi/agent/apps, DESK_APPS_DIR); the
+ *  desk server's child primitives via `deps`; static `dirs` (kit stage page, /desk-client.mjs,
+ *  /md.js, /blocks.mjs from packages/nana-stage, an optional manifest `page` dir); env HOME,
+ *  DESK_READY_BOUND_MS, DESK_DATA_TIMEOUT_MS, DESK_DATA_OUTPUT_CAP
+ * @outputs exports
+ *  verifiedBlocks/loadManifests/normalizeManifest/writeManifestSession/startAppListeners; serves
+ *  each app's page plus /api/session, /api/events (SSE), /api/prompt, /api/ui-response,
+ *  /api/abort, /api/entries, /api/manifest and POST /api/data/<key>; rewrites the manifest's
+ *  `session` atomically after a spawn
+ * @effects disk (reads manifests, rewrites the manifest session file), process (spawns the app's
+ *  pi child and the manifest's data commands), network (one 127.0.0.1 listener per app)
+ * @errors per-route JSON {error} at 400/403/404/409; a malformed manifest is skipped with a
+ *  logged reason instead of throwing; a prompt is refused while the manifest's tools are not
+ *  `ready`; a data command that fails, exceeds DESK_DATA_OUTPUT_CAP or times out is relayed as an
+ *  error
+ */
 // apps.mjs — one listener PER APP for the UI-centric frontend
 // (docs/agent-frontend-design-2026-09-04.md §3.4).
 //

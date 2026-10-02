@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/checkers.test.mjs
+ * @purpose Pins every checker type positive and negative, plus the grader-error boundary that keeps an oracle outage from being recorded as a wrong answer
+ * @inputs lib/checkers.mjs and temp workspaces and fixture trees
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp workspaces and fixture trees), process (spawns the commands a checker runs)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Every checker type, positive and negative, plus the grader-error boundary. Checkers decide the
 // study's success metric, so a checker that passes when it should fail silently invents a result,
 // and an oracle outage recorded as a wrong answer silently invents a different one.
@@ -33,6 +41,7 @@ try {
 	// exact — whole is the DEFAULT now
 	check("exact: default mode is whole", runCheck({ type: "exact", value: "7" }, at("  7 ")).pass);
 	check("exact: default whole REJECTS surrounding prose", !runCheck({ type: "exact", value: "7" }, at("the answer is 7")).pass);
+	// req: R-522
 	check("exact: 304 does not match 1304 under whole", !runCheck({ type: "exact", value: "304" }, at("1304")).pass);
 	check("exact: a trailing period is tolerated", runCheck({ type: "exact", value: "dereference" }, at("dereference.")).pass);
 	check("exact: contains is opt-in", runCheck({ type: "exact", value: "BSD-3-Clause", mode: "contains" }, at("The license is BSD-3-Clause.")).pass);
@@ -64,6 +73,7 @@ try {
 	fs.writeFileSync(path.join(dir, "suite-partial.mjs"), 'console.log("PASS a");console.log("FAIL b");process.exit(0);\n');
 	check("suite: passes on the expected PASS count", runCheck({ type: "suite", argv: ["node", "suite-ok.mjs"], passLines: 3 }, at("")).pass);
 	const early = runCheck({ type: "suite", argv: ["node", "suite-early.mjs"], passLines: 3 }, at(""));
+	// req: R-523
 	check("suite: an EARLY EXIT that still exits 0 is caught", early.pass === false && !early.graderError, early.detail.slice(0, 110));
 	check("suite: a wrong PASS count is a model failure, not a grader error", runCheck({ type: "suite", argv: ["node", "suite-ok.mjs"], passLines: 4 }, at("")).graderError !== true);
 	check("suite: a forbidden line fails even at the right count", !runCheck({ type: "suite", argv: ["node", "suite-partial.mjs"], passLines: 1, forbid: "^FAIL " }, at("")).pass);
@@ -102,6 +112,7 @@ try {
 	const exited = runCheck({ type: "eval-module", module: "exiting.mjs", probes }, at(""));
 	check("eval-module: a module that exits during import cannot pass", exited.pass === false, exited.detail.slice(0, 120));
 	const forging = runCheck({ type: "eval-module", module: "forging.mjs", probes }, at(""));
+	// req: R-524
 	check("eval-module: a FORGED verdict on fd 3 is rejected (bad HMAC)", forging.pass === false);
 	check("eval-module: …and the real verdict still reports the wrong behaviour", /got 12, want 8/.test(forging.detail), forging.detail.slice(0, 130));
 	check("eval-module: tampering with fs/JSON after import does not stop the verdict", forging.detail.includes("probe"));
@@ -118,12 +129,15 @@ try {
 	const baseline = hashTree(dir);
 	fs.writeFileSync(path.join(dir, "hello.txt"), "alpha beta gamma\n");
 	check("changed-paths: an allowed edit passes", runCheck({ type: "changed-paths", allow: ["hello.txt"] }, at("", { baseline })).pass);
+	// req: R-529
 	check("changed-paths: an edit outside the allowlist FAILS", !runCheck({ type: "changed-paths", allow: ["other.txt"] }, at("", { baseline })).pass);
 	check("changed-paths: names the offending file", runCheck({ type: "changed-paths", allow: [] }, at("", { baseline })).detail.includes("hello.txt"));
 	fs.writeFileSync(path.join(dir, "extra.mjs"), "//\n");
 	check("changed-paths: a NEW file outside the allowlist fails", !runCheck({ type: "changed-paths", allow: ["hello.txt"] }, at("", { baseline })).pass);
 	check("changed-paths: glob allows a whole subtree", runCheck({ type: "changed-paths", allow: ["**"] }, at("", { baseline })).pass);
+	// req: R-529
 	check("changed-paths: bench-owned assets are never counted as the model's edits", runCheck({ type: "changed-paths", allow: ["hello.txt"] }, at("", { baseline, benchPaths: ["extra.mjs"] })).pass);
+	// req: R-529
 	check("changed-paths: protect catches a modified protected file", !runCheck({ type: "changed-paths", allow: ["**"], protect: ["hello.txt"] }, at("", { baseline })).pass);
 	fs.unlinkSync(path.join(dir, "extra.mjs"));
 	fs.unlinkSync(path.join(dir, "hello.txt"));
@@ -151,11 +165,13 @@ try {
 		};
 		check("withinLines: a change inside the declared function passes", runCheck(rule, ctxFor(inRange)).pass);
 		const out = runCheck(rule, ctxFor(outOfRange));
+		// req: R-529
 		check("withinLines: a change outside it is rejected", out.pass === false && /outside the declared range/.test(out.detail), out.detail.slice(0, 120));
 		check("withinLines: an insertion inside the range is allowed to shift later lines", runCheck(rule, ctxFor(extraLines)).pass, runCheck(rule, ctxFor(extraLines)).detail.slice(0, 110));
 		check("withinLines without pre-run content is a grader error, not a pass", runCheck(rule, { finalText: "", dir, baseline: base }).graderError === true);
 		// The token denylist is deliberately gone: it was bypassable from inside the allowed lines,
 		// so it implied protection it did not give. Behaviour evaluation replaced it.
+		// req: R-529
 		check("a denylist is no longer part of the shape rule", !("DENY_ADDED" in (await import("../lib/checkers.mjs"))));
 		fs.writeFileSync(path.join(dir, "target.mjs"), before);
 	}
@@ -164,10 +180,13 @@ try {
 	fs.writeFileSync(path.join(dir, "guard.test.mjs"), 'import { guarded } from "./src.mjs";\nif (!guarded) { console.log("FAIL guard missing"); process.exit(1); }\nconsole.log("PASS guard present");\n');
 	check("revert-and-fail: a real test fails once the fix is reverted", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "guard.test.mjs"]] }, at("")).pass);
 	fs.writeFileSync(path.join(dir, "vacuous.test.mjs"), "process.exit(0);\n");
+	// req: R-530
 	check("revert-and-fail: a vacuous test that always passes is REJECTED", !runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "vacuous.test.mjs"]] }, at("")).pass);
 	check("revert-and-fail: restoring a file the fixture lacks is a grader error", runCheck({ type: "revert-and-fail", restore: ["nope.mjs"], commands: [["node", "vacuous.test.mjs"]] }, at("")).graderError === true);
 	// astra checkers.mjs:198 — a spawn failure or a timeout is NOT evidence the test detected anything
+	// req: R-530
 	check("revert-and-fail: an unspawnable command is a GRADER error, not proof of detection", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["definitely-not-a-binary-xyz"]] }, at("")).graderError === true);
+	// req: R-530
 	check("revert-and-fail: a HANGING command is a GRADER error, not proof of detection", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "hang.mjs"]], timeoutMs: 700 }, at("")).graderError === true);
 	fs.writeFileSync(path.join(dir, "silent-fail.mjs"), "process.exit(3);\n");
 	check("revert-and-fail: a silent nonzero exit is accepted by default (a minimal test may be silent)", runCheck({ type: "revert-and-fail", restore: ["src.mjs"], commands: [["node", "silent-fail.mjs"]] }, at("")).pass);
@@ -178,12 +197,15 @@ try {
 	check("live-key: key found", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('KEY-42')"] }, at("KEY-42")).pass);
 	check("live-key: whole matching by default rejects a superstring", !runCheck({ type: "live-key", argv: ["node", "-e", "console.log('42')"] }, at("142")).pass);
 	check("live-key: a failing oracle is a GRADER error", runCheck({ type: "live-key", argv: ["node", "-e", "process.exit(1)"] }, at("anything")).graderError === true);
+	// req: R-530
 	check("live-key: an empty key is a GRADER error (never grades against nothing)", runCheck({ type: "live-key", argv: ["node", "-e", "process.stdout.write('')"] }, at("x")).graderError === true);
 	check("live-key: schema mismatch is a GRADER error", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('<html>oops')"], schema: "^[0-9.]+$" }, at("x")).graderError === true);
 	check("live-key: a sentinel from `reject` is a GRADER error", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('DRIFT')"], reject: "^DRIFT$" }, at("x")).graderError === true);
+	// req: R-530
 	check("live-key: a pinned value that drifted is a GRADER error, not a wrong answer", runCheck({ type: "live-key", expect: "abc", argv: ["node", "-e", "console.log('xyz')"] }, at("abc")).graderError === true);
 	check("live-key: a pinned value that agrees grades normally", runCheck({ type: "live-key", expect: "abc", argv: ["node", "-e", "console.log('abc')"] }, at("abc")).pass);
 	// the snapshot: one key per comparison block, so two arms are never graded against two fetches
+	// req: R-530
 	check("live-key: snapshotKey is used INSTEAD of re-fetching", runCheck({ type: "live-key", argv: ["node", "-e", "process.exit(1)"] }, at("SNAP", { snapshotKey: "SNAP" })).pass);
 	check("live-key: snapshotKey still honours the pin", runCheck({ type: "live-key", expect: "abc", argv: ["node", "-e", "process.exit(1)"] }, at("SNAP", { snapshotKey: "SNAP" })).graderError === true);
 
@@ -194,15 +216,21 @@ try {
 	// astra checkers.mjs:230-237 — short-circuiting on an ordinary failure hid a LATER grader error
 	// and recorded a harness fault as a model failure.
 	const dominated = runCheck({ type: "all", checks: [{ type: "exact", value: "zzz" }, { type: "regex", pattern: "([" }] }, at("a"));
+	// req: R-531
 	check("all: a grader error AFTER an ordinary failure still dominates", dominated.graderError === true, dominated.detail.slice(0, 110));
+	// req: R-531
 	check("all: every child runs, so the detail reports all of them", dominated.detail.includes("exact:FAIL") && dominated.detail.includes("regex:GRADER-ERROR"));
 
 	// the block-level oracle snapshot: a failed oracle must NOT be refetched per arm
 	check("live-key: a failed block snapshot is a grader error without refetching", runCheck({ type: "live-key", argv: ["node", "-e", "console.log('KEY')"] }, at("KEY", { snapshotFailed: "HTTP 503" })).graderError === true);
 
+	// req: R-522
 	check("unknown checker type is a grader error", runCheck({ type: "vibes" }, at("x")).graderError === true);
+	// req: R-523
 	check("the forgeable trusted-suite checker is gone", !CHECKER_TYPES.includes("trusted-suite"));
+	// req: R-523
 	check("behaviour evaluation replaced it", CHECKER_TYPES.includes("eval-module"));
+	// req: R-522
 	check("no LLM-judge checker exists", !CHECKER_TYPES.some((t) => /judge|llm|model|rubric/i.test(t)), CHECKER_TYPES.join(","));
 	check("liveKeyOf finds the single live key inside an `all`", liveKeyOf({ type: "all", checks: [{ type: "file" }, { type: "live-key", argv: [] }] })?.type === "live-key");
 	check("liveKeyOf returns null when there is none", liveKeyOf({ type: "all", checks: [{ type: "file" }] }) === null);

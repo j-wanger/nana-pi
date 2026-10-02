@@ -1,3 +1,14 @@
+/**
+ * @module packages/nana-stage/lib/sign.mjs
+ * @purpose HMAC-SHA256 provenance signature over a block's canonical JSON, so only the holder of the
+ *  per-session key can put a block on a stage.
+ * @inputs the per-session key (NANA_STAGE_KEY, held by the caller) and a block object; `produced_by.sig` is
+ *  excluded from the signed payload
+ * @outputs the 64-char hex signature (signBlock), a timing-safe boolean verdict (verifyBlock), and the
+ *  canonical sorted-key JSON string (canonical)
+ * @effects none
+ * @errors none — a missing, non-string or wrong-length signature is a false verdict, never a throw
+ */
 // sign.mjs — the provenance signature (node only: extension + desk server).
 //
 // The desk hands every app child a random per-session key (NANA_STAGE_KEY);

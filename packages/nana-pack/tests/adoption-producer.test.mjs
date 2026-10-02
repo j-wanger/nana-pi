@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/adoption-producer.test.mjs
+ * @purpose Pins the L5 adoption producer — `directory_unadopted` is journaled once per repository root per day, only for the shapes that qualify, and nothing about adoption reaches the prompt
+ * @inputs extensions/nana-handoff.ts, lib/adoption.mjs, a nana-pack.json journal config under a temp HOME, and throwaway git repositories
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, journal and repository fixtures under the OS temp dir), process (sets HOME and USERPROFILE, spawns git)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -54,20 +62,26 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	const src = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
 	check("one store: extension storePathFor/storeDir/canonicalCwd ARE lib/adoption.mjs's", mod.storePathFor === lib.storePathFor && mod.storeDir === lib.storeDir && mod.canonicalCwd === lib.canonicalCwd);
 	check("one store: no createHash / storeDir definition left in the extension", !src.includes("createHash") && !/(const|function) (storeDir|storePathFor|canonicalCwd)\b/.test(src));
+	// req: R-108
 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
 }
 
 // (a) written once for a repo root with nothing — the line as emitted
 {
 	const r = repo("bare", ["AGENTS.md", "docs/sessions/"]);
+	// req: R-144
 	check("a: prompt unchanged (BASE)", (await prompt(r)) === "BASE");
 	const got = reportsFor(r);
+	// req: R-143
 	check("a: one directory_unadopted line for the root", got.length === 1, JSON.stringify(got));
 	console.log(`  emitted: ${fs.readFileSync(JOURNAL, "utf-8").split("\n").find((l) => l.includes('"directory_unadopted"'))}`);
+	// req: R-143
 	check("a: has = what the root shows", JSON.stringify(got[0]?.has) === JSON.stringify({ handoff: false, objective: false, agents: true, sessions: true }));
+	// req: R-143
 	check("a: ts is ISO", !Number.isNaN(Date.parse(got[0]?.ts)));
 	await prompt(r);
 	await prompt(mk(path.join(r, "src")));
+	// req: R-146
 	check("a: NOT written by a second session the same day (root or subdir)", reportsFor(r).length === 1);
 	check("a: the subdirectory is never the reported path", reportsFor(path.join(r, "src")).length === 0);
 }
@@ -76,6 +90,7 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	const r = repo("sub-only");
 	await prompt(mk(path.join(r, "pkg", "leaf")));
 	const got = reportsFor(r);
+	// req: R-145
 	check("a: a session in a subdirectory reports the repository root", got.length === 1 && JSON.stringify(got[0].has) === JSON.stringify({ handoff: false, objective: false, agents: false, sessions: false }));
 }
 // no .git anywhere above
@@ -85,6 +100,7 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	else {
 		const before = reports().length;
 		check("a: no .git above → prompt BASE", (await prompt(plain)) === "BASE");
+		// req: R-147
 		check("a: no .git above → no line", reports().length === before);
 	}
 }
@@ -93,6 +109,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const r = repo(`adopted-${files[0]}`, files);
 	await prompt(r);
 	await prompt(mk(path.join(r, "src")));
+	// req: R-158
 	check(`a: ${label} → no line (root and subdir)`, reportsFor(r).length === 0 && reports().every((x) => !x.cwd.startsWith(r)));
 }
 // a root with a store entry: a subdir session is missing but the ROOT is adopted
@@ -110,6 +127,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	fs.mkdirSync(path.dirname(mod.storePathFor(r)), { recursive: true });
 	fs.writeFileSync(mod.storePathFor(r), Buffer.from([0xff, 0xfe, 0x41]));
 	await prompt(r);
+	// req: R-147
 	check("a: unreadable store → handoff_pickup_failed, no line", fs.readFileSync(JOURNAL, "utf-8").includes('"handoff_pickup_failed"') && reportsFor(r).length === 0);
 }
 // a configured handoff.path is a deliberate adoption
@@ -118,6 +136,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	cfg({ handoff: { path: path.join(base, "nowhere", "h.md") } });
 	await prompt(r);
 	cfg();
+	// req: R-147
 	check("a: configured handoff.path → no line", reportsFor(r).length === 0);
 }
 // NANA_HANDOFF=off returns before it
@@ -126,6 +145,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	process.env.NANA_HANDOFF = "off";
 	await prompt(r);
 	delete process.env.NANA_HANDOFF;
+	// req: R-147
 	check("a: NANA_HANDOFF=off → no line", reportsFor(r).length === 0);
 }
 // (b) a linked worktree (.git FILE) is its own root, even nested inside another repo
@@ -134,6 +154,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const wt = mk(path.join(outer, "wt"));
 	fs.writeFileSync(path.join(wt, ".git"), `gitdir: ${outer}/.git/worktrees/wt\n`);
 	await prompt(mk(path.join(wt, "src")));
+	// req: R-145
 	check("b: a linked worktree is reported as its own root", reportsFor(wt).length === 1 && reportsFor(outer).length === 0);
 }
 // a symlinked repo root is one canonical entry
@@ -143,6 +164,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	fs.symlinkSync(r, link);
 	await prompt(link);
 	await prompt(r);
+	// req: R-145
 	check("symlinked root: reported once, under the canonical path", reportsFor(r).length === 1 && reportsFor(link).length === 0);
 }
 // the 24h window: a report older than a day does not suppress a new one
@@ -150,6 +172,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const r = repo("stale-report");
 	fs.appendFileSync(JOURNAL, `${JSON.stringify({ ts: new Date(Date.now() - 25 * 3_600_000).toISOString(), event: "directory_unadopted", cwd: r, has: {} })}\n`);
 	await prompt(r);
+	// req: R-146
 	check("24h: a report 25h old → a new line", reportsFor(r).length === 2);
 }
 // a huge journal is read by its tail only
@@ -157,6 +180,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const big = path.join(base, "big.jsonl");
 	fs.writeFileSync(big, `${"x".repeat(1024)}\n`.repeat(2048));
 	const lines = lib.tailLines(big);
+	// req: R-146
 	check("tail: a 2 MiB journal yields ≤ 256 KiB of whole lines", lines.join("\n").length <= lib.TAIL_BYTES && lines.every((l) => l.length === 1024));
 	check("tail: absent journal → []", lib.tailLines(path.join(base, "absent.jsonl")).length === 0);
 }
@@ -164,6 +188,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 {
 	const r = repo("no-journal");
 	cfg({ journal: { enabled: true, path: path.join(base, "missing-dir", "j.jsonl") } });
+	// req: R-161
 	check("journal unwritable: prompt still BASE, no throw", (await prompt(r)) === "BASE");
 	cfg();
 }
@@ -184,11 +209,16 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	fs.writeFileSync(path.join(r, ".pi", "nana-pack.json"), JSON.stringify({ journal: { path: projJ } }));
 	const { loadConfig, usePiTrustModule } = await import(new URL("../lib/config.ts", import.meta.url).href);
 	usePiTrustModule({ hasTrustRequiringProjectResources: () => true, ProjectTrustStore: class { get() { return true; } } }); // nana-trusted
+	// req: R-160
 	check("journal: the project journal.path IS honoured by config (test is not vacuous)", loadConfig({ cwd: r, hasUI: false, isProjectTrusted: () => true }).journal.path === projJ);
 	await prompt(r);
+	// req: R-148
 	check("journal: project journal.path does NOT capture directory_unadopted", !(fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"directory_unadopted"')));
+	// req: R-148
 	check("journal: …the user-scope journal does", reportsFor(r).length === 1);
+	// req: R-148 R-159
 	check("journal: …other events still follow the project journal.path", fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"handoff_missing"'));
+	// req: R-160
 	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
 	// relative user-scope path: producer (pi cwd = r2) and reader (another cwd) both use the default
 	const r2 = repo("relative-user");
@@ -201,6 +231,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const out = reader(NANA_HOME).stdout;
 	cfg();
 	const inDefault = fs.existsSync(DEFAULT_J) && fs.readFileSync(DEFAULT_J, "utf8").split("\n").some((l) => l.includes('"directory_unadopted"') && l.includes(JSON.stringify(r2)));
+	// req: R-148
 	check("journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl", inDefault);
 	check("journal: …not to a cwd-relative file", !fs.existsSync(path.resolve(relJ)) || !fs.readFileSync(path.resolve(relJ), "utf8").includes('"directory_unadopted"'));
 	check("journal: …and the reader, from another cwd, lists it", listed(out, r2), out);
@@ -210,6 +241,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const r = repo("nl\n## FORGED");
 	await prompt(r);
 	await prompt(r);
+	// req: R-149
 	check("unprintable root: no directory_unadopted line", reportsFor(r).length === 0 && !fs.readFileSync(JOURNAL, "utf8").includes("FORGED\",\"has"));
 }
 // the configured objective filename counts as adoption (sol r1 MUST 5), in producer and reader alike
@@ -217,16 +249,19 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const r = repo("renamed-objective", ["GOALS.md"]);
 	cfg({ objective: { projectFile: "GOALS.md" } });
 	await prompt(r);
+	// req: R-150
 	check("objective: GOALS.md with objective.projectFile=GOALS.md → adopted, no line", reportsFor(r).length === 0);
 	check("objective: adoptionSettings() names it", lib.adoptionSettings().objectiveFile === "GOALS.md");
 	const { projectFileName } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 	for (const v of ["GOALS.md", "", ".", "..", "a/b", "a\\b", 7, null, false]) {
 		cfg({ objective: { projectFile: v } });
+		// req: R-150
 		check(`objective: adoption's name agrees with lib/objective.ts for ${JSON.stringify(v)}`, lib.adoptionSettings().objectiveFile === projectFileName({ projectFile: v }));
 	}
 	cfg();
 	const r2 = repo("default-objective-only", ["GOALS.md"]);
 	await prompt(r2);
+	// req: R-150
 	check("objective: without the setting GOALS.md is not an objective → line", reportsFor(r2).length === 1);
 }
 
@@ -242,6 +277,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	await session(mod, r2).compact("G-STATE");
 	cases.push(mk(path.join(r2, "src")));
 	// exact goldens (no git needed)
+	// req: R-144
 	check("e: unadopted repo root → prompt exactly BASE", (await golden(mod, r1)) === "BASE");
 	check(
 		"e: subdir of a stored root → the exact ancestor block",
@@ -256,6 +292,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 		const oldMod = await import(new URL(`file://${path.join(tmp, "nana-handoff.ts")}`).href);
 		for (const c of cases) {
 			const [a, b] = [await golden(oldMod, c), await golden(mod, c)];
+			// req: R-144
 			check(`e: byte-identical to eca3de4 — ${path.relative(base, c)}`, a === b, JSON.stringify({ a, b }));
 		}
 	}

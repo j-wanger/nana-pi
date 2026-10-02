@@ -1,3 +1,14 @@
+/**
+ * @module packages/nana-knowledge/lib/tokenize.ts
+ * @purpose Turn a prompt into FTS5 query tokens, and decide whether a prompt is worth a knowledge pull at
+ *  all.
+ * @inputs arbitrary prompt text (callers slice it to PROMPT_MAX_CHARS first)
+ * @outputs lowercased alnum tokens, the meaningful (non-stopword, len>2, deduped) tokens, an OR-joined
+ *  quoted FTS5 MATCH string, and a skip reason or null
+ * @effects none
+ * @errors none — a non-string prompt yields the skip reason `not-a-string`, alongside too-short,
+ *  slash-command, harness-notification and too-few-tokens
+ */
 // Prompt -> FTS5 query. Deliberately dumb: alnum runs, a short stopword list, and
 // an OR-join. No stemming here (the FTS5 table carries the porter tokenizer).
 

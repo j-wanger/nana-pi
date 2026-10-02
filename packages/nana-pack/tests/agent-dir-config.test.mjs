@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/agent-dir-config.test.mjs
+ * @purpose Pins that nana-pack's user-scope resources follow pi's active agent dir for an absolute, a relative and a tilde PI_CODING_AGENT_DIR, each naming a symlinked dir
+ * @inputs extensions/nana-gate.ts, lib/config.ts, lib/gate-paths.ts, nana-pack.json at both agent dirs under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // U2 (2026-09-28): nana-pack's user-scope resources follow pi's ACTIVE agent dir
 // (PI_CODING_AGENT_DIR, resolved by gate-paths' piAgentDir()), for an absolute, a relative and a
 // tilde value, each naming a SYMLINKED agent dir:
@@ -66,17 +74,23 @@ for (const f of FORMS) {
 
 	// ---- (c) only the DEFAULT dir holds a config
 	const s1 = ctx(`${f.name}-s1`);
+	// req: R-193
 	check(`${T} (c) stale default deny is NOT read`, (await decide(s1, "bash", { command: "zorble now" })) === "ALLOW");
+	// req: R-193
 	check(`${T} (c) gate still runs on defaults (built-in deny)`, (await decide(s1, "bash", { command: "rm -rf /" })) === "BLOCK");
 	check(`${T} (c) no stop`, loadConfig(s1).gate.stopReason === null);
 	await decide(s1, "edit", { path: "src/x.ts" });
 	const mine = notes.filter((m) => m.includes("agent dir") || m.includes("PI_CODING_AGENT_DIR"));
 	check(`${T} (c) mismatch UI note fires exactly once in the session`, mine.length === 1, `${mine.length}`);
+	// req: R-194
 	check(`${T} (c) the note names both paths`, mine.length === 1 && mine[0].includes(path.join(f.link, "nana-pack.json")) && mine[0].includes(path.join(DEFAULT_DIR, "nana-pack.json")), mine[0]);
 	const jf = journalFile(loadConfig(s1));
+	// req: R-159 R-191
 	check(`${T} journal default is in the active dir`, jf === path.join(f.link, "nana-journal.jsonl"), jf);
 	const jl = (fs.existsSync(jf) ? fs.readFileSync(jf, "utf-8") : "").split("\n").filter((l) => l.includes('"config_agent_dir_mismatch"'));
+	// req: R-194
 	check(`${T} (c) exactly one config_agent_dir_mismatch journal line`, jl.length === 1, `${jl.length}`);
+	// req: R-101 R-191
 	check(`${T} receipts default is in the active dir`, receiptsDir(loadConfig(s1)) === path.join(f.link, "receipts"));
 
 	// ---- (a) the ACTIVE dir's config is enforced (and the mismatch note stops)
@@ -87,6 +101,7 @@ for (const f of FORMS) {
 	check(`${T} (a) active protectedPaths enforced (edit)`, (await decide(s2, "edit", { path: "vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) active protectedPaths enforced (bash)`, (await decide(s2, "bash", { command: "cat vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) control: ordinary command allowed`, (await decide(s2, "bash", { command: "echo hi" })) === "ALLOW");
+	// req: R-194
 	check(`${T} (a) no mismatch note once the active dir has a config`, notes.length === before, notes.slice(before).join(" | "));
 
 	// ---- (b) the active config is on the policy floor — env path and realpath
@@ -105,6 +120,7 @@ for (const f of FORMS) {
 	check(`${T} (b) ordinary file in the agent dir allowed`, (await decide(s2, "write", { path: path.join(f.link, "notes.md") })) === "ALLOW");
 
 	// ---- (d) the round-cap ledger never moves
+	// req: R-192
 	check(`${T} (d) ledger dir is ~/.pi/agent`, ledgerPaths().dir === DEFAULT_DIR, ledgerPaths().dir);
 }
 
@@ -114,6 +130,7 @@ for (const [name, env] of [["missing dir", path.join(HOME, "nope")], ["a file", 
 	let cfg;
 	try { cfg = loadConfig({ cwd: HOME, hasUI: false }); } catch { cfg = null; }
 	check(`${name}: loadConfig total, no stop`, !!cfg && cfg.gate.stopReason === null);
+	// req: R-193
 	check(`${name}: default config not read`, !!cfg && cfg.gate.extraPatterns.length === 0);
 }
 
@@ -124,6 +141,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 	const cfg = loadConfig({ cwd: HOME, hasUI: true, ui: { notify: (m) => n.push(m) }, sessionManager: { getSessionId: () => "unset" } });
 	check("unset: default config is the user config", cfg.gate.extraPatterns.includes("\\bzorble\\b"));
 	check("unset: no mismatch note", n.length === 0, n.join(" | "));
+	// req: R-192
 	check("unset: (d) ledger dir is ~/.pi/agent", ledgerPaths().dir === DEFAULT_DIR);
 }
 

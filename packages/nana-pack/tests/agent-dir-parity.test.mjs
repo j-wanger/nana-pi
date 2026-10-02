@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/agent-dir-parity.test.mjs
+ * @purpose Pins ONE agent-dir resolution across the desk, the pack and nana-setup — three processes with three different cwds agree, and the desk pins its resolved absolute dir into every child
+ * @inputs apps/desk/server.mjs, packages/nana-setup/bin/nana-setup.mjs, lib/agent-dir.mjs, a stub `pi` on PATH and a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // U2 fix round (MUST E, 2026-09-28): ONE agent-dir resolution across packages. For an absolute,
 // a relative and a tilde PI_CODING_AGENT_DIR (and unset), the desk (/api/settings paths) and
 // nana-setup (resolveLayout().piHome) resolve exactly piAgentDir(); `--home` keeps the installer
@@ -104,11 +112,14 @@ for (const [name, value] of FORMS) {
 	else process.env.PI_CODING_AGENT_DIR = value;
 	const want = piAgentDir();
 	const expected = value === undefined ? path.join(HOME, ".pi", "agent") : value === "rel-agent" ? path.join(HOME, "rel-agent") : value.startsWith("~") ? path.join(HOME, "tilde-agent") : value;
+	// req: R-190
 	check(`[${name}] piAgentDir() is pi's resolution`, want === expected, want);
 
 	const layout = resolveLayout({});
+	// req: R-199
 	check(`[${name}] nana-setup piHome === piAgentDir()`, layout.piHome === want, layout.piHome);
 	check(`[${name}] nana-setup piPackConfig is the file the pack reads`, layout.piPackConfig === path.join(want, "nana-pack.json"), layout.piPackConfig);
+	// req: R-191
 	check(`[${name}] nana-setup default objective is in the active dir`, layout.piObjective === path.join(want, "nana-objective.md"), layout.piObjective);
 
 	check(`[${name}] nana-setup flags a cwd-specific piHome exactly when the value is relative`, !!layout.piHomeCwdRelative === (value === "rel-agent"), String(layout.piHomeCwdRelative));
@@ -119,9 +130,12 @@ for (const [name, value] of FORMS) {
 	check(`[${name}] desk nanaPath === <desk's active dir>/nana-pack.json`, s.nanaPath === path.join(deskWant, "nana-pack.json"), s.nanaPath);
 	check(`[${name}] desk settingsPath / mcpPath / agentsDir / piDir follow it`, s.settingsPath === path.join(deskWant, "settings.json") && s.mcpPath === path.join(deskWant, "mcp.json") && s.agentsDir === path.join(deskWant, "agents") && s.piDir === deskWant, JSON.stringify(s));
 	check(`[${name}] the spawned session really ran in a DIFFERENT cwd than the desk`, session.cwd === PROJECT, session.cwd);
+	// req: R-198
 	check(`[${name}] a session spawned in another cwd resolves the SAME dir the desk shows`, session.dir === s.piDir, `${session.dir} vs desk ${s.piDir}`);
 	if (value === "rel-agent") {
+		// req: R-198
 		check("[relative] the desk pinned the absolute dir into the child env", session.raw === deskWant, session.raw);
+		// req: R-198
 		check("[relative] /api/settings tells the user it pinned, naming the dir", typeof s.agentDirNote === "string" && s.agentDirNote.includes("relative") && s.agentDirNote.includes(deskWant), String(s.agentDirNote));
 	} else {
 		check(`[${name}] the value reaches the child untouched`, session.raw === (value ?? null), String(session.raw));
@@ -139,11 +153,13 @@ for (const [name, value] of FORMS) {
 	check("--home: piHome is <home>/.pi/agent, not the ambient env", l.piHome === path.join(tmpHome, ".pi", "agent"), l.piHome);
 	check("--home: piHomeSource names the flag", l.piHomeSource === "--home", l.piHomeSource);
 	const lp = resolveLayout({ home: tmpHome, piHome: path.join(HOME, "explicit") });
+	// req: R-199
 	check("--pi-home beats --home and the env", lp.piHome === path.join(HOME, "explicit"), lp.piHome);
 	const r = spawnSync(process.execPath, [SETUP_BIN, "install", "--home", tmpHome], { cwd: HOME, env: { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome, PI_CODING_AGENT_DIR: ambient }, encoding: "utf-8" });
 	check("--home install exits 0 with an ambient PI_CODING_AGENT_DIR", r.status === 0, r.stdout + r.stderr);
 	const seeded = path.join(tmpHome, ".pi", "agent", "nana-pack.json");
 	check("--home install seeds <home>/.pi/agent/nana-pack.json", fs.existsSync(seeded));
+	// req: R-199
 	check("--home install writes nothing into the ambient agent dir", !fs.existsSync(ambient));
 	const seed = JSON.parse(fs.readFileSync(seeded, "utf-8"));
 	check("seed pins no objective.path (the pack's active-dir default applies)", seed.objective && !("path" in seed.objective), JSON.stringify(seed));
@@ -159,6 +175,7 @@ for (const [name, value] of FORMS) {
 	const files = [...new Set(hits.map((h) => h.split(":")[0]))];
 	// apps/bench hands the raw value to pi's own pricer API (pi resolves it) — not a second resolver.
 	const allowed = new Set(["packages/nana-pack/lib/agent-dir.mjs", "apps/bench/lib/pi-exports.mjs"]);
+	// req: R-190
 	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
 }
 

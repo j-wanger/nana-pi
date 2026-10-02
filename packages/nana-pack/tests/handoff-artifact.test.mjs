@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/handoff-artifact.test.mjs
+ * @purpose Pins the continuity path — compaction writes the handoff artifact to the user-scope store and the next fresh session picks it up, told to update it in place
+ * @inputs extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, config file, handoff store), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -31,12 +39,14 @@ const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 
 const store = mod.storePathFor(fs.realpathSync.native(td));
 await handlers.session_compact({ compactionEntry: { summary: "frontier: the state of play" }, reason: "manual" }, ctx);
+// req: R-108
 check("handoff written (to the user-scope store)", fs.readFileSync(store, "utf-8").includes("frontier: the state of play"));
 await handlers.session_compact({ compactionEntry: { summary: "second compaction" }, reason: "auto" }, ctx);
 
 await handlers.session_start({ reason: "startup" }, ctx);
 const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 check("pickup injects handoff", r?.systemPrompt.includes("second compaction"));
+// req: R-142
 check("prompt says update in place", r?.systemPrompt.includes(`update ${store} in place`));
 
 // custom handoff.path: the prompt must name THAT file (pi-review MAJOR
@@ -51,10 +61,13 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff
 const ctx2 = { cwd: td2, hasUI: false, isProjectTrusted: () => true };
 await handlers2.session_compact({ compactionEntry: { summary: "custom-path state" }, reason: "manual" }, ctx2);
 check("custom path: handoff written", fs.readFileSync(custom, "utf-8").includes("custom-path state"));
+// req: R-112
 check("custom path: no .gitignore beside it", !fs.existsSync(path.join(td2, "STATE", ".gitignore")));
 await handlers2.session_start({ reason: "startup" }, ctx2);
 const r2 = await handlers2.before_agent_start({ systemPrompt: "BASE" }, ctx2);
+// req: R-142
 check("custom path: prompt names the configured file", r2?.systemPrompt.includes(`update ${path.join("STATE", "HANDOFF.md")} in place`));
+// req: R-142
 check("custom path: prompt never says .pi/handoff.md", !r2?.systemPrompt.includes(".pi/handoff.md"));
 
 fs.rmSync(td, { recursive: true, force: true });

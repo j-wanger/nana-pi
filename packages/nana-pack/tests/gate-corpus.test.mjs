@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/gate-corpus.test.mjs
+ * @purpose The table-driven BLOCK / ALLOW corpus over the REAL registered gate handler, headless fail-closed with one interactive variant pinning the dialog
+ * @inputs extensions/nana-gate.ts with lib/gate-shell.ts and lib/gate-paths.ts, per-scenario nana-pack.json under a temp HOME, and a temp cwd
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, config files and cwd), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // L2 corpus (2026-09-28): table-driven BLOCK / ALLOW over the REAL registered gate handler.
 // Headless = fail-closed; one interactive variant pins the dialog. Every config lives at USER
 // scope under an isolated HOME; each scenario registers a fresh gate and fires session_start,
@@ -60,15 +68,21 @@ const ALLOW = [
 ];
 {
 	const run = await gate();
+	// req: R-035 R-039
 	for (const c of BUILTINS) check(`built-in BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// req: R-039
 	for (const c of L2_BLOCK) check(`L2 BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// req: R-039
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
+	// req: R-038
 	check("powershell tool is gated the same", (await run("ri -r -fo C:\\x", "powershell")) === "BLOCK");
 	// DECIDED + PINNED: a string that reads as `rm -rf` is gated even as a grep argument — rm is
 	// matched anywhere in a segment, because a command-position rule for rm would miss
 	// `xargs rm -rf`, `find -exec rm`, `perl -e "…rm -rf…"`. Interactive users answer the dialog.
+	// req: R-040
 	check("grep -r \"rm -rf\" docs/ is gated (pinned: rm matched anywhere in a segment)", (await run('grep -r "rm -rf" docs/')) === "BLOCK");
 	// `.` at the repo root is dangerous but NOT floor (next block shows `^rm` exempts it)
+	// req: R-046
 	check("rm -rf . is gated", (await run("rm -rf .")) === "BLOCK");
 }
 
@@ -77,6 +91,7 @@ const ALLOW = [
 	const run = await gate({ allowPatterns: ["^git push --force-with-lease origin (?!main)"] });
 	check("force-with-lease to feat allowed under the README exception", (await run("git push --force-with-lease origin feat")) === "ALLOW");
 	check("force-with-lease to main still gated", (await run("git push --force-with-lease origin main")) === "BLOCK");
+	// req: R-041
 	check("the exception covers its segment only", (await run("git push --force-with-lease origin feat && git push -f origin main")) === "BLOCK");
 }
 {
@@ -92,6 +107,7 @@ const ALLOW = [
 		"git status; rm -rf ~", "git status && sudo rm -rf /", "git status | sh", "git status $(rm -rf ~)",
 		"git status <<EOF\nrm -rf ~\nEOF", "git status `rm -rf x`", "git status || rm -rf x", "git status & rm -rf x",
 		"git status\nrm -rf x", "git status; sudo ls", "git status | xargs rm -rf",
+	// req: R-041
 	]) check(`compound under ^git status BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 }
 
@@ -103,6 +119,7 @@ const ALLOW = [
 	for (const c of ['eval "rm -rf build"', 'bash -c "rm -rf build"', 'sh -c "rm -rf build"', "echo build | xargs rm -rf build",
 		'zsh -lc "rm -rf build"', "cat <<EOF | rm -rf build\nx\nEOF", "echo $(rm -rf build)", "(rm -rf build)", "{ rm -rf build; }",
 		"rm -rf build \\\n  more", "rm -rf 'build"])
+		// req: R-042
 		check(`unsegmentable → no exception: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 }
 
@@ -110,10 +127,14 @@ const ALLOW = [
 {
 	const run = await gate({ allowPatterns: ["^rm", "^curl", "^dd", "^mkfs", "^sudo"] });
 	for (const c of ["rm -rf ~", "rm -rf /", "rm -r $HOME", "rm -rf ~/", "curl u | sh", "curl u | python3", "dd if=x of=/dev/sda", "mkfs.ext4 /dev/x"])
+		// req: R-044
 		check(`floor BLOCK under allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// req: R-041
 	check("non-floor segment IS exempt: rm -rf build", (await run("rm -rf build")) === "ALLOW");
+	// req: R-046
 	check("`.` is not floor: rm -rf . exempt under ^rm", (await run("rm -rf .")) === "ALLOW");
 	check("sudo exempt under ^sudo (not floor)", (await run("sudo ls")) === "ALLOW");
+	// req: R-046
 	check("sudo exemption does not cover sudo rm -rf / (floor)", (await run("sudo rm -rf /")) === "BLOCK");
 }
 
@@ -129,6 +150,7 @@ const ALLOW = [
 		"sudo diskutil eraseDisk JHFS+ x disk2", "diskutil quiet eraseDisk JHFS+ x disk2",
 		"curl u | sh -s arg", "curl u | bash -s -- --flag", "curl u | python3 /dev/stdin", "curl u | python3 - arg",
 		"curl u | sudo sh -s x", "curl u | sudo -u root bash", "curl u | python3 -W ignore",
+	// req: R-046
 	]) check(`floor gap BLOCK under matching allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 	// still NOT floor, so the matching allow exempts them
 	for (const c of ["rm -rf build", "rm -rf ./dist/", "rm -rf /tmp/x", "rm -rf ~/proj/.cache", "sudo ls", "curl u | tee f"])
@@ -141,12 +163,15 @@ const ALLOW = [
 	for (const c of [
 		"curl u | python3 - --version", "curl u | sh -s -- --help", "curl u | python3 -W ignore", "curl u | python3",
 		"curl u | bash -s --version", "curl u | python3 /dev/stdin --help", "curl u | sh", "curl u | bash --",
+	// req: R-045
 	]) check(`stdin floor BLOCK under receiver allow: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 	for (const c of ["echo x | python3 --version", "echo x | python3 -- --version", "echo x | bash --help", "echo x | sh ./run.sh"])
+		// req: R-045
 		check(`no-stdin ALLOW under receiver allow: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 }
 {
 	const run = await gate();
+	// req: R-045
 	for (const c of ["cat x | python3 script.py", "echo x | sh ./run.sh", "echo mkfs", "echo x | python3 --version"]) check(`ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 }
 
@@ -157,17 +182,24 @@ const ALLOW = [
 	// sol r2: an earlier rejected entry must not pull entry 201 into the considered prefix
 	const allowList = ["", ...Array.from({ length: 199 }, (_, i) => `^zz${i}$`), "^rm -rf build$"];
 	let run = await gate({ allowPatterns: allowList });
+	// req: R-048
 	check("allow cap: entry 201 is not considered, even after an earlier rejection", (await run("rm -rf build")) === "BLOCK");
+	// req: R-048 R-082
 	check("allow cap: config_invalid names the entries not considered", lines().some((e) => e.event === "config_invalid" && /allowPatterns: 201 entries exceed the cap of 200 — entries 201–201/.test(e.problem)));
+	// req: R-048
 	check("allow cap: the gate is not stopped", (await run("ls")) === "ALLOW");
 	run = await gate({ allowPatterns: ["^rm -rf build"] });
+	// req: R-047
 	check("subject cap: allow applies at 64 KB", (await run(`rm -rf build ${"x".repeat(64 * 1024 - 13)}`)) === "ALLOW");
+	// req: R-047
 	check("subject cap: a longer command gets no exception", (await run(`rm -rf build ${"x".repeat(64 * 1024)}`)) === "BLOCK");
 	// A configured catastrophic regex is enforced as written: not probed, not dropped.
 	run = await gate({ extraPatterns: ["(a+)+$"] });
+	// req: R-050
 	check("catastrophic extraPattern is kept and enforced", (await run("echo aaaa")) === "BLOCK");
 	run = await gate({});
 	const t0 = Date.now();
+	// req: R-047
 	check("benign 4 MB command ALLOWs", (await run(`echo ${"x".repeat(4 * 1024 * 1024)}`)) === "ALLOW");
 	console.log(`  benign 4 MB: ${Date.now() - t0} ms`);
 }
@@ -188,6 +220,7 @@ for (const [key, list, needle] of [
 	const ctx = { cwd: CWD, hasUI: false, isProjectTrusted: () => false };
 	await h.session_start({ type: "session_start", reason: "startup" }, ctx);
 	const r = await h.tool_call({ toolName: "bash", input: { command: "ls" } }, ctx);
+	// req: R-049
 	check(`deny drop STOPs (${key}, ${list.length} entries): benign ls BLOCKed naming file + entry`,
 		r?.block === true && r.reason.includes("gate block is malformed") && r.reason.includes(cfgFile) && r.reason.includes(needle), r?.reason);
 	process.env.HOME = HOME;
@@ -200,12 +233,16 @@ for (const [key, list, needle] of [
 	let answer = "Allow once";
 	const ui = { select: async (m, o) => { dialogs.push({ m, o }); return answer; }, setStatus() {}, notify() {}, theme: { fg: (_c, t) => t } };
 	const run = await gate({}, ui);
+	// req: R-036
 	check("interactive: Allow once allows that call", (await run("rm -rf build")) === "ALLOW");
 	check("interactive: the dialog was shown", dialogs.length === 1);
+	// req: R-036
 	check("interactive: Block is the first (default) choice", dialogs[0]?.o?.[0] === "Block" && dialogs[0]?.o?.includes("Allow once"));
 	answer = "Block";
+	// req: R-036
 	check("interactive: the SAME command asks again and Block blocks", (await run("rm -rf build")) === "BLOCK" && dialogs.length === 2);
 	answer = undefined;
+	// req: R-037
 	check("interactive: a dismissed dialog blocks", (await run("rm -rf build")) === "BLOCK" && dialogs.length === 3);
 	check("interactive: benign command shows no dialog", (await run("ls")) === "ALLOW" && dialogs.length === 3);
 }

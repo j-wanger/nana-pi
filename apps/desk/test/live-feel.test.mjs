@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/live-feel.test.mjs
+ * @purpose Pins the two pure pieces behind the live-feel surfaces — the activity line's verb derivation and the skill-expansion parser
+ * @inputs apps/desk/public/desk-client.mjs, imported in Node with no DOM
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects none
+ * @errors a failed check prints FAIL with the got and want values and the run exits 1
+ */
 // Zero-dep unit test for the two pure pieces behind the live-feel surfaces
 // (2026-09-16): the composer activity line's verb derivation, and the skill
 // expansion parser that turns pi's echoed `<skill …>` block back into the
@@ -64,10 +72,12 @@ const expand = (name, dir, body, args) => {
 
 {
 	const sk = parseSkillMessage(expand("loop-init", "/Users/j/.claude/skills/loop-init", "# Loop init\n\nDo the thing."));
+	// req: R-412
 	check("parse: a bare skill message", !!sk);
 	eq("parse: name", sk?.name, "loop-init");
 	eq("parse: location", sk?.location, "/Users/j/.claude/skills/loop-init/SKILL.md");
 	eq("parse: no args", sk?.args, "");
+	// req: R-412
 	check("parse: body keeps the preamble and the file", sk?.body.startsWith("References are relative to") && sk?.body.endsWith("Do the thing."), JSON.stringify(sk?.body));
 }
 {
@@ -81,6 +91,7 @@ const expand = (name, dir, body, args) => {
 	// the wrapper's; the first one belongs to the body.
 	const body = "# Wrapper docs\n\nA skill block ends with\n</skill>\nand that is fine.";
 	const sk = parseSkillMessage(expand("wrap", "/s/wrap", body));
+	// req: R-412
 	check("parse: a body containing </skill> still collapses", !!sk, JSON.stringify(sk));
 	eq("parse: …with no args", sk?.args, "");
 	check("parse: …and the body keeps its own closing line", !!sk?.body.includes("\n</skill>\nand that is fine."), JSON.stringify(sk?.body));

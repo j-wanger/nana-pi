@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/evaluator-hardening.test.mjs
+ * @purpose Every known way an untrusted module could manufacture a signed PASS for a wrong answer, each pinned as not-a-pass
+ * @inputs lib/checkers.mjs and untrusted modules written into temp dirs, each applying one attack patch
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp dirs, module sources and verdict files), process (spawns the evaluator and the untrusted module in their own processes)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // THE TRUSTED EVALUATOR UNDER ATTACK. Every case here is a way a module could manufacture a signed
 // PASS for a WRONG answer, and every one of them must end in "not a pass". astra round 5 found two
 // live ones at 9784d58: the nonce stayed readable at `bench-eval-*​/spec.json` while the module ran,
@@ -64,8 +72,10 @@ try {
 			WRONG,
 	);
 	const disk = evalOf("disk-nonce.mjs");
+	// req: R-524
 	check("A1: a module that hunts the spec file on disk cannot sign a verdict", rejected(disk), disk.detail.slice(0, 150));
 	const leak = JSON.parse(fs.readFileSync(path.join(dir, "leak.json"), "utf8"));
+	// req: R-524
 	check("A1: …no pathname exposed the nonce (spec.json was unlinked before the spawn)", leak.specs.every((s) => s.startsWith("unreadable:")), JSON.stringify(leak.specs).slice(0, 120));
 	check("A1: …and fd 4 was closed before the module ran, so /dev/fd/4 gives nothing", !/"nonce"/.test(String(leak.devfd)), String(leak.devfd).slice(0, 80));
 	check("A1: …so no forged line was even attempted", leak.forged === false);
@@ -81,16 +91,22 @@ try {
 	check("A2: a single signed line is the verdict", selectSignedVerdict(`${sign(good)}\n`, nonce).verdict?.complete === true);
 	check("A2: an unsigned line before it is ignored", selectSignedVerdict(`${good}\t${"0".repeat(64)}\n${sign(good)}\n`, nonce).verdict?.complete === true);
 	check("A2: a malformed line before it is ignored", selectSignedVerdict(`garbage-with-no-tab\n${sign(good)}\n`, nonce).verdict?.complete === true);
+	// req: R-525
 	check("A2: TWO valid lines are ambiguous, not a selection", selectSignedVerdict(`${sign(other)}\n${sign(good)}\n`, nonce).ambiguous === 2);
 	check("A2: …and the same line twice is still two verdicts", selectSignedVerdict(`${sign(good)}\n${sign(good)}\n`, nonce).ambiguous === 2);
+	// req: R-525
 	check("A2: an ambiguous verdict is a GRADER error, never a pass", judgeVerdict({ ambiguous: 2 }, TWICE).graderError === true);
+	// req: R-525
 	check("A2: no signed line at all is a FAILURE (the module blocked the evaluator)", (() => { const r = judgeVerdict({ verdict: null }, TWICE); return r.pass === false && r.graderError !== true; })());
 	check("A2: signed but unparseable JSON is a grader error", judgeVerdict({ malformed: "x" }, TWICE).graderError === true);
 	// shape and probe count, validated against the spec
+	// req: R-525
 	check("A2: a verdict that is not an object is a grader error", judgeVerdict({ verdict: [1, 2] }, TWICE).graderError === true);
 	check("A2: a verdict with no probe array is a grader error", judgeVerdict({ verdict: { complete: true } }, TWICE).graderError === true);
 	const shortCount = judgeVerdict({ verdict: { complete: true, probes: [{ name: "a", pass: true }] } }, [...TWICE, { name: "b", export: "twice", args: [1], equals: 2 }]);
+	// req: R-525
 	check("A2: fewer probe results than declared probes is a grader error", shortCount.graderError === true, shortCount.detail.slice(0, 110));
+	// req: R-525
 	check("A2: more probe results than declared probes is a grader error too", judgeVerdict({ verdict: { complete: true, probes: [{ pass: true }, { pass: true }] } }, TWICE).graderError === true);
 	check("A2: an invalid probe SPEC is a grader error, not a model failure", judgeVerdict({ verdict: { complete: true, probes: [], specError: "no assertion" } }, TWICE).graderError === true);
 	// …and end to end: a probe that declares no assertion is the spec's fault
@@ -163,6 +179,7 @@ try {
 	// The positive control that keeps this honest: every patch at once, plus a CORRECT fix, passes.
 	write("patched-but-correct.mjs", patched.map(([, prelude]) => prelude).join("") + RIGHT);
 	const control = evalOf("patched-but-correct.mjs");
+	// req: R-526
 	check("A3: a module that patches ALL of them and then FIXES the behaviour still PASSES", control.pass === true, control.detail.slice(0, 150));
 
 	// A throws probe under a lying `name`/`Symbol.hasInstance`: classification is by prototype
@@ -174,6 +191,7 @@ try {
 			'export const boom = () => { throw new RangeError("wrong class"); };\n',
 	);
 	const liar = evalOf("liar-throws.mjs", [{ name: "boom throws TypeError", export: "boom", args: [], throws: "TypeError" }]);
+	// req: R-527
 	check("A3: a RangeError renamed TypeError (and faking hasInstance) is still REJECTED", rejected(liar), liar.detail.slice(0, 130));
 	check("A3: …named for what it actually threw", /threw RangeError, expected TypeError/.test(liar.detail), liar.detail.slice(0, 130));
 	write("honest-throws.mjs", 'export const boom = () => { throw new TypeError("right class"); };\n');
@@ -236,8 +254,10 @@ try {
 		{ name: "non-ascii detail", export: "label", args: [], equals: "héllo ≤ x" },
 		{ name: "materialised arg", export: "echo", args: [{ $: "longText", n: 4 }], equals: "xxxx" },
 	]);
+	// req: R-526
 	check("A3 sweep: the evaluator still grades correctly with every writable global wrapped", sweep.pass === true, sweep.detail.slice(0, 140));
 	const reached = JSON.parse(fs.readFileSync(path.join(dir, "sweep-calls.json"), "utf8"));
+	// req: R-526
 	check("A3 sweep: …and reaches NO user-writable function property after the import", reached.length === 0, JSON.stringify(reached).slice(0, 200));
 
 	// ── A4. non-primitive returns are rejected EXPLICITLY, before `===` ──────────────────────────
@@ -253,11 +273,13 @@ try {
 		const name = `nonprim-${label.replace(/\W+/g, "-")}.mjs`;
 		write(name, body);
 		const r = evalOf(name);
+		// req: R-527
 		check(`A4: REJECTS ${label} instead of coercing it`, rejected(r), r.detail.slice(0, 120));
 		check("A4: …naming it as a non-primitive", pattern.test(r.detail), r.detail.slice(0, 120));
 	}
 	check("A4: a plain primitive still compares equal", evalOf("right.mjs").pass === true);
 	// An expectation that is not a primitive is OUR bug, so it is a grader error.
+	// req: R-527
 	check("A4: a non-primitive EXPECTATION is a grader error", evalOf("right.mjs", [{ name: "bad spec", export: "twice", args: [4], equals: { n: 8 } }]).graderError === true);
 
 	// ── A5. an unfinished evaluation is a grader error, and it is not a timeout ──────────────────
@@ -266,20 +288,24 @@ try {
 	// a harness fault as a wrong answer.
 	write("unresolved-await.mjs", "export const twice = (n) => n * 2;\nawait new Promise(() => {});\n");
 	const unresolved = evalOf("unresolved-await.mjs", TWICE, 15000);
+	// req: R-528
 	check("A5: an unresolved top-level await is a GRADER error, not a failure", unresolved.graderError === true, unresolved.detail.slice(0, 150));
 	check("A5: …described as an unfinished evaluation", /did not finish/.test(unresolved.detail), unresolved.detail.slice(0, 150));
 	// The watchdog still exists, and it is a DIFFERENT path: a busy loop never reaches exit at all.
 	write("busy-loop.mjs", "const t = Date.now();\nwhile (Date.now() - t < 30000) {}\nexport const twice = (n) => n * 2;\n");
 	const busy = evalOf("busy-loop.mjs", TWICE, 1200);
+	// req: R-528
 	check("A5: a busy loop is stopped by the watchdog, also a grader error", busy.graderError === true, busy.detail.slice(0, 120));
 	check("A5: …and the two are distinguishable in the record", /could not run/.test(busy.detail) && !/could not run/.test(unresolved.detail));
 	write("exit-during-import.mjs", "process.exit(0);\nexport const twice = (n) => n * 2;\n");
 	const exited = evalOf("exit-during-import.mjs");
+	// req: R-528
 	check("A5: a module that exits during import is an unfinished evaluation too", exited.graderError === true && /did not finish/.test(exited.detail), exited.detail.slice(0, 120));
 	// …and an incomplete verdict that ALREADY holds a failure is a failure, not an exclusion: a module
 	// must not be able to trade a wrong answer for a grader error by killing the process afterwards.
 	write("fail-then-exit.mjs", 'let n = 0;\nexport const twice = (x) => { if (++n > 1) process.exit(0); return x * 3; };\n');
 	const failThenExit = evalOf("fail-then-exit.mjs", [TWICE[0], { name: "twice(5)", export: "twice", args: [5], equals: 10 }]);
+	// req: R-528
 	check("A5: a failure already observed before the death is still the MODEL's failure", failThenExit.pass === false && failThenExit.graderError !== true, failThenExit.detail.slice(0, 140));
 	check("A5: …naming the probe that had already failed", /had already failed/.test(failThenExit.detail), failThenExit.detail.slice(0, 140));
 	write("pass-then-exit.mjs", 'let n = 0;\nexport const twice = (x) => { if (++n > 1) process.exit(0); return x * 2; };\n');

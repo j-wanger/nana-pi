@@ -47,8 +47,10 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 - `packages/nana-pack/` — the pi extension pack: gate, post-edit checks + receipts,
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
-  adopt-ts, adopt-structure, dev workflow); `bin/` (the `pi-review` runner + round cap,
-  canonical home since 2026-09-18, on PATH via `~/.local/bin/pi-review`).
+  adopt-ts, adopt-structure, dev workflow); `bin/` — eight CLIs: the `pi-review` runner (canonical home since
+  2026-09-18, on PATH via `~/.local/bin/pi-review`) with `review-round`, `review-shape`,
+  `review-ledger` and `pi-worker` behind it, `pi-watchdog`, and the two producers the seat's
+  Claude Code SessionStart hooks run — `nana-objective` and `nana-adoption`.
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
   over the markdown knowledge stores on this machine, read from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` via one shared `hook` CLI.
@@ -107,7 +109,8 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Working under nana-pi
 
-This project runs under the nana-pi pack: five pi extensions that load in every
+This project runs under the nana-pi pack: six pi extensions (gate, post-edit,
+lifecycle, notify, handoff, objective) that load in every
 session once the pack is installed at user scope — any project, no per-project
 setup. What that means while you work here:
 

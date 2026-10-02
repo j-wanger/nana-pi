@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/pi-087-entries.test.mjs
+ * @purpose Pins the newer pi session entry kinds on the desk's read path — none reaches the page, all stay in the branch index, and the edited target is still rendered
+ * @inputs apps/desk/server.mjs, apps/desk/pi-session.mjs, and a session file written by pi's own SessionManager
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (a temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // pi 0.86/0.87 session entries on the desk's read path (lane U, 2026-09-28).
 //
 // pi ≥ 0.86 persists three kinds of entry its default TUI chat does not draw: the prompt/tool
@@ -74,14 +82,20 @@ try {
 	const ids = t.entries.map((e) => e.id);
 	const types = t.entries.map((e) => (e.type === "message" ? `message:${e.message.role}` : e.type));
 
+	// req: R-409
 	check("no usage entry reaches the page", !types.includes("usage"), types.join(" "));
+	// req: R-409
 	check("no context_edit entry reaches the page", !types.includes("context_edit"), types.join(" "));
+	// req: R-409
 	check("no system-role message reaches the page", !types.includes("message:system"), types.join(" "));
+	// req: R-409
 	check("the context_edit TARGET is still rendered (raw history unchanged)", ids.includes(a1));
 	check("every user/assistant message is rendered, in order", JSON.stringify(ids.filter((id) => [u1, a1, u2, a2].includes(id))) === JSON.stringify([u1, a1, u2, a2]), ids.join(","));
 	const branch = t.entries.filter((e) => e.onBranch).map((e) => e.id);
 	const hidden = new Set([sys, warm, edit, warmLeaf, editLeaf]);
+	// req: R-409
 	check("active branch = pi's getBranch() minus the hidden bookkeeping", JSON.stringify(branch) === JSON.stringify(piBranch.filter((id) => !hidden.has(id))), `${branch.join(",")} vs ${piBranch.join(",")}`);
+	// req: R-409
 	check("…so nothing is dimmed as an abandoned branch", t.entries.every((e) => e.onBranch), JSON.stringify(t.entries.filter((e) => !e.onBranch).map((e) => e.id)));
 	check("the session still lists, titled by its first user message",
 		(await (await fetch(`${BASE}/api/sessions`)).json()).flatMap((g) => g.sessions).some((r) => path.basename(r.file) === path.basename(FILE) && r.title === "first question"));

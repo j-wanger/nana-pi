@@ -1,3 +1,12 @@
+/**
+ * @module packages/nana-knowledge/lib/paths.ts
+ * @purpose The user-scope locations of the knowledge index, all under one deletable directory.
+ * @inputs env NANA_KNOWLEDGE_HOME (tests only) and os.homedir()
+ * @outputs the home dir plus the sources.json, index.db, shown/, pull.log and build.lock paths, and
+ *  tildeify's `~`-collapsed display form
+ * @effects none
+ * @errors none
+ */
 // User-scope locations for the knowledge index. Everything lives under one dir so
 // the whole thing can be deleted with `rm -rf`. NANA_KNOWLEDGE_HOME overrides it
 // (tests use that; nothing else should).

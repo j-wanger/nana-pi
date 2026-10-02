@@ -1,3 +1,15 @@
+/**
+ * @module apps/bench/lib/profiles.mjs
+ * @purpose Validate one pi tool/prompt profile and render it to the exact argv and env a measured
+ *  run executes with.
+ * @inputs a profile object {name, tools, thinking, extensions, skills, ...}, the study, and a run
+ *  ctx (fixture dir, agent dir, task prompt)
+ * @outputs exports ISOLATION_FLAGS/validateProfile/isPlaceholder/renderRun; renderRun returns
+ *  {args, env} for the pi child
+ * @effects disk (existsSync checks on the extension and skill paths a profile names)
+ * @errors validateProfile throws Error naming the profile and the offending field; renderRun
+ *  throws on an unsubstituted <placeholder> or an unknown tool or thinking level
+ */
 import { existsSync } from "node:fs";
 import path from "node:path";
 

@@ -1,4 +1,14 @@
 /**
+ * @module apps/desk/public/md.js
+ * @purpose Escape-first minimal markdown to HTML for agent replies: fences, headings, lists,
+ *  blockquotes, rules and inline code, bold, italic and links.
+ * @inputs mdToHtml(text) — one markdown string
+ * @outputs an HTML string in which every character was escaped before any transform and inline
+ *  code is carved out first so no other pattern fires inside it
+ * @effects none
+ * @errors none
+ */
+/**
  * Minimal, escape-first markdown → HTML. Enough for agent replies:
  * fenced code, headings, lists, blockquotes, hr, inline code/bold/italic/links.
  * Everything is HTML-escaped before any transform; inline code is carved out

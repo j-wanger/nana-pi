@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-stage/extensions/nana-stage.ts
+ * @purpose pi extension that validates, stamps, signs and journals the blocks any tool result carries,
+ *  replacing the tool's text with the canonical rendering.
+ * @inputs pi `tool_result` events (toolName, toolCallId, input, content, details, isError), `session_start`
+ *  for the readiness watcher, env NANA_STAGE_KEY and NANA_STAGE_EXPECT_TOOLS, and pi.getActiveTools()
+ * @outputs a patched tool result (canonical text + stamped blocks, or an isError rejection with every
+ *  carrier stripped), one `nana-block` session entry per block, and a `nana-tools` UI status of waiting /
+ *  ready / missing
+ * @effects disk (block entries appended to pi's session), process (reads then deletes both env vars so tool
+ *  subprocesses never inherit the key)
+ * @errors none thrown — invalid or over-cap blocks come back as an isError tool result, and a watcher error
+ *  downgrades the status and keeps polling
+ */
+/**
  * nana-stage — the stage ledger (docs/agent-frontend-design-2026-09-04.md §3.2).
  *
  * Hooks tool_result for EVERY tool. If the result carries blocks (details.blocks

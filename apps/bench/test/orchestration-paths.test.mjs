@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/orchestration-paths.test.mjs
+ * @purpose Drives EVERY orchestration path at least once against stubs, so an undeclared identifier on a rarely-entered path fails here instead of after a paid call
+ * @inputs run.mjs, stub children, and temp study and run directories
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp run dirs, evidence, ledger and results files), process (spawns the stub children and signals the salvage path)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // EVERY ORCHESTRATION PATH, DRIVEN AT LEAST ONCE, with stub children and no model calls.
 //
 // Why this file exists, in one sentence: two reviews in a row found an UNDECLARED IDENTIFIER on a
@@ -128,6 +136,7 @@ try {
 		const dir = await freshStudyDir("load-ok");
 		const bin = await stub("rpc-ok.mjs", rpcStub(stateLine({ model: { id: "gpt-5.6-sol", provider: "openai-codex" }, autoCompactionEnabled: false })));
 		const lp = await loadProbe({ study, studyDir: dir, profile: plainProfile, launcher: { cmd: process.execPath, pre: [bin] }, agentDir: null });
+		// req: R-515
 		check("loadProbe: a profile whose model resolves with compaction off passes", lp.ok === true, lp.detail);
 		check("loadProbe: …and says what it proved", /model gpt-5\.6-sol, compaction off/.test(lp.detail), lp.detail);
 	}
@@ -135,6 +144,7 @@ try {
 		const dir = await freshStudyDir("load-compaction");
 		const bin = await stub("rpc-compaction.mjs", rpcStub(stateLine({ model: { id: "gpt-5.6-sol" }, autoCompactionEnabled: true })));
 		const lp = await loadProbe({ study, studyDir: dir, profile: plainProfile, launcher: { cmd: process.execPath, pre: [bin] }, agentDir: null });
+		// req: R-515
 		check("loadProbe: compaction still ON means the pinned settings were not read", lp.ok === false && /autoCompaction is true/.test(lp.detail), lp.detail);
 	}
 	{
@@ -204,16 +214,23 @@ try {
 		check("interrupt/child: one paid operation was written down", out.persisted.length === 1, JSON.stringify(out.persisted.map((p) => p.key)));
 		check("interrupt/child: …and the child was CONFIRMED dead, not assumed", out.killedCleanly === true, String(out.killedCleanly));
 		const rows = await readJsonl(resultsPath);
+		// req: R-521
 		check("interrupt/child: the record is a run-error naming the interrupt", rows.length === 1 && rows[0].state === "run-error" && /interrupted \(SIGINT\)/.test(rows[0].error), JSON.stringify(rows[0]?.error));
+		// req: R-521
 		check("interrupt/child: …with the tokens measured so far, not zero", rows[0].totalTokens === 710 && spendOf(rows[0]) === 710, String(rows[0].totalTokens));
 		check("interrupt/child: …flagged as unknown spend", rows[0].nestedUnknown === true && rows[0].ok === null);
+		// req: R-521
 		check("interrupt/child: …with no invented price", rows[0].cost === null && typeof rows[0].costReason === "string");
 		check("interrupt/child: …and its measured wall time", typeof rows[0].wallMs === "number" && rows[0].wallMs >= 0, String(rows[0].wallMs));
 		const ev = path.join(dir, rows[0].evidence);
+		// req: R-521
 		check("interrupt/child: the RAW LIVE BUFFER was persisted as evidence", (await fs.readFile(path.join(ev, "stream.jsonl"), "utf8")).includes('"turn_start"'));
+		// req: R-532
 		check("interrupt/child: …with stderr and argv beside it", (await fs.stat(path.join(ev, "stderr.txt"))).isFile() && (await fs.readFile(path.join(ev, "argv.txt"), "utf8")).includes("--mode json"));
+		// req: R-520
 		check("interrupt/child: the hook is consumed, so a second interrupt writes nothing twice", !inflightKeys().includes(inflightRunKey("t1", "research", 0)));
 		const again = await handleInterrupt({ resultsPath, log: () => {}, drainMs: 50, confirmMs: 50 });
+		// req: R-520
 		check("interrupt/child: …a second pass persists nothing", again.persisted.length === 0 && (await readJsonl(resultsPath)).length === 1);
 		await running.catch(() => {}); // the killed child resolves as a run-error; we already have the salvage
 		resetInterruptForTests();
@@ -278,6 +295,7 @@ try {
 		// The append had ALREADY STARTED, which means the child finished on its own — so the normal
 		// record is the truthful one and the salvage must stand aside. Exactly one row either way.
 		check("interrupt/append: an interrupt DURING the append does not also salvage", interruptOut?.persisted.length === 0, JSON.stringify(interruptOut?.persisted.map((x) => x.key)));
+		// req: R-520
 		check("interrupt/append: …exactly one row for the tuple", rows.length === 1, String(rows.length));
 		check("interrupt/append: …and it is the completed run's own record", rows[0].state === "ok" && rows[0].totalTokens === 310, JSON.stringify([rows[0].state, rows[0].totalTokens]));
 		releaseInflight(inflightRunKey("t1", "research", 0));
@@ -323,6 +341,7 @@ try {
 		const out = await handleInterrupt({ resultsPath, log: () => {} });
 		await plan.catch(() => {});
 		const rows = await readJsonl(resultsPath);
+		// req: R-520
 		check(`race/${label}: exactly ONE row for the tuple`, rows.length === 1, `${rows.length}: ${JSON.stringify(rows.map((r) => [r.state, r.cost, r.nestedUnknown]))}`);
 		check(`race/${label}: …and it is the interrupted record`, rows[0].interrupted === true && rows[0].state === "run-error", JSON.stringify([rows[0].state, rows[0].interrupted]));
 		check(`race/${label}: …with no price on a truncated stream`, rows[0].cost === null && rows[0].nestedUnknown === true, JSON.stringify([rows[0].cost, rows[0].nestedUnknown]));
@@ -344,6 +363,7 @@ try {
 		const ledger = await readLedger(dir);
 		check("interrupt/probe: …to the LEDGER, where probe spend lives", ledger.length === 1 && ledger[0].kind === "registration-probe", JSON.stringify(ledger[0] ?? null).slice(0, 120));
 		check("interrupt/probe: …with the tokens it had already spent", ledger[0].tokens === 260, String(ledger[0].tokens));
+		// req: R-521
 		check("interrupt/probe: …not marked ok, so a resume re-runs it rather than trusting it", ledger[0].ok === false && ledger[0].interrupted === true);
 		check("interrupt/probe: …and unpriced", ledger[0].cost === null);
 		check("interrupt/probe: …with the raw buffer as evidence", (await fs.readFile(path.join(dir, ledger[0].evidence, "stream.jsonl"), "utf8")).includes('"turn_start"'));
@@ -435,8 +455,11 @@ try {
 		} catch (e) {
 			error = e.message;
 		}
+		// req: R-517
 		check("append failure: a results append that fails STOPS the study", error !== null, error ?? "no error");
+		// req: R-517
 		check("append failure: …naming the spend that is now unrecorded", /could not record a completed run \(410 tokens already spent\)/.test(error ?? ""), (error ?? "").slice(0, 140));
+		// req: R-517
 		check("append failure: …and no further paid child starts", runs === 1, `runs=${runs}`);
 	}
 
@@ -504,7 +527,9 @@ try {
 		await waitFor(async () => inflightKeys().includes(inflightRunKey("t1", "research", 0)));
 		check("SIGINT wiring: the child has written part of its stream before the signal", await wrote(marker));
 		process.emit("SIGINT");
+		// req: R-521
 		check("SIGINT wiring: the record lands before the exit is requested", await waitFor(async () => codes.length > 0, 6000) && (await readJsonl(resultsPath)).length === 1, JSON.stringify(codes));
+		// req: R-521
 		check("SIGINT wiring: …and it exits 130", codes[0] === 130, JSON.stringify(codes));
 		const rows = await readJsonl(resultsPath);
 		check("SIGINT wiring: …with the interrupted record and its partial spend", rows[0].state === "run-error" && rows[0].totalTokens === 50, JSON.stringify([rows[0].state, rows[0].totalTokens]));
@@ -565,6 +590,7 @@ try {
 			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
 		});
 		releaseInflight(inflightRunKey("fx", "research", 0));
+		// req: R-533
 		check("fixture run: the pinned fixture verified, materialised and mutated", rec.state === "ok" && rec.mutations?.length === 1, `${rec.state} ${rec.error ?? ""} ${JSON.stringify(rec.mutations)}`);
 		check("fixture run: the checker ran against the REAL ctx run.mjs builds", rec.check.pass === true && /changed-paths:ok/.test(rec.check.detail), rec.check.detail.slice(0, 160));
 		check("fixture run: …including the withinLines shape rule on the model's edit", /inside the declared shape/.test(rec.check.detail), rec.check.detail.slice(0, 160));
@@ -573,8 +599,11 @@ try {
 		// The diff is against WHAT THE MODEL STARTED FROM (fixture + planted mutation), so the removed
 		// line is the planted bug `n / 4`, not the pristine `n / 3`. Diffing against the pristine copy
 		// made a correct fix that reverts the mutation produce an EMPTY diff — see the c7 case below.
+		// req: R-532
 		check("fixture run: the workspace diff is written as evidence", /lib\/calc\.mjs/.test(diff) && /-export const half = \(n\) => n \/ 4;/.test(diff) && /\+export const half = \(n\) => n \/ 2;/.test(diff), diff.split("\n").slice(0, 8).join(" | ").slice(0, 200));
+		// req: R-533
 		check("fixture run: the bench asset was copied in AFTER the child exited", /asset-absent-while-the-model-ran/.test(rec.finalText), rec.finalText.slice(0, 60));
+		// req: R-533
 		check("fixture run: …and is on disk for the grader, not counted as the model's edit", (await fs.readFile(path.join(dir, rec.evidence, "stream.jsonl"), "utf8")).includes("asset-absent") && rec.changedFiles === 1);
 		// …and the pin is load-bearing: a drifted fixture stops the run instead of grading it.
 		await fs.writeFile(path.join(fixtureDir, "README.md"), "# tampered\n");
@@ -582,7 +611,9 @@ try {
 			study: fixtureStudy, studyDir: dir, task: { ...fixtureTask, id: "fx2" }, profile: extProfile(bin), rep: 0, block: "fx2|0",
 			launcher: { cmd: process.execPath, pre: [bin] }, fingerprint: "fp", opts: { dryRun: false, keep: false, agentDir: null, pricer: null },
 		});
+		// req: R-534
 		check("fixture run: a drifted fixture is a grader error, never a graded run", drifted.state === "grader-error" && /fixture drift/.test(drifted.error ?? ""), (drifted.error ?? "").slice(0, 120));
+		// req: R-534
 		check("fixture run: …and no paid child was spawned for it", drifted.totalTokens === 0, String(drifted.totalTokens));
 	}
 
@@ -617,6 +648,7 @@ try {
 		// (header, no hunks) for every successful run. Rep 0's checklist says "inspect both edit diffs";
 		// this is the assertion that there is something to inspect.
 		const c7diff = await fs.readFile(path.join(studyDir, rec.evidence, "workspace.diff"), "utf8");
+		// req: R-533
 		check("shipped c7: the workspace diff SHOWS the fix rather than being empty", /-\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(1\)\)\);/.test(c7diff) && /\+\s*return Number\.isInteger\(n\) \? String\(n\) : String\(parseFloat\(n\.toFixed\(2\)\)\);/.test(c7diff), c7diff.split("\n").filter((l) => /^[-+]/.test(l)).slice(0, 4).join(" | ").slice(0, 200));
 		await fs.rm(path.join(studyDir, "raw", "code-bugfix"), { recursive: true, force: true });
 	}

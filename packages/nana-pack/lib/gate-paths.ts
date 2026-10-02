@@ -1,4 +1,15 @@
 /**
+ * @module packages/nana-pack/lib/gate-paths.ts
+ * @purpose Resolve tool paths the way pi does, and recognise the POLICY files that sit on the gate's floor.
+ * @inputs a tool path or a shell command plus the session cwd, env PI_CODING_AGENT_DIR, and the filesystem
+ *  (realpath, readlink and lstat of the candidates, of both agent dirs and of their policy files)
+ * @outputs pi's resolution of an edit/write path, every candidate form of it, the policy file a candidate
+ *  set or a command word lands on (or null), and pi's active trust store path
+ * @effects disk (realpath / readlink / lstat of candidate paths, the agent dirs and their nana-pack.json
+ *  and trust.json)
+ * @errors none — every function is total and degrades to the raw input or to null
+ */
+/**
  * gate-paths — resolve tool paths the way pi does, and recognise POLICY files (L2).
  *
  * Policy files are the gate's own policy and the trust evidence behind it: `nana-pack.json`

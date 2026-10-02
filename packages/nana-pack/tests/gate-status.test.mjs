@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/gate-status.test.mjs
+ * @purpose Pins the gate's per-session tally — published on every tool call it inspects, silent outside its scope, and never able to change or block a decision
+ * @inputs extensions/nana-gate.ts and a nana-pack.json under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and config file), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -58,10 +66,12 @@ const last = (a) => a.at(-1);
 	const { td, statuses, dialogs, call } = setup({});
 	const benignEdit = await call("edit", { path: path.join(td, "src", "foo.ts") });
 	check("a: benign edit is counted and allowed", benignEdit === undefined);
+	// req: R-071
 	check("a: status key is nana-gate", last(statuses)?.key === "nana-gate");
 	check("a: after 1 inspected call", last(statuses)?.text === "[dim]gate ✓ 1 checked · 0 gated");
 
 	await call("bash", { command: "ls -la" });
+	// req: R-071
 	check("a: after 2 inspected calls", last(statuses)?.text === "[dim]gate ✓ 2 checked · 0 gated");
 
 	const blockedCmd = await call("bash", { command: "rm -rf /tmp/nana-gate-status" });
@@ -76,8 +86,10 @@ const last = (a) => a.at(-1);
 	// a tool the gate does not inspect: no counter movement, no status at all
 	const before = statuses.length;
 	const other = await call("read", { path: path.join(td, "src", "foo.ts") });
+	// req: R-038
 	check("a: an uninspected tool returns normally", other === undefined);
 	check("a: an uninspected tool publishes no status", statuses.length === before);
+	// req: R-071
 	check("a: an uninspected tool is not counted", last(statuses)?.text === "[dim]gate ✓ 4 checked · 2 gated");
 
 	fs.rmSync(td, { recursive: true, force: true });
@@ -112,13 +124,16 @@ const last = (a) => a.at(-1);
 	const { td, call } = setup({}, { ui: { setStatus: () => { throw new Error("boom"); } } });
 	let benign, threw = false;
 	try { benign = await call("edit", { path: path.join(td, "src", "foo.ts") }); } catch { threw = true; }
+	// req: R-072
 	check("d: a throwing setStatus does not throw out of the handler", !threw);
+	// req: R-072
 	check("d: the benign edit is still allowed", benign === undefined);
 
 	let blocked;
 	threw = false;
 	try { blocked = await call("bash", { command: "mkfs.ext4 /dev/sdb1" }); } catch { threw = true; }
 	check("d: a throwing setStatus does not throw on the gated path either", !threw);
+	// req: R-072
 	check("d: the dangerous command is still blocked", blocked?.block === true);
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -134,7 +149,9 @@ const last = (a) => a.at(-1);
 	const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
 	let res, threw = false;
 	try { res = await handlers.tool_call({ toolName: "bash", input: { command: "rm -rf /" } }, ctx); } catch { threw = true; }
+	// req: R-035
 	check("e: headless gate does not throw without ctx.ui", !threw);
+	// req: R-035
 	check("e: headless gate still blocks fail-closed", res?.block === true);
 	fs.rmSync(td, { recursive: true, force: true });
 }

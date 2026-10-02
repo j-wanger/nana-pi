@@ -1,4 +1,14 @@
 /**
+ * @module packages/nana-pack/lib/gate-shell.ts
+ * @purpose Segment a shell command and name its destructive forms for nana-gate.
+ * @inputs a command string, or one Segment {text, piped} for segmentDanger
+ * @outputs quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, the
+ *  dequoted tokens, and a Danger {reason, floor} or null
+ * @effects none
+ * @errors none — an unbalanced quote or an unsegmentable construct sets segmentable:false, and an internal
+ *  failure comes back as the non-floor danger `unparseable segment`
+ */
+/**
  * gate-shell — command segmentation and destructive-form rules for nana-gate (L2).
  *
  * NOT a shell parser. Two views of a command:

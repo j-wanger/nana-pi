@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/catch-ledger.test.mjs
+ * @purpose Pins the catch ledger — structural extraction over the real review corpus, the kappa arithmetic, the matcher's stages, ledger uniqueness, and the judge's fail-closed contract with zero model calls
+ * @inputs lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge executables
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp dirs, ledger files, reads the review corpus), process (spawns the stub judge executables)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // catch-ledger: structural extraction over the real review corpus, κ arithmetic, the matcher's
 // structural stages, ledger uniqueness, and the judge's fail-closed contract. Zero model calls:
 // the judge is exercised only through stub executables that FAIL (or succeed with a fixed shape).
@@ -36,8 +44,10 @@ const throws = (f, re) => {
 	check("κ textbook 20/5/10/15 = 0.4", Math.abs(cohensKappa(a, b).kappa - 0.4) < 1e-12);
 	check("κ perfect agreement = 1", cohensKappa(["a", "b", "c"], ["a", "b", "c"]).kappa === 1);
 	check("κ one-category both raters = 1 (degenerate pe=1)", cohensKappa(["a", "a"], ["a", "a"]).kappa === 1);
+	// req: R-536
 	check("κ rejects unequal vectors", throws(() => cohensKappa(["a"], ["a", "b"]), /equal length/));
 	const s1 = seededSample(["x1", "x2", "x3", "x4", "x5"], 3, "s"), s2 = seededSample(["x5", "x4", "x3", "x2", "x1"], 3, "s");
+	// req: R-536
 	check("seeded sample is order-independent and deterministic", JSON.stringify(s1) === JSON.stringify(s2) && s1.length === 3);
 }
 
@@ -47,7 +57,9 @@ const c2 = extractCorpus(REVIEWS);
 check("corpus: 35 reviewer reports", c1.reports.length === 35, `(${c1.reports.length})`);
 check("corpus: 28 fix briefs", c1.fixBriefs.length === 28, `(${c1.fixBriefs.length})`);
 check("corpus: every report yields ≥1 row", c1.stats.every((s) => s.parsed), c1.stats.filter((s) => !s.parsed).map((s) => s.report).join(","));
+// req: R-536
 check("extraction is deterministic (two runs byte-identical)", JSON.stringify(c1.rows) === JSON.stringify(c2.rows) && JSON.stringify(c1.skipped) === JSON.stringify(c2.skipped));
+// req: R-536
 check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.length);
 {
 	const l3 = c1.rows.filter((r) => r.report === "l3-sol-r1" && r.kind === "finding");
@@ -84,6 +96,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 			if (probe.length > 8 && !hay.replace(/\s+/g, " ").includes(probe)) lost.push(`${r.name}: ${probe}`);
 		}
 	}
+	// req: R-536
 	check("no silent drop: every top-level item is a row or logged", lost.length === 0 && H.length > 0, lost.slice(0, 3).join(" | "));
 }
 // Synthetic shapes
@@ -228,10 +241,15 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 			delete process.env.CATCH_JUDGE_BIN;
 		}
 	};
+	// req: R-537
 	check("judge missing → throws 'unavailable'", throws(() => run(path.join(tmp, "nope")), /unavailable/));
+	// req: R-537
 	check("judge exit 1 → throws", throws(() => run(stub("fail", "process.exit(1)")), /exited 1/));
+	// req: R-537
 	check("judge non-JSON → throws", throws(() => run(stub("garbage", "process.stdout.write('hello')")), /non-JSON/));
+	// req: R-537
 	check("judge is_error → throws", throws(() => run(stub("err", `process.stdout.write(JSON.stringify({is_error:true,result:"x"}))`)), /no structured output/));
+	// req: R-537
 	check("judge silently on another model → throws", throws(() => run(stub("wrongmodel", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[]},modelUsage:{"claude-haiku-4":{}}}))`)), /expected claude-opus/));
 	const ok = run(stub("ok", `process.stdout.write(JSON.stringify({is_error:false,structured_output:{labels:[]},modelUsage:{"claude-opus-5-5":{}},total_cost_usd:0.01}))`));
 	check("judge well-formed → returns structured output + cost", Array.isArray(ok.out.labels) && ok.cost === 0.01);
@@ -239,6 +257,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	check("labels: missing id → throws", throws(() => validateLabels({ labels: [L("a", "unmatched", "")] }, ["a", "b"], ""), /missing b/));
 	const v = validateLabels({ labels: [L("a", "accepted", "Fix   these\nnow"), L("b", "accepted", "invented text")] }, ["a", "b"], "## Fix these now please");
 	check("labels: verbatim quote (whitespace-normalised) keeps 'accepted'", v[0].disposition === "accepted" && v[0].quote_verified);
+	// req: R-537
 	check("labels: unverifiable quote forces 'unmatched' and keeps the raw claim", v[1].disposition === "unmatched" && v[1].disposition_raw === "accepted");
 	fs.rmSync(tmp, { recursive: true, force: true });
 }
@@ -246,6 +265,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 	const cli = path.resolve(here, "../catch-ledger.mjs");
 	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "catch-cli-"));
 	const r = spawnSync(process.execPath, [cli, "label", "a", "l4"], { env: { ...process.env, CATCH_JUDGE_BIN: path.join(tmp, "absent"), CATCH_OUT: tmp }, encoding: "utf8" });
+	// req: R-537
 	check("CLI: judge unavailable → exit non-zero, nothing labelled", r.status === 1 && /unavailable/.test(r.stderr) && !fs.existsSync(path.join(tmp, "labels-a.jsonl")));
 	const b = spawnSync(process.execPath, [cli, "build"], { env: { ...process.env, CATCH_OUT: tmp }, encoding: "utf8" });
 	check("CLI: build without labels → exit non-zero", b.status === 1 && /lack pass-A labels/.test(b.stderr));

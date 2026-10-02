@@ -1,3 +1,18 @@
+/**
+ * @module apps/bench/lib/checkers.mjs
+ * @purpose Deterministic bench checkers — every verdict is a regex, a string compare, a JSON
+ *  walk, a filesystem predicate or a child-process exit code, never an LLM judge.
+ * @inputs a check spec {type: regex|exact|command|suite|file|all, ...} plus a run ctx (finalText,
+ *  workspace dir, fixture paths); for `suite`, the signed verdict line the trusted evaluator
+ *  wrote to fd 3
+ * @outputs exports
+ *  stripComments/extractJson/hashTree/globMatch/fetchKey/selectSignedVerdict/judgeVerdict/runCheck/liveKeyOf/CHECKER_TYPES;
+ *  runCheck returns {pass, detail, graderError?} and never throws
+ * @effects disk (reads the workspace, writes the nonce fd file it unlinks before spawning),
+ *  process (spawnSync of the command under test and of the trusted evaluator)
+ * @errors none thrown — an oracle failure is reported as {graderError: true} so an infrastructure
+ *  fault is never recorded as a wrong answer
+ */
 // Deterministic checkers. NO LLM judge anywhere: every verdict is a regex, a string compare, a
 // JSON walk, a filesystem predicate, or a child-process exit code.
 //

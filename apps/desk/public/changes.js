@@ -1,3 +1,16 @@
+/**
+ * @module apps/desk/public/changes.js
+ * @purpose Own the "files changed" bar above the composer and the floating, draggable diff window
+ *  it opens.
+ * @inputs init({stale}) from app.js (the stage-staleness predicate), refresh(sessionId,
+ *  generation) and clear(); /api/session/:id/changes and /changes/file?path=; pointer events;
+ *  localStorage key nana-code-diffwin for the window position
+ * @outputs renders the changed-file bar and the diff window; returns nothing — app.js calls
+ *  refresh()/clear() and reads no state back
+ * @effects network (fetch against the desk origin), disk (browser localStorage only)
+ * @errors none thrown — a response for a stage generation the user has left is dropped without
+ *  painting, and a failed fetch leaves the bar in its previous state
+ */
 // changes.js — the "files changed" bar above the composer and the floating diff
 // window it opens. Owns ALL of it: app.js calls refresh()/clear() and nothing
 // else, and nothing here touches the transcript, the editor or `L`.

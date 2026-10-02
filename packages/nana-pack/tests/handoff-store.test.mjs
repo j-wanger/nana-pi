@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/handoff-store.test.mjs
+ * @purpose Pins the user-scope handoff store — written atomically, keyed per exact canonical directory so nothing borrows an ancestor's, and skipped by resume, fork and reload
+ * @inputs extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME, and throwaway repositories and worktrees
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, store files, repository fixtures), process (sets HOME, spawns a child session)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -45,18 +53,26 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "hando
 	const s = session(repo, { hasUI: true, ui: { notify: (m) => notes.push(m) } });
 	await s.compact("REPO-STATE");
 	const file = mod.storePathFor(repo);
+	// req: R-108
 	check("b: store file written under ~/.pi/agent/handoffs/<sha256>.md", path.dirname(file) === STORE && /^[0-9a-f]{64}\.md$/.test(path.basename(file)) && fs.readFileSync(file, "utf-8").includes("REPO-STATE"));
 	check("b: the canonical cwd is recorded inside", fs.readFileSync(file, "utf-8").includes(`Cwd: ${repo}\n`));
+	// req: R-112
 	check("b: nothing written to <cwd>/.pi/handoff.md", !fs.existsSync(path.join(repo, ".pi", "handoff.md")));
+	// req: R-112
 	check("b: no .gitignore written into the repo", !fs.existsSync(path.join(repo, ".pi", ".gitignore")));
+	// req: R-110
 	check("b: the write notice prints the store path", notes.some((m) => m.includes(file)));
 	console.log(`  store path: ${notes.find((m) => m.includes(file))}`);
 	const sp = await s.prompt();
+	// req: R-110
 	check("b: fresh session picks it up", sp.includes("REPO-STATE"));
+	// req: R-110
 	check("b: the pickup notice prints the store path", notes.some((m) => m.startsWith("handoff picked up") && m.includes(file)));
 	console.log(`  pickup: ${notes.find((m) => m.startsWith("handoff picked up"))}`);
 	// (f) resume, fork, reload skip pickup
+	// req: R-111
 	for (const reason of ["resume", "fork", "reload"]) check(`f: ${reason} skips pickup`, !(await session(repo).prompt(reason)).includes("REPO-STATE"));
+	// req: R-111
 	check("f: /new picks up", (await session(repo).prompt("new")).includes("REPO-STATE"));
 }
 
@@ -66,6 +82,7 @@ if (process.platform === "darwin") {
 	const viaLink = path.join("/tmp", name);
 	fs.mkdirSync(viaLink);
 	await session(viaLink).compact("TMP-STATE");
+	// req: R-113
 	check("darwin: /tmp/x and /private/tmp/x → same key", mod.storePathFor(mod.canonicalCwd(viaLink)) === mod.storePathFor(mod.canonicalCwd(path.join("/private/tmp", name))));
 	check("darwin: written via /tmp/x, picked up via /private/tmp/x", (await session(path.join("/private/tmp", name)).prompt()).includes("TMP-STATE"));
 	fs.rmSync(viaLink, { recursive: true, force: true });
@@ -78,6 +95,7 @@ if (process.platform === "darwin") {
 	const a = mk(path.join(base, "sib-a"));
 	const b = mk(path.join(base, "sib-b"));
 	await session(a).compact("ALPHA-STATE");
+	// req: R-113
 	check("siblings: distinct keys", mod.storePathFor(a) !== mod.storePathFor(b));
 	const sp = await session(b).prompt();
 	check("siblings: B does not pick up A's handoff", !sp.includes("ALPHA-STATE"));
@@ -90,10 +108,15 @@ if (process.platform === "darwin") {
 	await session(root).compact("ROOT-STATE");
 	fs.rmSync(JOURNAL, { force: true });
 	const sp = await session(nested).prompt();
+	// req: R-140
 	check("g: nested cwd does not inject the root's text", !sp.includes("ROOT-STATE"));
+	// req: R-140
 	check("g: nested cwd is told 'no handoff for this directory'", /no handoff for this directory/i.test(sp));
+	// req: R-140
 	check("g: …and given the ancestor's store path", sp.includes(mod.storePathFor(root)) && sp.includes(root));
+	// req: R-140
 	check("g: handoff_ancestor_named journaled", journal().includes('"handoff_ancestor_named"'));
+	// req: R-141
 	check("g: a directory with no handoff and no ancestor handoff gets nothing", (await session(mk(path.join(base, "lonely"))).prompt()) === "BASE");
 }
 
@@ -108,6 +131,7 @@ if (spawnSync("git", ["--version"]).status === 0) {
 	if (r.status === 0) {
 		await session(main).compact("MAIN-CHECKOUT-STATE");
 		check("worktree: distinct key", mod.storePathFor(mod.canonicalCwd(wt)) !== mod.storePathFor(main));
+		// req: R-113
 		check("worktree: does not pick up the main checkout's handoff", !(await session(wt).prompt()).includes("MAIN-CHECKOUT-STATE"));
 	} else console.log(`SKIP worktree: git worktree add failed (${r.stderr.trim()})`);
 } else console.log("SKIP worktree: git not available");
@@ -118,7 +142,9 @@ if (spawnSync("git", ["--version"]).status === 0) {
 	const file = mod.storePathFor(victim);
 	fs.writeFileSync(file, `# Session handoff (nana)\n\nCwd: /somewhere/else\nWritten: ${new Date().toISOString()}\nWriter: x\n---\nPLANTED-STATE\n`);
 	fs.rmSync(JOURNAL, { force: true });
+	// req: R-114
 	check("cwd mismatch: planted entry not injected", !(await session(victim).prompt()).includes("PLANTED-STATE"));
+	// req: R-114
 	check("cwd mismatch: handoff_cwd_mismatch journaled", journal().includes('"handoff_cwd_mismatch"'));
 }
 
@@ -128,13 +154,16 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	fs.rmSync(JOURNAL, { force: true });
 	await session(proj, { sessionManager: { getSessionFile } }).compact("NOPROV-STATE");
 	const text = fs.readFileSync(mod.storePathFor(proj), "utf-8");
+	// req: R-123
 	check(`provenance ${label}: write not declined, Writer: unknown`, text.includes("NOPROV-STATE") && /^Writer: unknown$/m.test(text));
+	// req: R-123
 	check(`provenance ${label}: handoff_written AND handoff_provenance_unavailable journaled`, journal().includes('"handoff_written"') && journal().includes('"handoff_provenance_unavailable"'));
 }
 {
 	const proj = mk(path.join(base, "prov-ok"));
 	fs.rmSync(JOURNAL, { force: true });
 	await session(proj).compact("PROV-STATE");
+	// req: R-123
 	check("provenance available: no degradation journaled", journal().includes('"handoff_written"') && !journal().includes('"handoff_provenance_unavailable"'));
 }
 
@@ -145,9 +174,12 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	fs.writeFileSync(file, Buffer.concat([Buffer.from(`# x\n\nCwd: ${proj}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\nCORRUPT-STATE `), Buffer.from([0xff, 0xfe, 0xc3]), Buffer.from("\n")]));
 	fs.rmSync(JOURNAL, { force: true });
 	const sp = await session(proj).prompt();
+	// req: R-119
 	check("bad utf-8: nothing injected", sp === "BASE");
+	// req: R-119
 	check("bad utf-8: handoff_pickup_failed journaled with the reason", /"handoff_pickup_failed".*ERR_ENCODING_INVALID_ENCODED_DATA/.test(journal()));
 	check("bad utf-8: not journaled as a pickup", !journal().includes('"handoff_pickup"'));
+	// req: R-119
 	check("bad utf-8 (L5 seam): an unreadable entry is NOT journaled as missing", !journal().includes('"handoff_missing"'));
 }
 
@@ -156,7 +188,9 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	const proj = mk(path.join(base, "never-compacted"));
 	fs.rmSync(JOURNAL, { force: true });
 	check("missing: nothing injected", (await session(proj).prompt()) === "BASE");
+	// req: R-117
 	check("missing: handoff_missing journaled with the store path", journal().includes('"handoff_missing"') && journal().includes(mod.storePathFor(proj)));
+	// req: R-117
 	check("missing: not journaled as a failed pickup", !journal().includes('"handoff_pickup_failed"'));
 }
 
@@ -172,9 +206,13 @@ else {
 	fs.chmodSync(STORE, 0o555);
 	let threw = false;
 	try { await session(proj).compact("NEW-STATE"); } catch { threw = true; } finally { fs.chmodSync(STORE, 0o755); }
+	// req: R-120
 	check("failed write: no throw", !threw);
+	// req: R-120
 	check("failed write: prior file byte-identical", Buffer.compare(before, fs.readFileSync(file)) === 0);
+	// req: R-109
 	check("failed write: no temp litter", fs.readdirSync(STORE).every((f) => !f.endsWith(".tmp")));
+	// req: R-120
 	check("failed write: handoff_write_failed journaled", journal().includes('"handoff_write_failed"'));
 }
 
@@ -183,7 +221,9 @@ else {
 	const proj = mk(path.join(base, "concurrent"));
 	await Promise.all(Array.from({ length: 8 }, (_, i) => session(proj).compact(`CONCURRENT-${i}-${"x".repeat(20000)}`)));
 	const text = fs.readFileSync(mod.storePathFor(proj), "utf-8");
+	// req: R-109
 	check("concurrent: exactly one summary, whole", (text.match(/CONCURRENT-\d/g) ?? []).length === 1 && text.trimEnd().endsWith("x".repeat(20000)));
+	// req: R-109
 	check("concurrent: no temp litter", fs.readdirSync(STORE).every((f) => !f.endsWith(".tmp")));
 }
 
@@ -200,7 +240,9 @@ else {
 		fs.rmSync(JOURNAL, { force: true });
 		check("dangling entry: nothing injected", (await session(proj).prompt()) === "BASE");
 		check("dangling entry: readHandoff() is an error, not missing", mod.readHandoff(file).kind === "error");
+		// req: R-118
 		check("dangling entry: handoff_pickup_failed journaled with dangling_symlink", /"handoff_pickup_failed".*dangling_symlink/.test(journal()));
+		// req: R-118
 		check("dangling entry: NO handoff_missing", !journal().includes('"handoff_missing"'));
 		console.log(`  journal: ${journal().trim().split("\n").find((l) => l.includes("handoff_pickup_failed"))}`);
 		fs.unlinkSync(file);
@@ -214,6 +256,7 @@ else {
 		try {
 			check("dangling handoffs/: nothing injected", (await session(proj).prompt()) === "BASE");
 			check("dangling handoffs/: readHandoff() is an error, not missing", mod.readHandoff(mod.storePathFor(proj)).kind === "error");
+			// req: R-118
 			check("dangling handoffs/: handoff_pickup_failed journaled with dangling_parent", /"handoff_pickup_failed".*dangling_parent/.test(journal()));
 			check("dangling handoffs/: NO handoff_missing", !journal().includes('"handoff_missing"'));
 			console.log(`  journal: ${journal().trim().split("\n").find((l) => l.includes("handoff_pickup_failed"))}`);
@@ -232,6 +275,7 @@ else {
 		fs.symlinkSync(real, STORE);
 		fs.rmSync(JOURNAL, { force: true });
 		try {
+			// req: R-117
 			check("resolving handoffs/ link, no entry: handoff_missing (genuine absence)", (await session(proj).prompt()) === "BASE" && journal().includes('"handoff_missing"') && !journal().includes('"handoff_pickup_failed"'));
 			await session(proj).compact("LINKED-STATE");
 			check("resolving handoffs/ link: written and picked up", (await session(proj).prompt()).includes("LINKED-STATE"));

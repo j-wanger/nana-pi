@@ -1,4 +1,21 @@
 #!/usr/bin/env node
+/**
+ * @module apps/bench/run.mjs
+ * @purpose Execute a pre-registered study — spawn each pi run, grade it, and append exactly one
+ *  JSON line per run with no retries.
+ * @inputs argv `<study-dir> [--smoke|--go] [--task id] [--profile name] [--rep n] [--keep]`;
+ *  study.json, tasks, fixtures and schedule.json in that dir; env PI_BENCH_ENTRY and PATH; the
+ *  prepared pi agent dir
+ * @outputs appends records to results.jsonl; writes each run's raw stream, stderr and workspace
+ *  diff under the study dir; exports
+ *  parseArgs/loadStudy/runChild/executeRun/registrationProbe/runPlan and the interrupt and budget
+ *  helpers; progress on stdout
+ * @effects disk (study dir reads, evidence and results writes), process (spawns pi children,
+ *  installs SIGINT handling, exits non-zero), network (the model calls those children make)
+ * @errors exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as
+ *  data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative
+ *  budget, on 3 consecutive systemic failures, or on a child that did not die cleanly
+ */
 // pi bench runner — executes a pre-registered study and appends one JSON line per run.
 //
 //   node apps/bench/run.mjs <study-dir>                 # DRY RUN (default): schedule + exact argv

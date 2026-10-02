@@ -6,7 +6,11 @@
 	"license": "MIT",
 	"repository": "github:j-wanger/nana-pi",
 	"scripts": {
-		"test": "node scripts/test.mjs"
+		"test": "node scripts/test.mjs",
+		"map": "node scripts/code-map.mjs --write",
+		"map:check": "node scripts/code-map.mjs --check",
+		"map:impact": "node scripts/code-map.mjs --impact",
+		"readme:check": "node scripts/readme-check.mjs --check"
 	},
 	"pi": {
 		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],

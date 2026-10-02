@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/host-rule.test.mjs
+ * @purpose Pins that the Host rule defeats DNS rebinding on every route, including the reads the Origin rule cannot see
+ * @inputs apps/desk/server.mjs driven over raw sockets carrying attacker Host headers
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (a temp HOME and apps dir), network (raw loopback sockets to the desk it binds), process (spawns the desk; no pi child is ever spawned)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Security property (2026-09-08): DNS rebinding. The origin rule (origin-rule.test.mjs)
 // cannot see this attack — after the rebind, evil.example IS the page's origin and the
 // desk answers it same-origin, so every READ (settings incl. MCP credentials, session
@@ -85,7 +93,9 @@ try {
 
 	// ── the attack: a rebound page reads the desk's crown jewels ──
 	let r = await raw(PORT, "GET", "/api/settings", `evil.example:${PORT}`);
+	// req: R-458
 	check("rebound GET /api/settings (Host: evil.example) → 403", r.status === 403, String(r.status));
+	// req: R-458
 	check("…and the response body carries no settings", !/settingsPath|mcpServers/.test(r.body), r.body.slice(0, 120));
 	for (const [what, target] of [["transcripts", "/api/sessions"], ["live children", "/api/live"], ["the page itself", "/"]]) {
 		r = await raw(PORT, "GET", target, "attacker.test");
@@ -100,8 +110,10 @@ try {
 		check(`Host: ${host} → 200`, r.status === 200, String(r.status));
 	}
 	r = await raw(PORT, "GET", "/api/live", null);
+	// req: R-458
 	check("no Host at all (HTTP/1.0, non-browser) → 200, like the no-Origin rule", r.status === 200, String(r.status));
 	r = await raw(PORT, "GET", "/api/live", "127.0.0.1:9999");
+	// req: R-458
 	check("right host, WRONG port → 403 (a rebind names its own port)", r.status === 403, String(r.status));
 	r = await raw(PORT, "GET", "/api/live", "127.0.0.1");
 	check("loopback with no port → 403 (this listener is not on :80)", r.status === 403, String(r.status));
@@ -124,6 +136,7 @@ try {
 
 	// ── the same rule guards every app listener, on its own port ──
 	r = await raw(APP_PORT, "GET", "/api/manifest", `evil.example:${APP_PORT}`);
+	// req: R-458
 	check("app listener: rebound GET /api/manifest → 403", r.status === 403, String(r.status));
 	r = await raw(APP_PORT, "GET", "/", "attacker.test");
 	check("app listener: rebound GET / (the app page) → 403", r.status === 403, String(r.status));
@@ -132,6 +145,7 @@ try {
 	r = await raw(APP_PORT, "GET", "/api/manifest", `127.0.0.1:${APP_PORT}`);
 	check("app listener: loopback Host → 200", r.status === 200, String(r.status));
 	r = await raw(APP_PORT, "GET", "/api/manifest", `127.0.0.1:${PORT}`);
+	// req: R-458
 	check("app listener: the DESK's port in Host → 403 (each listener owns one origin)", r.status === 403, String(r.status));
 
 	check("no child was spawned by any of it", JSON.parse((await raw(PORT, "GET", "/api/live", `127.0.0.1:${PORT}`)).body).length === 0);
@@ -151,8 +165,10 @@ try {
 			if (zero.exitCode !== null) throw new Error(`port-0 desk exited ${zero.exitCode}: ${zeroLog}`);
 			await sleep(250);
 		}
+		// req: R-400
 		check("DESK_PORT=0 reports the port it bound", bound > 1024, String(bound));
 		r = await raw(bound, "GET", "/api/live", `127.0.0.1:${bound}`);
+		// req: R-400
 		check("…and answers its own bound port", r.status === 200, `${r.status} ${r.body.slice(0, 60)}`);
 		r = await raw(bound, "GET", "/api/settings", `evil.example:${bound}`);
 		check("…while a rebound Host is still 403 (the rule was not switched off)", r.status === 403, String(r.status));

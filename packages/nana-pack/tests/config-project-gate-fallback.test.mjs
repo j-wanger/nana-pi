@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/config-project-gate-fallback.test.mjs
+ * @purpose Pins the PROJECT-scope mirror of the gate fallback — a nana-trusted project's malformed gate block keeps the last valid policy mid-session and stops conservatively in a fresh process
+ * @inputs extensions/nana-gate.ts, lib/config.ts, a nana-trusted temp project and pi's trust store under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, temp git projects, trust store), process (sets HOME, runs git and child node processes)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { execFileSync, execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -107,6 +115,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	check("1: valid trusted project deny — terraform destroy BLOCKED", blocked(before.tf), JSON.stringify(before));
 	fs.writeFileSync(P.file, TRAILING);
 	const after = run(P.td, [["tf", "bash", { command: "terraform destroy" }], ...ALL("ls -la", "src/a.ts")]);
+	// req: R-067
 	check("1: corrupted + fresh process — terraform destroy still BLOCKED", blocked(after.tf), JSON.stringify(after.tf));
 	check("1: stop reason names the project file and the repair", PSTOP(P.file).test(after.tf?.reason ?? ""), after.tf?.reason);
 	for (const k of ["bash", "powershell", "edit", "write"])
@@ -114,6 +123,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	// mid-session corruption keeps the last valid project gate (not a stop)
 	fs.writeFileSync(P.file, JSON.stringify({ gate: { extraPatterns: ["\\bterraform\\s+destroy\\b"] } }));
 	const mid = run(P.td, [["tf0", "bash", { command: "terraform destroy" }], ["__corrupt__"], ["tf", "bash", { command: "terraform destroy" }], ["ls", "bash", { command: "ls -la" }]], { corrupt: [P.file, TRAILING] });
+	// req: R-067
 	check("1: corrupted mid-session — last valid project deny still enforced", blocked(mid.tf0) && blocked(mid.tf) && !PSTOP(P.file).test(mid.tf?.reason ?? ""), JSON.stringify(mid));
 	check("1: corrupted mid-session — benign command allowed (last-good, not a stop)", mid.ls === null, JSON.stringify(mid.ls));
 	// repair clears the stop
@@ -132,6 +142,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	check("2: valid project allowPatterns [] replaces the user exception — rm -rf /tmp/x BLOCKED", blocked(before.rm), JSON.stringify(before));
 	fs.writeFileSync(P.file, '{ "gate": { "allowPatterns": [], }, }');
 	const after = run(P.td, [["rm", "bash", { command: "rm -rf /tmp/x" }]]);
+	// req: R-067
 	check("2: corrupted + fresh process — user exception does NOT resurrect (BLOCKED)", blocked(after.rm), JSON.stringify(after.rm));
 	check("2: blocked by the project stop", PSTOP(P.file).test(after.rm?.reason ?? ""), after.rm?.reason);
 	// control: without a project file the user exception applies (missing ≠ stop)
@@ -166,10 +177,12 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	// untrusted corrupted project: ignored, not a stop
 	const U = project(TRAILING, { trust: false });
 	const u = run(U.td, [["ls", "bash", { command: "ls -la" }]], { trusted: false });
+	// req: R-069
 	check("control: untrusted corrupted project → ignored, no stop", u.ls === null, JSON.stringify(u));
 	// nana-only folder pi auto-trusts but the owner never decided: ignored, not a stop
 	const A = project(TRAILING, { trust: false });
 	const a = run(A.td, [["ls", "bash", { command: "ls -la" }]], { trusted: true });
+	// req: R-069
 	check("control: auto-trusted (undecided) corrupted project → ignored, no stop", a.ls === null, JSON.stringify(a));
 	// valid project keeps replace semantics: project extraPatterns [] replaces the user's deny
 	fs.writeFileSync(USER_CFG, JSON.stringify({ gate: { extraPatterns: ["\\bterraform\\s+destroy\\b"] } }));
@@ -180,6 +193,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	fs.writeFileSync(USER_CFG, TRAILING);
 	const B = project(TRAILING);
 	const b = run(B.td, [["ls", "bash", { command: "ls -la" }]]);
+	// req: R-068
 	check("control: both malformed → the user stop wins", blocked(b.ls) && /^nana-gate: user nana-pack\.json gate block is malformed/.test(b.ls.reason), JSON.stringify(b));
 	fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} }));
 }
@@ -196,6 +210,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	}
 	if (linked) {
 		const r = run(D.td, [["ls", "bash", { command: "ls -la" }]]);
+		// req: R-196
 		check("U2-B: dangling project nana-pack.json symlink in a trusted project → stop (not defaults)", blocked(r.ls) && PSTOP(D.file).test(r.ls.reason) && /dangling symlink/.test(r.ls.reason), JSON.stringify(r));
 	}
 }

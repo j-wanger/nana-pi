@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/aggregate.test.mjs
+ * @purpose Pins the aggregate arithmetic on a fixed results file by hand — the medians, the denominators and the shared-task restriction every number in the summary rests on
+ * @inputs aggregate.mjs, lib/usage.mjs, and the fixed results and schedule fixtures under test/fixtures
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (reads the fixtures)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Aggregate arithmetic on a fixed results.jsonl. Every number in summary.md is a decision input,
 // so the medians, the denominators and the shared-task restriction are pinned here by hand.
 // Three properties matter most: a grader error never counts as a model failure, an extension's
@@ -45,7 +53,9 @@ check("t1/A: the run-error is still reported in states", A1.states["run-error"] 
 check("t1/A: spend median over DECIDED runs only", A1.spend.median === 150, String(A1.spend.median));
 
 const C2 = cell("r2", "C"); // ok, grader-error, ok(with unknown nested)
+// req: R-531
 check("r2/C: a grader error is excluded from the denominator", C2.decided === 2 && C2.successes === 2, `${C2.successes}/${C2.decided}`);
+// req: R-531
 check("r2/C: …but is counted in states", C2.states["grader-error"] === 1, JSON.stringify(C2.states));
 check("r2/C: an unmeasured nested call is flagged on the cell", C2.nestedUnknown === 1, String(C2.nestedUnknown));
 
@@ -58,6 +68,7 @@ check("r1: nested tokens are also reported on their own", C_r1.nestedTokens.medi
 
 // ── per-family, shared tasks only ────────────────────────────────────────────────────────────
 const code = agg.byFamily.find((f) => f.family === "code");
+// req: R-535
 check("code family: t3 is EXCLUDED (only B ran it)", code.shared.join() === "t1,t2" && code.excluded.join() === "t3", `${code.shared} / ${code.excluded}`);
 const rowA = code.rows.find((r) => r.profile === "A");
 const rowB = code.rows.find((r) => r.profile === "B");
@@ -69,11 +80,13 @@ check("code/A: total of task medians = 150 + 400", rowA.totalOfTaskMedians === 5
 check("code/B: total of task medians = 150 + 900 (the expensive task cannot hide)", rowB.totalOfTaskMedians === 1050, String(rowB.totalOfTaskMedians));
 check("code/B: t3 is not in the totals", rowB.totalOfTaskMedians !== 1050 + 10);
 check("per-task success counts are exposed as x/N", rowA.perTaskSuccess.t1 === "2/2" && rowB.perTaskSuccess.t2 === "3/3", JSON.stringify(rowA.perTaskSuccess));
+// req: R-535
 check("cache buckets are reported, not averaged away", rowB.cache.cold === 4 && rowB.cache.warm === 2, JSON.stringify(rowB.cache));
 
 const research = agg.byFamily.find((f) => f.family === "research");
 check("research family holds only B and C", research.profiles.join() === "B,C");
 check("A never appears in the research family", !research.rows.some((r) => r.profile === "A"));
+// req: R-535
 check("families are separated (no pooled row across workloads)", agg.byFamily.length === 2);
 
 // ── integrity ────────────────────────────────────────────────────────────────────────────────
@@ -94,6 +107,7 @@ check("a record flagged nestedUnknown has NO cost, whatever its cost field says"
 check("…but its observed cost is still available, separately named", observedCostOfRecord({ cost: 0.01, nestedUnknown: true }) === 0.01);
 check("r1/C: token spend is still reported (only money is unknown)", C1.spend.median === 1000, String(C1.spend.median));
 const rowsC = agg.byFamily.find((f) => f.family === "research").rows;
+// req: R-535
 check("a profile row with any unpriced cell reports totalCost null", rowsC.find((r) => r.profile === "C").totalCost === null);
 check("a fully priced profile row reports a money total", rowsC.find((r) => r.profile === "B").totalCost > 0, String(rowsC.find((r) => r.profile === "B").totalCost));
 
@@ -105,11 +119,14 @@ check("markdown has a per-family section", md.includes("Family `code`") && md.in
 check("markdown names the excluded task", md.includes("Excluded from the comparison") && md.includes("t3"));
 check("markdown states the denominator rule", md.includes("grader errors, harness errors and blocked runs are reported but never counted"));
 check("markdown states spend includes nested tokens", md.includes("PLUS any nested LLM tokens"));
+// req: R-535
 check("markdown ratio to baseline uses spend, not own tokens", /\| t2 \| 2\.25× \(\+0\) \|/.test(md), md.split("\n").filter((l) => l.includes("×")).join(" | "));
 check("markdown flags an unmeasured nested cell", md.includes("⚠?"));
 check("markdown carries a money column", md.includes("$ median") && /\| \$0\./.test(md));
 check("markdown says `unknown` rather than inventing a total", md.includes("unknown ≥$"), md.split("\n").filter((l) => l.includes("unknown")).join(" | ").slice(0, 170));
+// req: R-535
 check("markdown gives the observed lower bound beside it", /unknown ≥\$\d/.test(md));
+// req: R-535
 check("markdown calls the lower bound a lower bound", md.includes("LOWER BOUND"));
 check("markdown credits pi's calculateCost for the money", md.includes("calculateCost") && md.includes("@earendil-works/pi-ai"));
 
@@ -122,6 +139,7 @@ check("a pre-pi-shape record still aggregates via the bucket fallback", legacy.c
 const piShaped = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, state: "ok", ok: true, tokens: { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, totalTokens: 99, cost: { total: 0.5 } }, wallMs: 1, turns: 1 }]);
 check("a pi-shaped record uses pi's authoritative totalTokens, not the bucket sum", piShaped.cells[0].spend.median === 99, String(piShaped.cells[0].spend.median));
 const allGrader = aggregate([{ task: "t", family: "f", profile: "p", rep: 0, state: "grader-error", ok: null, totalTokens: 5, wallMs: 1 }]);
+// req: R-531
 check("a cell of nothing but grader errors has a null success rate, not 0%", allGrader.cells[0].successRate === null && allGrader.cells[0].decided === 0);
 
 process.exit(fails ? 1 : 0);

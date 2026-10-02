@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/handoff-symlink.test.mjs
+ * @purpose Pins that a custom handoff.path is never read or written THROUGH a symlink the repository controls, so no link target reaches the system prompt or gets overwritten
+ * @inputs extensions/nana-handoff.ts, a nana-pack.json naming a symlinked handoff path, and a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, symlinks and their targets), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -45,8 +53,10 @@ function workspace() {
 
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
+	// req: R-136
 	check("a: symlinked handoff does not throw at session_start", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	// req: R-134
 	check("a: nothing injected from a symlinked handoff", r === undefined);
 	check("a: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
 	fs.rmSync(td, { recursive: true, force: true });
@@ -62,7 +72,9 @@ function workspace() {
 
 	let threw = false;
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
+	// req: R-136
 	check("b: symlinked handoff does not throw at compaction", !threw);
+	// req: R-134
 	check("b: symlink target not overwritten", fs.readFileSync(target, "utf-8") === "ORIGINAL\n");
 	check("b: the link itself is left alone (not replaced by a regular file)", fs.lstatSync(link).isSymbolicLink());
 	fs.rmSync(td, { recursive: true, force: true });
@@ -86,9 +98,11 @@ function workspace() {
 
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
+	// req: R-136
 	check("d: symlinked state directory does not throw at session_start", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("d: nothing injected through a symlinked state directory", r === undefined);
+	// req: R-134
 	check("d: external contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("EXTERNAL SECRET"));
 
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
@@ -113,9 +127,11 @@ function workspace() {
 	const ctx = { cwd: link, hasUI: false, isProjectTrusted: () => true };
 
 	await handlers.session_compact({ compactionEntry: { summary: "under a symlinked root" }, reason: "manual" }, ctx);
+	// req: R-135
 	check("f: symlinked ANCESTOR does not block the write", fs.readFileSync(path.join(real, "state", "handoff.md"), "utf-8").includes("under a symlinked root"));
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	// req: R-135
 	check("f: symlinked ANCESTOR does not block the pickup", (r?.systemPrompt ?? "").includes("under a symlinked root"));
 	fs.rmSync(td, { recursive: true, force: true });
 }

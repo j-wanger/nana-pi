@@ -1,3 +1,18 @@
+/**
+ * @module packages/nana-pack/bin/pi-watchdog.mjs
+ * @purpose Run `pi` under a CPU-liveness watchdog that kills and retries any attempt whose CPU time stays
+ *  flat.
+ * @inputs the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after
+ *  it, the child's CPU seconds from `ps -o time=`, and the caller's accept(text) predicate
+ * @outputs {ok, text, attempt} with the attempt's captured output, per-poll `cpu=…s flat=n/m`, STALL and
+ *  attempt lines on stderr, the RETRIES_NOTICE string, or a parse {error}
+ * @effects process (spawns `pi` detached per attempt with NANA_HANDOFF=off, SIGKILLs its process group on a
+ *  stall, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
+ *  stderr)
+ * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
+ *  --stall-secs/--poll or a non-whole --retries, and a spawn failure or stall returns ok:false with the
+ *  partial text
+ */
 // pi-watchdog.mjs — the liveness WATCHDOG shared by pi-review (reviews, round-capped) and
 // pi-worker (workers, no ledger). Moved verbatim out of pi-review.mjs in T2b; behaviour unchanged.
 //

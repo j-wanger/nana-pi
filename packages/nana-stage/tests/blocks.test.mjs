@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-stage/tests/blocks.test.mjs
+ * @purpose Pins the staged-block contract and the nana-stage hook logic — validation, rendering, extraction, reduction and signing, with their caps
+ * @inputs lib/blocks.mjs and lib/sign.mjs
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects none
+ * @errors a failed check prints FAIL with the observed value and the run exits 1
+ */
 // Deterministic tests for the block contract + the nana-stage hook logic
 // (design §6 deliverable 2). Zero-dep. Run: node packages/nana-stage/tests/blocks.test.mjs
 import {
@@ -29,8 +37,11 @@ const ev = (details, extra = {}) => ({ toolName: "board_table", toolCallId: "cal
 // ── validateBlock ──
 check("valid table", validateBlock(table()).ok);
 check("valid card", validateBlock(card()).ok);
+// req: R-250
 check("missing scope rejected", !validateBlock({ ...table(), scope: "" }).ok);
+// req: R-250
 check("missing title rejected", !validateBlock({ ...card(), title: undefined }).ok);
+// req: R-250
 check("reserved type rejected with a specific message", (validateBlock({ ...table(), type: "kpi" }).errors || []).some((m) => /reserved/.test(m)));
 
 // ── chart (slice 2) ──
@@ -44,20 +55,32 @@ const chart = () => ({
 	],
 });
 check("valid chart", validateBlock(chart()).ok, JSON.stringify(validateBlock(chart())));
+// req: R-253
 check("chart: unknown kind rejected", !validateBlock({ ...chart(), kind: "pie" }).ok);
+// req: R-253
 check("chart: missing x rejected", !validateBlock({ ...chart(), x: undefined }).ok);
+// req: R-253
 check("chart: empty series rejected", !validateBlock({ ...chart(), series: [] }).ok);
+// req: R-253
 check(`chart: > ${MAX_CHART_SERIES} series rejected`, !validateBlock({ ...chart(), series: Array.from({ length: MAX_CHART_SERIES + 1 }, (_, i) => ({ key: `s${i}`, label: `S${i}`, points: [["2020-01-01", 1]] })) }).ok);
+// req: R-253
 check(`chart: > ${MAX_CHART_POINTS} points rejected`, !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: Array.from({ length: MAX_CHART_POINTS + 1 }, (_, i) => [i, 1]) }], x: { type: "number" } }).ok);
 check("chart: bad date x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020/01/01", 1]] }] }).ok);
+// req: R-253
 check("chart: impossible calendar date rejected (2026-99-99, 2026-02-30)", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2026-99-99", 1]] }] }).ok && !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2026-02-30", 1]] }] }).ok && validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2024-02-29", 1]] }] }).ok);
+// req: R-253
 check("chart: all-null series (nothing to draw) rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", null], ["2020-01-02", null]] }] }).ok);
+// req: R-253
 check(`chart: > ${MAX_CHART_POINTS_TOTAL} points across series rejected even when each series is under ${MAX_CHART_POINTS}`, !validateBlock({ ...chart(), x: { type: "number" }, series: [1, 2, 3].map((k) => ({ key: `s${k}`, label: `S${k}`, points: Array.from({ length: 900 }, (_, i) => [i, 1]) })) }).ok);
 check("chart: a 2-series × 1000-point date chart fits the byte cap", validateBlock({ ...chart(), series: [1, 2].map((k) => ({ key: `s${k}`, label: `S${k}`, points: Array.from({ length: 1000 }, (_, i) => [new Date(Date.UTC(2013, 0, 4) + i * 7 * 86400000).toISOString().slice(0, 10), 1 + i * 0.0137]) })) }).ok);
+// req: R-253
 check("chart: non-monotonic x rejected", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-02-01", 1], ["2020-01-01", 1]] }] }).ok);
+// req: R-253
 check("chart: NaN y rejected, null y allowed", !validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", NaN]] }] }).ok && validateBlock({ ...chart(), series: [{ key: "s", label: "S", points: [["2020-01-01", null], ["2020-01-02", 1]] }] }).ok);
+// req: R-253
 check("chart: number x-axis accepts numbers only", validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [[1, 1], [2, 2]] }] }).ok && !validateBlock({ ...chart(), x: { type: "number" }, series: [{ key: "s", label: "S", points: [["2020-01-01", 1]] }] }).ok);
-check("chart: y.format must be number|percent", !validateBlock({ ...chart(), y: { format: "money" } }).ok);
+// req: R-253
+check("chart: y.format must be number/percent", !validateBlock({ ...chart(), y: { format: "money" } }).ok);
 {
 	const t = renderBlockText(chart());
 	check("chart text: a per-series summary, not the points", /^- amihud \(126, 25\): 3 points 2013-01-04 → 2013-01-18; first 1, last 0.99, min 0.99, max 1.02$/m.test(t) && !/1\.02.*1\.01.*1\.015/s.test(t.split("\n").slice(0, 3).join("\n")), t);
@@ -67,15 +90,25 @@ check("chart: y.format must be number|percent", !validateBlock({ ...chart(), y: 
 	const r = processToolResult(ev({ blocks: [chart()] }), { now: NOW });
 	check("chart through the hook: stamped, entry appended, text is the summary", r.entries.length === 1 && r.entries[0].produced_by.tool === "board_table" && r.patch.content[0].text === renderBlockText(r.entries[0]));
 }
+// req: R-250
 check("unknown type rejected", !validateBlock({ ...table(), type: "widget" }).ok);
+// req: R-250
 check("bad slot rejected", !validateBlock({ ...table(), slot: "top" }).ok);
+// req: R-251
 check("table without columns rejected", !validateBlock({ ...table(), columns: [] }).ok);
+// req: R-251
 check("table row not object rejected", !validateBlock({ ...table(), rows: [1] }).ok);
+// req: R-251
 check(`table > ${MAX_TABLE_ROWS} rows rejected`, !validateBlock({ ...table(), rows: Array.from({ length: MAX_TABLE_ROWS + 1 }, () => ({ rank: 1 })) }).ok);
+// req: R-252
 check("card field with object value rejected", !validateBlock({ ...card(), fields: [{ label: "x", value: { a: 1 } }] }).ok);
+// req: R-254
 check("action without prompt rejected", !validateBlock({ ...table(), actions: [{ label: "x" }] }).ok);
+// req: R-254
 check("per_row action on a card rejected", !validateBlock({ ...card(), actions: [{ label: "x", prompt: "y", per_row: true }] }).ok);
+// req: R-254
 check("per_row action on a table accepted; rowPrompt substitutes", validateBlock({ ...table(), actions: [{ label: "Card", prompt: "player_card {player}", per_row: true }] }).ok && rowPrompt("player_card {player} #{rank} {missing}", table().rows[0]) === "player_card Nikola Jokić #1 {missing}");
+// req: R-255
 check("oversize block (>64 KiB) rejected", !validateBlock({ ...card(), note: "x".repeat(70 * 1024) }).ok);
 check("produced_by supplied by the tool does not fail validation (it is overwritten later)", validateBlock({ ...card(), produced_by: { tool: "forged" } }).ok);
 
@@ -87,6 +120,7 @@ check("produced_by supplied by the tool does not fail validation (it is overwrit
 	const caught = (b) => { try { return validateBlock(b); } catch (e) { return { threw: String(e && e.message) }; } };
 	check("a cyclic block is REJECTED, not thrown on", caught(cyclic).ok === false && /circular/i.test(caught(cyclic).errors.join(" ")), JSON.stringify(caught(cyclic)).slice(0, 120));
 	check("a block with a throwing getter is REJECTED, not thrown on", caught(thrower).ok === false && /hostile getter/.test(caught(thrower).errors.join(" ")), JSON.stringify(caught(thrower)).slice(0, 120));
+	// req: R-255
 	check("a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw)", caught({ ...card(), fields: [{ label: "n", value: 1n }] }).ok === false && caught({ ...table(), rows: [{ rank: 1n }] }).ok === false && caught({ ...card(), actions: [{ label: "a", prompt: "p", extra: 1n }] }).ok === false);
 }
 
@@ -94,12 +128,16 @@ check("produced_by supplied by the tool does not fail validation (it is overwrit
 {
 	const roundTrips = (b) => JSON.stringify(JSON.parse(JSON.stringify(b))) === JSON.stringify(b);
 	for (const [what, v] of [["NaN", NaN], ["Infinity", Infinity], ["a function", () => 1], ["a symbol", Symbol("s")]]) {
+		// req: R-252
 		check(`card value ${what} rejected (silently mutates or vanishes on replay)`, !validateBlock({ ...card(), fields: [{ label: "x", value: v }] }).ok);
+		// req: R-252
 		check(`table cell ${what} rejected`, !validateBlock({ ...table(), rows: [{ rank: v }] }).ok);
 	}
+	// req: R-252
 	check("null, strings, booleans and finite numbers stay legal in both", validateBlock({ ...card(), fields: [{ label: "x", value: null }, { label: "y", value: true }, { label: "z", value: -1.5 }] }).ok && validateBlock({ ...table(), rows: [{ rank: 1, player: "p", salary: null }, { rank: 2, player: "q", extra: false }] }).ok);
 	check("a row key no column names is still checked (it rides rowPrompt and is persisted)", !validateBlock({ ...table(), rows: [{ rank: 1, _ref: () => "x" }] }).ok);
 	check("undefined in a row is legal — indistinguishable from an absent key", validateBlock({ ...table(), rows: [{ rank: 1, player: undefined }] }).ok);
+	// req: R-255
 	check("what validates now round-trips through JSON unchanged", roundTrips(table()) && roundTrips(card()) && roundTrips(chart()));
 }
 
@@ -122,6 +160,7 @@ check("subtitle: string enforced on table and chart, not only card", !validateBl
 // ── renderBlockText: deterministic, carries scope, note, actions ──
 const t1 = renderBlockText(table());
 check("table text has title, scope, header, rows", t1.includes("## 2026-27 general board") && t1.includes("scope: reports/") && t1.includes("Player") && t1.includes("Shai Gilgeous-Alexander"));
+// req: R-260
 check("table text is byte-stable", t1 === renderBlockText(table()));
 const c1 = renderBlockText(card());
 check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.includes("[C]") && c1.includes("note: no injury") && c1.includes("(player_season_stats)"));
@@ -137,6 +176,7 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 	};
 	check("padded-table fixture is a VALID block (under the 64 KiB JSON cap)", validateBlock(wide).ok, JSON.stringify(validateBlock(wide).errors || []).slice(0, 160));
 	const wt = renderBlockText(wide);
+	// req: R-261
 	check(`one wide cell no longer pads every row: text ≤ ${MAX_BLOCK_TEXT_BYTES} bytes`, bytes(wt) <= MAX_BLOCK_TEXT_BYTES, `${bytes(wt)} bytes`);
 	check("the width cap loses no data: the wide cell is still printed whole", wt.includes(wideCell));
 	// many columns: the width cap alone cannot bound it, so the byte cap cuts — and says so
@@ -148,10 +188,13 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 	check("wide-grid fixture is a VALID block", validateBlock(many).ok, JSON.stringify(validateBlock(many).errors || []).slice(0, 160));
 	const mt = renderBlockText(many);
 	check(`block text is hard-bounded at ${MAX_BLOCK_TEXT_BYTES} bytes`, bytes(mt) <= MAX_BLOCK_TEXT_BYTES, `${bytes(mt)} bytes`);
+	// req: R-261
 	check("truncation is announced in the text, never silent", /truncated at \d+ bytes/.test(mt));
 	// the bound is on the whole tool result too — one call may return many blocks
 	const manyBlocks = processToolResult(ev({ blocks: [1, 2, 3, 4, 5].map((n) => ({ ...many, id: `blk_many_${n}` })) }), { now: NOW });
+	// req: R-261
 	check(`tool-result text is hard-bounded at ${MAX_RESULT_TEXT_BYTES} bytes`, bytes(manyBlocks.patch.content[0].text) <= MAX_RESULT_TEXT_BYTES, `${bytes(manyBlocks.patch.content[0].text)} bytes`);
+	// req: R-260
 	check("ordinary blocks render byte-identically under the caps", renderBlockText(table()) === t1 && renderBlockText(card()) === c1);
 	const multi = "é".repeat(200) + "🎉".repeat(100);
 	check("clampText holds the byte bound on multi-byte text, marker or not", [10, 120, 401, 1e6].every((cap) => bytes(clampText(multi, cap, "x")) <= cap) && clampText("short", 100, "x") === "short");
@@ -162,6 +205,7 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 	check("a genuine U+FFFD ending exactly on the cut is kept", clampText("\uFFFD".repeat(30), 6, "t") === "\uFFFD\uFFFD", JSON.stringify(clampText("\uFFFD".repeat(30), 6, "t")));
 	// 3-byte U+FFFD then 4-byte emoji: a cut at 5 splits the emoji → back up to 3.
 	check("a cut inside a 4-byte sequence backs up to the character boundary", clampText("\uFFFD" + "🎉".repeat(5), 5, "t") === "\uFFFD", JSON.stringify(clampText("\uFFFD" + "🎉".repeat(5), 5, "t")));
+	// req: R-261
 	check("every cut decodes as valid UTF-8 (no lone replacement char invented)", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].every((cap) => { const o = clampText("\uFFFD" + "🎉".repeat(5), cap, "t"); return bytes(o) <= cap && o === new TextDecoder("utf-8", { fatal: true }).decode(new TextEncoder().encode(o)); }));
 }
 
@@ -174,33 +218,44 @@ const stripped = stripCarrier({ blocks: [1], mcpResult: { structuredContent: { b
 check("stripCarrier removes both carriers, keeps the rest", stripped.blocks === undefined && stripped.mcpResult.structuredContent.blocks === undefined && stripped.mcpResult.structuredContent.other === 2 && stripped.diff === "d");
 
 // ── processToolResult: the hook logic ──
+// req: R-263
 check("non-block tool result is untouched (null)", processToolResult(ev({ diff: "x" })) === null);
 
 const ok = processToolResult(ev({ blocks: [table(), card()], other: 1 }), { now: NOW });
+// req: R-256
 check("valid: one entry per block, in order", ok.entries.length === 2 && ok.entries[0].id === "blk_board" && ok.entries[1].id === "blk_player_203999");
+// req: R-256
 check("valid: produced_by stamped from the event incl. args", ok.entries[0].produced_by.tool === "board_table" && ok.entries[0].produced_by.args.board === "general" && ok.entries[0].produced_by.toolCallId === "call_1" && ok.entries[0].produced_by.at === NOW());
 check("valid: patch details.blocks are the stamped blocks (carrier replaced)", ok.patch.details.blocks === ok.entries && ok.patch.details.other === 1);
+// req: R-260
 check("valid: content is exactly the canonical rendering, tool text dropped", ok.patch.content.length === 1 && ok.patch.content[0].text === `${renderBlockText(ok.entries[0])}\n\n${renderBlockText(ok.entries[1])}` && !ok.patch.content[0].text.includes("raw tool text"));
+// req: R-256
 check("valid: defaults slot=main show=true", ok.entries[0].slot === "main" && ok.entries[0].show === true);
 
 const forged = processToolResult(ev({ blocks: [{ ...card(), produced_by: { tool: "forged", args: {}, toolCallId: "x", at: "1999" } }] }), { now: NOW });
+// req: R-256
 check("tool-supplied produced_by is overwritten", forged.entries[0].produced_by.tool === "board_table" && forged.entries[0].produced_by.at === NOW());
 
 const hidden = processToolResult(ev({ blocks: [{ ...card(), show: false }] }), { now: NOW });
 check("show:false is recorded and flagged hidden, text says so", hidden.entries[0].show === false && hidden.patch.content[0].text.includes("hidden"));
 
 const bad = processToolResult(ev({ blocks: [table(), { ...card(), scope: "" }], diff: "keep" }), { now: NOW });
+// req: R-262
 check("malformed: isError, no entries", bad.patch.isError === true && bad.entries.length === 0);
+// req: R-262
 check("malformed: content is a text-part array naming the block index + reason", Array.isArray(bad.patch.content) && /blocks\[1\].*scope/.test(bad.patch.content[0].text));
+// req: R-262
 check("malformed: carrier stripped, other details kept", bad.patch.details.blocks === undefined && bad.patch.details.diff === "keep");
 
 const notArr = processToolResult(ev({ blocks: { id: "x" } }));
 check("blocks not an array → error", notArr.patch.isError === true);
 
 const mcpOk = processToolResult(ev({ mcpResult: { structuredContent: { blocks: [card()] }, server: "fp" } }), { now: NOW });
+// req: R-263
 check("mcp path: blocks extracted, stamped, carrier moved to details.blocks", mcpOk.entries.length === 1 && mcpOk.patch.details.blocks.length === 1 && mcpOk.patch.details.mcpResult.structuredContent.blocks === undefined);
 
 const over = processToolResult(ev({ mcpResult: { omitted: ["structuredContent"] } }));
+// req: R-263
 check("mcp overflow → error naming the cap", over.patch.isError === true && /detailsMaxBytes/.test(over.patch.content[0].text));
 
 // ── reduceEntries: leafId ancestry, upsert by id, abandoned branches ignored, only stamped ──
@@ -216,8 +271,11 @@ const entries = [
 ];
 const stage = reduceEntries(entries, "e7");
 check("reducer: two blocks on the leaf path", stage.length === 2, JSON.stringify(stage.map((b) => b.id)));
+// req: R-264
 check("reducer: same id replaced in place, ORDER of first appearance kept", stage[0].id === "blk_board" && stage[0].title === "v2" && stage[1].id === "blk_player_203999");
+// req: R-264
 check("reducer: abandoned branch excluded", !stage.some((b) => b.title === "ABANDONED BRANCH"));
+// req: R-264
 check("reducer: unstamped entry ignored", !stage.some((b) => b.id === "unstamped"));
 check("reducer: leaf on the abandoned branch shows that branch", reduceEntries(entries, "e4").some((b) => b.title === "ABANDONED BRANCH"));
 check("reducer: null leafId → last entry", reduceEntries(entries, null).length === 2);
@@ -228,23 +286,35 @@ check("applyLiveBlocks: upsert stamped only", live.length === 2 && live.find((b)
 // ── strictness: reducers consume only VALID + STAMPED blocks; live blocks must belong to their event ──
 check("isStamp: needs tool/toolCallId/at/args", isStamp({ tool: "t", toolCallId: "c", at: "x", args: {} }) && !isStamp({ tool: "t" }) && !isStamp({}));
 check("consumable: malformed but stamped block rejected", !consumable(stamp({ ...card(), scope: "" })));
+// req: R-264
 check("reducer: a stamped-but-malformed ledger entry never reaches the stage", reduceEntries([{ id: "a", parentId: null, type: "custom", customType: ENTRY_TYPE, data: stamp({ ...card(), fields: [] }) }], "a").length === 0);
+// req: R-264
 check("reducer: produced_by:{} (forged shape) rejected", reduceEntries([{ id: "a", parentId: null, type: "custom", customType: ENTRY_TYPE, data: { ...card(), produced_by: {} } }], "a").length === 0);
 const evt = { toolCallId: "c", toolName: "t" };
+// req: R-264
 check("live: block stamped by another call is dropped", applyLiveBlocks([], [stamp(card())], { toolCallId: "other", toolName: "t" }).length === 0);
+// req: R-264
 check("live: block stamped by this event is applied", applyLiveBlocks([], [stamp(card())], evt).length === 1);
 check("live: malformed stamped block dropped", applyLiveBlocks([], [stamp({ ...card(), title: "" })], evt).length === 0);
+// req: R-264
 check("pathEntries: active branch only, root first", pathEntries(entries, "e7").map((e) => e.id).join(",") === "e1,e2,e3,e5,e6,e7");
 
 // ── signing: only the key holder can mint a block a server will pass through ──
 const KEY = "0123456789abcdef0123456789abcdef";
 const signed = processToolResult(ev({ blocks: [card()] }), { now: NOW, sign: (b) => signBlock(KEY, b) });
+// req: R-257
 check("signed: sig present and verifies", typeof signed.entries[0].produced_by.sig === "string" && verifyBlock(KEY, signed.entries[0]));
+// req: R-257
 check("signed: tampering the data breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], title: "x" }));
+// req: R-257
 check("signed: tampering the stamp breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], produced_by: { ...signed.entries[0].produced_by, tool: "forged" } }));
+// req: R-257
 check("signed: wrong key fails", !verifyBlock("f".repeat(32), signed.entries[0]));
+// req: R-257
 check("signed: unsigned block fails", !verifyBlock(KEY, stamp(card())));
+// req: R-257
 check("canonical: key order independent", canonical({ b: 1, a: [2, { d: 1, c: 2 }] }) === canonical({ a: [2, { c: 2, d: 1 }], b: 1 }));
+// req: R-259
 check("unsigned processing (no key) still stamps", processToolResult(ev({ blocks: [card()] }), { now: NOW }).entries[0].produced_by.sig === undefined);
 
 process.exit(fails ? 1 : 0);

@@ -1,3 +1,19 @@
+/**
+ * @module apps/desk/changes.mjs
+ * @purpose Read-only git view of a live session's repository — the working tree against HEAD as
+ *  one count per file, plus one file's unified diff.
+ * @inputs a live child's cwd and a repository-relative path; env DESK_GIT_TIMEOUT_MS,
+ *  DESK_DIFF_CAP, DESK_UNTRACKED_TOTAL_CAP; `git` on PATH
+ * @outputs exports collectChanges/resolveInRoot/fileDiff, each returning {status, body}:
+ *  {repo:false, reason} | {repo:true, root, files:[{path,status,added,removed,binary}], totals} |
+ *  {path, diff, truncated}
+ * @effects disk (reads the repository and untracked files), process (spawn("git") with the path
+ *  after `--`, never a shell)
+ * @errors {status:500, body:{error}} when git fails or exceeds DESK_GIT_TIMEOUT_MS; resolveInRoot
+ *  returns {error} for an absent, absolute, NUL-bearing or `..`-escaping path, or one resolving
+ *  outside the real repository root; an ambiguous spawn ENOENT becomes 200 {repo:false} with "git
+ *  not found" or "working directory is gone"
+ */
 // changes.mjs — the desk's "files changed" view of a live session's repository.
 //
 // Two read-only surfaces, both driven from a live child's `cwd`:

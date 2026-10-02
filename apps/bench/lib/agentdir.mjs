@@ -1,3 +1,17 @@
+/**
+ * @module apps/bench/lib/agentdir.mjs
+ * @purpose Prepare and verify the pi config directory the bench runs against, so a study never
+ *  inherits the operator's agent settings.
+ * @inputs optional {dir, sourceDir, settings}; defaults ~/.pi/bench-agent and ~/.pi/agent; the
+ *  operator's auth.json
+ * @outputs exports
+ *  defaultSourceDir/defaultBenchDir/PINNED_SETTINGS/prepareAgentDir/verifyAuth/settingsFingerprintInput;
+ *  creates the bench dir with pinned settings.json and an auth.json SYMLINK to the operator's
+ *  credential file
+ * @effects disk (mkdir, writes settings.json, symlinks auth.json)
+ * @errors throws Error when the source auth.json is missing or the bench auth.json is not the
+ *  expected symlink
+ */
 // A PREPARED pi config directory, outside the repo, used for every bench run.
 //
 // Why: `--no-*` flags stop discovery of context files, skills, prompt templates and

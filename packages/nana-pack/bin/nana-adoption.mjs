@@ -1,4 +1,17 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-pack/bin/nana-adoption.mjs
+ * @purpose Print the seat's session-start block of git repositories a session ran in that nobody has
+ *  adopted.
+ * @inputs argv (`--cwd <dir>` accepted and unused), the tail of the journal named by lib/adoption.mjs
+ *  adoptionSettings, and each claimed root's current state on disk
+ * @outputs `[nana:adoption]` plus the Markdown block on stdout (paths as code spans, at most SHOW rows,
+ *  then a refused-entry count), an `ADOPTION UNAVAILABLE` line when the journal exists but cannot be read,
+ *  and nothing when nothing is open
+ * @effects disk (reads the journal tail, stats each claimed root and its ancestors)
+ * @errors none — always exits 0; a journal or reader failure prints the ADOPTION UNAVAILABLE line instead
+ *  of a stack
+ */
 // nana-adoption — the seat's session-start block of git repositories a session ran in that nobody
 // has adopted (the Claude Code SessionStart hook's producer; pi sessions get nothing from this).
 //   node bin/nana-adoption.mjs [--cwd <dir>]     (--cwd is accepted and unused: the source is the journal)

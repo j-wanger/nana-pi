@@ -1,4 +1,16 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-knowledge/bin/nana-knowledge.ts
+ * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
+ * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
+ *  JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
+ * @outputs per-root build counts and totals, query hits or their JSON, the index/roots status, and the
+ *  hook's pointer block — all on stdout; usage, the lock message and `no index` on stderr
+ * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
+ *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
+ * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index, 0 otherwise — including
+ *  every `hook` failure (fail-open) and a build that lost the lock
+ */
 // nana-knowledge — build / query / hook.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
 import * as fs from "node:fs";

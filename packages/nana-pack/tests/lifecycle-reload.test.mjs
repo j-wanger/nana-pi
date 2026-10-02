@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/lifecycle-reload.test.mjs
+ * @purpose Pins the `/reload-runtime` command the desk depends on — registered exactly once under a non-colliding name, carrying a description, and calling ctx.reload once
+ * @inputs extensions/nana-lifecycle.ts and a nana-pack.json under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and config file), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -48,10 +56,14 @@ ext({
 });
 
 // ── a. registered, and not under a built-in name ──
+// req: R-164
 check("a: exactly one command is registered", commands.size === 1, [...commands.keys()].join(","));
 const [name, options] = [...commands.entries()][0] ?? [];
+// req: R-164
 check("a: named reload-runtime", name === "reload-runtime", String(name));
+// req: R-164
 check("a: does not collide with a pi built-in command", !BUILTIN_COMMAND_NAMES.has(name), String(name));
+// req: R-164
 check("a: carries a description (desk completion and TUI autocomplete both show it)",
 	typeof options?.description === "string" && options.description.length > 0);
 
@@ -60,12 +72,15 @@ check("a: carries a description (desk completion and TUI autocomplete both show 
 	const calls = [];
 	const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true, reload: async () => calls.push("reload") };
 	const returned = await options.handler("", ctx);
+	// req: R-165
 	check("b: the handler calls ctx.reload() exactly once", calls.join(",") === "reload", calls.join(","));
+	// req: R-165
 	check("b: …and returns nothing (terminal — no work on a stale ctx)", returned === undefined);
 }
 
 // ── c. the lifecycle handlers are still there, and still fire ──
 for (const ev of ["session_start", "session_before_compact", "session_compact", "session_compact_failed", "session_shutdown"])
+	// req: R-163
 	check(`c: ${ev} handler still registered`, typeof handlers[ev] === "function");
 {
 	const statuses = [];
@@ -76,6 +91,7 @@ for (const ev of ["session_start", "session_before_compact", "session_compact", 
 		ui: { setStatus: (key, text) => statuses.push({ key, text }), theme: { fg: (c, t) => `[${c}]${t}` } },
 	};
 	await handlers.session_start({ reason: "reload" }, ctx);
+	// req: R-163
 	check("c: session_start still sets the nana-pack chip", statuses.at(-1)?.key === "nana-pack", JSON.stringify(statuses));
 }
 

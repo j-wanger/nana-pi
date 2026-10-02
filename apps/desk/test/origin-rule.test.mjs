@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/origin-rule.test.mjs
+ * @purpose Pins that every state-changing desk route rejects cross-origin browser requests and non-JSON bodies before doing anything, while reads stay open
+ * @inputs apps/desk/server.mjs on a test port
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects network (HTTP to the desk it binds), process (spawns the desk; no pi child is ever spawned)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Security property (2026-09-04): every state-changing route on the desk rejects
 // cross-origin browser requests and non-JSON bodies BEFORE doing anything. The desk
 // is unauthenticated on localhost, so without this any web page open in the same
@@ -30,8 +38,10 @@ try {
 
 	// 1. the attack: cross-origin simple POST at /api/spawn → 403, and nothing spawned
 	let r = await req("POST", "/api/spawn", { origin: EVIL, ct: "text/plain", body: JSON.stringify({ cwd: "/tmp" }) });
+	// req: R-459
 	check("cross-origin text/plain POST /api/spawn → 403", r.status === 403, String(r.status));
 	const live = await fetch(BASE + "/api/live").then((x) => x.json());
+	// req: R-459
 	check("…and no child was spawned", Array.isArray(live) && live.length === 0);
 
 	// 2. cross-origin but JSON (would need a preflight in a browser; still refused on origin)
@@ -44,10 +54,12 @@ try {
 
 	// 4. same-origin but text/plain body → 403 (JSON content-type is mandatory)
 	r = await req("POST", "/api/rename", { origin: OWN, ct: "text/plain", body: JSON.stringify({ file: "/nope", name: "x" }) });
+	// req: R-459
 	check("same-origin text/plain POST → 403", r.status === 403, String(r.status));
 
 	// 5. non-browser client (no Origin) with JSON body reaches the route
 	r = await req("POST", "/api/rename", { ct: "application/json", body: JSON.stringify({ file: "/nope", name: "x" }) });
+	// req: R-459
 	check("no-Origin JSON POST reaches the route", r.status !== 403, String(r.status));
 
 	// 6. localhost spelling of our own origin is accepted
@@ -56,6 +68,7 @@ try {
 
 	// 7. body-less DELETE: foreign origin → 403; no origin → reaches the route (404 here)
 	r = await req("DELETE", "/api/session/nope", { origin: EVIL });
+	// req: R-459
 	check("cross-origin body-less DELETE → 403", r.status === 403, String(r.status));
 	r = await req("DELETE", "/api/session/nope", {});
 	check("no-Origin DELETE reaches the route", r.status === 404, String(r.status));

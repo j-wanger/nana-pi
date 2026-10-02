@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-pack/extensions/nana-post-edit.ts
+ * @purpose Run the configured format, lint and test checks after a successful edit or write, feeding only
+ *  failures back to the model.
+ * @inputs pi `tool_result` events for edit/write (input.path, isError), the postEdit.commands and receipts
+ *  config, pi's file-mutation queue, and ctx (cwd, signal, hasUI, ui)
+ * @outputs one bounded failure line per failing check appended to the tool result, a post-edit UI status
+ *  naming the worst outcome, one content-bound receipt per check, and `postedit_file_queue_unavailable`
+ *  journal lines
+ * @effects process (spawns each check in a shell under its timeoutMs, then SIGTERM and SIGKILL over its
+ *  tree), disk (hashes the declared inputs before and after, writes receipts, appends the journal)
+ * @errors never throws — each check is classified checks_passed / checks_failed / error / timeout / not_run
+ *  plus a `lock` refusal, and a malformed command entry or bad match regex is skipped
+ */
+/**
  * nana-post-edit — post-edit format/lint/test triggers.
  *
  * After a successful edit/write, runs each configured command whose `match`

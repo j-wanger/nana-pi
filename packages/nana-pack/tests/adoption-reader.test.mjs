@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/adoption-reader.test.mjs
+ * @purpose Pins the L5 adoption reader — the `[nana:adoption]` block is newest-first, capped at five plus a count, re-checked at print time, and silent when there is nothing to say
+ * @inputs bin/nana-adoption.mjs, the nana-adoption bash hook nana-setup installs, and a journal under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, journal, symlinked repository fixtures), process (sets HOME, spawns the reader CLI and the bash hook)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -33,9 +41,11 @@ const repo = (name) => {
 		if (content === null) fs.rmSync(JOURNAL, { force: true });
 		else fs.writeFileSync(JOURNAL, content);
 		const r = run();
+		// req: R-153
 		check(`c: ${label} → empty stdout, exit 0`, r.status === 0 && r.stdout === "", JSON.stringify(r));
 	}
 	const h = run("bash", [HOOK]);
+	// req: R-153
 	check("c: the hook prints nothing when there is nothing", h.status === 0 && h.stdout === "", JSON.stringify(h));
 }
 
@@ -62,14 +72,22 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const r = run();
 	console.log(r.stdout.replace(/^/gm, "  | "));
 	const listed = r.stdout.split("\n").filter((l) => l.startsWith("- ")).map((l) => l.slice(3).split("` — ")[0]);
+	// req: R-151
 	check("c: tagged [nana:adoption], exit 0", r.status === 0 && r.stdout.startsWith("[nana:adoption]\n"));
+	// req: R-151
 	check("c: newest first, capped at 5", JSON.stringify(listed) === JSON.stringify(roots.slice(0, 5)), JSON.stringify(listed));
+	// req: R-151
 	check("c: …and 2 more", r.stdout.includes("…and 2 more\n"));
+	// req: R-152
 	check("c: a root adopted after the line is dropped", !r.stdout.includes(adopted));
+	// req: R-152 R-158
 	check("c: a dismissed root is dropped", !r.stdout.includes(dismissed));
+	// req: R-152
 	check("c: a gone root is dropped", !r.stdout.includes(path.join(base, "gone")));
+	// req: R-151
 	check("c: a line older than 7 days is dropped", !r.stdout.includes(old));
 	check("c: names what each root has", r.stdout.includes(`- \`${roots[0]}\` — has: AGENTS.md, docs/sessions/`) && r.stdout.includes(`- \`${roots[1]}\` — has: nothing`));
+	// req: R-151
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
@@ -104,6 +122,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	if (spawnSync("/bin/sh", ["-c", "command -v node"], { env: { PATH: bare } }).status === 0) console.log(`SKIP fail: node is on ${bare}`);
 	else {
 	const r = run("/bin/bash", [HOOK], { ...env, PATH: bare });
+	// req: R-157
 	check("fail: no node → named marker, exit 0", r.status === 0 && r.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: node not found on PATH.\n", JSON.stringify(r));
 	}
 	fs.writeFileSync(path.join(AGENT, "nana-pack.json"), JSON.stringify({ journal: { path: base } })); // a directory
@@ -114,7 +133,9 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 	// Changed in sol r1 MUST 4: this used to assert empty stdout — silence for a journal the reader
 	// could not read, i.e. "I could not look" dressed as "nothing open". Only ABSENT is silent now.
+	// req: R-154
 	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "", JSON.stringify(d));
+	// req: R-157
 	check("fail: malformed nana-pack.json → the default journal, exit 0", m.status === 0 && m.stdout.includes(`- \`${roots[6]}\` —`), JSON.stringify(m));
 }
 // an existing but unreadable journal is UNAVAILABLE; an absent one is silent (sol r1 MUST 4)
@@ -129,10 +150,12 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	if (readable) console.log("SKIP unreadable: mode 000 is still readable here");
 	else {
 		const r = run();
+		// req: R-154
 		check("fail: unreadable journal → ADOPTION UNAVAILABLE (EACCES), exit 0", r.status === 0 && r.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (EACCES).\n", JSON.stringify(r));
 	}
 	fs.rmSync(JOURNAL, { force: true });
 	const a = run();
+	// req: R-153
 	check("c: absent journal (again) → empty stdout", a.status === 0 && a.stdout === "", JSON.stringify(a));
 }
 // hostile claims (sol r1 MUST 1): the reviewer's probe set — a real repo whose name holds a
@@ -158,13 +181,19 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	console.log(r.stdout.replace(/^/gm, "  | "));
 	const rows = r.stdout.split("\n").filter((l) => l.startsWith("- "));
 	check("hostile: exit 0", r.status === 0);
+	// req: R-156
 	check("hostile: no forged heading reaches stdout", !r.stdout.includes("FORGED") && r.stdout.split("\n").filter((l) => l.startsWith("#")).length === 1, r.stdout);
+	// req: R-155
 	check("hostile: '/', '.', relative and 4 KB claims never printed", !rows.some((l) => l.startsWith("- `/` ") || l.includes("relative-claim") || l.includes("xxxx") || l.includes("yyyy")), rows.join("\n"));
+	// req: R-155
 	check("hostile: …the distinct refused claims (rel === \"relative-claim\") are counted on one line", r.stdout.includes("\n10 entries were not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and were skipped.\n"), r.stdout);
+	// req: R-155
 	check("hostile: a backtick in the name is REFUSED, not escaped (astra land)", !r.stdout.includes("closes-the-span"), r.stdout);
 	check("hostile: a backslash/markdown name prints verbatim inside one code span", rows.includes(`- \`${slashes}\` — has: nothing · last session ${now.slice(0, 10)}`), rows.join("\n"));
+	// req: R-155
 	check("hostile: ANY future ts is refused, one minute included (sol r2)", !rows.some((l) => l.includes("future-1min")), rows.join("\n"));
 	check("hostile: an unprintable claim older than the window is aged out, not counted (sol r2)", !r.stdout.includes("aged-out-bad"), r.stdout);
+	// req: R-156
 	check("hostile: exactly the one printable repo is listed", rows.length === 1, rows.join("\n"));
 	fs.writeFileSync(JOURNAL, at(forged, now));
 	const only = run();

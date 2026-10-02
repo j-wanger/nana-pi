@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/usage.test.mjs
+ * @purpose Pins stream parsing — tokens, nested tokens, turns, per-tool counts, retries, terminal completion, dangling tool calls, final text and error detection
+ * @inputs lib/usage.mjs, lib/pi-exports.mjs, and captured or constructed event-stream fixtures
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (reads the fixtures)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Stream parsing: tokens, nested tokens, turns, per-tool counts, retries, terminal completion,
 // dangling tool calls, final text, error detection. Fixtures are captured/constructed event
 // streams — no model is called.
@@ -21,12 +29,15 @@ const s = parseStream(read("sample-stream.jsonl"));
 
 // Usage is carried in pi-ai's PUBLIC field names — input/output/cacheRead/cacheWrite/totalTokens
 // — so there is no rename left to drift out of step with pi.
+// req: R-503
 check("usage uses pi-ai's field names, not ours", ["input", "output", "cacheRead", "cacheWrite", "totalTokens", "cost"].every((k) => k in s.tokens) && !("in" in s.tokens));
+// req: R-503
 check("tokens.input sums the ASSISTANT messages", s.tokens.input === 1000 + 2000, String(s.tokens.input));
 check("tokens.output summed", s.tokens.output === 50 + 80, String(s.tokens.output));
 check("tokens.cacheRead summed", s.tokens.cacheRead === 200 + 900, String(s.tokens.cacheRead));
 check("tokens.cacheWrite summed", s.tokens.cacheWrite === 10, String(s.tokens.cacheWrite));
 // pi's OWN totalTokens, summed — never recomputed from the buckets.
+// req: R-503
 check("own total is pi's totalTokens, summed", totalTokens(s.tokens) === 1260 + 2980, String(totalTokens(s.tokens)));
 check("the tool result's usage is NESTED, not own", totalTokens(s.nested) === 10, String(totalTokens(s.nested)));
 check("own + nested is the true total", totalTokens(s.tokens) + totalTokens(s.nested) === 4250);
@@ -49,8 +60,10 @@ check("two assistant messages contributed own usage", s.usageMessages === 2, Str
 			`\n${JSON.stringify({ type: "entry_appended", entry: { type: "usage", id: "w1", parentId: null, timestamp: "2026-09-28T00:00:00.000Z", kind: "cache_warm", provider: "openai-codex", model: "gpt-5.6-sol", usage: warmUsage } })}` +
 			`\n${JSON.stringify({ type: "entry_appended", entry: { type: "custom", id: "c1", parentId: "w1", customType: "x", data: { usage: warmUsage } } })}\n`,
 	);
+	// req: R-503
 	check("a pi cache-warm usage entry is own spend (tokens)", totalTokens(withWarm.tokens) === totalTokens(s.tokens) + 5001, String(totalTokens(withWarm.tokens)));
 	check("…priced with pi's own cost", Math.abs(costTotal(withWarm.tokens) - (costTotal(s.tokens) + 0.00251)) < 1e-12, String(costTotal(withWarm.tokens)));
+	// req: R-503
 	check("…counted as a usage ENTRY, not an assistant message", withWarm.usageEntries === 1 && withWarm.usageMessages === s.usageMessages, `${withWarm.usageEntries}/${withWarm.usageMessages}`);
 	check("…a non-usage appended entry (extension `custom`) is not spend", withWarm.usageEntries === 1);
 	check("…and none of it is nested", totalTokens(withWarm.nested) === totalTokens(s.nested));
@@ -64,16 +77,20 @@ check("final text concatenates the last assistant's text blocks", s.finalText ==
 check("thinking blocks are excluded from final text", !s.finalText.includes("hmm"));
 check("a malformed line is counted, not fatal", s.badLines === 1, String(s.badLines));
 check("session id captured", s.sessionId === "11111111-2222-3333-4444-555555555555");
+// req: R-507
 check("complete when settled, no errors, nothing dangling", s.complete === true);
 
 // COMPLETION: agent_end is not terminal (rpc.md:864); agent_settled is (rpc.md:866).
 const trunc = parseStream(read("truncated-stream.jsonl"));
+// req: R-507
 check("truncated: agent_end present but NOT settled", trunc.agentEnded === 1 && trunc.settled === false);
 check("truncated: NOT complete", trunc.complete === false);
+// req: R-507
 check("truncated: dangling tool call detected", trunc.dangling.length === 1, JSON.stringify(trunc.dangling));
 check("truncated: final assistant left a tool call unresolved", trunc.unresolvedFinal.join() === "bash", JSON.stringify(trunc.unresolvedFinal));
 check("truncated: reason names the missing terminator first", /agent_settled/.test(incompleteReason(trunc)), incompleteReason(trunc));
 check("truncated: partial usage is still recorded (a killed run still cost money)", totalTokens(trunc.tokens) === 920, String(totalTokens(trunc.tokens)));
+// req: R-507
 check("a stream with a plausible answer but no terminator cannot pass", trunc.finalText.includes("blocks.mjs:53") && trunc.complete === false);
 
 // RETRIES: pinned off in the prepared agent dir, but counted if they ever happen (rpc.md:1109).
@@ -87,6 +104,7 @@ check("a retried run that settles is still complete", rt.complete === true);
 // share of the contract.
 const nu = parseStream(read("nested-usage-stream.jsonl"));
 check("nested tokens captured separately from own tokens", totalTokens(nu.nested) === 4810, String(totalTokens(nu.nested)));
+// req: R-504
 check("own tokens EXCLUDE the nested call (no double counting)", totalTokens(nu.tokens) === 1530, String(totalTokens(nu.tokens)));
 check("nested call count recorded", nu.nestedCalls === 1, String(nu.nestedCalls));
 check("nestedUnknown false when the usage was measured", nu.nestedUnknown === false);
@@ -125,6 +143,7 @@ check("real stream: tokens.cacheRead", real.tokens.cacheRead === 1024, String(re
 check("real stream: total is pi's totalTokens (1168 + 4059)", totalTokens(real.tokens) === 5227, String(totalTokens(real.tokens)));
 // COST comes from pi: each assistant message already carries `usage.cost`, computed by pi's own
 // calculateCost with the real model pricing. We only add the numbers up.
+// req: R-506
 check("real stream: cost is summed from pi's own per-message cost", Math.abs(costTotal(real.tokens) - 0.022902) < 1e-9, String(costTotal(real.tokens)));
 check("real stream: the cost buckets are summed too", Math.abs(real.tokens.cost.input - 0.02074) < 1e-9 && Math.abs(real.tokens.cost.cacheRead - 0.000512) < 1e-9, JSON.stringify(real.tokens.cost));
 check("real stream: the model pi used is recorded", real.model === "gpt-5.6-sol", String(real.model));
@@ -139,7 +158,9 @@ check("real stream: no retries under the pinned settings", real.retries === 0);
 
 // ── nested cost: priced with pi's calculateCost, or null WITH a reason. Never a guessed 0. ────
 const nestedNoPricer = parseStream(read("nested-usage-stream.jsonl"));
+// req: R-506
 check("nested spend with no pricer is null, not 0", nestedNoPricer.nestedCost === null);
+// req: R-506
 check("…and says why", /no pricer/.test(nestedNoPricer.nestedCostReason ?? ""), String(nestedNoPricer.nestedCostReason));
 const priced = parseStream(read("nested-usage-stream.jsonl"), { pricer: () => ({ cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, total: 3 }, reason: null }) });
 check("a pricer supplies the nested cost", priced.nestedCost.total === 3);
@@ -221,7 +242,9 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	// UNKNOWN nested spend is a different condition from "unpriced", and both null the total.
 	const unknownRec = { tokens: mixed.tokens, nestedTokens: mixed.nested, nestedUnknown: true, nestedUnknownReason: "no-network-observed", cost: null, pricedNestedCost: mixed.pricedNestedCost };
 	check("unknown nested spend: no total cost", costOfRecord(unknownRec) === null);
+	// req: R-506
 	check("unknown nested spend: the observed bound is STILL the known dollars, not 0", Math.abs(observedCostOfRecord(unknownRec) - 0.046) < 1e-9, String(observedCostOfRecord(unknownRec)));
+	// req: R-506
 	check("unknown nested spend: the reason names the unmeasured part", /unmeasured nested spend/.test(costUnknownReason(unknownRec) ?? ""), String(costUnknownReason(unknownRec)));
 }
 
@@ -234,9 +257,13 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	} catch (e) {
 		threw = e.message;
 	}
+	// req: R-508
 	check("a pi without calculateCost fails LOUDLY at startup", threw !== null);
+	// req: R-508
 	check("…naming the missing export", /calculateCost \(expected function/.test(threw ?? ""), (threw ?? "").split("\n")[1] ?? "");
+	// req: R-508
 	check("…and refusing to fall back", /will NOT substitute its own arithmetic/.test(threw ?? ""));
+	// req: R-508
 	check("…and naming the version it was verified against", (threw ?? "").includes(PI_MIN_VERSION));
 	check("the required-export list is exported so it is reviewable", REQUIRED_PI_AI.calculateCost === "function");
 
@@ -259,6 +286,7 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	}
 	if (prev === undefined) delete process.env.BENCH_PI_ROOT;
 	else process.env.BENCH_PI_ROOT = prev;
+	// req: R-508
 	check("a wrong BENCH_PI_ROOT fails and names the path tried", /definitely\/not\/a\/pi\/install/.test(threw ?? ""), (threw ?? "").slice(0, 80));
 	check("…and tells the maintainer how to fix it", /npm i -g @earendil-works\/pi-coding-agent/.test(threw ?? ""));
 }

@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/handoff-trust.test.mjs
+ * @purpose Pins that a repository-committed `.pi/handoff.md` never reaches the system prompt even when pi calls the folder trusted — the session gets one bounded pointer and a journal line
+ * @inputs extensions/nana-handoff.ts, a committed legacy handoff file in a temp project, and a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, temp project, journal), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -39,13 +47,16 @@ for (const trusted of [true, false]) {
 	check(`${tag}: session_start does not throw`, !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	const sp = r?.systemPrompt ?? "BASE";
+	// req: R-131
 	check(`${tag}: the committed injection string is ABSENT from the system prompt`, !sp.includes(INJECT));
 	const added = sp.slice("BASE".length);
 	check(`${tag}: a pointer names the repo file as repo-writable and not injected`,
 		added.includes(".pi/handoff.md") && /repo-writable/.test(added) && /not injected/i.test(added));
 	const pointerLine = added.split("\n").find((l) => l.includes(".pi/handoff.md")) ?? "";
 	check(`${tag}: the pointer is bounded (≤300 chars)`, pointerLine.length > 0 && pointerLine.length <= 300);
+	// req: R-131
 	check(`${tag}: handoff_legacy_ignored journaled`, journal().includes('"handoff_legacy_ignored"'));
+	// req: R-133
 	check(`${tag}: the repo file is NOT deleted or rewritten`, fs.readFileSync(path.join(repo, ".pi", "handoff.md"), "utf-8") === committed);
 	fs.rmSync(repo, { recursive: true, force: true });
 }
@@ -83,18 +94,24 @@ for (const scope of ["user", "user-elsewhere", "project"]) {
 	const added = sp.slice("BASE".length);
 	const shownRe = /handoff\.path/;
 	const refusal = added.split("\n").filter((l) => shownRe.test(l));
+	// req: R-132
 	check(`${tag}: exactly one line states the refusal and names the configured path`, refusal.length === 1 && (refusal[0].includes(target) || refusal[0].includes(".pi/handoff.md")));
+	// req: R-132
 	check(`${tag}: it says repo-writable and not injected`, /repo-writable/.test(refusal[0] ?? "") && /not injected/i.test(refusal[0] ?? ""));
 	check(`${tag}: pointer is bounded (≤300 chars)`, (refusal[0] ?? "").length <= 300);
+	// req: R-132
 	check(`${tag}: no second statement about the same file`, added.split("\n").filter((l) => l.includes(".pi/handoff.md") || l.includes(target)).length === 1);
 	check(`${tag}: journal names the pickup refusal (handoff_legacy_ignored, configured)`, /"handoff_legacy_ignored"[^\n]*"configured":"handoff\.path"/.test(journal()) && journal().includes(target));
 	check(`${tag}: not journaled as handoff_missing / pickup`, !journal().includes('"handoff_missing"') && !journal().includes('"handoff_pickup"'));
 	await handlers.session_compact({ compactionEntry: { summary: "COMPACTED-OVER-REPO" }, reason: "manual" }, ctx);
 	await handlers.session_compact({ compactionEntry: { summary: "COMPACTED-AGAIN" }, reason: "manual" }, ctx);
+	// req: R-133
 	check(`${tag}: the repo file is byte-identical after compaction attempts`, Buffer.compare(fs.readFileSync(target), before) === 0);
+	// req: R-131
 	check(`${tag}: handoff_legacy_write_refused journaled with the path`, /"handoff_legacy_write_refused"[^\n]*/.test(journal()) && journal().split("\n").some((l) => l.includes('"handoff_legacy_write_refused"') && l.includes(target)));
 	check(`${tag}: no handoff_written`, !journal().includes('"handoff_written"'));
 	check(`${tag}: the write refusal is notified once per session`, notes.filter((m) => /NOT written/.test(m)).length === 1);
+	// req: R-133
 	check(`${tag}: no temp litter beside the repo file`, fs.readdirSync(path.join(repo, ".pi")).every((f) => !f.endsWith(".tmp")));
 	console.log(`  pointer: ${refusal[0]}`);
 	console.log(`  journal: ${journal().trim().split("\n").filter((l) => /legacy/.test(l)).join("\n           ")}`);

@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/timeout.test.mjs
+ * @purpose Pins that the per-run timeout actually KILLS rather than merely stopping waiting, including a SIGTERM-ignoring child and its grandchild
+ * @inputs run.mjs runChild and a stub that ignores SIGTERM and spawns a grandchild
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp dirs and stub scripts), process (spawns the stub tree and signals it)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // The per-run timeout must actually KILL — not merely stop waiting. A pi run shells out, so a
 // survivor keeps burning quota and overlaps the next run's wall-clock measurement. The stub here
 // IGNORES SIGTERM and spawns a grandchild, which is the case the earlier implementation lost:

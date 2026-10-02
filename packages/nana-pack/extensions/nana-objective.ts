@@ -1,4 +1,16 @@
 /**
+ * @module packages/nana-pack/extensions/nana-objective.ts
+ * @purpose Inject the owner's standing objective and current priority into every pi session's system
+ *  prompt.
+ * @inputs pi `session_start` (all five reasons) and `before_agent_start` events, the user-scope objective
+ *  config block, and ctx (cwd, hasUI, ui)
+ * @outputs the objective block appended to the system prompt, one journal line per producer event
+ *  (objective_pickup / objective_unavailable), and a UI warning per notice
+ * @effects disk (lib/objective.ts reads the objective files and the trust store; appends the journal)
+ * @errors none — the handler swallows everything, and an unusable objective reaches the prompt as an
+ *  `OBJECTIVE UNAVAILABLE` marker rather than silence
+ */
+/**
  * nana-objective — the owner's standing objective + current priority, in every
  * session's system prompt.
  *

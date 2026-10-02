@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/ops.test.mjs
+ * @purpose Pins the operational safety rails — when the runner stops on a non-model failure streak, and what it believes it has spent across a resume
+ * @inputs run.mjs, ledger fixtures in temp dirs, and a stub process tree
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp dirs and ledger files), process (spawns the stub process tree)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Operational safety rails: when the runner stops, and what it believes it has spent.
 // Both were defects astra found — a run-error streak could burn the whole schedule, and probe
 // spend vanished on every resume. No pi, no model.
@@ -19,9 +27,12 @@ const streak = (states) => states.reduce((acc, state) => systemicStreak(acc, { s
 check("a grader-error streak trips the limit", streak(["grader-error", "grader-error", "grader-error"]) >= SYSTEMIC_LIMIT);
 // astra F: run-errors were EXCLUDED, so repeated auth failures or timeouts could exhaust the
 // whole schedule instead of stopping after three.
+// req: R-519
 check("a run-error streak trips the limit too", streak(["run-error", "run-error", "run-error"]) >= SYSTEMIC_LIMIT, String(streak(["run-error", "run-error", "run-error"])));
+// req: R-519
 check("mixed non-model failures still count as one streak", streak(["run-error", "grader-error", "blocked"]) >= SYSTEMIC_LIMIT);
 check("a passing run resets the streak", streak(["run-error", "run-error", "ok", "run-error"]) === 1);
+// req: R-519
 check("a FAILING but decided run also resets it (that is a measurement, not a fault)", streak(["run-error", "run-error", "fail", "run-error"]) === 1);
 check("two non-model failures do not trip it", streak(["run-error", "blocked"]) < SYSTEMIC_LIMIT);
 
@@ -36,12 +47,15 @@ const restoredStreak = (records) => {
 	}
 	return n;
 };
+// req: R-519
 check("a trailing run of non-model failures is restored on resume", restoredStreak([{ state: "ok" }, { state: "run-error" }, { state: "run-error" }, { state: "grader-error" }]) === 3);
+// req: R-519
 check("…and stops the study immediately at the limit", restoredStreak([{ state: "run-error" }, { state: "run-error" }, { state: "run-error" }]) >= SYSTEMIC_LIMIT);
 check("a decided run in the tail clears it", restoredStreak([{ state: "run-error" }, { state: "run-error" }, { state: "fail" }]) === 0);
 check("an empty results file has no streak", restoredStreak([]) === 0);
 
 // ── unconfirmed kill ─────────────────────────────────────────────────────────────────────────
+// req: R-519
 check("a child that could not be confirmed dead stops the study", shouldStopForKill({ killedCleanly: false }) === true);
 check("a confirmed kill does not", shouldStopForKill({ killedCleanly: true }) === false);
 check("a run where nothing was killed does not", shouldStopForKill({ killedCleanly: null }) === false);
@@ -57,6 +71,7 @@ check("a run where nothing was killed does not", shouldStopForKill({ killedClean
 	if (process.platform !== "win32") process.kill(-child.pid, "SIGKILL");
 	else child.kill("SIGKILL");
 	for (let i = 0; i < 50 && treeAlive(child.pid); i++) await new Promise((r) => setTimeout(r, 50));
+	// req: R-519
 	check("treeAlive sees the group die", treeAlive(child.pid) === false);
 }
 
@@ -85,6 +100,7 @@ check("costOf of nothing is null, not 0", costOf(null) === null);
 	// The token side of the same rule: a run carrying unknown nested spend makes the whole budget a
 	// lower bound, and `budgetFrom` says so rather than reporting a total.
 	const b = budgetFrom([unknownRun], []);
+	// req: R-518
 	check("the budget reports itself NOT fully accounted", b.accounted === false && b.unknownRuns === 1, JSON.stringify(b));
 }
 
@@ -99,7 +115,9 @@ const ledger = [
 ];
 const b = budgetFrom(runs, ledger);
 check("budget adds graded runs and probe spend", b.tokens === 3400, String(b.tokens));
+// req: R-517
 check("budget adds probe WALL time too (it is real time on the clock)", b.wallMs === 15100, String(b.wallMs));
+// req: R-518
 check("budget counts runs carrying unmeasured nested spend", b.unknownRuns === 1);
 check("…and refuses to call itself fully accounted", b.accounted === false);
 check("a clean study IS fully accounted", budgetFrom([{ spend: 5 }], []).accounted === true);
@@ -117,7 +135,9 @@ try {
 	);
 	const led = await readLedger(dir);
 	check("the ledger survives a torn tail", led.length === 1 && led[0].tokens === 700);
+	// req: R-517
 	check("a recorded successful probe means it is not repeated", led.some((l) => l.kind === "registration-probe" && l.ok && l.profile === "research"));
+	// req: R-517
 	check("probe spend survives a restart", budgetFrom([], led).tokens === 700);
 
 	// One oracle key per comparison block, reloaded on resume. Both arms of a comparison must be
@@ -141,6 +161,7 @@ try {
 	await fs.appendFile(kf, '{"block":"torn|9","key":"x');
 	const repaired = await readKeys(dir);
 	check("keys: a torn tail is dropped", repaired.get("torn|9") === undefined);
+	// req: R-512
 	check("keys: …and the file is repaired to a newline boundary", (await fs.readFile(kf, "utf8")).endsWith("\n"));
 	await fs.appendFile(kf, `${JSON.stringify({ block: "after|0", key: "kept" })}\n`);
 	check("keys: …so the NEXT append survives", (await readKeys(dir)).get("after|0").key === "kept");

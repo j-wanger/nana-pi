@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/agent-dir-hostile.test.mjs
+ * @purpose Regression cases for the hostile agent-dir shapes — a symlinked policy file is enforced at its target, a dangling link stops rather than falling to the defaults, and a relative dir under a deleted cwd never throws
+ * @inputs extensions/nana-gate.ts, lib/config.ts, lib/gate-paths.ts, symlinked and dangling nana-pack.json / trust.json under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, symlinks, a deleted cwd), process (sets HOME and PI_CODING_AGENT_DIR, runs a shell through execFileSync)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // U2 fix round (sol adversarial r1, 2026-09-28) — the reviewer's three probes as regressions:
 //  (A) a SYMLINKED nana-pack.json / trust.json (active dir AND default dir): the gate reads the
 //      TARGET, so edit/write/shell writes to the target are on the floor;
@@ -48,8 +56,10 @@ if (canLink) {
 	fs.writeFileSync(trustTarget, "{}");
 	fs.symlinkSync(trustTarget, path.join(agent, "trust.json"));
 	process.env.PI_CODING_AGENT_DIR = agent;
+	// req: R-195
 	check("A: the linked policy is the one enforced (LINK_DENY blocked)", (await call("bash", { command: "LINK_DENY" })) === "BLOCK");
 	for (const t of [target, trustTarget]) {
+		// req: R-195
 		check(`A: edit ${path.basename(t)} (symlink target) BLOCKED`, (await call("edit", { path: t })) === "BLOCK");
 		check(`A: write ${path.basename(t)} (symlink target) BLOCKED`, (await call("write", { path: t })) === "BLOCK");
 		check(`A: printf x > ${path.basename(t)} BLOCKED`, (await call("bash", { command: `printf x > ${t}` })) === "BLOCK");
@@ -66,6 +76,7 @@ if (canLink) {
 	fs.mkdirSync(path.dirname(defTarget));
 	fs.writeFileSync(defTarget, JSON.stringify({ gate: { extraPatterns: ["DEF_DENY"] } }));
 	fs.symlinkSync(defTarget, path.join(def, "nana-pack.json"));
+	// req: R-195
 	check("A-default: the linked default policy is enforced", (await call("bash", { command: "DEF_DENY" })) === "BLOCK");
 	check("A-default: edit the target BLOCKED", (await call("edit", { path: defTarget })) === "BLOCK");
 	check("A-default: shell write to the target BLOCKED", (await call("bash", { command: `printf x > ${defTarget}` })) === "BLOCK");
@@ -85,6 +96,7 @@ if (canLink) {
 	for (const [name, dir, want] of cases) {
 		process.env.PI_CODING_AGENT_DIR = dir;
 		const c = loadConfig({ cwd: HOME, hasUI: false, sessionManager: { getSessionId: () => `b-${name}` } });
+		// req: R-196
 		if (want) check(`B: ${name} user nana-pack.json → stop naming it`, want.test(c.gate.stopReason ?? "") && (c.gate.stopReason ?? "").includes(path.join(dir, "nana-pack.json")), String(c.gate.stopReason));
 		else check(`B: ${name} → no stop, defaults`, c.gate.stopReason === null, String(c.gate.stopReason));
 	}
@@ -98,6 +110,7 @@ if (canLink) {
 	const c1 = loadConfig({ cwd: HOME, hasUI: false });
 	fs.rmSync(midTarget);
 	const c2 = loadConfig({ cwd: HOME, hasUI: false });
+	// req: R-196
 	check("B: link goes dangling mid-process → last valid deny kept, no stop", c1.gate.extraPatterns.includes("MID_DENY") && c2.gate.extraPatterns.includes("MID_DENY") && c2.gate.stopReason === null, JSON.stringify(c2.gate));
 	delete process.env.PI_CODING_AGENT_DIR;
 }
@@ -120,8 +133,11 @@ console.log(JSON.stringify(out));
 `);
 	const res = JSON.parse(execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", script], { env: { ...process.env, HOME, USERPROFILE: HOME }, encoding: "utf-8" }).trim().split("\n").at(-1));
 	for (const n of ["piAgentDir", "piAgentDirIsCwdRelative", "piTrustStorePath", "commandPolicyHit", "loadConfig", "tool_call"])
+		// req: R-197
 		check(`C: ${n} returns under a deleted cwd`, res[n] && !("threw" in res[n]), JSON.stringify(res[n]));
+	// req: R-197
 	check("C: loadConfig STOPS (the active file is unknowable) rather than using defaults", /agent dir unresolvable/.test(res.loadConfig?.ok ?? ""), JSON.stringify(res.loadConfig));
+	// req: R-197
 	check("C: the handler blocks with that reason (does not throw)", res.tool_call?.ok?.block === true && /agent dir unresolvable/.test(res.tool_call.ok.reason), JSON.stringify(res.tool_call));
 }
 

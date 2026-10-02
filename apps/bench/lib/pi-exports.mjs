@@ -1,3 +1,16 @@
+/**
+ * @module apps/bench/lib/pi-exports.mjs
+ * @purpose Resolve the installed pi packages and borrow pi's own public Usage and cost arithmetic
+ *  instead of re-deriving it.
+ * @inputs env PI_BENCH_ENTRY, BENCH_PI_ROOT and PI_CODING_AGENT_DIR; the pi binary path and the
+ *  package.json files found walking up from it
+ * @outputs exports
+ *  PI_PACKAGE/PI_AI_PACKAGE/PI_MIN_VERSION/REQUIRED_PI_AI/REQUIRED_PI/compareVersions/piRootCandidates/loadPiExports/createPricer;
+ *  returns {calculateCost, Usage-shaped helpers} and a pricer closure
+ * @effects disk (reads package.json while resolving, dynamic-imports the pi packages)
+ * @errors throws Error when pi cannot be resolved, is older than PI_MIN_VERSION, or is missing a
+ *  required root export
+ */
 // The bench borrows pi's OWN token/cost arithmetic instead of re-deriving it.
 //
 // The bench already requires pi at runtime — every measured run is a `pi --mode json` child — so
@@ -6,9 +19,9 @@
 // a supported entry point.
 //
 // Verified against pi 0.84.4 (2026-09-09):
-//   · `@earendil-works/pi-ai` root (`dist/index.d.ts:21`, `export * from "./models.ts"`)
+//   · `@earendil-works/pi-ai` root (`dist/index.d.ts:21` re-exports everything in `models.ts`)
 //       - `calculateCost(model, usage) → Usage["cost"]`   (models.d.ts:192)
-//   · `@earendil-works/pi-ai` root (`dist/index.d.ts:25`, `export * from "./types.ts"`)
+//   · `@earendil-works/pi-ai` root (`dist/index.d.ts:25` re-exports everything in `types.ts`)
 //       - the `Usage` interface: {input, output, cacheRead, cacheWrite, cacheWrite1h?,
 //         reasoning?, totalTokens, cost{input, output, cacheRead, cacheWrite, total}}
 //         (types.d.ts:265-286). The bench now carries these field names verbatim rather than

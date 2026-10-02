@@ -1,3 +1,11 @@
+/**
+ * @module apps/bench/test/argv.test.mjs
+ * @purpose Pins the rendered argv and profile validation flag by flag, because the argv IS the experiment
+ * @inputs lib/profiles.mjs and the shipped study's study.json
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (reads the study definition)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Argv rendering + profile validation. The argv IS the experiment: if a flag is wrong the
 // study measures something other than what it registered, so every flag is pinned here.
 // Run: node apps/bench/test/argv.test.mjs   (exit 0 = all PASS)
@@ -28,6 +36,7 @@ const throws = (fn) => {
 
 // 1. profile A renders the documented default tool set, nothing more
 const a = renderRun(P("pi-defaults"), study, ctx);
+// req: R-501
 check("A: exact argv", JSON.stringify(a.argv) === JSON.stringify([
 	"--mode", "json",
 	"--provider", "openai-codex", "--model", "gpt-5.6-sol",
@@ -37,11 +46,13 @@ check("A: exact argv", JSON.stringify(a.argv) === JSON.stringify([
 	"--", "find X",
 ]), a.argv.join(" "));
 check("A: not blocked", a.blocked === null);
+// req: R-501
 check("A: session dir redirected off ~/.pi/agent", a.env.PI_CODING_AGENT_SESSION_DIR === "/tmp/s");
 check("A: no PI_CODING_AGENT_DIR unless the runner supplies one", a.env.PI_CODING_AGENT_DIR === undefined);
 check("A: study env is applied", a.env.PI_OFFLINE === "1");
 const withDir = renderRun(P("pi-defaults"), study, { ...ctx, agentDir: "/tmp/bench-agent" });
 check("A: PI_CODING_AGENT_DIR is set when the runner prepares one (env-vars.md:81)", withDir.env.PI_CODING_AGENT_DIR === "/tmp/bench-agent");
+// req: R-501
 check("A: loads NO extension, so the sidecar does not ride along", !a.argv.includes("-e"));
 
 // 2. B adds exactly grep/find/ls and no prompt text
@@ -76,8 +87,11 @@ if (!extPresent) {
 // no tools and adds no prompt text, so it cannot shift the comparison. These three inspect the
 // argv renderRun builds regardless of what is on disk, so they run everywhere (sol r2).
 const eArgs = c.argv.filter((a2, i) => c.argv[i - 1] === "-e");
+// req: R-501
 check("C: exactly two -e entries (pi-web-access + the bench sidecar)", eArgs.length === 2, eArgs.join(" "));
+// req: R-501
 check("C: the sidecar is the LAST extension loaded", /bench-nested-usage\.ts$/.test(eArgs[1]), eArgs[1]);
+// req: R-501
 check("C: the sidecar contributes no tool names to the allowlist", c.argv[c.argv.indexOf("--tools") + 1].split(",").length === P("research").tools.length);
 check("C: runs BOTH families (astra BLOCK A)", JSON.stringify(P("research").families) === JSON.stringify(["code", "research"]));
 check("B: no sidecar, because B loads no extension", !b.argv.includes("-e"));
@@ -88,13 +102,19 @@ check("placeholder entry → needs-entry", /^needs-entry/.test(renderRun(placeho
 const missing = { ...P("research"), extensions: [{ path: "/nope/does-not-exist.ts", tools: P("research").extensions[0].tools }] };
 check("missing entry path → needs-entry", /^needs-entry/.test(renderRun(missing, study, ctx).blocked ?? ""));
 const keyed = { ...P("lean-code"), requiresEnv: ["PI_BENCH_NO_SUCH_KEY_12345"] };
+// req: R-502
 check("declared-but-unset env → needs-key", /^needs-key/.test(renderRun(keyed, study, ctx).blocked ?? ""));
 
 // 6. validation catches the traps that would silently ruin a study
+// req: R-502
 check("rejects an extension tool missing from --tools", (throws(() => validateProfile({ name: "x", tools: ["read"], extensions: [{ path: "/tmp/x.ts", tools: ["web_search"] }] })) ?? "").includes("missing from the --tools allowlist"));
+// req: R-502
 check("rejects an unknown tool name", (throws(() => validateProfile({ name: "x", tools: ["reed"] })) ?? "").includes("neither a built-in"));
+// req: R-502
 check("rejects a bad thinking level", (throws(() => validateProfile({ name: "x", tools: ["read"], thinking: "ultra" })) ?? "").includes("thinking must be"));
+// req: R-502
 check("rejects duplicate tools", (throws(() => validateProfile({ name: "x", tools: ["read", "read"] })) ?? "").includes("duplicate"));
+// req: R-502
 check("rejects an empty tool list", throws(() => validateProfile({ name: "x", tools: [] })) !== null);
 
 // 7. every profile in the shipped study is valid

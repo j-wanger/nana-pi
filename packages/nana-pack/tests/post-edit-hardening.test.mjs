@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/post-edit-hardening.test.mjs
+ * @purpose Pins that the post-edit checker is bounded — a SIGTERM-ignoring checker and a descendant holding the pipe both end in a recorded timeout with the process really gone
+ * @inputs extensions/nana-post-edit.ts and stub checkers that ignore signals or leak descendants, under a temp HOME
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, stub checker scripts, receipts), process (sets HOME, spawns and kills the stub checkers and their descendants)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -107,14 +115,18 @@ function reap(list) {
 	const file = path.join(td, "hang.txt");
 	fs.writeFileSync(file, "one\n");
 	const { hung, ret, ms } = await settle(fire(file));
+	// req: R-093
 	check("a: SIGTERM-ignoring checker does not hang the handler", !hung);
+	// req: R-093
 	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
 	const r = readLatestReceipt(cfg, td, cmd);
+	// req: R-095
 	check("a: recorded timeout, never checks_passed", r?.status === "timeout");
 	check("a: timeout fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	await sleep(200);
 	const left = survivors(marker);
+	// req: R-093
 	check("a: the checker is gone, not just abandoned", left === "");
 	reap(left);
 	fs.rmSync(td, { recursive: true, force: true });
@@ -141,6 +153,7 @@ if (POSIX) {
 	const file = path.join(td, "tree.txt");
 	fs.writeFileSync(file, "one\n");
 	const { hung, ms } = await settle(fire(file));
+	// req: R-094
 	check("b: descendant holding the pipe does not hang the handler", !hung);
 	check(`b: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
 	const r = readLatestReceipt(cfg, td, cmd);
@@ -168,9 +181,11 @@ if (POSIX) {
 	check("c: abort does not hang a SIGTERM-ignoring checker", !hung);
 	check(`c: aborted run resolved within the kill grace (${ms}ms)`, !hung && ms < 6000);
 	const r = readLatestReceipt(cfg, td, cmd);
+	// req: R-096
 	check("c: aborted check recorded not_run (never passed)", r?.status === "not_run");
 	await sleep(300);
 	const left = survivors(marker);
+	// req: R-096
 	check("c: the aborted checker is killed, not orphaned", left === "");
 	reap(left);
 	fs.rmSync(td, { recursive: true, force: true });
@@ -202,7 +217,9 @@ if (POSIX) {
 	const file = path.join(td, "unreachable.txt");
 	fs.writeFileSync(file, "one\n");
 	const { hung, ret, ms } = await settle(fire(file));
+	// req: R-094
 	check("f: unkillable pipe-holder does not hang the handler", !hung);
+	// req: R-094
 	check(`f: settled within deadline + kill grace even though the kill failed (${ms}ms)`, !hung && ms < 6000);
 	const r = readLatestReceipt(cfg, td, cmd);
 	check("f: forced settlement is recorded timeout, never checks_passed", r?.status === "timeout");
@@ -223,8 +240,11 @@ if (POSIX) {
 	await fire(path.join("sub", "rel.txt")); // relative, as a model may emit it
 
 	const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
+	// req: R-089
 	check("d: relative path check passed (the checker saw the file)", r?.status === "checks_passed");
+	// req: R-089
 	check("d: recorded command carries the cwd-resolved absolute path", (r?.command ?? "").includes(abs));
+	// req: R-089
 	check("d: receipt input still bound repo-relative", r?.inputs?.[0]?.path === path.join("sub", "rel.txt"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -243,7 +263,9 @@ if (POSIX) {
 	// posix quoting escapes the `$` for the shell, so the recorded command carries
 	// `a\$&b.txt` — the `&` and the name itself survive, which is the point.
 	const quoted = process.platform === "win32" ? "%NANA_PI_FILE%" : "a\\$&b.txt";
+	// req: R-088
 	check("e: recorded command contains the shell-quoted filename", (r?.command ?? "").includes(quoted));
+	// req: R-088
 	check("e: no {file} token leaked into the substituted command", !(r?.command ?? "").includes("{file}"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -278,7 +300,9 @@ if (POSIX) {
 			if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile;
 		}
 		const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
+		// req: R-092 R-103
 		check(`${tag}: ${label} — checker received the real file`, r?.status === "checks_passed");
+		// req: R-103
 		check(`${tag}: ${label} — receipt binds the real file`, r?.inputs?.[0]?.path === real);
 		fs.rmSync(td, { recursive: true, force: true });
 	}
@@ -291,6 +315,7 @@ if (POSIX) {
 	const entries = (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "")
 		.split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } });
 	const reports = entries.filter((e) => e.event === "postedit_file_queue_unavailable");
+	// req: R-092
 	check("j: an unavailable file-mutation queue is journaled, not swallowed", reports.length === 1);
 	fs.rmSync(path.dirname(JOURNAL), { recursive: true, force: true });
 }

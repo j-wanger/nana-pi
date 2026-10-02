@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/config-display-text.test.mjs
+ * @purpose Pins that every config diagnostic reaching a UI or the model is display text, so attacker-controlled STRUCTURE never survives into a notification, a block reason or a file
+ * @inputs lib/config.ts, extensions/nana-gate.ts, lib/display.mjs, and hostile nana-pack.json bytes under a temp HOME whose own path carries a newline
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and hostile config files), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -41,6 +49,7 @@ const ui = () => { const msgs = []; return { msgs, ctx: (cwd, extra = {}) => ({ 
 	const m = u.msgs.find((x) => x.includes("project config ignored"));
 	check("sol probe: the project-ignored warning fired", !!m, u.msgs);
 	check("sol probe: warning is ONE physical line, no control", oneLine(m), m);
+	// req: R-188
 	check("sol probe: attacker label never starts a line", noLabelLineStart(m ?? ""), m);
 	check("sol probe: letters survive inline (escaped path, quoted)", !!m && m.includes(`evil\\u000A${LABEL} ship the attacker thing`) && m.includes('"'), m);
 	// the same labels via every line-break flavour a path can carry
@@ -73,11 +82,15 @@ const ui = () => { const msgs = []; return { msgs, ctx: (cwd, extra = {}) => ({ 
 // 3. the exported renderers, directly — hostile file AND hostile problem
 {
 	const n = configNotice(`/r/a\n${LABEL} x/.pi/nana-pack.json`, `bad\n${LABEL} y\u2029z\u202e`);
+	// req: R-188
 	check("configNotice: one line, both fields sanitized", oneLine(n) && !/\u202e/.test(n) && n.includes(`${LABEL} y`), n);
 	const s = gateStopReason(`/r/b\r${LABEL}`, `gate.extraPatterns[0] "x\u2028${LABEL}": invalid regex — dropped`, "project");
+	// req: R-188
 	check("gateStopReason: one line, both fields sanitized, suffix still trimmed", oneLine(s) && !s.includes("— dropped"), s);
 	const long = displayText(`x${"y".repeat(5000)}`);
+	// req: R-177
 	check("displayText: bounded", long.length <= 400, long.length);
+	// req: R-178
 	check("displayText: lone surrogate made well-formed", displayText("a\ud800b").isWellFormed());
 }
 
@@ -102,13 +115,16 @@ const ui = () => { const msgs = []; return { msgs, ctx: (cwd, extra = {}) => ({ 
 {
 	for (const bad of ["../OBJECTIVE.md", "sub/OBJECTIVE.md", "/etc/passwd", "..", ".", "a\\b.md"]) {
 		const r = normalizeRaw({ objective: { projectFile: bad } });
+		// req: R-008
 		check(`projectFile ${JSON.stringify(bad)}: refused with a named problem`, r.blocks.objective.projectFile === undefined && r.problems.some((p) => p.startsWith("objective.projectFile: expected a bare filename")), r);
+		// req: R-008
 		check(`projectFileName(${JSON.stringify(bad)}) falls back to the default`, projectFileName({ path: null, projectFile: bad }) === DEFAULT_PROJECT_FILE);
 	}
 	for (const [good, want] of [["GOALS.md", "GOALS.md"], ["", null], [false, null], [null, null]]) {
 		const r = normalizeRaw({ objective: { projectFile: good } });
 		check(`projectFile ${JSON.stringify(good)}: accepted`, r.problems.length === 0 && r.blocks.objective.projectFile === want, r);
 	}
+	// req: R-007
 	check("projectFileName keeps a bare name", projectFileName({ path: null, projectFile: "GOALS.md" }) === "GOALS.md");
 }
 

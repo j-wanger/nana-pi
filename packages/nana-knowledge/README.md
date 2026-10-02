@@ -19,7 +19,14 @@ peerDependency: the pi extension below is a thin wrapper that spawns the same CL
 nothing in this package needs pi to be installed. Tests are zero-dep
 `node packages/nana-knowledge/tests/*.test.mjs`.
 
-## Use
+## Install
+
+Nothing to install: no npm dependency, no build step, no lockfile. The package runs from this
+checkout — `pi install` on the repo root (or on this directory, see **The pi extension** below)
+registers the pi half, and `nana-setup install` builds the first index. The CLI below works with
+neither of those, straight from a clone.
+
+## Usage
 
 ```bash
 node packages/nana-knowledge/bin/nana-knowledge.ts build [--rebuild]
@@ -242,3 +249,9 @@ under `~/.pi/agent/nana-knowledge/` like everything else here, never transmitted
   annoying, drop the raw roots from `sources.json` rather than adding scoring machinery.
 - Dedup is per `session_id`. A resumed session keeps its history; a `--continue` into a
   new session id starts over.
+
+## Tests
+
+```bash
+npm test -- nana-knowledge     # from the repo root; zero-dep, no fixtures outside os.tmpdir()
+```

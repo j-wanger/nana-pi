@@ -1,4 +1,17 @@
 /**
+ * @module packages/nana-pack/extensions/nana-notify.ts
+ * @purpose Notify the owner on the desktop when the agent settles, falling back in-app when the OS notifier
+ *  fails.
+ * @inputs pi `agent_settled` events, the notify config block (enabled, headless), ctx.hasUI, and
+ *  process.platform
+ * @outputs an osascript notification, a PowerShell toast or an OSC 777 sequence, an in-app ctx.ui.notify on
+ *  failure, and a `notify_fallback` journal line carrying the reason
+ * @effects process (spawns osascript or powershell.exe under NOTIFIER_TIMEOUT_MS), disk (appends the
+ *  journal)
+ * @errors none — notifierFailure classifies a spawn failure, a non-zero exit, the deadline kill and a
+ *  PowerShell error record printed on an exit-0 run, each as the fallback's reason
+ */
+/**
  * nana-notify — desktop notification when the agent settles and waits for input.
  *
  * darwin: osascript notification · win32: PowerShell toast · else: OSC 777

@@ -1,4 +1,18 @@
 /**
+ * @module packages/nana-pack/extensions/nana-gate.ts
+ * @purpose Gate every bash or powershell command and every edit or write path against the session's
+ *  ratcheted gate policy.
+ * @inputs pi `tool_call` and `session_start` events (toolName, input.command / input.path, reason), the
+ *  gate block of the live config, and ctx (cwd, hasUI, ui)
+ * @outputs a {block, reason} verdict or undefined, an interactive Block / Allow once dialog showing the
+ *  subject through the shared renderers, a running `gate ✓ N checked · M gated` status, and
+ *  `gate_policy_widened` / `config_invalid` journal lines
+ * @effects disk (appends the journal, realpaths candidate paths via gate-paths), process (the
+ *  adopted-policy map lives on globalThis so widening is seen across extension copies)
+ * @errors never throws — a failed policy load becomes a stopReason and a failed analysis becomes the hit
+ *  `gate analysis failed`, and both block; headless hits block fail-closed
+ */
+/**
  * nana-gate — pre-tool permission gating.
  *
  * Gates bash/powershell commands matching dangerous forms and any tool touching protected

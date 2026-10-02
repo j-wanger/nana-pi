@@ -1,3 +1,11 @@
+/**
+ * @module packages/nana-pack/tests/receipt-binding.test.mjs
+ * @purpose Pins that a post-edit check leaves a CONTENT-BOUND receipt for both pass and fail with a distinct status for a checker that could not run, and that staleness is detectable by re-reading the workspace
+ * @inputs extensions/nana-post-edit.ts, the receipts helper, and a temp HOME with a workspace
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, workspace files, receipt files), process (sets HOME and USERPROFILE)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -55,19 +63,26 @@ function setup(commands, opts = {}) {
 	await fire(file);
 
 	const r1 = readLatestReceipt(cfg, td, cmd);
+	// req: R-101
 	check("a: receipt written", !!r1);
+	// req: R-084
 	check("a: status checks_passed", r1?.status === "checks_passed");
+	// req: R-101
 	check("a: digest D1 is sha256 hex", /^[0-9a-f]{64}$/.test(r1?.digest ?? ""));
+	// req: R-101
 	check("a: input bound by relative path + contents", r1?.inputs?.length === 1 && r1.inputs[0].path === "foo.txt");
 	check("a: helper reports current", receiptState(r1, td) === "current");
 	const D1 = r1.digest;
 
 	// re-edit the same (already-dirty) file, changing CONTENTS only
 	fs.writeFileSync(file, "two\n");
+	// req: R-102
 	check("b: prior receipt now stale (content binding)", receiptState(r1, td) === "stale");
 	await fire(file); // a fresh check binds the new contents
 	const r2 = readLatestReceipt(cfg, td, cmd);
+	// req: R-102
 	check("b: new receipt has a different digest D2", r2?.digest && r2.digest !== D1);
+	// req: R-102
 	check("b: new receipt is current", receiptState(r2, td) === "current");
 
 	fs.rmSync(td, { recursive: true, force: true });
@@ -84,6 +99,7 @@ function setup(commands, opts = {}) {
 	const r = readLatestReceipt(cfg, td, cmd);
 	check("c: status checks_failed", r?.status === "checks_failed");
 	check("c: never checks_passed", r?.status !== "checks_passed");
+	// req: R-085
 	check("c: failure feedback still returned (control flow unchanged)",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 
@@ -103,8 +119,10 @@ function setup(commands, opts = {}) {
 	await fire(file);
 
 	const rMissing = readLatestReceipt(cfg, td, missing);
+	// req: R-105
 	check("d: missing exe not passed", rMissing?.status !== "checks_passed");
 	check("d: missing exe status in {error,timeout,not_run}", ALLOWED_NOT_PASSED.has(rMissing?.status));
+	// req: R-105
 	check("d: missing exe classified error", rMissing?.status === "error");
 
 	const rSlow = readLatestReceipt(cfg, td, slow);
@@ -126,9 +144,11 @@ function setup(commands, opts = {}) {
 
 	const r = readLatestReceipt(cfg, td, trap);
 	check("e: SIGTERM-trap exit-0 never checks_passed", r?.status !== "checks_passed");
+	// req: R-095
 	check("e: SIGTERM-trap exit-0 classified timeout", r?.status === "timeout");
 	// R4: a non-completing check (timeout) must be fed back to the MODEL, not only
 	// recorded in the receipt — this case exits 0, so a `code !== 0` test would miss it.
+	// req: R-095
 	check("e: timeout is fed back to the model (not only the receipt)",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	// R5: the exit-0 pin assumes POSIX signal semantics (win32 has no SIGTERM), so
@@ -172,6 +192,7 @@ function setup(commands, opts = {}) {
 		fs.writeFileSync(file, "w\n");
 		let ret, threw = false;
 		try { ret = await fire(file); } catch { threw = true; }
+		// req: R-104
 		check("g: non-string receipts.dir does not throw", !threw);
 		check("g: failing-check feedback still returned",
 			typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
@@ -193,6 +214,7 @@ function setup(commands, opts = {}) {
 	fs.writeFileSync(file, "k\n");
 	await fire(file);
 	const r = readLatestReceipt(cfg, td, cmd);
+	// req: R-097
 	check("h: timeoutMs:0 passing check is checks_passed (not timeout)", r?.status === "checks_passed");
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -212,7 +234,9 @@ function setup(commands, opts = {}) {
 	fs.writeFileSync(file, "m\n");
 	let ret, threw = false;
 	try { ret = await fire(file); } catch { threw = true; }
+	// req: R-104
 	check("i: malformed command (missing run / negative timeoutMs) does not throw", !threw);
+	// req: R-104
 	check("i: the valid check still ran (malformed entries skipped, not the rest)",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	// exactly ONE failure — the two malformed entries produced no feedback (had one run, it would read "2 check(s) failed")

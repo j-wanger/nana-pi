@@ -1,3 +1,19 @@
+/**
+ * @module packages/nana-pack/bin/review-round.mjs
+ * @purpose The review round ledger — admit, project, complete and release one per-item review round under a
+ *  user-scope lock.
+ * @inputs a launcher's own argv (--item, --revision, --role, --out, --over-cap), the reviewed tree's git
+ *  state (common dir, HEAD, tracked and non-ignored untracked content), env NANA_REVIEW_RES_STALE_MS, and
+ *  the ledger files under ~/.pi/agent
+ * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
+ *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
+ * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally
+ *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing heartbeat interval)
+ * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
+ *  character; admit / project / complete return {ok:false, message} for a missing --item, an over-cap
+ *  revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
+ *  a lost reservation
+ */
 // review-round.mjs — the review ROUND CAP (OBJECTIVE.md rule, 2026-09-16): three review rounds
 // per item, then land with residuals, subtract, or instrument/implement before any further round.
 //

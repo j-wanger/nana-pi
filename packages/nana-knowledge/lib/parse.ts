@@ -1,3 +1,13 @@
+/**
+ * @module packages/nana-knowledge/lib/parse.ts
+ * @purpose Turn one markdown file into indexable rows — a single row per article, or one row per `[uses:`
+ *  ledger entry.
+ * @inputs a file path and that file's text content
+ * @outputs Row records {key, path, loc, title, body} — key is the path, plus `#L<line>` for a ledger entry
+ *  — and the frontmatter/body split with the derived title
+ * @effects none
+ * @errors none
+ */
 // Markdown -> indexable rows. Two shapes:
 //   articles — one row per *.md file
 //   ledger   — one row per entry in a line-oriented ledger (loops/DOCTRINE.md)

@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/stage-key-persistence.test.mjs
+ * @purpose Pins that stage signing keys survive a desk restart across four server runs, and that a forged or unknown-key block is still redacted
+ * @inputs apps/desk/server.mjs, apps/desk/stage-keys.mjs, nana-stage's lib/sign.mjs, and a stub `pi` that writes real session files with signed blocks
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME, key store and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // Stage signing keys survive a desk restart (design B, 2026-09-09).
 //
 // Drives the REAL desk server (own HOME, own apps dir, own key store) against a
@@ -333,9 +341,12 @@ try {
 
 	// the key store itself: one file per session, named by the pi session header id
 	const rec = recordOf(idA);
+	// req: R-437
 	check("store: one v1 record per session, named by the pi session header id", rec?.v === 1 && rec.keys[0] === keyA1, JSON.stringify(rec));
 	const mode = (p) => (fs.existsSync(p) ? fs.statSync(p).mode & 0o777 : null);
+	// req: R-437
 	check("store: record mode 0600", mode(recordFile(idA)) === 0o600, String(mode(recordFile(idA))?.toString(8)));
+	// req: R-437
 	check("store: directory mode 0700", mode(STORE) === 0o700, String(mode(STORE)?.toString(8)));
 	const storeDir = () => (fs.existsSync(STORE) ? fs.readdirSync(STORE) : []);
 	check("store: no temp file left behind", storeDir().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(storeDir()));
@@ -357,11 +368,15 @@ try {
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	check("run 2: alpha resumed", s.state === "running", JSON.stringify(s));
 	const run2 = spawns("2", cwdA);
+	// req: R-438
 	check("run 2: the resumed child was handed the SAME key the store recorded for that session", run2[0].key === keyA1, `${run2[0].key.slice(0, 8)} vs ${keyA1.slice(0, 8)}`);
 	ent = await get(A, "/api/entries");
 	let be = blockEntries(ent.entries);
+	// req: R-438
 	check("run 2: a block minted before the restart is STILL unredacted", be.filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(be.map((e) => [e.id, e.customType])));
+	// req: R-439
 	check("run 2: a hand-forged signature is still redacted", be.find((e) => e.id === "hand1")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand1")));
+	// req: R-439
 	check("run 2: a block signed under a key this desk never issued is still redacted", be.find((e) => e.id === "hand2")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand2")));
 	check("run 2: resuming reused the recorded key rather than appending a new one", keysOf(idA).length === 1, JSON.stringify(recordOf(idA)));
 	await stopServer();
@@ -373,6 +388,7 @@ try {
 	await startServer("3", [A, B]);
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
+	// req: R-438
 	check("run 3: renamed session file resumes and its old block still verifies (keyed by header id, not path)",
 		blockEntries(ent.entries).filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
@@ -391,16 +407,20 @@ try {
 	fs.writeFileSync(NO_STATE, "");
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
+	// req: R-443
 	check("run 3: an unresolved get_state drops the recorded-key widening entirely (no stale authority)",
 		be.length === 1 && be[0].customType === "nana-block-rejected", JSON.stringify(be.map((e) => e.customType)));
 	fs.rmSync(NO_STATE);
 	ent = await get(A, "/api/entries");
+	// req: R-443
 	check("run 3: ...and it verifies again as soon as the session can be established",
 		blockEntries(ent.entries)[0].customType === "nana-block", JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
 	live = await promptAndCollect(A, "oldblock please");
+	// req: R-440
 	check("run 3: LIVE path unchanged — a block signed with a recorded but FOREIGN key is dropped", Array.isArray(live) && live.length === 0, JSON.stringify(live));
 	live = await promptAndCollect(A, "make a block");
+	// req: R-440
 	check("run 3: LIVE path still passes this child's own block", live?.length === 1, JSON.stringify(live));
 
 	// FORK: pi copies the source session's entries — signed blocks and all — into a new
@@ -414,6 +434,7 @@ try {
 	be = blockEntries(ent.entries);
 	check("run 3: a FORK inherits the source session's key set — mixed-key blocks all verify",
 		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => e.customType)));
+	// req: R-441
 	check("run 3: the fork's record was seeded from the source, not just given this child's key",
 		JSON.stringify(keysOf(idC)) === JSON.stringify([keyA1, keyB1]),
 		JSON.stringify(keysOf(idC).map((k) => k.slice(0, 8))));
@@ -492,6 +513,7 @@ try {
 			return x;
 		}));
 	await until(() => statuses.includes(429), "a queued session change to be refused with 429");
+	// req: R-442
 	check("run 3: the lifecycle queue is bounded — past the cap a session change is refused at once with 429",
 		statuses.includes(429), JSON.stringify(statuses));
 	releaseT = Date.now();
@@ -501,10 +523,12 @@ try {
 	const trace = fs.readFileSync(TRACE, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 	const firstFork = trace.findIndex((e) => e.type === "fork");
 	const nextAfter = trace[firstFork + 1];
+	// req: R-442
 	check("run 3: while a transition is held, no queued transition sends anything to the child",
 		firstFork >= 0 && nextAfter && nextAfter.type === "get_state" && nextAfter.t >= releaseT,
 		JSON.stringify(trace.slice(firstFork, firstFork + 3).map((e) => e.type)));
 	const after429 = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
+	// req: R-442
 	check("run 3: the queue's slots are released — a later lifecycle RPC still works", after429?.success === true, JSON.stringify(after429));
 
 	// A COMMAND THAT DID NOT SUCCEED RESTORES NO IDENTITY AND ARMS NOTHING. The desk
@@ -529,6 +553,7 @@ try {
 	// failing state read
 	fs.writeFileSync(UNARM, "");
 	ent = await get(A, "/api/entries"); // an ordinary observation — the only kind left
+	// req: R-441
 	check("run 3: an unconfirmed fork inherits NOTHING; its copied blocks stay redacted",
 		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block-rejected",
 		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
@@ -566,6 +591,7 @@ try {
 	await until(() => fs.existsSync(LATE), "the boundary answer to go out", 8000);
 	await sleep(250);
 	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
+	// req: R-441
 	check("run 3: an answer landing ON the deadline confirms nothing either",
 		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
 	await stopServer();
@@ -576,6 +602,7 @@ try {
 	await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
+	// req: R-439
 	check("run 4: every block of session B verifies, across BOTH keys the desk issued for it",
 		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
 	await stopServer();
@@ -600,6 +627,7 @@ try {
 	const keys = Array.from({ length: 9 }, () => crypto.randomBytes(32).toString("hex"));
 	let st = new StageKeyStore({ dir: d2, log: () => {} });
 	for (const k of keys) st.record("sid", k);
+	// req: R-437
 	check("store: capped at 8 keys, most recent first", JSON.stringify(new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sid")) === JSON.stringify(keys.slice().reverse().slice(0, 8)));
 	check("store: an already-recorded key is a no-op (no rewrite)", st.record("sid", keys[8]) === false);
 	check("store: a directory the desk created is 0700", (fs.statSync(d2).mode & 0o777) === 0o700, (fs.statSync(d2).mode & 0o777).toString(8));
@@ -632,6 +660,7 @@ try {
 
 	// a session id becomes a FILENAME here, so anything not name-shaped is refused
 	// rather than escaped — neither recorded nor looked up
+	// req: R-437
 	check("store: a path-shaped session id is refused, not written", st.record("../escape", keys[0]) === false && !fs.existsSync(path.join(td2, "nested", "escape.json")));
 	check("store: ...and never looked up", st.keysFor("../escape").length === 0 && st.keysFor("a/b").length === 0);
 
@@ -643,6 +672,7 @@ try {
 	try { st.record("sid", crypto.randomBytes(32).toString("hex")); } catch { threw = true; }
 	fs.renameSync = realRename;
 	check("store: a write interrupted before the rename does not throw at the caller", threw === false);
+	// req: R-437
 	check("store: ...and leaves the previous record byte-identical", fs.readFileSync(rec2("sid"), "utf-8") === before);
 	check("store: ...and leaves no temp file behind", ls2().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(ls2()));
 
@@ -653,6 +683,7 @@ try {
 	st.record("sidR", kr);
 	fs.renameSync = realRename;
 	check("store: a failed save leaves nothing on disk for that session", !fs.existsSync(rec2("sidR")));
+	// req: R-437
 	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(rec2("sidR")));
 	check("store: ...so the key survives the next restart", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sidR")[0] === kr);
 	check("store: ...and one session's failed write did not disturb another's record", fs.readFileSync(rec2("sid"), "utf-8") === before);
@@ -698,6 +729,7 @@ try {
 	// the existence prune: drops ids with no session file, but NEVER acts on an empty
 	// enumeration (indistinguishable from "the sessions dir could not be read")
 	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set() });
+	// req: R-444
 	check("store: an EMPTY session enumeration prunes nothing", st.keysFor("sid3")[0] === k9);
 	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set(["sidR"]) });
 	check("store: an id with no session file is pruned", st.keysFor("sid3").length === 0 && !fs.existsSync(rec2("sid3")));
@@ -707,6 +739,7 @@ try {
 	fs.writeFileSync(path.join(d2, "operator.notes.json"), "{}");
 	fs.writeFileSync(path.join(d2, "sidR.json.12345.abcdef.tmp"), "{}");
 	new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set(["sidR"]) }).keysFor("sidR");
+	// req: R-444
 	check("store: the prune leaves a file it could not have written (a dotted name is not a session id)", fs.existsSync(path.join(d2, "operator.notes.json")), JSON.stringify(ls2()));
 	check("store: ...and leaves stray temps and moved-aside records alone",
 		fs.existsSync(path.join(d2, "sidR.json.12345.abcdef.tmp")) && ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
@@ -736,6 +769,7 @@ try {
 	// liveD and goneD belong to the other root and are NOT evidence it can act on
 	deskC(["liveC"]).keysFor("liveC");
 	check("two roots: the custom-root desk prunes its own vanished session", !fs.existsSync(rec3("goneC")));
+	// req: R-444
 	check("two roots: ...and keeps the default-root desk's records (live AND not in its enumeration)",
 		fs.existsSync(rec3("liveD")) && fs.existsSync(rec3("goneD")) && deskD(["liveD"]).keysFor("liveD")[0] === kD);
 	// and the reverse: the default-root desk prunes goneD, never liveC

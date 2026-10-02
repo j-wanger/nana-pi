@@ -1,3 +1,11 @@
+/**
+ * @module apps/desk/test/prompt-detach.test.mjs
+ * @purpose Pins the prompt endpoint's DETACH contract — every answer carries a promptId, a detached prompt settles exactly once by event, and the outcome is kept for a client that attaches later
+ * @inputs apps/desk/server.mjs and a stub `pi` that holds its acceptance past the detach deadline
+ * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+ * @effects disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ */
 // The prompt endpoint's DETACH contract (2026-09-16, sol r2 C-HIGH).
 //
 // `POST /api/session/:id/prompt` waits 5 s for pi's acceptance and then stops
@@ -153,7 +161,9 @@ try {
 
 	// ── 2+3. two prompts the endpoint must detach from, one of each outcome ──
 	const [good, bad] = await Promise.all([prompt(spawned.id, "slow-ok please"), prompt(spawned.id, "slow-fail please")]);
+	// req: R-419
 	check("detach: a prompt pi has not accepted in 5 s answers pending", good.ok === true && good.pending === true, JSON.stringify(good));
+	// req: R-419
 	check("detach: …with a promptId of its own", typeof good.promptId === "string" && good.promptId !== fast.promptId, JSON.stringify([fast.promptId, good.promptId]));
 	check("detach: …and two detached prompts get two different ids", typeof bad.promptId === "string" && bad.promptId !== good.promptId, JSON.stringify([good.promptId, bad.promptId]));
 	const settledFor = (id) => events.filter((e) => e.type === "desk_prompt_settled" && e.promptId === id);
@@ -166,6 +176,7 @@ try {
 
 	// ── 4. one event per detached prompt, none for the fast one ──
 	await sleep(500); // a second copy would have landed by now
+	// req: R-419
 	check("settle: exactly one settled event per detached prompt", settledFor(good.promptId).length === 1 && settledFor(bad.promptId).length === 1, `${settledFor(good.promptId).length} / ${settledFor(bad.promptId).length}`);
 	check("settle: a prompt answered inside the 5 s never settles separately", settledFor(fast.promptId).length === 0, JSON.stringify(settledFor(fast.promptId)));
 	const rejects = events.filter((e) => e.type === "desk_prompt_rejected");
@@ -200,6 +211,7 @@ try {
 		const late = listen(spawned.id);
 		await waitFor(() => late.some((e) => e.type === "desk_hello"));
 		const ring = late.find((e) => e.type === "desk_hello").settledPrompts || [];
+		// req: R-419
 		check("ring: the snapshot keeps 32 of them, not all 35", ring.length === 32, String(ring.length));
 		check("ring: …the oldest fell off", !ring.some((s) => s.promptId === good.promptId) && !ring.some((s) => s.promptId === order[0]), JSON.stringify(ring.map((s) => s.promptId)));
 		check("ring: …and the newest is still there", ring.at(-1)?.promptId === order.at(-1), `${ring.at(-1)?.promptId} vs ${order.at(-1)}`);
@@ -219,7 +231,9 @@ try {
 		await fetch(`${BASE}/api/session/${two.id}`, { method: "DELETE" });
 		const came = await waitFor(() => ev2.some((e) => e.type === "desk_prompt_settled" && e.promptId === held.promptId));
 		const s = ev2.find((e) => e.type === "desk_prompt_settled" && e.promptId === held.promptId);
+		// req: R-420
 		check("exit: a prompt still detached when the session dies settles ok:false", came && s?.ok === false, JSON.stringify(s));
+		// req: R-420
 		check("exit: …and says the session went away", /exit/.test(s?.error || ""), JSON.stringify(s));
 		ev2.stop();
 	}

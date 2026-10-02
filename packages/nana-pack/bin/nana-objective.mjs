@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+/**
+ * @module packages/nana-pack/bin/nana-objective.mjs
+ * @purpose Print the objective block for a session cwd as the Claude Code SessionStart hook's producer.
+ * @inputs argv (`--cwd <dir>`, default process.cwd()), process.versions.node, and the user-scope objective
+ *  settings read through lib/config.ts loadUserObjective
+ * @outputs `[nana:objective]` plus lib/objective.ts's block on stdout, and nothing at all when
+ *  objective.enabled is false
+ * @effects disk (lib/objective.ts reads the objective files and the trust store)
+ * @errors none — always exits 0; a Node older than 22.18 or a failed dynamic import prints an `OBJECTIVE
+ *  UNAVAILABLE` marker naming the cause
+ */
 // nana-objective — print the objective block for a session cwd (the Claude Code
 // SessionStart hook's producer; pi's extension imports the same lib/objective.ts).
 //   node bin/nana-objective.mjs [--cwd <dir>]
