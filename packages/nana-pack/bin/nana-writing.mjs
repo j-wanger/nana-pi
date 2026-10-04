@@ -12,7 +12,7 @@
 // With no file, reads stdin (named "-" in the output). `--report` turns on the two checks
 // that only matter for a message addressed to Jake: a verdict word in the first sentence,
 // and identifiers (a backtick span, or a slash path) — see
-// packages/nana-setup/claude/rules/nana-writing.md and packages/nana-pack/README.md.
+// packages/nana-pack/rules/nana-writing.md and packages/nana-pack/README.md.
 import * as fs from "node:fs";
 import { checkText, summaryLine } from "../lib/writing-check.mjs";
 

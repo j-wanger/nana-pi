@@ -21,7 +21,7 @@ ones that load a real extension skip themselves when pi is not installed globall
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-Six extensions giving pi the hook coverage we require (Claude Code parity classes):
+Seven extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -31,6 +31,7 @@ Six extensions giving pi the hook coverage we require (Claude Code parity classe
 | `nana-notify` | Outward notifications | `agent_settled` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 ## Install
 
@@ -240,9 +241,11 @@ Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (pr
 
 The ninth CLI. Zero-dep, Node only, cross-platform; the pure checks live in
 `lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
-`docs/reviews/writing-trial-2026-10-04/design-ruling.md`). Not wired into any hook or post-edit
-command during the trial — run it by hand, from the rule it is named by
-(`packages/nana-setup/claude/rules/nana-writing.md`).
+`docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
+named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an
+append, not a context-file link — Amendment 1 §A1, after astra r1 found a link could both hide
+a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one); the CHECKER stays manual and
+report-only during the trial — run it by hand, once per report, before you send it.
 
 ```bash
 node packages/nana-pack/bin/nana-writing.mjs file.md            # check one or more files
@@ -250,21 +253,42 @@ node packages/nana-pack/bin/nana-writing.mjs --report < draft.txt   # stdin, + v
 ```
 
 With no path it reads stdin (named `-` in the output). Four checks run always — sentence
-length, passive voice, a banned word, and the closing summary — and two more run only with
-`--report`: a verdict word in the first sentence, and identifiers (a backtick span, or a
-slash-path token). Each finding is one line, `<file>:<line>: <check>: <detail>`; the output
+length, passive-voice CANDIDATES (a heuristic, not a parser — see Known limit), a banned word
+outside a code span, and the closing summary — and two more run only with `--report`: a
+verdict word or phrase in the first prose sentence, and identifiers (a backtick span, or a
+slash-path token — including the banned word's own code span, since a quoted word is a
+mention, not a use). Each finding is one line, `<file>:<line>: <check>: <detail>`; the output
 always ends with one summary line:
 
 ```
-summary sentences=N words=N over=N passive=N banned=N verdict=yes|no|n/a identifiers=N
+summary sentences=N words=N over=N passive=N banned=N verdict=<k>/<n>|n/a identifiers=N
 ```
+
+`verdict` is the cross-file SHARE in `--report` mode — `<k>` inputs whose first prose sentence
+carried a verdict word, out of `<n>` checked — and "n/a" otherwise.
 
 It exits 0 whatever it finds — this CLI reports, it never blocks.
 
-**Known limit.** Sentence splitting is simple: a period, `!` or `?` followed by space (or a
-line break) ends a sentence, after masking backtick spans and URLs so a period inside one does
-not split early. It has no abbreviation engine, so "e.g." and "vs." still split a sentence
-early — recorded here, not fixed.
+**Trial tally.** The seat runs one invocation per report sent (or per `HANDOFF.md` edit) and
+records the day's counts in `docs/reviews/writing-trial-2026-10-04/tally.md`: reports checked,
+verdict passes, sentences, over-cap count, and any lost-detail complaint. Stop at day 14 or 20
+reports, whichever is first, or after two lost-detail complaints.
+
+**Markdown-aware splitting (Amendment 1 §A2).** A fence (3+ backticks/tildes) toggles fenced
+state; every check skips a fenced line, banned included. A heading or a table row (`|`-led)
+never becomes a sentence, though the banned scan still reads it. A blank line or a list-item
+line (`-`, `*`, `+`, or `1.`/`1)`) ends the current paragraph; a list item starts a new one with
+its marker stripped. Any other line joins the current paragraph with one space (a soft wrap),
+so the same prose wrapped across two lines or written on one gives the identical summary.
+Within a paragraph, a sentence ends at `.`, `!` or `?`, optionally followed by a closing quote
+or bracket, then whitespace or the end; code spans and URLs are masked first so a period inside
+one never splits early.
+
+**Known limit.** No abbreviation engine: "e.g." and "vs." still split a sentence early —
+recorded here, not fixed. The passive check is a regex heuristic, not a parser: the labelled
+fixture in `tests/writing-check.test.mjs` measures it at 77.8% precision / 58.3% recall
+(astra r1 SHOULD 1, 2026-10-04) and pins no number — a floor would be a tunable with no
+provenance, and the check is report-only.
 
 ## What you will see
 

@@ -1,24 +1,21 @@
 /**
  * @module packages/nana-setup/tests/writing-rule.test.mjs
- * @purpose Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, that doctor reads the same state, and that the rule itself passes its own checker with zero findings
- * @inputs lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, nana-pack's lib/writing-check.mjs, and a throwaway temp dir / --home
+ * @purpose Pins that ~/.claude/rules/nana-writing.md is a symlink into the pack's own copy (not nana-setup's), and that the rule itself passes its own checker with zero findings
+ * @inputs lib/steps.mjs's ruleSource/PACK_RULES_DIR, bin/nana-setup.mjs, nana-pack's lib/writing-check.mjs, and a throwaway --home
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (throwaway temp dirs and homes, symlinks), process (spawns the installer CLI for the exit-code case)
+ * @effects disk (a throwaway --home), process (spawns the installer CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: pi's agent-dir AGENTS.md is NOT nana-owned (unlike CLAUDE_RULES) — a user's own file
-// there must survive install untouched, reported ✗, with install exiting 1 (R-373, R-374). Every
-// run goes into a throwaway temp dir or --home; nothing touches the real machine.
-import { spawnSync } from "node:child_process";
+// Gate: the delivery to pi moved from an agent-dir AGENTS.md link to the nana-writing pack
+// extension (design-ruling.md Amendment 1, 2026-10-04, §A1, after astra r1 MUST 1) — R-373,
+// R-374 and R-375 are REMOVED from this branch (never landed, their IDs stay unused; see
+// REQUIREMENTS.md). What is left for THIS package: the Claude Code half still symlinks
+// ~/.claude/rules/nana-writing.md, but now from the PACK's rules dir, the same file the
+// extension reads — and R-376, the rule's own zero-findings claim.
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
-const cli = path.join(pkg, "bin", "nana-setup.mjs");
-const { stepWritingRule, WRITING_RULE_SRC } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { diagnose } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { ruleSource, PACK_RULES_DIR } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -27,71 +24,21 @@ const check = (n, ok, extra) => {
 	if (!ok) fails++;
 };
 
-const tmps = [];
-function tempDir() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-writing-rule-"));
-	tmps.push(td);
-	return td;
-}
-
-/* --- unit: stepWritingRule directly over a bare piHome -------------------------------- */
+/* --- the Claude Code link: sourced from the pack, not from nana-setup's own claude/rules --- */
 {
-	const piHome = tempDir();
-	const target = path.join(piHome, "AGENTS.md");
-	const [r] = stepWritingRule({ piHome }, {});
-	const st = fs.lstatSync(target);
-	const linked = r.status === "created" && st.isSymbolicLink() && path.resolve(path.dirname(target), fs.readlinkSync(target)) === WRITING_RULE_SRC;
-	// req: R-373
-	check("pi AGENTS.md is a symlink to the writing rule", linked, JSON.stringify(r));
-
-	// second run: idempotent, unchanged
-	const [r2] = stepWritingRule({ piHome }, {});
-	check("a second run is unchanged", r2.status === "unchanged");
-}
-
-{
-	const piHome = tempDir();
-	const target = path.join(piHome, "AGENTS.md");
-	fs.mkdirSync(piHome, { recursive: true });
-	fs.writeFileSync(target, "# My own instructions\nNothing to do with nana.\n");
-	const before = fs.readFileSync(target, "utf8");
-	const [r] = stepWritingRule({ piHome }, {});
-	// req: R-374
-	check("a foreign AGENTS.md is untouched and install exits 1", r.status === "problem" && fs.readFileSync(target, "utf8") === before, JSON.stringify(r));
-	check("no backup was written beside it", !fs.readdirSync(piHome).some((f) => f.includes(".bak-")));
-}
-
-/* --- CLI: the foreign-file case flips install's own exit code to 1 -------------------- */
-{
-	const home = tempDir();
-	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-	fs.writeFileSync(path.join(home, ".pi", "agent", "AGENTS.md"), "# Not nana's\n");
-	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
-	// req: R-374
-	check("install reports ✗ on the foreign AGENTS.md and exits 1", r.status === 1 && /✗ pi AGENTS\.md \(writing rule\)/.test(r.stdout), r.stdout);
-}
-
-/* --- doctor ------------------------------------------------------------------------- */
-{
-	const home = tempDir();
-	const layout = resolveLayout({ home });
-	const before = diagnose(layout).find((c) => c.label === "pi AGENTS.md (writing rule)");
-	// req: R-375
-	check("doctor ✓ linked, ✗ missing", before.status === "fail", JSON.stringify(before));
-
-	stepWritingRule(layout, {});
-	const after = diagnose(layout).find((c) => c.label === "pi AGENTS.md (writing rule)");
-	// req: R-375
-	check("doctor ✓ linked, ✗ missing (after creating)", after.status === "ok", JSON.stringify(after));
+	const src = ruleSource("nana-writing.md");
+	// req: R-301
+	check("rule nana-writing.md is sourced from packages/nana-pack/rules", src === path.join(PACK_RULES_DIR, "nana-writing.md"), src);
+	check("the source file exists there", fs.existsSync(src), src);
 }
 
 /* --- the rule passes its own checker (R-376) ------------------------------------------ */
 {
-	const text = fs.readFileSync(WRITING_RULE_SRC, "utf8");
-	const r = checkText(WRITING_RULE_SRC, text, { report: false });
+	const src = ruleSource("nana-writing.md");
+	const text = fs.readFileSync(src, "utf8");
+	const r = checkText(src, text, { report: false });
 	// req: R-376
 	check("the rule passes nana-writing with zero findings", r.findings.length === 0, JSON.stringify(r.findings));
 }
 
-for (const td of tmps) fs.rmSync(td, { recursive: true, force: true });
 process.exit(fails);

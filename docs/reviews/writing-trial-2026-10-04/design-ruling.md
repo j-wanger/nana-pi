@@ -245,3 +245,111 @@ The agent dir is pi's ACTIVE one, from `piAgentDir()`, as every user-scope resou
 ## The claim I would most expect to be wrong
 
 That reviewer sessions read the rule without harm. The scope paragraph should hold, but a model under a 25-word cap may drop the path a finding needs. The first review corpus after landing is the check. If it shows that, pi delivery moves into the pack extension gated on `hasUI`.
+
+---
+
+## Amendment 1 (after astra r1)
+
+Ruler: Fable, 2026-10-04, after `astra-r1.md` (BLOCK, 6/10). Branch `feat/writing-trial` in `~/nana-pi-wt/writing`.
+
+**In one screen.** Three findings land on the design, and I change the design on all three. pi delivery moves from a context file to a pack extension. Sentence splitting becomes Markdown-aware. The rule names the banned word in a code span. The worker fixes the other five items as written, with the two changes in A4. Round 2 reviews the amended build.
+
+Note on IDs: the pi 1.0 lane used R-360 to R-372 first, so the worker's R-373 to R-376 are the real IDs. The mapping is in commit `925f950`.
+
+### A1. Delivery to pi (MUST 1, SHOULD 3)
+
+**Decision.** Drop the agent-dir link. A seventh pack extension, `packages/nana-pack/extensions/nana-writing.ts`, appends the rule text to the system prompt. It uses the call the objective extension uses today: read at `session_start` for every reason, append `${event.systemPrompt}\n\n${block}` at `before_agent_start` [V, `nana-objective.ts:64-85`]. The rule file moves to `packages/nana-pack/rules/nana-writing.md`. nana-setup links `~/.claude/rules/nana-writing.md` to it, the way it links skills into the pack today [V, `PACK_SKILLS_DIR`, `steps.mjs:43-45`].
+
+**Reason.** pi reads the first usable file of five names per directory [V, `resource-loader.js:115-131`]. Any file we place is in that race. Astra executed both losses: our link hid a user `CLAUDE.md`, and an `AGENTS.override.md` hid our rule while doctor read ✓. An installer that checks all five names re-implements pi's precedence and must track upstream, and pi releases fast. The extension API is the stable surface two extensions already use, verified on 1.0.2 [V, main `64a3297`, acceptance A1 to A6]. An append replaces nothing. No context file, project prompt or override can remove it. The code volume is about equal to the installer step it replaces, and the failure class is gone.
+
+**Rejected.**
+
+- Keep the link and detect the five names. It tracks upstream, and a later override still hides the rule until someone runs doctor.
+- `<agent dir>/APPEND_SYSTEM.md`. A trusted project's copy replaces it, as ruled in section 2.
+- Exit 1 on a foreign file (SHOULD 3). Moot: the step is gone, and install exits 1 for nothing new.
+
+**Not now.** A `writing.enabled` key: the trial ends in adopt or drop, and drop removes the code. A `hasUI` gate: one line later, if the next review corpus shows harm. pi 1.0.2 prefers `systemPromptOptions` over a returned `systemPrompt` [V, `docs/extensions.md:103`]; that refinement belongs to lane A and applies to all three injectors together.
+
+**Rows.** Delete R-373, R-374 and R-375 from the branch. They never landed and nothing references them, so the IDs stay unused. A gap costs less than three retired rows for a step that never shipped. R-376 stays, with the new path. R-301 stays amended; its source for the writing rule is the pack directory. New pack rows:
+
+| ID | Requirement | Pinning test (`packages/nana-pack/tests/writing-injection.test.mjs::…`) |
+|---|---|---|
+| R-751 | The pack shall append the writing rule's text to every session's system prompt under the heading ## Writing for Jake (nana). | `inject: the rule text follows the base prompt under its heading` |
+| R-752 | IF the rule file is missing, unreadable or not valid UTF-8 THEN the extension shall inject nothing and journal writing_rule_unavailable with the cause. | `unavailable: ${cause} injects nothing and journals the cause` |
+| R-753 | The injected block shall not exceed WRITING_INJECT_CAP chars, with the truncation announced. | `cap: an oversized rule is cut at the cap and the cut is announced`, plus one seal test for the value |
+| R-754 | The extension shall read the rule at every session_start reason, so a reload picks up an edit. | `reload: an edited rule is injected after session_start reason reload` |
+
+`WRITING_INJECT_CAP` = 4000, chosen. The rule is 1,358 bytes today [V], so the cap is about three times its size. A stray large file cannot flood the prompt. It lives in `writing-config.mjs` with the others. Copy the harness of `objective-injection.test.mjs`.
+
+**Files.** Delete `stepWritingRule`, its doctor block and its tests. Add the extension and its test. Count the extensions as seven in `packages/nana-pack/README.md`, `CLAUDE.md` and `templates/_shared/working-under-nana-pi.md` (one word each; the template file joins the allowlist for that word only). After landing, `~/.pi/agent/AGENTS.md` must not exist; it does not exist today [V].
+
+### A2. Sentence splitting (MUST 3, and the first-sentence half of MUST 2)
+
+**Decision.** A Markdown-aware prose extractor replaces newline splitting. The rules, in order of application:
+
+1. A fence line (three backticks or tildes, after optional indent) toggles fence state. Every check skips fenced lines.
+2. The sentence count skips a heading line (`#` to `######` then a space) and a table row (a line starting with `|`). The banned scan still reads them.
+3. A blank line ends the current block.
+4. A list-item line (`-`, `*`, `+`, or digits followed by `.` or `)`, then a space) ends the previous block and starts a new one. The extractor strips the marker.
+5. Any other non-blank line joins the current block with one space. This is the soft wrap.
+6. A block is split into sentences on `.`, `!` or `?` followed by whitespace, a closing quote or bracket, or the end. The extractor masks code spans and URLs first, as built.
+7. A sentence's line number is the line where it starts.
+
+The verdict check reads the first sentence of the first prose block. Empty input gives `verdict=no`. The identifier check runs on prose blocks only, so a fence no longer produces findings. The abbreviation limit (`e.g.`, `vs.`) stays, recorded as before.
+
+**Fixtures to pin before the baseline.** The same 26-word sentence, as one line and wrapped to two, gives identical summaries. A text with a heading, a table, a fence and a numbered list gives the sentence count of its prose alone. `1. DONE. I checked the file.` gives `verdict=yes`.
+
+**Targets, restated.** The over-cap target is one quarter of the baseline share the fixed checker measures on landing day, written in `baseline.md`. Today's estimate stays 10%. **[I]** `HANDOFF.md` bullets are single physical lines and chat reports have no soft wraps, so the baseline should move little. The verdict and banned targets stay as they were.
+
+**The rule's own text.** The decision-point paragraph has 27 words and passed only through wrapping. Replace it with this list:
+
+```markdown
+## A decision point
+
+A decision point carries five parts, in this order:
+
+1. what you tested
+2. the result in plain numbers
+3. the trade
+4. the recommendation
+5. why it is Jake's call
+
+If it is not his call, decide it and say so.
+```
+
+I ratify "what you tested": it is active, where my draft was passive.
+
+### A3. The banned word in the rule (astra's NOTE on R-376)
+
+**Decision.** Overruled: the rule does not point at a config file for its banned list. The rule's line reads "Do not coin a word. Jake banned" followed by the word dogfood in a code span. R-746 gains three words, "outside a code span". A quoted word is a mention, not a use. In report mode the span is still an identifier finding, so a report to Jake still gets one line for it.
+
+**Reason.** A pi session has no memory of the ban and will not open the file the worker's wording names. The rule must carry the word. One masking call and one test cover the change.
+
+### A4. Items the worker fixes as written, and two I change
+
+**As written.**
+
+- MUST 2. Match whole verdict words and the phrase YOUR CALL on the first prose sentence from A2. Add positive and negative fixtures through the CLI, including astra's four cases.
+- MUST 4. One seal test per exported policy value, including a regex's source and flags, and each list. Every other test imports the name.
+- MUST 5. CLI-level assertions for R-743 (line numbers), R-746 (every occurrence), R-747 and R-748 (`--report` honoured) and R-749 (summary present). The R-373 to R-375 parts vanish with A1. R-301's "four hooks" loop covering three predates this lane; carried to the seat, not fixed here.
+
+**Changed.**
+
+- SHOULD 1. An exception matches a whole word, not a prefix, so the checker catches `needed` and excepts `need`, `speed` and `indeed`. The adjectives astra's set found (`green`, `wooden`, `open`, `golden`, `even`) join the list with provenance "astra r1 labelled set, 2026-10-04". The detail text and the README say "passive candidate". Astra's 24 labelled sentences become a fixture that prints precision and recall and pins no number. A floor would be a tunable with no provenance, and the check is report-only.
+- SHOULD 2. In report mode the summary carries `verdict=<passes>/<inputs>`; otherwise `verdict=n/a`. The worker creates `docs/reviews/writing-trial-2026-10-04/tally.md`. Its header carries the landing date and the stop condition: day 14 or 20 reports, whichever first, or two lost-detail complaints. Each row is one day: date, reports checked, verdict passes, sentences, over-cap, complaints. The seat fills it. The pack README documents one invocation per report.
+
+### A5. Allowlist and acceptance changes
+
+**Added.** `packages/nana-pack/rules/nana-writing.md` (moved), `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/writing-injection.test.mjs`, `templates/_shared/working-under-nana-pi.md` (one word), `docs/reviews/writing-trial-2026-10-04/tally.md`.
+
+**Removed.** `packages/nana-setup/claude/rules/nana-writing.md` (moved out), `stepWritingRule` in `steps.mjs`, the agent-dir block in `doctor.mjs`, and their tests in `writing-rule.test.mjs`. That test file keeps the Claude Code link check and R-376.
+
+**Acceptance, added to section 6.**
+
+7. The wrapped and unwrapped fixture give identical summaries.
+8. `node packages/nana-pack/bin/nana-writing.mjs packages/nana-pack/rules/nana-writing.md` prints zero findings.
+9. The injection test shows the rule text after the base prompt, and nothing when the file is absent.
+10. After the install test runs, no `AGENTS.md` exists in the test's agent dir.
+11. `printf 'I reopened the case.\n' | … --report` gives `verdict=0/1`.
+
+**The claim I would most expect to be wrong now.** That two extensions returning `systemPrompt` compose on pi 1.0.2. If they do not, only one of the writing block and the objective block reaches the model. The objective and handoff blocks compose today **[I]**, by the acceptance run, not by a test that asserts both. The injection test should assert the base prompt, the objective block and the writing block together once.

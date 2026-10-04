@@ -109,8 +109,8 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Working under nana-pi
 
-This project runs under the nana-pi pack: six pi extensions (gate, post-edit,
-lifecycle, notify, handoff, objective) that load in every
+This project runs under the nana-pi pack: seven pi extensions (gate, post-edit,
+lifecycle, notify, handoff, objective, writing) that load in every
 session once the pack is installed at user scope — any project, no per-project
 setup. What that means while you work here:
 
