@@ -111,12 +111,18 @@ export function splitSentences(text) {
 		let m;
 		SENTENCE_END.lastIndex = 0;
 		while ((m = SENTENCE_END.exec(masked))) {
-			const piece = joined.slice(start, m.index + 1).trim();
-			if (piece) out.push({ text: piece, words: words(piece).length, line: lineAt(start) });
+			const raw = joined.slice(start, m.index + 1);
+			const piece = raw.trim();
+			// astra r2 MUST 2: the line is the sentence's FIRST RETAINED character, not the
+			// untrimmed slice start — a soft wrap joins two lines with one space, and that
+			// space (trimmed away here) sat at the untrimmed start, which is the PRECEDING
+			// line; the retained text always begins one line later.
+			if (piece) out.push({ text: piece, words: words(piece).length, line: lineAt(start + (raw.length - raw.trimStart().length)) });
 			start = m.index + 1;
 		}
-		const rest = joined.slice(start).trim();
-		if (rest) out.push({ text: rest, words: words(rest).length, line: lineAt(start) });
+		const rawRest = joined.slice(start);
+		const rest = rawRest.trim();
+		if (rest) out.push({ text: rest, words: words(rest).length, line: lineAt(start + (rawRest.length - rawRest.trimStart().length)) });
 	}
 	return out;
 }
@@ -146,8 +152,10 @@ export function passiveCandidate(sentenceText) {
 }
 
 /** "passive candidate", not "passive voice" (astra r1 SHOULD 1): the pattern is a heuristic,
- *  measured at 77.8% precision / 58.3% recall on the labelled fixture in the test suite —
- *  report-only, so a false positive costs one line, never a block. */
+ *  currently measured at 100.0% precision / 66.7% recall on the 24-sentence labelled
+ *  diagnostic fixture in the test suite (astra r2 SHOULD 1: the pre-fix measurement on the
+ *  same sentences was 77.8%/58.3%) — report-only, so a false positive costs one line, never a
+ *  block. */
 export function passiveFindings(sentences) {
 	const out = [];
 	for (const s of countedSentences(sentences)) {

@@ -917,10 +917,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/extensions/nana-writing.ts`
 
 - **purpose** — Append the "Writing for Jake" rule to every session's system prompt, read fresh at every session_start so a reload picks up an edit — the seventh pack extension.
-- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; the shipped rule file packages/nana-pack/rules/nana-writing.md; ctx (cwd)
-- **outputs** — the rule block appended under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, unreadable or not valid UTF-8
-- **effects** — disk (reads the rule file; appends the journal)
-- **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing or blanking the prompt
+- **inputs** — pi `session_start` (every reason) and `before_agent_start` events; an injectable rule path (opts.rulePath, defaulting to the shipped packages/nana-pack/rules/nana-writing.md); ctx (cwd)
+- **outputs** — the rule block appended under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable or not valid UTF-8
+- **effects** — disk (stats and bounded-reads the rule file; appends the journal)
+- **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing, hanging or exhausting memory
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/writing-config.mjs`
 
@@ -1117,7 +1117,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/config-handlers-malformed.test.mjs`
 
 - **purpose** — Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks and the problem is journaled once
-- **inputs** — the six extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
+- **inputs** — the seven extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -1436,11 +1436,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/writing-injection.test.mjs`
 
-- **purpose** — Pins that the writing rule reaches every session's system prompt, that an unusable rule injects nothing and journals the cause, that the block is capped with the cut announced, that a reload re-reads an edit, and that this extension composes with nana-objective.ts on the installed pi 1.0.2
-- **inputs** — extensions/nana-writing.ts, extensions/nana-objective.ts, the real shipped rule file (briefly swapped and always restored), and a temp HOME
+- **purpose** — Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (base, objective and writing each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, and that none of this ever touches the real shipped rule file
+- **inputs** — extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, journal; BRIEFLY overwrites the real rules/nana-writing.md for three fixtures, always restored in a try/finally even on failure), process (sets HOME/USERPROFILE; dynamically imports the installed pi package when present)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates (after the finally restores the rule file) and fails the run
+- **effects** — disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
 

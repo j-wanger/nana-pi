@@ -261,6 +261,66 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 }
 
 /* ======================================================================================
+ * astra r2 MUST 2 — a sentence's line is its first RETAINED character, not the untrimmed
+ * slice start (a soft wrap's joining space sat on the PRECEDING line). CLI fixtures, exact
+ * line numbers, for both a length finding and a passive finding starting after a wrap.
+ * ====================================================================================== */
+{
+	const words26 = Array.from({ length: 26 }, (_, i) => `w${i}`).join(" ");
+	const r = run([], `DONE.\n${words26}.\n`);
+	// req: R-743
+	check("line (CLI): a length finding starting after a soft-wrapped boundary gets line 2, not 1", r.stdout.includes("-:2: length: 26 words") && !r.stdout.includes("-:1: length:"), r.stdout);
+}
+{
+	const r = run([], "DONE.\nThe file was edited by Jake.\n");
+	// req: R-743
+	check("line (CLI): a passive finding starting after a soft-wrapped boundary gets line 2, not 1 (astra r2 repro)", r.stdout.includes("-:2: passive:") && !r.stdout.includes("-:1: passive:"), r.stdout);
+}
+
+/* ======================================================================================
+ * astra r2 MUST 3 — four more surviving mutations, each with a fixture that distinguishes
+ * the correct clause from the mutated one.
+ * ====================================================================================== */
+{
+	// (a) R-744 "every sentence": mutating the checker to report only the FIRST over-cap
+	// sentence must be caught — two, in separate paragraphs, both over cap.
+	const words26 = Array.from({ length: 26 }, (_, i) => `w${i}`).join(" ");
+	const text = `${words26} first.\n\n${words26} second.`;
+	const findings = lengthFindings(splitSentences(text));
+	// req: R-744
+	check("markdown: every over-cap sentence is reported, not just the first", findings.length === 2, JSON.stringify(findings));
+}
+{
+	// (b) R-748 "over prose blocks only": mutating identifierFindings to scan headings,
+	// tables and fences too must be caught — one prose identifier, three non-prose ones
+	// that must NOT be counted.
+	const text = [
+		"# A heading with `code` and path/to/file.md",
+		"",
+		"| a `code` cell | b |",
+		"| --- | --- |",
+		"",
+		"```",
+		"a fenced `code` span and path/to/file.md",
+		"```",
+		"",
+		"A prose sentence with one `real` identifier here.",
+	].join("\n");
+	const findings = identifierFindings(text);
+	// req: R-748
+	check("markdown: identifiers in a heading, a table and a fence are never counted (prose only)", findings.length === 1 && findings[0].detail === "`real`", JSON.stringify(findings));
+}
+{
+	// (c) R-749 "end its output": the summary must be the LAST line, and UNIQUE — a
+	// mutation printing a trailer after it, or a second summary line, must be caught.
+	const r = run([], "plain text\n");
+	const lines = r.stdout.split("\n").filter((l) => l.length > 0);
+	const summaryLines = lines.filter((l) => /^summary /.test(l));
+	// req: R-749
+	check("summary (CLI): the summary is the LAST line and appears exactly once", lines.length > 0 && /^summary /.test(lines[lines.length - 1]) && summaryLines.length === 1, r.stdout);
+}
+
+/* ======================================================================================
  * Unpinned diagnostic (SHOULD 1): astra r1's labelled set, grown here to 24 sentences
  * (12 true passive, 12 non-passive — 10 active progressives + 2 copular descriptions).
  * Prints precision/recall. Pins NO number — a floor would be a tunable with no

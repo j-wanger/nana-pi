@@ -1,21 +1,27 @@
 /**
  * @module packages/nana-pack/tests/writing-injection.test.mjs
- * @purpose Pins that the writing rule reaches every session's system prompt, that an unusable rule injects nothing and journals the cause, that the block is capped with the cut announced, that a reload re-reads an edit, and that this extension composes with nana-objective.ts on the installed pi 1.0.2
- * @inputs extensions/nana-writing.ts, extensions/nana-objective.ts, the real shipped rule file (briefly swapped and always restored), and a temp HOME
+ * @purpose Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (base, objective and writing each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, and that none of this ever touches the real shipped rule file
+ * @inputs extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, journal; BRIEFLY overwrites the real rules/nana-writing.md for three fixtures, always restored in a try/finally even on failure), process (sets HOME/USERPROFILE; dynamically imports the installed pi package when present)
- * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates (after the finally restores the rule file) and fails the run
+ * @effects disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
+ * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: the writing rule reaches every session's system prompt via an APPEND, the way
-// nana-objective.ts does — design-ruling.md Amendment 1, 2026-10-04, §A1, after astra r1
-// MUST 1 (a context-file link can both hide a user's file and be hidden by one). R-752's
-// unavailable causes and R-754's reload both need the REAL registered session_start handler
-// (buildBlock alone cannot journal), so three fixtures below briefly overwrite the real
-// packages/nana-pack/rules/nana-writing.md and ALWAYS restore it in a try/finally.
+// Gate, amended after astra r2 (BLOCK, 8/10):
+//   MUST 1 — a FIFO or an oversized rule file must never hang or crash the process. Tested in
+//   subprocesses with a time limit, because a hang in-process would hang this whole suite.
+//   MUST 4 — a test must NEVER touch the shipped rule file. The extension's default export now
+//   takes an optional `{ rulePath }` (the production call site, one argument, is unchanged), so
+//   every fixture below injects its OWN disposable file. The one test that reads the REAL file
+//   (R-751's base case) only ever READS it (fs.readFileSync), to prove the production default —
+//   never writes, moves or deletes it.
+//   MUST 3(d) — the composition regression now seeds a REAL objective and asserts the base
+//   prompt, the objective block and the writing block each appear exactly once, IN ORDER,
+//   through both a hand-rolled stub chain and the installed pi 1.0.2 ExtensionRunner.
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -42,162 +48,199 @@ process.env.HOME = home;
 process.env.USERPROFILE = home;
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 
-const { default: writingExt, buildBlock, RULE_PATH, HEADING } = await import(new URL("../extensions/nana-writing.ts", import.meta.url).href);
+const writingExtUrl = new URL("../extensions/nana-writing.ts", import.meta.url).href;
+const { default: writingExt, RULE_PATH, HEADING } = await import(writingExtUrl);
 const { default: objectiveExt } = await import(new URL("../extensions/nana-objective.ts", import.meta.url).href);
+const { HEADING: OBJECTIVE_HEADING } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 const { WRITING_INJECT_CAP } = await import(new URL("../lib/writing-config.mjs", import.meta.url).href);
-
-// Defense in depth beyond withRule's own try/finally below (which already restores after
-// every fixture): a final synchronous safety net on process exit, so a bug in a fixture, or
-// in withRule itself, can never leave the REAL tracked rule file holding test content. (This
-// is not theoretical — an earlier version of this file had an un-awaited withRule and did
-// exactly that; fixed, but the belt stays on top of the suspenders.)
-const ORIGINAL_RULE_BYTES = fs.readFileSync(RULE_PATH);
-process.on("exit", () => {
-	try {
-		if (!fs.readFileSync(RULE_PATH).equals(ORIGINAL_RULE_BYTES)) fs.writeFileSync(RULE_PATH, ORIGINAL_RULE_BYTES);
-	} catch {
-		try {
-			fs.writeFileSync(RULE_PATH, ORIGINAL_RULE_BYTES);
-		} catch {
-			/* nothing more we can do synchronously at exit */
-		}
-	}
-});
 
 const journal = path.join(home, "journal.jsonl");
 const userCfg = path.join(home, ".pi", "agent", "nana-pack.json");
-fs.writeFileSync(userCfg, JSON.stringify({ journal: { enabled: true, path: journal } }));
+const objectiveFile = path.join(home, "OBJECTIVE.md");
+fs.writeFileSync(userCfg, JSON.stringify({ journal: { enabled: true, path: journal }, objective: { path: objectiveFile } }));
+fs.writeFileSync(objectiveFile, "**Objective:** ship the writing trial.\n\n**Current priority:** close astra r2.\n");
 
-function session(ext) {
+const tmps = [];
+function tempDir() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "writing-inject-cwd-"));
+	tmps.push(td);
+	return td;
+}
+
+/** A fresh extension instance over `opts` (e.g. { rulePath }), with recorded handlers. */
+function session(ext, opts) {
+	const td = tempDir();
 	const handlers = {};
-	ext({ on: (name, fn) => { handlers[name] = fn; } });
+	ext({ on: (name, fn) => { handlers[name] = fn; } }, opts);
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
 }
 
-/** Run `fn` with the REAL rule file replaced by `content` (or removed/directory'd when fn
- *  mutates it itself), restoring the ORIGINAL bytes afterward no matter what. ASYNC, and every
- *  caller MUST await it — fn is async, and an un-awaited finally would restore the file before
- *  fn's own writes land (caught the hard way: it left the real rule file holding a test marker). */
-async function withRule(mutate, fn) {
-	const original = fs.readFileSync(RULE_PATH);
-	try {
-		mutate();
-		return await fn();
-	} finally {
-		fs.rmSync(RULE_PATH, { force: true, recursive: true });
-		fs.writeFileSync(RULE_PATH, original);
-	}
-}
-
-/* --- (a) inject: the rule text follows the base prompt under its heading (R-751) ------ */
+/* --- (a) inject: the PRODUCTION DEFAULT — reads the real file, never writes it (R-751) - */
 {
-	const { td, handlers, ctx } = session(writingExt);
+	const { td, handlers, ctx } = session(writingExt); // no opts: production default, RULE_PATH
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	const expected = fs.readFileSync(RULE_PATH, "utf8");
-	const ok =
-		!!r?.systemPrompt.startsWith("BASE") &&
-		r.systemPrompt.includes(`BASE\n\n${HEADING}\n\n${expected}`);
+	const expected = fs.readFileSync(RULE_PATH, "utf8"); // READ only
+	const ok = !!r?.systemPrompt.startsWith("BASE") && r.systemPrompt.includes(`BASE\n\n${HEADING}\n\n${expected}`);
 	// req: R-751
-	check("inject: the rule text follows the base prompt under its heading", ok, r?.systemPrompt);
-	fs.rmSync(td, { recursive: true, force: true });
+	check("inject: the rule text follows the base prompt under its heading (production default)", ok, r?.systemPrompt);
 }
 
-// every session_start reason injects (R-754's "every reason" half)
+/* --- every session_start reason injects, over a DISPOSABLE fixture (R-751, R-754) ------ */
 for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
-	const { td, handlers, ctx } = session(writingExt);
+	const rulePath = path.join(tempDir(), "rule.md");
+	fs.writeFileSync(rulePath, "Disposable fixture text.\n");
+	const { td, handlers, ctx } = session(writingExt, { rulePath });
 	await handlers.session_start({ reason }, ctx);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	// req: R-751 R-754
-	check(`inject: reason "${reason}" injects the rule`, !!r?.systemPrompt.includes(HEADING));
-	fs.rmSync(td, { recursive: true, force: true });
+	check(`inject: reason "${reason}" injects the rule (disposable fixture)`, !!r?.systemPrompt.includes(HEADING) && r.systemPrompt.includes("Disposable fixture text."));
 }
 
-/* --- (b) unavailable: missing / unreadable / invalid UTF-8 (R-752) -------------------- */
-for (const [label, cause, mutate] of [
-	["missing file", "unreadable (ENOENT", () => fs.rmSync(RULE_PATH, { force: true })],
-	["unreadable (path is a directory)", "unreadable (EISDIR", () => {
-		fs.rmSync(RULE_PATH, { force: true, recursive: true });
-		fs.mkdirSync(RULE_PATH);
+/* --- (b) unavailable: missing / a directory / invalid UTF-8, all disposable (R-752) ---- */
+for (const [label, cause, mk] of [
+	["missing file", "unreadable (ENOENT", (p) => p], // never created
+	["a directory in its place", "not a regular file", (p) => {
+		fs.mkdirSync(p);
+		return p;
 	}],
-	["not valid UTF-8", "not valid UTF-8", () => fs.writeFileSync(RULE_PATH, Buffer.from([0xff, 0xfe, 0xfd, 0x00, 0x01]))],
+	["not valid UTF-8", "not valid UTF-8", (p) => {
+		fs.writeFileSync(p, Buffer.from([0xff, 0xfe, 0xfd, 0x00, 0x01]));
+		return p;
+	}],
 ]) {
-	await withRule(mutate, async () => {
-		const before = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).length : 0;
-		const { td, handlers, ctx } = session(writingExt);
-		await handlers.session_start({ reason: "startup" }, ctx);
-		const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-		// req: R-752
-		check(`unavailable: ${label} injects nothing and journals the cause`, r === undefined, JSON.stringify(r));
-		const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
-		const added = lines.slice(before);
-		check(`unavailable: ${label} journal entry names the cause`, added.some((l) => l.event === "writing_rule_unavailable" && l.cause?.startsWith(cause)), JSON.stringify(added));
-		fs.rmSync(td, { recursive: true, force: true });
-	});
+	const rulePath = mk(path.join(tempDir(), "rule.md"));
+	const before = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).length : 0;
+	const { handlers, ctx } = session(writingExt, { rulePath });
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	// req: R-752
+	check(`unavailable: ${label} injects nothing and journals the cause`, r === undefined, JSON.stringify(r));
+	const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+	const added = lines.slice(before);
+	// req: R-752
+	check(`unavailable: ${label} journal entry names the cause`, added.some((l) => l.event === "writing_rule_unavailable" && l.cause?.startsWith(cause)), JSON.stringify(added));
 }
 
-/* --- (c) cap: an oversized rule is cut and the cut is announced, plus its seal (R-753) - */
+/* --- (c) cap: an oversized rule is cut and announced, plus its seal (R-753) — disposable - */
 // req: R-753
 check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 {
-	const huge = "A".repeat(WRITING_INJECT_CAP * 2);
-	await withRule(() => fs.writeFileSync(RULE_PATH, huge), () => {
-		const r = buildBlock();
-		const ok = r.block !== null && r.block.length <= WRITING_INJECT_CAP && r.block.includes(`cut at ${WRITING_INJECT_CAP} chars`);
-		// req: R-753
-		check("cap: an oversized rule is cut at the cap and the cut is announced", ok, r.block?.length);
-	});
+	const rulePath = path.join(tempDir(), "rule.md");
+	fs.writeFileSync(rulePath, "A".repeat(WRITING_INJECT_CAP * 2));
+	const { handlers, ctx } = session(writingExt, { rulePath });
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const block = r?.systemPrompt.slice("BASE\n\n".length) ?? "";
+	const ok = block.length <= WRITING_INJECT_CAP && block.includes(`cut at ${WRITING_INJECT_CAP} chars`);
+	// req: R-753
+	check("cap: an oversized rule is cut at the cap and the cut is announced", ok, block.length);
 }
 
-/* --- (d) reload: an edited rule is injected after session_start reason reload (R-754) - */
-await withRule(
-	() => {},
-	async () => {
-		const marker = `MARKER-${Date.now()}`;
-		const { td, handlers, ctx } = session(writingExt);
-		await handlers.session_start({ reason: "startup" }, ctx);
-		const r1 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-		// req: R-754
-		check("reload: the original rule is injected first", !r1?.systemPrompt.includes(marker));
-		fs.writeFileSync(RULE_PATH, `${marker}\n`);
-		await handlers.session_start({ reason: "reload" }, ctx);
-		const r2 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-		// req: R-754
-		check("reload: an edited rule is injected after session_start reason reload", !!r2?.systemPrompt.includes(marker), r2?.systemPrompt);
-		fs.rmSync(td, { recursive: true, force: true });
-	},
-);
-
-/* --- (e) composition: nana-objective AND nana-writing both reach the model, each once -- */
-// Amendment 1's own stated risk: "two extensions returning systemPrompt compose". Stub harness
-// first (always runs): chain the handlers exactly as pi's emitBeforeAgentStart does — the LATER
-// handler reads the EARLIER one's already-appended systemPrompt via the live event getter.
+/* --- (d) reload: an edited DISPOSABLE rule is injected after session_start reason reload (R-754) --- */
 {
+	const rulePath = path.join(tempDir(), "rule.md");
+	fs.writeFileSync(rulePath, "Original text.\n");
+	const marker = `MARKER-${Date.now()}`;
+	const { handlers, ctx } = session(writingExt, { rulePath });
+	await handlers.session_start({ reason: "startup" }, ctx);
+	const r1 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	// req: R-754
+	check("reload: the original rule is injected first", !r1?.systemPrompt.includes(marker) && r1?.systemPrompt.includes("Original text."));
+	fs.writeFileSync(rulePath, `${marker}\n`);
+	await handlers.session_start({ reason: "reload" }, ctx);
+	const r2 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	// req: R-754
+	check("reload: an edited rule is injected after session_start reason reload", !!r2?.systemPrompt.includes(marker), r2?.systemPrompt);
+}
+
+/* ======================================================================================
+ * astra r2 MUST 1 — a FIFO or an oversized file must never hang or crash the process.
+ * Run in SUBPROCESSES with a time limit: a hang here must never hang this suite.
+ * ====================================================================================== */
+const runnerPath = path.join(tempDir(), "runner.mjs");
+fs.writeFileSync(
+	runnerPath,
+	`const [, , extUrl, rulePath] = process.argv;\n` +
+		`const { buildBlock } = await import(extUrl);\n` +
+		`const r = buildBlock(rulePath);\n` +
+		`console.log(JSON.stringify({ hasBlock: r.block !== null, cause: r.cause, len: r.block ? r.block.length : null }));\n`,
+);
+const TIME_LIMIT_MS = 5000;
+
+{
+	const fifoPath = path.join(tempDir(), "fifo.md");
+	try {
+		spawnSync("mkfifo", [fifoPath]);
+	} catch {
+		/* platform without mkfifo — the check below reports it, not a crash */
+	}
+	const start = Date.now();
+	const r = spawnSync(process.execPath, ["--experimental-strip-types", runnerPath, writingExtUrl, fifoPath], {
+		encoding: "utf8",
+		timeout: TIME_LIMIT_MS,
+	});
+	const elapsed = Date.now() - start;
+	const out = (() => {
+		try {
+			return JSON.parse(r.stdout.trim().split("\n").pop());
+		} catch {
+			return null;
+		}
+	})();
+	const fifoOk = fs.existsSync(fifoPath) && !r.signal && elapsed < TIME_LIMIT_MS && out?.hasBlock === false && out?.cause?.includes("not a regular file");
+	// req: R-752
+	check("MUST 1 (subprocess): a FIFO with no writer is refused instantly, never read, never hangs", fifoOk, JSON.stringify({ signal: r.signal, elapsed, out, stderr: r.stderr }));
+}
+
+{
+	const bigPath = path.join(tempDir(), "big.md");
+	const fd = fs.openSync(bigPath, "w");
+	fs.writeSync(fd, Buffer.alloc(64 * 1024 * 1024, 0x41)); // 64 MiB of 'A' — one bounded write, not a giant JS string
+	fs.closeSync(fd);
+	const start = Date.now();
+	const r = spawnSync(process.execPath, ["--max-old-space-size=32", "--experimental-strip-types", runnerPath, writingExtUrl, bigPath], {
+		encoding: "utf8",
+		timeout: TIME_LIMIT_MS,
+	});
+	const elapsed = Date.now() - start;
+	const out = (() => {
+		try {
+			return JSON.parse(r.stdout.trim().split("\n").pop());
+		} catch {
+			return null;
+		}
+	})();
+	const bigOk = !r.signal && r.status === 0 && elapsed < TIME_LIMIT_MS && out?.hasBlock === true && out?.len <= WRITING_INJECT_CAP;
+	// req: R-753
+	check("MUST 1 (subprocess): a 64 MiB rule file under a 32 MiB heap cap does not crash, exits in time, block is capped", bigOk, JSON.stringify({ signal: r.signal, status: r.status, elapsed, out, stderr: r.stderr }));
+	fs.rmSync(bigPath, { force: true });
+}
+
+/* ======================================================================================
+ * astra r2 MUST 3(d) — composition: a REAL objective seeded, base + objective + writing
+ * each appear EXACTLY ONCE, IN ORDER (objective registered before writing).
+ * ====================================================================================== */
+{
+	const rulePath = path.join(tempDir(), "rule.md");
+	fs.writeFileSync(rulePath, "Compose fixture text.\n");
 	const objSession = session(objectiveExt);
-	const { handlers: objHandlers, ctx: objCtx } = objSession;
-	await objHandlers.session_start({ reason: "startup" }, objCtx); // no objective file: injects nothing, which is fine — this fixture is about COMPOSITION, not content
-	const writingSession = session(writingExt);
-	const { handlers: wHandlers, ctx: wCtx } = writingSession;
-	await wHandlers.session_start({ reason: "startup" }, wCtx);
+	await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
+	const writingSession = session(writingExt, { rulePath });
+	await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
 	let prompt = "BASE";
-	const r1 = await objHandlers.before_agent_start({ systemPrompt: prompt }, objCtx);
+	const r1 = await objSession.handlers.before_agent_start({ systemPrompt: prompt }, objSession.ctx);
 	if (r1?.systemPrompt !== undefined) prompt = r1.systemPrompt;
-	const r2 = await wHandlers.before_agent_start({ systemPrompt: prompt }, wCtx);
+	const r2 = await writingSession.handlers.before_agent_start({ systemPrompt: prompt }, writingSession.ctx);
 	if (r2?.systemPrompt !== undefined) prompt = r2.systemPrompt;
-	const expected = fs.readFileSync(RULE_PATH, "utf8");
+	const objOnce = prompt.split(OBJECTIVE_HEADING).length - 1 === 1;
+	const writingOnce = prompt.split(HEADING).length - 1 === 1;
+	const inOrder = prompt.indexOf(OBJECTIVE_HEADING) !== -1 && prompt.indexOf(OBJECTIVE_HEADING) < prompt.indexOf(HEADING);
 	check("compose (stub): base prompt survives", prompt.startsWith("BASE"));
 	// req: R-751
-	check("compose (stub): the writing block appears exactly once", prompt.split(HEADING).length - 1 === 1);
-	check("compose (stub): the writing text is present", prompt.includes(expected));
-	fs.rmSync(objSession.td, { recursive: true, force: true });
-	fs.rmSync(writingSession.td, { recursive: true, force: true });
+	check("compose (stub): base, objective and writing each appear exactly once, objective before writing", objOnce && writingOnce && inOrder, prompt);
 }
 
-// Real pi 1.0.2: drive the ACTUAL emitBeforeAgentStart over the ACTUAL buildSystemPromptState
-// (dist/core/extensions/runner.js, dist/core/system-prompt.js) — not a stub. Skips loudly when
-// pi is not installed globally; this is the amendment's "most likely wrong" claim, so it is
-// checked against the real runtime, not only reasoned about.
 {
 	if (!piIndexPath) {
 		console.log("SKIP compose (real pi): @earendil-works/pi-coding-agent is not installed");
@@ -208,9 +251,11 @@ await withRule(
 			for (const [event, fns] of Object.entries(eventMap)) handlers.set(event, fns);
 			return { path: p, handlers };
 		};
+		const rulePath = path.join(tempDir(), "rule.md");
+		fs.writeFileSync(rulePath, "Compose fixture text (real pi).\n");
 		const objSession = session(objectiveExt);
 		await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
-		const writingSession = session(writingExt);
+		const writingSession = session(writingExt, { rulePath });
 		await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
 		const runner = new ExtensionRunner(
 			[
@@ -224,14 +269,14 @@ await withRule(
 		);
 		const result = await runner.emitBeforeAgentStart("USER", [], { cwd: process.cwd() });
 		const finalPrompt = result.systemPromptOptions.forceSystemPrompt ?? "";
-		const expected = fs.readFileSync(RULE_PATH, "utf8");
+		const objOnce = finalPrompt.split(OBJECTIVE_HEADING).length - 1 === 1;
+		const writingOnce = finalPrompt.split(HEADING).length - 1 === 1;
+		const inOrder = finalPrompt.indexOf(OBJECTIVE_HEADING) !== -1 && finalPrompt.indexOf(OBJECTIVE_HEADING) < finalPrompt.indexOf(HEADING);
 		// req: R-751
-		check("compose (real pi 1.0.2): the writing block appears exactly once", finalPrompt.split(HEADING).length - 1 === 1, finalPrompt);
-		check("compose (real pi 1.0.2): the writing text is present", finalPrompt.includes(expected));
-		fs.rmSync(objSession.td, { recursive: true, force: true });
-		fs.rmSync(writingSession.td, { recursive: true, force: true });
+		check("compose (real pi 1.0.2): base, objective and writing each appear exactly once, objective before writing", objOnce && writingOnce && inOrder, finalPrompt);
 	}
 }
 
+for (const td of tmps) fs.rmSync(td, { recursive: true, force: true });
 fs.rmSync(home, { recursive: true, force: true });
 process.exit(fails);

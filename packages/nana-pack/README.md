@@ -269,10 +269,12 @@ carried a verdict word, out of `<n>` checked — and "n/a" otherwise.
 
 It exits 0 whatever it finds — this CLI reports, it never blocks.
 
-**Trial tally.** The seat runs one invocation per report sent (or per `HANDOFF.md` edit) and
-records the day's counts in `docs/reviews/writing-trial-2026-10-04/tally.md`: reports checked,
-verdict passes, sentences, over-cap count, and any lost-detail complaint. Stop at day 14 or 20
-reports, whichever is first, or after two lost-detail complaints.
+**Trial tally.** The seat runs one invocation per report sent (`--report`) and a SEPARATE one
+per `HANDOFF.md` edit (no `--report` — verdict and identifiers do not apply there), recording
+the day's counts in `docs/reviews/writing-trial-2026-10-04/tally.md` in two columns, never
+mixed (astra r2 SHOULD 3): reports checked, verdict passes, report sentences/over-cap, HANDOFF
+sentences/over-cap, and any lost-detail complaint. Stop at day 14 or 20 REPORTS (HANDOFF does
+not count toward this), whichever is first, or after two lost-detail complaints.
 
 **Markdown-aware splitting (Amendment 1 §A2).** A fence (3+ backticks/tildes) toggles fenced
 state; every check skips a fenced line, banned included. A heading or a table row (`|`-led)
@@ -286,8 +288,11 @@ one never splits early.
 
 **Known limit.** No abbreviation engine: "e.g." and "vs." still split a sentence early —
 recorded here, not fixed. The passive check is a regex heuristic, not a parser: the labelled
-fixture in `tests/writing-check.test.mjs` measures it at 77.8% precision / 58.3% recall
-(astra r1 SHOULD 1, 2026-10-04) and pins no number — a floor would be a tunable with no
+24-sentence diagnostic fixture in `tests/writing-check.test.mjs` currently measures 100.0%
+precision / 66.7% recall (astra r1 SHOULD 1 labelled the set, 2026-10-04; astra r2 SHOULD 1,
+2026-10-04, after the whole-word exception fix — the pre-fix measurement on the same labelled
+sentences was 77.8%/58.3%). These are diagnostic results on 24 sentences, not a general
+performance estimate, and the fixture pins no number — a floor would be a tunable with no
 provenance, and the check is report-only.
 
 ## What you will see
