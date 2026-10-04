@@ -100,6 +100,7 @@ const r2 = await call(payload({ prompt: "what is the pi review round cap" }), { 
 // req: R-229
 check("same prompt in same session prints nothing", r2.output === null && r2.reason === "all-shown");
 const r3 = await call(JSON.stringify({ session_id: "s2", prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
+// req: R-891
 check("a DIFFERENT session still gets the pointers", r3.output !== null);
 // req: R-229
 check("dedup is per session, not global", readShown("s2").size > 0 && readShown("s1").size === r1.hits.length);
@@ -137,7 +138,6 @@ fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
 check("fresh index spawns nothing", ensureFreshIndex(Date.now(), noSpawn) === "fresh");
 const hourOld = Date.now() / 1000 - 3700;
 fs.utimesSync(dbFile, hourOld, hourOld);
-// req: R-230
 check("an index older than 1 h is stale (a doc written this morning is pullable now)",
 	ensureFreshIndex(Date.now(), () => spawned++) === "spawned" && spawned === 2);
 fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
@@ -150,9 +150,7 @@ process.env.NANA_KNOWLEDGE_HOME = home2;
 let spawned2 = 0;
 const rn = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: () => spawned2++ });
 check("no index: prints nothing", rn.output === null && rn.reason.startsWith("no-index"));
-// req: R-230
 check("no index: spawns a background build", spawned2 === 1);
-// req: R-230
 check("no index: does NOT build synchronously", !fs.existsSync(path.join(home2, "index.db")));
 process.env.NANA_KNOWLEDGE_HOME = home;
 
@@ -160,12 +158,9 @@ process.env.NANA_KNOWLEDGE_HOME = home;
 const log = path.join(home, "pull.log");
 check("pull.log exists after a printed pull", fs.existsSync(log));
 const lines = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
-// req: R-231
 check(`one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}`, lines.length === printed);
-// req: R-231
 check("log carries ts/cwd/session/tokens/hits",
 	lines.every((l) => l.ts && "cwd" in l && l.session_id && Array.isArray(l.tokens) && Array.isArray(l.hits)));
-// req: R-231
 check("log tokens exclude stopwords", !lines[0].tokens.includes("the") && !lines[0].tokens.includes("what"));
 
 // --- end to end through the CLI, the way Claude Code will call it ---
@@ -228,24 +223,19 @@ fs.mkdirSync(lockHome, { recursive: true });
 process.env.NANA_KNOWLEDGE_HOME = lockHome;
 const lockFile = path.join(lockHome, "build.lock");
 const won = [acquireBuildLock(), acquireBuildLock(), acquireBuildLock()];
-// req: R-232
 check("three sequential lock attempts in one process: exactly one wins", won.filter(Boolean).length === 1);
-// req: R-232
 check("the lock file records the owning pid", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
 
 // a foreign lock is never cleared by release
 fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid + 99999, at: Date.now() }));
 releaseBuildLock();
-// req: R-232
 check("release leaves a lock owned by ANOTHER pid alone", fs.existsSync(lockFile));
 
 // ...but a stale one is reclaimed
 const stale = (Date.now() - LOCK_TTL_MS - 60000) / 1000;
 fs.utimesSync(lockFile, stale, stale);
-// req: R-232
 check("a lock older than the TTL is reclaimed", acquireBuildLock() === true);
 check("the reclaimed lock is ours", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
-// req: R-232
 check("reclaim leaves no .reclaim litter behind", !fs.existsSync(lockFile + ".reclaim"));
 releaseBuildLock();
 check("release removes OUR lock", !fs.existsSync(lockFile));
@@ -272,7 +262,6 @@ const staleLock = () => {
 	fs.utimesSync(lockFile, t, t);
 };
 fs.writeFileSync(lockFile, JSON.stringify({ pid: deadPid, at: Date.now() }));
-// req: R-232
 check("a lock with a dead pid is reclaimed even when its mtime is fresh", acquireBuildLock() === true);
 releaseBuildLock();
 
@@ -283,7 +272,6 @@ releaseBuildLock();
 staleLock();
 const reclaimLock = lockFile + ".reclaim";
 fs.writeFileSync(reclaimLock, ""); // another builder is mid-reclaim right now
-// req: R-232
 check("a second reclaimer loses while the reclaim lock is held", acquireBuildLock() === false);
 check("...and it does NOT remove the stale lock it lost the race for", fs.existsSync(lockFile));
 const orphan = (Date.now() - RECLAIM_ORPHAN_MS - 5000) / 1000;
@@ -330,12 +318,10 @@ const racers = Array.from({ length: 16 }, () => new Promise((resolve) => {
 }));
 const results = await Promise.all(racers);
 const winners = results.filter((r) => r.out === "WON").length;
-// req: R-232
 check(`16 processes reclaim one stale lock: exactly one WON (${winners} winners)`, winners === 1);
 check("every loser reported LOST and none crashed",
 	results.filter((r) => r.out === "LOST").length === 15 && results.every((r) => !r.err));
 check("the winner's lock survives every loser", fs.existsSync(raceLock));
-// req: R-232
 check("the race leaves no .reclaim litter behind", !fs.existsSync(raceLock + ".reclaim"));
 
 // and build() itself refuses to run a second writer

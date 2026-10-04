@@ -71,7 +71,6 @@ function walk(dir) {
 		// req: R-327
 		check(`created ${rel}`, fs.existsSync(path.join(dir, ...rel.split("/"))));
 	}
-	// req: R-328
 	check("git initialized", fs.existsSync(path.join(dir, ".git")));
 	// req: R-329
 	check("CLAUDE.md is a RELATIVE symlink to AGENTS.md", fs.readlinkSync(path.join(dir, "CLAUDE.md")) === "AGENTS.md");
@@ -167,7 +166,6 @@ function walk(dir) {
 	const r = run(["project", dir, "--home", home, "--dry-run"]);
 	check("dry run exits 0", r.status === 0, r.stderr);
 	check("dry run reports what it would do", /would change/.test(r.stdout), r.stdout);
-	// req: R-338
 	check("dry run wrote nothing", fs.readdirSync(dir).length === 0, fs.readdirSync(dir).join(","));
 	// req: R-336
 	check("--check on an empty folder exits 1", run(["project", dir, "--check", "--home", home]).status === 1);
@@ -181,15 +179,10 @@ function walk(dir) {
 	fs.mkdirSync(path.join(dir, "HANDOFF.md")); // a directory where a file is expected
 	const r = run(["project", dir, "--home", home]);
 	check("dangling symlink: exits 0", r.status === 0, r.stderr);
-	// req: R-333
 	check("dangling symlink: nothing written through it", !fs.existsSync(victim));
-	// req: R-333
 	check("dangling symlink: the link itself is untouched", fs.lstatSync(path.join(dir, "OBJECTIVE.md")).isSymbolicLink() && fs.readlinkSync(path.join(dir, "OBJECTIVE.md")) === victim);
-	// req: R-333
 	check("dangling symlink: reported as skipped, naming what was found", /OBJECTIVE\.md\s+skipped\s+a symlink -> .*nothing written through it/.test(r.stdout), r.stdout);
-	// req: R-333
 	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
-	// req: R-333
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
@@ -213,9 +206,7 @@ function walk(dir) {
 	const nasty = `$& $' $1 $(touch ${canary}) \`touch ${canary}\` ; touch ${canary}`;
 	const r = run(["project", dir, "--home", home, "--name", nasty]);
 	check("nasty name: exits 0", r.status === 0, r.stderr);
-	// req: R-335
 	check("nasty name: nothing was executed", !fs.existsSync(canary));
-	// req: R-335
 	check("nasty name: written LITERALLY into the seed ($& is not a regex replacement)", read(path.join(dir, "OBJECTIVE.md")).startsWith(`# Objective and current priority — ${nasty}\n`), read(path.join(dir, "OBJECTIVE.md")).split("\n")[0]);
 	check("nasty name: literal in HANDOFF.md too", read(path.join(dir, "HANDOFF.md")).startsWith(`# Handoff — ${nasty} frontier`));
 	check("nasty name: literal in the AGENTS.md stub", read(path.join(dir, "AGENTS.md")).startsWith(`# ${nasty}\n`));
@@ -229,17 +220,17 @@ function walk(dir) {
 	const skillText = read(skillFile);
 	const copierLines = skillText.split("\n").filter((l) => l.includes("uvx copier"));
 	check("SKILL.md: the fallback renders with a project name at all", copierLines.length >= 2, String(copierLines.length));
-	// req: R-335
+// req: R-929
 	check("SKILL.md: every fallback command takes the name from an env var",
 		copierLines.every((l) => /--data project_name=(?:"\$NANA_PROJECT_NAME"|\$env:NANA_PROJECT_NAME)(?:\s|$)/.test(l)),
 		copierLines.join(" | "),
 	);
-	// req: R-335
+// req: R-929
 	check("SKILL.md: no fallback command interpolates a name placeholder into the command text",
 		copierLines.every((l) => !/project_name=["']?</.test(l)),
 		copierLines.join(" | "),
 	);
-	// req: R-335
+// req: R-929
 	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
 }
 
@@ -252,7 +243,7 @@ function walk(dir) {
 	fs.mkdirSync(inner);
 	const home = path.join(tmp("nana-home-"), "h");
 	const setup = run(["project", inner, "--home", home]);
-	// req: R-328
+// req: R-928
 	check("inside a repo: no nested git init", !fs.existsSync(path.join(inner, ".git")) && /inside .* already — no nested repo created/.test(setup.stdout), setup.stdout);
 	const c1 = run(["project", inner, "--check", "--home", home]);
 	// req: R-336
@@ -281,7 +272,7 @@ function walk(dir) {
 		fs.symlinkSync(target, claude);
 		const bad = run(["project", dir, "--check", "--home", home2]);
 		const dangling = shape !== "a link to another project's AGENTS.md";
-		// req: R-337
+// req: R-930
 		check(`--check: CLAUDE.md as ${shape} reads ✗ naming the target`,
 			bad.status === 1 && new RegExp(`✗ CLAUDE\\.md\\s+a symlink -> ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} — ${dangling ? "dangling" : "not this project's AGENTS\\.md"}`).test(bad.stdout),
 			`${bad.status} ${bad.stdout}`,
@@ -291,7 +282,7 @@ function walk(dir) {
 	fs.unlinkSync(claude);
 	fs.symlinkSync("AGENTS.md", claude);
 	const good = run(["project", dir, "--check", "--home", home2]);
-	// req: R-337
+// req: R-930
 	check("--check: CLAUDE.md -> AGENTS.md resolves to this project and reads ✓", good.status === 0 && /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(good.stdout), good.stdout);
 	// and it is still ✗ when it is simply missing for no reason
 	const { dir: bare } = freshProject();
@@ -413,12 +404,10 @@ for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 	tmps.push(parent);
 	const leaf = path.join(parent, "new-thing");
 	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });
-	// req: R-338
 	check("dry run reports the folder it would create and creates nothing", /would create/.test(dry.stdout) && !fs.existsSync(leaf), dry.stdout);
 	const r = spawnSync(process.execPath, [cli, "project", leaf, "--home", parent], { encoding: "utf8" });
 	check("a missing leaf folder is created and seeded", r.status === 0 && fs.existsSync(path.join(leaf, "OBJECTIVE.md")), r.stdout + r.stderr);
 	const bad = spawnSync(process.execPath, [cli, "project", path.join(parent, "nope", "deeper"), "--home", parent], { encoding: "utf8" });
-	// req: R-338
 	check("a missing parent still aborts", bad.status !== 0 && /does not exist/.test(bad.stderr), bad.stderr);
 }
 

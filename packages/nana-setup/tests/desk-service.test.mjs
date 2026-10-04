@@ -37,7 +37,6 @@ const check = (n, ok, extra) => {
 	check("template: no placeholders left", !/\{\{\w+\}\}/.test(out));
 	check("template: keeps the launchd label", out.includes("<key>Label</key><string>com.nana.pi-desk</string>"));
 	check("template: program arguments are node + server", out.includes("<string>/n/node</string>") && out.includes("<string>/r/server.mjs</string>"));
-	// req: R-354
 	check("template: PATH is XML-escaped", out.includes("/a&amp;b:/c&lt;d&gt;"));
 	check("template: RunAtLoad and KeepAlive survive", out.includes("<key>RunAtLoad</key><true/>") && out.includes("<key>KeepAlive</key><true/>"));
 	let threw = false;
@@ -46,7 +45,6 @@ const check = (n, ok, extra) => {
 	} catch {
 		threw = true;
 	}
-	// req: R-354
 	check("template: a missing value is an error, not an empty string", threw);
 }
 
@@ -76,27 +74,21 @@ const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "u
 const home = freshHome();
 const plist = path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist");
 run(["install", "--home", home]);
-// req: R-354
 check("no --desk: no plist is written", !fs.existsSync(plist));
 
 const r = run(["install", "--home", home, "--desk"]);
 check("--desk exits 0", r.status === 0, r.stderr);
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
-// req: R-354
 check("plist uses the resolved node", body.includes(`<string>${process.execPath}</string>`));
-// req: R-354
 check("plist points at this install's desk server", body.includes(path.join(repo, "apps", "desk", "server.mjs")));
-// req: R-354
 check("plist WorkingDirectory is the install root", body.includes(`<key>WorkingDirectory</key><string>${repo}</string>`));
-// req: R-354
 check("plist logs into the pi home", body.includes(path.join(home, ".pi", "agent", "desk.log")));
 check("plist carries a PATH", /<key>PATH<\/key><string>[^<]+<\/string>/.test(body));
 // req: R-314
 check("launchctl is NOT called under --home", r.stdout.includes("not loaded (--home override in play)"));
 
 const again = run(["install", "--home", home, "--desk"]);
-// req: R-354
 check("--desk is idempotent", again.stdout.includes("nothing to do"));
 check("doctor sees the service", run(["doctor", "--home", home]).stdout.includes(plist));
 check("doctor still exits 0", run(["doctor", "--home", home]).status === 0);

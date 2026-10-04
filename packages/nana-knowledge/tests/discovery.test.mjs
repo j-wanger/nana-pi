@@ -79,12 +79,9 @@ const has = (roots, p) => roots.some((r) => r.path === p);
 // --- discoverRoots, on its own ---
 const d = discoverRoots(DISCOVER);
 const paths_ = d.map((r) => r.path);
-// req: R-211
 check("repo with .git DIR contributes each convention subdir it has",
 	has(d, path.join(parent, "repoA", "docs")) && has(d, path.join(parent, "repoA", "research")));
-// req: R-211
 check("a git WORKTREE (.git file) counts as a repo", has(d, path.join(parent, "repoC", "knowledge")));
-// req: R-211
 check("a directory WITHOUT .git is not a repo", !has(d, path.join(parent, "repoB", "docs")));
 check("a repo without any listed subdir contributes nothing",
 	!paths_.some((p) => p.startsWith(path.join(parent, "repoD"))));
@@ -92,7 +89,6 @@ check("a repo without any listed subdir contributes nothing",
 check("an excluded child NAME is skipped even when it is a repo",
 	!paths_.some((p) => p.includes("node_modules")));
 check("a missing parent is skipped silently", d.length === 3); // repoA docs+research, repoC knowledge
-// req: R-211
 check("discovered roots are articles, and marked", d.every((r) => r.kind === "articles" && r.discovered === true));
 
 // --- sources.json integration ---
@@ -123,23 +119,19 @@ const h2 = homeFor("nodiscover");
 writeSources(h2, { roots: [{ path: path.join(parent, "repoB", "docs"), kind: "articles" }] });
 const s2 = loadSources();
 check("no discover block = no discovery", s2.roots.length === 1 && s2.exclude.length === 0);
-// req: R-215
 check("an existing sources.json is NOT rewritten with a discover block",
 	!("discover" in JSON.parse(fs.readFileSync(path.join(h2, "sources.json"), "utf8"))));
 
 const h3 = homeFor("malformed");
 writeSources(h3, { roots: [], discover: { parents: parent, subdirs: 7 } });
-// req: R-215
 check("a malformed discover block degrades to defaults, never throws",
 	Array.isArray(loadRoots()) && loadRoots().length === 0);
 
 const h4 = homeFor("seed");
 loadRoots(); // no sources.json yet -> seed
 const seeded = JSON.parse(fs.readFileSync(path.join(h4, "sources.json"), "utf8"));
-// req: R-215
 check("a freshly seeded sources.json carries the discover block",
 	JSON.stringify(seeded.discover) === JSON.stringify(DEFAULT_DISCOVER));
-// req: R-215
 check("seeding does not invent roots outside the literal list + wikis",
 	Array.isArray(seeded.roots) && seeded.roots.every((r) => r.kind === "articles" || r.kind === "ledger"));
 

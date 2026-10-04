@@ -71,15 +71,12 @@ check("1: no systemPrompt mutation", r1 !== undefined && !("systemPrompt" in r1)
 // (2) the pull is logged as a pi pull, under pi's session id
 {
 	const last = logLines().at(-1);
-	// req: R-234
 	check("2: pull.log carries the pi session id", last?.session_id === "pi-s1");
-	// req: R-231 R-234
 	check('2: pull.log carries source "pi"', last?.source === "pi");
 	check("2: pull.log carries the cwd the extension was given", last?.cwd === td);
 }
 
 // (3) dedup lives in the CHILD: the same prompt in the same session injects nothing
-// req: R-234
 check("3: same prompt, same session → undefined", (await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s1"))) === undefined);
 
 // (4) ...and a different session id gets the pointers again
@@ -97,7 +94,6 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	const t0 = Date.now();
 	const out = await makePull({ bin: hang, timeoutMs: 200 })({ prompt: "pi review round cap", sessionId: "pi-hang", cwd: td });
 	const ms = Date.now() - t0;
-	// req: R-234
 	check("5: a hung child yields null", out === null);
 	check(`5: and the deadline actually fires (${ms} ms)`, ms < 1500);
 }
@@ -121,7 +117,6 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 		new Promise((r) => setTimeout(() => r("STILL-HANGING"), 3000)),
 	]);
 	const ms = Date.now() - t0;
-	// req: R-234
 	check("5b: a child whose callback never fires still yields null", out === null);
 	check(`5b: ...near the deadline, on the handler's OWN timer (${ms} ms)`, ms >= 150 && ms < 1000);
 	check("5b: the kill is attempted after resolving, with SIGKILL", kills.length === 1 && kills[0] === "SIGKILL");
@@ -133,7 +128,6 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	let out = "unset";
 	try { out = await makePull({ bin: "/nonexistent/x.ts" })({ prompt: "pi review round cap", sessionId: "pi-enoent", cwd: td }); }
 	catch { threw = true; }
-	// req: R-234
 	check("6: a missing bin does not throw", !threw);
 	check("6: a missing bin yields null", out === null);
 }
@@ -215,7 +209,6 @@ for (const [label, prompt] of [["undefined", undefined], ["a number", 12345], ["
 	let r = "unset";
 	try { r = await handlers.before_agent_start({ prompt: "" }, ctxFor("pi-empty")); } catch { threw = true; }
 	check("11: an empty prompt does not throw", !threw);
-	// req: R-234
 	check("11: ...and injects nothing (the producer skips it)", r === undefined);
 }
 
