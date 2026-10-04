@@ -1397,8 +1397,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/doctor.mjs`
 
 - **purpose** — Judge one machine and return an ordered check list covering the Node floor, the Claude Code half, the two-tier auto-memory, pi's user config, the knowledge index, PATH and the desk service.
-- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and nana-pack.json and the objective file it names, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
-- **outputs** — an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); nodeMeetsFloor(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }
+- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+- **outputs** — an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); PI_SUBAGENTS_FLOOR ("0.75.0"); nodeMeetsFloor(); versionAtLeast(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }
 - **effects** — disk (reads only), process (spawns node and launchctl to probe)
 - **errors** — none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`
@@ -1418,7 +1418,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The single resolver for every path the installer touches, so `install`, `doctor` and `project` can never disagree about where a piece lives.
 - **inputs** — opts.home / opts.claudeHome / opts.piHome; os.homedir(); nana-pack's agent-dir resolver (PI_CODING_AGENT_DIR, else ~/.pi/agent) and its cwd-relative probe; process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
-- **outputs** — pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
+- **outputs** — pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
 - **effects** — none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
 - **errors** — none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`
@@ -1457,8 +1457,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/steps.mjs`
 
 - **purpose** — The install steps and the `install` sequencer: each step links, seeds, merges or registers one piece of the experience and reports { label, status, detail }.
-- **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills; the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
-- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, SetupError and the helpers doctor reuses
+- **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json, pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills; the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
+- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
 - **effects** — disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`, `pi --version` / `pi install`, `git rev-parse`)
 - **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`
@@ -1486,8 +1486,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/doctor-detail.test.mjs`
 
-- **purpose** — Pins that `doctor`'s detail text for the private rule file agrees with the tick or cross it prints, across the four layouts that file can be in
-- **inputs** — lib/doctor.mjs, lib/paths.mjs, and four throwaway home layouts
+- **purpose** — Pins that `doctor`'s detail text for each per-piece check agrees with the tick, cross or warning it prints — the private rule file, objective.projectFile, the Node floor, and the pi 1.0 subagent/MCP checks (subagent config, reviewer agent marker, pi-subagents version, mcp.json)
+- **inputs** — lib/doctor.mjs, lib/paths.mjs, lib/steps.mjs, and throwaway home layouts
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts, regular files, symlinks and directories)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -1497,7 +1497,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/tests/install.test.mjs`
 
 - **purpose** — Pins that `install` is idempotent, additive, and never destroys what the owner wrote by hand
-- **inputs** — bin/nana-setup.mjs, lib/settings.mjs, and a throwaway --home
+- **inputs** — bin/nana-setup.mjs, lib/settings.mjs, lib/steps.mjs, lib/doctor.mjs, and a throwaway --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

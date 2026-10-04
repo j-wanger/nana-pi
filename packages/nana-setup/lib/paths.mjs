@@ -8,8 +8,9 @@
  * @outputs pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
  *  base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings,
  *  piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome
- *  (always under the layout BASE unless --pi-home/--home named it), deskLog, binDir,
- *  launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
+ *  (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent,
+ *  piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome;
+ *  platform(); tildeify()
  * @effects none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
  * @errors none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
  */
@@ -55,6 +56,18 @@ export function resolveLayout(opts = {}) {
 		piSettings: path.join(piHome, "settings.json"),
 		piPackConfig: path.join(piHome, "nana-pack.json"),
 		piObjective: path.join(piHome, "nana-objective.md"),
+		// pi-subagents' own config file (a third-party vendor extension nana-pi only consumes —
+		// architecture-ruling.md 2026-10-04 §2): seed-once, doctor-verifies, never clobber a hand
+		// edit, the exact policy nana-pack.json already follows.
+		subagentConfig: path.join(piHome, "extensions", "subagent", "config.json"),
+		// Shadows pi-subagents' builtin `reviewer` agent by name (pi's own precedence rule).
+		reviewerAgent: path.join(piHome, "agents", "reviewer.md"),
+		// Read-only: nana-setup never installs or upgrades this package (architecture-ruling.md
+		// §2 — that is a network fetch the installer does not do); doctor only reads its version.
+		piSubagentsPackage: path.join(piHome, "npm", "node_modules", "pi-subagents", "package.json"),
+		// Read-only: pi's own MCP config; nana-setup never writes it (the seat edits it by hand
+		// per the ruling §3), doctor only reads it.
+		mcpConfig: path.join(piHome, "mcp.json"),
 		// NOT piHome when piHome came from the ambient PI_CODING_AGENT_DIR: the nana-knowledge
 		// runtime (packages/nana-knowledge/lib/paths.ts) reads NANA_KNOWLEDGE_HOME or the fixed
 		// <home>/.pi/agent/nana-knowledge and never that variable, so following it here built an

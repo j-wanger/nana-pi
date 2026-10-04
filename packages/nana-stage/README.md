@@ -36,6 +36,11 @@ the readiness watcher waits for). Without a key — plain TUI use — blocks are
 unsigned; the desk server is what refuses unsigned blocks, on the live event and on the ledger
 read alike (`apps/desk/apps.mjs` imports `verifyBlock` from here).
 
+**Residual (architecture-ruling.md, 2026-10-04):** the MCP block path (R-263) reads the carrier at
+`details.mcpResult.structuredContent.blocks` — the shape `pi-mcp-adapter` writes. Blocks returned
+over pi's own built-in MCP are not stamped by this path; R-263 stays `implemented` because its
+`WHERE` clause (blocks arrive through the MCP adapter) is still true while the adapter is present.
+
 Design: `docs/agent-frontend-design-2026-09-04.md` §3.1 (the contract) and §3.2 (the ledger).
 
 ## Tests

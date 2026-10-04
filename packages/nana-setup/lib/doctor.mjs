@@ -6,11 +6,13 @@
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
- *  nana-pack.json and the objective file it names, <knowledgeHome>/index.db, <binDir>/pi-review,
- *  the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+ *  nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json,
+ *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
+ *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
+ *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR
- *  ("22.18"); nodeMeetsFloor(); skillLinkState() { ok, detail }; projectFileState() { status, kind,
- *  detail }
+ *  ("22.18"); PI_SUBAGENTS_FLOOR ("0.75.0"); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
+ *  { ok, detail }; projectFileState() { status, kind, detail }
  * @effects disk (reads only), process (spawns node and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
@@ -23,7 +25,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -104,6 +106,46 @@ export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
 	const [a, b] = String(version).replace(/^v/, "").split(".").map(Number);
 	const [fa, fb] = floor.split(".").map(Number);
 	return a > fa || (a === fa && b >= fb);
+}
+
+/**
+ * pi-subagents floor this pack's seed (R-361) and gate analysis were verified against
+ * (architecture-ruling.md, 2026-10-04, §1e): 0.75.0's own CHANGELOG — "Background subagents work
+ * on Pi 1.0.0 again. In 0.74.0 they failed to start" — makes it a HARD coupling for pi 1.0
+ * adoption, not a nice-to-have. `chosen`: pinned rather than floating, because pi-subagents
+ * shipped two behaviour-changing breaks in one month before this version.
+ */
+export const PI_SUBAGENTS_FLOOR = "0.75.0";
+
+/** True for a parsed JSON value usable as a config object — never null, an array, or a scalar.
+ *  JSON.parse succeeds for all of those; reading a key off one must never throw (astra r1 MUST 2). */
+export function isPlainObject(v) {
+	return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/** Describes a non-object JSON value for an error message. */
+export function kindOf(v) {
+	if (v === null) return "null";
+	if (Array.isArray(v)) return "an array";
+	return typeof v;
+}
+
+/** Three-segment numeric version compare (no pre-release handling — the versions this floor
+ *  check reads, an npm package.json's own `version`, never carry one). Non-numeric input (an
+ *  absent or malformed version) reads as NOT meeting any floor. */
+export function versionAtLeast(version, floor) {
+	const parts = (v) =>
+		String(v)
+			.replace(/^v/, "")
+			.split(".")
+			.slice(0, 3)
+			.map(Number);
+	const [a1, a2, a3] = parts(version);
+	const [b1, b2, b3] = parts(floor);
+	if (![a1, a2, a3].every(Number.isFinite)) return false;
+	if (a1 !== b1) return a1 > b1;
+	if (a2 !== b2) return a2 > b2;
+	return a3 >= b3;
 }
 
 export function diagnose(layout, opts = {}) {
@@ -199,6 +241,144 @@ export function diagnose(layout, opts = {}) {
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+
+	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
+	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:
+	// seed-once, doctor-verifies, never rewrite a hand edit — same policy as pi nana-pack.json
+	// above. ABSENT and PRESENT-BUT-INVALID are two different remedies (astra r1 MUST 1):
+	// `nana-setup install` only creates a file that does not exist yet — seedFile() never
+	// rewrites one that is already there, however broken — so a present-but-invalid file is
+	// told to repair itself by hand, never to run install.
+	// astra r2 MUST 1a: name the config's own path AND the literal required values, not just
+	// "the required values" — a reader should never have to open the seed to learn them.
+	const subCfgRepairHint = (why) =>
+		`${why} — repair ${layout.subagentConfig} by hand: set forceTopLevelAsync: true and maxSubagentDepth: 1 (asyncByDefault stays true unless you deliberately want it off), keeping any other settings you have there (\`nana-setup install\` will not touch this file)`;
+	let subCfgRaw;
+	let subCfgReadErr;
+	try {
+		subCfgRaw = fs.readFileSync(layout.subagentConfig, "utf8");
+	} catch (err) {
+		subCfgReadErr = err;
+	}
+	if (subCfgReadErr?.code === "ENOENT") {
+		add(FAIL, "pi subagent config", `missing: ${layout.subagentConfig} — run \`nana-setup install\` to seed it`);
+	} else if (subCfgReadErr) {
+		add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} exists but could not be read (${subCfgReadErr.message})`));
+	} else {
+		let subCfg;
+		let parseErr;
+		try {
+			subCfg = JSON.parse(subCfgRaw);
+		} catch (err) {
+			parseErr = err;
+		}
+		if (parseErr) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} is not valid JSON (${parseErr.message})`));
+		} else if (!isPlainObject(subCfg)) {
+			// JSON.parse succeeds for null, an array, or a scalar — none of those is a usable
+			// config object, and reading a key off one must never throw (astra r1 MUST 2).
+			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} must hold a JSON object, not ${kindOf(subCfg)}`));
+		} else if (subCfg.forceTopLevelAsync !== true) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`forceTopLevelAsync is ${JSON.stringify(subCfg.forceTopLevelAsync)}, not true, in ${layout.subagentConfig} (this is the key that forces background at the top level)`));
+		} else if (subCfg.maxSubagentDepth !== 1) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`maxSubagentDepth is ${JSON.stringify(subCfg.maxSubagentDepth)}, not 1, in ${layout.subagentConfig} (this is the key that caps nested fan-out)`));
+		} else if (subCfg.asyncByDefault === false) {
+			// Explicitly false, not merely absent: upstream already defaults this to true, so a
+			// user who set it false made a deliberate choice this reads as a warning, not a failure.
+			add(WARN, "pi subagent config", `asyncByDefault is explicitly false in ${layout.subagentConfig} — a nested call with an omitted async will run foreground (ungated)`);
+		} else {
+			add(OK, "pi subagent config", layout.subagentConfig);
+		}
+	}
+
+	let reviewerBody = null;
+	try {
+		reviewerBody = fs.readFileSync(layout.reviewerAgent, "utf8");
+	} catch {
+		/* absent */
+	}
+	if (reviewerBody === null) {
+		add(FAIL, "pi reviewer agent", `missing: ${layout.reviewerAgent} — run \`nana-setup install\` to seed it`);
+	} else if (firstBodyLine(reviewerBody) !== REVIEWER_MARKER) {
+		// Present but unmarked: same ABSENT-vs-INVALID split as the subagent config above —
+		// install will never overwrite a file that already exists, so the fix is a manual one.
+		add(FAIL, "pi reviewer agent", `${layout.reviewerAgent} is missing the nana marker (${REVIEWER_MARKER}) as the first line of its body — repair it by hand (or delete it and run \`nana-setup install\` to get the full seed; install will not overwrite a file that already exists)`);
+	} else {
+		add(OK, "pi reviewer agent", layout.reviewerAgent);
+	}
+
+	let subagentsPkg = null;
+	let subagentsErr = null;
+	try {
+		subagentsPkg = JSON.parse(fs.readFileSync(layout.piSubagentsPackage, "utf8"));
+	} catch (err) {
+		subagentsErr = err.code === "ENOENT" ? "not installed" : `unreadable (${err.message})`;
+	}
+	const subagentsFix = `pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`;
+	if (subagentsErr || !versionAtLeast(subagentsPkg?.version, PI_SUBAGENTS_FLOOR)) {
+		add(FAIL, "pi pi-subagents", `${subagentsErr ?? `version ${JSON.stringify(subagentsPkg?.version)} is older than ${PI_SUBAGENTS_FLOOR}`} — fix: \`${subagentsFix}\``);
+	} else {
+		add(OK, "pi pi-subagents", `version ${subagentsPkg.version} (>= ${PI_SUBAGENTS_FLOOR})`);
+	}
+
+	// Read-only: nana-setup never writes mcp.json (the seat edits it by hand, architecture
+	// ruling §3). WHERE it exists, a server with no `exposure` key defaults to pi's own
+	// `codemode` exposure the moment it connects, unless `autoEnableCodemode` is `false`. The
+	// same shape defence as the subagent config above (astra r1 MUST 2): a parsed value that is
+	// not a usable object — top-level, or `mcpServers` itself — is a failure row, never a crash.
+	let mcpCfgRaw;
+	let mcpCfgReadErr;
+	try {
+		mcpCfgRaw = fs.readFileSync(layout.mcpConfig, "utf8");
+	} catch (err) {
+		mcpCfgReadErr = err;
+	}
+	if (mcpCfgReadErr?.code === "ENOENT") {
+		add(NOTE, "pi mcp.json", `not present: ${layout.mcpConfig}`);
+	} else if (mcpCfgReadErr) {
+		add(FAIL, "pi mcp.json", `${layout.mcpConfig} exists but could not be read (${mcpCfgReadErr.message})`);
+	} else {
+		let mcpCfg;
+		let parseErr;
+		try {
+			mcpCfg = JSON.parse(mcpCfgRaw);
+		} catch (err) {
+			parseErr = err;
+		}
+		if (parseErr) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig} is not valid JSON (${parseErr.message})`);
+		} else if (!isPlainObject(mcpCfg)) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig} must hold a JSON object, not ${kindOf(mcpCfg)}`);
+		} else if (mcpCfg.mcpServers !== undefined && !isPlainObject(mcpCfg.mcpServers)) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig}'s mcpServers must be an object, not ${kindOf(mcpCfg.mcpServers)}`);
+		} else {
+			const servers = mcpCfg.mcpServers ?? {};
+			// Checked BEFORE exposure (astra r2 SHOULD 3): pi's own validateMcpServerConfig
+			// rejects a non-object server entry outright ("server \"<name>\" must be an
+			// object") — reporting it ✓ merely because it has no exposure problem would be
+			// misleading next to the shape diagnostics above.
+			const invalidServers = Object.keys(servers).filter((name) => !isPlainObject(servers[name]));
+			if (invalidServers.length) {
+				add(
+					FAIL,
+					"pi mcp.json",
+					`server${invalidServers.length === 1 ? "" : "s"} ${invalidServers.join(", ")} must be an object (pi itself rejects a non-object server config) in ${layout.mcpConfig}`,
+				);
+			} else {
+				const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
+				const unexposed = Object.keys(servers).filter((name) => servers[name].exposure === undefined);
+				if (codemodeDefault && unexposed.length) {
+					add(
+						WARN,
+						"pi mcp.json",
+						`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
+					);
+				} else {
+					add(OK, "pi mcp.json", layout.mcpConfig);
+				}
+			}
+		}
+	}
 
 	// --- knowledge pull ---
 	const db = path.join(layout.knowledgeHome, "index.db");

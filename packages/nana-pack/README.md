@@ -445,6 +445,34 @@ is user-scope only** — project config never contributes to it, trusted or not.
   what a variable (other than the `$PI_CODING_AGENT_DIR` spelling above) does, an alias, a script file or `python`/`node` code does at run time, nor
   follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
+- **Subagent children and nana-gate (architecture-ruling.md, 2026-10-04).** `nana-setup`'s
+  subagent config seed (`extensions/subagent/config.json` in the pi agent dir) sets
+  `forceTopLevelAsync: true`, which keeps an ORDINARY, model-driven top-level `subagent` tool
+  launch backgrounded — and therefore inside the detached runner process that loads this pack,
+  gate included, with default extension inheritance — no matter what the model asks for. A
+  hand-edited copy of that file that flips the key back reopens a foreground, ungated top-level
+  child: same posture as every other residual above, advisory, not a security boundary. A NESTED
+  child (depth ≥ 1) the model launches with an explicit `async:false` is not reached by
+  `forceTopLevelAsync` either — pi-subagents' own docs say nested calls keep their own inherited
+  settings — and runs foreground, ungated, at any depth `maxSubagentDepth` still permits.
+- **The structured delegation bridge bypasses `forceTopLevelAsync` too** (astra review r1/r2,
+  2026-10-04, pi-subagents 0.75.0): `src/slash/delegation-adapters.js:170-189` builds its launch
+  params with `foregroundOnly: true` for a structured delegation request handled by
+  `src/slash/prompt-template-bridge.js:144-176`, which `forceTopLevelAsync`'s own depth-0 check
+  skips outright — and a foreground child never loads ambient extensions (nana-gate included)
+  regardless of how it was launched. Traced no further than that bridge: the package's command
+  registrations name no `/delegate`, and its `/run` slash command builds a different launch
+  request (`src/slash/slash-commands.js:598-643`) — so no slash command is named here without
+  being traced to the `foregroundOnly` path first.
+- **An explicit `extensions` override, or a capability ceiling that denies extensions, disables
+  ambient extensions on a child outright** (same review, pi-subagents 0.75.0
+  `src/runs/shared/child-tool-plan.js:271-273`) — background or not. Background alone is never
+  proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
+- **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
+  runner process is a second nana-pack session in the SAME working directory as its parent, so the
+  handoff store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
+  Short-lived review children do not compact, so this is safe in practice today; a
+  `NANA_HANDOFF=off` switch for subagent children is a follow-up if that observation ever changes.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
   successes stay out of its context and are reported by the status chip instead. Each failure
   is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the

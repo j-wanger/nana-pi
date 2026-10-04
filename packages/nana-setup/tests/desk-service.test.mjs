@@ -49,12 +49,19 @@ if (process.platform !== "darwin") {
 	process.exit(fails);
 }
 
+const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+
 const tmps = [];
 function freshHome() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-desk-"));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	// doctor's pi-subagents version check (R-364) reads a vendor package nana-setup never
+	// installs — seed it at the floor so this fixture reads as an already-set-up machine.
+	const subagentsDir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
+	fs.mkdirSync(subagentsDir, { recursive: true });
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
 const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });

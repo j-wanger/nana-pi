@@ -1,0 +1,5 @@
+{
+	"asyncByDefault": true,
+	"forceTopLevelAsync": true,
+	"maxSubagentDepth": 1
+}
