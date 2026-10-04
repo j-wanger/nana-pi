@@ -137,7 +137,16 @@ export function ensureDir(target, { dryRun = false } = {}) {
 	return { status: CREATED, detail: null };
 }
 
+/**
+ * Write `contents` only when it differs from what is there. Never reads or writes THROUGH a
+ * symlink (live or dangling) — that would overwrite the link's target, or materialize a
+ * dangling link's target, through a path entry the owner put there (same guarantee as
+ * `linkFile` and `seedFile`, line 15). A symlink or directory in the way is SKIPPED untouched.
+ */
 export function writeIfChanged(target, contents, { dryRun = false } = {}) {
+	const st = lstat(target);
+	if (st?.isSymbolicLink()) return { status: SKIPPED, detail: "a symlink is there — left untouched, nothing read or written through it" };
+	if (st?.isDirectory()) return { status: SKIPPED, detail: "a directory is there — left untouched" };
 	let current = null;
 	try {
 		current = fs.readFileSync(target, "utf8");

@@ -854,6 +854,14 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 | R-371 | doctor shall read ✗ when agents/reviewer.md is present but its body's first line is not the nana marker, instructing a manual repair rather than install. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: unmarked reads ✗ instructing a manual repair, not a bare install`, `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: marker present but NOT on the first body line reads ✗` |
 | R-372 | doctor shall read ✗ naming the server, before checking its exposure, WHERE an mcp.json server entry is present but not a JSON object. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::mcp.json: server entry "memory" as ${label} reads ✗ naming the server, before the exposure check` (null / an array / a number / a string / false, looped) |
 
+## 53. Installer edge-case hardening (nana-setup, pi-1.0-2026-10-04 review lane)
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-377 | WHEN readlinkSync fails on a path lstat has already confirmed is a symlink, sharedLinkState shall return "absent" instead of throwing. | implemented | `packages/nana-setup/tests/shared-link-state.test.mjs::a readlink failure on a confirmed symlink reads 'absent', not a throw` |
+| R-378 | WHILE an explicit --home override is in force, isRealHome shall be false even when that override resolves to the same path as the real home directory. | implemented | `packages/nana-setup/tests/paths.test.mjs::--home set to the home directory's OWN path still forces isRealHome false` |
+| R-379 | WHERE target is a symlink (live or dangling), writeIfChanged shall leave it untouched and report it SKIPPED instead of reading or writing through it. | implemented | `packages/nana-setup/tests/fsops.test.mjs::a live symlink in the way is reported SKIPPED, not written`, `packages/nana-setup/tests/fsops.test.mjs::the symlink's target is byte-identical — nothing was written through it`, `packages/nana-setup/tests/fsops.test.mjs::a dangling symlink is reported SKIPPED, not written`, `packages/nana-setup/tests/fsops.test.mjs::the dangling link's target was NOT created` |
+
 ## Open questions
 
 - (pi 1.0 lane, 2026-10-04) mcp.json's own shape failures (not JSON, not an object, mcpServers not an object) are exercised by three uncited checks in packages/nana-setup/tests/doctor-detail.test.mjs but have no row. Add an R-366-shaped row, or declare them R-365's error handling.
