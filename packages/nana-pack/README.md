@@ -455,11 +455,15 @@ is user-scope only** — project config never contributes to it, trusted or not.
   child (depth ≥ 1) the model launches with an explicit `async:false` is not reached by
   `forceTopLevelAsync` either — pi-subagents' own docs say nested calls keep their own inherited
   settings — and runs foreground, ungated, at any depth `maxSubagentDepth` still permits.
-- **Slash-command delegation bypasses `forceTopLevelAsync` too** (astra review r1, 2026-10-04,
-  pi-subagents 0.75.0 `src/slash/delegation-adapters.js:170-189`): `/delegate` and similar slash
-  commands build their launch params with `foregroundOnly: true`, which `forceTopLevelAsync`'s
-  own depth-0 check skips outright — and a foreground child never loads ambient extensions
-  (nana-gate included) regardless of how it was launched.
+- **The structured delegation bridge bypasses `forceTopLevelAsync` too** (astra review r1/r2,
+  2026-10-04, pi-subagents 0.75.0): `src/slash/delegation-adapters.js:170-189` builds its launch
+  params with `foregroundOnly: true` for a structured delegation request handled by
+  `src/slash/prompt-template-bridge.js:144-176`, which `forceTopLevelAsync`'s own depth-0 check
+  skips outright — and a foreground child never loads ambient extensions (nana-gate included)
+  regardless of how it was launched. Traced no further than that bridge: the package's command
+  registrations name no `/delegate`, and its `/run` slash command builds a different launch
+  request (`src/slash/slash-commands.js:598-643`) — so no slash command is named here without
+  being traced to the `foregroundOnly` path first.
 - **An explicit `extensions` override, or a capability ceiling that denies extensions, disables
   ambient extensions on a child outright** (same review, pi-subagents 0.75.0
   `src/runs/shared/child-tool-plan.js:271-273`) — background or not. Background alone is never

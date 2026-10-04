@@ -249,8 +249,10 @@ export function diagnose(layout, opts = {}) {
 	// `nana-setup install` only creates a file that does not exist yet — seedFile() never
 	// rewrites one that is already there, however broken — so a present-but-invalid file is
 	// told to repair itself by hand, never to run install.
+	// astra r2 MUST 1a: name the config's own path AND the literal required values, not just
+	// "the required values" — a reader should never have to open the seed to learn them.
 	const subCfgRepairHint = (why) =>
-		`${why} — repair ${layout.subagentConfig} by hand: fix its JSON and set asyncByDefault, forceTopLevelAsync and maxSubagentDepth to the required values, keeping any other settings you have there (\`nana-setup install\` will not touch this file)`;
+		`${why} — repair ${layout.subagentConfig} by hand: set forceTopLevelAsync: true and maxSubagentDepth: 1 (asyncByDefault stays true unless you deliberately want it off), keeping any other settings you have there (\`nana-setup install\` will not touch this file)`;
 	let subCfgRaw;
 	let subCfgReadErr;
 	try {
@@ -351,16 +353,29 @@ export function diagnose(layout, opts = {}) {
 			add(FAIL, "pi mcp.json", `${layout.mcpConfig}'s mcpServers must be an object, not ${kindOf(mcpCfg.mcpServers)}`);
 		} else {
 			const servers = mcpCfg.mcpServers ?? {};
-			const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
-			const unexposed = Object.keys(servers).filter((name) => isPlainObject(servers[name]) && servers[name].exposure === undefined);
-			if (codemodeDefault && unexposed.length) {
+			// Checked BEFORE exposure (astra r2 SHOULD 3): pi's own validateMcpServerConfig
+			// rejects a non-object server entry outright ("server \"<name>\" must be an
+			// object") — reporting it ✓ merely because it has no exposure problem would be
+			// misleading next to the shape diagnostics above.
+			const invalidServers = Object.keys(servers).filter((name) => !isPlainObject(servers[name]));
+			if (invalidServers.length) {
 				add(
-					WARN,
+					FAIL,
 					"pi mcp.json",
-					`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
+					`server${invalidServers.length === 1 ? "" : "s"} ${invalidServers.join(", ")} must be an object (pi itself rejects a non-object server config) in ${layout.mcpConfig}`,
 				);
 			} else {
-				add(OK, "pi mcp.json", layout.mcpConfig);
+				const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
+				const unexposed = Object.keys(servers).filter((name) => servers[name].exposure === undefined);
+				if (codemodeDefault && unexposed.length) {
+					add(
+						WARN,
+						"pi mcp.json",
+						`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
+					);
+				} else {
+					add(OK, "pi mcp.json", layout.mcpConfig);
+				}
 			}
 		}
 	}

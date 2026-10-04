@@ -157,38 +157,44 @@ try {
 		// req: R-362
 		check("subagent config: missing file reads ✗ naming nana-setup install as the fix", namesTheFix, JSON.stringify(c));
 	}
-	// astra r1 MUST 1: a PRESENT-but-invalid file must never be told "run nana-setup install" —
-	// seedFile() never rewrites a file that already exists, so that remedy cannot fix it. Every
-	// present-but-invalid case below is pinned on BOTH halves: it names the file/problem, and it
-	// does NOT recommend install.
-	{
-		const { c } = subagentCheck("{ not json");
-		const repairsByHand = c?.status === "fail" && /not valid JSON/.test(c.detail) && c.detail.includes("repair") && c.detail.includes("by hand") && !c.detail.includes("run `nana-setup install`");
+	// astra r1 MUST 1 / r2 MUST 1: a PRESENT-but-invalid file must never be told "run
+	// nana-setup install" — seedFile() never rewrites a file that already exists, so that
+	// remedy cannot fix it. Every present-but-invalid case below is pinned on all three halves
+	// (astra r2 MUST 1a): it names the file's own PATH, it prints the literal required values
+	// (not merely "the required values"), and it does NOT recommend install.
+	for (const [label, bad] of [
+		["unparseable", "{ not json"],
+		["null", "null"],
+		["an array", "[]"],
+		["a number", "42"],
+		["a string", '"x"'],
+	]) {
+		const { c, layout } = subagentCheck(bad);
+		const namesPath = c?.detail.includes(layout.subagentConfig);
+		const namesValues = c?.detail.includes("forceTopLevelAsync: true") && c.detail.includes("maxSubagentDepth: 1");
+		const neverInstall = !c?.detail.includes("run `nana-setup install`");
 		// req: R-366
-		check("subagent config: unparseable reads ✗ naming the file, instructing a manual repair, never install", repairsByHand, JSON.stringify(c));
-	}
-	for (const [label, bad] of [["null", "null"], ["an array", "[]"], ["a number", "42"], ["a string", '"x"']]) {
-		const { c } = subagentCheck(bad);
-		const repairsByHand = c?.status === "fail" && /must hold a JSON object/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
-		// astra r1 MUST 2: JSON.parse succeeds for these; reading a key off the result must not throw.
-		// req: R-366
-		check(`subagent config: parses to ${label} reads ✗ naming a manual repair, never install (no crash)`, repairsByHand, JSON.stringify(c));
+		check(`subagent config: ${label} reads ✗ naming the path and the literal required values, never install (no crash)`, c?.status === "fail" && namesPath && namesValues && neverInstall, JSON.stringify(c));
 	}
 	{
-		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: false, maxSubagentDepth: 1 }));
-		const repairsByHand = c?.status === "fail" && /forceTopLevelAsync/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
+		const { c, layout } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: false, maxSubagentDepth: 1 }));
+		const namesKeyAndValue = /forceTopLevelAsync/.test(c?.detail) && c.detail.includes("forceTopLevelAsync: true");
+		const neverInstall = !c?.detail.includes("run `nana-setup install`");
 		// req: R-367
-		check("subagent config: forceTopLevelAsync false reads ✗ naming the key, never install", repairsByHand, JSON.stringify(c));
+		check("subagent config: forceTopLevelAsync false reads ✗ naming the key and its required value, never install", c?.status === "fail" && namesKeyAndValue && neverInstall && c.detail.includes(layout.subagentConfig), JSON.stringify(c));
 	}
 	{
-		const { c, layout } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: true, maxSubagentDepth: 2 }));
-		const repairsByHand = c?.status === "fail" && /maxSubagentDepth/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
+		// astra r2 MUST 1b: snapshot the bytes we WROTE, not a disk re-read taken after any
+		// diagnose() call — subagentCheck() itself already ran diagnose() once to produce `c`,
+		// so a disk re-read here would miss a rewrite on that very first call.
+		const written = JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: true, maxSubagentDepth: 2 });
+		const { c, layout } = subagentCheck(written);
+		const namesKeyAndValue = /maxSubagentDepth/.test(c?.detail) && c.detail.includes("maxSubagentDepth: 1");
+		const neverInstall = !c?.detail.includes("run `nana-setup install`");
 		// req: R-368
-		check("subagent config: maxSubagentDepth 2 reads ✗ naming the key, never install", repairsByHand, JSON.stringify(c));
-		const before = fs.readFileSync(layout.subagentConfig, "utf8");
-		diagnose(layout, { projectDir: layout.base });
+		check("subagent config: maxSubagentDepth 2 reads ✗ naming the key and its required value, never install", c?.status === "fail" && namesKeyAndValue && neverInstall && c.detail.includes(layout.subagentConfig), JSON.stringify(c));
 		// req: R-369
-		check("doctor leaves a wrong config.json byte-identical", fs.readFileSync(layout.subagentConfig, "utf8") === before);
+		check("doctor never rewrote the file, including on its very first diagnose() call", fs.readFileSync(layout.subagentConfig, "utf8") === written, fs.readFileSync(layout.subagentConfig, "utf8"));
 	}
 	{
 		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: false, forceTopLevelAsync: true, maxSubagentDepth: 1 }));
@@ -199,8 +205,10 @@ try {
 		check("subagent config: the seed's own shape reads ✓", c?.status === "ok", JSON.stringify(c));
 	}
 
-	// pi mcp.json: the same shape defence (astra r1 MUST 2), checked here for the two spots the
-	// existing R-365 tests below do not reach — a non-object top level and a non-object mcpServers.
+	// pi mcp.json: the same shape defence (astra r1 MUST 2), checked here for the spots the
+	// existing R-365 tests below do not reach — a non-object top level, a non-object mcpServers,
+	// and a non-object SERVER ENTRY (astra r2 SHOULD 3: pi's own validateMcpServerConfig rejects
+	// one outright, so doctor must fail it too, named, before it ever reaches the exposure check).
 	const mcpShapeCheck = (content) => {
 		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
@@ -217,9 +225,10 @@ try {
 		const c = mcpShapeCheck(JSON.stringify({ mcpServers: "oops" }));
 		check("mcp.json: mcpServers as a string reads ✗, not a crash", c?.status === "fail" && /mcpServers must be an object/.test(c.detail), JSON.stringify(c));
 	}
-	{
-		const c = mcpShapeCheck(JSON.stringify({ mcpServers: { memory: "not an object", real: { command: "x" } } }));
-		check("mcp.json: a non-object server entry is skipped, not a crash", c?.status === "warn" && /\breal\b/.test(c.detail) && !c.detail.includes("memory"), JSON.stringify(c));
+	for (const [label, bad] of [["null", null], ["an array", []], ["a number", 42], ["a string", "x"], ["false", false]]) {
+		const c = mcpShapeCheck(JSON.stringify({ mcpServers: { memory: bad, real: { command: "x", exposure: "direct" } } }));
+		// req: R-372
+		check(`mcp.json: server entry "memory" as ${label} reads ✗ naming the server, before the exposure check`, c?.status === "fail" && /\bmemory\b/.test(c.detail) && /must be an object/.test(c.detail), JSON.stringify(c));
 	}
 
 	// pi reviewer agent — doctor's absent/unmarked split (R-370, R-371). The install-side seeding
@@ -252,6 +261,15 @@ try {
 	{
 		const c = reviewerCheck(`---\nname: reviewer\ndescription: x\n---\n\n${REVIEWER_MARKER}\n\nBody.\n`);
 		check("reviewer agent: marked reads ✓", c?.status === "ok", JSON.stringify(c));
+	}
+	{
+		// astra r2 MUST 1c: the marker present ANYWHERE in the body is not the same as it being
+		// the REQUIRED first body line — a doctor that merely scanned for the string instead of
+		// checking its position would wrongly pass this.
+		const c = reviewerCheck(`---\nname: reviewer\ndescription: x\n---\n\nSome other first line.\n\n${REVIEWER_MARKER}\n`);
+		const repairsByHand = c?.status === "fail" && /nana marker/.test(c.detail) && c.detail.includes("repair it by hand");
+		// req: R-371
+		check("reviewer agent: marker present but NOT on the first body line reads ✗", repairsByHand, JSON.stringify(c));
 	}
 
 	// pi-subagents version floor (R-364)
@@ -303,6 +321,7 @@ try {
 	}
 	{
 		const ok2 = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } }, autoEnableCodemode: false }));
+		// req: R-365
 		check("mcp.json: autoEnableCodemode false reads ✓ even without exposure", ok2?.status === "ok", JSON.stringify(ok2));
 	}
 	{
