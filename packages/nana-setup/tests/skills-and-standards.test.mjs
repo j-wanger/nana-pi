@@ -55,17 +55,14 @@ const linkTarget = (p) => {
 
 try {
 	/* --- 0. the sources exist and are what the installer claims ------------------------- */
-	// req: R-303
 	check("the skill ships a SKILL.md with the `requirements` name", /^name: requirements$/m.test(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"), "utf8")));
 	{
 		const fm = fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"), "utf8").split("---")[1] ?? "";
 		// the triggers the skill is installed FOR — a description that misses them never fires
 		const triggers = ["requirements", "REQUIREMENTS.md", "requirement", "trace", "which rows", "no hardcoding", "code map", "module header", "README", "readme-check", "conflicts", "what is failing"];
 		const missing = triggers.filter((t) => !fm.toLowerCase().includes(t.toLowerCase()));
-		// req: R-303
 		check("the skill description carries every trigger phrase", missing.length === 0, missing.join(" | "));
 	}
-// req: R-920
 	check("the standards rule is one screen, imperative, and not nana-soul.md", fs.readFileSync(RULE_SRC, "utf8").split("\n").length < 80 && /^# Nana — Coding standards$/m.test(fs.readFileSync(RULE_SRC, "utf8")));
 
 	/* --- 1. a fresh machine: both land as symlinks into the repo ------------------------ */
@@ -108,16 +105,11 @@ try {
 		fs.mkdirSync(target, { recursive: true });
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# MINE\n");
 		const r = run(["install", "--home", occupied]);
-		// req: R-304
 		check("occupied skill dir: install EXITS 1 — automation must not read this as success", r.status === 1, String(r.status));
-		// req: R-304
 		check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
 		check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
-		// req: R-304
 		check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
-		// req: R-304
 		check("occupied skill dir: nothing was backed up into ~/.claude/skills (a .bak dir would be a SECOND skill of the same name)", fs.readdirSync(path.join(occupied, ".claude", "skills")).join(",") === "requirements");
-		// req: R-304
 		check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
 		const d = run(["doctor", "--home", occupied]);
 		check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
@@ -156,7 +148,6 @@ try {
 		check("win32: install exits 0", r.status === 0, r.stderr);
 		const target = path.join(w, ".claude", "skills", "requirements");
 		check("win32: the skill is a real directory, not a symlink", fs.lstatSync(target).isDirectory() && !fs.lstatSync(target).isSymbolicLink());
-		// req: R-351
 		check("win32: every file the source ships is copied byte-for-byte", fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		check("win32: the standards rule is a copy too", fs.lstatSync(path.join(w, ".claude", "rules", "nana-standards.md")).isFile() && !fs.lstatSync(path.join(w, ".claude", "rules", "nana-standards.md")).isSymbolicLink());
 		check("win32: install says so", /skill requirements\s+created\s+\d+ files? copied \(no symlink on this platform\)/.test(r.stdout), r.stdout);
@@ -167,15 +158,11 @@ try {
 		// never a second skill directory)
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# HAND-WRITTEN\n");
 		const d = run(["doctor", "--home", w], env);
-// req: R-938
 		check("win32: doctor reads ✗ on a stale copy, naming the file", /✗ skill requirements\s+copy is stale or incomplete \(SKILL\.md\)/.test(d.stdout), d.stdout);
 		const fix = run(["install", "--home", w], env);
-// req: R-938
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
-// req: R-938
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
-// req: R-938
 		check("win32: the backup is a FILE inside the skill dir, never a sibling skill directory", fs.readdirSync(path.join(w, ".claude", "skills")).join(",") === "requirements");
 		check("win32: doctor is green again", run(["doctor", "--home", w], env).status === 0);
 	}

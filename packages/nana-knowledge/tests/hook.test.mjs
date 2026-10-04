@@ -97,7 +97,7 @@ check("snippets are bounded at 160 chars", r1.hits.every((h) => h.snippet.length
 // --- per-session dedup ---
 check("shown file records what was printed", readShown("s1").size === r1.hits.length);
 const r2 = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
-// req: R-229 R-890
+// req: R-229
 check("same prompt in same session prints nothing", r2.output === null && r2.reason === "all-shown");
 const r3 = await call(JSON.stringify({ session_id: "s2", prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
 // req: R-891
@@ -138,7 +138,6 @@ fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
 check("fresh index spawns nothing", ensureFreshIndex(Date.now(), noSpawn) === "fresh");
 const hourOld = Date.now() / 1000 - 3700;
 fs.utimesSync(dbFile, hourOld, hourOld);
-// req: R-230
 check("an index older than 1 h is stale (a doc written this morning is pullable now)",
 	ensureFreshIndex(Date.now(), () => spawned++) === "spawned" && spawned === 2);
 fs.utimesSync(dbFile, Date.now() / 1000, Date.now() / 1000);
@@ -151,7 +150,6 @@ process.env.NANA_KNOWLEDGE_HOME = home2;
 let spawned2 = 0;
 const rn = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: () => spawned2++ });
 check("no index: prints nothing", rn.output === null && rn.reason.startsWith("no-index"));
-// req: R-230
 check("no index: spawns a background build", spawned2 === 1);
 check("no index: does NOT build synchronously", !fs.existsSync(path.join(home2, "index.db")));
 process.env.NANA_KNOWLEDGE_HOME = home;
@@ -160,12 +158,9 @@ process.env.NANA_KNOWLEDGE_HOME = home;
 const log = path.join(home, "pull.log");
 check("pull.log exists after a printed pull", fs.existsSync(log));
 const lines = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
-// req: R-231 R-893
 check(`one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}`, lines.length === printed);
-// req: R-231
 check("log carries ts/cwd/session/tokens/hits",
 	lines.every((l) => l.ts && "cwd" in l && l.session_id && Array.isArray(l.tokens) && Array.isArray(l.hits)));
-// req: R-231
 check("log tokens exclude stopwords", !lines[0].tokens.includes("the") && !lines[0].tokens.includes("what"));
 
 // --- end to end through the CLI, the way Claude Code will call it ---
@@ -228,15 +223,12 @@ fs.mkdirSync(lockHome, { recursive: true });
 process.env.NANA_KNOWLEDGE_HOME = lockHome;
 const lockFile = path.join(lockHome, "build.lock");
 const won = [acquireBuildLock(), acquireBuildLock(), acquireBuildLock()];
-// req: R-232
 check("three sequential lock attempts in one process: exactly one wins", won.filter(Boolean).length === 1);
-// req: R-232
 check("the lock file records the owning pid", JSON.parse(fs.readFileSync(lockFile, "utf8")).pid === process.pid);
 
 // a foreign lock is never cleared by release
 fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid + 99999, at: Date.now() }));
 releaseBuildLock();
-// req: R-232
 check("release leaves a lock owned by ANOTHER pid alone", fs.existsSync(lockFile));
 
 // ...but a stale one is reclaimed

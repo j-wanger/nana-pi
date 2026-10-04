@@ -30,7 +30,7 @@
         {
           "id": "R-204",
           "text": "WHERE a root is declared ledger, the build shall emit one row per entry — a line starting -  or a digit that contains [uses: plus its indented continuations.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/ledger-parse.test.mjs::3-physical-line entry folds into one row",
             "packages/nana-knowledge/tests/ledger-parse.test.mjs::bullet without [uses:] is not a row",
@@ -60,12 +60,12 @@
               "pins": "its indented continuations"
             }
           ],
-          "assertion": "3-physical-line entry folds into one row goes red when disabled the '- ' bullet-prefix branch of isEntryLine, keeping only the digit branch; numbered entry line is a row goes red when disabled the digit-prefix branch of isEntryLine, keeping only the bullet branch; 3-physical-line entry folds into one row goes red when capped the continuation-line loop to zero iterations, so no indented continuation is folded into its entry."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a root is declared ledger\", \"emit one row per entry\", \"contains [uses:\"; 6b worklist."
         },
         {
           "id": "R-882",
           "text": "WHERE a root is declared ledger, the build shall exclude lines inside fenced code blocks from becoming rows.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/ledger-parse.test.mjs::fenced template lines are not rows"
           ],
@@ -78,7 +78,7 @@
               "pins": "exclude lines inside fenced code blocks"
             }
           ],
-          "assertion": "fenced template lines are not rows goes red when removed the `if (fenced) continue;` guard so entries inside fenced code blocks are parsed as rows."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a root is declared ledger\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -86,7 +86,31 @@
           "file": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
           "anchor": "check(\"fenced template lines are not rows\"",
           "old": "// req: R-204",
-          "new": "// req: R-882"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
+          "anchor": "3-physical-line entry folds into one row",
+          "old": "// req: R-204",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
+          "anchor": "bullet without [uses:] is not a row",
+          "old": "// req: R-204",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
+          "anchor": "numbered entry line is a row",
+          "old": "// req: R-204",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/ledger-parse.test.mjs",
+          "anchor": "isEntryLine: digit + uses",
+          "old": "// req: R-204",
+          "new": null
         }
       ]
     },
@@ -96,7 +120,7 @@
         {
           "id": "R-207",
           "text": "Rows shall be purged only when the file vanished from a root that was actually scanned or the root left sources.json.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/incremental-build.test.mjs::deleted file is removed from the index",
             "packages/nana-knowledge/tests/incremental-build.test.mjs::root dropped from sources.json: its rows are purged"
@@ -117,12 +141,12 @@
               "pins": "the root left sources.json"
             }
           ],
-          "assertion": "deleted file is removed from the index goes red when forced the preserve branch unconditionally (if (true)) so a vanished file inside a scanned root is never purged; root dropped from sources.json: its rows are purged goes red when forced the preserve branch unconditionally (if (true)) so a root removed from sources.json never purges its rows."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"shall be purged only when\"; 6b worklist."
         },
         {
           "id": "R-883",
           "text": "WHEN a root is missing, it shall be reported, treated as non-fatal, and keep its rows searchable.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/incremental-build.test.mjs::missing root reported, not fatal",
             "packages/nana-knowledge/tests/incremental-build.test.mjs::missing root: it is still reported missing",
@@ -144,7 +168,7 @@
               "pins": "keep its rows searchable"
             }
           ],
-          "assertion": "missing root reported, not fatal goes red when disabled missing-root detection (if (false)) so a missing root is never reported and its rows are not preserved; missing root: its rows are still searchable goes red when disabled missing-root detection (if (false)) so a missing root is never reported and its rows are not preserved."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHEN a root is missing\", \"treated as non-fatal\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -152,19 +176,31 @@
           "file": "packages/nana-knowledge/tests/incremental-build.test.mjs",
           "anchor": "check(\"missing root reported, not fatal\"",
           "old": "// req: R-207",
-          "new": "// req: R-883"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/incremental-build.test.mjs",
           "anchor": "check(\"missing root: it is still reported missing\"",
           "old": "// req: R-207",
-          "new": "// req: R-883"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/incremental-build.test.mjs",
           "anchor": "check(\"missing root: its rows are still searchable\"",
           "old": "// req: R-207",
-          "new": "// req: R-883"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/incremental-build.test.mjs",
+          "anchor": "deleted file is removed from the index",
+          "old": "// req: R-207",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/incremental-build.test.mjs",
+          "anchor": "root dropped from sources.json: its rows are purged",
+          "old": "// req: R-207",
+          "new": null
         }
       ]
     },
@@ -174,7 +210,7 @@
         {
           "id": "R-211",
           "text": "WHERE a discover block is configured, an immediate child of a listed parent holding a .git directory or a git-worktree .git file shall count as a repo.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/discovery.test.mjs::repo with .git DIR contributes each convention subdir it has",
             "packages/nana-knowledge/tests/discovery.test.mjs::a git WORKTREE (.git file) counts as a repo",
@@ -196,12 +232,12 @@
               "pins": "a git-worktree .git file"
             }
           ],
-          "assertion": "repo with .git DIR contributes each convention subdir it has goes red when disabled discoverRoots' repo check (`continue;` unconditional) so no directory — with or without .git — is ever treated as a repo; a git WORKTREE (.git file) counts as a repo goes red when disabled discoverRoots' repo check (`continue;` unconditional) so no directory — with or without .git — is ever treated as a repo."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a discover block is configured\", \"an immediate child of a listed parent\", \"shall count as a repo\"; 6b worklist."
         },
         {
           "id": "R-884",
           "text": "WHERE a discover block is configured, each listed subdir a counted repo has shall become an articles root marked discovered.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/discovery.test.mjs::discovered roots are articles, and marked"
           ],
@@ -214,7 +250,7 @@
               "pins": "shall become an articles root marked discovered"
             }
           ],
-          "assertion": "discovered roots are articles, and marked goes red when discovered roots now push discovered: false."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a discover block is configured\", \"each listed subdir a counted repo has\", \"an articles root\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -222,7 +258,25 @@
           "file": "packages/nana-knowledge/tests/discovery.test.mjs",
           "anchor": "check(\"discovered roots are articles, and marked\"",
           "old": "// req: R-211",
-          "new": "// req: R-884"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/discovery.test.mjs",
+          "anchor": "repo with .git DIR contributes each convention subdir it has",
+          "old": "// req: R-211",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/discovery.test.mjs",
+          "anchor": "a git WORKTREE (.git file) counts as a repo",
+          "old": "// req: R-211",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/discovery.test.mjs",
+          "anchor": "a directory WITHOUT .git is not a repo",
+          "old": "// req: R-211",
+          "new": null
         }
       ]
     },
@@ -237,7 +291,7 @@
         {
           "id": "R-885",
           "text": "A malformed discover block shall degrade to defaults rather than throw.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/discovery.test.mjs::a malformed discover block degrades to defaults, never throws"
           ],
@@ -250,7 +304,7 @@
               "pins": "degrade to defaults rather than throw"
             }
           ],
-          "assertion": "a malformed discover block degrades to defaults, never throws goes red when parseDiscover's stringList now throws on a non-array field instead of degrading to the fallback."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"A malformed discover block\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -264,7 +318,7 @@
           "file": "packages/nana-knowledge/tests/discovery.test.mjs",
           "anchor": "check(\"a malformed discover block degrades to defaults, never throws\"",
           "old": "// req: R-215",
-          "new": "// req: R-885"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/discovery.test.mjs",
@@ -335,7 +389,7 @@
         {
           "id": "R-219",
           "text": "In the prose fields an exact separator shall be substituted with a readable  - .",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/render.test.mjs::prose fields: an exact separator in a title or snippet is substituted with ' - ' (readability)",
             "packages/nana-knowledge/tests/render.test.mjs::no path is substituted: ' - ' never replaces the delimiter in a display"
@@ -349,12 +403,12 @@
               "pins": "an exact separator shall be substituted with a readable  - "
             }
           ],
-          "assertion": "prose fields: an exact separator in a title or snippet is substituted with ' - ' (readability) goes red when removed the FIELD_SEP substitution in clean() (prose fields)."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"In the prose fields\"; 6b worklist."
         },
         {
           "id": "R-887",
           "text": "In the prose fields, look-alike dashes shall be left unchanged.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/render.test.mjs::an en dash / minus is left as-is in every field, and still 3 fields"
           ],
@@ -367,7 +421,7 @@
               "pins": "look-alike dashes shall be left unchanged"
             }
           ],
-          "assertion": "an en dash / minus is left as-is in every field, and still 3 fields goes red when extended clean()'s substitution to also replace the en-dash (U+2013), so a look-alike dash is no longer left as-is."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"In the prose fields\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -375,7 +429,19 @@
           "file": "packages/nana-knowledge/tests/render.test.mjs",
           "anchor": "check(\"an en dash / minus is left as-is in every field, and still 3 fields\"",
           "old": "// req: R-219",
-          "new": "// req: R-887"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/render.test.mjs",
+          "anchor": "prose fields: an exact separator in a title or snippet is substituted with ' - ' (readability)",
+          "old": "// req: R-219",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/render.test.mjs",
+          "anchor": "no path is substituted: ' - ' never replaces the delimiter in a display",
+          "old": "// req: R-219",
+          "new": null
         }
       ]
     },
@@ -423,7 +489,7 @@
         {
           "id": "R-223",
           "text": "A :loc suffix shall be appended only for a positive safe integer.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/render.test.mjs::numeric loc appends :12",
             "packages/nana-knowledge/tests/render.test.mjs::a fractional or negative loc is never appended"
@@ -437,12 +503,12 @@
               "pins": "A :loc suffix shall be appended only for a positive safe integer"
             }
           ],
-          "assertion": "a fractional or negative loc is never appended goes red when removed the r.loc > 0 sign check, so a negative safe integer loc is appended."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"safe integer\"; 6b worklist."
         },
         {
           "id": "R-889",
           "text": "IF a row cannot be rendered THEN that pointer alone shall be dropped.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/render.test.mjs::a row that throws costs that pointer, never the search"
           ],
@@ -455,7 +521,7 @@
               "pins": "that pointer alone shall be dropped"
             }
           ],
-          "assertion": "a row that throws costs that pointer, never the search goes red when removed the per-row try/catch in search(), so one bad row crashes the whole search instead of losing only its own pointer."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF a row cannot be rendered\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -463,7 +529,19 @@
           "file": "packages/nana-knowledge/tests/render.test.mjs",
           "anchor": "check(\"a row that throws costs that pointer, never the search\"",
           "old": "// req: R-223",
-          "new": "// req: R-889"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/render.test.mjs",
+          "anchor": "numeric loc appends :12",
+          "old": "// req: R-223",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/render.test.mjs",
+          "anchor": "a fractional or negative loc is never appended",
+          "old": "// req: R-223",
+          "new": null
         }
       ]
     },
@@ -493,7 +571,7 @@
         {
           "id": "R-890",
           "text": "IF dropping already-shown pointers empties the list THEN nothing shall be printed.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/hook.test.mjs::same prompt in same session prints nothing"
           ],
@@ -506,7 +584,7 @@
               "pins": "empties the list THEN nothing shall be printed"
             }
           ],
-          "assertion": "same prompt in same session prints nothing goes red when disabled the all-shown early return (if (false)), so the emptied-after-drop case no longer reports reason all-shown."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"dropping already-shown pointers\", \"nothing shall be printed\"; 6b worklist."
         },
         {
           "id": "R-891",
@@ -532,7 +610,7 @@
           "file": "packages/nana-knowledge/tests/hook.test.mjs",
           "anchor": "check(\"same prompt in same session prints nothing\"",
           "old": "// req: R-229",
-          "new": "// req: R-229 R-890"
+          "new": "// req: R-229"
         },
         {
           "file": "packages/nana-knowledge/tests/hook.test.mjs",
@@ -548,7 +626,7 @@
         {
           "id": "R-230",
           "text": "IF the index is missing or older than 1 h, THEN a detached background build shall be spawned and the existing index queried as-is.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/hook.test.mjs::an index older than 1 h is stale (a doc written this morning is pullable now)",
             "packages/nana-knowledge/tests/hook.test.mjs::no index: spawns a background build"
@@ -562,7 +640,7 @@
               "pins": "IF the index is missing or older than 1 h"
             }
           ],
-          "assertion": "an index older than 1 h is stale (a doc written this morning is pullable now) goes red when ensureFreshIndex now treats any existing index as fresh regardless of age (if (age !== null) return \"fresh\";)."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"the index is missing\", \"a detached background build shall be spawned\", \"the existing index queried as-is\"; 6b worklist."
         },
         {
           "id": "R-892",
@@ -576,6 +654,18 @@
           "anchor": "check(\"no index: does NOT build synchronously\"",
           "old": "// req: R-230",
           "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "an index older than 1 h is stale (a doc written this morning is pullable now)",
+          "old": "// req: R-230",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "no index: spawns a background build",
+          "old": "// req: R-230",
+          "new": null
         }
       ]
     },
@@ -585,7 +675,7 @@
         {
           "id": "R-231",
           "text": "Every invocation that printed shall append exactly one JSONL line to pull.log carrying ts, cwd, session id, source, tokens and hits.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/hook.test.mjs::one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}",
             "packages/nana-knowledge/tests/hook.test.mjs::log carries ts/cwd/session/tokens/hits",
@@ -607,12 +697,12 @@
               "pins": "carrying ts, cwd, session id, source, tokens and hits"
             }
           ],
-          "assertion": "one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed} goes red when appendLog is now called twice on a successful print; log carries ts/cwd/session/tokens/hits goes red when dropped the tokens field from the logged line."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"ts, cwd, session id, source\", \"hits\"; 6b worklist."
         },
         {
           "id": "R-893",
           "text": "Skipped and deduped prompts shall not be logged.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/hook.test.mjs::one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}"
           ],
@@ -625,7 +715,7 @@
               "pins": "Skipped and deduped prompts shall not be logged"
             }
           ],
-          "assertion": "one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed} goes red when appendLog is now also called on a skip-reason path."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"deduped prompts shall not be logged\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -633,7 +723,19 @@
           "file": "packages/nana-knowledge/tests/hook.test.mjs",
           "anchor": "check(`one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}`",
           "old": "// req: R-231",
-          "new": "// req: R-231 R-893"
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "log carries ts/cwd/session/tokens/hits",
+          "old": "// req: R-231",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "log tokens exclude stopwords",
+          "old": "// req: R-231",
+          "new": null
         }
       ]
     },
@@ -643,7 +745,7 @@
         {
           "id": "R-232",
           "text": "Every build path shall take build.lock atomically with its pid inside, removed only by its owner.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/hook.test.mjs::three sequential lock attempts in one process: exactly one wins",
             "packages/nana-knowledge/tests/hook.test.mjs::release leaves a lock owned by ANOTHER pid alone",
@@ -658,7 +760,7 @@
               "pins": "removed only by its owner"
             }
           ],
-          "assertion": "release leaves a lock owned by ANOTHER pid alone goes red when releaseBuildLock no longer checks the pid, so it removes a lock even when owned by another process."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"Every build path shall take build.lock atomically with its pid inside\"; 6b worklist."
         },
         {
           "id": "R-894",
@@ -702,6 +804,24 @@
           "anchor": "check(\"the race leaves no .reclaim litter behind\"",
           "old": "// req: R-232",
           "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "three sequential lock attempts in one process: exactly one wins",
+          "old": "// req: R-232",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "release leaves a lock owned by ANOTHER pid alone",
+          "old": "// req: R-232",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/hook.test.mjs",
+          "anchor": "the lock file records the owning pid",
+          "old": "// req: R-232",
+          "new": null
         }
       ]
     },
@@ -711,7 +831,7 @@
         {
           "id": "R-234",
           "text": "IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing, THEN nothing shall be injected.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/extension.test.mjs::5: a hung child yields null",
             "packages/nana-knowledge/tests/extension.test.mjs::11: ...and injects nothing (the producer skips it)",
@@ -726,12 +846,12 @@
               "pins": "nothing shall be injected"
             }
           ],
-          "assertion": "11: ...and injects nothing (the producer skips it) goes red when on a null pull the extension now injects a forced message instead of returning undefined."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing\"; 6b worklist."
         },
         {
           "id": "R-895",
           "text": "IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing, THEN no throw shall escape.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/extension.test.mjs::3: same prompt, same session → undefined"
           ],
@@ -744,12 +864,12 @@
               "pins": "no throw shall escape"
             }
           ],
-          "assertion": "3: same prompt, same session → undefined goes red when removed the outer catch's blanket swallow and forced a throw whenever pull() resolves null; the throw escaped uncaught instead of yielding undefined."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing\"; 6b worklist."
         },
         {
           "id": "R-896",
           "text": "Pulls from pi shall log source pi and dedup on the pi session id.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries the pi session id",
             "packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries source \"pi\"",
@@ -764,7 +884,7 @@
               "pins": "dedup on the pi session id"
             }
           ],
-          "assertion": "4: a different session id pulls again goes red when the extension now sends a FIXED session_id to the child regardless of the real ctx session, so dedup collides across sessions."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"log source pi\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -772,31 +892,43 @@
           "file": "packages/nana-knowledge/tests/extension.test.mjs",
           "anchor": "check(\"3: same prompt, same session → undefined\"",
           "old": "// req: R-234",
-          "new": "// req: R-234 R-895"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/extension.test.mjs",
           "anchor": "check(\"6: a missing bin does not throw\"",
           "old": "// req: R-234",
-          "new": "// req: R-895"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/extension.test.mjs",
           "anchor": "pull.log carries source \"pi\"",
           "old": "// req: R-231 R-234",
-          "new": "// req: R-231 R-896"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/extension.test.mjs",
           "anchor": "check(\"2: pull.log carries the pi session id\"",
           "old": "// req: R-234",
-          "new": "// req: R-896"
+          "new": null
         },
         {
           "file": "packages/nana-knowledge/tests/extension.test.mjs",
-          "anchor": "check(\"4: a different session id pulls again\"",
-          "old": null,
-          "new": "// req: R-896"
+          "anchor": "5: a hung child yields null",
+          "old": "// req: R-234",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/extension.test.mjs",
+          "anchor": "11: ...and injects nothing (the producer skips it)",
+          "old": "// req: R-234",
+          "new": null
+        },
+        {
+          "file": "packages/nana-knowledge/tests/extension.test.mjs",
+          "anchor": "5b: a child whose callback never fires still yields null",
+          "old": "// req: R-234",
+          "new": null
         }
       ]
     },
@@ -821,7 +953,7 @@
         {
           "id": "R-250",
           "text": "Every block a tool returns shall be validated at the tool_result boundary by one validator.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::malformed: isError, no entries"
           ],
@@ -834,12 +966,12 @@
               "pins": "shall be validated at the tool_result boundary by one validator"
             }
           ],
-          "assertion": "malformed: isError, no entries goes red when processToolResult now treats every block as valid regardless of validateBlock's verdict."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"at the tool_result boundary by one validator\"; 6b worklist."
         },
         {
           "id": "R-266",
           "text": "A validated block shall carry a type, a title and a scope.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::missing scope rejected",
             "packages/nana-stage/tests/blocks.test.mjs::missing title rejected"
@@ -853,12 +985,12 @@
               "pins": "carry a type, a title and a scope"
             }
           ],
-          "assertion": "missing title rejected goes red when disabled the title-presence/non-blank check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"a type\", \"a scope\"; 6b worklist."
         },
         {
           "id": "R-267",
           "text": "An unknown type, a reserved type or a bad slot shall be rejected.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::reserved type rejected with a specific message",
             "packages/nana-stage/tests/blocks.test.mjs::unknown type rejected",
@@ -873,7 +1005,7 @@
               "pins": "An unknown type, a reserved type or a bad slot shall be rejected"
             }
           ],
-          "assertion": "unknown type rejected goes red when disabled the reserved-type and unknown-type checks."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"a bad slot\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -881,37 +1013,37 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"missing scope rejected\"",
           "old": "// req: R-250",
-          "new": "// req: R-266"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"missing title rejected\"",
           "old": "// req: R-250",
-          "new": "// req: R-266"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"reserved type rejected with a specific message\"",
           "old": "// req: R-250",
-          "new": "// req: R-267"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"unknown type rejected\"",
           "old": "// req: R-250",
-          "new": "// req: R-267"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"bad slot rejected\"",
           "old": "// req: R-250",
-          "new": "// req: R-267"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"malformed: isError, no entries\"",
           "old": "// req: R-262",
-          "new": "// req: R-250 R-262 R-276"
+          "new": null
         }
       ]
     },
@@ -921,7 +1053,7 @@
         {
           "id": "R-251",
           "text": "WHERE the block is a table, it shall declare columns.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::table without columns rejected"
           ],
@@ -934,12 +1066,12 @@
               "pins": "it shall declare columns"
             }
           ],
-          "assertion": "table without columns rejected goes red when disabled the non-empty columns check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE the block is a table\"; 6b worklist."
         },
         {
           "id": "R-268",
           "text": "WHERE the block is a table, its rows shall be objects.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::table row not object rejected"
           ],
@@ -952,12 +1084,12 @@
               "pins": "its rows shall be objects"
             }
           ],
-          "assertion": "table row not object rejected goes red when disabled the row-is-object check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE the block is a table\"; 6b worklist."
         },
         {
           "id": "R-269",
           "text": "WHERE the block is a table, it shall not exceed the row cap.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::table > ${MAX_TABLE_ROWS} rows rejected"
           ],
@@ -970,7 +1102,7 @@
               "pins": "it shall not exceed the row cap"
             }
           ],
-          "assertion": "table > ${MAX_TABLE_ROWS} rows rejected goes red when disabled the MAX_TABLE_ROWS check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE the block is a table\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -978,13 +1110,19 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"table row not object rejected\"",
           "old": "// req: R-251",
-          "new": "// req: R-268"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "table > ${MAX_TABLE_ROWS} rows rejected",
           "old": "// req: R-251",
-          "new": "// req: R-269"
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "table without columns rejected",
+          "old": "// req: R-251",
+          "new": null
         }
       ]
     },
@@ -994,7 +1132,7 @@
         {
           "id": "R-252",
           "text": "Card and table values shall be null, strings, booleans or finite numbers only.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::null, strings, booleans and finite numbers stay legal in both"
           ],
@@ -1007,12 +1145,12 @@
               "pins": "shall be null, strings, booleans or finite numbers only"
             }
           ],
-          "assertion": "null, strings, booleans and finite numbers stay legal in both goes red when isScalar no longer accepts null."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"Card and table values\", \"strings, booleans or finite numbers only\"; 6b worklist."
         },
         {
           "id": "R-270",
-          "text": "An object value or anything that mutates or vanishes on replay shall be rejected.",
-          "status": "implemented",
+          "text": "A card or table value that is an object, or anything else that mutates or vanishes on replay, shall be rejected.",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::card field with object value rejected"
           ],
@@ -1025,7 +1163,7 @@
               "pins": "An object value or anything that mutates or vanishes on replay shall be rejected"
             }
           ],
-          "assertion": "card field with object value rejected goes red when isScalar now also accepts objects."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"anything that mutates or vanishes on replay\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1033,19 +1171,25 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"card field with object value rejected\"",
           "old": "// req: R-252",
-          "new": "// req: R-270"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "card value ${what} rejected (silently mutates or vanishes on replay)",
           "old": "// req: R-252",
-          "new": "// req: R-252 R-270"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "table cell ${what} rejected",
           "old": "// req: R-252",
-          "new": "// req: R-252 R-270"
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "null, strings, booleans and finite numbers stay legal in both",
+          "old": "// req: R-252",
+          "new": null
         }
       ]
     },
@@ -1073,7 +1217,7 @@
         {
           "id": "R-271",
           "text": "A per_row action shall be legal only on a table, where rowPrompt substitutes the row.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::per_row action on a card rejected",
             "packages/nana-stage/tests/blocks.test.mjs::per_row action on a table accepted; rowPrompt substitutes"
@@ -1087,7 +1231,7 @@
               "pins": "A per_row action shall be legal only on a table"
             }
           ],
-          "assertion": "per_row action on a card rejected goes red when removed the per_row-only-on-table check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"where rowPrompt substitutes the row\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1095,13 +1239,13 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"per_row action on a card rejected\"",
           "old": "// req: R-254",
-          "new": "// req: R-271"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"per_row action on a table accepted; rowPrompt substitutes\"",
           "old": "// req: R-254",
-          "new": "// req: R-271"
+          "new": null
         }
       ]
     },
@@ -1111,7 +1255,7 @@
         {
           "id": "R-255",
           "text": "A block over 64 KiB, or one that cannot survive JSON transport, shall be rejected rather than thrown on.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::oversize block (>64 KiB) rejected",
             "packages/nana-stage/tests/blocks.test.mjs::a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw)"
@@ -1132,7 +1276,7 @@
               "pins": "one that cannot survive JSON transport"
             }
           ],
-          "assertion": "oversize block (>64 KiB) rejected goes red when disabled the MAX_BLOCK_BYTES size check; a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw) goes red when validateBlock's outer catch now swallows a thrown error and returns ok:true instead of reporting it."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"shall be rejected rather than thrown on\"; 6b worklist."
         },
         {
           "id": "R-272",
@@ -1146,6 +1290,18 @@
           "anchor": "check(\"what validates now round-trips through JSON unchanged\"",
           "old": "// req: R-255",
           "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "oversize block (>64 KiB) rejected",
+          "old": "// req: R-255",
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw)",
+          "old": "// req: R-255",
+          "new": null
         }
       ]
     },
@@ -1155,7 +1311,7 @@
         {
           "id": "R-257",
           "text": "WHERE a per-session key exists, each block shall be signed with HMAC-SHA256 over the canonical JSON excluding produced_by.sig — key-order independent.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::signed: sig present and verifies",
             "packages/nana-stage/tests/blocks.test.mjs::canonical: key order independent"
@@ -1169,12 +1325,12 @@
               "pins": "each block shall be signed with HMAC-SHA256"
             }
           ],
-          "assertion": "signed: sig present and verifies goes red when signBlock now hashes a fixed payload instead of the block's own canonical JSON."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a per-session key exists\", \"over the canonical JSON excluding produced_by.sig — key-order independent\", \"HMAC-SHA256\"; 6b worklist."
         },
         {
           "id": "R-273",
           "text": "WHERE a per-session key exists, verification shall fail on tampered data, a tampered stamp, a wrong key or an unsigned block.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::signed: tampering the data breaks the sig",
             "packages/nana-stage/tests/blocks.test.mjs::signed: tampering the stamp breaks the sig",
@@ -1190,7 +1346,7 @@
               "pins": "verification shall fail on tampered data, a tampered stamp, a wrong key or an unsigned block"
             }
           ],
-          "assertion": "signed: tampering the data breaks the sig goes red when verifyBlock now always returns true."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE a per-session key exists\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1198,25 +1354,37 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"signed: tampering the data breaks the sig\"",
           "old": "// req: R-257",
-          "new": "// req: R-273"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"signed: tampering the stamp breaks the sig\"",
           "old": "// req: R-257",
-          "new": "// req: R-273"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"signed: wrong key fails\"",
           "old": "// req: R-257",
-          "new": "// req: R-273"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"signed: unsigned block fails\"",
           "old": "// req: R-257",
-          "new": "// req: R-273"
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "signed: sig present and verifies",
+          "old": "// req: R-257",
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "canonical: key order independent",
+          "old": "// req: R-257",
+          "new": null
         }
       ]
     },
@@ -1226,7 +1394,7 @@
         {
           "id": "R-261",
           "text": "Rendered text shall be hard-bounded per block and per tool result, truncation announced rather than silent.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::truncation is announced in the text, never silent",
             "packages/nana-stage/tests/blocks.test.mjs::tool-result text is hard-bounded at ${MAX_RESULT_TEXT_BYTES} bytes"
@@ -1240,7 +1408,7 @@
               "pins": "truncation announced rather than silent"
             }
           ],
-          "assertion": "truncation is announced in the text, never silent goes red when clampText now returns the text unmodified, never truncating."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"hard-bounded per block and per tool result\"; 6b worklist."
         },
         {
           "id": "R-274",
@@ -1291,6 +1459,18 @@
           "anchor": "every cut decodes as valid UTF-8",
           "old": "// req: R-261",
           "new": "// req: R-275"
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "truncation is announced in the text, never silent",
+          "old": "// req: R-261",
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "tool-result text is hard-bounded at ${MAX_RESULT_TEXT_BYTES} bytes",
+          "old": "// req: R-261",
+          "new": null
         }
       ]
     },
@@ -1300,7 +1480,7 @@
         {
           "id": "R-262",
           "text": "IF any block is malformed, THEN the result shall become an error naming the block index and reason.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::malformed: content is a text-part array naming the block index + reason",
             "packages/nana-stage/tests/blocks.test.mjs::malformed: isError, no entries"
@@ -1314,12 +1494,12 @@
               "pins": "the result shall become an error naming the block index and reason"
             }
           ],
-          "assertion": "malformed: content is a text-part array naming the block index + reason goes red when fail()'s message no longer includes the per-block error list."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF any block is malformed\", \"become an error\"; 6b worklist."
         },
         {
           "id": "R-276",
           "text": "IF any block is malformed, THEN no entries shall be appended.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::malformed: isError, no entries"
           ],
@@ -1332,12 +1512,12 @@
               "pins": "no entries shall be appended"
             }
           ],
-          "assertion": "malformed: isError, no entries goes red when the malformed-block branch now returns the offending block in entries instead of []."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF any block is malformed\"; 6b worklist."
         },
         {
           "id": "R-277",
           "text": "IF any block is malformed, THEN the carrier shall be stripped and other details kept.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::malformed: carrier stripped, other details kept"
           ],
@@ -1350,7 +1530,7 @@
               "pins": "the carrier shall be stripped and other details kept"
             }
           ],
-          "assertion": "malformed: carrier stripped, other details kept goes red when fail() now returns event.details unstripped."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF any block is malformed\", \"other details kept\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1358,7 +1538,13 @@
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"malformed: carrier stripped, other details kept\"",
           "old": "// req: R-262",
-          "new": "// req: R-277"
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "malformed: content is a text-part array naming the block index + reason",
+          "old": "// req: R-262",
+          "new": null
         }
       ]
     },
@@ -1368,7 +1554,7 @@
         {
           "id": "R-263",
           "text": "WHERE blocks arrive through the MCP adapter they shall be extracted from the structured result and stamped.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::mcp path: blocks extracted, stamped, carrier moved to details.blocks",
             "packages/nana-stage/tests/blocks.test.mjs::mcp carrier found"
@@ -1382,12 +1568,12 @@
               "pins": "they shall be extracted from the structured result and stamped"
             }
           ],
-          "assertion": "mcp path: blocks extracted, stamped, carrier moved to details.blocks goes red when disabled the MCP branch of extractBlocks entirely (if (false))."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE blocks arrive through the MCP adapter\", \"stamped\"; 6b worklist."
         },
         {
           "id": "R-278",
           "text": "WHERE blocks arrive through the MCP adapter, an omission summary shall become an error naming the cap.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::mcp overflow → error naming the cap",
             "packages/nana-stage/tests/blocks.test.mjs::mcp omission summary → overflow"
@@ -1401,12 +1587,12 @@
               "pins": "an omission summary shall become an error naming the cap"
             }
           ],
-          "assertion": "mcp overflow → error naming the cap goes red when removed the omission/overflow detection in extractBlocks."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE blocks arrive through the MCP adapter\", \"naming the cap\"; 6b worklist."
         },
         {
           "id": "R-279",
           "text": "WHERE blocks arrive through the MCP adapter, a result carrying no blocks shall be left untouched.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::non-block tool result is untouched (null)"
           ],
@@ -1419,33 +1605,27 @@
               "pins": "a result carrying no blocks shall be left untouched"
             }
           ],
-          "assertion": "non-block tool result is untouched (null) goes red when processToolResult now returns an error patch instead of null when blocks is null/undefined."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHERE blocks arrive through the MCP adapter\"; 6b worklist."
         }
       ],
       "markerEdits": [
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
-          "anchor": "check(\"mcp carrier found\"",
-          "old": null,
-          "new": "// req: R-263"
-        },
-        {
-          "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"mcp overflow → error naming the cap\"",
           "old": "// req: R-263",
-          "new": "// req: R-278"
-        },
-        {
-          "file": "packages/nana-stage/tests/blocks.test.mjs",
-          "anchor": "check(\"mcp omission summary → overflow\"",
-          "old": null,
-          "new": "// req: R-278"
+          "new": null
         },
         {
           "file": "packages/nana-stage/tests/blocks.test.mjs",
           "anchor": "check(\"non-block tool result is untouched (null)\"",
           "old": "// req: R-263",
-          "new": "// req: R-279"
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "mcp path: blocks extracted, stamped, carrier moved to details.blocks",
+          "old": "// req: R-263",
+          "new": null
         }
       ]
     },
@@ -1455,7 +1635,7 @@
         {
           "id": "R-264",
           "text": "The stage shall reduce the active branch only, root first, replacing a repeated id in place while keeping first-appearance order and excluding abandoned branches.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-stage/tests/blocks.test.mjs::reducer: same id replaced in place, ORDER of first appearance kept",
             "packages/nana-stage/tests/blocks.test.mjs::reducer: abandoned branch excluded",
@@ -1470,7 +1650,7 @@
               "pins": "reduce the active branch only, root first"
             }
           ],
-          "assertion": "reducer: abandoned branch excluded goes red when reduceEntries now walks every entry, not just the active-branch path from pathEntries()."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"root first\", \"replacing a repeated id in place while keeping first-appearance order\", \"excluding abandoned branches\"; 6b worklist."
         },
         {
           "id": "R-280",
@@ -1542,6 +1722,24 @@
           "anchor": "check(\"live: block stamped by this event is applied\"",
           "old": "// req: R-264",
           "new": "// req: R-281"
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "reducer: same id replaced in place, ORDER of first appearance kept",
+          "old": "// req: R-264",
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "reducer: abandoned branch excluded",
+          "old": "// req: R-264",
+          "new": null
+        },
+        {
+          "file": "packages/nana-stage/tests/blocks.test.mjs",
+          "anchor": "pathEntries: active branch only, root first",
+          "old": "// req: R-264",
+          "new": null
         }
       ]
     },
@@ -1551,7 +1749,7 @@
         {
           "id": "R-303",
           "text": "The shipped skill shall declare the requirements name with every trigger phrase its description must carry.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/skills-and-standards.test.mjs::the skill ships a SKILL.md with the requirements name",
             "packages/nana-setup/tests/skills-and-standards.test.mjs::the skill description carries every trigger phrase"
@@ -1565,12 +1763,12 @@
               "pins": "every trigger phrase its description must carry"
             }
           ],
-          "assertion": "the skill description carries every trigger phrase goes red when dropped 'readme-check' from the skill description's trigger-phrase list."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"declare the requirements name\"; 6b worklist."
         },
         {
           "id": "R-920",
           "text": "The standards rule shall stay one screen, imperative, and distinct from nana-soul.md.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/skills-and-standards.test.mjs::the standards rule is one screen, imperative, and not nana-soul.md"
           ],
@@ -1583,7 +1781,7 @@
               "pins": "shall stay one screen, imperative, and distinct from nana-soul.md"
             }
           ],
-          "assertion": "the standards rule is one screen, imperative, and not nana-soul.md goes red when padded the file with 40 extra lines past the one-screen (80-line) cap."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"imperative, and distinct from nana-soul.md\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1591,7 +1789,19 @@
           "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
           "anchor": "the standards rule is one screen, imperative, and not nana-soul.md",
           "old": "// req: R-303",
-          "new": "// req: R-920"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "the skill ships a SKILL.md with the `requirements` name",
+          "old": "// req: R-303",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "the skill description carries every trigger phrase",
+          "old": "// req: R-303",
+          "new": null
         }
       ]
     },
@@ -1600,8 +1810,8 @@
       "clauses": [
         {
           "id": "R-304",
-          "text": "IF a regular directory occupies the skill path THEN it shall be left untouched and reported ✗ with the fix, with install and --dry-run exiting 1 and nothing backed up inside the skills directory.",
-          "status": "implemented",
+          "text": "IF a regular directory occupies the skill path, THEN it shall be left untouched and reported ✗ with the fix.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/skills-and-standards.test.mjs::occupied skill dir: install EXITS 1 — automation must not read this as success",
             "packages/nana-setup/tests/skills-and-standards.test.mjs::occupied skill dir: ✗ with what was found and the fix",
@@ -1617,8 +1827,49 @@
               "result": "red",
               "pins": "it shall be left untouched and reported ✗ with the fix"
             }
-          ],
-          "assertion": "occupied skill dir: ✗ with what was found and the fix goes red when removed linkSkill's posix PROBLEM-return for an occupied directory."
+          ]
+        },
+        {
+          "id": "R-381",
+          "text": "IF a regular directory occupies the skill path, THEN install and --dry-run shall exit 1.",
+          "status": "untested"
+        },
+        {
+          "id": "R-382",
+          "text": "IF a regular directory occupies the skill path, THEN nothing shall be backed up inside the skills directory.",
+          "status": "untested"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "occupied skill dir: install EXITS 1 — automation must not read this as success",
+          "old": "// req: R-304",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "occupied skill dir: ✗ with what was found and the fix",
+          "old": "// req: R-304",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "occupied skill dir: the owner's file is untouched",
+          "old": "// req: R-304",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "occupied skill dir: nothing was backed up into ~/.claude/skills (a .bak dir would be a SECOND skill of the same name)",
+          "old": "// req: R-304",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
+          "anchor": "occupied skill dir: --dry-run exits 1 too",
+          "old": "// req: R-304",
+          "new": null
         }
       ]
     },
@@ -1646,7 +1897,7 @@
         {
           "id": "R-921",
           "text": "The per-project shared symlink shall have no installer step — the SessionStart hook creates it per project.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::self-heal: memory dir created at the derived key",
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::self-heal: shared is a symlink"
@@ -1660,7 +1911,7 @@
               "pins": "the SessionStart hook creates it per project"
             }
           ],
-          "assertion": "self-heal: shared is a symlink goes red when removed the self-heal symlink-creation block."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"shall have no installer step\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1668,13 +1919,13 @@
           "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
           "anchor": "check(\"self-heal: memory dir created at the derived key\"",
           "old": "// req: R-308",
-          "new": "// req: R-921"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
           "anchor": "self-heal: `shared` is a symlink",
           "old": "// req: R-308",
-          "new": "// req: R-921"
+          "new": null
         }
       ]
     },
@@ -1683,7 +1934,12 @@
       "clauses": [
         {
           "id": "R-315",
-          "text": "The installer shall never prompt, --yes accepted and doing nothing.",
+          "text": "The installer shall never prompt.",
+          "status": "untested"
+        },
+        {
+          "id": "R-383",
+          "text": "--yes shall be accepted and do nothing.",
           "status": "untested"
         }
       ]
@@ -1694,7 +1950,7 @@
         {
           "id": "R-317",
           "text": "A hook shall count as present only when the command actually executes that script — tokenized with shell-quoting rules, leading VAR=value dropped, argv[0] the interpreter, argv[1] a path ending in that script plus the expected argument.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::knowledge: the real command matches",
             "packages/nana-setup/tests/settings-merge.test.mjs::knowledge: echo node … hook does not",
@@ -1712,12 +1968,13 @@
               "result": "red",
               "pins": "A hook shall count as present only when the command actually executes that script"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"tokenized with shell-quoting rules, leading VAR=value dropped, argv[0] the interpreter, argv[1] a path ending in that script plus the expected argument\"; 6b worklist."
         },
         {
           "id": "R-922",
           "text": "A command carrying an unquoted operator, redirection or substitution, or one that cannot be parsed, shall read as not installed.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::unbalanced quoting reads as NOT installed",
             "packages/nana-setup/tests/settings-merge.test.mjs::tokenize: ${op} outside quotes is null"
@@ -1731,7 +1988,8 @@
               "result": "red",
               "pins": "carrying an unquoted operator, redirection or substitution"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"one that cannot be parsed\", \"shall read as not installed\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1739,13 +1997,49 @@
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "unbalanced quoting reads as NOT installed",
           "old": "// req: R-317",
-          "new": "// req: R-922"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "outside quotes is null",
           "old": "// req: R-317",
-          "new": "// req: R-922"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "knowledge: the real command matches",
+          "old": "// req: R-317",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "knowledge: `echo node … hook` does not",
+          "old": "// req: R-317",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "matches: ${c}",
+          "old": "// req: R-317",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "does NOT match: ${c}",
+          "old": "// req: R-317",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "knowledge: a different subcommand does not",
+          "old": "// req: R-317",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "tokenize: env assignment stays its own word",
+          "old": "// req: R-317",
+          "new": null
         }
       ]
     },
@@ -1755,7 +2049,7 @@
         {
           "id": "R-318",
           "text": "A look-alike command shall not suppress the real hook.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::a look-alike command does not suppress the real hook",
             "packages/nana-setup/tests/settings-merge.test.mjs::the look-alike is still there, untouched",
@@ -1770,12 +2064,13 @@
               "result": "red",
               "pins": "A look-alike command shall not suppress the real hook"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"A look-alike command shall not suppress the real hook\"; 6b worklist."
         },
         {
           "id": "R-923",
           "text": "A hand-written variant of a nana hook shall be kept as-is with no duplicate entry added.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::an existing unquoted ~ context-size hook is recognised, not re-added",
             "packages/nana-setup/tests/settings-merge.test.mjs::no second context-size hook",
@@ -1790,7 +2085,8 @@
               "result": "red",
               "pins": "A hand-written variant of a nana hook shall be kept as-is with no duplicate entry added"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"kept as-is\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1798,25 +2094,31 @@
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "context-size hook is recognised, not re-added",
           "old": "// req: R-318",
-          "new": "// req: R-923"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "no second context-size hook",
           "old": "// req: R-318",
-          "new": "// req: R-923"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "the hand-written context-size hook is kept as-is",
           "old": "// req: R-318",
-          "new": "// req: R-923"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
-          "anchor": "check(\"empty settings: all five added\"",
-          "old": null,
-          "new": "// req: R-318"
+          "anchor": "a look-alike command does not suppress the real hook",
+          "old": "// req: R-318",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "the look-alike is still there, untouched",
+          "old": "// req: R-318",
+          "new": null
         }
       ]
     },
@@ -1826,7 +2128,7 @@
         {
           "id": "R-320",
           "text": "Preflight shall parse and shape-validate settings.json.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::broken settings.json: the message names the file",
             "packages/nana-setup/tests/settings-merge.test.mjs::broken settings.json: the message says nothing was changed",
@@ -1841,12 +2143,13 @@
               "result": "red",
               "pins": "Preflight shall parse and shape-validate settings.json"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"parse\"; 6b worklist."
         },
         {
           "id": "R-924",
-          "text": "IF either parse or shape-validation fails THEN the run shall abort naming the file before anything on disk moves — no hooks, no seeds, no PATH entry.",
-          "status": "implemented",
+          "text": "IF either parse or shape-validation of settings.json by preflight fails THEN the run shall abort naming the file before anything on disk moves — no hooks, no seeds, no PATH entry.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::{\"hooks\":\"disabled\"}: NO files were moved",
             "packages/nana-setup/tests/settings-merge.test.mjs::{\"hooks\":\"disabled\"}: no pi seeds",
@@ -1861,33 +2164,39 @@
               "pins": "the run shall abort naming the file before anything on disk moves"
             }
           ],
-          "assertion": "{\"hooks\":\"disabled\"}: NO files were moved goes red when validateShape now always returns null, so a malformed hooks shape never aborts the run before writing."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF either parse or shape-validation fails\"; \"no hooks, no seeds, no PATH entry\"; 6b worklist."
         }
       ],
       "markerEdits": [
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
-          "anchor": "invalid: {\"hooks\":\"disabled\"}",
-          "old": null,
-          "new": "// req: R-320"
-        },
-        {
-          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "{\"hooks\":\"disabled\"}: NO files were moved",
           "old": "// req: R-320",
-          "new": "// req: R-924"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "{\"hooks\":\"disabled\"}: no pi seeds",
           "old": "// req: R-320",
-          "new": "// req: R-924"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "{\"hooks\":\"disabled\"}: no PATH entry",
           "old": "// req: R-320",
-          "new": "// req: R-924"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "broken settings.json: the message names the file",
+          "old": "// req: R-320",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "broken settings.json: the message says nothing was changed",
+          "old": "// req: R-320",
+          "new": null
         }
       ]
     },
@@ -1897,7 +2206,7 @@
         {
           "id": "R-322",
           "text": "IF a lock file already exists, THEN the run shall abort printing the lock path, recorded pid, age and the exact rm command.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::lock: the message prints the exact rm command",
             "packages/nana-setup/tests/settings-merge.test.mjs::lock: a day-old lock with a dead pid still aborts",
@@ -1914,7 +2223,7 @@
               "pins": "the run shall abort printing the lock path, recorded pid, age and the exact rm command"
             }
           ],
-          "assertion": "lock: the message prints the lock path goes red when withSettingsLock's EEXIST abort message was reduced to a bare sentence, dropping the lock path/pid/age/rm command."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF a lock file already exists\", \"the run shall abort\"; 6b worklist."
         },
         {
           "id": "R-925",
@@ -1939,7 +2248,7 @@
         {
           "id": "R-926",
           "text": "IF a lock file already exists, THEN --dry-run shall not be blocked by it.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/settings-merge.test.mjs::lock: --dry-run is not blocked by a lock"
           ],
@@ -1952,7 +2261,7 @@
               "pins": "--dry-run shall not be blocked by it"
             }
           ],
-          "assertion": "lock: --dry-run is not blocked by a lock goes red when removed stepSettings' dry-run early return, so dry-run now also goes through withSettingsLock."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"IF a lock file already exists\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -1978,7 +2287,37 @@
           "file": "packages/nana-setup/tests/settings-merge.test.mjs",
           "anchor": "lock: --dry-run is not blocked by a lock",
           "old": "// req: R-322",
-          "new": "// req: R-926"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "lock: the message prints the exact rm command",
+          "old": "// req: R-322",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "lock: a day-old lock with a dead pid still aborts",
+          "old": "// req: R-322",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "lock: the message prints the lock path",
+          "old": "// req: R-322",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "lock: the message prints the recorded pid",
+          "old": "// req: R-322",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/settings-merge.test.mjs",
+          "anchor": "lock: the message prints the recorded age",
+          "old": "// req: R-322",
+          "new": null
         }
       ]
     },
@@ -2007,7 +2346,7 @@
         {
           "id": "R-927",
           "text": "WHEN this repo is already registered, the matching entry shall be reported.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/pi-registration.test.mjs::the matching entry is reported",
             "packages/nana-setup/tests/pi-registration.test.mjs::install reports it as already registered"
@@ -2021,7 +2360,8 @@
               "result": "red",
               "pins": "the matching entry shall be reported"
             }
-          ]
+          ],
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHEN this repo is already registered\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -2029,13 +2369,13 @@
           "file": "packages/nana-setup/tests/pi-registration.test.mjs",
           "anchor": "the matching entry is reported",
           "old": "// req: R-323",
-          "new": "// req: R-927"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/pi-registration.test.mjs",
           "anchor": "check(\"install reports it as already registered\"",
           "old": "// req: R-323",
-          "new": "// req: R-323 R-927"
+          "new": "// req: R-323"
         }
       ]
     },
@@ -2044,7 +2384,12 @@
       "clauses": [
         {
           "id": "R-324",
-          "text": "Registration shall be matched by identity, not string, counting an entry naming another checkout or a linked worktree of this repository — ~ expands, a relative entry resolves against the pi home, both sides are realpath'd.",
+          "text": "Registration shall be matched by identity, not string — ~ expands, a relative entry resolves against the pi home, both sides are realpath'd.",
+          "status": "untested"
+        },
+        {
+          "id": "R-384",
+          "text": "An entry naming another checkout or a linked worktree of this repository shall count as a match by that same identity.",
           "status": "untested"
         }
       ],
@@ -2122,8 +2467,8 @@
       "clauses": [
         {
           "id": "R-333",
-          "text": "Presence shall be decided by lstat, so a dangling symlink or a directory at a seed path reads skipped naming what was found, with nothing written through it and the link or directory untouched.",
-          "status": "implemented",
+          "text": "Presence shall be decided by lstat.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/project.test.mjs::dangling symlink: nothing written through it",
             "packages/nana-setup/tests/project.test.mjs::dangling symlink: reported as skipped, naming what was found",
@@ -2139,8 +2484,44 @@
               "result": "red",
               "pins": "Presence shall be decided by lstat"
             }
-          ],
-          "assertion": "dangling symlink: nothing written through it goes red when the module-level lstat() helper now uses fs.statSync (follows symlinks), so a dangling symlink reads as absent."
+          ]
+        },
+        {
+          "id": "R-385",
+          "text": "A dangling symlink or a directory at a seed path shall be reported skipped naming what was found, with nothing written through it and the link or directory untouched.",
+          "status": "untested"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "dangling symlink: nothing written through it",
+          "old": "// req: R-333",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "dangling symlink: reported as skipped, naming what was found",
+          "old": "// req: R-333",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "directory at a seed path: reported as skipped",
+          "old": "// req: R-333",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "dangling symlink: the link itself is untouched",
+          "old": "// req: R-333",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "directory at a seed path: still a directory",
+          "old": "// req: R-333",
+          "new": null
         }
       ]
     },
@@ -2150,7 +2531,7 @@
         {
           "id": "R-335",
           "text": "--name shall be treated as data: shell and regex metacharacters land literally in every seeded file with nothing executed.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/project.test.mjs::nasty name: nothing was executed",
             "packages/nana-setup/tests/project.test.mjs::nasty name: written LITERALLY into the seed ($& is not a regex replacement)"
@@ -2164,7 +2545,7 @@
               "pins": "--name shall be treated as data"
             }
           ],
-          "assertion": "nasty name: written LITERALLY into the seed ($& is not a regex replacement) goes red when fillSeed now uses replaceAll (regex-replacement-pattern semantics for $&/$'/$1) instead of split/join."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"shell and regex metacharacters land literally in every seeded file with nothing executed\"; 6b worklist."
         },
         {
           "id": "R-929",
@@ -2205,6 +2586,18 @@
           "anchor": "SKILL.md: no fallback command interpolates a name placeholder into the command text",
           "old": "// req: R-335",
           "new": "// req: R-929"
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "nasty name: nothing was executed",
+          "old": "// req: R-335",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "nasty name: written LITERALLY into the seed ($& is not a regex replacement)",
+          "old": "// req: R-335",
+          "new": null
         }
       ]
     },
@@ -2272,7 +2665,7 @@
         {
           "id": "R-338",
           "text": "project --dry-run shall report what it would do, including a folder it would create, and write nothing.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/project.test.mjs::dry run wrote nothing",
             "packages/nana-setup/tests/project.test.mjs::dry run reports the folder it would create and creates nothing"
@@ -2286,12 +2679,12 @@
               "pins": "project --dry-run shall report what it would do"
             }
           ],
-          "assertion": "dry run reports the folder it would create and creates nothing goes red when the missing-leaf-folder branch now always mkdirs, even under --dry-run."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"including a folder it would create, and write nothing\"; 6b worklist."
         },
         {
           "id": "R-931",
-          "text": "WHEN a parent directory is missing, project --dry-run shall still abort.",
-          "status": "implemented",
+          "text": "A missing parent directory shall abort the run, dry run included.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/project.test.mjs::a missing parent still aborts"
           ],
@@ -2304,7 +2697,7 @@
               "pins": "project --dry-run shall still abort"
             }
           ],
-          "assertion": "a missing parent still aborts goes red when removed the missing-parent SetupError check."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): the original clause's own cite (project.test.mjs:419-421) invokes plain `project`, not --dry-run; broadened back to the general guarantee. No record pins it; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -2312,7 +2705,19 @@
           "file": "packages/nana-setup/tests/project.test.mjs",
           "anchor": "a missing parent still aborts",
           "old": "// req: R-338",
-          "new": "// req: R-931"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "dry run wrote nothing",
+          "old": "// req: R-338",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/project.test.mjs",
+          "anchor": "dry run reports the folder it would create and creates nothing",
+          "old": "// req: R-338",
+          "new": null
         }
       ]
     },
@@ -2322,7 +2727,7 @@
         {
           "id": "R-346",
           "text": "WHILE that value is ambient and relative, doctor shall still run, print a ! line naming the cwd, never say all good and exit non-zero.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/relative-agent-dir.test.mjs::doctor prints a ! warning line naming the cwd it resolved against",
             "packages/nana-setup/tests/relative-agent-dir.test.mjs::doctor never says 'all good' with the warning",
@@ -2338,12 +2743,12 @@
               "pins": "doctor shall still run, print a ! line naming the cwd"
             }
           ],
-          "assertion": "doctor prints a ! warning line naming the cwd it resolved against goes red when removed the piHomeCwdRelative WARN line entirely."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"WHILE that value is ambient and relative\", \"still run\", \"never say all good and exit non-zero\"; 6b worklist."
         },
         {
           "id": "R-932",
           "text": "An explicit --pi-home, relative or not, shall be used as given.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/relative-agent-dir.test.mjs::an explicit RELATIVE --pi-home is not refused (resolved as given)",
             "packages/nana-setup/tests/relative-agent-dir.test.mjs::install --pi-home <abs> succeeds despite the ambient relative value",
@@ -2358,7 +2763,7 @@
               "pins": "An explicit --pi-home, relative or not, shall be used as given"
             }
           ],
-          "assertion": "an explicit RELATIVE --pi-home is not refused (resolved as given) goes red when piHomeCwdRelative now also flags an explicit --pi-home as cwd-relative, so it goes through the same refusal/warning path as an ambient value."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"shall be used as given\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -2366,19 +2771,31 @@
           "file": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
           "anchor": "an explicit RELATIVE --pi-home is not refused",
           "old": "// req: R-346",
-          "new": "// req: R-932"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
-          "anchor": "check(\"install --pi-home <abs> succeeds despite the ambient relative value\"",
-          "old": null,
-          "new": "// req: R-932"
+          "anchor": "doctor prints a ! warning line naming the cwd it resolved against",
+          "old": "// req: R-346",
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
-          "anchor": "check(\"project --pi-home <abs> is not refused\"",
-          "old": null,
-          "new": "// req: R-932"
+          "anchor": "doctor never says 'all good' with the warning",
+          "old": "// req: R-346",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
+          "anchor": "doctor still runs (not a refusal) and reads the cwd-relative file",
+          "old": "// req: R-346",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/relative-agent-dir.test.mjs",
+          "anchor": "doctor exits non-zero with the warning",
+          "old": "// req: R-341 R-346",
+          "new": "// req: R-341"
         }
       ]
     },
@@ -2387,8 +2804,8 @@
       "clauses": [
         {
           "id": "R-348",
-          "text": "The shared-memory hook shall prefer the directory named by transcript_path when it sits under the projects dir, else the derived key, honouring an alternate Claude config dir throughout.",
-          "status": "implemented",
+          "text": "The shared-memory hook shall prefer the directory named by transcript_path when it sits under the projects dir, else the derived key.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::transcript_path: links the dir the harness named",
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::foreign transcript_path: falls back to the derived key",
@@ -2410,8 +2827,12 @@
               "result": "red",
               "pins": "honouring an alternate Claude config dir"
             }
-          ],
-          "assertion": "transcript_path: links the dir the harness named goes red when disabled the transcript_path preference branch (if false); CLAUDE_CONFIG_DIR: links under the alternate projects dir goes red when CLAUDE_CONFIG_DIR override ignored; claude_home hardcoded to $HOME/.claude."
+          ]
+        },
+        {
+          "id": "R-386",
+          "text": "The shared-memory hook shall honour an alternate Claude config dir.",
+          "status": "untested"
         },
         {
           "id": "R-933",
@@ -2440,7 +2861,7 @@
         {
           "id": "R-935",
           "text": "The shared-memory hook shall fail open creating only what is missing.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::no index: creates nothing",
             "packages/nana-setup/tests/shared-memory-hook.test.mjs::existing shared/: left as a real directory",
@@ -2455,7 +2876,7 @@
               "pins": "shall fail open creating only what is missing"
             }
           ],
-          "assertion": "no index: creates nothing goes red when removed the `[ -r \"$idx\" ] || exit 0` fail-open guard, so the hook proceeds and creates structure even with no shared index."
+          "evidence": "astra r1 2026-10-04 (EARS form batch B gap audit): no record pins \"fail open creating only what is missing\"; 6b worklist."
         }
       ],
       "markerEdits": [
@@ -2475,19 +2896,43 @@
           "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
           "anchor": "no index: creates nothing",
           "old": "// req: R-348",
-          "new": "// req: R-935"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
           "anchor": "existing shared/: left as a real directory",
           "old": "// req: R-348",
-          "new": "// req: R-935"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
           "anchor": "existing shared/: contents untouched",
           "old": "// req: R-348",
-          "new": "// req: R-935"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
+          "anchor": "transcript_path: links the dir the harness named",
+          "old": "// req: R-348",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
+          "anchor": "foreign transcript_path: falls back to the derived key",
+          "old": "// req: R-348",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
+          "anchor": "CLAUDE_CONFIG_DIR: links under the alternate projects dir",
+          "old": "// req: R-348",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/shared-memory-hook.test.mjs",
+          "anchor": "shared prefix: project B's memory dir was NOT linked",
+          "old": "// req: R-348",
+          "new": null
         }
       ]
     },
@@ -2497,7 +2942,7 @@
         {
           "id": "R-349",
           "text": "WHERE the platform is win32, every posix-only step shall report skipped (win32) and create nothing.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32: ${label} reports skipped (win32)",
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32: no hooks directory is created",
@@ -2516,14 +2961,13 @@
         },
         {
           "id": "R-936",
-          "text": "WHERE the platform is win32, settings shall exclude every bash hook and wire the surviving knowledge hook with no VAR=value prefix.",
-          "status": "implemented",
+          "text": "WHERE the platform is win32, the knowledge hook shall be wired with no VAR=value prefix.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32: no VAR=1 cmd env prefix (cmd.exe cannot run it)",
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32: no bash hooks in settings",
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32: only the knowledge hook is wired"
           ],
-          "assertion": "JSON.stringify(settings) contains no 'bash ' command, and the surviving knowledge entry's command does not start with NODE_NO_WARNINGS=.",
           "mutations": [
             {
               "file": "packages/nana-setup/lib/steps.mjs",
@@ -2535,9 +2979,14 @@
           ]
         },
         {
+          "id": "R-387",
+          "text": "WHERE the platform is win32, no bash hooks shall enter settings.",
+          "status": "untested"
+        },
+        {
           "id": "R-937",
           "text": "WHERE the platform is win32, doctor shall mark every win32-skipped line and exit 0 without a ✗.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32 doctor prints no ✗",
             "packages/nana-setup/tests/win32-degrade.test.mjs::win32 doctor exits 0",
@@ -2560,37 +3009,49 @@
           "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
           "anchor": "cmd.exe cannot run it",
           "old": "// req: R-349",
-          "new": "// req: R-936"
-        },
-        {
-          "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
-          "anchor": "check(\"win32: only the knowledge hook is wired\"",
-          "old": null,
-          "new": "// req: R-936"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
           "anchor": "check(\"win32: no bash hooks in settings\"",
           "old": "// req: R-349",
-          "new": "// req: R-936"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
           "anchor": "win32 doctor prints no ✗",
           "old": "// req: R-349",
-          "new": "// req: R-937"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
           "anchor": "win32 doctor exits 0",
           "old": "// req: R-349",
-          "new": "// req: R-937"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
           "anchor": "win32 doctor marks the skipped pieces",
           "old": "// req: R-349",
-          "new": "// req: R-937"
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
+          "anchor": "win32: ${label} reports skipped (win32)",
+          "old": "// req: R-349",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
+          "anchor": "win32: no hooks directory is created",
+          "old": "// req: R-349",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/win32-degrade.test.mjs",
+          "anchor": "win32: no ~/.local/bin entry is created",
+          "old": "// req: R-349",
+          "new": null
         }
       ]
     },
@@ -2600,7 +3061,7 @@
         {
           "id": "R-351",
           "text": "WHERE the platform is win32, the skill shall be mirrored file by file as byte-equal copies.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/skills-and-standards.test.mjs::win32: every file the source ships is copied byte-for-byte"
           ],
@@ -2612,13 +3073,12 @@
               "result": "red",
               "pins": "the skill shall be mirrored file by file as byte-equal copies"
             }
-          ],
-          "assertion": "win32: every file the source ships is copied byte-for-byte goes red when one shipped file (SKILL.md) is now appended with extra bytes right after its mirror copy, so it no longer matches the source byte-for-byte."
+          ]
         },
         {
           "id": "R-938",
-          "text": "WHERE the platform is win32, a stale or hand-written copy shall read ✗ naming the file in doctor, be backed up as a FILE inside the skill dir, and be refreshed by install.",
-          "status": "implemented",
+          "text": "WHERE the platform is win32, a stale copy shall read ✗ naming the file and be refreshed.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/skills-and-standards.test.mjs::win32: doctor reads ✗ on a stale copy, naming the file",
             "packages/nana-setup/tests/skills-and-standards.test.mjs::win32: install refreshes the stale copy",
@@ -2640,8 +3100,12 @@
               "result": "red",
               "pins": "shall read ✗ naming the file in doctor"
             }
-          ],
-          "assertion": "win32: install refreshes the stale copy goes red when linkFile's copyInstead branch now treats any existing file as UNCHANGED, dropping the content-equality check, so a stale/hand-written copy is never refreshed or backed up; win32: doctor reads ✗ on a stale copy, naming the file goes red when removed doctor's byte-compare in the win32 skill-mirror check, so a stale copy is never added to `missing`."
+          ]
+        },
+        {
+          "id": "R-388",
+          "text": "WHERE the platform is win32, a hand-written file shall be backed up as a FILE inside the skill dir.",
+          "status": "untested"
         },
         {
           "id": "R-939",
@@ -2654,25 +3118,25 @@
           "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
           "anchor": "win32: doctor reads ✗ on a stale copy, naming the file",
           "old": "// req: R-351",
-          "new": "// req: R-938"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
           "anchor": "win32: install refreshes the stale copy",
           "old": "// req: R-351",
-          "new": "// req: R-938"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
           "anchor": "win32: the backup is a FILE inside the skill dir",
           "old": "// req: R-351",
-          "new": "// req: R-938"
+          "new": null
         },
         {
           "file": "packages/nana-setup/tests/skills-and-standards.test.mjs",
-          "anchor": "win32: the hand-written file was backed up, not destroyed",
-          "old": null,
-          "new": "// req: R-938"
+          "anchor": "win32: every file the source ships is copied byte-for-byte",
+          "old": "// req: R-351",
+          "new": null
         }
       ]
     },
@@ -2681,7 +3145,12 @@
       "clauses": [
         {
           "id": "R-354",
-          "text": "The desk launchd service shall be opt-in via --desk, idempotent, with no plist written otherwise, rendered from the template with resolved values only (node, this install's desk server, the install root, logs in the pi home, an XML-escaped PATH), a missing value erroring rather than rendering empty.",
+          "text": "The desk launchd service shall be opt-in via --desk, idempotent, with no plist written otherwise, rendered from the template with resolved values only (node, this install's desk server, the install root, logs in the pi home, an XML-escaped PATH).",
+          "status": "untested"
+        },
+        {
+          "id": "R-389",
+          "text": "A missing value shall be an error rather than an empty string.",
           "status": "untested"
         }
       ],
@@ -2741,8 +3210,8 @@
       "clauses": [
         {
           "id": "R-355",
-          "text": "WHEN the chosen pi agent dir is not the default, the plist shall export it as an absolute PI_CODING_AGENT_DIR inside EnvironmentVariables, rendering no such entry for the default dir.",
-          "status": "implemented",
+          "text": "WHEN the chosen pi agent dir is not the default, the plist shall export it as an absolute PI_CODING_AGENT_DIR inside EnvironmentVariables.",
+          "status": "untested",
           "cites": [
             "packages/nana-setup/tests/agent-dir-consumers.test.mjs::MUST 3: the rendered plist exports PI_CODING_AGENT_DIR = the chosen dir",
             "packages/nana-setup/tests/agent-dir-consumers.test.mjs::MUST 3: the default agent dir renders no PI_CODING_AGENT_DIR entry",
@@ -2764,8 +3233,38 @@
               "result": "red",
               "pins": "the plist shall export it as an absolute PI_CODING_AGENT_DIR inside EnvironmentVariables"
             }
-          ],
-          "assertion": "MUST 3: the default agent dir renders no PI_CODING_AGENT_DIR entry goes red when stepDesk's PI_CODING_AGENT_DIR ternary was forced to always resolve a value, so the default dir also renders the entry; MUST 3: the rendered plist exports PI_CODING_AGENT_DIR = the chosen dir goes red when stepDesk's PI_CODING_AGENT_DIR ternary was forced to always resolve empty, so a non-default dir no longer exports the entry."
+          ]
+        },
+        {
+          "id": "R-390",
+          "text": "The plist shall render no PI_CODING_AGENT_DIR entry for the default dir.",
+          "status": "untested"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-setup/tests/agent-dir-consumers.test.mjs",
+          "anchor": "MUST 3: the rendered plist exports PI_CODING_AGENT_DIR = the chosen dir",
+          "old": "// req: R-355",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/agent-dir-consumers.test.mjs",
+          "anchor": "MUST 3: the default agent dir renders no PI_CODING_AGENT_DIR entry",
+          "old": "// req: R-355",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/agent-dir-consumers.test.mjs",
+          "anchor": "MUST 3: plutil accepts the rendered plist",
+          "old": "// req: R-355",
+          "new": null
+        },
+        {
+          "file": "packages/nana-setup/tests/agent-dir-consumers.test.mjs",
+          "anchor": "MUST 3: ...inside EnvironmentVariables",
+          "old": "// req: R-355",
+          "new": null
         }
       ]
     },
@@ -2774,53 +3273,17 @@
       "clauses": [
         {
           "id": "R-358",
-          "text": "WHILE --home is in force, the pi-packages step shall report skipped (--home override in play) without running pi install.",
+          "text": "WHILE --home is in force, pi install shall not be run.",
           "status": "untested",
           "evidence": "split from R-314 2026-10-02 (clause audit): no test pins this clause"
+        },
+        {
+          "id": "R-391",
+          "text": "WHILE --home is in force, the pi-packages step shall report skipped (--home override in play).",
+          "status": "untested"
         }
       ]
     }
   ],
-  "merged": [
-    {
-      "origin": "R-304",
-      "reason": "the occupied-skill-path branch (posix linkSkill) reports PROBLEM, exits 1 and skips the backup from one unconditional early return — confirmed inseparable by execution: removing that one return breaks the ✗-naming and the --dry-run exit-1 guarantee together, with no mutation found that breaks one half while the other holds."
-    },
-    {
-      "origin": "R-315",
-      "reason": "'never prompt' and '--yes is a no-op' are one invariant read twice: nothing in the installer ever prompts, so --yes (accepted for compatibility) is trivially a no-op by the same fact. No separate code path exists to break one while the other holds."
-    },
-    {
-      "origin": "R-324",
-      "reason": "realpath-identity matching and worktree/another-checkout counting are the SAME gitCommonDir comparison read from two angles; no existing or constructed mutation separated them, so they are kept as one row and re-judged as a whole — the worktree half has no assertion turning red under mutation, so the row stays untested rather than overclaiming."
-    },
-    {
-      "origin": "R-333",
-      "reason": "'decided by lstat' is the mechanism, not a separate promise from the dangling-symlink/directory reporting behaviour it exists to produce — the one module-level lstat() helper is what every one of these outcomes reads, confirmed by a single mutation (following symlinks instead) breaking all of them together."
-    },
-    {
-      "origin": "R-348",
-      "reason": "'prefer transcript_path, else the derived key' and 'honouring an alternate Claude config dir' are one directory-resolution mechanism (CLAUDE_CONFIG_DIR parameterizes both branches of the same preference); kept as one row. The other three clauses (never by pattern, say-skipped, fail-open) name separately breakable promises and stay split."
-    },
-    {
-      "origin": "R-349",
-      "reason": "excluding bash hooks from win32 settings and stripping the VAR=value prefix are the SAME ternary expression in stepSettings (one win() ? filter+map : wanted); a single mutation to that one expression breaks both together, confirmed by execution."
-    },
-    {
-      "origin": "R-351",
-      "reason": "'a stale copy reads ✗ and is refreshed' (doctor's byte-compare) and 'a hand-written file is backed up as a FILE' (install's byte-compare + backup) are the same differs-from-source detection read from doctor's and install's sides; one mutation to each side's own compare turns both readings red together."
-    },
-    {
-      "origin": "R-354",
-      "reason": "attempted merge of opt-in/idempotent/template-rendering/missing-value-error into one sentence; only the missing-value-error half has a clean mutation (the template placeholder check). The opt-in, idempotent and no-plist-otherwise halves have no fresh red mutation in this pass, so the whole row is kept honest as untested rather than overclaiming the bundle."
-    },
-    {
-      "origin": "R-355",
-      "reason": "'exports PI_CODING_AGENT_DIR when not default' and 'renders no entry for the default dir' are the same ternary in stepDesk's renderPlist call — one expression deciding both facts; two independent mutations (force-true, force-empty) each turn a different half red, confirming the single gate."
-    },
-    {
-      "origin": "R-358",
-      "reason": "'pi install shall not be run' and 'the pi-packages step shall report skipped' describe the same --home branch in stepPiRegister (one early return both skips the install call and labels the step skipped)."
-    }
-  ]
+  "merged": []
 }

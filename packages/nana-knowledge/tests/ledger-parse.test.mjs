@@ -53,7 +53,6 @@ fs.writeFileSync(f, FIXTURE);
 
 const rows = parseLedger(f, fs.readFileSync(f, "utf8"));
 
-// req: R-882
 check("fenced template lines are not rows", rows.length === 4);
 check("entry keys are unique", new Set(rows.map((r) => r.key)).size === rows.length);
 // req: R-205
@@ -61,7 +60,6 @@ check("key is path#Lnn", rows.every((r) => r.key === `${f}#L${r.loc}`));
 check("all rows share the source path", rows.every((r) => r.path === f));
 
 const multi = rows[0];
-// req: R-204
 check("3-physical-line entry folds into one row", multi.body.includes("freedom beat") && multi.body.includes("findings). src:"));
 check("continuation lines are joined with a space", !/\n/.test(multi.body));
 // req: R-205
@@ -71,14 +69,11 @@ check("title strips uses/pinned/tag bookkeeping", multi.title.startsWith("doctri
 // req: R-205
 check("title is bounded", rows.every((r) => r.title.length <= 130));
 
-// req: R-204
 check("numbered entry line is a row", rows.some((r) => r.body.startsWith("1. [uses:9]")));
-// req: R-204
 check("bullet without [uses:] is not a row", !rows.some((r) => r.body.includes("no uses marker")));
 check("inline prose mention is not a row", !rows.some((r) => r.body.includes("should not become a row")));
 
 check("isEntryLine: dash + uses", isEntryLine("- [uses:2] (ops) x"));
-// req: R-204
 check("isEntryLine: digit + uses", isEntryLine("12. [uses:2] (ops) x"));
 check("isEntryLine: dash without uses", !isEntryLine("- plain bullet"));
 check("isEntryLine: indented continuation", !isEntryLine("  freedom beat design-prescribing"));

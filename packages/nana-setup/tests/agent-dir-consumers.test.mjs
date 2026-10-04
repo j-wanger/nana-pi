@@ -76,13 +76,10 @@ try {
 		// req: R-314
 		check("MUST 3: launchctl was not called", r.stdout.includes("not loaded"), r.stdout);
 		const body = fs.existsSync(plist) ? fs.readFileSync(plist, "utf-8") : "";
-		// req: R-355
 		check("MUST 3: the rendered plist exports PI_CODING_AGENT_DIR = the chosen dir",
 			body.includes(`<key>PI_CODING_AGENT_DIR</key><string>${CUSTOM}</string>`), body);
-		// req: R-355
 		check("MUST 3: ...inside EnvironmentVariables", /<key>EnvironmentVariables<\/key>\s*<dict>[^]*PI_CODING_AGENT_DIR[^]*<\/dict>/.test(body), body);
 		check("MUST 3: ...and the pack config went to that same dir", fs.existsSync(path.join(CUSTOM, "nana-pack.json")));
-		// req: R-355
 		check("MUST 3: plutil accepts the rendered plist", spawnSync("plutil", ["-lint", plist], { encoding: "utf-8" }).status === 0);
 
 		// the default dir renders no entry (an unchanged plist for everyone not using an override)
@@ -91,7 +88,6 @@ try {
 		fs.writeFileSync(path.join(H2, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
 		spawnSync(process.execPath, [cli, "install", "--desk", "--home", H2], { env: baseEnv, encoding: "utf-8" });
 		const plain = fs.readFileSync(path.join(H2, "Library", "LaunchAgents", "com.nana.pi-desk.plist"), "utf-8");
-		// req: R-355
 		check("MUST 3: the default agent dir renders no PI_CODING_AGENT_DIR entry", !plain.includes("PI_CODING_AGENT_DIR") && plain.includes("<key>PATH</key>"), plain);
 		// an explicit --pi-home is the installer's choice too
 		const H3 = path.join(HOME, "pinned");

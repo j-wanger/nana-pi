@@ -37,11 +37,8 @@ const ev = (details, extra = {}) => ({ toolName: "board_table", toolCallId: "cal
 // ── validateBlock ──
 check("valid table", validateBlock(table()).ok);
 check("valid card", validateBlock(card()).ok);
-// req: R-266
 check("missing scope rejected", !validateBlock({ ...table(), scope: "" }).ok);
-// req: R-266
 check("missing title rejected", !validateBlock({ ...card(), title: undefined }).ok);
-// req: R-267
 check("reserved type rejected with a specific message", (validateBlock({ ...table(), type: "kpi" }).errors || []).some((m) => /reserved/.test(m)));
 
 // ── chart (slice 2) ──
@@ -90,25 +87,16 @@ check("chart: y.format must be number/percent", !validateBlock({ ...chart(), y: 
 	const r = processToolResult(ev({ blocks: [chart()] }), { now: NOW });
 	check("chart through the hook: stamped, entry appended, text is the summary", r.entries.length === 1 && r.entries[0].produced_by.tool === "board_table" && r.patch.content[0].text === renderBlockText(r.entries[0]));
 }
-// req: R-267
 check("unknown type rejected", !validateBlock({ ...table(), type: "widget" }).ok);
-// req: R-267
 check("bad slot rejected", !validateBlock({ ...table(), slot: "top" }).ok);
-// req: R-251
 check("table without columns rejected", !validateBlock({ ...table(), columns: [] }).ok);
-// req: R-268
 check("table row not object rejected", !validateBlock({ ...table(), rows: [1] }).ok);
-// req: R-269
 check(`table > ${MAX_TABLE_ROWS} rows rejected`, !validateBlock({ ...table(), rows: Array.from({ length: MAX_TABLE_ROWS + 1 }, () => ({ rank: 1 })) }).ok);
-// req: R-270
 check("card field with object value rejected", !validateBlock({ ...card(), fields: [{ label: "x", value: { a: 1 } }] }).ok);
 // req: R-254
 check("action without prompt rejected", !validateBlock({ ...table(), actions: [{ label: "x" }] }).ok);
-// req: R-271
 check("per_row action on a card rejected", !validateBlock({ ...card(), actions: [{ label: "x", prompt: "y", per_row: true }] }).ok);
-// req: R-271
 check("per_row action on a table accepted; rowPrompt substitutes", validateBlock({ ...table(), actions: [{ label: "Card", prompt: "player_card {player}", per_row: true }] }).ok && rowPrompt("player_card {player} #{rank} {missing}", table().rows[0]) === "player_card Nikola Jokić #1 {missing}");
-// req: R-255
 check("oversize block (>64 KiB) rejected", !validateBlock({ ...card(), note: "x".repeat(70 * 1024) }).ok);
 check("produced_by supplied by the tool does not fail validation (it is overwritten later)", validateBlock({ ...card(), produced_by: { tool: "forged" } }).ok);
 
@@ -120,7 +108,6 @@ check("produced_by supplied by the tool does not fail validation (it is overwrit
 	const caught = (b) => { try { return validateBlock(b); } catch (e) { return { threw: String(e && e.message) }; } };
 	check("a cyclic block is REJECTED, not thrown on", caught(cyclic).ok === false && /circular/i.test(caught(cyclic).errors.join(" ")), JSON.stringify(caught(cyclic)).slice(0, 120));
 	check("a block with a throwing getter is REJECTED, not thrown on", caught(thrower).ok === false && /hostile getter/.test(caught(thrower).errors.join(" ")), JSON.stringify(caught(thrower)).slice(0, 120));
-	// req: R-255
 	check("a bigint anywhere is REJECTED, not thrown on (JSON.stringify would throw)", caught({ ...card(), fields: [{ label: "n", value: 1n }] }).ok === false && caught({ ...table(), rows: [{ rank: 1n }] }).ok === false && caught({ ...card(), actions: [{ label: "a", prompt: "p", extra: 1n }] }).ok === false);
 }
 
@@ -128,12 +115,9 @@ check("produced_by supplied by the tool does not fail validation (it is overwrit
 {
 	const roundTrips = (b) => JSON.stringify(JSON.parse(JSON.stringify(b))) === JSON.stringify(b);
 	for (const [what, v] of [["NaN", NaN], ["Infinity", Infinity], ["a function", () => 1], ["a symbol", Symbol("s")]]) {
-// req: R-252 R-270
 		check(`card value ${what} rejected (silently mutates or vanishes on replay)`, !validateBlock({ ...card(), fields: [{ label: "x", value: v }] }).ok);
-// req: R-252 R-270
 		check(`table cell ${what} rejected`, !validateBlock({ ...table(), rows: [{ rank: v }] }).ok);
 	}
-	// req: R-252
 	check("null, strings, booleans and finite numbers stay legal in both", validateBlock({ ...card(), fields: [{ label: "x", value: null }, { label: "y", value: true }, { label: "z", value: -1.5 }] }).ok && validateBlock({ ...table(), rows: [{ rank: 1, player: "p", salary: null }, { rank: 2, player: "q", extra: false }] }).ok);
 	check("a row key no column names is still checked (it rides rowPrompt and is persisted)", !validateBlock({ ...table(), rows: [{ rank: 1, _ref: () => "x" }] }).ok);
 	check("undefined in a row is legal — indistinguishable from an absent key", validateBlock({ ...table(), rows: [{ rank: 1, player: undefined }] }).ok);
@@ -187,11 +171,9 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 	check("wide-grid fixture is a VALID block", validateBlock(many).ok, JSON.stringify(validateBlock(many).errors || []).slice(0, 160));
 	const mt = renderBlockText(many);
 	check(`block text is hard-bounded at ${MAX_BLOCK_TEXT_BYTES} bytes`, bytes(mt) <= MAX_BLOCK_TEXT_BYTES, `${bytes(mt)} bytes`);
-	// req: R-261
 	check("truncation is announced in the text, never silent", /truncated at \d+ bytes/.test(mt));
 	// the bound is on the whole tool result too — one call may return many blocks
 	const manyBlocks = processToolResult(ev({ blocks: [1, 2, 3, 4, 5].map((n) => ({ ...many, id: `blk_many_${n}` })) }), { now: NOW });
-	// req: R-261
 	check(`tool-result text is hard-bounded at ${MAX_RESULT_TEXT_BYTES} bytes`, bytes(manyBlocks.patch.content[0].text) <= MAX_RESULT_TEXT_BYTES, `${bytes(manyBlocks.patch.content[0].text)} bytes`);
 	// req: R-260
 	check("ordinary blocks render byte-identically under the caps", renderBlockText(table()) === t1 && renderBlockText(card()) === c1);
@@ -210,16 +192,13 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 
 // ── extractBlocks / stripCarrier ──
 check("extension carrier found", extractBlocks({ blocks: [table()] }).where === "blocks");
-// req: R-263
 check("mcp carrier found", extractBlocks({ mcpResult: { structuredContent: { blocks: [table()] } } }).where === "mcpResult");
-// req: R-278
 check("mcp omission summary → overflow", extractBlocks({ mcpResult: { omitted: ["structuredContent"], summary: {} } }).overflow === true);
 check("no carrier → null", extractBlocks({ diff: "x" }).blocks === null && extractBlocks(undefined).blocks === null);
 const stripped = stripCarrier({ blocks: [1], mcpResult: { structuredContent: { blocks: [1], other: 2 } }, diff: "d" });
 check("stripCarrier removes both carriers, keeps the rest", stripped.blocks === undefined && stripped.mcpResult.structuredContent.blocks === undefined && stripped.mcpResult.structuredContent.other === 2 && stripped.diff === "d");
 
 // ── processToolResult: the hook logic ──
-// req: R-279
 check("non-block tool result is untouched (null)", processToolResult(ev({ diff: "x" })) === null);
 
 const ok = processToolResult(ev({ blocks: [table(), card()], other: 1 }), { now: NOW });
@@ -241,22 +220,17 @@ const hidden = processToolResult(ev({ blocks: [{ ...card(), show: false }] }), {
 check("show:false is recorded and flagged hidden, text says so", hidden.entries[0].show === false && hidden.patch.content[0].text.includes("hidden"));
 
 const bad = processToolResult(ev({ blocks: [table(), { ...card(), scope: "" }], diff: "keep" }), { now: NOW });
-// req: R-250 R-262 R-276
 check("malformed: isError, no entries", bad.patch.isError === true && bad.entries.length === 0);
-// req: R-262
 check("malformed: content is a text-part array naming the block index + reason", Array.isArray(bad.patch.content) && /blocks\[1\].*scope/.test(bad.patch.content[0].text));
-// req: R-277
 check("malformed: carrier stripped, other details kept", bad.patch.details.blocks === undefined && bad.patch.details.diff === "keep");
 
 const notArr = processToolResult(ev({ blocks: { id: "x" } }));
 check("blocks not an array → error", notArr.patch.isError === true);
 
 const mcpOk = processToolResult(ev({ mcpResult: { structuredContent: { blocks: [card()] }, server: "fp" } }), { now: NOW });
-// req: R-263
 check("mcp path: blocks extracted, stamped, carrier moved to details.blocks", mcpOk.entries.length === 1 && mcpOk.patch.details.blocks.length === 1 && mcpOk.patch.details.mcpResult.structuredContent.blocks === undefined);
 
 const over = processToolResult(ev({ mcpResult: { omitted: ["structuredContent"] } }));
-// req: R-278
 check("mcp overflow → error naming the cap", over.patch.isError === true && /detailsMaxBytes/.test(over.patch.content[0].text));
 
 // ── reduceEntries: leafId ancestry, upsert by id, abandoned branches ignored, only stamped ──
@@ -272,9 +246,7 @@ const entries = [
 ];
 const stage = reduceEntries(entries, "e7");
 check("reducer: two blocks on the leaf path", stage.length === 2, JSON.stringify(stage.map((b) => b.id)));
-// req: R-264
 check("reducer: same id replaced in place, ORDER of first appearance kept", stage[0].id === "blk_board" && stage[0].title === "v2" && stage[1].id === "blk_player_203999");
-// req: R-264
 check("reducer: abandoned branch excluded", !stage.some((b) => b.title === "ABANDONED BRANCH"));
 // req: R-280
 check("reducer: unstamped entry ignored", !stage.some((b) => b.id === "unstamped"));
@@ -297,23 +269,16 @@ check("live: block stamped by another call is dropped", applyLiveBlocks([], [sta
 // req: R-281
 check("live: block stamped by this event is applied", applyLiveBlocks([], [stamp(card())], evt).length === 1);
 check("live: malformed stamped block dropped", applyLiveBlocks([], [stamp({ ...card(), title: "" })], evt).length === 0);
-// req: R-264
 check("pathEntries: active branch only, root first", pathEntries(entries, "e7").map((e) => e.id).join(",") === "e1,e2,e3,e5,e6,e7");
 
 // ── signing: only the key holder can mint a block a server will pass through ──
 const KEY = "0123456789abcdef0123456789abcdef";
 const signed = processToolResult(ev({ blocks: [card()] }), { now: NOW, sign: (b) => signBlock(KEY, b) });
-// req: R-257
 check("signed: sig present and verifies", typeof signed.entries[0].produced_by.sig === "string" && verifyBlock(KEY, signed.entries[0]));
-// req: R-273
 check("signed: tampering the data breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], title: "x" }));
-// req: R-273
 check("signed: tampering the stamp breaks the sig", !verifyBlock(KEY, { ...signed.entries[0], produced_by: { ...signed.entries[0].produced_by, tool: "forged" } }));
-// req: R-273
 check("signed: wrong key fails", !verifyBlock("f".repeat(32), signed.entries[0]));
-// req: R-273
 check("signed: unsigned block fails", !verifyBlock(KEY, stamp(card())));
-// req: R-257
 check("canonical: key order independent", canonical({ b: 1, a: [2, { d: 1, c: 2 }] }) === canonical({ a: [2, { c: 2, d: 1 }], b: 1 }));
 // req: R-259
 check("unsigned processing (no key) still stamps", processToolResult(ev({ blocks: [card()] }), { now: NOW }).entries[0].produced_by.sig === undefined);

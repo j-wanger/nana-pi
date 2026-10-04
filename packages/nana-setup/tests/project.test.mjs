@@ -166,7 +166,6 @@ function walk(dir) {
 	const r = run(["project", dir, "--home", home, "--dry-run"]);
 	check("dry run exits 0", r.status === 0, r.stderr);
 	check("dry run reports what it would do", /would change/.test(r.stdout), r.stdout);
-	// req: R-338
 	check("dry run wrote nothing", fs.readdirSync(dir).length === 0, fs.readdirSync(dir).join(","));
 	// req: R-336
 	check("--check on an empty folder exits 1", run(["project", dir, "--check", "--home", home]).status === 1);
@@ -180,15 +179,10 @@ function walk(dir) {
 	fs.mkdirSync(path.join(dir, "HANDOFF.md")); // a directory where a file is expected
 	const r = run(["project", dir, "--home", home]);
 	check("dangling symlink: exits 0", r.status === 0, r.stderr);
-	// req: R-333
 	check("dangling symlink: nothing written through it", !fs.existsSync(victim));
-	// req: R-333
 	check("dangling symlink: the link itself is untouched", fs.lstatSync(path.join(dir, "OBJECTIVE.md")).isSymbolicLink() && fs.readlinkSync(path.join(dir, "OBJECTIVE.md")) === victim);
-	// req: R-333
 	check("dangling symlink: reported as skipped, naming what was found", /OBJECTIVE\.md\s+skipped\s+a symlink -> .*nothing written through it/.test(r.stdout), r.stdout);
-	// req: R-333
 	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
-	// req: R-333
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
@@ -212,9 +206,7 @@ function walk(dir) {
 	const nasty = `$& $' $1 $(touch ${canary}) \`touch ${canary}\` ; touch ${canary}`;
 	const r = run(["project", dir, "--home", home, "--name", nasty]);
 	check("nasty name: exits 0", r.status === 0, r.stderr);
-	// req: R-335
 	check("nasty name: nothing was executed", !fs.existsSync(canary));
-	// req: R-335
 	check("nasty name: written LITERALLY into the seed ($& is not a regex replacement)", read(path.join(dir, "OBJECTIVE.md")).startsWith(`# Objective and current priority — ${nasty}\n`), read(path.join(dir, "OBJECTIVE.md")).split("\n")[0]);
 	check("nasty name: literal in HANDOFF.md too", read(path.join(dir, "HANDOFF.md")).startsWith(`# Handoff — ${nasty} frontier`));
 	check("nasty name: literal in the AGENTS.md stub", read(path.join(dir, "AGENTS.md")).startsWith(`# ${nasty}\n`));
@@ -412,12 +404,10 @@ for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 	tmps.push(parent);
 	const leaf = path.join(parent, "new-thing");
 	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });
-	// req: R-338
 	check("dry run reports the folder it would create and creates nothing", /would create/.test(dry.stdout) && !fs.existsSync(leaf), dry.stdout);
 	const r = spawnSync(process.execPath, [cli, "project", leaf, "--home", parent], { encoding: "utf8" });
 	check("a missing leaf folder is created and seeded", r.status === 0 && fs.existsSync(path.join(leaf, "OBJECTIVE.md")), r.stdout + r.stderr);
 	const bad = spawnSync(process.execPath, [cli, "project", path.join(parent, "nope", "deeper"), "--home", parent], { encoding: "utf8" });
-// req: R-931
 	check("a missing parent still aborts", bad.status !== 0 && /does not exist/.test(bad.stderr), bad.stderr);
 }
 

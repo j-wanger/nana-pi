@@ -364,7 +364,13 @@ const PACKAGE_BLOCKS = [
 	{ name: "pack", own: [[1, 199], [700, 755]], continuation: [[756, 879]] },
 	{ name: "knowledge", own: [[200, 249]], continuation: [[880, 909]] },
 	{ name: "stage", own: [[250, 299]], continuation: [[250, 299]] }, // "none": new rows draw from its own free numbers
-	{ name: "installer", own: [[300, 399]], continuation: [[920, 939]] },
+	// R-920–939 (20 ids) was sized for the Build scope's estimated merges; undoing all
+	// ten of batch B's merges this round (astra r1, bc-method-ruling.md's "what would
+	// change my mind") needs 11 more. R-381–399 are the installer's own free numbers
+	// (design-ruling.md §0: "Free today 23"), unused by any origin — the collision
+	// guard in section 2 above still refuses any id already occupied, so widening the
+	// allowed range here cannot let a new row overwrite an existing one.
+	{ name: "installer", own: [[300, 399]], continuation: [[920, 939], [381, 399]] },
 	{ name: "desk", own: [[400, 499]], continuation: [[940, 959]] },
 	{ name: "bench", own: [[500, 599]], continuation: [[500, 599]] }, // "none": same as stage
 	{ name: "runner", own: [[600, 619]], continuation: [[910, 919]] },

@@ -47,15 +47,12 @@ check("win32 install exits 0", r.status === 0, r.stderr);
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
 for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh", "hook context-size-check.sh", "PATH pi-review"]) {
-	// req: R-349
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
 for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory", "settings UserPromptSubmit context-size"]) {
 	check(`win32: ${label} reports skipped (win32: bash hook)`, line(label).includes("skipped (win32: bash hook)"), line(label));
 }
-// req: R-349
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
-// req: R-349
 check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin", "pi-review")));
 check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
@@ -70,20 +67,14 @@ check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
-// req: R-936
 check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts"));
-// req: R-936
 check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
-// req: R-936
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
 
 /* doctor agrees, and does not fail on what the platform cannot have */
 const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
-// req: R-937
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
-// req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
-// req: R-937
 check("win32 doctor marks the skipped pieces", (doc.stdout.match(/skipped \(win32\)/g) || []).length >= 4);
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
 

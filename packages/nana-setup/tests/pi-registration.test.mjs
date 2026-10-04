@@ -101,10 +101,9 @@ function piHomeWith(packages) {
 	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents", rel] }, null, 2));
 	const state = registrationState(resolveLayout({ home }));
 	check("registered by relative path is detected as present", state.present, JSON.stringify(state));
-// req: R-927
 	check("the matching entry is reported", state.match === rel);
 	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
-// req: R-323 R-927
+	// req: R-323
 	check("install reports it as already registered", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
 	// req: R-323
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
