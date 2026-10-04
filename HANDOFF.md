@@ -34,6 +34,10 @@
 - **Writing trial LANDED 2026-10-04**: one rule for the seat's messages to Jake and for `HANDOFF.md` lines. Claude Code reads it as a rule file; every pi session gets it from the seventh pack extension. The checker `packages/nana-pack/bin/nana-writing.mjs` reports and never blocks. Baseline, daily tally and the stop condition live in `docs/reviews/writing-trial-2026-10-04/` (`baseline.md`, `tally.md`). The trial ends on day 14 or at 20 reports, or after two lost-detail complaints, with one of adopt, extend once, or drop. Review: astra r1 to r3 BLOCK 6/8/8, every item closed by execution; `land-ruling.md` in the same folder.
 - The next `v*` tag must also carry the seven-extension wording of `templates/_shared/working-under-nana-pi.md`; copier consumers get six until it is cut, while `nana-setup project` emits it at once.
 
+## Landed 2026-10-04 — EARS form batch 0
+
+- **EARS form batch 0 LANDED 2026-10-04** (`docs/reviews/ears-form-2026-10-04/`): the trace rail now counts `shall` per row (G-013) and fails over a declared allowance (G-014/G-015) — TypeScript `CheckOptions.earsAllowance`, Python's `requirements_ears_allowance` ini option, nana-pi's own `EARS_ALLOWANCE`. Off form: 200 → 194. Part G's six multi-shall origins (G-001, G-003, G-005, G-007, G-008, G-012) split into G-013 to G-022, one `shall` each; both templates ship the check and the split rows (R-737 amended, R-756 added). Batches A1 to C split the remaining 194 off-form rows, sequentially, each its own worktree.
+
 ## Landing-day chores (T2b) — DONE 2026-09-28
 
 - `~/.local/bin/pi-worker` symlink created · `~/jev-research` launchers fixed (`6e835bc`: builds go through `pi-worker` with no retries, the sol review passes `--item`/`--role`) · the `pi-review` shared memory rewritten to the post-T2b contract.

@@ -1,3 +1,4 @@
+{%- set rq = '# req-candidate:' if adopt else '# req:' -%}
 """@module tests/test_requirements_trace.py
 @purpose Pin the requirements rail in tests/conftest.py against fixtures and against a real pytest run.
 @inputs the functions of tests/conftest.py, fixture requirement tables, and pytester projects
@@ -5,6 +6,10 @@
 @effects disk (pytester writes and removes scratch projects under the tmp dir),
   process (pytester runs pytest in a subprocess)
 @errors none beyond assertion failures
+
+The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+`req-candidate:` instead: nothing is claimed about this project until the audit
+promotes the row, and then the marker is renamed to `req:`.
 
 Fixture test sources are built from one-line f-strings on purpose: a marker
 comment spelled on its own line in this file would be picked up as a real marker
@@ -16,9 +21,21 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from conftest import Row, load_requirements, scan_dir, scan_source, summary, trace_problems
+from conftest import (
+    EARS_ALLOWANCE_DEFAULT,
+    Row,
+    check,
+    ears_off_form,
+    load_requirements,
+    scan_dir,
+    scan_source,
+    shall_counts,
+    summary,
+    trace_problems,
+)
 
 CONFTEST_SRC = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+PROJECT = Path(__file__).resolve().parent.parent
 
 REQS = """# reqs
 | ID | Requirement | Status | Evidence |
@@ -233,3 +250,43 @@ def test_bad_marker_id_is_a_usage_error(pytester: pytest.Pytester) -> None:
     result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
     assert result.ret != 0
     result.stdout.re_match_lines([r".*bad requirement id 'R1'.*"])
+
+
+{{ rq }} G-013
+def test_this_project_every_row_carries_exactly_one_shall(pytestconfig: pytest.Config) -> None:
+    # Filtered to the EARS problem shape, not every problem the full run checks, so this
+    # pins G-013 alone -- and reads against the project's declared
+    # requirements_ears_allowance ini option, the same value pytest_sessionfinish uses.
+    ears_allowance = pytestconfig.getini("requirements_ears_allowance")
+    _, _, problems, _, _, ears_line = check(PROJECT, ears_allowance=ears_allowance)
+    ears_problems = [p for p in problems if p.endswith("(one is the form)")]
+    assert ears_problems == [], f"{ears_line}: {ears_problems}"
+
+
+EARS_REQS = (
+    REQS
+    + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+    + "| R-901 | The system does Z with no promise word. | untested | — |\n"
+    + "| R-902 | Gone from the product. | retired | — |\n"
+)
+
+
+{{ rq }} G-014
+def test_ears_counts_a_two_shall_row_and_a_no_shall_row_but_not_a_retired_one(tmp_path: Path) -> None:
+    rows = load_requirements_text(EARS_REQS, tmp_path)
+    assert ears_off_form(rows, shall_counts(EARS_REQS)) == ["R-900", "R-901"]
+
+
+{{ rq }} G-015
+def test_ears_over_the_allowance_each_off_form_row_is_a_problem_at_the_allowance_none(tmp_path: Path) -> None:
+    text = REQS + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(text, encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    _, _, problems_over, _, _, _ = check(tmp_path, ears_allowance=0)
+    _, _, problems_at, _, _, _ = check(tmp_path, ears_allowance=1)
+    assert "R-900 carries 2 shall (one is the form)" in problems_over
+    assert not any(p.startswith("R-900") for p in problems_at)
+
+
+def test_seal_ears_allowance_default_is_0() -> None:
+    assert EARS_ALLOWANCE_DEFAULT == 0

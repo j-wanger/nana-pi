@@ -1,8 +1,9 @@
 """@module tests/conftest.py
-@purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry.
+@purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry, and that its Requirement cell carries exactly one `shall`.
 @inputs REQUIREMENTS.md and every tests/**/test_*.py source, read from the pytest rootdir
-@outputs the parsed rows, the traced ids, a problem list, a summary line on the
-  terminal, and a non-zero exit status on a full run that disagrees
+@outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line,
+  a problem list, a summary line on the terminal, and a non-zero exit status on a full
+  run that disagrees
 @effects disk (reads REQUIREMENTS.md and the test sources), process (sets the session exit status)
 @errors pytest.UsageError for a malformed requirements table or a bad or orphan marker
 
@@ -29,6 +30,13 @@ Evidence that lives in another repo is cited with a ``<repo>:`` prefix; a row
 whose evidence is entirely external is traced there, not here. A PARTIAL run
 (pytest given paths) only reports -- it never fails -- because the markers it can
 see are the whole suite's but the status claims are not its business to judge.
+
+``check()`` also counts the EARS form (G-013/G-014/G-015): every non-retired row's
+Requirement cell must carry exactly one whole-word ``shall`` outside a code span. The
+count of off-form rows is reported on its own ``ears:`` line every run, and once that
+count exceeds the ``requirements_ears_allowance`` ini option (default
+EARS_ALLOWANCE_DEFAULT), each off-form row becomes a problem line too -- subject to the
+same full/partial distinction as every other problem here.
 """
 
 from __future__ import annotations
@@ -48,6 +56,15 @@ EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
 MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
+#: A `shall` inside a code span is a mention, not a promise (G-013); masked before counting.
+CODE_SPAN_RE = re.compile(r"`[^`]*`")
+SHALL_RE = re.compile(r"\bshall\b", re.IGNORECASE)
+
+#: The allowance default for a project with no declared ini value: a new project writes
+#: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same
+#: default as the TypeScript rail). Pinned by
+#: test_requirements_trace.py::test_seal_ears_allowance_default_is_0.
+EARS_ALLOWANCE_DEFAULT = 0
 
 #: The call names that count as a test declaration in a helper-driven suite, where the
 #: marked call is a call and not a ``def`` -- and may sit ANYWHERE on the line
@@ -117,6 +134,34 @@ def load_requirements(path: Path) -> dict[str, Row]:
             other=[c for c in cites if not _is_local(c) and not EXTERNAL_RE.match(c)],
         )
     return found
+
+
+def _shall_count(requirement: str) -> int:
+    """Whole-word, case-insensitive `shall` tokens in a Requirement cell, code spans masked first."""
+    return len(SHALL_RE.findall(CODE_SPAN_RE.sub("", requirement)))
+
+
+def shall_counts(text: str) -> dict[str, int]:
+    """Every row's `shall` count in its Requirement cell, read straight from the table text --
+    independent of ``load_requirements()`` so ``Row``'s shape carries no new field and every
+    existing comparison against it stays exact."""
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if not cells or not ID_RE.match(cells[0]):
+            continue
+        if len(cells) != 4:
+            continue  # load_requirements already raises on this shape
+        counts[cells[0]] = _shall_count(cells[1])
+    return counts
+
+
+def ears_off_form(requirements: dict[str, Row], counts: dict[str, int]) -> list[str]:
+    """Ids off EARS form (G-013): not ``retired``, and the Requirement cell's `shall` count,
+    code spans masked, is not exactly one."""
+    return sorted(rid for rid, row in requirements.items() if row.status != "retired" and counts.get(rid, 0) != 1)
 
 
 def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
@@ -231,21 +276,33 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
 
 
 def check(
-    root: Path, test_roots: tuple[str, ...] = ("tests",), call_names: tuple[str, ...] = CALL_NAMES
-) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str]:
-    """Read a project's REQUIREMENTS.md, scan its test roots and report the disagreements.
+    root: Path,
+    test_roots: tuple[str, ...] = ("tests",),
+    call_names: tuple[str, ...] = CALL_NAMES,
+    ears_allowance: int = EARS_ALLOWANCE_DEFAULT,
+) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str, list[str], str]:
+    """Read a project's REQUIREMENTS.md, scan its test roots and report the disagreements,
+    including rows off EARS form (G-013/G-014/G-015).
 
     ``test_roots`` are project-root-relative, so citations stay project-root-relative too
     -- a repo with several suites passes them all and cites each by its real path.
     """
-    requirements = load_requirements(root / "REQUIREMENTS.md")
+    reqs_path = root / "REQUIREMENTS.md"
+    text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
+    requirements = load_requirements(reqs_path)
+    counts = shall_counts(text)
+    off_form = ears_off_form(requirements, counts)
     traced: dict[str, list[str]] = {}
     for rel in test_roots:
         if not (root / rel).is_dir():
             continue
         for rid, cites in scan_dir(root / rel, call_names, rel).items():
             traced.setdefault(rid, []).extend(cites)
-    return requirements, traced, trace_problems(requirements, traced), summary(requirements, traced)
+    problems = trace_problems(requirements, traced)
+    if len(off_form) > ears_allowance:
+        problems += [f"{rid} carries {counts.get(rid, 0)} shall (one is the form)" for rid in off_form]
+    ears_line = f"ears: {len(off_form)} rows off form (allowance {ears_allowance})"
+    return requirements, traced, problems, summary(requirements, traced), off_form, ears_line
 
 
 def _is_full_run(config: pytest.Config) -> bool:
@@ -254,16 +311,28 @@ def _is_full_run(config: pytest.Config) -> bool:
     return args == testpaths
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register the EARS allowance ini option (G-013/G-014/G-015): rows tolerated off form
+    before a FULL run fails naming them. Default EARS_ALLOWANCE_DEFAULT (see above)."""
+    parser.addini(
+        "requirements_ears_allowance",
+        help="rows tolerated off EARS form (not exactly one `shall`) before a full run fails naming them",
+        type="int",
+        default=EARS_ALLOWANCE_DEFAULT,
+    )
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Compare REQUIREMENTS.md against the markers; fail a full run that disagrees."""
     config = session.config
+    ears_allowance = config.getini("requirements_ears_allowance")
     try:
-        requirements, traced, problems, line = check(config.rootpath)
+        requirements, traced, problems, line, _off_form, ears_line = check(config.rootpath, ears_allowance=ears_allowance)
     except pytest.UsageError as err:
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
-        requirements, traced, problems, line = {}, {}, [str(err)], "requirements: unreadable"
+        requirements, traced, problems, line, ears_line = {}, {}, [str(err)], "requirements: unreadable", "ears: unreadable"
     if not requirements and not traced and not problems:
         return
     reporter = config.pluginmanager.get_plugin("terminalreporter")
@@ -271,6 +340,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if reporter is not None:
         reporter.write_line("")
         reporter.write_line(line)
+        reporter.write_line(ears_line)
         if problems:
             head = "requirements trace FAILED:" if full else "requirements trace (partial run, informational):"
             reporter.write_line(head, red=full)

@@ -1,3 +1,4 @@
+{%- set rq = '// req-candidate:' if adopt else '// req:' -%}
 /**
  * @module tests/requirements-trace.test.ts
  * @purpose Pin the requirements rail — the checker against fixtures, then this project's REQUIREMENTS.md against the markers its suite carries.
@@ -11,6 +12,10 @@
 // `implemented` row nobody tests, or an `untested` row a test already pins. The
 // checker reads test SOURCE, so a single-file run is still a full check.
 //
+// The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+// `req-candidate:` instead: nothing is claimed about this project until the audit
+// promotes the row, and then the marker is renamed to `req:`.
+//
 // Fixture test sources are written as ONE physical line with \n escapes on
 // purpose: a marker comment spelled on its own line in this file would be picked
 // up as a real marker when the checker scans this very file.
@@ -22,8 +27,11 @@ import { afterAll, describe, expect, test } from "vitest";
 
 import {
 	check,
+	EARS_ALLOWANCE_DEFAULT,
+	earsOffForm,
 	loadRequirements,
 	scanSource,
+	shallCounts,
 	summary,
 	traceProblems,
 } from "./requirements-trace.js";
@@ -308,5 +316,54 @@ describe("this project", () => {
 			problems,
 			`requirements trace FAILED:\n  ${problems.join("\n  ")}`,
 		).toEqual([]);
+	});
+
+	{{ rq }} G-013
+	test("this project: every row carries exactly one shall", () => {
+		// Filtered to the EARS problem shape, not the full `problems` list above, so this
+		// pins G-013 alone — and reads against whatever earsAllowance this call declares
+		// (CheckOptions.earsAllowance, default EARS_ALLOWANCE_DEFAULT), the same way an
+		// adopted project's declared allowance is meant to be edited here.
+		const { earsLine, problems } = check(ROOT);
+		console.log(earsLine);
+		const earsProblems = problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
+		expect(earsProblems, earsLine).toEqual([]);
+	});
+});
+
+describe("ears form", () => {
+	{{ rq }} G-014
+	test("ears: a two-shall row and a no-shall row are counted, a retired one is not", () => {
+		const text = `${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |
+| R-901 | The system does Z with no promise word. | untested | — |
+| R-902 | Gone from the product. | retired | — |
+`;
+		const rows = loadRequirements(text);
+		expect(earsOffForm(rows, shallCounts(text))).toEqual(["R-900", "R-901"]);
+	});
+
+	{{ rq }} G-015
+	test("ears: over the allowance each off-form row is a problem, at the allowance none", () => {
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-"));
+		scratch.push(dir);
+		mkdirSync(join(dir, "tests"));
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |\n`,
+		);
+		writeFileSync(
+			join(dir, "tests", "a.test.ts"),
+			"// req: R-001\ntest('one', () => {});\n",
+		);
+		const over = check(dir, { earsAllowance: 0 });
+		expect(over.problems).toContain("R-900 carries 2 shall (one is the form)");
+		const atAllowance = check(dir, { earsAllowance: 1 });
+		expect(atAllowance.problems.filter((p) => p.startsWith("R-900"))).toEqual(
+			[],
+		);
+	});
+
+	test("seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015)", () => {
+		expect(EARS_ALLOWANCE_DEFAULT).toBe(0);
 	});
 });

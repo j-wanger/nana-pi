@@ -2,13 +2,13 @@
 
 The standing, numbered requirement set for the toolkit itself: the pi extension pack, the knowledge pull, the stage layer, the installer, the desk, the bench harness and the repo test runner. nana-pi ships the requirements-first pattern to every project it scaffolds or adopts; this file is the toolkit living under its own rules.
 
-Rows are EARS form (one `shall` sentence per row from the Ubiquitous, WHEN, WHILE, IF-THEN and WHERE templates) and spec the contract, not the design. IDs are stable and never renumbered or reused; a removed requirement keeps its ID as `retired`; a split keeps the original ID for the first clause. Cells contain no `|`.
+Rows are EARS form (one `shall` sentence per row from the Ubiquitous, WHEN, WHILE, IF-THEN and WHERE templates) and spec the contract, not the design; a row that is not `retired` carries exactly one `shall` outside a code span (G-013). IDs are stable and never renumbered or reused; a removed requirement keeps its ID as `retired`; a split keeps the original ID for the first clause. Cells contain no `|`.
 
 Statuses: `implemented` (a test in this repo asserts it; cited as `<package or app>/tests/<file>::<test title>`, backticked), `untested` (the code does it, nothing pins it), `planned`, `violated` (the code contradicts a documented rule; the cell says where), `retired`. Evidence in a sibling repo carries that repo as a prefix and is exempt from the local rail.
 
-Trace: `npm test` fails when a status disagrees with the suite. A test declares the rows it evidences with a `// req: R-001` comment directly above its `test(` / `check(` call. An `implemented` row with no marker fails; an `untested`, `planned` or `violated` row that a marker traces fails; a marker naming an unknown id fails; a cited test must exist and carry the marker. Sealed tunables: a contract number is defined once in the package's config surface with provenance naming its row and pinned by one test; a retune is a requirement diff first.
+Trace: `npm test` fails when a status disagrees with the suite. A test declares the rows it evidences with a `// req: R-001` comment directly above its `test(` / `check(` call. An `implemented` row with no marker fails; an `untested`, `planned` or `violated` row that a marker traces fails; a marker naming an unknown id fails; a cited test must exist and carry the marker. The rail also reports the count of rows off EARS form on its own `ears:` line every run and fails naming each off-form row once that count exceeds the declared allowance (G-014/G-015), currently `EARS_ALLOWANCE` in `scripts/requirements-trace.mjs`, lowered at every landing. Sealed tunables: a contract number is defined once in the package's config surface with provenance naming its row and pinned by one test; a retune is a requirement diff first.
 
-ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed
+ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 consumed batch 0, the rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0
 
 New behaviour in this repo: requirement diff, then tagged tests, then code.
 
@@ -320,8 +320,9 @@ continue in an unreserved R-2xx block (see Extraction notes).*
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-736 | Every skill shall be a single SKILL.md whose frontmatter carries a name matching its directory and a description stating when to use it and what not to use it for. | untested | — |
-| R-737 | Both copier templates shall render REQUIREMENTS.md carrying the standard Part G rows G-001 to G-012 unrenumbered, with no Jinja surviving into the rendered file. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language} ${mode}: Part G ships G-001..G-012 unrenumbered`, `packages/nana-pack/tests/templates-render.test.mjs::${language} ${mode}: no jinja survives into REQUIREMENTS.md`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: copier renders the template` |
+| R-737 | Both copier templates shall render REQUIREMENTS.md carrying the standard Part G rows G-001 to G-022 unrenumbered, with no Jinja surviving into the rendered file. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language} ${mode}: Part G ships G-001..G-022 unrenumbered`, `packages/nana-pack/tests/templates-render.test.mjs::${language} ${mode}: no jinja survives into REQUIREMENTS.md`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: copier renders the template` |
 | R-738 | A rendered project shall ship the requirements-first files, a code map that checks clean with no dependencies installed and reports the module it covers, and a smoke test carrying the trace marker. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language}: the requirements-first files all land`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: the code map checks clean with no deps installed`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: the smoke test carries the trace marker`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: the check covers src, scripts and tests` |
+| R-756 | nana-pi's Part G shall carry the shared file's requirement cells verbatim. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::nana-pi Part G mirrors templates/_shared/requirements-general.md` |
 | R-739 | The requirements skill shall ship in the pack and be installed by nana-setup as ~/.claude/skills/requirements, a symlink to the same directory pi reads. | untested | — |
 | R-740 | scaffold-* and adopt-* shall render from the latest v* tag, so a template change shall reach consumers only after the tag is pushed. | planned | HANDOFF.md 2026-10-02 states a v0.6.0 tag is still needed, so consumers currently get pre-requirements templates |
 | R-741 | adopt-structure shall copy the three frontier seeds only when absent and shall change no source, config or CI file. | untested | — |
@@ -808,19 +809,19 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| G-001 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall be defined once in a declared configuration surface and read by name, and shall not appear as an inline literal at a point of use. A contract number is a sealed tunable in that surface with provenance naming its row, pinned by one test, and a retune is a requirement diff first. | untested | — |
+| G-001 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall be defined once in a declared configuration surface and read by name. A contract number is a sealed tunable in that surface with provenance naming its row, pinned by one test, and a retune is a requirement diff first. | untested | — |
 | G-002 | Every tunable shall carry its provenance beside its definition: the source and date for a measured value, or the word chosen and the reason for a chosen one. | untested | — |
-| G-003 | WHEN a tunable changes, no code shall change; the suite shall pass against the new value or fail naming the row the value violates. | untested | — |
+| G-003 | WHEN a tunable changes, no code shall change. | untested | — |
 
 ## 49. Module boundaries
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | G-004 | Every module shall open with a contract header in a fixed, scannable form stating its purpose in one sentence, its inputs (what it reads or is given), its outputs (what it returns, writes or emits), its side effects (none, disk, database, network, process) and the typed errors or statuses it can produce. | implemented | `packages/nana-pack/tests/code-map.test.mjs::the repo's code map is current and every module has a contract header`, `packages/nana-pack/tests/code-map.test.mjs::only the three content-pinned bench modules are excused a header, each with a reason` — exempt: apps/bench/ext/bench-nested-usage.ts, apps/bench/lib/nested.mjs, apps/bench/lib/eval-module.mjs (content-pinned by study tool-profiles-2026-09-08) |
-| G-005 | A module shall expose its behaviour only through named exports that are its entry points, and no module shall reach into another module's internals, private helpers or mutable state. | untested | — |
+| G-005 | A module shall expose its behaviour only through named exports that are its entry points. | untested | — |
 | G-006 | Resources with identity or side effects (database handles, clocks, random sources, fetchers, file roots) shall be injected at a module's boundary so the module is exercisable without the real resource. | untested | — |
-| G-007 | Imports shall follow the layer direction declared in the code-map config — a module may import its own layer or the one directly after it, and tests may import anything — and a reverse or layer-skipping import shall fail a check. | implemented | `packages/nana-pack/tests/code-map.test.mjs::no module in a package imports an app` |
-| G-008 | A module shall have one purpose statable in one sentence; WHEN a module's header needs more than one sentence of purpose, it shall be split. | untested | — |
+| G-007 | Imports shall follow the layer direction declared in the code-map config — a module may import its own layer or the one directly after it, and tests may import anything. | implemented | `packages/nana-pack/tests/code-map.test.mjs::no module in a package imports an app` |
+| G-008 | A module shall have one purpose statable in one sentence. | untested | — |
 
 ## 50. The code map
 
@@ -834,7 +835,22 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it, and every command, script name, path, flag and file the README names shall exist and run as written; a README claim the project no longer honours shall fail the suite. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims` |
+| G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims` |
+
+## 54. The requirement set
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| G-013 | WHERE a row is not retired, it shall carry exactly one `shall` outside a code span. | violated | 194 rows off form 2026-10-04 (batch 0 of design-ruling.md, ears-form-2026-10-04, closed Part G's 6 origins into form); the allowance ratchets per batch |
+| G-014 | The rail shall report the count of rows off form in its own line after the summary line. | implemented | `packages/nana-pack/tests/requirements-trace.test.mjs::ears: a two-shall row and a no-shall row are counted, a retired one is not` |
+| G-015 | IF the count of rows off form exceeds the declared allowance THEN the rail shall fail naming each off-form row. | implemented | `packages/nana-pack/tests/requirements-trace.test.mjs::ears: over the allowance each off-form row is a problem, at the allowance none`, `packages/nana-pack/tests/requirements-trace.test.mjs::seal: EARS_ALLOWANCE is 194 (G-015)` |
+| G-016 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall not appear as an inline literal at a point of use. | untested | split from G-001 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-017 | WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates. | untested | split from G-003 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-018 | No module shall reach into another module's internals, private helpers or mutable state. | untested | split from G-005 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-019 | A reverse or layer-skipping import shall fail a check. | untested | split from G-007 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-020 | WHEN a module's header needs more than one sentence of purpose, it shall be split. | untested | split from G-008 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 
 ## 52. pi 1.0 subagent and MCP config (nana-setup)
 
