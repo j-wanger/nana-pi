@@ -115,9 +115,9 @@ function reap(list) {
 	const file = path.join(td, "hang.txt");
 	fs.writeFileSync(file, "one\n");
 	const { hung, ret, ms } = await settle(fire(file));
-	// req: R-093
+// req: R-787
 	check("a: SIGTERM-ignoring checker does not hang the handler", !hung);
-	// req: R-093
+// req: R-787
 	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
 	const r = readLatestReceipt(cfg, td, cmd);
 	// req: R-095
@@ -240,11 +240,11 @@ if (POSIX) {
 	await fire(path.join("sub", "rel.txt")); // relative, as a model may emit it
 
 	const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-	// req: R-089
+// req: R-783
 	check("d: relative path check passed (the checker saw the file)", r?.status === "checks_passed");
 	// req: R-089
 	check("d: recorded command carries the cwd-resolved absolute path", (r?.command ?? "").includes(abs));
-	// req: R-089
+// req: R-783
 	check("d: receipt input still bound repo-relative", r?.inputs?.[0]?.path === path.join("sub", "rel.txt"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -300,9 +300,9 @@ if (POSIX) {
 			if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile;
 		}
 		const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-		// req: R-092 R-103
+		// req: R-092 R-103 R-794
 		check(`${tag}: ${label} — checker received the real file`, r?.status === "checks_passed");
-		// req: R-103
+// req: R-792 R-794
 		check(`${tag}: ${label} — receipt binds the real file`, r?.inputs?.[0]?.path === real);
 		fs.rmSync(td, { recursive: true, force: true });
 	}
@@ -315,7 +315,7 @@ if (POSIX) {
 	const entries = (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "")
 		.split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } });
 	const reports = entries.filter((e) => e.event === "postedit_file_queue_unavailable");
-	// req: R-092
+// req: R-786
 	check("j: an unavailable file-mutation queue is journaled, not swallowed", reports.length === 1);
 	fs.rmSync(path.dirname(JOURNAL), { recursive: true, force: true });
 }

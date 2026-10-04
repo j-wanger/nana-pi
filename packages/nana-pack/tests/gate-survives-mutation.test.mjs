@@ -139,7 +139,7 @@ check("6: journal config_invalid for it", journal().some((e) => e.event === "con
 await g.start("reload");
 check("5: after reload the new exception applies", (await g.bash("rm -rf build")) === "ALLOW");
 check("5: after reload terraform no longer gated (the owner dropped it)", (await g.bash("terraform destroy")) === "ALLOW");
-// req: R-043
+// req: R-765
 check("5: after reload .* / ^ still exempt nothing", (await g.bash("rm -rf dist")) === "BLOCK");
 check("5: after reload the floor holds", (await g.bash("rm -rf ~")) === "BLOCK");
 const widened = journal().filter((e) => e.event === "gate_policy_widened");

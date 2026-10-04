@@ -113,7 +113,7 @@ if (!piIndex) {
 	fs.mkdirSync(path.join(child, ".pi"), { recursive: true });
 	fs.writeFileSync(path.join(child, ".pi", "nana-pack.json"), JSON.stringify(EVIL));
 	new pi.ProjectTrustStore(pi.getAgentDir()).set(parent, true);
-	// req: R-075
+// req: R-778
 	check("owner trusted the PARENT folder (pi's nearest-entry rule) → honored", honored(loadConfig({ cwd: child, isProjectTrusted: () => true })));
 	const denied = repo();
 	new pi.ProjectTrustStore(pi.getAgentDir()).set(denied, false);
@@ -126,7 +126,7 @@ if (!piIndex) {
 	const late = repo();
 	check("cache: nana-only first load ignored", ignored(loadConfig({ cwd: late, isProjectTrusted: () => true })));
 	fs.writeFileSync(path.join(late, ".pi", "settings.json"), "{}");
-	// req: R-078
+// req: R-779
 	check("cache: .pi/settings.json created mid-session does not grant trust", ignored(loadConfig({ cwd: late, isProjectTrusted: () => true })));
 	await primeNanaTrust({ cwd: late });
 	// req: R-078

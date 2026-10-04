@@ -135,7 +135,7 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
 		check(`${label}: pi keeps the base prompt, then one blank line`, pi.startsWith("BASE\n\n"), pi);
 		piText = pi.slice("BASE\n\n".length);
 	}
-	// req: R-018 R-032
+	// req: R-018 R-032 R-761
 	check(`${label}: BYTE-IDENTICAL hook vs pi`, hookText === piText, `--- hook\n${hookText}\n--- pi\n${piText}`);
 	expect(hookText ?? "", pi === null);
 	return hookText;
@@ -224,7 +224,7 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
 	fs.writeFileSync(secret, "SUPERSECRET\n");
 	fs.symlinkSync(secret, w.productFile);
 	await golden("symlinked OBJECTIVE.md", w, w.product, (t) => {
-		// req: R-016
+// req: R-758
 		check("symlink: target never shown", !t.includes("SUPERSECRET"));
 		check("symlink: refusal printed", t.includes(`(ignored ${w.productFile}: reached through a symlink — the program file governs)`), t);
 		check("symlink: umbrella governs", t.includes(`governing: ${w.umbrellaFile}\n`));
@@ -665,7 +665,7 @@ async function provenance(label, w, want, { cwd = w.product, isProjectTrusted, p
 	check(`T2c ${label}: product still governs`, t.includes(`governing: ${w.productFile}\n${OBJ("ship the widget.")}`), t);
 	// req: R-021 R-027 R-032
 	check(`T2c ${label}: ${want ? "LABELLED" : "not labelled"}`, want ? labelledOnce(t) : unlabelled(t), t);
-	// req: R-021 R-026
+	// req: R-021 R-026 R-759
 	if (want) check(`T2c ${label}: label is its own paragraph right before "governing:"`, t.includes(`${HEAD}\n\n${LABEL(w.productFile, problem && { store: store(w), problem, object, detail }, store(w))}\n\ngoverning: `), t);
 	// req: R-025
 	if (want) check(`T2c ${label}: remedy ${problem ? `names ${object ?? "the store"}, "${problem}" and the fix; never /trust alone` : "is /trust from the folder (store usable)"}`,
@@ -1049,7 +1049,6 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const lock = `${store(w)}.lock`; make(lock);
 			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
 			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
-			// req: R-027
 			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
 			if (piMod) {
 				make(lock); // re-date: the runtimes above took time

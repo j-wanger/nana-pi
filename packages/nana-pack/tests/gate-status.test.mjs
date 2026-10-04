@@ -86,10 +86,9 @@ const last = (a) => a.at(-1);
 	// a tool the gate does not inspect: no counter movement, no status at all
 	const before = statuses.length;
 	const other = await call("read", { path: path.join(td, "src", "foo.ts") });
-	// req: R-038
 	check("a: an uninspected tool returns normally", other === undefined);
 	check("a: an uninspected tool publishes no status", statuses.length === before);
-	// req: R-071
+// req: R-775
 	check("a: an uninspected tool is not counted", last(statuses)?.text === "[dim]gate ✓ 4 checked · 2 gated");
 
 	fs.rmSync(td, { recursive: true, force: true });
@@ -126,14 +125,14 @@ const last = (a) => a.at(-1);
 	try { benign = await call("edit", { path: path.join(td, "src", "foo.ts") }); } catch { threw = true; }
 	// req: R-072
 	check("d: a throwing setStatus does not throw out of the handler", !threw);
-	// req: R-072
+// req: R-776
 	check("d: the benign edit is still allowed", benign === undefined);
 
 	let blocked;
 	threw = false;
 	try { blocked = await call("bash", { command: "mkfs.ext4 /dev/sdb1" }); } catch { threw = true; }
 	check("d: a throwing setStatus does not throw on the gated path either", !threw);
-	// req: R-072
+// req: R-776
 	check("d: the dangerous command is still blocked", blocked?.block === true);
 	fs.rmSync(td, { recursive: true, force: true });
 }

@@ -86,7 +86,7 @@ const A = freshHome();
 	check("a: corrupted mid-session — benign command still allowed", (await bash(call, "ls -la")) === undefined);
 	const lines = fs.readFileSync(A.journal, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
 	check("a: one config_invalid line names the file", lines.filter((l) => l.event === "config_invalid" && l.file === A.cfg).length === 1);
-	// req: R-063
+// req: R-772
 	check("a: the fallback is journaled (config_gate_fallback)", lines.some((l) => l.event === "config_gate_fallback" && l.file === A.cfg));
 }
 
@@ -105,7 +105,6 @@ const A = freshHome();
 		// req: R-064
 		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
 	check("b: the reason names the problem (invalid JSON)", /invalid JSON/.test(out.ls?.reason ?? ""), out.ls?.reason);
-	// req: R-038
 	check("b: tools outside the gate's scope untouched (read)", out.read === null);
 }
 

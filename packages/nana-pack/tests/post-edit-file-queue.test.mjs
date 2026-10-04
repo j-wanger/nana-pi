@@ -109,14 +109,14 @@ const readOrder = () => (fs.existsSync(orderLog) ? fs.readFileSync(orderLog, "ut
 	// bounded wait: if the checker is NOT gated it runs immediately, and this catches it
 	const deadline = Date.now() + 1500;
 	while (Date.now() < deadline && !readOrder().includes("checker")) await sleep(25);
-	// req: R-090
+	// req: R-090 R-783
 	check("checker is gated while pi holds the file's mutation queue", !readOrder().includes("checker"));
 
 	fs.appendFileSync(orderLog, "released\n");
 	release();
 	await holder;
 	await fired;
-	// req: R-090
+	// req: R-090 R-783
 	check("checker ran strictly after the queue was released", readOrder() === "released\nchecker\n");
 }
 
@@ -142,10 +142,10 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 	const text = ret?.content?.at(-1)?.text ?? "";
 	// req: R-091
 	check("b: unlockable file does not silently run the checker", readOrder() === before);
-	// req: R-091
+// req: R-785
 	check("b: refusal is fed back to the model", text.includes("did not run") && text.includes("could not lock"));
 	const r = readLatestReceipt(loadConfig(ctx), ws, cmd);
-	// req: R-091
+// req: R-784
 	check("b: receipt records not_run (never passed)", r?.status === "not_run");
 	check("b: receipt claims no content binding", Array.isArray(r?.inputs) && r.inputs.length === 0 && r.digest === "");
 }

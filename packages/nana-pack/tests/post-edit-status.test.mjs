@@ -106,7 +106,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "x\n");
 	const ret = await fire(file);
 
-	// req: R-099
+// req: R-790
 	check("b: failure chip is ✗ n/m in the error color",
 		last(statuses)?.text === "[error]post-edit ✗ 1/2 · bar.txt");
 	check("b: failure toast unchanged",
@@ -145,7 +145,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "z\n");
 	await fire(file);
 
-	// req: R-096
+// req: R-788
 	check("d: aborted turn chip says skipped (aborted)",
 		last(statuses)?.text === "[warning]post-edit – skipped (aborted) · abort.txt");
 	check("d: aborted run is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));
@@ -159,7 +159,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	const file = path.join(td, "nomatch.txt");
 	fs.writeFileSync(file, "q\n");
 	await fire(file);
-	// req: R-084
+// req: R-782
 	check("e: a run where no command matched sets no status", statuses.length === 0);
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -190,7 +190,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "b\n");
 	let threw = false;
 	try { await fire(file); } catch { threw = true; }
-	// req: R-100
+// req: R-791
 	check("g: a throwing setStatus does not throw out of the handler", !threw);
 	fs.rmSync(td, { recursive: true, force: true });
 }

@@ -214,7 +214,7 @@ function setup(commands, opts = {}) {
 	fs.writeFileSync(file, "k\n");
 	await fire(file);
 	const r = readLatestReceipt(cfg, td, cmd);
-	// req: R-097
+// req: R-789
 	check("h: timeoutMs:0 passing check is checks_passed (not timeout)", r?.status === "checks_passed");
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -236,7 +236,7 @@ function setup(commands, opts = {}) {
 	try { ret = await fire(file); } catch { threw = true; }
 	// req: R-104
 	check("i: malformed command (missing run / negative timeoutMs) does not throw", !threw);
-	// req: R-104
+// req: R-793
 	check("i: the valid check still ran (malformed entries skipped, not the rest)",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	// exactly ONE failure — the two malformed entries produced no feedback (had one run, it would read "2 check(s) failed")

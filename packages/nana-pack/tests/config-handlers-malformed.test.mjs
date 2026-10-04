@@ -79,11 +79,9 @@ for (const [label, text, expectLines] of VARIANTS) {
 
 	// req: R-083
 	check(`${label}: no handler throws`, errors.length === 0, errors.join("; "));
-	// req: R-083
 	check(`${label}: gate still blocks rm -rf /tmp/x headless`, gateOut.some((r) => r?.block === true), JSON.stringify(gateOut));
 	// chain the before_agent_start results the way pi does (last systemPrompt wins in this fake)
 	const prompts = bas.filter(Boolean).map((r) => r.systemPrompt).join("\n");
-	// req: R-083
 	check(`${label}: objective text or OBJECTIVE UNAVAILABLE marker injected`, prompts.includes("OBJ: ship the thing") || prompts.includes("OBJECTIVE UNAVAILABLE"));
 	const journal = path.join(agent, "nana-journal.jsonl");
 	const lines = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -117,7 +115,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	// req: R-082
 	check("UI: exactly one warning for the problem in a session", mine().length === 1 && mine()[0].t === "warning", JSON.stringify(warnings));
 	for (const fn of h.session_start) await fn({ reason: "startup" }, mk("s2"));
-	// req: R-082
+// req: R-780
 	check("UI: a new session warns once more", mine().length === 2);
 }
 
