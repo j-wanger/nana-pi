@@ -49,25 +49,58 @@ const fsCjs = require("fs");
  * ENOENT, the same as if another process had removed the link between the two syscalls. No
  * seam, no injected argument: this patches the actual fs.lstatSync every module (including
  * project-key.mjs) calls. Restored immediately after, success or throw.
+ *
+ * Patch installation AND the first syncBuiltinESMExports() call live INSIDE the protected try
+ * (astra r2 MUST 1): if that sync call itself throws — e.g. because something else on the
+ * process installed a throwing getter on an unrelated fs export — `finally` still runs and
+ * still restores the CJS binding, rather than leaking the spy because the throw happened
+ * before a try block existed to catch it.
  */
 function withLinkDeletedRightAfterLstat(targetPath, fn) {
-	const origLstat = fsCjs.lstatSync;
-	let armed = true;
-	fsCjs.lstatSync = (...args) => {
-		const result = origLstat.apply(fsCjs, args);
-		if (armed && args[0] === targetPath) {
-			armed = false;
-			fsCjs.unlinkSync(targetPath);
-		}
-		return result;
-	};
-	syncBuiltinESMExports();
+	let origLstat;
 	try {
+		origLstat = fsCjs.lstatSync;
+		let armed = true;
+		fsCjs.lstatSync = (...args) => {
+			const result = origLstat.apply(fsCjs, args);
+			if (armed && args[0] === targetPath) {
+				armed = false;
+				fsCjs.unlinkSync(targetPath);
+			}
+			return result;
+		};
+		syncBuiltinESMExports();
 		return fn();
 	} finally {
 		fsCjs.lstatSync = origLstat;
 		syncBuiltinESMExports();
 	}
+}
+
+/* --- setup-failure regression (astra r2 MUST 1): if syncBuiltinESMExports() itself throws, --
+   neither the CJS nor the ESM lstatSync binding may leak the spy ------------------------------ */
+{
+	const originalLstatSync = fsCjs.lstatSync;
+	const statSyncDescriptor = Object.getOwnPropertyDescriptor(fsCjs, "statSync");
+	Object.defineProperty(fsCjs, "statSync", {
+		configurable: true,
+		get() {
+			throw new Error("other builtin spy getter");
+		},
+	});
+
+	let threw = false;
+	try {
+		withLinkDeletedRightAfterLstat("/nonexistent-path-never-reached", () => {});
+	} catch {
+		threw = true;
+	}
+	check("setup-failure: syncBuiltinESMExports threw as expected (the hostile getter is still installed)", threw);
+	check("setup-failure: the CJS lstatSync binding did not leak the spy", fsCjs.lstatSync === originalLstatSync);
+	check("setup-failure: the ESM lstatSync binding did not leak the spy", fs.lstatSync === originalLstatSync);
+
+	Object.defineProperty(fsCjs, "statSync", statSyncDescriptor);
+	syncBuiltinESMExports(); // the hostile getter is gone now — this call is expected to succeed
 }
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-shared-link-state-"));

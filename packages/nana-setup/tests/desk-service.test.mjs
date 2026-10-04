@@ -192,6 +192,27 @@ check("doctor still exits 0", run(["doctor", "--home", home]).status === 0);
 		check("regular file: desk launchctl proceeded (not SKIPPED)", out[1]?.status !== SKIPPED, JSON.stringify(out));
 		check("regular file: launchctl WAS called (print, then bootstrap)", calls().length >= 2, calls().join(" | "));
 	}
+
+	/* R-380's scope boundary (astra r2 MUST 2): under --dry-run the early `if (o.dryRun) return
+	   out;` fires before the SKIPPED-write check even runs, so a dangling plist under dry-run
+	   returns just the one "desk plist" entry — no second "desk launchctl" entry at all. That
+	   is still safe (no launchctl call either way); R-380's unconditional reporting promise is
+	   qualified to "outside a dry run" rather than widened to cover this case too, which would
+	   change dry-run's existing single-entry output. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-dryrun-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.symlinkSync(path.join(dir, "nowhere-plist.xml"), layout.plistPath);
+		fs.writeFileSync(callLog, "");
+
+		const out = withStubFirst(() => stepDesk(layout, { dryRun: true }));
+		// req: R-380
+		check("dry run + skipped plist: only the desk plist entry is returned, no desk launchctl entry at all", out.length === 1 && out[0]?.status === SKIPPED, JSON.stringify(out));
+		// req: R-380
+		check("dry run + skipped plist: ZERO launchctl calls were made", calls().length === 0, calls().join(" | "));
+	}
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

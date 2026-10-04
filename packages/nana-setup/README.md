@@ -233,6 +233,20 @@ instructions from the ones pi reads.
 - **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`. That is
   what makes the tests safe.
 
+**Known residuals (astra r1/r2 review lane, 2026-10-04) — recorded, not blocking:**
+
+- The symlink guard (`writeIfChanged`, `linkFile`, `seedFile`) is a pre-check, not race-proof
+  filesystem enforcement; concurrent path replacement and symlinked ancestors are outside it.
+- `doctor` still reads the desk plist through a symlink — install refusing to manage a
+  symlinked plist does not make `doctor`'s own read of it safe too.
+- The read-instrumentation test for `writeIfChanged` (`tests/fsops.test.mjs`) spies on
+  `fs.readFileSync` only, not every filesystem-reading API; revisit it if the implementation
+  changes which call it reads through.
+- Native Windows and real launchd operation are unexercised by the desk-service tests — they
+  stub `launchctl` and never touch the real service or a real win32 box.
+- `readme:check` fails on 5 missing-path problems in a worktree that lacks root dependencies
+  and a bench vendor extension — environmental, not a regression (same 5 since round 1).
+
 ## Idempotence
 
 Re-running is the normal case: the second run prints `nothing to do — everything was already in

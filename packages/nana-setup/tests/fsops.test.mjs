@@ -39,22 +39,56 @@ const check = (n, ok, extra) => {
 const require = createRequire(import.meta.url);
 const fsCjs = require("fs");
 
-/** Run `fn`, recording every path passed to the REAL fs.readFileSync while it runs. Restores the original immediately after, success or throw. */
+/**
+ * Run `fn`, recording every path passed to the REAL fs.readFileSync while it runs. Restores
+ * the original immediately after, success or throw. Patch installation AND the first
+ * syncBuiltinESMExports() call live INSIDE the protected try (astra r2 MUST 1): if that sync
+ * call itself throws — e.g. because something else on the process installed a throwing getter
+ * on an unrelated fs export — `finally` still runs and still restores the CJS binding, rather
+ * than leaking the spy because the throw happened before a try block existed to catch it.
+ */
 function recordingReads(fn) {
 	const calls = [];
-	const orig = fsCjs.readFileSync;
-	fsCjs.readFileSync = (...args) => {
-		calls.push(args[0]);
-		return orig.apply(fsCjs, args);
-	};
-	syncBuiltinESMExports();
+	let orig;
 	try {
+		orig = fsCjs.readFileSync;
+		fsCjs.readFileSync = (...args) => {
+			calls.push(args[0]);
+			return orig.apply(fsCjs, args);
+		};
+		syncBuiltinESMExports();
 		const value = fn();
 		return { value, calls };
 	} finally {
 		fsCjs.readFileSync = orig;
 		syncBuiltinESMExports();
 	}
+}
+
+/* --- setup-failure regression (astra r2 MUST 1): if syncBuiltinESMExports() itself throws, --
+   neither the CJS nor the ESM readFileSync binding may leak the spy ---------------------------- */
+{
+	const originalReadFileSync = fsCjs.readFileSync;
+	const statSyncDescriptor = Object.getOwnPropertyDescriptor(fsCjs, "statSync");
+	Object.defineProperty(fsCjs, "statSync", {
+		configurable: true,
+		get() {
+			throw new Error("other builtin spy getter");
+		},
+	});
+
+	let threw = false;
+	try {
+		recordingReads(() => {});
+	} catch {
+		threw = true;
+	}
+	check("setup-failure: syncBuiltinESMExports threw as expected (the hostile getter is still installed)", threw);
+	check("setup-failure: the CJS readFileSync binding did not leak the spy", fsCjs.readFileSync === originalReadFileSync);
+	check("setup-failure: the ESM readFileSync binding did not leak the spy", fs.readFileSync === originalReadFileSync);
+
+	Object.defineProperty(fsCjs, "statSync", statSyncDescriptor);
+	syncBuiltinESMExports(); // the hostile getter is gone now — this call is expected to succeed
 }
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fsops-writeifchanged-"));
