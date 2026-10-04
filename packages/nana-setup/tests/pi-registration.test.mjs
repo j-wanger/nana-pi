@@ -32,7 +32,6 @@ const piHome = "/Users/x/.pi/agent";
 const root = "/Users/x/nana-pi";
 
 /* --- the shapes that mean "registered" -------------------------------------------------- */
-// req: R-324
 check("relative per-package entry (how this machine is registered)", entryMatches("../../nana-pi/packages/nana-pack", piHome, root));
 check("relative per-package entry, the knowledge half", entryMatches("../../nana-pi/packages/nana-knowledge", piHome, root));
 check("relative entry to the root itself", entryMatches("../../nana-pi", piHome, root));
@@ -102,10 +101,10 @@ function piHomeWith(packages) {
 	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents", rel] }, null, 2));
 	const state = registrationState(resolveLayout({ home }));
 	check("registered by relative path is detected as present", state.present, JSON.stringify(state));
-	// req: R-323
+// req: R-927
 	check("the matching entry is reported", state.match === rel);
 	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
-	// req: R-323
+// req: R-323 R-927
 	check("install reports it as already registered", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
 	// req: R-323
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
@@ -154,10 +153,8 @@ function piHomeWith(packages) {
 				const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
 				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel] }, null, 2));
 				const state = wtSteps.registrationState(wtPaths.resolveLayout({ home }));
-				// req: R-324
 				check("the MAIN clone's relative entry marks the WORKTREE as registered", state.present, JSON.stringify(state));
 				const r = spawnSync(process.execPath, [wtCli, "install", "--home", home], { encoding: "utf8" });
-				// req: R-324
 				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
 				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 1);
 
@@ -166,7 +163,6 @@ function piHomeWith(packages) {
 				if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
 				else {
 					fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm] }, null, 2));
-					// req: R-324
 					check(`a \`~\` entry (${tildeForm}) is expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
 				}
 

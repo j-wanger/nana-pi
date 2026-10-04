@@ -71,20 +71,21 @@ check("1: no systemPrompt mutation", r1 !== undefined && !("systemPrompt" in r1)
 // (2) the pull is logged as a pi pull, under pi's session id
 {
 	const last = logLines().at(-1);
-	// req: R-234
+// req: R-896
 	check("2: pull.log carries the pi session id", last?.session_id === "pi-s1");
-	// req: R-231 R-234
+// req: R-231 R-896
 	check('2: pull.log carries source "pi"', last?.source === "pi");
 	check("2: pull.log carries the cwd the extension was given", last?.cwd === td);
 }
 
 // (3) dedup lives in the CHILD: the same prompt in the same session injects nothing
-// req: R-234
+// req: R-234 R-895
 check("3: same prompt, same session → undefined", (await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s1"))) === undefined);
 
 // (4) ...and a different session id gets the pointers again
 {
 	const r = await handlers.before_agent_start({ prompt: "what is the pi review round cap" }, ctxFor("pi-s2"));
+// req: R-896
 	check("4: a different session id pulls again", r?.message?.content?.startsWith(HEADER) === true);
 	check("4: and it is logged under THAT session id", logLines().at(-1)?.session_id === "pi-s2");
 }
@@ -133,7 +134,7 @@ check("3: same prompt, same session → undefined", (await handlers.before_agent
 	let out = "unset";
 	try { out = await makePull({ bin: "/nonexistent/x.ts" })({ prompt: "pi review round cap", sessionId: "pi-enoent", cwd: td }); }
 	catch { threw = true; }
-	// req: R-234
+// req: R-895
 	check("6: a missing bin does not throw", !threw);
 	check("6: a missing bin yields null", out === null);
 }

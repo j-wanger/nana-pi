@@ -53,7 +53,7 @@ fs.writeFileSync(f, FIXTURE);
 
 const rows = parseLedger(f, fs.readFileSync(f, "utf8"));
 
-// req: R-204
+// req: R-882
 check("fenced template lines are not rows", rows.length === 4);
 check("entry keys are unique", new Set(rows.map((r) => r.key)).size === rows.length);
 // req: R-205

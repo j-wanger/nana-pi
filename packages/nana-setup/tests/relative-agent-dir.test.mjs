@@ -57,11 +57,12 @@ try {
 	fs.mkdirSync(path.join(explicit, "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(explicit, "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
 	const ok = run("install", "--pi-home", explicit);
+// req: R-932
 	check("install --pi-home <abs> succeeds despite the ambient relative value", ok.status === 0, ok.stdout + ok.stderr);
 	check("…and seeds nana-pack.json in the --pi-home dir", fs.existsSync(path.join(explicit, "nana-pack.json")));
 	check("…and nothing in the ambient-relative dir", !fs.existsSync(resolved));
 	const relExplicit = run("install", "--pi-home", REL, "--dry-run");
-	// req: R-346
+// req: R-932
 	check("an explicit RELATIVE --pi-home is not refused (resolved as given)", !/specific to the current working directory/.test(relExplicit.stdout + relExplicit.stderr) && relExplicit.stdout.includes(REL), relExplicit.stdout + relExplicit.stderr);
 
 	// ── project / project --check: the same refusal (sol r3 HIGH) ──
@@ -83,6 +84,7 @@ try {
 	// req: R-345
 	check("the project refusal created nothing in the target", !fs.existsSync(path.join(target, ".pi")) && !fs.existsSync(path.join(target, "AGENTS.md")), fs.readdirSync(target).join(","));
 	const pOk = run("project", target, "--pi-home", path.join(HOME, "explicit-agent"), "--dry-run");
+// req: R-932
 	check("project --pi-home <abs> is not refused", !/specific to the current working directory/.test(pOk.stdout + pOk.stderr), pOk.stdout + pOk.stderr);
 
 	// ── doctor, ambient relative, even with a seeded file there → warning, never healthy ──

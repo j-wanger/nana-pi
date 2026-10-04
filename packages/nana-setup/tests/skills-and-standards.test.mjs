@@ -65,7 +65,7 @@ try {
 		// req: R-303
 		check("the skill description carries every trigger phrase", missing.length === 0, missing.join(" | "));
 	}
-	// req: R-303
+// req: R-920
 	check("the standards rule is one screen, imperative, and not nana-soul.md", fs.readFileSync(RULE_SRC, "utf8").split("\n").length < 80 && /^# Nana — Coding standards$/m.test(fs.readFileSync(RULE_SRC, "utf8")));
 
 	/* --- 1. a fresh machine: both land as symlinks into the repo ------------------------ */
@@ -167,14 +167,15 @@ try {
 		// never a second skill directory)
 		fs.writeFileSync(path.join(target, "SKILL.md"), "---\nname: requirements\n---\n# HAND-WRITTEN\n");
 		const d = run(["doctor", "--home", w], env);
-		// req: R-351
+// req: R-938
 		check("win32: doctor reads ✗ on a stale copy, naming the file", /✗ skill requirements\s+copy is stale or incomplete \(SKILL\.md\)/.test(d.stdout), d.stdout);
 		const fix = run(["install", "--home", w], env);
-		// req: R-351
+// req: R-938
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
+// req: R-938
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
-		// req: R-351
+// req: R-938
 		check("win32: the backup is a FILE inside the skill dir, never a sibling skill directory", fs.readdirSync(path.join(w, ".claude", "skills")).join(",") === "requirements");
 		check("win32: doctor is green again", run(["doctor", "--home", w], env).status === 0);
 	}

@@ -81,7 +81,7 @@ check("five hook entries are wanted", wanted.length === 5);
 	check("knowledge: a quoted path with a space matches", commandInvokes("NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook", knowledge));
 	// req: R-317
 	check("knowledge: `echo node … hook` does not", !commandInvokes("echo node /x/nana-knowledge.ts hook", knowledge));
-	// req: R-317
+// req: R-922
 	check("unbalanced quoting reads as NOT installed", !commandInvokes("bash '/x/nana-objective.sh", objective));
 }
 
@@ -97,7 +97,7 @@ check("five hook entries are wanted", wanted.length === 5);
 	check("tokenize: an empty quoted word survives", eq(tokenize("a '' b"), ["a", "", "b"]));
 	check("tokenize: unbalanced quoting is null", tokenize("bash 'x") === null);
 	for (const op of ["&&", "||", ";", "|", "&", ">", "<", "`", "$("]) {
-		// req: R-317
+// req: R-922
 		check(`tokenize: \`${op}\` outside quotes is null`, tokenize(`bash /x/y.sh ${op} z`) === null);
 	}
 	check("tokenize: an operator INSIDE quotes is just text", JSON.stringify(tokenize("bash '/x/a && b.sh'")) === JSON.stringify(["bash", "/x/a && b.sh"]));
@@ -108,6 +108,7 @@ check("five hook entries are wanted", wanted.length === 5);
 {
 	check("valid: empty object", validateShape({}) === null);
 	check("valid: real-world settings", validateShape({ model: "fable", hooks: { SessionStart: [{ hooks: [{ command: "x" }] }, { matcher: "Bash", hooks: [] }] } }) === null);
+// req: R-320
 	check('invalid: {"hooks":"disabled"}', validateShape({ hooks: "disabled" }) !== null);
 	check("invalid: hooks event is not an array", validateShape({ hooks: { SessionStart: { hooks: [] } } }) !== null);
 	check("invalid: a group is not an object", validateShape({ hooks: { SessionStart: ["x"] } }) !== null);
@@ -119,6 +120,7 @@ check("five hook entries are wanted", wanted.length === 5);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
+// req: R-318
 	check("empty settings: all five added", r.added.length === 5);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	// req: R-316
@@ -140,7 +142,7 @@ check("five hook entries are wanted", wanted.length === 5);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	// req: R-318
+// req: R-923
 	check("an existing unquoted `~` context-size hook is recognised, not re-added", !r.added.includes("UserPromptSubmit context-size"));
 	check("the other four are added", r.added.length === 4);
 	// req: R-316
@@ -197,9 +199,9 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	check("model key survives", after.model === "fable");
 	check("PreToolUse survives untouched", JSON.stringify(after.hooks.PreToolUse) === JSON.stringify(original.hooks.PreToolUse));
-	// req: R-318
+// req: R-923
 	check("the hand-written context-size hook is kept as-is", after.hooks.UserPromptSubmit[0].hooks[0].command === "bash ~/.claude/hooks/context-size-check.sh");
-	// req: R-318
+// req: R-923
 	check("no second context-size hook", JSON.stringify(after).split("context-size-check.sh").length - 1 === 1);
 	check("the knowledge hook was added", JSON.stringify(after).includes("nana-knowledge.ts"));
 	// req: R-321
@@ -234,12 +236,12 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check('{"hooks":"disabled"}: non-zero exit', r.status === 2, String(r.status));
 	check('{"hooks":"disabled"}: the message says what is wrong', /shape this installer will not edit/.test(r.stderr), r.stderr);
 	check('{"hooks":"disabled"}: settings untouched', fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === weird);
-	// req: R-320
+// req: R-924
 	check('{"hooks":"disabled"}: NO files were moved', !fs.existsSync(path.join(home, ".claude", "hooks")) && !fs.existsSync(path.join(home, ".claude", "rules")));
 	check('{"hooks":"disabled"}: no shared memory dir', !fs.existsSync(path.join(home, ".claude", "nana-memory")));
-	// req: R-320
+// req: R-924
 	check('{"hooks":"disabled"}: no pi seeds', !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
-	// req: R-320
+// req: R-924
 	check('{"hooks":"disabled"}: no PATH entry', !fs.existsSync(path.join(home, ".local", "bin", "pi-review")));
 }
 
@@ -307,7 +309,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	// req: R-322
 	check("lock: the message prints the exact rm command", r.stderr.includes(`rm ${lockOf(home)}`), r.stderr);
 	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
-	// req: R-322
+// req: R-925
 	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
 }
 {
@@ -317,7 +319,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const r = run(["install"], home);
 	// req: R-322
 	check("lock: a day-old lock with a dead pid still aborts", r.status === 2, r.stdout);
-	// req: R-322
+// req: R-925
 	check("lock: it was not unlinked", fs.existsSync(lockOf(home)));
 	check("lock: a corrupt lock file aborts too", (() => {
 		fs.writeFileSync(lockOf(home), "not json");
@@ -335,7 +337,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const home = freshHome();
 	fs.writeFileSync(lockOf(home), JSON.stringify({ pid: process.pid, at: Date.now() }));
 	const r = run(["install", "--dry-run"], home);
-	// req: R-322
+// req: R-926
 	check("lock: --dry-run is not blocked by a lock", r.status === 0, r.stderr);
 	check("lock: --dry-run reports what it would add", /settings SessionStart objective\s+created/.test(r.stdout), r.stdout);
 	check("lock: --dry-run wrote nothing", !fs.existsSync(path.join(home, ".claude", "hooks")));
@@ -388,6 +390,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("lock: released when the body throws", threw && !fs.existsSync(lockOf(home)));
 	// a lock someone else replaced ours with is never unlinked by us
 	withSettingsLock(file, () => fs.writeFileSync(lockOf(home), JSON.stringify({ pid: 4242, at: Date.now() })));
+// req: R-925
 	check("lock: a replacement lock is left alone", fs.existsSync(lockOf(home)));
 	fs.rmSync(lockOf(home));
 }

@@ -52,7 +52,7 @@ check("first build rows = 2 articles + 2 ledger entries", s1.rows === 4);
 check("node_modules skipped", !JSON.stringify(s1).includes("node_modules"));
 // req: R-202
 check("files > 1 MB skipped", s1.skippedLarge === 1);
-// req: R-207
+// req: R-883
 check("missing root reported, not fatal", s1.missingRoots.length === 1);
 check("per-root counts", s1.roots.find((r) => r.root === src).files === 2 && s1.roots.find((r) => r.root === ledger).rows === 2);
 
@@ -119,10 +119,10 @@ fs.renameSync(src, away);
 const s7 = await build();
 check("missing root: nothing is removed", s7.removed === 0);
 check("missing root: its rows are preserved and still counted", s7.preserved === 1 && s7.rows === 3);
-// req: R-207
+// req: R-883
 check("missing root: it is still reported missing", s7.missingRoots.includes(src));
 db = await openDb(path.join(home, "index.db"), {});
-// req: R-207
+// req: R-883
 check("missing root: its rows are still searchable", search(db, "kilo lima", 5).length === 1);
 db.close();
 

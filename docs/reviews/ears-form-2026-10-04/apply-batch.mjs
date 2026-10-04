@@ -2,8 +2,8 @@
 /**
  * @module docs/reviews/ears-form-2026-10-04/apply-batch.mjs
  * @purpose Apply one EARS-form split batch mapping (batch-<n>.json) to REQUIREMENTS.md and the `// req:` markers it names, the allowance literal and its seal, and G-013/G-015's evidence cells, then verify the result AGAINST AN EXPLICIT BASE REVISION — every pre-existing row byte-identical unless it is a mapped origin, and every changed line under any test root a `// req:` marker line (one sanctioned seal-literal exception) — refusing and changing nothing on any failed check, PRE-WRITE checks included.
- * @inputs a batch-<n>.json path (argv[2]), an optional `--base <rev>` (default `main`), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names, `git` (diff/show against the base revision), and — only when the mapping sets `mutationRecords: true` — each implemented clause's own `mutations` array (file/break/cite/result)
- * @outputs REQUIREMENTS.md rewritten in place; named marker lines, the allowance literal, its seal and G-013/G-015's evidence counts edited in place; a verification report, the sibling-cite list and the merged list on stdout
+ * @inputs a batch-<n>.json path (argv[2]), an optional `--base <rev>` (default `main`), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names, `git` (diff/show against the base revision), and — only when the mapping sets `mutationRecords: true` — each implemented clause's own `mutations` array (file/break/cite/result, plus `pins` when `conditionRecords: true`); an optional per-batch `untestedSentence` (default the original literal)
+ * @outputs REQUIREMENTS.md rewritten in place; named marker lines, the allowance literal, its seal and G-013/G-015's evidence counts edited in place; a verification report, the sibling-cite list, the merged list and the implemented-clause read-list (text plus `pins` quotes, grouped by origin) on stdout
  * @effects disk (rewrites the files named above, and restores every one of them to its PRE-RUN content if a post-write check fails), process (exits non-zero on any failed check; spawns `git diff`/`git show` against the base revision and `node scripts/requirements-trace.mjs` to re-measure the rail)
  * @errors exits 1 naming every failed check; every check computable without live files on disk (mutation-record shape and redness, ID existence/block/placement, committed-cell text, the standard evidence sentence) runs BEFORE any write and a failure there leaves every file untouched; the two checks that genuinely need live files (the rail spawn; the whole-branch git diff) run after the write and, on failure, every touched file is restored to its exact pre-write content before exiting 1; re-running over an already-applied mapping is a no-op that still re-verifies against the base revision
  */
@@ -92,6 +92,21 @@ for (let i = 0; i < linesBefore.length; i++) {
 const preExistingIds = new Set(idLineBefore.keys());
 
 /**
+ * The untested sentence's variable part (bc-method-ruling.md §7): a per-batch mapping
+ * field, `batch.untestedSentence`, read here and by check (h) below. A1–A3 predate the
+ * field and carry none, so the default is the ORIGINAL literal — refusal-test.mjs
+ * replays batch-a2.json unchanged against this same default.
+ */
+const DEFAULT_UNTESTED_SENTENCE = "no test pins this clause";
+const untestedSentenceTail =
+	typeof batch.untestedSentence === "string" && batch.untestedSentence.trim() !== ""
+		? batch.untestedSentence
+		: DEFAULT_UNTESTED_SENTENCE;
+function untestedSentenceFor(originId) {
+	return `split from ${originId} ${batchDate} (EARS form batch ${batchLabel}): ${untestedSentenceTail}`;
+}
+
+/**
  * The evidence cell for one clause. `implemented` cells join `cites` in backticks.
  * Any other clause may carry its own explicit `evidence` string (a deviation, a
  * residual, a merge rationale, or a precise PARTIAL-fix note) — used verbatim.
@@ -106,7 +121,7 @@ function evidenceCell(clause, originId) {
 	}
 	if (typeof clause.evidence === "string" && clause.evidence.trim() !== "") return clause.evidence;
 	if (clause.id === originId) return "—";
-	return `split from ${originId} ${batchDate} (EARS form batch ${batchLabel}): no test pins this clause`;
+	return untestedSentenceFor(originId);
 }
 
 function rowLine(clause, originId) {
@@ -430,6 +445,14 @@ if (batch.mutationRecords === true) {
 				(m.result === "red" || m.result === "green");
 			must(`mutation record #${i} is malformed, or cites outside the clause's own citations`, shapeOk, clause.id);
 			if (shapeOk && m.result === "red") anyRed = true;
+			// OPT-IN (batch.conditionRecords === true, batch B onward, bc-method-ruling.md §7):
+			// a record also names, in `pins`, the exact words of ITS OWN clause's sentence that
+			// this mutation turns red — the per-condition proof the method ruling requires.
+			// Checked as a plain substring of the clause's own `text`, never of another clause's.
+			if (batch.conditionRecords === true) {
+				const pinsOk = typeof m.pins === "string" && m.pins.length > 0 && clause.text.includes(m.pins);
+				must(`mutation record #${i} pins is missing, empty, or not a substring of the clause's own text`, pinsOk, clause.id);
+			}
 		});
 		must("implemented clause has no recorded red mutation (mutationRecords: true)", anyRed, clause.id);
 	}
@@ -441,7 +464,7 @@ for (const origin of batch.origins) {
 	for (const clause of origin.clauses.slice(1)) {
 		if (clause.status === "implemented") continue;
 		if (typeof clause.evidence === "string" && clause.evidence.trim() !== "") continue; // explicit override: no standard sentence required
-		const want = `split from ${origin.origin} ${batchDate} (EARS form batch ${batchLabel}): no test pins this clause`;
+		const want = untestedSentenceFor(origin.origin);
 		const got = afterLines[idLineAfterMem.get(clause.id)];
 		must("untested split row missing the standard evidence sentence", got.includes(want), clause.id);
 	}
@@ -576,6 +599,23 @@ console.log(`batch ${batchLabel} (base ${BASE}): ALL CHECKS GREEN`);
 console.log(`rows added: ${rowsAddedThisBatch.length} (${rowsAddedThisBatch.join(", ")})`);
 console.log(`sibling-cite list (${siblingCites.length}): ${siblingCites.join(", ") || "(none)"}`);
 console.log(`merged (${(batch.merged ?? []).length}): ${(batch.merged ?? []).map((m) => `${m.origin} — ${m.reason}`).join(" | ") || "(none)"}`);
+
+// Read-list (bc-method-ruling.md §7): every implemented clause, origin or split-born,
+// with its own text and the `pins` quotes its mutation records carry — grouped by
+// origin, always printed, so a reviewer reads the per-condition coverage claim without
+// re-deriving it from the raw mapping.
+console.log("read-list (implemented clauses, grouped by origin):");
+for (const origin of batch.origins) {
+	const implementedInOrigin = origin.clauses.filter((c) => c.status === "implemented");
+	if (!implementedInOrigin.length) continue;
+	console.log(`  ${origin.origin}:`);
+	for (const clause of implementedInOrigin) {
+		console.log(`    ${clause.id}: ${clause.text}`);
+		const pins = (clause.mutations ?? []).map((m) => m.pins).filter((p) => typeof p === "string" && p.length > 0);
+		if (pins.length) console.log(`      pins: ${pins.map((p) => JSON.stringify(p)).join(" | ")}`);
+	}
+}
+
 console.log(railRun.stdout);
 
 process.exit(0);

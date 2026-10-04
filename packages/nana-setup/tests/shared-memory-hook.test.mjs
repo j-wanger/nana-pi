@@ -45,7 +45,7 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: "/Users/x/repo" });
 	check("no index: exit 0", r.status === 0);
 	check("no index: prints nothing", r.stdout === "");
-	// req: R-348
+// req: R-935
 	check("no index: creates nothing", !fs.existsSync(path.join(home, ".claude", "projects")));
 }
 
@@ -56,10 +56,10 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	const mem = path.join(home, ".claude", "projects", projectKey(project), "memory");
 	check("self-heal: exit 0", r.status === 0, r.stderr);
-	// req: R-308
+// req: R-921
 	check("self-heal: memory dir created at the derived key", fs.existsSync(mem), mem);
 	const link = path.join(mem, "shared");
-	// req: R-308
+// req: R-921
 	check("self-heal: `shared` is a symlink", fs.lstatSync(link).isSymbolicLink());
 	check("self-heal: it points at the shared dir", fs.realpathSync(link) === fs.realpathSync(path.join(home, ".claude", "nana-memory", "shared")));
 	check("self-heal: prints the index header", r.stdout.includes("[nana:shared-memory]"));
@@ -107,9 +107,9 @@ const run = (home, env = {}, stdin = "") =>
 	fs.writeFileSync(path.join(mem, "shared", "mine.md"), "mine\n");
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	check("existing shared/: exit 0", r.status === 0, r.stderr);
-	// req: R-348
+// req: R-935
 	check("existing shared/: left as a real directory", fs.lstatSync(path.join(mem, "shared")).isDirectory() && !fs.lstatSync(path.join(mem, "shared")).isSymbolicLink());
-	// req: R-348
+// req: R-935
 	check("existing shared/: contents untouched", fs.readFileSync(path.join(mem, "shared", "mine.md"), "utf8") === "mine\n");
 }
 
@@ -167,6 +167,7 @@ const run = (home, env = {}, stdin = "") =>
 	const short = "/Users/x/café-repo";
 	const rs = run(home, { CLAUDE_PROJECT_DIR: short });
 	check("non-ASCII short path: exit 0", rs.status === 0);
+// req: R-934
 	check("non-ASCII short path: skipped, nothing created", /self-heal skipped/.test(rs.stdout) && !fs.existsSync(path.join(home, ".claude", "projects")));
 	const exact = path.join(home, ".claude", "projects", "-Users-x-caf--repo");
 	fs.mkdirSync(exact, { recursive: true });
@@ -177,7 +178,7 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	check("non-ASCII long path: exit 0 (fail-open)", r.status === 0, r.stderr);
 	check("non-ASCII long path: the index is still printed", r.stdout.includes("- [One](one.md)"));
-	// req: R-348
+// req: R-934
 	check("non-ASCII long path: it says the self-heal skipped", /self-heal skipped/.test(r.stdout), r.stdout);
 	check("non-ASCII long path: nothing was created", !fs.existsSync(path.join(home, ".claude", "projects")), fs.existsSync(path.join(home, ".claude", "projects")) ? fs.readdirSync(path.join(home, ".claude", "projects")).join(" ") : "");
 }
