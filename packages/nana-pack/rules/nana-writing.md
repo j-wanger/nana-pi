@@ -20,16 +20,21 @@ and code are technical records. They are out of scope.
 
 ## Words
 
-- Use everyday words. Do not coin a word. Never use a word from the banned list in
-  packages/nana-pack/lib/writing-config.mjs.
+- Use everyday words. Do not coin a word. Jake banned `dogfood`.
 - Do not put a file path, an identifier, a code name or a row number in the prose.
   The technical record holds them.
 
 ## A decision point
 
-A decision point carries five parts, in this order: what you tested, the result in
-plain numbers, the trade, the recommendation, and why it is Jake's call. If it is not
-his call, decide it and say so.
+A decision point carries five parts, in this order:
+
+1. what you tested
+2. the result in plain numbers
+3. the trade
+4. the recommendation
+5. why it is Jake's call
+
+If it is not his call, decide it and say so.
 
 ## Check
 
