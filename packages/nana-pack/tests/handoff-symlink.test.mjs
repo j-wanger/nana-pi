@@ -107,6 +107,7 @@ function workspace() {
 
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
 	check("e: symlinked state directory does not throw at compaction", !threw);
+	// req: R-806
 	check("e: external handoff.md not overwritten", fs.readFileSync(path.join(outside, "handoff.md"), "utf-8") === "EXTERNAL SECRET\n");
 	check("e: no .gitignore written into the external directory", !fs.existsSync(path.join(outside, ".gitignore")));
 	fs.rmSync(td, { recursive: true, force: true });

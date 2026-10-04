@@ -1,81 +1,54 @@
 # Batch A2 worker report — EARS form split, Part A §5-9
 
 Worker: Sonnet (build), worktree `~/nana-pi-wt/ears-a2`, branch `feat/ears-a2`, cut from main `6a2e372` (A1 landed).
-Spec: `design-ruling.md` §2, `batch0-land-ruling.md` §5, A1's lessons (`batch-a1-astra-r1.md`, `batch-a1-astra-r2.md`). Mapping: `batch-a2.json`. Applier/verifier: `apply-batch.mjs` (reused unmodified from A1).
+Spec: `design-ruling.md` §2, `batch0-land-ruling.md` §5, A1's lessons. Mapping: `batch-a2.json`. Applier/verifier: `apply-batch.mjs`, extended this round with a mechanical mutation-record check (below).
 
-## Commit
+Review history: astra r1 **BLOCK 6/10** (`batch-a2-astra-r1.md`) — 17 PINS/3 PARTIAL (exceeds the 2-PARTIAL threshold), both merges rejected, one lost IF condition, four code-read PARTIALs, five standalone-sentence SHOULDs. Fixed below; this is the resubmission.
 
-One commit on `feat/ears-a2` (explicit paths: `REQUIREMENTS.md`, `scripts/requirements-trace.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, the 13 other touched test files, `docs/reviews/ears-form-2026-10-04/batch-a2.json`, this report).
+## Commits
 
-## Scope
+- First build: `6565cfe` (superseded by this round's fixes).
+- This round: a new commit on `feat/ears-a2` (explicit paths: `REQUIREMENTS.md`, `scripts/requirements-trace.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, the other 14 touched test files, `docs/reviews/ears-form-2026-10-04/apply-batch.mjs`, `docs/reviews/ears-form-2026-10-04/batch-a2.json`, this report).
 
-REQUIREMENTS.md Part A §5-9: handoff/compaction/the adoption signal, journal and session lifecycle, notify, the display renderer (S1/S2), agent-dir resolution (U2) — all in `packages/nana-pack`. 33 off-form origins.
+## New mechanical rule: mutation records
+
+The seat tightened the standard: **an implemented split row is valid only if the mapping records an EXECUTED mutation that turned its cited assertion red** — a code-read is never enough. Made mechanical in `apply-batch.mjs`: every clause's mapping entry now carries a `mutations` array (`file`, `break`, `cite`, `result`); when the mapping sets top-level `mutationRecords: true`, the verifier refuses any `implemented` clause that lacks at least one entry with `result: "red"` whose `cite` is one of that clause's own citations, naming the row. **Smaller change chosen** (as asked): the check is gated behind the opt-in flag rather than applied unconditionally, so `batch-a1.json` (which predates the field and carries none) needs no retrofit — reconstructing A1's 37 origins' mutation evidence from its two prose review files would have been the larger change. Proved: removed R-110's `mutations` array in a disposable copy of `batch-a2.json` (left the worktree and real mapping untouched) and ran the verifier — `FAIL: implemented clause has no recorded red mutation (mutationRecords: true): R-110`, exit 1. Re-ran the real mapping immediately after: `ALL CHECKS GREEN`, confirming no corruption.
+
+## Fixes for astra r1
+
+1. **R-796, R-812, R-816 (MUST 1 — overclaimed citations).** Added astra's named assertions with markers and executed mutations: R-796 now also cites `handoff-artifact.test.mjs::custom path: no .gitignore beside it` (mutation: write a `.gitignore` beside the actual handoff file, not just the legacy repo path — red). R-812 reworded to its honest read-failure scope ("among an absent journal and one that exists but cannot be read, only the absent one shall be silent") and now also cites the two `ADOPTION UNAVAILABLE` assertions (dual-tagged with R-154). R-816 reworded to name its own condition and now also cites the deadline-timing assertion (dual-tagged with R-171; mutation: `NOTIFIER_TIMEOUT_MS` 8000→14500 — red).
+2. **R-142, R-193 (MUST 2 — reject both merges).** Split properly. R-142 → R-142 (names the file; mutation: wrong filename in the custom-path branch only — red, default-store and legacy-absence cites stay green) + new **R-828** (says update in place; mutation: drop " in place" — red, shares the custom-path citation with R-142 where the implementation genuinely renders both facts in one literal, per astra's "shared citations are allowed"). R-193 → R-193, now **untested** (astra's own probe — read-but-discard the stranded file — left every cited assertion green; no assertion in this repo observes the read itself) + new **R-829**, implemented (the behavioural non-application; mutation: actually apply the stranded gate — red).
+3. **R-803 (MUST 3).** Restored the governing condition: "IF the path cannot be addressed as written THEN the raw path shall not appear in the pointer." Same cite, same mutation (already scoped correctly to the unaddressable-path fixtures).
+4. **R-806 (SHOULD).** Added `handoff-symlink.test.mjs::e: external handoff.md not overwritten`; mutation: narrow `reachedThroughSymlink` to the final component only — red (the parent-directory-link case astra named), the two final-component cites stay green.
+5. **R-807, R-825, R-827 (SHOULD → downgraded).** Each had an astra-run probe that left every cited assertion green under a targeted mutation (case-fold `NANA_HANDOFF`; drop the stranded-existence check; add an ambient write during `install --pi-home`). Re-ran each myself; confirmed. All three dropped from `implemented` to `untested`.
+6. **Standalone wording (SHOULD).** R-807, R-811, R-816, R-825, R-826, R-827, R-829 reworded to name their own input/condition/object instead of a sibling ("any other value" → "NANA_HANDOFF is unset, or set to a value other than the exact lowercase off"; "that name" → "the adoption predicate's chosen objective filename"; "a hung one"/"the deadline" → "WHEN the notifier hangs ... that same 8 s deadline"; "otherwise" → "WHEN the active config is present, or no stranded default config exists"; "the handler"/"that named reason" → "the gate's tool_call handler ... that same unresolvable-agent-dir reason").
+7. **Re-checked every implemented split row against the new rule.** Nine origins that were code-read-only in round 1 (R-134, R-145, R-178, R-179, R-180, R-181, R-194, R-197, R-199) now each carry an executed, recorded mutation (e.g. R-134: disable the read-side symlink check — red, write-side stays green; R-178: drop `displayPath`'s `.toWellFormed()` — red, `finish()`'s backstop stays green; R-181: force-escape an em-dash only when `extra` is omitted — red, round-trip/astral cites stay green). R-819–R-823, R-826 (astra's own code-read findings) were re-run myself to produce first-party records rather than relying on astra's log.
 
 ## Off-form count
 
-157 → 124 (§5-9 now zero off form; matches design-ruling.md's A2 ladder exactly).
+**Unchanged: 157 → 124.** Rejecting both merges adds 2 more new rows (35 instead of 33: R-795–R-829 plus R-880), but the off-form *reduction* is driven by origins resolved (still 33), not row count — a split row is on-form exactly like a merged one.
 
-## Rows added
+## Rows: before → after this round
 
-33 new rows (R-795 to R-827 in the pack's continuation block, plus R-880 — the one new row split from R-248, which numerically sits in the knowledge block R-200-249 and so draws from the knowledge continuation R-880-909, not the pack's): **31 implemented**, **2 untested** (R-818 from R-173; R-880 from R-248). Plus 4 origins whose own first clause was re-judged `untested` on honest re-reading: R-138, R-166, R-173 (itself), R-248 (itself) — none were previously implemented, so these are not downgrades, they are the as-found status carried into the split.
-
-## Merged
-
-2 — **R-142** and **R-193**. In both, the implementation produces the two clauses' observable effects through one unconditional code path with no branch that could satisfy one half while breaking the other:
-- R-142: `nana-handoff.ts`'s pickup block builds one literal `Source: … update ${loc.text} in place.` string from a single `loc` value. Every mutation tried (drop the custom path, keep "in place"; keep the path, drop "in place"; override `loc.text` at the source) turned the same two custom-path assertions red together.
-- R-193: `lib/config.ts`'s `loadConfig`, when the active user file is absent, never reads the stranded default file at all (`// Never read it.`) and sets `gate` to built-in defaults in the same branch. No code path reads-but-ignores.
-
-Both keep their original three pre-existing cites verbatim; no marker changes needed.
-
-## One overclaim caught before judgement
-
-R-166 ("a working OS notifier shall be used and no fallback shall be raised or journaled") had two pre-existing cites, both checking only the *absence* of a fallback. Mutation: commenting out every `darwinNotify`/`windowsNotify`/OSC-777 call site in `nana-notify.ts` (so the notifier is never invoked at all) left both cited assertions green — a pure no-op is indistinguishable from "a working notifier succeeded" under this fixture. R-166's own clause dropped to `untested`; the surviving clause ("no fallback … when the notifier works") kept both cites under new id R-815.
+- Before (first build): 66 total clauses (33 origins + 33 new rows, 2 merges) — 60 implemented, 6 untested.
+- After (this round): 68 total clauses (33 origins + 35 new rows, 0 merges) — **58 implemented, 10 untested**. New untested: R-193 (own clause), R-807, R-825, R-827 (all downgraded per astra's probes, confirmed independently).
 
 ## Mutations run
 
-24 actual edit-run-revert cycles in disposable copies of the source (git-reverted after each), confirming the cited test goes **red** for the targeted clause while the sibling clause's cites stay green:
-
-| # | Clause(s) | File mutated | Result |
-|---|---|---|---|
-| 1 | R-110 vs R-795 | nana-handoff.ts (blank the body push) | red: R-110's cite; green: R-795's cites |
-| 2 | R-112 vs R-796 | nana-handoff.ts (write `.pi/handoff.md`) | red: R-112's cite; green: R-796's |
-| 3 | R-796 vs R-112 | nana-handoff.ts (write `.gitignore`) | red: R-796's cite; green: R-112's |
-| 4 | R-113 vs R-797 | lib/adoption.mjs (`storePathFor` → constant key) | red: R-113's cites; green: R-797's |
-| 5 | R-114 vs R-798 | nana-handoff.ts (push body in mismatch branch) | red: R-114's cite; green: R-798's |
-| 6 | R-119 vs R-799 | nana-handoff.ts (suppress pickup-failed journal) | red: R-119's cite; green: R-799's |
-| 7 | R-120 vs R-800/R-801 | nana-handoff.ts (rethrow after journal) | red: R-120's cite; green: R-800/R-801's |
-| 8 | R-801 vs R-120/R-800 | nana-handoff.ts (atomicWrite pre-corrupt) | red: R-801's cite; green: R-120/R-800's |
-| 9 | R-124 vs R-802 | nana-handoff.ts (push body in stale branch) | red: R-802's cite; green: R-124's |
-| 10 | R-128 vs R-803 | nana-handoff.ts (append raw path after marked form) | red: R-803's cite (4/5 labels); green: R-128's |
-| 11 | R-133 vs R-805 | nana-handoff.ts (temp litter before early return) | red: R-805's cite; green: R-133's |
-| 12 | R-140 vs R-808 | nana-handoff.ts (push ancestor body text) | red: R-808's cite; green: R-140's |
-| 13 | R-142 (merge, attempt 1) | nana-handoff.ts (drop "in place") | red: both custom-path cites together |
-| 14 | R-142 (merge, attempt 2) | nana-handoff.ts (wrong path, keep "in place") | red: both custom-path cites together |
-| 15 | R-145 vs R-809 | lib/adoption.mjs (`repoRootOf` → `isDir` not `present`) | red: R-809's cite; green: R-145's |
-| 16 | R-148 vs R-810 | nana-handoff.ts (journal → merged `cfg.journal.path`) | red: R-810's cites (broader than minimal — also disturbed R-148's two, noted in the mapping) |
-| 17 | R-150 vs R-811 | lib/adoption.mjs (loosen objectiveFile validation) | red: R-811's cite; green: R-150's |
-| 18 | R-154 vs R-812 | bin/nana-adoption.mjs (swallow unreadable journal as `[]`) | red: R-154's cites; green: R-812's |
-| 19 | R-156 vs R-813 | lib/display.mjs (`codeSpan` drops backticks) | red: R-156's cite; green: R-813's |
-| 20 | R-163 vs R-814 | nana-lifecycle.ts (comment out `setStatus`) | red: R-163's cite; green: R-814's |
-| 21 | R-166 vs R-815 | nana-notify.ts (no-op every notifier call site) | red: notify/journal checks for every OTHER clause (b/c/e/f-fail/g); green: R-815's two "working notifier" cites — the overclaim above |
-| 22 | R-171 vs R-816 | nana-notify.ts (`NOTIFIER_TIMEOUT_MS` 8000→2000) | red: R-171's cite; green: R-816's |
-| 23 | R-172 vs R-817 | nana-notify.ts (journal moved inside `hasUI` branch) | red: R-817's cite; green: R-172's |
-| 24 | R-182 vs R-824 | lib/display.mjs (`"[unprintable]"` → `""`) | red: R-824's cite; green: R-182's (all 7 "never throws" checks) |
-
-All 24 showed the intended red for their target clause. Two (16, 10) are noted as broader-than-minimal: the mutation also disturbed an adjacent clause's checks for reasons explained in the mapping's `assertion` field, not because the citation is wrong. The remaining 9 split origins (R-178, R-179, R-180, R-181, R-194, R-197, R-199, plus R-138's/R-166's/R-173's/R-248's untested halves) were resolved by direct reading: each cited pair already exercises a demonstrably different function or branch (e.g. `displayPath`/`displayText` vs. the separate `finish()` backstop; `codeSpan`'s refuse-side vs. its own cap-boundary render check; `loadConfig`'s own stop vs. the gate handler's separate block decision) — no fixture gap or shared-assertion risk was evident, so no live mutation was run for those; this is written, not pinned the same way the 24 above are.
+**59 mutation records across 58 implemented clauses** (one clause, R-822, carries two). Every one is an executed edit-run-revert cycle in a disposable copy of the source (git-reverted after each run, confirmed clean via `git diff --stat`), not a code-read: round 1 had 24; this round added/replaced 28 more to close the nine code-read origins, fix the four overclaims, and cover R-142/R-193's new split halves. Representative examples beyond the round-1 set: R-134 (disable `reachedThroughSymlink` on the read path), R-145 (adoption reporter uses `canon` directly, never walks to the repo root), R-178 (`displayPath` drops `.toWellFormed()`), R-179 (`codeSpanSafe` stops refusing a backtick), R-180 (`locator` truncates over 1000 chars), R-181 (em-dash force-escaped only when `extra` omitted), R-194 (mismatch-note push unconditionally skipped), R-197 (unresolvable-agent-dir branch falls back to defaults instead of stopping), R-199 (`resolveLayout`'s no-flags branch ignores `PI_CODING_AGENT_DIR`), R-826 (gate returns `block: false` for an unusable policy), R-828 (drop " in place"), R-829 (apply the stranded gate instead of discarding it). Every record names the file, what was broken, which of the clause's own citations it targeted, and the observed result; `apply-batch.mjs` now checks this mechanically (see above).
 
 ## Sibling-cite list
 
-**0** — no new row's cite set equals its origin's.
+**0** — no row's cite set equals its origin's or a sibling's (checked by the verifier).
 
 ## Verifier (`apply-batch.mjs --base main`)
 
-`ALL CHECKS GREEN`, exit 0, idempotent (`rows added: 0` on the final re-run). One mechanical miss and one marker-wiring gap were found and fixed mid-build: R-248's split child was first placed as R-804 (pack block) — the verifier correctly refused it, since R-248 numerically sits in the knowledge block (R-200-249) and must draw from knowledge's own continuation (R-880-909); refiled as R-880. Two origins (R-138, R-140) were missing the `markerEdits` that move their second clause's cites onto its new id — the rail's own diagnostic (`status X but N test(s) trace it`) caught this before the verifier's green; both fixed. A stray duplicate row left by the first (failed) apply attempt was removed by hand before re-verifying.
+`ALL CHECKS GREEN`, exit 0, idempotent (`rows added: 0` on the final re-run), including the new mutation-record check. To rebuild cleanly against astra's fully-corrected mapping, the worktree's A2 files were first reset to `main` (`git checkout main -- <files>`) and `apply-batch.mjs` re-run fresh — this round's commit therefore carries the complete corrected diff from `main`, not an incremental patch over the flawed first build. Two mechanical misses surfaced and were fixed before green: R-827's reworded text accidentally carried two `shall`s (fixed to one); R-138/R-193/R-194's pre-existing (pre-lane) markers on now-reassigned or now-untested citations needed explicit `markerEdits` (several were missing in the first pass of this round's fix; the rail's own `status X but N test(s) trace it` diagnostic caught each one before green).
 
 ## Totals
 
 - Rail: `ears: 124 rows off form (allowance 124)`, exit 0.
 - `packages/nana-pack/tests/requirements-trace.test.mjs`: 8/8 pass, including `seal: EARS_ALLOWANCE is 124 (G-015)` and the R-757 equality seal.
 - `map:check`: 172 modules, 0 problems, exit 0.
-- All 16 touched test files re-run individually: exit 0, no FAIL lines.
-- `npm test` (alone, after confirming no other `scripts/test.mjs` was running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 299.1s. The one failure, `packages/nana-pack/tests/readme-check.test.mjs`, is the worktree's pre-existing environmental gap (`node scripts/readme-check.mjs --check` on this worktree reports the same 5 problems: missing `node_modules` and `apps/bench/.ext`), identical in kind to A1's and batch 0's finding — not caused by this batch.
+- All 17 touched test files re-run individually: exit 0, no FAIL lines; whitespace (tab-indentation) of every inserted/moved marker line re-checked and fixed to match surrounding style.
+- `npm test` (alone, after confirming no other `scripts/test.mjs` was running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 294.7s. The one failure, `packages/nana-pack/tests/readme-check.test.mjs`, is the worktree's pre-existing environmental gap (missing `node_modules` and `apps/bench/.ext`), identical in kind to A1's and batch 0's finding — not caused by this batch.

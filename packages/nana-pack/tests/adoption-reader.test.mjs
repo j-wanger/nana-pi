@@ -133,7 +133,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 	// Changed in sol r1 MUST 4: this used to assert empty stdout — silence for a journal the reader
 	// could not read, i.e. "I could not look" dressed as "nothing open". Only ABSENT is silent now.
-	// req: R-154
+	// req: R-154 R-812
 	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "", JSON.stringify(d));
 	// req: R-157
 	check("fail: malformed nana-pack.json → the default journal, exit 0", m.status === 0 && m.stdout.includes(`- \`${roots[6]}\` —`), JSON.stringify(m));
@@ -150,7 +150,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	if (readable) console.log("SKIP unreadable: mode 000 is still readable here");
 	else {
 		const r = run();
-		// req: R-154
+		// req: R-154 R-812
 		check("fail: unreadable journal → ADOPTION UNAVAILABLE (EACCES), exit 0", r.status === 0 && r.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (EACCES).\n", JSON.stringify(r));
 	}
 	fs.rmSync(JOURNAL, { force: true });

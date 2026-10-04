@@ -300,7 +300,7 @@ if (!POSIX) {
 		// req: R-816
 		check("g: the hang is journalled with the kill signal",
 			/notify_fallback/.test(journal()) && /killed \(SIG/.test(journal()));
-		// req: R-171
+		// req: R-171 R-816
 		check("g: the fallback is bounded by the deadline, not by the hung child",
 			elapsed >= NOTIFIER_TIMEOUT_MS && elapsed < NOTIFIER_TIMEOUT_MS + 6000);
 		fs.rmSync(binDir, { recursive: true, force: true });

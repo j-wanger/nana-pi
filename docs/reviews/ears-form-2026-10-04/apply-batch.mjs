@@ -2,7 +2,7 @@
 /**
  * @module docs/reviews/ears-form-2026-10-04/apply-batch.mjs
  * @purpose Apply one EARS-form split batch mapping (batch-<n>.json) to REQUIREMENTS.md and the `// req:` markers it names, the allowance literal and its seal, and G-013/G-015's evidence cells, then verify the result AGAINST AN EXPLICIT BASE REVISION — every pre-existing row byte-identical unless it is a mapped origin, and every changed line under any test root a `// req:` marker line (one sanctioned seal-literal exception) — refusing and changing nothing on any failed check.
- * @inputs a batch-<n>.json path (argv[2]), an optional `--base <rev>` (default `main`), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names, and `git` (diff/show against the base revision)
+ * @inputs a batch-<n>.json path (argv[2]), an optional `--base <rev>` (default `main`), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names, `git` (diff/show against the base revision), and — only when the mapping sets `mutationRecords: true` — each implemented clause's own `mutations` array (file/break/cite/result)
  * @outputs REQUIREMENTS.md rewritten in place; named marker lines, the allowance literal, its seal and G-013/G-015's evidence counts edited in place; a verification report, the sibling-cite list and the merged list on stdout
  * @effects disk (rewrites the files named above), process (exits non-zero on any failed check; spawns `git diff`/`git show` against the base revision and `node scripts/requirements-trace.mjs` to re-measure the rail)
  * @errors exits 1 naming every failed check; all edits are computed and checked before any write, so a failed structural check leaves every file untouched; re-running over an already-applied mapping is a no-op that still re-verifies against the base revision
@@ -425,6 +425,31 @@ must("rail test seal carries the new allowance", readFileSync(RAIL_TEST, "utf8")
 // (g) every implemented split row names an assertion in the mapping.
 for (const clause of allClauses) {
 	if (clause.status === "implemented") must("implemented clause has no assertion", !!clause.assertion && clause.assertion.length > 0, clause.id);
+}
+
+// (g2) OPT-IN (batch.mutationRecords === true, A2 onward): an implemented clause's "an
+// executed mutation is the only evidence" rule, made mechanical. A code-read ("this is
+// clearly a different function") is not a mutation record and does not satisfy this check.
+// Each entry in a clause's `mutations` array must name the file changed (`file`), what was
+// broken (`break`, non-empty prose), which of the CLAUSE'S OWN `cites` it targeted (`cite`,
+// must be a member of `cites`) and the observed `result` — at least one entry per implemented
+// clause must read `result: "red"`. batch-a1.json predates this field and carries none, so
+// the check is gated behind the flag rather than applied unconditionally — the smaller change
+// (see apply-batch.mjs's own header and the batch-a2 land notes for why retrofitting A1's two
+// review files into structured records was rejected as the larger one).
+if (batch.mutationRecords === true) {
+	for (const clause of allClauses) {
+		if (clause.status !== "implemented") continue;
+		const muts = clause.mutations;
+		const citeSet = new Set(clause.cites ?? []);
+		const valid = (m) =>
+			m && typeof m === "object" &&
+			typeof m.file === "string" && m.file.length > 0 &&
+			typeof m.break === "string" && m.break.length > 0 &&
+			typeof m.cite === "string" && citeSet.has(m.cite) &&
+			m.result === "red";
+		must("implemented clause has no recorded red mutation (mutationRecords: true)", Array.isArray(muts) && muts.some(valid), clause.id);
+	}
 }
 
 // (h) every untested/violated/planned split row (new, not origin) WITHOUT its own
