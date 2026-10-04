@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/writing-injection.test.mjs
- * @purpose Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (base, objective and writing each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, and that none of this ever touches the real shipped rule file
+ * @purpose Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (a distinctive base, the objective and the writing block each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, that the UTF-8 tail fix strips only a genuine read-boundary split and never a malformed byte, that the read ceiling is pinned directly, and that none of this ever touches the real shipped rule file
  * @inputs extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
@@ -122,6 +122,61 @@ for (const [label, cause, mk] of [
 	check(`unavailable: ${label} journal entry names the cause`, added.some((l) => l.event === "writing_rule_unavailable" && l.cause?.startsWith(cause)), JSON.stringify(added));
 }
 
+/* ======================================================================================
+ * astra r3 MUST 1 — the UTF-8 tail fix. Four fixtures, each a disposable file whose read
+ * window (readBudget bytes) ends exactly at the boundary described:
+ *   (1) a split € (3-byte sequence), (2) a split 😀 (4-byte sequence) — both ACCEPTED, no
+ *   replacement character; (3) a genuinely invalid 0xff AT the tail — REFUSED, because its
+ *   own "lead byte" announces nothing to wait for; (4) an invalid byte well inside the
+ *   window, away from any boundary — REFUSED, as it already was before this fix.
+ * ====================================================================================== */
+{
+	const { buildBlock: bb, readBudget } = await import(writingExtUrl);
+	const want = readBudget(Number.MAX_SAFE_INTEGER); // WRITING_INJECT_CAP + READ_MARGIN
+	const tail = Buffer.from("more text after the boundary, well past the cut.".repeat(10));
+
+	const mkFile = (prefixLen, multibyte) => {
+		const p = path.join(tempDir(), "rule.md");
+		fs.writeFileSync(p, Buffer.concat([Buffer.alloc(prefixLen, 0x41), multibyte, tail]));
+		return p;
+	};
+
+	// (1) € = 0xE2 0x82 0xAC, split after its first byte at the exact boundary
+	{
+		const p = mkFile(want - 1, Buffer.from([0xe2, 0x82, 0xac]));
+		const r = bb(p);
+		const ok = r.cause === null && r.block !== null && !r.block.includes("�");
+		// req: R-752
+		check("UTF-8 tail: a split € at the read boundary is accepted, no replacement char", ok, JSON.stringify(r.cause));
+	}
+	// (2) 😀 = 0xF0 0x9F 0x98 0x80, split after its first two bytes at the exact boundary
+	{
+		const p = mkFile(want - 2, Buffer.from([0xf0, 0x9f, 0x98, 0x80]));
+		const r = bb(p);
+		const ok = r.cause === null && r.block !== null && !r.block.includes("�");
+		// req: R-752
+		check("UTF-8 tail: a split 😀 at the read boundary is accepted, no replacement char", ok, JSON.stringify(r.cause));
+	}
+	// (3) a lone invalid 0xff AS the very last byte read — its own value announces no sequel,
+	// so trimIncompleteTail must NOT remove it; the fatal decode then refuses it correctly.
+	{
+		const p = mkFile(want - 1, Buffer.from([0xff]));
+		const r = bb(p);
+		const ok = r.cause === "not valid UTF-8" && r.block === null;
+		// req: R-752
+		check("UTF-8 tail: 0xff AT the tail is REFUSED with a cause, not silently dropped", ok, JSON.stringify(r));
+	}
+	// (4) an invalid byte well inside the window (not at the boundary) — already worked, stays working
+	{
+		const p = path.join(tempDir(), "rule.md");
+		fs.writeFileSync(p, Buffer.concat([Buffer.alloc(2000, 0x41), Buffer.from([0xff]), Buffer.alloc(2000, 0x42)]));
+		const r = bb(p);
+		const ok = r.cause === "not valid UTF-8" && r.block === null;
+		// req: R-752
+		check("UTF-8 tail: an invalid byte well inside the window is refused", ok, JSON.stringify(r));
+	}
+}
+
 /* --- (c) cap: an oversized rule is cut and announced, plus its seal (R-753) — disposable - */
 // req: R-753
 check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
@@ -135,6 +190,38 @@ check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 	const ok = block.length <= WRITING_INJECT_CAP && block.includes(`cut at ${WRITING_INJECT_CAP} chars`);
 	// req: R-753
 	check("cap: an oversized rule is cut at the cap and the cut is announced", ok, block.length);
+}
+
+/* ======================================================================================
+ * astra r3 MUST 3 — the read ceiling, pinned DIRECTLY (R-755), not inferred from the
+ * heap-pressure probe below. `readBudget` is the exact arithmetic buildBlock uses to size
+ * its bounded read; this asserts its maximum equals WRITING_INJECT_CAP + READ_MARGIN for
+ * any file at or above that size, and that a smaller file reads its own full size (never
+ * more than the file has).
+ * ====================================================================================== */
+{
+	const { readBudget, READ_MARGIN } = await import(writingExtUrl);
+	// req: R-755
+	check("seal: READ_MARGIN is 4", READ_MARGIN === 4);
+	// req: R-755
+	check("byte ceiling: a file at or above the cap never requests more than WRITING_INJECT_CAP + READ_MARGIN bytes", readBudget(WRITING_INJECT_CAP + READ_MARGIN) === WRITING_INJECT_CAP + READ_MARGIN && readBudget(1_000_000_000) === WRITING_INJECT_CAP + READ_MARGIN, JSON.stringify({ atCeiling: readBudget(WRITING_INJECT_CAP + READ_MARGIN), huge: readBudget(1_000_000_000) }));
+	// req: R-755
+	check("byte ceiling: a file smaller than the ceiling requests exactly its own size, never more", readBudget(10) === 10 && readBudget(0) === 0, JSON.stringify({ ten: readBudget(10), zero: readBudget(0) }));
+}
+{
+	// Behavioral corroboration: a real file whose bytes PAST the ceiling are corrupt must have
+	// NO effect on the result — if the read had gone one byte further, the corrupt byte would
+	// make the whole thing refuse. This proves the ACTUAL read respects readBudget, not just
+	// that the arithmetic above is correct.
+	const { buildBlock: bb, readBudget } = await import(writingExtUrl);
+	const ceiling = readBudget(Number.MAX_SAFE_INTEGER);
+	const p = path.join(tempDir(), "rule.md");
+	const clean = Buffer.alloc(ceiling, 0x41); // exactly the ceiling, all valid ASCII
+	const corruptPastCeiling = Buffer.from([0xff, 0xff, 0xff, 0xff]); // would refuse if ever read
+	fs.writeFileSync(p, Buffer.concat([clean, corruptPastCeiling]));
+	const r = bb(p);
+	// req: R-755
+	check("byte ceiling: corrupt bytes exactly past the ceiling are never read (result is unaffected)", r.cause === null && r.block !== null, JSON.stringify(r.cause));
 }
 
 /* --- (d) reload: an edited DISPOSABLE rule is injected after session_start reason reload (R-754) --- */
@@ -170,27 +257,31 @@ const TIME_LIMIT_MS = 5000;
 
 {
 	const fifoPath = path.join(tempDir(), "fifo.md");
-	try {
-		spawnSync("mkfifo", [fifoPath]);
-	} catch {
-		/* platform without mkfifo — the check below reports it, not a crash */
+	const mkfifoResult = spawnSync("mkfifo", [fifoPath]);
+	if (mkfifoResult.error || mkfifoResult.status !== 0 || !fs.existsSync(fifoPath)) {
+		// astra r3 residual 4: without `mkfifo` on PATH (removed from PATH, or a platform that
+		// lacks it — e.g. native Windows) this fixture cannot be built at all. That is a missing
+		// PREREQUISITE, not a finding about the extension, so it is reported as a skip, never a
+		// failure the suite's PASS/FAIL tally would count.
+		console.log(`SKIP MUST 1 (subprocess): FIFO fixture — mkfifo is not available (${mkfifoResult.error?.message ?? `exit ${mkfifoResult.status}`})`);
+	} else {
+		const start = Date.now();
+		const r = spawnSync(process.execPath, ["--experimental-strip-types", runnerPath, writingExtUrl, fifoPath], {
+			encoding: "utf8",
+			timeout: TIME_LIMIT_MS,
+		});
+		const elapsed = Date.now() - start;
+		const out = (() => {
+			try {
+				return JSON.parse(r.stdout.trim().split("\n").pop());
+			} catch {
+				return null;
+			}
+		})();
+		const fifoOk = !r.signal && elapsed < TIME_LIMIT_MS && out?.hasBlock === false && out?.cause?.includes("not a regular file");
+		// req: R-752
+		check("MUST 1 (subprocess): a FIFO with no writer is refused instantly, never read, never hangs", fifoOk, JSON.stringify({ signal: r.signal, elapsed, out, stderr: r.stderr }));
 	}
-	const start = Date.now();
-	const r = spawnSync(process.execPath, ["--experimental-strip-types", runnerPath, writingExtUrl, fifoPath], {
-		encoding: "utf8",
-		timeout: TIME_LIMIT_MS,
-	});
-	const elapsed = Date.now() - start;
-	const out = (() => {
-		try {
-			return JSON.parse(r.stdout.trim().split("\n").pop());
-		} catch {
-			return null;
-		}
-	})();
-	const fifoOk = fs.existsSync(fifoPath) && !r.signal && elapsed < TIME_LIMIT_MS && out?.hasBlock === false && out?.cause?.includes("not a regular file");
-	// req: R-752
-	check("MUST 1 (subprocess): a FIFO with no writer is refused instantly, never read, never hangs", fifoOk, JSON.stringify({ signal: r.signal, elapsed, out, stderr: r.stderr }));
 }
 
 {
@@ -212,15 +303,28 @@ const TIME_LIMIT_MS = 5000;
 		}
 	})();
 	const bigOk = !r.signal && r.status === 0 && elapsed < TIME_LIMIT_MS && out?.hasBlock === true && out?.len <= WRITING_INJECT_CAP;
-	// req: R-753
+	// req: R-755
 	check("MUST 1 (subprocess): a 64 MiB rule file under a 32 MiB heap cap does not crash, exits in time, block is capped", bigOk, JSON.stringify({ signal: r.signal, status: r.status, elapsed, out, stderr: r.stderr }));
 	fs.rmSync(bigPath, { force: true });
 }
 
 /* ======================================================================================
- * astra r2 MUST 3(d) — composition: a REAL objective seeded, base + objective + writing
- * each appear EXACTLY ONCE, IN ORDER (objective registered before writing).
+ * astra r2 MUST 3(d) / astra r3 MUST 2 — composition: a DISTINCTIVE base prompt seeded
+ * alongside a REAL objective, and base + objective + writing each asserted EXACTLY ONCE,
+ * IN ORDER (base, then objective, then writing — registration order). astra r3's own
+ * mutation (an extension that discards the incoming systemPrompt and substitutes the
+ * literal "BASE") must turn this red: a loose `startsWith("BASE")` check cannot catch that,
+ * since the mutated text ALSO starts with "BASE" — the sentinel below is distinctive
+ * enough that only the REAL incoming prompt, untouched, can produce it.
  * ====================================================================================== */
+const BASE_SENTINEL = `BASE-SENTINEL-${Date.now()}-do-not-discard`;
+/** True only when `prompt` contains `base`, then `objective`, then `writing`, each exactly
+ *  once, with `base` first (at offset 0) — the shape astra r3 MUST 2 asked for. */
+function composedInOrder(prompt, base, objective, writing) {
+	const once = (needle) => prompt.split(needle).length - 1 === 1;
+	return prompt.startsWith(base) && once(base) && once(objective) && once(writing) && prompt.indexOf(base) < prompt.indexOf(objective) && prompt.indexOf(objective) < prompt.indexOf(writing);
+}
+
 {
 	const rulePath = path.join(tempDir(), "rule.md");
 	fs.writeFileSync(rulePath, "Compose fixture text.\n");
@@ -228,17 +332,13 @@ const TIME_LIMIT_MS = 5000;
 	await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
 	const writingSession = session(writingExt, { rulePath });
 	await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
-	let prompt = "BASE";
+	let prompt = BASE_SENTINEL;
 	const r1 = await objSession.handlers.before_agent_start({ systemPrompt: prompt }, objSession.ctx);
 	if (r1?.systemPrompt !== undefined) prompt = r1.systemPrompt;
 	const r2 = await writingSession.handlers.before_agent_start({ systemPrompt: prompt }, writingSession.ctx);
 	if (r2?.systemPrompt !== undefined) prompt = r2.systemPrompt;
-	const objOnce = prompt.split(OBJECTIVE_HEADING).length - 1 === 1;
-	const writingOnce = prompt.split(HEADING).length - 1 === 1;
-	const inOrder = prompt.indexOf(OBJECTIVE_HEADING) !== -1 && prompt.indexOf(OBJECTIVE_HEADING) < prompt.indexOf(HEADING);
-	check("compose (stub): base prompt survives", prompt.startsWith("BASE"));
 	// req: R-751
-	check("compose (stub): base, objective and writing each appear exactly once, objective before writing", objOnce && writingOnce && inOrder, prompt);
+	check("compose (stub): base (distinctive sentinel), objective and writing each appear exactly once, in order", composedInOrder(prompt, BASE_SENTINEL, OBJECTIVE_HEADING, HEADING), prompt);
 }
 
 {
@@ -267,13 +367,13 @@ const TIME_LIMIT_MS = 5000;
 			undefined,
 			undefined,
 		);
-		const result = await runner.emitBeforeAgentStart("USER", [], { cwd: process.cwd() });
+		// forceSystemPrompt seeds the DISTINCTIVE base text the real runner's own
+		// buildSystemPromptState returns verbatim before any extension has run (the same
+		// mechanism a replayed system message would use) — astra r3 MUST 2.
+		const result = await runner.emitBeforeAgentStart("USER", [], { cwd: process.cwd(), forceSystemPrompt: BASE_SENTINEL });
 		const finalPrompt = result.systemPromptOptions.forceSystemPrompt ?? "";
-		const objOnce = finalPrompt.split(OBJECTIVE_HEADING).length - 1 === 1;
-		const writingOnce = finalPrompt.split(HEADING).length - 1 === 1;
-		const inOrder = finalPrompt.indexOf(OBJECTIVE_HEADING) !== -1 && finalPrompt.indexOf(OBJECTIVE_HEADING) < finalPrompt.indexOf(HEADING);
 		// req: R-751
-		check("compose (real pi 1.0.2): base, objective and writing each appear exactly once, objective before writing", objOnce && writingOnce && inOrder, finalPrompt);
+		check("compose (real pi 1.0.2): base (distinctive sentinel), objective and writing each appear exactly once, in order", composedInOrder(finalPrompt, BASE_SENTINEL, OBJECTIVE_HEADING, HEADING), finalPrompt);
 	}
 }
 

@@ -816,3 +816,25 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
   per repo+checker under `<agent dir>/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.
+- **Writing trial residuals, recorded at landing rather than fixed further (astra r3, 2026-10-04):**
+  - The read ceiling is a BYTE budget; the injected block's cap is a CHARACTER budget. A
+    multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of
+    `WRITING_INJECT_CAP` characters while the truncation notice still names the character cap —
+    the notice is imprecise in that direction (REQUIREMENTS.md Open questions).
+  - `statSync` then `openSync` is two syscalls, not one: a stable FIFO is refused correctly, but
+    a regular file swapped for a FIFO between those two calls is not caught. The guarantee is
+    "never hangs on a stable, trusted shipped resource", not an unconditional one.
+  - The production composition probe (a real objective, the installed pi 1.0.2 runner) already
+    passed before this trial's own regression test caught up to it; no injector redesign
+    followed from closing that gap.
+  - The FIFO subprocess fixture needs `mkfifo` on `PATH`; absent (including on native Windows,
+    not exercised), it reports a skip, not a failure.
+  - The verdict check has no line of its own: a heading followed by a failing first prose
+    sentence on line 3 still reports that finding at line 1 (REQUIREMENTS.md Open questions,
+    R-743). Report-only; low consequence.
+  - Unchanged from earlier rounds: the abbreviation splitter still breaks on "e.g."/"vs.", the
+    passive check is a measured heuristic (not a parser), a child session's extension set can
+    exclude this one depending on how it was launched, and behavioral compliance with the
+    rule's own technical-record exclusion has not been tested against a real model.
+  - The readme-check test stays red for pre-existing worktree-only dependency gaps (the bench
+    extension sandbox, nana-knowledge's node_modules) — unrelated to this trial.

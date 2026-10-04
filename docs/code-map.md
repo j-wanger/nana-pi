@@ -918,7 +918,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Append the "Writing for Jake" rule to every session's system prompt, read fresh at every session_start so a reload picks up an edit — the seventh pack extension.
 - **inputs** — pi `session_start` (every reason) and `before_agent_start` events; an injectable rule path (opts.rulePath, defaulting to the shipped packages/nana-pack/rules/nana-writing.md); ctx (cwd)
-- **outputs** — the rule block appended under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable or not valid UTF-8
+- **outputs** — the rule block appended under "## Writing for Jake (nana)"; one journal line (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread remainder, so that is the full extent of the claim, not whole-file validation
 - **effects** — disk (stats and bounded-reads the rule file; appends the journal)
 - **errors** — none — the handler swallows everything; an unusable rule injects nothing rather than throwing, hanging or exhausting memory
 - **callers** — —
@@ -1436,7 +1436,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/writing-injection.test.mjs`
 
-- **purpose** — Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (base, objective and writing each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, and that none of this ever touches the real shipped rule file
+- **purpose** — Pins that the writing rule reaches every session's system prompt, composes with nana-objective on the installed pi 1.0.2 (a distinctive base, the objective and the writing block each once, in order), that an unusable or oversized or non-regular rule never crashes or hangs the process, that the UTF-8 tail fix strips only a genuine read-boundary split and never a malformed byte, that the read ceiling is pinned directly, and that none of this ever touches the real shipped rule file
 - **inputs** — extensions/nana-writing.ts (with an injected, disposable rulePath — never the shipped file), extensions/nana-objective.ts, a temp HOME, and (for the two resource-failure fixtures) a Node subprocess with a time limit
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
