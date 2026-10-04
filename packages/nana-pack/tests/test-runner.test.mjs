@@ -181,7 +181,7 @@ check("each file runs with --experimental-strip-types from its package dir", cwd
 check("each file gets a fresh temp HOME and USERPROFILE, not the real one", !!home1 && home1.env_home === home1.userprofile && home1.home !== home1.outer && home1.dotfile === true && home1.outer_touched === false);
 // req: R-604
 check("the temp HOME is per file, not shared between files", !!home2 && home2.home !== home1?.home);
-// req: R-605
+// req: R-605 R-910
 check("a file that exits non-zero is FAIL and the run exits 1", labelFor(A.out, "d-red.test.mjs") === "FAIL" && lineFor(A.out, "d-red.test.mjs").includes("exit 1") && A.code === 1);
 // req: R-605
 check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
@@ -215,7 +215,7 @@ check("--verbose streams a passing file's own output", B.out.includes("probe-mar
 
 // ── case C: nothing matched ──────────────────────────────────────────────────────────────────
 const C = run(rootA, ["zzz-matches-nothing"]);
-// req: R-617 R-912
+// req: R-617
 check("no match says so, exits 1, and still removes its scratch dir", C.out.includes("no test files matched") && C.code === 1 && emptyDir(C.tmp));
 
 // ── case D: the per-file timeout kills the whole tree ────────────────────────────────────────
@@ -234,7 +234,7 @@ const D = run(rootD, [], { NANA_TEST_TIMEOUT_MS: "1500" });
 const gpid = Number(fs.readFileSync(path.join(D.out_dir, "grandchild.pid"), "utf8"));
 // req: R-605 R-612
 check("NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL", labelFor(D.out, "hang.test.mjs") === "FAIL" && D.out.includes("timed out after 1.5s") && D.code === 1 && D.ms < 60000);
-// req: R-609
+// req: R-609 R-912
 check("the timeout kill takes the child's whole process tree with it", gone(gpid));
 // req: R-912
 check("the scratch dir is removed after the run", emptyDir(D.tmp));
