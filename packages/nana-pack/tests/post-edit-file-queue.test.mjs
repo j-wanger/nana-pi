@@ -109,14 +109,14 @@ const readOrder = () => (fs.existsSync(orderLog) ? fs.readFileSync(orderLog, "ut
 	// bounded wait: if the checker is NOT gated it runs immediately, and this catches it
 	const deadline = Date.now() + 1500;
 	while (Date.now() < deadline && !readOrder().includes("checker")) await sleep(25);
-	// req: R-090
+	// req: R-090 R-783
 	check("checker is gated while pi holds the file's mutation queue", !readOrder().includes("checker"));
 
 	fs.appendFileSync(orderLog, "released\n");
 	release();
 	await holder;
 	await fired;
-	// req: R-090
+	// req: R-090 R-783
 	check("checker ran strictly after the queue was released", readOrder() === "released\nchecker\n");
 }
 

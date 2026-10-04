@@ -665,12 +665,12 @@ async function provenance(label, w, want, { cwd = w.product, isProjectTrusted, p
 	check(`T2c ${label}: product still governs`, t.includes(`governing: ${w.productFile}\n${OBJ("ship the widget.")}`), t);
 	// req: R-021 R-027 R-032
 	check(`T2c ${label}: ${want ? "LABELLED" : "not labelled"}`, want ? labelledOnce(t) : unlabelled(t), t);
-	// req: R-021 R-026
+	// req: R-021 R-026 R-759
 	if (want) check(`T2c ${label}: label is its own paragraph right before "governing:"`, t.includes(`${HEAD}\n\n${LABEL(w.productFile, problem && { store: store(w), problem, object, detail }, store(w))}\n\ngoverning: `), t);
 	// req: R-025
 	if (want) check(`T2c ${label}: remedy ${problem ? `names ${object ?? "the store"}, "${problem}" and the fix; never /trust alone` : "is /trust from the folder (store usable)"}`,
 		problem ? repairRemedy(t, w, problem, object, detail) : t.includes(`\n${REMEDY_TRUST(path.dirname(w.productFile), store(w))}\n`) && !t.includes("trust store"), t);
-	// req: R-024 R-026 R-759
+	// req: R-024 R-026
 	if (want) { enter(w); try { const r = trustRecord(w.product); check(`T2c ${label}: trustRecord problem === ${problem}, store === the active store`, r.problem === problem && r.store === store(w) && r.object === (object ?? store(w)) && r.detail === detail, JSON.stringify(r)); } finally { leave(); } }
 	if (piMod && piAgrees) {
 		enter(w);

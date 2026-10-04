@@ -3,7 +3,7 @@
   "date": "2026-10-04",
   "scope": "REQUIREMENTS.md Part A §1-4: the objective contract, trust and the provenance label, the gate, post-edit checks and receipts (packages/nana-pack) — 37 off-form origins split per design-ruling.md §2",
   "seed": null,
-  "notes": "One merge found: R-050 (\"shall be kept and enforced ... shall not police\" is one promise stated twice, both halves proven by the same single existing test — splitting would hand the new row the origin's exact cite set, the sibling-cite failure shape the lane exists to catch). Every other extra `shall` is a distinct promise. New-row status defaults to 'untested' unless an existing cited test, read directly (never guessed from its title), independently and specifically pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2. Revised after gpt-6-astra r1 BLOCK (batch-a1-astra-r1.md, 17 PINS/3 PARTIAL): R-763 and R-781 downgraded to untested (cited evidence covers only `read` / only the gate+objective, not the full promise); R-768 gained the subject-cap-exception cite that independently proves checking still runs; R-759, R-761 and R-794 flipped to implemented on astra-named existing assertions (T13 store-absent, hook-vs-pi equality, hostile-path receipt binding); R-760 flipped to violated recording objective.ts:479-480's obstructed-lock contradiction; R-764/R-771/R-783 reworded to stand alone.",
+  "notes": "One merge found: R-050 (\"shall be kept and enforced ... shall not police\" is one promise stated twice, both halves proven by the same single existing test — splitting would hand the new row the origin's exact cite set, the sibling-cite failure shape the lane exists to catch). Every other extra `shall` is a distinct promise. New-row status defaults to 'untested' unless an existing cited test, read directly (never guessed from its title), independently and specifically pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2. Revised after gpt-6-astra r1 BLOCK (batch-a1-astra-r1.md, 17 PINS/3 PARTIAL): R-763 and R-781 downgraded to untested (cited evidence covers only `read` / only the gate+objective, not the full promise); R-768 gained the subject-cap-exception cite that independently proves checking still runs; R-759, R-761 and R-794 flipped to implemented on astra-named existing assertions (T13 store-absent, hook-vs-pi equality, hostile-path receipt binding); R-760 flipped to violated recording objective.ts:479-480's obstructed-lock contradiction; R-764/R-771/R-783 reworded to stand alone. Revised again after gpt-6-astra r2 BLOCK, mechanical only (batch-a1-astra-r2.md, 19 PINS/1 PARTIAL, judgement bar passed): R-759's cite replaced (the prior trustRecord cite checked the diagnosis, not the rendered remedy text astra's mutation actually broke) with the paragraph assertion that builds its expected text from the test's own object; R-783 gained the post-edit-file-queue.test.mjs queue-sensitive cites astra named, keeping the command/digest ones.",
   "origins": [
     {
       "origin": "R-016",
@@ -67,18 +67,18 @@
           "text": "IF the store is unusable THEN the remedy shall never name a store that does not exist.",
           "status": "implemented",
           "cites": [
-            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: trustRecord problem === ${problem}, store === the active store"
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: label is its own paragraph right before \"governing:\""
           ],
-          "assertion": "r.object === (object ?? store(w)) — T13's 'override folder not writable, store absent' fixture passes object: ro (the folder) though the store file itself does not exist there; if the remedy instead blamed the nonexistent store path, r.object would equal store(w), not ro, and fail",
-          "note": "astra r1: this shared marker already carries R-024/R-026 for other provenance() scenarios; T13's store-absent fixture is the one that independently pins R-759"
+          "assertion": "t.includes(LABEL(w.productFile, {store, problem, object, detail}, store)) built with the TEST's own object (e.g. ro, the real existing folder) for the T13 'folder not writable' fixtures (including the store-absent ones) — verified by running the mutation: objective.ts:485's 'folder not writable' remedy case rendering ${S} (the store) where it should render ${O} (the object) makes this exact check fail for all four folder-not-writable fixtures, while trustRecord (which reads the diagnosis, not the rendered text) stays green throughout, confirming trustRecord was the wrong cite and this one is the right one",
+          "note": "astra r2 MUST: the prior trustRecord cite checks the diagnostic object field, not the rendered advice text, so it passed under the exact mutation that should have failed it (blame the nonexistent store IN THE REMEDY). Replaced with the paragraph assertion, which builds its expected text from the test's own object and therefore fails when the remedy renders a different one. The sibling 'remedy ${problem ? ...}' check (line 671) asserts the identical defect but its title contains a nested backtick inside the ternary's true-branch, which the rail's regex-based title scanner cannot represent as a citation (the same class of bug R-767 hit in round 1), so it is left uncited here."
         }
       ],
       "markerEdits": [
         {
           "file": "packages/nana-pack/tests/objective-golden.test.mjs",
-          "anchor": "trustRecord problem === ${problem}, store === the active store",
-          "old": "// req: R-024 R-026",
-          "new": "// req: R-024 R-026 R-759"
+          "anchor": "label is its own paragraph right before \"governing:\"",
+          "old": "// req: R-021 R-026",
+          "new": "// req: R-021 R-026 R-759"
         }
       ]
     },
@@ -904,9 +904,12 @@
           "status": "implemented",
           "cites": [
             "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: relative path check passed (the checker saw the file)",
-            "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: receipt input still bound repo-relative"
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: receipt input still bound repo-relative",
+            "packages/nana-pack/tests/post-edit-file-queue.test.mjs::checker is gated while pi holds the file's mutation queue",
+            "packages/nana-pack/tests/post-edit-file-queue.test.mjs::checker ran strictly after the queue was released"
           ],
-          "assertion": "r?.status === \"checks_passed\" (the checker, fed that one resolution, saw the real file) AND r?.inputs?.[0]?.path === path.join(\"sub\", \"rel.txt\") (the same resolution also feeds the receipt's digest input, bound repo-relative)"
+          "assertion": "r?.status === \"checks_passed\" and r?.inputs?.[0]?.path === path.join(\"sub\", \"rel.txt\") cover the command/digest; the queue-key clause is independently covered by post-edit-file-queue.test.mjs, which holds withFileMutationQueue(target, ...) externally keyed on the real resolved path and asserts the checker is gated then runs strictly after release — verified by running astra's mutation (nana-post-edit.ts:446, queue(abs, guarded) -> queue(ctx.cwd, guarded)): both newly-cited assertions fail (the external holder's key no longer matches the checker's), while the originally-cited post-edit-hardening.test.mjs stays entirely green (that harness runs without pi's queue)",
+          "note": "astra r2 MUST: the two originally-cited assertions never exercise pi's file-mutation queue at all, so a wrong queue key was invisible to them; added the queue-sensitive evidence astra named, keeping the command/digest cites"
         }
       ],
       "markerEdits": [
@@ -921,6 +924,18 @@
           "anchor": "d: receipt input still bound repo-relative",
           "old": "// req: R-089",
           "new": "// req: R-783"
+        },
+        {
+          "file": "packages/nana-pack/tests/post-edit-file-queue.test.mjs",
+          "anchor": "checker is gated while pi holds the file's mutation queue",
+          "old": "// req: R-090",
+          "new": "// req: R-090 R-783"
+        },
+        {
+          "file": "packages/nana-pack/tests/post-edit-file-queue.test.mjs",
+          "anchor": "checker ran strictly after the queue was released",
+          "old": "// req: R-090",
+          "new": "// req: R-090 R-783"
         }
       ]
     },

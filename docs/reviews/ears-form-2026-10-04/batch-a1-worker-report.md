@@ -2,11 +2,17 @@
 
 Worker: Sonnet (build), worktree `~/nana-pi-wt/ears-a1`, branch `feat/ears-a1`, cut from main `3d7072b`.
 Spec: `design-ruling.md` §2, `batch0-land-ruling.md` §5. Mapping: `batch-a1.json`. Applier/verifier: `apply-batch.mjs`.
-Review history: astra r1 BLOCK 6/10 (`batch-a1-astra-r1.md`, 17 PINS / 3 PARTIAL) — fixed below.
+Review history: astra r1 BLOCK 6/10 (17 PINS/3 PARTIAL) — fixed. astra r2 BLOCK 8/10, mechanical only (19 PINS/1 PARTIAL, judgement bar passed) — fixed below.
 
 ## Commit
 
-Two commits on `feat/ears-a1`: the original build, then this round's fixes (explicit paths: REQUIREMENTS.md, `scripts/requirements-trace.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, the marker-edited test files, `apply-batch.mjs`, `batch-a1.json`, this report).
+Three commits on `feat/ears-a1`: the original build, the r1 fixes, and this round's mechanical fixes (explicit paths: REQUIREMENTS.md, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `apply-batch.mjs`, `batch-a1.json`, this report).
+
+## Astra r2 fixes
+
+- **MUST — R-759's citation corrected.** The prior `trustRecord` cite checks the diagnostic object field, not the rendered advice; it stayed green when astra's mutation (objective.ts:485, render the store instead of the object in the "folder not writable" case) blamed the nonexistent store in the remedy text. Replaced with `label is its own paragraph right before "governing:"`, which builds its expected text from the test's own `object` — verified: the mutation turns it red for all four folder-not-writable fixtures (including both store-absent ones) while `trustRecord` stays green throughout, confirming the swap.
+- **MUST — R-783 gained queue-sensitive evidence.** Kept the command/digest cites; added `post-edit-file-queue.test.mjs`'s `checker is gated while pi holds the file's mutation queue` and `checker ran strictly after the queue was released` (external holder keyed on the real resolved path). Verified: astra's mutation (`nana-post-edit.ts:446`, `queue(abs, guarded)` → `queue(ctx.cwd, guarded)`) turns both new cites red while the original post-edit-hardening cites — which never exercise pi's queue — stay green.
+- **SHOULD — apply-batch.mjs's seal exception tightened.** Was a substring check (`content.includes(sealOld/sealNew)`), which let `EARS_ALLOWANCE === 157 || true` through since the valid substring is still present. Now a single anchored regex over the COMPLETE trimmed line, requiring the title's and the comparison's numbers to agree and equal old or new allowance — `|| true` breaks the end anchor. Verified in a disposable copy: astra's exact weakening now exits 1, naming the line; both round-1 mutation proofs (R-001 rewrite, inverted catastrophic-regex assertion) still exit 1 as before (no regression).
 
 ## Astra r1 fixes
 

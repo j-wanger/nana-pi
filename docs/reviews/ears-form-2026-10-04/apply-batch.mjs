@@ -448,10 +448,22 @@ for (const origin of batch.origins) {
 // permits each batch to move.
 const changedFiles = git(["diff", BASE, "--name-only"]).split("\n").filter(Boolean);
 const testRootFiles = changedFiles.filter((f) => TEST_ROOT.test(f));
+/**
+ * The seal line's COMPLETE, normalized form — anchored start to end, only the two
+ * numeric literals (which must agree with each other and with old/new allowance)
+ * free to vary. A substring match (the round-2 defect astra found) would let
+ * `EARS_ALLOWANCE === 157 || true` through, since that text still CONTAINS the
+ * valid substring; the trailing ` || true` only breaks a full-line anchor.
+ */
+const SEAL_LINE = /^check\("seal: EARS_ALLOWANCE is (\d+) \(G-015\)", EARS_ALLOWANCE === (\d+)\);$/;
+function isSanctionedSealLine(content) {
+	const m = SEAL_LINE.exec(content.trim());
+	if (!m) return false;
+	if (m[1] !== m[2]) return false; // the title's number and the comparison's number must agree
+	return m[1] === String(oldAllowance) || m[1] === String(newAllowance);
+}
 for (const f of testRootFiles) {
 	const patch = git(["diff", BASE, "--", f]);
-	const sealOld = `"seal: EARS_ALLOWANCE is ${oldAllowance} (G-015)", EARS_ALLOWANCE === ${oldAllowance}`;
-	const sealNew = `"seal: EARS_ALLOWANCE is ${newAllowance} (G-015)", EARS_ALLOWANCE === ${newAllowance}`;
 	for (const line of patch.split("\n")) {
 		if (line.length === 0) continue;
 		const marker = line[0];
@@ -460,7 +472,7 @@ for (const f of testRootFiles) {
 		if (marker === "-" && line.startsWith("---")) continue;
 		const content = line.slice(1);
 		if (MARKER_LINE.test(content)) continue;
-		if (f === RAIL_TEST_REL && (content.includes(sealOld) || content.includes(sealNew))) continue; // sanctioned per-batch seal move
+		if (f === RAIL_TEST_REL && isSanctionedSealLine(content)) continue; // sanctioned per-batch seal move, whole line only
 		must("non-marker line changed under a test root", false, `${f}: ${JSON.stringify(content)}`);
 	}
 }
