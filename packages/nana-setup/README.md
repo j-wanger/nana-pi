@@ -40,7 +40,7 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
 | `nana-objective.md` | the pi agent dir | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
-| `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces an ORDINARY, model-driven top-level `subagent` tool launch into the background (the gated runner process) regardless of what the model asks for (see `packages/nana-pack/README.md` Known limits for the exceptions it does not reach); `maxSubagentDepth` caps nested fan-out at one level. `doctor` reads ✗ naming the key and its required value when either is wrong, or when the file is missing or invalid — and never rewrites a file you already have |
+| `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces an ORDINARY, model-driven top-level `subagent` tool launch into the background (the gated runner process) regardless of what the model asks for (see `packages/nana-pack/README.md` Behavior notes for the exceptions it does not reach); `maxSubagentDepth` caps nested fan-out at one level. `doctor` reads ✗ naming the key and its required value when either is wrong, or when the file is missing or invalid — and never rewrites a file you already have |
 | `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply. `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
 | knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
@@ -63,11 +63,17 @@ runner process, where nana-gate (`packages/nana-pack`'s own `tool_call` hook) lo
 extension and inspects every command and edit target before it runs, the same as any other
 background subagent. nana-gate is advisory by doctrine — a load-path convenience, not a security
 boundary; real enforcement is the sandbox/container layer, exactly as everywhere else in this
-repo. That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Known
-limits for the two documented cases where a child does NOT load nana-gate even under this seeded
+repo. That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Behavior
+notes for the two documented cases where a child does NOT load nana-gate even under this seeded
 config.
 
 ## pi-subagents' version, and mcp.json — read-only checks
+
+Limits recorded at landing (2026-10-04):
+
+- While pi-mcp-adapter is installed, pi does not read mcp.json (pi 1.0.2 docs, mcp.md). doctor does not detect the adapter, so its `!` stays moot until the adapter is removed.
+- doctor's `pi reviewer agent` line reads any read error as missing and suggests install. Install's own row then names what is there, such as a directory or an unreadable file.
+- An unmarked reviewer.md reads ✗ because it is not nana's seed, not because it is broken. A reviewer you wrote reads ✗ by design. Adding the marker by hand turns it ✓ without the bash and evidence rules.
 
 `doctor` also reads two things `install` never writes, because they belong to pieces outside its
 own job: a third-party npm package, and pi's own MCP config.
