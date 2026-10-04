@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/writing-rule.test.mjs
- * @purpose Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, and that doctor reads the same state
- * @inputs lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, and a throwaway temp dir / --home
+ * @purpose Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, that doctor reads the same state, and that the rule itself passes its own checker with zero findings
+ * @inputs lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, nana-pack's lib/writing-check.mjs, and a throwaway temp dir / --home
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway temp dirs and homes, symlinks), process (spawns the installer CLI for the exit-code case)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -19,6 +19,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { stepWritingRule, WRITING_RULE_SRC } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { diagnose } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -82,6 +83,14 @@ function tempDir() {
 	const after = diagnose(layout).find((c) => c.label === "pi AGENTS.md (writing rule)");
 	// req: R-375
 	check("doctor ✓ linked, ✗ missing (after creating)", after.status === "ok", JSON.stringify(after));
+}
+
+/* --- the rule passes its own checker (R-376) ------------------------------------------ */
+{
+	const text = fs.readFileSync(WRITING_RULE_SRC, "utf8");
+	const r = checkText(WRITING_RULE_SRC, text, { report: false });
+	// req: R-376
+	check("the rule passes nana-writing with zero findings", r.findings.length === 0, JSON.stringify(r.findings));
 }
 
 for (const td of tmps) fs.rmSync(td, { recursive: true, force: true });

@@ -1636,8 +1636,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 
-- **purpose** — Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, and that doctor reads the same state
-- **inputs** — lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, and a throwaway temp dir / --home
+- **purpose** — Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, that doctor reads the same state, and that the rule itself passes its own checker with zero findings
+- **inputs** — lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, nana-pack's lib/writing-check.mjs, and a throwaway temp dir / --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway temp dirs and homes, symlinks), process (spawns the installer CLI for the exit-code case)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

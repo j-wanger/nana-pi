@@ -67,9 +67,13 @@ function run(args, input) {
 	check('passive: "was edited by" is reported', findings.length === 1 && findings[0].detail.includes("edited"), JSON.stringify(findings));
 }
 {
-	const findings = passiveFindings(splitSentences("The budget is needed for this work."));
+	// Both in ONE input, so the test cannot pass merely because passive detection is off:
+	// the exception sentence must be silent AND the plain sentence must still be reported.
+	const text = "The budget is needed for this work. The report was written by the committee.";
+	const findings = passiveFindings(splitSentences(text));
+	const ok = findings.length === 1 && findings[0].detail.includes("written") && !findings[0].detail.toLowerCase().includes("needed");
 	// req: R-745
-	check('passive: "is needed" exception is not reported', findings.length === 0, JSON.stringify(findings));
+	check('passive: "is needed" exception is silent while "was written" (non-exception) is reported', ok, JSON.stringify(findings));
 }
 
 /* --- banned (R-746) --------------------------------------------------------------------- */
