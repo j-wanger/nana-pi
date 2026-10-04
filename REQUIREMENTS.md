@@ -802,6 +802,17 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 |---|---|---|---|
 | G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it, and every command, script name, path, flag and file the README names shall exist and run as written; a README claim the project no longer honours shall fail the suite. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims` |
 
+## 52. pi 1.0 subagent and MCP config (nana-setup)
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-360 | In the pi agent dir, extensions/subagent/config.json shall be seeded from the nana-setup seed only when absent and never rewritten afterwards. | implemented | `packages/nana-setup/tests/install.test.mjs::subagent config seeded when absent`, `packages/nana-setup/tests/install.test.mjs::existing subagent config.json byte-identical after install` |
+| R-361 | The subagent seed shall set exactly asyncByDefault true, forceTopLevelAsync true and maxSubagentDepth 1 and no other key. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::subagent seed: exactly the three keys and values` |
+| R-362 | doctor shall read ✗ on the subagent config line when the file is missing or unparseable or forceTopLevelAsync is not true or maxSubagentDepth is not 1, naming the key and the fix, and shall never rewrite the file. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::subagent config: missing file reads ✗ naming the key`, `packages/nana-setup/tests/doctor-detail.test.mjs::subagent config: unparseable reads ✗ naming the key`, `packages/nana-setup/tests/doctor-detail.test.mjs::subagent config: forceTopLevelAsync false reads ✗ naming the key`, `packages/nana-setup/tests/doctor-detail.test.mjs::subagent config: maxSubagentDepth 2 reads ✗ naming the key`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor leaves a wrong config.json byte-identical` |
+| R-363 | In the pi agent dir, agents/reviewer.md shall be seeded from the nana-setup seed only when absent, and doctor shall read ✗ when it is absent or lacks the nana marker line. | implemented | `packages/nana-setup/tests/install.test.mjs::reviewer agent seeded when absent`, `packages/nana-setup/tests/install.test.mjs::existing reviewer.md untouched`, `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: absent reads ✗`, `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: unmarked reads ✗` |
+| R-364 | doctor shall read ✗ when the installed pi-subagents package is absent or below 0.75.0, naming pi install npm:pi-subagents@0.75.0 as the fix. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::PI_SUBAGENTS_FLOOR is 0.75.0`, `packages/nana-setup/tests/doctor-detail.test.mjs::pi-subagents 0.64.0 reads ✗ with the pin`, `packages/nana-setup/tests/doctor-detail.test.mjs::pi-subagents 0.75.0 reads ✓` |
+| R-365 | WHERE mcp.json exists, doctor shall read ! when any server has no exposure key while autoEnableCodemode is not false, naming both keys. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::mcp.json: codemode-default server reads !`, `packages/nana-setup/tests/doctor-detail.test.mjs::mcp.json: direct exposure reads ✓` |
+
 ## Open questions
 
 1. The pack's README is 721 lines of declared behaviour and produced 258 rows; the extraction notes name a safe trim (merge same-status rows inside the gate, handoff and pi-review sections). Trim, or keep the grain?

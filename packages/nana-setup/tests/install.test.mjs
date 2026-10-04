@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/install.test.mjs
  * @purpose Pins that `install` is idempotent, additive, and never destroys what the owner wrote by hand
- * @inputs bin/nana-setup.mjs, lib/settings.mjs, and a throwaway --home
+ * @inputs bin/nana-setup.mjs, lib/settings.mjs, lib/steps.mjs, lib/doctor.mjs, and a throwaway --home
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -14,6 +14,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 const { commandInvokes, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { REVIEWER_MARKER, firstBodyLine } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -26,6 +28,15 @@ const check = (n, ok, extra) => {
 };
 
 const tmps = [];
+/** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
+ *  §2): every throwaway home seeds it at the floor, the way a real, already-set-up machine has
+ *  it, so doctor's version check (R-364) doesn't fail every fixture that isn't testing it. */
+function seedPiSubagents(td, version = PI_SUBAGENTS_FLOOR) {
+	const dir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
+	fs.mkdirSync(dir, { recursive: true });
+	fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "pi-subagents", version }));
+}
+
 /** A temp home with a tiny knowledge source, so the real build runs but indexes 1 file. */
 function freshHome() {
 	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-"));
@@ -37,6 +48,7 @@ function freshHome() {
 		path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"),
 		JSON.stringify({ roots: [{ path: path.join(td, "src"), kind: "articles" }] }),
 	);
+	seedPiSubagents(td);
 	return td;
 }
 
@@ -83,6 +95,13 @@ check("knowledge hook points at this install root", commands.some((c) => c.inclu
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));
 check("pi nana-pack.json seeded", JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), "utf8")).objective.projectFile === "OBJECTIVE.md");
 check("pi nana-objective.md seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-objective.md")));
+const seededSubagentConfig = JSON.stringify(JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "extensions", "subagent", "config.json"), "utf8")));
+const subagentConfigSeed = JSON.stringify(JSON.parse(fs.readFileSync(path.join(pkg, "pi", "subagent-config.seed.json"), "utf8")));
+// req: R-360
+check("subagent config seeded when absent", seededSubagentConfig === subagentConfigSeed);
+const seededReviewerFirstLine = firstBodyLine(fs.readFileSync(path.join(home, ".pi", "agent", "agents", "reviewer.md"), "utf8"));
+// req: R-363
+check("reviewer agent seeded when absent", seededReviewerFirstLine === REVIEWER_MARKER);
 // req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // req: R-311
@@ -124,12 +143,20 @@ fs.mkdirSync(path.join(keep, ".claude", "rules"), { recursive: true });
 fs.writeFileSync(path.join(keep, ".claude", "rules", "nana-personal.md"), "MINE\n");
 fs.writeFileSync(path.join(keep, ".pi", "agent", "nana-pack.json"), '{"objective":{"path":"/somewhere/OBJECTIVE.md"}}');
 fs.writeFileSync(path.join(keep, ".pi", "agent", "nana-objective.md"), "MY OBJECTIVE\n");
+fs.mkdirSync(path.join(keep, ".pi", "agent", "extensions", "subagent"), { recursive: true });
+fs.writeFileSync(path.join(keep, ".pi", "agent", "extensions", "subagent", "config.json"), '{"forceTopLevelAsync":false}');
+fs.mkdirSync(path.join(keep, ".pi", "agent", "agents"), { recursive: true });
+fs.writeFileSync(path.join(keep, ".pi", "agent", "agents", "reviewer.md"), "MY REVIEWER\n");
 run(["install", "--home", keep]);
 // req: R-306
 check("existing nana-personal.md untouched", fs.readFileSync(path.join(keep, ".claude", "rules", "nana-personal.md"), "utf8") === "MINE\n");
 // req: R-309
 check("existing nana-pack.json untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-pack.json"), "utf8") === '{"objective":{"path":"/somewhere/OBJECTIVE.md"}}');
 check("existing nana-objective.md untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-objective.md"), "utf8") === "MY OBJECTIVE\n");
+// req: R-360
+check("existing subagent config.json byte-identical after install", fs.readFileSync(path.join(keep, ".pi", "agent", "extensions", "subagent", "config.json"), "utf8") === '{"forceTopLevelAsync":false}');
+// req: R-363
+check("existing reviewer.md untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "agents", "reviewer.md"), "utf8") === "MY REVIEWER\n");
 
 /* --- 5. the private rule is created only when absent ---------------------------------- */
 const absent = freshHome();
@@ -173,6 +200,7 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	tmps.push(spaced);
 	fs.mkdirSync(path.join(spaced, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(spaced, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	seedPiSubagents(spaced);
 	const r = run(["install", "--home", spaced]);
 	check("space in home: install exits 0", r.status === 0, r.stderr);
 	const s = JSON.parse(fs.readFileSync(path.join(spaced, ".claude", "settings.json"), "utf8"));

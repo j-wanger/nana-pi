@@ -4,17 +4,19 @@
  *  registers one piece of the experience and reports { label, status, detail }.
  * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
- *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and
- *  packages/nana-pack/skills; the live <claudeHome>/settings.json, <piHome>/nana-pack.json and
- *  <piHome>/settings.json; NANA_SETUP_PLATFORM
+ *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
+ *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills; the
+ *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
+ *  NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules
  *  and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
- *  <piHome>/nana-pack.json and nana-objective.md, <knowledgeHome>/index.db,
- *  <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also
- *  exports HOOKS, CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, SetupError and the helpers doctor reuses
+ *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
+ *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist
+ *  (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES,
+ *  CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER,
+ *  firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -446,6 +448,51 @@ export function readPiPackConfig(layout) {
 	}
 }
 
+/* ------------------------------------------------------------- pi-subagents config (R-360) */
+
+/**
+ * Seed-if-absent, exactly `stepPiConfig`'s pattern: pi-subagents is a third-party vendor
+ * extension nana-pi only consumes (architecture-ruling.md 2026-10-04 §2), so it is owned here,
+ * never merged into, same as nana-pack.json. The three sealed keys (R-361) live in the seed file
+ * ONLY — this function never states them again.
+ */
+export function stepSubagentConfig(layout, o) {
+	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "subagent-config.seed.json"), "utf8");
+	return [{ label: "pi subagent config", ...seedFile(layout.subagentConfig, seedText, o) }];
+}
+
+/* ---------------------------------------------------------------- pi reviewer agent (R-363) */
+
+/**
+ * The nana-owned reviewer.md's identity marker. Deviation from the architecture ruling's literal
+ * wording ("first line [of the file]"): pi-subagents' own `frontmatter.js` requires byte 0 of the
+ * file to be `---` — `parseFrontmatter` returns an EMPTY frontmatter object for any other first
+ * byte, and `loadAgentsFromDefinitionFiles` then silently SKIPS the agent for lacking
+ * `name`/`description` (verified against the installed 0.75.0 source: `src/agents/frontmatter.js`
+ * `if (!normalized.startsWith("---"))`, `src/agents/agents.js` `if (!frontmatter.name ||
+ * !frontmatter.description) continue;`). A literal byte-0 marker would therefore stop this file
+ * from shadowing the builtin `reviewer` at all — the opposite of R-363's purpose. The marker
+ * instead sits as the first line of the BODY (immediately after the closing `---`, matching pi's
+ * own `body = content.slice(frontmatterEnd).trim()` boundary exactly), which doctor and the seed
+ * agree on below.
+ */
+export const REVIEWER_MARKER = "<!-- nana-setup reviewer seed -->";
+
+/** The first line of a reviewer.md-shaped file's BODY, by the same boundary pi-subagents' own
+ *  frontmatter.js uses (`\n---` after byte 0, then `.trim()`) — see REVIEWER_MARKER above. */
+export function firstBodyLine(content) {
+	const normalized = content.replace(/\r\n/g, "\n");
+	if (!normalized.startsWith("---")) return (normalized.trim().split("\n")[0] ?? "");
+	const end = normalized.indexOf("\n---", 3);
+	if (end === -1) return (normalized.trim().split("\n")[0] ?? "");
+	return (normalized.slice(end + 4).trim().split("\n")[0] ?? "");
+}
+
+export function stepReviewerAgent(layout, o) {
+	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "reviewer.seed.md"), "utf8");
+	return [{ label: "pi reviewer agent", ...seedFile(layout.reviewerAgent, seedText, o) }];
+}
+
 /* ------------------------------------------------------------------------ knowledge index */
 
 export function stepKnowledge(layout, o) {
@@ -682,6 +729,8 @@ export function install(layout, opts = {}) {
 	results.push(...stepSettings(layout, o, settingsState));
 	results.push(...stepSharedMemory(layout, o));
 	results.push(...stepPiConfig(layout, o));
+	results.push(...stepSubagentConfig(layout, o));
+	results.push(...stepReviewerAgent(layout, o));
 	results.push(...stepKnowledge(layout, o));
 	results.push(...stepPath(layout, o));
 	if (opts.desk) results.push(...stepDesk(layout, o));

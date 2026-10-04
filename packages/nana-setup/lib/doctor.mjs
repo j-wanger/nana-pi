@@ -6,11 +6,13 @@
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
- *  nana-pack.json and the objective file it names, <knowledgeHome>/index.db, <binDir>/pi-review,
- *  the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+ *  nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json,
+ *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
+ *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
+ *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR
- *  ("22.18"); nodeMeetsFloor(); skillLinkState() { ok, detail }; projectFileState() { status, kind,
- *  detail }
+ *  ("22.18"); PI_SUBAGENTS_FLOOR ("0.75.0"); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
+ *  { ok, detail }; projectFileState() { status, kind, detail }
  * @effects disk (reads only), process (spawns node and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
@@ -23,7 +25,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -104,6 +106,33 @@ export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
 	const [a, b] = String(version).replace(/^v/, "").split(".").map(Number);
 	const [fa, fb] = floor.split(".").map(Number);
 	return a > fa || (a === fa && b >= fb);
+}
+
+/**
+ * pi-subagents floor this pack's seed (R-361) and gate analysis were verified against
+ * (architecture-ruling.md, 2026-10-04, §1e): 0.75.0's own CHANGELOG — "Background subagents work
+ * on Pi 1.0.0 again. In 0.74.0 they failed to start" — makes it a HARD coupling for pi 1.0
+ * adoption, not a nice-to-have. `chosen`: pinned rather than floating, because pi-subagents
+ * shipped two behaviour-changing breaks in one month before this version.
+ */
+export const PI_SUBAGENTS_FLOOR = "0.75.0";
+
+/** Three-segment numeric version compare (no pre-release handling — the versions this floor
+ *  check reads, an npm package.json's own `version`, never carry one). Non-numeric input (an
+ *  absent or malformed version) reads as NOT meeting any floor. */
+export function versionAtLeast(version, floor) {
+	const parts = (v) =>
+		String(v)
+			.replace(/^v/, "")
+			.split(".")
+			.slice(0, 3)
+			.map(Number);
+	const [a1, a2, a3] = parts(version);
+	const [b1, b2, b3] = parts(floor);
+	if (![a1, a2, a3].every(Number.isFinite)) return false;
+	if (a1 !== b1) return a1 > b1;
+	if (a2 !== b2) return a2 > b2;
+	return a3 >= b3;
 }
 
 export function diagnose(layout, opts = {}) {
@@ -199,6 +228,87 @@ export function diagnose(layout, opts = {}) {
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+
+	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-365, architecture ruling
+	// 2026-10-04) --- a third-party vendor extension nana-pi only consumes: seed-once,
+	// doctor-verifies, never rewrite a hand edit — same policy as pi nana-pack.json above.
+	let subCfg = null;
+	let subCfgErr = null;
+	try {
+		subCfg = JSON.parse(fs.readFileSync(layout.subagentConfig, "utf8"));
+	} catch (err) {
+		subCfgErr = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
+	}
+	if (subCfgErr) {
+		add(FAIL, "pi subagent config", `${subCfgErr}: ${layout.subagentConfig} — run \`nana-setup install\` to seed it`);
+	} else if (subCfg.forceTopLevelAsync !== true) {
+		add(FAIL, "pi subagent config", `forceTopLevelAsync is ${JSON.stringify(subCfg.forceTopLevelAsync)}, not true, in ${layout.subagentConfig} — fix that key to true (this is the key that forces background at the top level)`);
+	} else if (subCfg.maxSubagentDepth !== 1) {
+		add(FAIL, "pi subagent config", `maxSubagentDepth is ${JSON.stringify(subCfg.maxSubagentDepth)}, not 1, in ${layout.subagentConfig} — fix that key to 1 (this is the key that caps nested fan-out)`);
+	} else if (subCfg.asyncByDefault === false) {
+		// Explicitly false, not merely absent: upstream already defaults this to true, so a
+		// user who set it false made a deliberate choice this reads as a warning, not a failure.
+		add(WARN, "pi subagent config", `asyncByDefault is explicitly false in ${layout.subagentConfig} — a nested call with an omitted async will run foreground (ungated)`);
+	} else {
+		add(OK, "pi subagent config", layout.subagentConfig);
+	}
+
+	let reviewerBody = null;
+	try {
+		reviewerBody = fs.readFileSync(layout.reviewerAgent, "utf8");
+	} catch {
+		/* absent */
+	}
+	if (reviewerBody === null) {
+		add(FAIL, "pi reviewer agent", `missing: ${layout.reviewerAgent} — run \`nana-setup install\` to seed it`);
+	} else if (firstBodyLine(reviewerBody) !== REVIEWER_MARKER) {
+		add(FAIL, "pi reviewer agent", `${layout.reviewerAgent} is missing the nana marker (${REVIEWER_MARKER}) as the first line of its body — replace with nana-setup's seed`);
+	} else {
+		add(OK, "pi reviewer agent", layout.reviewerAgent);
+	}
+
+	let subagentsPkg = null;
+	let subagentsErr = null;
+	try {
+		subagentsPkg = JSON.parse(fs.readFileSync(layout.piSubagentsPackage, "utf8"));
+	} catch (err) {
+		subagentsErr = err.code === "ENOENT" ? "not installed" : `unreadable (${err.message})`;
+	}
+	const subagentsFix = `pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`;
+	if (subagentsErr || !versionAtLeast(subagentsPkg?.version, PI_SUBAGENTS_FLOOR)) {
+		add(FAIL, "pi pi-subagents", `${subagentsErr ?? `version ${JSON.stringify(subagentsPkg?.version)} is older than ${PI_SUBAGENTS_FLOOR}`} — fix: \`${subagentsFix}\``);
+	} else {
+		add(OK, "pi pi-subagents", `version ${subagentsPkg.version} (>= ${PI_SUBAGENTS_FLOOR})`);
+	}
+
+	// Read-only: nana-setup never writes mcp.json (the seat edits it by hand, architecture
+	// ruling §3). WHERE it exists, a server with no `exposure` key defaults to pi's own
+	// `codemode` exposure the moment it connects, unless `autoEnableCodemode` is `false`.
+	let mcpCfg = null;
+	let mcpCfgErr = null;
+	try {
+		mcpCfg = JSON.parse(fs.readFileSync(layout.mcpConfig, "utf8"));
+	} catch (err) {
+		mcpCfgErr = err.code === "ENOENT" ? null : `unreadable (${err.message})`;
+	}
+	if (mcpCfgErr) {
+		add(NOTE, "pi mcp.json", `${layout.mcpConfig} ${mcpCfgErr}`);
+	} else if (mcpCfg) {
+		const servers = mcpCfg.mcpServers && typeof mcpCfg.mcpServers === "object" ? mcpCfg.mcpServers : {};
+		const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
+		const unexposed = Object.keys(servers).filter((name) => servers[name] && typeof servers[name] === "object" && servers[name].exposure === undefined);
+		if (codemodeDefault && unexposed.length) {
+			add(
+				WARN,
+				"pi mcp.json",
+				`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
+			);
+		} else {
+			add(OK, "pi mcp.json", layout.mcpConfig);
+		}
+	} else {
+		add(NOTE, "pi mcp.json", `not present: ${layout.mcpConfig}`);
+	}
 
 	// --- knowledge pull ---
 	const db = path.join(layout.knowledgeHome, "index.db");

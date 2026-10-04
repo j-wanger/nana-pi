@@ -48,6 +48,14 @@
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },
     {
+      "path": "agents/reviewer.md",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`); never a file in this repo — nana-setup seeds it there (architecture-ruling.md, 2026-10-04)"
+    },
+    {
+      "path": "extensions/subagent/config.json",
+      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`); never a file in this repo — a third-party vendor extension's config nana-setup only seeds there (architecture-ruling.md, 2026-10-04)"
+    },
+    {
       "path": "nana-desk/stage-keys",
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },

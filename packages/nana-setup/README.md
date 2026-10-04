@@ -40,10 +40,39 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
 | `nana-objective.md` | the pi agent dir | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
+| `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces every top-level subagent launch into the background (the gated runner process) regardless of what the model asks for; `maxSubagentDepth` caps nested fan-out at one level. `doctor` reads ✗ naming the key when either is wrong, or when the file is missing or unparseable — and never rewrites a file you already have |
+| `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply. `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
 | knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID`. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute) and the service desk opens the dir the pack was installed into. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
+
+## pi-subagents' version, and mcp.json — read-only checks
+
+`doctor` also reads two things `install` never writes, because they belong to pieces outside its
+own job: a third-party npm package, and pi's own MCP config.
+
+- **`pi pi-subagents`** — the installed `pi-subagents` package (`<agent dir>/npm/node_modules/
+  pi-subagents/package.json`) must be at least `0.75.0`; this pack's subagent config seed above and
+  its nana-gate analysis were verified only against that version (0.75.0's own CHANGELOG: background
+  subagents were broken on 0.74.0 and fixed again there). `install` never runs `pi install` or
+  `npm` on your behalf for this — that is a network fetch of third-party install code, a new class
+  of effect this installer does not take on. When the version is missing or too old, `doctor` reads
+  ✗ naming the exact fix: `pi install npm:pi-subagents@0.75.0`.
+- **`pi mcp.json`** — WHERE `~/.pi/agent/mcp.json` (or your chosen pi agent dir's copy) exists,
+  `doctor` reads `!` when any configured server has no `exposure` key while `autoEnableCodemode` is
+  not `false`: that server's tools default to pi's `codemode` exposure the moment it connects, and
+  `nana-setup` never edits this file for you. Give the server an explicit `exposure`, or set
+  `"autoEnableCodemode": false` beside `mcpServers`, to clear it. Absent entirely, this line is
+  skipped — not everyone configures an MCP server.
+
+## Upgrading pi itself
+
+Upgrade with npm, **never `pi update`**: `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>`.
+Since 1.0.1, `pi update` on an npm install recommends migrating to pi.dev's managed installer,
+which moves the `pi` binary out of `npm root -g` — breaking this installer's and the desk's
+resolution until their own override variables are repointed at it. Nothing in this repo needs that
+migration; staying on the npm install keeps `doctor` and the desk working as documented here.
 
 ## `project` — a blank folder becomes a nana project
 
@@ -125,7 +154,11 @@ instructions from the ones pi reads.
 ## What it never does
 
 - **Never overwrites** `~/.claude/rules/nana-personal.md` (private, and never in this repo — the
-  repo ships a placeholder template), `nana-pack.json`, or `nana-objective.md` in the pi agent dir.
+  repo ships a placeholder template), `nana-pack.json`, `nana-objective.md`,
+  `extensions/subagent/config.json` or `agents/reviewer.md` in the pi agent dir.
+- **Never runs `pi install` or `npm` for you** to bring `pi-subagents` to the version `doctor`
+  checks for, and never edits `mcp.json` — both are read-only checks (above); the fix is a command
+  `doctor` names, for you to run.
 - **Never removes or reorders** anything in `settings.json`. A hook counts as present only when
   the command actually **executes** that script: the command is tokenized with shell-quoting
   rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
@@ -262,7 +295,7 @@ loudly and counted, never silent.
 
 | File | Covers |
 |---|---|
-| `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten, `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
+| `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
 | `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
 | `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
 | `tests/shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |

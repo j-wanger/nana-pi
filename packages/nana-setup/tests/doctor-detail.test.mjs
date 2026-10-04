@@ -1,7 +1,9 @@
 /**
  * @module packages/nana-setup/tests/doctor-detail.test.mjs
- * @purpose Pins that `doctor`'s detail text for the private rule file agrees with the tick or cross it prints, across the four layouts that file can be in
- * @inputs lib/doctor.mjs, lib/paths.mjs, and four throwaway home layouts
+ * @purpose Pins that `doctor`'s detail text for each per-piece check agrees with the tick, cross or
+ *  warning it prints — the private rule file, objective.projectFile, the Node floor, and the pi 1.0
+ *  subagent/MCP checks (subagent config, reviewer agent marker, pi-subagents version, mcp.json)
+ * @inputs lib/doctor.mjs, lib/paths.mjs, lib/steps.mjs, and throwaway home layouts
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts, regular files, symlinks and directories)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -12,8 +14,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const { diagnose } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { diagnose, PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { REVIEWER_MARKER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -126,6 +129,141 @@ try {
 		// req: R-344
 		check("node floor: 22.17.1 fails, 22.18.0 / 22.22.2 / v24.0.0 pass, 21.9.0 fails",
 			!nodeMeetsFloor("22.17.1") && nodeMeetsFloor("22.18.0") && nodeMeetsFloor("22.22.2") && nodeMeetsFloor("v24.0.0") && !nodeMeetsFloor("21.9.0"));
+	}
+
+	// pi subagent config (R-361, R-362): the sealed keys live in the seed file ONLY — this test
+	// imports it rather than restating the values.
+	{
+		const seed = JSON.parse(fs.readFileSync(path.join(pkgRoot, "pi", "subagent-config.seed.json"), "utf8"));
+		const exactlyTheThreeKeys =
+			JSON.stringify(Object.keys(seed).sort()) === JSON.stringify(["asyncByDefault", "forceTopLevelAsync", "maxSubagentDepth"]) &&
+			seed.asyncByDefault === true && seed.forceTopLevelAsync === true && seed.maxSubagentDepth === 1;
+		// req: R-361
+		check("subagent seed: exactly the three keys and values", exactlyTheThreeKeys, JSON.stringify(seed));
+	}
+	const subagentCheck = (contentOrAbsent) => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		tmps.push(home);
+		const layout = resolveLayout({ home });
+		if (contentOrAbsent !== undefined) {
+			fs.mkdirSync(path.dirname(layout.subagentConfig), { recursive: true });
+			fs.writeFileSync(layout.subagentConfig, contentOrAbsent);
+		}
+		return { c: diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi subagent config"), layout };
+	};
+	{
+		const { c } = subagentCheck(undefined);
+		// req: R-362
+		check("subagent config: missing file reads ✗ naming the key", c?.status === "fail" && /missing/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const { c } = subagentCheck("{ not json");
+		// req: R-362
+		check("subagent config: unparseable reads ✗ naming the key", c?.status === "fail" && /unreadable/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: false, maxSubagentDepth: 1 }));
+		// req: R-362
+		check("subagent config: forceTopLevelAsync false reads ✗ naming the key", c?.status === "fail" && /forceTopLevelAsync/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const { c, layout } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: true, maxSubagentDepth: 2 }));
+		// req: R-362
+		check("subagent config: maxSubagentDepth 2 reads ✗ naming the key", c?.status === "fail" && /maxSubagentDepth/.test(c.detail), JSON.stringify(c));
+		const before = fs.readFileSync(layout.subagentConfig, "utf8");
+		diagnose(layout, { projectDir: layout.base });
+		// req: R-362
+		check("doctor leaves a wrong config.json byte-identical", fs.readFileSync(layout.subagentConfig, "utf8") === before);
+	}
+	{
+		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: false, forceTopLevelAsync: true, maxSubagentDepth: 1 }));
+		check("subagent config: asyncByDefault false reads ! (warn), not ✗", c?.status === "warn", JSON.stringify(c));
+	}
+	{
+		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: true, maxSubagentDepth: 1 }));
+		check("subagent config: the seed's own shape reads ✓", c?.status === "ok", JSON.stringify(c));
+	}
+
+	// pi reviewer agent (R-363): the marker's exact position is the first line of the BODY, not
+	// byte 0 of the file (see steps.mjs REVIEWER_MARKER for why — frontmatter parsing would break).
+	const reviewerCheck = (body) => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		tmps.push(home);
+		const layout = resolveLayout({ home });
+		if (body !== undefined) {
+			fs.mkdirSync(path.dirname(layout.reviewerAgent), { recursive: true });
+			fs.writeFileSync(layout.reviewerAgent, body);
+		}
+		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi reviewer agent");
+	};
+	{
+		const c = reviewerCheck(undefined);
+		// req: R-363
+		check("reviewer agent: absent reads ✗", c?.status === "fail" && /missing/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const c = reviewerCheck("---\nname: reviewer\ndescription: x\n---\n\nNo marker here.\n");
+		// req: R-363
+		check("reviewer agent: unmarked reads ✗", c?.status === "fail" && /nana marker/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const c = reviewerCheck(`---\nname: reviewer\ndescription: x\n---\n\n${REVIEWER_MARKER}\n\nBody.\n`);
+		check("reviewer agent: marked reads ✓", c?.status === "ok", JSON.stringify(c));
+	}
+
+	// pi-subagents version floor (R-364)
+	const subagentsVersionCheck = (version) => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		tmps.push(home);
+		const layout = resolveLayout({ home });
+		if (version !== undefined) {
+			fs.mkdirSync(path.dirname(layout.piSubagentsPackage), { recursive: true });
+			fs.writeFileSync(layout.piSubagentsPackage, JSON.stringify({ name: "pi-subagents", version }));
+		}
+		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi pi-subagents");
+	};
+	{
+		// req: R-364
+		check("PI_SUBAGENTS_FLOOR is 0.75.0", PI_SUBAGENTS_FLOOR === "0.75.0");
+		const bad = subagentsVersionCheck("0.64.0");
+		// req: R-364
+		check("pi-subagents 0.64.0 reads ✗ with the pin", bad?.status === "fail" && bad.detail.includes(`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`), JSON.stringify(bad));
+		const good = subagentsVersionCheck(PI_SUBAGENTS_FLOOR);
+		// req: R-364
+		check("pi-subagents 0.75.0 reads ✓", good?.status === "ok", JSON.stringify(good));
+		const absent = subagentsVersionCheck(undefined);
+		check("pi-subagents: absent reads ✗ with the same pin", absent?.status === "fail" && absent.detail.includes(`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`), JSON.stringify(absent));
+	}
+
+	// mcp.json: codemode-default exposure (R-365)
+	const mcpCheck = (content) => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		tmps.push(home);
+		const layout = resolveLayout({ home });
+		if (content !== undefined) {
+			fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
+			fs.writeFileSync(layout.mcpConfig, content);
+		}
+		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
+	};
+	{
+		const warn = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } } }));
+		const namesServerExposureAndFlag = warn?.status === "warn" && /memory/.test(warn.detail) && /exposure/.test(warn.detail) && /autoEnableCodemode/.test(warn.detail);
+		// req: R-365
+		check("mcp.json: codemode-default server reads !", namesServerExposureAndFlag, JSON.stringify(warn));
+	}
+	{
+		const ok1 = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x", exposure: "direct" } } }));
+		// req: R-365
+		check("mcp.json: direct exposure reads ✓", ok1?.status === "ok", JSON.stringify(ok1));
+	}
+	{
+		const ok2 = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } }, autoEnableCodemode: false }));
+		check("mcp.json: autoEnableCodemode false reads ✓ even without exposure", ok2?.status === "ok", JSON.stringify(ok2));
+	}
+	{
+		const absent = mcpCheck(undefined);
+		check("mcp.json: absent reads a note, not a failure", absent?.status === "note", JSON.stringify(absent));
 	}
 } finally {
 	for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
