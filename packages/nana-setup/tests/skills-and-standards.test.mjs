@@ -19,6 +19,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const SKILL_SRC = path.join(repo, "packages", "nana-pack", "skills", "requirements");
 const RULE_SRC = path.join(pkg, "claude", "rules", "nana-standards.md");
+const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 let passes = 0;
 let fails = 0;
@@ -35,6 +36,11 @@ function freshHome() {
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
+	// doctor's pi-subagents version check (R-364) reads a vendor package nana-setup never
+	// installs — seed it at the floor so this fixture reads as an already-set-up machine.
+	const subagentsDir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
+	fs.mkdirSync(subagentsDir, { recursive: true });
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
 const run = (args, env) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
