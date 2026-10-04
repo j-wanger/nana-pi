@@ -21,9 +21,9 @@ const throws = (f) => { try { f(); return false; } catch { return true; } };
 // req: R-719
 check("cap is 3", REVIEW_ROUND_CAP === 3);
 check("no verdicts, no rounds", roundsUsed([]) === 0);
-// req: R-707
+// req: R-834
 check("sol + astra on one revision = ONE round", roundsUsed([v("a", "sol"), v("a", "astra")]) === 1);
-// req: R-707
+// req: R-834
 check("ten roles on one revision = ONE round", roundsUsed(Array.from({ length: 10 }, (_, i) => v("a", "r" + i))) === 1);
 check("the same role twice on one revision = ONE round (a revision, not a role count)", roundsUsed([v("a", "sol"), v("a", "sol")]) === 1);
 // req: R-707
@@ -61,7 +61,6 @@ check("absent option is undefined", optValue(["--out", "x"], "--item") === undef
 check("--over-cap --retries: a flag is not a reason", throws(() => optValue(["--over-cap", "--retries", "2"], "--over-cap")));
 check("--over-cap '   ': blank is not a reason", throws(() => optValue(["--over-cap", "   "], "--over-cap")));
 check("--over-cap at the end: nothing is not a reason", throws(() => optValue(["--over-cap"], "--over-cap")));
-// req: R-703
 check("--item --role: a flag is not an item", throws(() => optValue(["--item", "--role", "sol"], "--item")));
 check("a real reason passes, trimmed", optValue(["--over-cap", " instrumented X "], "--over-cap") === "instrumented X");
 

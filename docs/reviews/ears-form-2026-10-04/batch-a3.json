@@ -1,0 +1,1171 @@
+{
+  "batch": "A3",
+  "date": "2026-10-04",
+  "scope": "REQUIREMENTS.md Part A §10-13: pi-review round cap and stall watchdog, pi-worker, skills contract, the repo test runner (packages/nana-pack, scripts/test.mjs) — 24 off-form origins",
+  "allowanceBefore": 124,
+  "allowanceAfter": 100,
+  "measuredOffFormBeforeBatch": 124,
+  "measuredOffFormAfterBatch": 100,
+  "mutationRecords": true,
+  "seed": null,
+  "notes": "Three merges, all rejected only when the two facts are separately breakable; here each is the literal same control-flow gate or boolean expression, verified non-separable: R-711 (revert vs re-review both reduce to `revs.includes(revision)`), R-718 (own-a-live-reservation vs expired/consumed/forged all gate on the same `if (!mine || reservationStale(...)) throw`), R-727 (refused vs never-runs both enforced by one early exit before runWatchdog). Three mutations (R-837 toctou lock-steal, R-721A tally-rotate, R-723A lock-dir) could not be run against the full 748-line review-ledger.test.mjs: each either crashes the harness on its own unrelated cleanup code (toctou, tally-rotate) or hangs it forever past any bound (lock-dir, an infinite retry loop that never reaches its own deadline check) as a direct, confirmed consequence of the mutation itself. Each was instead verified with an isolated, byte-faithful reproduction of the exact cited check and its boolean expression, run standalone, confirmed PASS at baseline and RED under the mutation; this is recorded in the mutation's own `break` text rather than silently citing the full file. Sibling-cite list, all three legitimate (same single test, two DIFFERENT, independently-verified mutations hitting two different disjuncts/branches of that one test's compound boolean, not one mutation copy-pasted onto two rows): R-831 shares R-702's only cite (`pi-watchdog imports no ledger or review module`) — R-702's mutation hits the test's `!/reviewShaped/` disjunct, R-831's hits its `!/import.../` disjunct. R-911 shares R-606's only cite (the one compound FAIL-line/WARN test) — R-606's mutation removes the WARN push, R-911's changes the PASS/FAIL label logic; both confirmed independently red, each leaving the other's half of the compound check true. R-914 shares R-615's two cites (the --self-test and NANA_TEST_SELFTEST=1 checks) — R-615's mutation drops a fixture (wrong COUNT), R-914's mutation misdeclares one fixture's expected verdict (wrong MATCH); both confirmed independently red.",
+  "merged": [
+    {
+      "origin": "R-711",
+      "reason": "2 shalls reduce to the identical boolean check (`revs.includes(revision)` in decide()); a mutation making re-review earn a round necessarily also makes reverting-to-a-counted-state earn one, and vice versa — confirmed: disabling complete()'s `idx < 0` guard broke both cited tests at once."
+    },
+    {
+      "origin": "R-718",
+      "reason": "2 shalls (own-a-live-reservation; expired/consumed/forged record nothing) are the same `if (!mine || reservationStale(held, st)) throw` gate viewed from two sides — the positive framing is definitionally the negation's complement, not a second, separately-breakable promise."
+    },
+    {
+      "origin": "R-727",
+      "reason": "3 shalls (no worker mode; --worker refused; review never runs) are enforced by one unconditional `process.exit(1)` immediately after the refusal message in pi-review.mjs, before runWatchdog is ever reachable; removing that one exit call breaks all three claims identically, confirmed by the single cited test failing on exactly that mutation."
+    }
+  ],
+  "origins": [
+    {
+      "origin": "R-702",
+      "clauses": [
+        {
+          "id": "R-702",
+          "text": "The watchdog shall carry no review-shape predicate.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module"
+          ],
+          "assertion": "!/reviewShaped/.test(wd) over pi-watchdog.mjs's source (comments stripped).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-watchdog.mjs",
+              "break": "renamed the default `accept` predicate from `nonEmpty` to `reviewShaped` (a locally-defined predicate, not an import) — the watchdog now carries a literally-named review-shape predicate",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-831",
+          "text": "The watchdog shall import no ledger or review module.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module"
+          ],
+          "assertion": "!/import[^;]*(review-round|review-shape|review-ledger)/.test(wd) over pi-watchdog.mjs's source.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-watchdog.mjs",
+              "break": "added an unused `import { reviewShaped } from './review-shape.mjs';`",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "pi-watchdog imports no ledger or review module",
+          "old": "// req: R-702",
+          "new": "\t// req: R-702 R-831"
+        }
+      ]
+    },
+    {
+      "origin": "R-703",
+      "clauses": [
+        {
+          "id": "R-703",
+          "text": "--item <slug> shall be required.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::no --item → refused with the required-item message"
+          ],
+          "assertion": "r.status === 1 && /--item <slug> is REQUIRED/.test(r.stderr) when --item is absent.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "disabled the missing-item check in parseReview (`if (false && rawItem === undefined) return { missing: true };`), so an absent --item falls through to canonicalItem(undefined) and is refused with the generic 'is blank' message instead",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::no --item → refused with the required-item message",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-832",
+          "text": "A call without --item, or with a flag in its place, shall be refused loudly without a stack.",
+          "status": "untested",
+          "evidence": "split from R-703 2026-10-04 (EARS form batch A3): no assertion checks noStack() for either named case. The 'without it' case (`no --item → refused with the required-item message`) checks only the message text. The only process-level noStack() check near --item (`--item ${bad} refused, no stack`) exercises a malformed SLUG VALUE (`../item`, `a/b`, `..`, an over-length string) — R-704's case, not 'without it' or 'with a flag in its place'. The 'flag in its place' case is proven only at the pure-function level (`review-round.test.mjs::--item --role: a flag is not an item`, a bare `throws()`), never at the process/stack level."
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-round.test.mjs",
+          "anchor": "--item --role: a flag is not an item",
+          "old": "// req: R-703",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "refused, no stack",
+          "old": "// req: R-703",
+          "new": null
+        }
+      ]
+    },
+    {
+      "origin": "R-706",
+      "clauses": [
+        {
+          "id": "R-706",
+          "text": "WHERE the cwd is outside git, the tally scope shall be the cwd's realpath.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::outside git, the tally scope is path:<dir>"
+          ],
+          "assertion": "roundsOf('plain')[0]?.repo === `path:${plain}` after a review outside any git repository.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "changed the outside-git repo prefix from `path:${realpathSync(cwd)}` to `path2:${realpathSync(cwd)}`",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::outside git, the tally scope is path:<dir>",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-833",
+          "text": "WHERE the cwd is outside git, --revision shall be accepted as given.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::outside git, --revision abc accepted"
+          ],
+          "assertion": "ledgerRun(['--item','plain','--revision','abc'], {cwd: plain}).status === 0 (a non-hex, literal --revision value is accepted outside git).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "resolveRevision's outside-git fallback now throws unless the value looks like a sha (`/^[0-9a-f]{7,64}$/i`), rejecting the literal 'abc'",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::outside git, --revision abc accepted",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "outside git, --revision abc accepted",
+          "old": "// req: R-706",
+          "new": "\t// req: R-833"
+        }
+      ]
+    },
+    {
+      "origin": "R-707",
+      "clauses": [
+        {
+          "id": "R-707",
+          "text": "A round shall be one revision.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-round.test.mjs::three revisions = three rounds"
+          ],
+          "assertion": "roundsUsed([v('a','sol'), v('b','sol'), v('c','astra')]) === 3 (three distinct revisions are three rounds).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "roundsUsed dedupes by `e.revision.length` instead of `e.revision` — three same-length-but-distinct revisions now collapse to one round, while same-revision/different-role cases (same length each time) are untouched",
+              "cite": "packages/nana-pack/tests/review-round.test.mjs::three revisions = three rounds",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-834",
+          "text": "Any number of reviews, reviewers or roles on one revision shall be one round.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-round.test.mjs::sol + astra on one revision = ONE round",
+            "packages/nana-pack/tests/review-round.test.mjs::ten roles on one revision = ONE round"
+          ],
+          "assertion": "roundsUsed([v('a','sol'), v('a','astra')]) === 1, and roundsUsed of ten role-entries all on revision 'a' === 1.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "roundsUsed dedupes by `e.revision + e.role` instead of `e.revision` — one revision reviewed under several roles is now counted as several rounds, while the three-distinct-revisions case (still three distinct revision+role pairs) is untouched",
+              "cite": "packages/nana-pack/tests/review-round.test.mjs::sol + astra on one revision = ONE round",
+              "result": "red"
+            },
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "roundsUsed dedupes by `e.revision + e.role` instead of `e.revision`",
+              "cite": "packages/nana-pack/tests/review-round.test.mjs::ten roles on one revision = ONE round",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-round.test.mjs",
+          "anchor": "sol + astra on one revision = ONE round",
+          "old": "// req: R-707",
+          "new": "// req: R-834"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-round.test.mjs",
+          "anchor": "ten roles on one revision = ONE round",
+          "old": "// req: R-707",
+          "new": "// req: R-834"
+        }
+      ]
+    },
+    {
+      "origin": "R-710",
+      "clauses": [
+        {
+          "id": "R-710",
+          "text": "Staging shall not change the revision.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::stage the same content → the same revision (index state is not work state), no new round"
+          ],
+          "assertion": "ledgerRun on a tracked file staged with unchanged content keeps round 1/3, already counted.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "workingState's snapshot hash now also includes `git diff --cached --name-only`'s output, so staging an already-dirty file (which changes the cached diff from empty to non-empty) moves the snapshot even though the working-tree bytes are unchanged",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::stage the same content → the same revision (index state is not work state), no new round",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-835",
+          "text": "A new non-ignored untracked file shall change the revision.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::collapse: an untracked file is part of the state (≠ clean)"
+          ],
+          "assertion": "adding a new untracked, non-ignored file moves the snapshot away from the clean sha.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "commented out the `ls-files --others --exclude-standard` loop entirely, so untracked files are never added to `paths`",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::collapse: an untracked file is part of the state (≠ clean)",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-836",
+          "text": "An ignored file or a touch shall not change the revision.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::split: ignored files (*.log, build/) do not change the revision",
+            "packages/nana-pack/tests/review-ledger.test.mjs::split: touching a file (mtime only) does not change the revision"
+          ],
+          "assertion": "writing an ignored file (*.log, build/) or touching a tracked file's mtime leaves the snapshot at `staged`.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "dropped `--exclude-standard` from the untracked-files `ls-files` call, so ignored files (debug.log, build/) are now collected into `paths` too",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::split: ignored files (*.log, build/) do not change the revision",
+              "result": "red"
+            },
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "a tracked file's `content` hash now also includes `String(st.mtimeMs)`, so a touch-only mtime change moves the snapshot even though the bytes are identical",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::split: touching a file (mtime only) does not change the revision",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "collapse: an untracked file is part of the state (≠ clean)",
+          "old": "// req: R-710",
+          "new": "\t// req: R-835"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "split: ignored files (*.log, build/) do not change the revision",
+          "old": "// req: R-710",
+          "new": "\t// req: R-836"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "split: touching a file (mtime only) does not change the revision",
+          "old": null,
+          "new": "\t// req: R-836"
+        }
+      ]
+    },
+    {
+      "origin": "R-711",
+      "clauses": [
+        {
+          "id": "R-711",
+          "text": "Reverting to an already-reviewed state, or re-reviewing a counted revision, shall be admitted earning no new round.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::revert the edit → original revision recognised, no new round",
+            "packages/nana-pack/tests/review-ledger.test.mjs::re-reviewing an already-counted revision is admitted and earns nothing",
+            "packages/nana-pack/tests/review-ledger.test.mjs::worktree W2 at A's already-counted revision: admitted, no new round"
+          ],
+          "assertion": "reviewing an already-counted revision again (by reverting to it, or by re-running on it) is admitted (status 0, 'already counted') and roundsOf(item).length does not grow.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "complete()'s tally append is now unconditional (`if (true)` instead of `if (idx < 0)`), so every completion — including one on an already-counted revision — appends a new tally line",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::re-reviewing an already-counted revision is admitted and earns nothing",
+              "result": "red"
+            },
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "same unconditional-append mutation",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::revert the edit → original revision recognised, no new round",
+              "result": "red"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "R-715",
+      "clauses": [
+        {
+          "id": "R-715",
+          "text": "A reservation whose launcher pid is dead, which stopped renewing past the window, or which is future-dated shall be pruned at the next admission.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::the crashed reservation was pruned, and the lock released",
+            "packages/nana-pack/tests/review-ledger.test.mjs::a live but NON-renewing owner is reclaimed after the window (0 in flight)",
+            "packages/nana-pack/tests/review-ledger.test.mjs::a future-dated reservation is stale (does not hold a round)"
+          ],
+          "assertion": "a dead-pid, a stopped-renewing, or a future-dated reservation is excluded from the in-flight count at the next admission.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "removed the `|| age < -CLOCK_SKEW_MS` disjunct from reservationStale, so a future-dated reservation is no longer treated as stale",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a future-dated reservation is stale (does not hold a round)",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-837",
+          "text": "A lock shall be taken over only from a dead holder.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::toctou: the completion was blocked on the lock when the tree was edited"
+          ],
+          "assertion": "a child process contending for the ledger lock against a LIVE holder (this test process's own pid) blocks for the full wait, never steals it.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "withLock's `stale` determination is forced to `true` unconditionally (verified via an isolated, byte-faithful reproduction of this block, not the full 748-line file: the real test's own cleanup — `fs.unlinkSync(lockFile)` at its line 630 — assumes the lock it wrote still exists, and a live-holder lock genuinely stolen-and-released by the mutated child makes that specific line throw ENOENT, crashing the harness one check before this one would print; the isolated script copies the check's own `blocked` boolean and its `check()` call verbatim and confirms `blocked` is false under the mutation, true at baseline)",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::toctou: the completion was blocked on the lock when the tree was edited",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "toctou: the completion was blocked on the lock when the tree was edited",
+          "old": null,
+          "new": "\t// req: R-837"
+        }
+      ]
+    },
+    {
+      "origin": "R-717",
+      "clauses": [
+        {
+          "id": "R-717",
+          "text": "WHEN the tree changed during the review, the verdict shall not be recorded as valid.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::edit during the review → exit 1, 'changed during the review', verdict NOT recorded as valid"
+          ],
+          "assertion": "an edit made during the review leaves no audit entry of kind 'verdict' for that item.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "complete()'s audit record now always uses `kind: 'verdict'`, never 'verdict-unverified', regardless of `stable`",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::edit during the review → exit 1, 'changed during the review', verdict NOT recorded as valid",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-838",
+          "text": "WHEN the tree changed during the review, the round shall be consumed for the admitted revision as unverified with the new state recorded.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::…the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)",
+            "packages/nana-pack/tests/review-ledger.test.mjs::toctou: an edit made while completion waits on the lock → verdict recorded UNVERIFIED, not valid"
+          ],
+          "assertion": "an edit made during the review still appends one tally line for the admitted revision, marked unverified with completedAs set to the new state.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "complete()'s tally append is gated to `if (idx < 0 && stable)`, so an unstable (tree-changed-during-review) completion appends nothing to the tally at all",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::…the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "the round IS consumed for the admitted revision",
+          "old": "// req: R-717",
+          "new": "\t// req: R-838"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "toctou: an edit made while completion waits on the lock",
+          "old": "// req: R-717",
+          "new": "\t// req: R-717 R-838"
+        }
+      ]
+    },
+    {
+      "origin": "R-718",
+      "clauses": [
+        {
+          "id": "R-718",
+          "text": "A completion shall own a live reservation, so an expired, consumed or forged one records nothing.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::complete(expired A) refused, NOT recorded",
+            "packages/nana-pack/tests/review-ledger.test.mjs::completing B twice is refused (its reservation was consumed)",
+            "packages/nana-pack/tests/review-ledger.test.mjs::a forged reservation id records nothing"
+          ],
+          "assertion": "complete() on an expired, already-consumed, or forged-id reservation returns ok:false and records nothing, while a live one (B) is recorded once.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "commented out `unlinkSync(f)` at the end of complete(), so a consumed reservation's file is left behind and a second complete() call on it still finds a live-looking, unconsumed reservation",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::completing B twice is refused (its reservation was consumed)",
+              "result": "red"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "R-719",
+      "clauses": [
+        {
+          "id": "R-719",
+          "text": "The cap shall be three rounds per item.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-round.test.mjs::cap is 3"
+          ],
+          "assertion": "REVIEW_ROUND_CAP === 3.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "changed `export const REVIEW_ROUND_CAP = 3;` to `4`",
+              "cite": "packages/nana-pack/tests/review-round.test.mjs::cap is 3",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-840",
+          "text": "A fourth revision shall be refused.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::fourth revision refused"
+          ],
+          "assertion": "a 4th distinct revision for an item at its cap is refused (status 1).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "roundCapVerdict's allow threshold is `projected <= REVIEW_ROUND_CAP + 1`, so a projected 4th round is wrongly allowed",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::fourth revision refused",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-841",
+          "text": "Switching launcher shall not reset the count.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::switching launcher (review-ledger run) does not reset the count"
+          ],
+          "assertion": "an item capped out under one launcher (pi-review) is still refused when the 4th revision is attempted through a different launcher (review-ledger run).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "decide() now takes a `launcher` parameter and filters both the tally and the live reservations by `r.launcher === launcher` (threaded in from admit()'s own `launcher` option), so switching launcher resets the per-launcher-scoped count to zero",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::switching launcher (review-ledger run) does not reset the count",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "fourth revision refused",
+          "old": "// req: R-719",
+          "new": "\t// req: R-840"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "switching launcher (review-ledger run) does not reset the count",
+          "old": "// req: R-719 R-729",
+          "new": "\t// req: R-729 R-841"
+        }
+      ]
+    },
+    {
+      "origin": "R-720",
+      "clauses": [
+        {
+          "id": "R-720",
+          "text": "IF the item is over the cap THEN admission shall be refused unless --over-cap carries a non-blank, non-flag reason.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-round.test.mjs::over cap without a reason refused",
+            "packages/nana-pack/tests/review-ledger.test.mjs::--over-cap --retries is refused (a flag is not a reason)"
+          ],
+          "assertion": "an over-cap admission with no --over-cap, or with a flag in its place, is refused.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "removed the `|| v.startsWith('-')` disjunct from optValue's throw condition, so `--over-cap --retries` is accepted with value '--retries' as a non-blank override reason",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::--over-cap --retries is refused (a flag is not a reason)",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-842",
+          "text": "That override shall be recorded with reason, round and timestamp at admission even when that review then fails.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::the override is recorded with reason, round and timestamp",
+            "packages/nana-pack/tests/review-ledger.test.mjs::repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded"
+          ],
+          "assertion": "a valid --over-cap override is appended to the audit log with its reason, round and timestamp at admission, even across repeated FAILED launches.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "gated the override's `appendAudit` call behind `if (false && override)`, so no override record is ever written",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::the override is recorded with reason, round and timestamp",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "the override is recorded with reason, round and timestamp",
+          "old": "// req: R-720",
+          "new": "\t// req: R-842"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded",
+          "old": "// req: R-722",
+          "new": "\t// req: R-722 R-842"
+        }
+      ]
+    },
+    {
+      "origin": "R-721",
+      "clauses": [
+        {
+          "id": "R-721",
+          "text": "The tally shall never rotate.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::the tally never rotates"
+          ],
+          "assertion": "after three completed rounds plus audit-log padding and rotation, no review-ledger.rounds.jsonl.1 file exists.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "verified via an isolated, byte-faithful reproduction of block 8's three admit+complete rounds (not the full 748-line file: a real tally rotation corrupts bookkeeping later blocks depend on, crashing the harness long before this specific check): added `if (existsSync(p.tally)) renameSync(p.tally, p.tally + '.1');` right after the tally append in complete()",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::the tally never rotates",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-843",
+          "text": "A malformed or incomplete tally line shall refuse admission naming file and line rather than granting a free review.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::a corrupted round line refuses admission with file:line",
+            "packages/nana-pack/tests/review-ledger.test.mjs::a record missing repo/revision is malformed too"
+          ],
+          "assertion": "a tally line that fails JSON.parse, or one missing repo/item/revision, refuses the next admission rather than being silently skipped.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "readTally no longer throws on a malformed/incomplete line; it silently filters it out (`return ok ? r : null`, then `.filter(Boolean)`), granting a free review instead of refusing",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a corrupted round line refuses admission with file:line",
+              "result": "red"
+            },
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "same silent-filter mutation",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a record missing repo/revision is malformed too",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "a corrupted round line refuses admission with file:line",
+          "old": "// req: R-721",
+          "new": "\t// req: R-843"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "a record missing repo/revision is malformed too",
+          "old": "// req: R-721",
+          "new": "\t// req: R-843"
+        }
+      ]
+    },
+    {
+      "origin": "R-723",
+      "clauses": [
+        {
+          "id": "R-723",
+          "text": "Every ledger path shall be a regular file.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack"
+          ],
+          "assertion": "a review-ledger.lock that is a directory refuses admission within 3s, naming it not a regular file.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "verified via an isolated, timeout-bounded reproduction (not the full file: the real admission call has no timeout of its own, so this regression hangs it forever rather than printing a FAIL): removed the `if (!st.isFile()) throw ...` check in withLock's lock-path branch, so a lock-as-directory is no longer refused — `readFileSync` on the directory throws EISDIR, caught by `catch { continue; }`, which loops forever retrying `openSync` without ever reaching the deadline check",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-844",
+          "text": "A symlink or an unwritable ledger directory shall be refused at once with a message and no stack, before the review runs.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::${name} as a symlink: refused BEFORE the review, target untouched, no stack",
+            "packages/nana-pack/tests/review-ledger.test.mjs::read-only ledger directory: refused with a clear message, no stack"
+          ],
+          "assertion": "a symlinked ledger file is refused before the review runs with its target untouched, and a read-only ledger directory is refused with a message naming it must be writable.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "failMessage no longer appends the '— the ledger directory (~/.pi/agent) must be writable by this user' suffix for EACCES/EPERM/EROFS errors",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::read-only ledger directory: refused with a clear message, no stack",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "as a symlink: refused BEFORE the review, target untouched, no stack",
+          "old": "// req: R-723",
+          "new": "\t\t// req: R-844"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "read-only ledger directory: refused with a clear message, no stack",
+          "old": "// req: R-723",
+          "new": "\t// req: R-844"
+        }
+      ]
+    },
+    {
+      "origin": "R-725",
+      "clauses": [
+        {
+          "id": "R-725",
+          "text": "Another in-tree non-ignored --out shall warn, still run, and be excluded from its own review's snapshot.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::an untracked in-tree --out WARNS and the review still runs",
+            "packages/nana-pack/tests/review-ledger.test.mjs::an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)"
+          ],
+          "assertion": "an untracked, non-ignored in-tree --out file warns, the review still completes (status 0, round counted), and its own write is excluded from the snapshot (verdict stays verified, not unverified).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "parseReview's `exclude` list is now always `[]`, so the review's own --out file is no longer excluded from its snapshot — writing it during the review now looks like a tree change made mid-review",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::an untracked in-tree --out WARNS and the review still runs",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-845",
+          "text": "One outside the tree or ignored shall be silent.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::an --out outside the tree is silent",
+            "packages/nana-pack/tests/review-ledger.test.mjs::an ignored in-tree --out is silent"
+          ],
+          "assertion": "an --out outside the reviewed tree, or an ignored one inside it, produces no WARNING.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/review-round.mjs",
+              "break": "removed outInTree's `if (gitOut(root, ['check-ignore', ...]).status === 0) return null;` branch, so an ignored in-tree --out now falls through to the generic warning",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::an ignored in-tree --out is silent",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "an --out outside the tree is silent",
+          "old": "// req: R-725",
+          "new": "\t// req: R-845"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "an ignored in-tree --out is silent",
+          "old": null,
+          "new": "\t// req: R-845"
+        }
+      ]
+    },
+    {
+      "origin": "R-727",
+      "clauses": [
+        {
+          "id": "R-727",
+          "text": "pi-review shall have no worker mode: a --worker flag is refused before any review ever runs.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs"
+          ],
+          "assertion": "pi-review --worker is refused (exit 1, '--worker was removed') and the watchdog never starts an attempt (no 'attempt 1' in stderr).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-review.mjs",
+              "break": "removed the `process.exit(1)` after an admission refusal's message, so the refusal message still prints but execution falls through to runWatchdog anyway",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
+              "result": "red"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "R-728",
+      "clauses": [
+        {
+          "id": "R-728",
+          "text": "--retries N shall mean N re-attempts after the first, with a one-line notice only when passed explicitly.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: explicit --retries → one-line notice",
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: no --retries → no notice"
+          ],
+          "assertion": "an explicit --retries on pi-review prints exactly one RETRIES_NOTICE line; the default (no --retries passed) prints none.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-review.mjs",
+              "break": "removed the `if (w.retriesExplicit)` guard, so RETRIES_NOTICE prints unconditionally even when --retries was never passed",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: no --retries → no notice",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-846",
+          "text": "A pi argument of the same name after the separator shall not be read as the flag.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::…a pi arg named --retries (after --) is not the flag"
+          ],
+          "assertion": "a `--retries 3` appearing in the pi args AFTER `--` is not read as the wrapper's own --retries flag (no RETRIES_NOTICE fires).",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-watchdog.mjs",
+              "break": "parseWatchdogArgv's `ownArgs` is now always the full `argv` (the `sep >= 0 ? argv.slice(0, sep) : argv` slice was dropped), so a `--retries` appearing after `--` is matched too",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::…a pi arg named --retries (after --) is not the flag",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "a pi arg named --retries (after --) is not the flag",
+          "old": "// req: R-728",
+          "new": "\t// req: R-846"
+        }
+      ]
+    },
+    {
+      "origin": "R-735",
+      "clauses": [
+        {
+          "id": "R-735",
+          "text": "A worker shall not be retried by default.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::a failing worker is NOT retried by default (1 attempt, exit 1)"
+          ],
+          "assertion": "pi-worker with no --retries makes exactly one attempt and exits 1 on failure.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-worker.mjs",
+              "break": "changed `parseWatchdogArgv(process.argv, { defaultRetries: 0 })` to `{ defaultRetries: 1 }`, so a worker now retries once by default",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a failing worker is NOT retried by default (1 attempt, exit 1)",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-847",
+          "text": "An explicit --retries shall opt in with a mutation warning.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::--retries 1 opts in explicitly, with a mutation warning (2 attempts)",
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-worker: explicit --retries → notice; default → none"
+          ],
+          "assertion": "pi-worker --retries 1 prints the 'REPEATS any file mutations' warning and makes two attempts.",
+          "mutations": [
+            {
+              "file": "packages/nana-pack/bin/pi-worker.mjs",
+              "break": "removed the `if (w.retries > 0) { process.stderr.write('...REPEATS any file mutations...') }` block entirely",
+              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::--retries 1 opts in explicitly, with a mutation warning (2 attempts)",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "opts in explicitly, with a mutation warning",
+          "old": "// req: R-735",
+          "new": "\t// req: R-847"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "pi-worker: explicit --retries → notice; default → none",
+          "old": "// req: R-735",
+          "new": "\t// req: R-735 R-847"
+        }
+      ]
+    },
+    {
+      "origin": "R-740",
+      "clauses": [
+        {
+          "id": "R-740",
+          "text": "scaffold-* and adopt-* shall render from the latest v* tag.",
+          "status": "planned",
+          "evidence": "HANDOFF.md 2026-10-02 states a v0.6.0 tag is still needed (v0.6.1 is local only, design-ruling.md §0), so consumers currently get pre-requirements templates."
+        },
+        {
+          "id": "R-848",
+          "text": "A template change shall reach consumers only after the tag is pushed.",
+          "status": "untested",
+          "evidence": "split from R-740 2026-10-04 (EARS form batch A3): no test pins this clause. templates-render.test.mjs renders both templates from the local `templates/` source tree directly (design-ruling.md §0's render test), never through a pushed git tag or `uvx copier` against a remote ref, so tag-gated distribution is not exercised in this repo's suite."
+        }
+      ]
+    },
+    {
+      "origin": "R-741",
+      "clauses": [
+        {
+          "id": "R-741",
+          "text": "adopt-structure shall copy the three frontier seeds only when absent.",
+          "status": "untested"
+        },
+        {
+          "id": "R-849",
+          "text": "It shall change no source, config or CI file.",
+          "status": "untested",
+          "evidence": "split from R-741 2026-10-04 (EARS form batch A3): no test pins this clause. No test under packages/nana-pack/tests/ exercises adopt-structure's copy behaviour at all (confirmed by search: no reference to 'adopt-structure' or 'frontier seed' outside its own SKILL.md and the requirements skill's SKILL.md)."
+        }
+      ]
+    },
+    {
+      "origin": "R-605",
+      "clauses": [
+        {
+          "id": "R-605",
+          "text": "A file shall FAIL if it exits non-zero, dies on a signal, or times out.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::a file that exits non-zero is FAIL and the run exits 1",
+            "packages/nana-pack/tests/test-runner.test.mjs::a file killed by a signal is FAIL, naming the signal",
+            "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL"
+          ],
+          "assertion": "a file exiting non-zero, one killed by a signal, and one that times out are each labeled FAIL.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "changed `const ok = r.code === 0 && !r.timedOut;` to `const ok = (r.code === 0 || r.signal) && !r.timedOut;`, so a file killed by a signal is wrongly labeled PASS",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::a file killed by a signal is FAIL, naming the signal",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-910",
+          "text": "The exit code shall be the verdict.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict"
+          ],
+          "assertion": "a file that exits 0 but prints a 'FAIL' line is still labeled PASS — the exit code, not printed text, decides the verdict.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "changed `const ok = r.code === 0 && !r.timedOut;` to `const ok = r.code === 0 && !r.timedOut && f === 0;` (f = count of printed FAIL lines), so an exit-0 file that merely prints a FAIL line is now mislabeled FAIL by its printed text rather than its exit code",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict",
+              "result": "red"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "R-606",
+      "clauses": [
+        {
+          "id": "R-606",
+          "text": "A FAIL line printed by a file that exits 0 shall be reported as a WARN.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict"
+          ],
+          "assertion": "an exit-0 file whose output includes a printed FAIL line produces a 'WARN ...: FAIL line with exit 0' totals-line entry, and the totals' warn count is 1.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "commented out `if (ok && f) warns.push(...)`, so no WARN is ever recorded for a printed FAIL line on an exit-0 file",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-911",
+          "text": "It shall not flip the verdict.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict"
+          ],
+          "assertion": "the same exit-0-but-prints-FAIL file is still labeled PASS, not FAIL.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "same `f === 0` addition to `ok` as R-910's record: the printed FAIL line now flips the per-file label from PASS to FAIL",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::a FAIL line from an exit-0 file is a WARN and does not flip the verdict",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "a FAIL line from an exit-0 file is a WARN and does not flip the verdict",
+          "old": "// req: R-606",
+          "new": "// req: R-606 R-910 R-911"
+        }
+      ]
+    },
+    {
+      "origin": "R-609",
+      "clauses": [
+        {
+          "id": "R-609",
+          "text": "Each child shall run in its own process tree.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::the timeout kill takes the child's whole process tree with it"
+          ],
+          "assertion": "a timed-out file's grandchild process is also killed (gone(gpid)).",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "changed `detached: posix` to `detached: false` in the child spawn options, so the child no longer leads its own process group and the group-kill misses its grandchild",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::the timeout kill takes the child's whole process tree with it",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-912",
+          "text": "On timeout, Ctrl-C or SIGTERM the runner shall kill that whole tree and remove its scratch directory.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::the scratch dir is removed after the run",
+            "packages/nana-pack/tests/test-runner.test.mjs::no match says so, exits 1, and still removes its scratch dir"
+          ],
+          "assertion": "after a timeout (or a no-match run), the runner's own scratch directory no longer exists / is empty.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "commented out `fs.rmSync(scratch, { recursive: true, force: true });` in cleanup()",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::the scratch dir is removed after the run",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "the scratch dir is removed after the run",
+          "old": "// req: R-609",
+          "new": "// req: R-912"
+        },
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "no match says so, exits 1, and still removes its scratch dir",
+          "old": "// req: R-617",
+          "new": "// req: R-617 R-912"
+        }
+      ]
+    },
+    {
+      "origin": "R-613",
+      "clauses": [
+        {
+          "id": "R-613",
+          "text": "WHEN --verbose is passed, every file's output shall also be streamed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::--verbose streams a passing file's own output"
+          ],
+          "assertion": "with --verbose, a passing file's own console output reaches the runner's stdout.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "commented out `if (verbose) process.stdout.write(s);` in the child's data handler, so --verbose no longer streams any output",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::--verbose streams a passing file's own output",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-913",
+          "text": "Otherwise only a failing file's last lines shall be shown.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown"
+          ],
+          "assertion": "without --verbose, a passing file's own output never reaches stdout, while a failing file's FAIL-tagged tail lines do.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "moved the non-verbose tail-printing block out from under `if (!ok)`, so it now runs unconditionally for every file (passing or failing)",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown",
+          "old": "// req: R-613",
+          "new": "// req: R-913"
+        }
+      ]
+    },
+    {
+      "origin": "R-615",
+      "clauses": [
+        {
+          "id": "R-615",
+          "text": "WHEN --self-test or NANA_TEST_SELFTEST=1 is set, the runner's own red, warn and pipe-holding fixtures shall be added.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
+            "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test"
+          ],
+          "assertion": "--self-test (and NANA_TEST_SELFTEST=1) adds exactly 3 fixture files to the run (totals(...).files === 3).",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "removed the third (pipe-holding hang) fixture object from the FIXTURES array entirely, so only 2 fixtures are added instead of 3",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
+              "result": "red"
+            },
+            {
+              "file": "scripts/test.mjs",
+              "break": "same dropped-fixture mutation",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test",
+              "result": "red"
+            }
+          ]
+        },
+        {
+          "id": "R-914",
+          "text": "Each shall get its expected verdict, the run exiting non-zero.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
+            "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test"
+          ],
+          "assertion": "every self-test fixture's actual verdict matches its declared `expect`, printing 'self-test: every fixture got its expected verdict', not a MISMATCH line.",
+          "mutations": [
+            {
+              "file": "scripts/test.mjs",
+              "break": "changed the red fixture's (`runner-self-test.test.mjs`) declared `expect` from 'FAIL' to 'PASS', so its correct FAIL verdict now reads as a mismatch against its (wrong) declaration",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
+              "result": "red"
+            },
+            {
+              "file": "scripts/test.mjs",
+              "break": "same wrong-expect mutation",
+              "cite": "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test",
+              "result": "red"
+            }
+          ]
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
+          "old": "// req: R-615",
+          "new": "// req: R-615 R-914"
+        },
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "NANA_TEST_SELFTEST=1 is the same as --self-test",
+          "old": "// req: R-615",
+          "new": "// req: R-615 R-914"
+        }
+      ]
+    }
+  ]
+}
