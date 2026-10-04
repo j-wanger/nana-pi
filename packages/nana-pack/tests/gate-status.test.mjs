@@ -86,7 +86,6 @@ const last = (a) => a.at(-1);
 	// a tool the gate does not inspect: no counter movement, no status at all
 	const before = statuses.length;
 	const other = await call("read", { path: path.join(td, "src", "foo.ts") });
-// req: R-763
 	check("a: an uninspected tool returns normally", other === undefined);
 	check("a: an uninspected tool publishes no status", statuses.length === before);
 // req: R-775

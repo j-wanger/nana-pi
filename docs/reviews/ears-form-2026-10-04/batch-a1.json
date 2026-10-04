@@ -3,7 +3,7 @@
   "date": "2026-10-04",
   "scope": "REQUIREMENTS.md Part A §1-4: the objective contract, trust and the provenance label, the gate, post-edit checks and receipts (packages/nana-pack) — 37 off-form origins split per design-ruling.md §2",
   "seed": null,
-  "notes": "One merge found: R-050 (\"shall be kept and enforced ... shall not police\" is one promise stated twice, both halves proven by the same single existing test — splitting would hand the new row the origin's exact cite set, the sibling-cite failure shape the lane exists to catch). Every other extra `shall` is a distinct promise. New-row status defaults to 'untested' unless an existing cited test, read directly (never guessed from its title), independently and specifically pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2.",
+  "notes": "One merge found: R-050 (\"shall be kept and enforced ... shall not police\" is one promise stated twice, both halves proven by the same single existing test — splitting would hand the new row the origin's exact cite set, the sibling-cite failure shape the lane exists to catch). Every other extra `shall` is a distinct promise. New-row status defaults to 'untested' unless an existing cited test, read directly (never guessed from its title), independently and specifically pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2. Revised after gpt-6-astra r1 BLOCK (batch-a1-astra-r1.md, 17 PINS/3 PARTIAL): R-763 and R-781 downgraded to untested (cited evidence covers only `read` / only the gate+objective, not the full promise); R-768 gained the subject-cap-exception cite that independently proves checking still runs; R-759, R-761 and R-794 flipped to implemented on astra-named existing assertions (T13 store-absent, hook-vs-pi equality, hostile-path receipt binding); R-760 flipped to violated recording objective.ts:479-480's obstructed-lock contradiction; R-764/R-771/R-783 reworded to stand alone.",
   "origins": [
     {
       "origin": "R-016",
@@ -65,12 +65,22 @@
         {
           "id": "R-759",
           "text": "IF the store is unusable THEN the remedy shall never name a store that does not exist.",
-          "status": "untested",
-          "cites": [],
-          "note": "every 'unusable store' fixture in objective-golden.test.mjs (malformed JSON, array, oversized, mode 000, FIFO, owned-by-another-user, lock-obstructed) is a store that DOES exist in some bad shape; no fixture exercises a genuinely NONEXISTENT store path, so nothing pins this clause"
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: trustRecord problem === ${problem}, store === the active store"
+          ],
+          "assertion": "r.object === (object ?? store(w)) — T13's 'override folder not writable, store absent' fixture passes object: ro (the folder) though the store file itself does not exist there; if the remedy instead blamed the nonexistent store path, r.object would equal store(w), not ro, and fail",
+          "note": "astra r1: this shared marker already carries R-024/R-026 for other provenance() scenarios; T13's store-absent fixture is the one that independently pins R-759"
         }
       ],
-      "markerEdits": []
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/objective-golden.test.mjs",
+          "anchor": "trustRecord problem === ${problem}, store === the active store",
+          "old": "// req: R-024 R-026",
+          "new": "// req: R-024 R-026 R-759"
+        }
+      ]
     },
     {
       "origin": "R-027",
@@ -90,11 +100,10 @@
         {
           "id": "R-760",
           "text": "IF the store lock path is obstructed or holds a fresh or future-dated lock THEN the remedy shall never tell the owner to delete or move the lock.",
-          "status": "implemented",
-          "cites": [
-            "packages/nana-pack/tests/objective-golden.test.mjs::T17 ${k}: remedy never tells the owner to delete or move the lock"
-          ],
-          "assertion": "!/move it aside|delete|remove (it|the lock|\\S+\\.lock) first/.test(the 'To clear this label:' line) && t.includes(\"do not remove it yourself\")"
+          "status": "violated",
+          "cites": [],
+          "evidence": "holds for the fresh/future-dated empty-lock case (`packages/nana-pack/tests/objective-golden.test.mjs::T17 ${k}: remedy never tells the owner to delete or move the lock` passes there); astra r1 — `packages/nana-pack/lib/objective.ts:479-480`'s \"lock path obstructed\" case tells the owner to \"move it aside first\", contradicting this row for that case; residual, not narrowed",
+          "note": "astra r1 MUST-adjacent SHOULD: objective.ts's obstructed-lock remedy text contradicts the promise; picked the single-row violated path over a further split, per the ruling's either/or. The marker on the fresh/future-lock test is removed since a violated row must not be traced (the rail's STALE check)."
         }
       ],
       "markerEdits": [
@@ -102,7 +111,7 @@
           "file": "packages/nana-pack/tests/objective-golden.test.mjs",
           "anchor": "remedy never tells the owner to delete or move the lock",
           "old": "// req: R-027",
-          "new": "// req: R-760"
+          "new": null
         }
       ]
     },
@@ -126,12 +135,22 @@
         {
           "id": "R-761",
           "text": "The trust check shall never consult pi's live isProjectTrusted() or pi's auto-trust.",
-          "status": "untested",
-          "cites": [],
-          "note": "no fixture mutates the code to CALL isProjectTrusted()/auto-trust and shows the result is unaffected or rejected; the existing cites show the check passes WITHOUT calling piMod in its primary path, but that is not a mutation-sensitive proof of non-consultation (piMod is used separately, only for the R-024 parity check)"
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::${label}: BYTE-IDENTICAL hook vs pi"
+          ],
+          "assertion": "hookText === piText, over the fixtures at lines 728/741 that pass isProjectTrusted: () => true with nothing recorded — runPi() is the only runtime given that callback (runHook() has no such parameter); if the label predicate consulted it, pi's output alone would change and the two runtimes would diverge",
+          "note": "astra r1: reversed from untested — the two named fixtures (\"in-session trust only\", \"F1: nana-only .pi/\") are exactly the isProjectTrusted()=true/nothing-recorded case, and only pi's side can even see that callback"
         }
       ],
-      "markerEdits": []
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/objective-golden.test.mjs",
+          "anchor": "BYTE-IDENTICAL hook vs pi",
+          "old": "// req: R-018 R-032",
+          "new": "// req: R-018 R-032 R-761"
+        }
+      ]
     },
     {
       "origin": "R-036",
@@ -189,12 +208,10 @@
         {
           "id": "R-763",
           "text": "Reads, custom tools and extension commands shall pass untouched.",
-          "status": "implemented",
-          "cites": [
-            "packages/nana-pack/tests/config-gate-fallback.test.mjs::b: tools outside the gate's scope untouched (read)",
-            "packages/nana-pack/tests/gate-status.test.mjs::a: an uninspected tool returns normally"
-          ],
-          "assertion": "out.read === null (untouched by the gate's own fallback machinery); other === undefined for an uninspected tool call, which also published no status"
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-038 2026-10-04 (EARS form batch A1): astra r1 — the cited tests exercise only `read`; no fixture names a genuinely custom tool or extension command",
+          "note": "astra r1 PARTIAL: both cites exercise only toolName \"read\"; no fixture anywhere names a genuinely custom tool or an extension command, so a mutation blocking everything except read leaves both green"
         }
       ],
       "markerEdits": [
@@ -202,13 +219,13 @@
           "file": "packages/nana-pack/tests/config-gate-fallback.test.mjs",
           "anchor": "b: tools outside the gate's scope untouched (read)",
           "old": "// req: R-038",
-          "new": "// req: R-763"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/gate-status.test.mjs",
           "anchor": "a: an uninspected tool returns normally",
           "old": "// req: R-038",
-          "new": "// req: R-763"
+          "new": null
         }
       ]
     },
@@ -228,7 +245,7 @@
         },
         {
           "id": "R-764",
-          "text": "Benign commands that merely mention one shall be allowed.",
+          "text": "Benign commands that merely mention a documented dangerous command form shall be allowed.",
           "status": "implemented",
           "cites": [
             "packages/nana-pack/tests/gate-corpus.test.mjs::ALLOW: ${JSON.stringify(c)}"
@@ -376,12 +393,20 @@
           "text": "A command over 64 KB shall still be checked.",
           "status": "implemented",
           "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::subject cap: a longer command gets no exception",
             "packages/nana-pack/tests/gate-corpus.test.mjs::benign 4 MB command ALLOWs"
           ],
-          "assertion": "(await run(`echo ${\"x\".repeat(4*1024*1024)}`)) === \"ALLOW\" — a 4 MB benign command is evaluated (not skipped) and correctly found benign"
+          "assertion": "commandHit() always runs regardless of length (lib/extensions/nana-gate.ts: only segmentable, not the hit check, is gated by MAX_SUBJECT) — \"a longer command gets no exception\" (dangerous `rm -rf build`+padding) stays BLOCK only because the dangerous-pattern check still ran; astra's inspection-bypass flips it to ALLOW (fails) while leaving the benign-4MB case green, since that command was never dangerous either way",
+          "note": "astra r1 PARTIAL: the originally-cited 'benign 4 MB command ALLOWs' alone doesn't distinguish checked-and-benign from bypassed-and-defaulted-ALLOW; adding the subject-cap exception test (previously R-047-only) closes that, since its outcome depends on the pattern check actually running"
         }
       ],
       "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "subject cap: a longer command gets no exception",
+          "old": "// req: R-047",
+          "new": "// req: R-047 R-768"
+        },
         {
           "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
           "anchor": "benign 4 MB command ALLOWs",
@@ -491,9 +516,10 @@
         },
         {
           "id": "R-771",
-          "text": "That residual shall be closed only by the sandbox layer.",
+          "text": "The residual left by a shell-computed path escaping the gate shall be closed only by the sandbox layer.",
           "status": "untested",
-          "cites": []
+          "cites": [],
+          "note": "astra r1 SHOULD: reworded to stand alone without 'that residual'"
         }
       ],
       "markerEdits": []
@@ -805,12 +831,10 @@
         {
           "id": "R-781",
           "text": "Every other extension shall keep working when a config is malformed.",
-          "status": "implemented",
-          "cites": [
-            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: gate still blocks rm -rf /tmp/x headless",
-            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: objective text or OBJECTIVE UNAVAILABLE marker injected"
-          ],
-          "assertion": "gateOut.some(r => r?.block === true) and prompts.includes(\"OBJ: ship the thing\")||prompts.includes(\"OBJECTIVE UNAVAILABLE\") — the gate and the objective extension both still function despite one malformed handler"
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-083 2026-10-04 (EARS form batch A1): astra r1 — the cited assertions cover only the gate and the objective; no fixture asserts post-edit's own output under an unrelated malformed block",
+          "note": "astra r1 PARTIAL: both cites check only the gate and the objective extension; no assertion anywhere checks post-edit's (or any other extension's) own output under an unrelated malformed block, e.g. notify = 7"
         }
       ],
       "markerEdits": [
@@ -818,13 +842,13 @@
           "file": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
           "anchor": "gate still blocks rm -rf /tmp/x headless",
           "old": "// req: R-083",
-          "new": "// req: R-781"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
           "anchor": "objective text or OBJECTIVE UNAVAILABLE marker injected",
           "old": "// req: R-083",
-          "new": "// req: R-781"
+          "new": null
         }
       ]
     },
@@ -876,7 +900,7 @@
         },
         {
           "id": "R-783",
-          "text": "That one resolution shall feed the command, the digest and the queue key.",
+          "text": "The edited path's pi-resolved value shall feed the command, the digest and the queue key.",
           "status": "implemented",
           "cites": [
             "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: relative path check passed (the checker saw the file)",
@@ -1177,7 +1201,7 @@
           "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
           "anchor": "— receipt binds the real file",
           "old": "// req: R-103",
-          "new": "// req: R-792"
+          "new": "// req: R-792 R-794"
         }
       ]
     },
@@ -1227,11 +1251,23 @@
         {
           "id": "R-794",
           "text": "receipts.dir shall relocate the store.",
-          "status": "untested",
-          "cites": []
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — checker received the real file",
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — receipt binds the real file"
+          ],
+          "assertion": "the (g,h,i) hostile-path fixtures set receipts.dir to a fixed path.join(td, \"receipts\") (never HOME-derived), then swap HOME during the write and restore it before reading; both assertions pass only because the configured dir is honored on both sides of that swap — if receipts.dir were ignored (falling back to the HOME-derived default), the write and the later read would disagree and r would be null/undefined",
+          "note": "astra r1: reversed from untested — these are the six hostile-path assertions astra named"
         }
       ],
-      "markerEdits": []
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "checker received the real file",
+          "old": "// req: R-092 R-103",
+          "new": "// req: R-092 R-103 R-794"
+        }
+      ]
     }
   ],
   "merged": [

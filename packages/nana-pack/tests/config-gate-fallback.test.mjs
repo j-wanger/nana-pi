@@ -105,7 +105,6 @@ const A = freshHome();
 		// req: R-064
 		check(`b: stop after restart — ${k} blocked with the repair reason`, out[k]?.block === true && STOP(A.cfg).test(out[k]?.reason ?? ""), JSON.stringify(out[k]));
 	check("b: the reason names the problem (invalid JSON)", /invalid JSON/.test(out.ls?.reason ?? ""), out.ls?.reason);
-// req: R-763
 	check("b: tools outside the gate's scope untouched (read)", out.read === null);
 }
 

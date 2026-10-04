@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * @module docs/reviews/ears-form-2026-10-04/apply-batch.mjs
- * @purpose Apply one EARS-form split batch mapping (batch-<n>.json) to REQUIREMENTS.md and the `// req:` markers it names, the allowance literal and its seal, and G-013's evidence-cell count, then verify every item on batch0-land-ruling.md §5's checklist — refusing and changing nothing on any failed check.
- * @inputs a batch-<n>.json path (argv[2]), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names
- * @outputs REQUIREMENTS.md rewritten in place; named marker lines, the allowance literal, its seal and G-013's evidence count edited in place; a verification report, the sibling-cite list and the merged list on stdout
- * @effects disk (rewrites the files named above), process (exits non-zero on any failed check; spawns `node scripts/requirements-trace.mjs` to re-measure the rail)
- * @errors exits 1 naming every failed check; all edits are computed and checked before any write, so a failed structural check leaves every file untouched; re-running over an already-applied mapping is a no-op that still re-verifies
+ * @purpose Apply one EARS-form split batch mapping (batch-<n>.json) to REQUIREMENTS.md and the `// req:` markers it names, the allowance literal and its seal, and G-013/G-015's evidence cells, then verify the result AGAINST AN EXPLICIT BASE REVISION — every pre-existing row byte-identical unless it is a mapped origin, and every changed line under any test root a `// req:` marker line (one sanctioned seal-literal exception) — refusing and changing nothing on any failed check.
+ * @inputs a batch-<n>.json path (argv[2]), an optional `--base <rev>` (default `main`), REQUIREMENTS.md, scripts/requirements-trace.mjs, packages/nana-pack/tests/requirements-trace.test.mjs, every test file a markerEdit names, and `git` (diff/show against the base revision)
+ * @outputs REQUIREMENTS.md rewritten in place; named marker lines, the allowance literal, its seal and G-013/G-015's evidence counts edited in place; a verification report, the sibling-cite list and the merged list on stdout
+ * @effects disk (rewrites the files named above), process (exits non-zero on any failed check; spawns `git diff`/`git show` against the base revision and `node scripts/requirements-trace.mjs` to re-measure the rail)
+ * @errors exits 1 naming every failed check; all edits are computed and checked before any write, so a failed structural check leaves every file untouched; re-running over an already-applied mapping is a no-op that still re-verifies against the base revision
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -17,10 +17,13 @@ const REPO_ROOT = resolve(HERE, "..", "..", "..");
 const REQUIREMENTS_PATH = join(REPO_ROOT, "REQUIREMENTS.md");
 const RAIL_SCRIPT = join(REPO_ROOT, "scripts", "requirements-trace.mjs");
 const RAIL_TEST = join(REPO_ROOT, "packages", "nana-pack", "tests", "requirements-trace.test.mjs");
+const RAIL_TEST_REL = "packages/nana-pack/tests/requirements-trace.test.mjs";
 
 const ROW = /^\|\s*([RG]-\d{3})\s*\|(.*)\|\s*$/;
 const MARKER_LINE = /^\s*\/\/\s*req:\s*(.+?)\s*$/;
 const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
+/** A path this repo's test runner collects from (scripts/test.mjs's TEST_ROOTS). */
+const TEST_ROOT = /(^|\/)(tests|test)\//;
 
 function maskCodeSpans(text) {
 	let out = "", i = 0;
@@ -52,9 +55,22 @@ function abort(msg) {
 	console.error(`REFUSED: ${msg}`);
 	process.exit(1);
 }
+function git(args) {
+	const r = spawnSync("git", args, { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+	if (r.status !== 0) abort(`git ${args.join(" ")} failed: ${r.stderr || r.stdout}`);
+	return r.stdout;
+}
 
-const batchPath = process.argv[2];
-if (!batchPath) abort("usage: node apply-batch.mjs <batch-n.json>");
+// ---------------------------------------------------------------------------
+// 0. Args: the mapping and the base revision every branch-level claim is checked against.
+// ---------------------------------------------------------------------------
+const argv = process.argv.slice(2);
+const batchPath = argv.find((a) => !a.startsWith("--") && argv[argv.indexOf(a) - 1] !== "--base");
+if (!batchPath) abort("usage: node apply-batch.mjs <batch-n.json> [--base <rev>]");
+const baseFlagIdx = argv.indexOf("--base");
+const BASE = baseFlagIdx !== -1 ? argv[baseFlagIdx + 1] : "main";
+if (baseFlagIdx !== -1 && !BASE) abort("--base needs a revision");
+
 const batch = JSON.parse(readFileSync(resolve(process.cwd(), batchPath), "utf8"));
 const batchLabel = String(batch.batch);
 const batchDate = batch.date;
@@ -73,11 +89,20 @@ for (let i = 0; i < linesBefore.length; i++) {
 }
 const preExistingIds = new Set(idLineBefore.keys());
 
+/**
+ * The evidence cell for one clause. `implemented` cells join `cites` in backticks.
+ * Any other clause may carry its own explicit `evidence` string (a deviation, a
+ * residual, a merge rationale, or a precise PARTIAL-fix note) — used verbatim.
+ * With neither, the origin's own (pre-split, untouched) clause reads "—", and a
+ * genuine SPLIT row gets the standard sentence, auto-generated so the mapping
+ * need not repeat it for every untested row.
+ */
 function evidenceCell(clause, originId) {
 	if (clause.status === "implemented") {
 		if (!clause.cites || clause.cites.length === 0) abort(`${clause.id}: implemented with no cites`);
 		return clause.cites.map((c) => `\`${c}\``).join(", ");
 	}
+	if (typeof clause.evidence === "string" && clause.evidence.trim() !== "") return clause.evidence;
 	if (clause.id === originId) return "—";
 	return `split from ${originId} ${batchDate} (EARS form batch ${batchLabel}): no test pins this clause`;
 }
@@ -174,7 +199,7 @@ if (g013Idx === -1) abort("G-013 row not found");
 
 // G-015's evidence cell cites the seal test's TITLE, which embeds the allowance number —
 // it must track the same literal the seal itself is being moved to (both seals carry the
-// new count, batch0-land-ruling.md §5's checklist), the same narrow count-only edit as G-013.
+// new count), the same narrow count-only edit as G-013.
 const g015Idx = rebuilt.findIndex((l) => ROW.exec(l)?.[1] === "G-015");
 if (g015Idx === -1) abort("G-015 row not found");
 {
@@ -228,7 +253,9 @@ let railTestTextAfter = railTestTextBefore;
 }
 
 // ---------------------------------------------------------------------------
-// 5. Marker edits.
+// 5. Marker edits. `new: null` DELETES the marker line entirely (symmetric with
+// `old: null`, which INSERTS a brand-new one). Either way the anchor line itself
+// — the `check(`/`test(`/`it(` call — is never touched.
 // ---------------------------------------------------------------------------
 const fileCache = new Map(); // path -> { before, lines }
 function loadFile(path) {
@@ -254,10 +281,14 @@ for (const me of markerEdits) {
 	if (me.old === null) {
 		// insertion: a brand-new marker line directly above the anchor
 		if (above.trim() === me.new.trim()) continue; // already applied
-		if (!MARKER_LINE.test(above) === false && above.trim() === "") {
-			// blank line above: insert the marker there, pushing nothing else
-		}
 		f.lines.splice(anchorIdx, 0, me.new);
+		continue;
+	}
+
+	if (me.new === null) {
+		// deletion: the marker that used to sit here is no longer needed by anything
+		if (above.trim() !== me.old.trim()) continue; // already applied (or never there) — nothing to delete
+		f.lines.splice(aboveIdx, 1);
 		continue;
 	}
 
@@ -279,8 +310,8 @@ for (const [path, f] of fileCache) {
 }
 
 // ===========================================================================
-// VERIFICATION — batch0-land-ruling.md §5's checklist. All of it runs even on
-// a no-op re-apply.
+// VERIFICATION — against the EXPLICIT BASE REVISION (`--base`, default main),
+// not just this run's own before/after. batch0-land-ruling.md §5's checklist.
 // ===========================================================================
 const finalReqText = readFileSync(REQUIREMENTS_PATH, "utf8");
 const finalLines = finalReqText.split("\n");
@@ -289,15 +320,30 @@ for (let i = 0; i < finalLines.length; i++) {
 	const m = ROW.exec(finalLines[i]);
 	if (m) idLineAfter.set(m[1], i);
 }
-
-// (a) every pre-existing id present; no on-form (untouched) row changed.
 const touchedIds = new Set(allClauses.map((c) => c.id));
-for (const id of preExistingIds) must("pre-existing id missing", idLineAfter.has(id), id);
-for (const id of preExistingIds) {
-	if (touchedIds.has(id) || id === "G-013" || id === "G-015") continue; // their evidence counts are declared per-batch edits
-	const before = linesBefore[idLineBefore.get(id)];
-	const after = finalLines[idLineAfter.get(id)];
-	must("untouched row changed", before === after, id);
+
+// (a) BRANCH-LEVEL: every pre-existing (base) row is byte-identical in the final
+// file unless it is a mapped origin. Reads REQUIREMENTS.md at BASE directly —
+// not this run's own pre-state — so a row mutated earlier in the branch (by
+// hand, by another tool, by anything) is caught, not just a mutation from THIS
+// invocation.
+const baseReqText = git(["show", `${BASE}:REQUIREMENTS.md`]);
+const baseRowById = new Map();
+for (const line of baseReqText.split("\n")) {
+	const m = ROW.exec(line);
+	if (m) baseRowById.set(m[1], line);
+}
+for (const [id, baseLine] of baseRowById) {
+	must("pre-existing id missing from the final file", idLineAfter.has(id), id);
+	if (!idLineAfter.has(id)) continue;
+	if (touchedIds.has(id) || id === "G-013" || id === "G-015") continue; // declared per-batch edits
+	const finalLine = finalLines[idLineAfter.get(id)];
+	must("untouched row changed since base", finalLine === baseLine, `${id} (base ${BASE})`);
+}
+// every id this mapping claims as an origin must actually have existed at base
+// (otherwise it is not "a pre-existing row this batch may touch" — it is new).
+for (const origin of batch.origins) {
+	must("origin not present at base — not a legitimate split target", baseRowById.has(origin.origin), `${origin.origin} @ ${BASE}`);
 }
 
 // (b) every new id inside ITS OWN origin's declared continuation block (design-ruling.md
@@ -381,36 +427,41 @@ for (const clause of allClauses) {
 	if (clause.status === "implemented") must("implemented clause has no assertion", !!clause.assertion && clause.assertion.length > 0, clause.id);
 }
 
-// (h) every untested split row (new, not origin) carries the standard evidence sentence.
+// (h) every untested/violated/planned split row (new, not origin) WITHOUT its own
+// explicit `evidence` override carries the standard evidence sentence.
 for (const origin of batch.origins) {
 	for (const clause of origin.clauses.slice(1)) {
 		if (clause.status === "implemented") continue;
+		if (typeof clause.evidence === "string" && clause.evidence.trim() !== "") continue; // explicit override: no standard sentence required
 		const want = `split from ${origin.origin} ${batchDate} (EARS form batch ${batchLabel}): no test pins this clause`;
 		const got = finalLines[idLineAfter.get(clause.id)];
 		must("untested split row missing the standard evidence sentence", got.includes(want), clause.id);
 	}
 }
 
-// (i) every changed line under a test root matches the marker regex — no assertion moved.
-for (const [path, f] of fileCache) {
-	const beforeLines = f.before.split("\n");
-	const afterLines = f.lines;
-	const maxLen = Math.max(beforeLines.length, afterLines.length);
-	let b = 0, a = 0;
-	// simple LCS-free check: since we only ever replace-in-place or insert one line
-	// at the position we recorded, walk both arrays and diff by content.
-	const beforeSet = beforeLines.join("\n");
-	const afterSet = afterLines.join("\n");
-	if (beforeSet === afterSet) continue;
-	// line-count delta must equal the number of pure insertions we made in this file
-	for (let i = 0; i < maxLen; i++) {
-		if (beforeLines[i] === afterLines[i]) continue;
-		// a changed or new line: must itself be a marker line (or, for a replaced
-		// line, the OLD line it replaced must also have been a marker line)
-		if (afterLines[i] !== undefined) must("non-marker line changed", MARKER_LINE.test(afterLines[i]), `${path}:${i + 1}`);
-		break; // first divergence is enough once content differs; deeper structural
-		       // diffing is unnecessary because every edit above is a targeted
-		       // single-line replace/insert recorded at apply time.
+// (i) BRANCH-LEVEL, WHOLE-DIFF: every changed line under ANY test root, across the
+// FULL diff against base (not just files named in markerEdits, not stopping at the
+// first divergence), must itself be a `// req:` marker line — i.e. no assertion
+// moved anywhere this batch could have touched. One sanctioned exception: the seal
+// literal in requirements-trace.test.mjs (the allowance number embedded in both the
+// check's title and its comparison), which design-ruling.md's allowlist explicitly
+// permits each batch to move.
+const changedFiles = git(["diff", BASE, "--name-only"]).split("\n").filter(Boolean);
+const testRootFiles = changedFiles.filter((f) => TEST_ROOT.test(f));
+for (const f of testRootFiles) {
+	const patch = git(["diff", BASE, "--", f]);
+	const sealOld = `"seal: EARS_ALLOWANCE is ${oldAllowance} (G-015)", EARS_ALLOWANCE === ${oldAllowance}`;
+	const sealNew = `"seal: EARS_ALLOWANCE is ${newAllowance} (G-015)", EARS_ALLOWANCE === ${newAllowance}`;
+	for (const line of patch.split("\n")) {
+		if (line.length === 0) continue;
+		const marker = line[0];
+		if (marker !== "+" && marker !== "-") continue; // diff metadata (diff/index/---/+++/@@): not content
+		if (marker === "+" && line.startsWith("+++")) continue;
+		if (marker === "-" && line.startsWith("---")) continue;
+		const content = line.slice(1);
+		if (MARKER_LINE.test(content)) continue;
+		if (f === RAIL_TEST_REL && (content.includes(sealOld) || content.includes(sealNew))) continue; // sanctioned per-batch seal move
+		must("non-marker line changed under a test root", false, `${f}: ${JSON.stringify(content)}`);
 	}
 }
 
@@ -425,7 +476,7 @@ for (const origin of batch.origins) {
 	}
 }
 
-console.log(`batch ${batchLabel}: ${fails.length === 0 ? "ALL CHECKS GREEN" : `${fails.length} CHECK(S) FAILED`}`);
+console.log(`batch ${batchLabel} (base ${BASE}): ${fails.length === 0 ? "ALL CHECKS GREEN" : `${fails.length} CHECK(S) FAILED`}`);
 for (const f of fails) console.log(`  FAIL: ${f}`);
 console.log(`rows added: ${rowsAddedThisBatch.length} (${rowsAddedThisBatch.join(", ")})`);
 console.log(`sibling-cite list (${siblingCites.length}): ${siblingCites.join(", ") || "(none)"}`);

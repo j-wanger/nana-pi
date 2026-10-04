@@ -300,9 +300,9 @@ if (POSIX) {
 			if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile;
 		}
 		const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-		// req: R-092 R-103
+		// req: R-092 R-103 R-794
 		check(`${tag}: ${label} — checker received the real file`, r?.status === "checks_passed");
-// req: R-792
+// req: R-792 R-794
 		check(`${tag}: ${label} — receipt binds the real file`, r?.inputs?.[0]?.path === real);
 		fs.rmSync(td, { recursive: true, force: true });
 	}

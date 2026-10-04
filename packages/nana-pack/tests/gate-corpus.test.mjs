@@ -191,7 +191,7 @@ const ALLOW = [
 	run = await gate({ allowPatterns: ["^rm -rf build"] });
 	// req: R-047
 	check("subject cap: allow applies at 64 KB", (await run(`rm -rf build ${"x".repeat(64 * 1024 - 13)}`)) === "ALLOW");
-	// req: R-047
+	// req: R-047 R-768
 	check("subject cap: a longer command gets no exception", (await run(`rm -rf build ${"x".repeat(64 * 1024)}`)) === "BLOCK");
 	// A configured catastrophic regex is enforced as written: not probed, not dropped.
 	run = await gate({ extraPatterns: ["(a+)+$"] });

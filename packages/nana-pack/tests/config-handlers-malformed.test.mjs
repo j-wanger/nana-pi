@@ -79,11 +79,9 @@ for (const [label, text, expectLines] of VARIANTS) {
 
 	// req: R-083
 	check(`${label}: no handler throws`, errors.length === 0, errors.join("; "));
-// req: R-781
 	check(`${label}: gate still blocks rm -rf /tmp/x headless`, gateOut.some((r) => r?.block === true), JSON.stringify(gateOut));
 	// chain the before_agent_start results the way pi does (last systemPrompt wins in this fake)
 	const prompts = bas.filter(Boolean).map((r) => r.systemPrompt).join("\n");
-// req: R-781
 	check(`${label}: objective text or OBJECTIVE UNAVAILABLE marker injected`, prompts.includes("OBJ: ship the thing") || prompts.includes("OBJECTIVE UNAVAILABLE"));
 	const journal = path.join(agent, "nana-journal.jsonl");
 	const lines = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
