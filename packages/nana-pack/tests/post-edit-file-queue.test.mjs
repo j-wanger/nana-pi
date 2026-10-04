@@ -142,10 +142,10 @@ if (process.platform !== "win32" && process.getuid?.() !== 0) {
 	const text = ret?.content?.at(-1)?.text ?? "";
 	// req: R-091
 	check("b: unlockable file does not silently run the checker", readOrder() === before);
-	// req: R-091
+// req: R-785
 	check("b: refusal is fed back to the model", text.includes("did not run") && text.includes("could not lock"));
 	const r = readLatestReceipt(loadConfig(ctx), ws, cmd);
-	// req: R-091
+// req: R-784
 	check("b: receipt records not_run (never passed)", r?.status === "not_run");
 	check("b: receipt claims no content binding", Array.isArray(r?.inputs) && r.inputs.length === 0 && r.digest === "");
 }

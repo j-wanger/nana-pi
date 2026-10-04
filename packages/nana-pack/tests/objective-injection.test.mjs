@@ -169,7 +169,7 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check("h: symlinked in-workspace objective does not throw", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	// req: R-016
+// req: R-758
 	check("h: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
 	// req: R-014
 	check("h: the refusal is announced, not silent",

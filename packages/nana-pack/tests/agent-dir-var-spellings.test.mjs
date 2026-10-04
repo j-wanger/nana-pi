@@ -39,7 +39,7 @@ for (const v of ["$pi_coding_agent_dir", "${Pi_Coding_Agent_Dir}", "%pi_coding_a
 
 // malformed / unbalanced / mixed: not one of the four — no longer required to block
 for (const w of ["$PI_CODING_AGENT_DIR}/nana-pack.json", "${PI_CODING_AGENT_DIR/nana-pack.json", "%PI_CODING_AGENT_DIR/trust.json", "$env:PI_CODING_AGENT_DIR%/trust.json", "${PI_CODING_AGENT_DIR%/trust.json", "%PI_CODING_AGENT_DIR}/nana-pack.json"])
-	// req: R-053
+// req: R-770
 	check(`malformed ${w} is not matched by the variable rule`, hit(w) === null, String(hit(w)));
 
 // nothing real became allowed: the literal active-dir path and the default dir still block

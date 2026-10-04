@@ -224,7 +224,7 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
 	fs.writeFileSync(secret, "SUPERSECRET\n");
 	fs.symlinkSync(secret, w.productFile);
 	await golden("symlinked OBJECTIVE.md", w, w.product, (t) => {
-		// req: R-016
+// req: R-758
 		check("symlink: target never shown", !t.includes("SUPERSECRET"));
 		check("symlink: refusal printed", t.includes(`(ignored ${w.productFile}: reached through a symlink — the program file governs)`), t);
 		check("symlink: umbrella governs", t.includes(`governing: ${w.umbrellaFile}\n`));
@@ -1049,7 +1049,7 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const lock = `${store(w)}.lock`; make(lock);
 			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
 			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
-			// req: R-027
+// req: R-760
 			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
 			if (piMod) {
 				make(lock); // re-date: the runtimes above took time

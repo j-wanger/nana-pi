@@ -69,7 +69,7 @@ function setup(gate) {
 	try { res = await call("bash", { command: "rm -rf /tmp/whatever" }); } catch { threw = true; }
 	// req: R-070
 	check("b: all-null gate arrays do not throw", !threw);
-	// req: R-070
+// req: R-774
 	check("b: built-in dangerous pattern still blocks headless", res?.block === true);
 	fs.rmSync(td, { recursive: true, force: true });
 }

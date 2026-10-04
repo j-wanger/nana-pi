@@ -142,7 +142,7 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ gate: {} })); // valid user scope, n
 	check("2: valid project allowPatterns [] replaces the user exception — rm -rf /tmp/x BLOCKED", blocked(before.rm), JSON.stringify(before));
 	fs.writeFileSync(P.file, '{ "gate": { "allowPatterns": [], }, }');
 	const after = run(P.td, [["rm", "bash", { command: "rm -rf /tmp/x" }]]);
-	// req: R-067
+// req: R-773
 	check("2: corrupted + fresh process — user exception does NOT resurrect (BLOCKED)", blocked(after.rm), JSON.stringify(after.rm));
 	check("2: blocked by the project stop", PSTOP(P.file).test(after.rm?.reason ?? ""), after.rm?.reason);
 	// control: without a project file the user exception applies (missing ≠ stop)

@@ -1,0 +1,1286 @@
+{
+  "batch": "A1",
+  "date": "2026-10-04",
+  "scope": "REQUIREMENTS.md Part A §1-4: the objective contract, trust and the provenance label, the gate, post-edit checks and receipts (packages/nana-pack) — 37 off-form origins split per design-ruling.md §2",
+  "seed": null,
+  "notes": "One merge found: R-050 (\"shall be kept and enforced ... shall not police\" is one promise stated twice, both halves proven by the same single existing test — splitting would hand the new row the origin's exact cite set, the sibling-cite failure shape the lane exists to catch). Every other extra `shall` is a distinct promise. New-row status defaults to 'untested' unless an existing cited test, read directly (never guessed from its title), independently and specifically pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2.",
+  "origins": [
+    {
+      "origin": "R-016",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-016",
+          "text": "A symlinked objective shall be refused only when the resolved path is inside the workspace.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-injection.test.mjs::i: user-home symlink followed (default path)"
+          ],
+          "assertion": "!!r?.systemPrompt.includes(\"LINKED OBJECTIVE\") for a symlink at the DEFAULT path pointing outside the workspace (the user's own home) — breaks if an outside-workspace symlink were also refused instead of followed"
+        },
+        {
+          "id": "R-758",
+          "text": "A refused target's contents shall never reach the system prompt.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-injection.test.mjs::h: target contents never reach the system prompt",
+            "packages/nana-pack/tests/objective-golden.test.mjs::symlink: target never shown"
+          ],
+          "assertion": "!(r?.systemPrompt ?? \"\").includes(\"SUPERSECRET\") for an in-workspace symlink whose target holds that string — breaks if the target's text ever reached the prompt"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/objective-injection.test.mjs",
+          "anchor": "h: target contents never reach the system prompt",
+          "old": "// req: R-016",
+          "new": "// req: R-758"
+        },
+        {
+          "file": "packages/nana-pack/tests/objective-golden.test.mjs",
+          "anchor": "symlink: target never shown",
+          "old": "// req: R-016",
+          "new": "// req: R-758"
+        }
+      ]
+    },
+    {
+      "origin": "R-026",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-026",
+          "text": "IF the store is unusable THEN the remedy shall name the object that is actually wrong and the fix to do first, never /trust alone.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c store owned by another user: label names the store and the repair, never /trust alone",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c store owned by another user: reason named",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c malformed store: pi's /trust path throws (getEntry) and cannot repair it (setMany)",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: label is its own paragraph right before \"governing:\"",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: trustRecord problem === ${problem}, store === the active store"
+          ],
+          "assertion": "labelledOnce(t) && repairRemedy(t, w, \"owned by another user\") && t.includes(HEAD+paragraph+LABEL(...)) — the remedy names the store/object and the problem and is never the bare /trust-alone text; the malformed-store case shows pi's OWN /trust (getEntry/setMany) also throws, so '/trust alone' would not work there either",
+          "note": "re-judged against the trimmed clause 1; all 5 pre-existing cites genuinely still pin it"
+        },
+        {
+          "id": "R-759",
+          "text": "IF the store is unusable THEN the remedy shall never name a store that does not exist.",
+          "status": "untested",
+          "cites": [],
+          "note": "every 'unusable store' fixture in objective-golden.test.mjs (malformed JSON, array, oversized, mode 000, FIFO, owned-by-another-user, lock-obstructed) is a store that DOES exist in some bad shape; no fixture exercises a genuinely NONEXISTENT store path, so nothing pins this clause"
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-027",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-027",
+          "text": "IF the store lock path is obstructed or holds a fresh or future-dated lock THEN the folder shall be labelled.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::T17 ${k}: pi left the lock in place",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T17 WHY (${k}, ${rec ? \"affirmative\" : \"no\"} record): pi's get() AND /trust's set() throw ELOCKED",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: ${want ? \"LABELLED\" : \"not labelled\"}"
+          ],
+          "assertion": "the shared provenance() check want?labelledOnce(t):unlabelled(t), invoked with want=true and problem:'lock path obstructed'/'store locked' for every obstructed/fresh/future-dated lock fixture — breaks if those scenarios stopped being labelled"
+        },
+        {
+          "id": "R-760",
+          "text": "IF the store lock path is obstructed or holds a fresh or future-dated lock THEN the remedy shall never tell the owner to delete or move the lock.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::T17 ${k}: remedy never tells the owner to delete or move the lock"
+          ],
+          "assertion": "!/move it aside|delete|remove (it|the lock|\\S+\\.lock) first/.test(the 'To clear this label:' line) && t.includes(\"do not remove it yourself\")"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/objective-golden.test.mjs",
+          "anchor": "remedy never tells the owner to delete or move the lock",
+          "old": "// req: R-027",
+          "new": "// req: R-760"
+        }
+      ]
+    },
+    {
+      "origin": "R-032",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-032",
+          "text": "The trust check shall be pure filesystem code shared by both runtimes.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/objective-golden.test.mjs::${label}: BYTE-IDENTICAL hook vs pi",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T12 ${form}: store() is the override",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T12 pi's /trust wrote the ACTIVE store",
+            "packages/nana-pack/tests/objective-golden.test.mjs::T2c ${label}: ${want ? \"LABELLED\" : \"not labelled\"}"
+          ],
+          "assertion": "hookText === piText across every golden fixture — a purely filesystem-derived computation producing byte-identical output from both the Claude Code hook and the pi extension",
+          "note": "re-judged against the trimmed clause 1; all 4 pre-existing cites genuinely still pin it"
+        },
+        {
+          "id": "R-761",
+          "text": "The trust check shall never consult pi's live isProjectTrusted() or pi's auto-trust.",
+          "status": "untested",
+          "cites": [],
+          "note": "no fixture mutates the code to CALL isProjectTrusted()/auto-trust and shows the result is unaffected or rejected; the existing cites show the check passes WITHOUT calling piMod in its primary path, but that is not a mutation-sensitive proof of non-consultation (piMod is used separately, only for the R-024 parity check)"
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-036",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-036",
+          "text": "WHEN interactive, Block shall be the first and default dialog choice.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::interactive: Block is the first (default) choice"
+          ],
+          "assertion": "dialogs[0]?.o?.[0] === \"Block\" && dialogs[0]?.o?.includes(\"Allow once\")"
+        },
+        {
+          "id": "R-762",
+          "text": "WHEN interactive, Allow once shall allow exactly that one call.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::interactive: Allow once allows that call",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::interactive: the SAME command asks again and Block blocks"
+          ],
+          "assertion": "(await run(\"rm -rf build\")) === \"ALLOW\" the first time, then the SAME command asks again (dialogs.length === 2) rather than staying allowed — proves the exemption covers exactly the one call"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "interactive: Allow once allows that call",
+          "old": "// req: R-036",
+          "new": "// req: R-762"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "interactive: the SAME command asks again and Block blocks",
+          "old": "// req: R-036",
+          "new": "// req: R-762"
+        }
+      ]
+    },
+    {
+      "origin": "R-038",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-038",
+          "text": "The gate shall inspect only bash and powershell command strings and edit/write target paths.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::powershell tool is gated the same",
+            "packages/nana-pack/tests/gate-policy-paths.test.mjs::${t} ${p} is gated"
+          ],
+          "assertion": "(await run(\"ri -r -fo C:\\\\x\", \"powershell\")) === \"BLOCK\"; and (await decide(t, p)) === \"BLOCK\" for edit/write over every protected path"
+        },
+        {
+          "id": "R-763",
+          "text": "Reads, custom tools and extension commands shall pass untouched.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-gate-fallback.test.mjs::b: tools outside the gate's scope untouched (read)",
+            "packages/nana-pack/tests/gate-status.test.mjs::a: an uninspected tool returns normally"
+          ],
+          "assertion": "out.read === null (untouched by the gate's own fallback machinery); other === undefined for an uninspected tool call, which also published no status"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-gate-fallback.test.mjs",
+          "anchor": "b: tools outside the gate's scope untouched (read)",
+          "old": "// req: R-038",
+          "new": "// req: R-763"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-status.test.mjs",
+          "anchor": "a: an uninspected tool returns normally",
+          "old": "// req: R-038",
+          "new": "// req: R-763"
+        }
+      ]
+    },
+    {
+      "origin": "R-039",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-039",
+          "text": "The documented built-in dangerous command forms shall be blocked.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::built-in BLOCK: ${JSON.stringify(c)}",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::L2 BLOCK: ${JSON.stringify(c)}"
+          ],
+          "assertion": "(await run(c)) === \"BLOCK\" for every case in BUILTINS and L2_BLOCK"
+        },
+        {
+          "id": "R-764",
+          "text": "Benign commands that merely mention one shall be allowed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::ALLOW: ${JSON.stringify(c)}"
+          ],
+          "assertion": "(await run(c)) === \"ALLOW\" for every case in ALLOW (commands that mention a dangerous form without being one)"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`",
+          "old": "// req: R-039",
+          "new": "// req: R-764"
+        }
+      ]
+    },
+    {
+      "origin": "R-043",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-043",
+          "text": "IF an allow pattern matches the empty string THEN it shall be rejected at load with a named warning and a config_invalid line.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-survives-mutation.test.mjs::6: warning names the empty-matching pattern",
+            "packages/nana-pack/tests/gate-survives-mutation.test.mjs::6: journal config_invalid for it"
+          ],
+          "assertion": "g.notes.some(m => m.includes('\"^\"') && m.includes(\"empty string\")); journal().some(e => e.event===\"config_invalid\" && String(e.problem).includes('\".*\"'))"
+        },
+        {
+          "id": "R-765",
+          "text": "IF an allow pattern matches the empty string THEN it shall exempt nothing.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-survives-mutation.test.mjs::5: after reload .* / ^ still exempt nothing"
+          ],
+          "assertion": "(await g.bash(\"rm -rf dist\")) === \"BLOCK\" with the empty-matching patterns .* and ^ still configured"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-survives-mutation.test.mjs",
+          "anchor": "5: after reload .* / ^ still exempt nothing",
+          "old": "// req: R-043",
+          "new": "// req: R-765"
+        }
+      ]
+    },
+    {
+      "origin": "R-045",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-045",
+          "text": "The floor shall cover a pipe into a shell or interpreter that reads its program from stdin.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::stdin floor BLOCK under receiver allow: ${JSON.stringify(c)}"
+          ],
+          "assertion": "(await run(c)) === \"BLOCK\" for curl-piped-to-stdin-interpreter commands, even under an allow pattern that would otherwise exempt the receiver"
+        },
+        {
+          "id": "R-766",
+          "text": "The floor shall not cover a pipe into a shell or interpreter given a script operand.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::no-stdin ALLOW under receiver allow: ${JSON.stringify(c)}",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}"
+          ],
+          "assertion": "(await run(c)) === \"ALLOW\" for commands giving the interpreter a script operand/flag instead of reading stdin"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "no-stdin ALLOW under receiver allow: ${JSON.stringify(c)}",
+          "old": "// req: R-045",
+          "new": "// req: R-766"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "ALLOW (not pipe-to-stdin-interpreter): ${JSON.stringify(c)}",
+          "old": "// req: R-045",
+          "new": "// req: R-766"
+        }
+      ]
+    },
+    {
+      "origin": "R-046",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-046",
+          "text": "Recursive rm on root, home or an ancestor of home shall be floor in any lexically equal spelling, also behind sudo, env, command, nice or time.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::sudo exemption does not cover sudo rm -rf / (floor)",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::floor gap BLOCK under matching allow: ${JSON.stringify(c)}"
+          ],
+          "assertion": "(await run(\"sudo rm -rf /\")) === \"BLOCK\" despite a matching sudo-exempting allow pattern; (await run(c)) === \"BLOCK\" for every lexical/wrapper variant in the floor-gap corpus, under a matching allow"
+        },
+        {
+          "id": "R-767",
+          "text": "rm -rf . shall not be floor.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::rm -rf . is gated",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::. is not floor: rm -rf . exempt under ^rm"
+          ],
+          "assertion": "(await run(\"rm -rf .\")) === \"BLOCK\" with no allow pattern (dangerous but not floor, the default-deny baseline), then === \"ALLOW\" once a ^rm allow pattern is configured — proving it is exemptable, i.e. not floor"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "rm -rf . is gated",
+          "old": "// req: R-046",
+          "new": "// req: R-767"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "is not floor: rm -rf . exempt under ^rm",
+          "old": "// req: R-046",
+          "new": "// req: R-767"
+        }
+      ]
+    },
+    {
+      "origin": "R-047",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-047",
+          "text": "A command over 64 KB shall get no exception.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::subject cap: allow applies at 64 KB",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::subject cap: a longer command gets no exception"
+          ],
+          "assertion": "under a matching allow pattern, a command just UNDER the 64 KB cap still ALLOWs, while the SAME pattern over a command AT/OVER the cap BLOCKs — the exception stops applying exactly at the cap"
+        },
+        {
+          "id": "R-768",
+          "text": "A command over 64 KB shall still be checked.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::benign 4 MB command ALLOWs"
+          ],
+          "assertion": "(await run(`echo ${\"x\".repeat(4*1024*1024)}`)) === \"ALLOW\" — a 4 MB benign command is evaluated (not skipped) and correctly found benign"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "benign 4 MB command ALLOWs",
+          "old": "// req: R-047",
+          "new": "// req: R-768"
+        }
+      ]
+    },
+    {
+      "origin": "R-048",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-048",
+          "text": "At most 200 entries per source list per load shall be considered.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::allow cap: entry 201 is not considered, even after an earlier rejection"
+          ],
+          "assertion": "(await run(\"rm -rf build\")) === \"BLOCK\" where the 201st allowPatterns entry would have exempted it"
+        },
+        {
+          "id": "R-769",
+          "text": "Excess allowPatterns shall be dropped with a config_invalid line naming them, without stopping the gate.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::allow cap: config_invalid names the entries not considered",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::allow cap: the gate is not stopped"
+          ],
+          "assertion": "lines().some(e => e.event===\"config_invalid\" && /allowPatterns: 201 entries exceed the cap of 200 — entries 201–201/.test(e.problem)); (await run(\"ls\")) === \"ALLOW\" right after (gate keeps functioning)"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "config_invalid names the entries not considered",
+          "old": "// req: R-048 R-082",
+          "new": "// req: R-082 R-769"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-corpus.test.mjs",
+          "anchor": "allow cap: the gate is not stopped",
+          "old": "// req: R-048",
+          "new": "// req: R-769"
+        }
+      ]
+    },
+    {
+      "origin": "R-050",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-050",
+          "text": "A catastrophic owner-configured extraPattern shall be kept and enforced, not policed by the pack.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-corpus.test.mjs::catastrophic extraPattern is kept and enforced"
+          ],
+          "assertion": "(await run(\"echo aaaa\")) === \"BLOCK\" with extraPatterns: [\"(a+)+$\"] configured as-is — the one test demonstrates both halves of this sentence at once (kept+enforced IS not-policed here), so it is merged rather than split"
+        }
+      ],
+      "markerEdits": [],
+      "merged": "\"shall be kept and enforced\" and \"shall not police the owner's own regex\" are the same observable promise stated from two directions (the one existing test — a catastrophic regex enforced as written — proves both at once); splitting would leave the second clause 'untested' on the exact same evidence the first already claims, the sibling-cite shape the lane is built to avoid"
+    },
+    {
+      "origin": "R-053",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-053",
+          "text": "Exactly the four balanced spellings of PI_CODING_AGENT_DIR directly followed by /nana-pack.json or /trust.json shall be caught, case-insensitively.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-var-spellings.test.mjs::blocks ${v}${sep}${file}",
+            "packages/nana-pack/tests/agent-dir-var-spellings.test.mjs::blocks case variant ${v}/nana-pack.json"
+          ],
+          "assertion": "hit(`${v}${sep}${file}`) !== null for all 4 spellings × 2 files × 2 separators, and for 4 case variants"
+        },
+        {
+          "id": "R-770",
+          "text": "A malformed spelling of PI_CODING_AGENT_DIR directly followed by /nana-pack.json or /trust.json shall not match.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-var-spellings.test.mjs::malformed ${w} is not matched by the variable rule"
+          ],
+          "assertion": "hit(w) === null for every unbalanced/mixed spelling in the malformed corpus"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/agent-dir-var-spellings.test.mjs",
+          "anchor": "malformed ${w} is not matched by the variable rule",
+          "old": "// req: R-053",
+          "new": "// req: R-770"
+        }
+      ]
+    },
+    {
+      "origin": "R-056",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-056",
+          "text": "A path the shell computes at run time shall not be caught.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "R-771",
+          "text": "That residual shall be closed only by the sandbox layer.",
+          "status": "untested",
+          "cites": []
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-063",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-063",
+          "text": "WHEN the user gate block breaks mid-session, the last valid gate policy loaded in this process shall stay enforced.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-gate-fallback.test.mjs::a: corrupted mid-session — terraform destroy STILL blocked",
+            "packages/nana-pack/tests/config-gate-fallback.test.mjs::a: corrupted mid-session — benign command still allowed"
+          ],
+          "assertion": "after corrupting the gate config mid-session, a previously-denied command (blocked(await bash(call,\"terraform destroy\"))) stays blocked AND a previously-allowed benign command ((await bash(call,\"ls -la\")) === undefined) stays allowed"
+        },
+        {
+          "id": "R-772",
+          "text": "WHEN the user gate block breaks mid-session, the fallback shall be journaled config_gate_fallback.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-gate-fallback.test.mjs::a: the fallback is journaled (config_gate_fallback)"
+          ],
+          "assertion": "lines.some(l => l.event===\"config_gate_fallback\" && l.file===A.cfg)"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-gate-fallback.test.mjs",
+          "anchor": "the fallback is journaled (config_gate_fallback)",
+          "old": "// req: R-063",
+          "new": "// req: R-772"
+        }
+      ]
+    },
+    {
+      "origin": "R-067",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-067",
+          "text": "WHEN a nana-trusted project gate block is malformed, the same last-valid and stop rule shall apply.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-project-gate-fallback.test.mjs::1: corrupted + fresh process — terraform destroy still BLOCKED",
+            "packages/nana-pack/tests/config-project-gate-fallback.test.mjs::1: corrupted mid-session — last valid project deny still enforced"
+          ],
+          "assertion": "blocked(mid.tf0) && blocked(mid.tf) && !PSTOP(P.file).test(mid.tf?.reason ?? \"\") (mid-session, last-valid rule); blocked(after.tf) at a fresh corrupted process (the stop rule)"
+        },
+        {
+          "id": "R-773",
+          "text": "WHEN a nana-trusted project gate block is malformed, the project's denies or a cancelled user exception shall never be silently restored.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-project-gate-fallback.test.mjs::2: corrupted + fresh process — user exception does NOT resurrect (BLOCKED)"
+          ],
+          "assertion": "blocked(after.rm) === true at a fresh corrupted process for a command a cancelled user exception had previously covered — it does not come back"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-project-gate-fallback.test.mjs",
+          "anchor": "user exception does NOT resurrect (BLOCKED)",
+          "old": "// req: R-067",
+          "new": "// req: R-773"
+        }
+      ]
+    },
+    {
+      "origin": "R-070",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-070",
+          "text": "A null or all-null gate array shall never throw.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-config-robustness.test.mjs::a: null allowPatterns does not throw",
+            "packages/nana-pack/tests/gate-config-robustness.test.mjs::b: all-null gate arrays do not throw"
+          ],
+          "assertion": "!threw after calling with null allowPatterns / all gate arrays null"
+        },
+        {
+          "id": "R-774",
+          "text": "A null or all-null gate array shall not disable the built-in denies.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-config-robustness.test.mjs::b: built-in dangerous pattern still blocks headless"
+          ],
+          "assertion": "res?.block === true for a dangerous command under all-null gate arrays"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-config-robustness.test.mjs",
+          "anchor": "built-in dangerous pattern still blocks headless",
+          "old": "// req: R-070",
+          "new": "// req: R-774"
+        }
+      ]
+    },
+    {
+      "origin": "R-071",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-071",
+          "text": "WHEN a UI is attached, the gate shall publish a status under key nana-gate counting inspected calls and the ones it stopped on.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-status.test.mjs::a: status key is nana-gate",
+            "packages/nana-pack/tests/gate-status.test.mjs::a: after 2 inspected calls"
+          ],
+          "assertion": "last(statuses)?.key === \"nana-gate\"; last(statuses)?.text === \"[dim]gate ✓ 2 checked · 0 gated\" after 2 inspected calls"
+        },
+        {
+          "id": "R-775",
+          "text": "WHEN a UI is attached, the gate shall not count uninspected tools.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-status.test.mjs::a: an uninspected tool is not counted"
+          ],
+          "assertion": "last(statuses)?.text === \"[dim]gate ✓ 4 checked · 2 gated\" unchanged after an uninspected tool call"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-status.test.mjs",
+          "anchor": "an uninspected tool is not counted",
+          "old": "// req: R-071",
+          "new": "// req: R-775"
+        }
+      ]
+    },
+    {
+      "origin": "R-072",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-072",
+          "text": "IF setStatus throws THEN the handler shall not throw.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-status.test.mjs::d: a throwing setStatus does not throw out of the handler"
+          ],
+          "assertion": "!threw on the benign-edit path when ctx.ui.setStatus itself throws"
+        },
+        {
+          "id": "R-776",
+          "text": "IF setStatus throws THEN every decision shall be unchanged.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/gate-status.test.mjs::d: the benign edit is still allowed",
+            "packages/nana-pack/tests/gate-status.test.mjs::d: the dangerous command is still blocked"
+          ],
+          "assertion": "benign === undefined (still allowed) and blocked?.block === true (still blocked) despite setStatus throwing on both paths"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/gate-status.test.mjs",
+          "anchor": "d: the benign edit is still allowed",
+          "old": "// req: R-072",
+          "new": "// req: R-776"
+        },
+        {
+          "file": "packages/nana-pack/tests/gate-status.test.mjs",
+          "anchor": "d: the dangerous command is still blocked",
+          "old": "// req: R-072",
+          "new": "// req: R-776"
+        }
+      ]
+    },
+    {
+      "origin": "R-073",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-073",
+          "text": "The gate shall be advisory-by-load-path.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "R-777",
+          "text": "The gate shall never be claimed un-bypassable; unattended enforcement stays at the sandbox layer.",
+          "status": "untested",
+          "cites": [],
+          "note": "kept the trailing non-shall sentence attached — it elaborates the 'never claimed un-bypassable' clause, not a third promise"
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-075",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-075",
+          "text": "A recorded decline, or a record for a subfolder only, shall not grant trust.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-trust.test.mjs::owner-recorded NO → ignored",
+            "packages/nana-pack/tests/config-trust.test.mjs::pi asked but answered no → ignored"
+          ],
+          "assertion": "ignored(loadConfig(...)) when the record is a decline (false)"
+        },
+        {
+          "id": "R-778",
+          "text": "A record on the nearest recorded ancestor shall grant trust.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-trust.test.mjs::owner trusted the PARENT folder (pi's nearest-entry rule) → honored"
+          ],
+          "assertion": "honored(loadConfig({ cwd: child, isProjectTrusted: () => true })) where only the PARENT folder carries a recorded true and the child itself has none"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-trust.test.mjs",
+          "anchor": "owner trusted the PARENT folder (pi's nearest-entry rule) → honored",
+          "old": "// req: R-075",
+          "new": "// req: R-778"
+        }
+      ]
+    },
+    {
+      "origin": "R-078",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-078",
+          "text": "Trust evidence shall be resolved once per session, shared across module copies.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-trust.test.mjs::cache: next session_start re-resolves",
+            "packages/nana-pack/tests/config-trust.test.mjs::cross-instance: the other copy sees evidence primed by this one (shared, not per-copy)"
+          ],
+          "assertion": "honored(loadConfig(...)) only AFTER a fresh primeNanaTrust/session_start re-resolves; a second module copy sees the SAME primed evidence (shared cache, not per-instance)"
+        },
+        {
+          "id": "R-779",
+          "text": "Trust evidence shall not be granted by a .pi/settings.json created mid-session.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-trust.test.mjs::cache: .pi/settings.json created mid-session does not grant trust"
+          ],
+          "assertion": "ignored(loadConfig({ cwd: late, isProjectTrusted: () => true })) immediately after writing .pi/settings.json, with no new session_start in between"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-trust.test.mjs",
+          "anchor": ".pi/settings.json created mid-session does not grant trust",
+          "old": "// req: R-078",
+          "new": "// req: R-779"
+        }
+      ]
+    },
+    {
+      "origin": "R-082",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-082",
+          "text": "Each config problem shall be reported once per session as a warning and a config_invalid journal line naming the file, written even when journal.enabled is false.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: exactly ${expectLines} config_invalid journal line(s) naming the file",
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::UI: exactly one warning for the problem in a session",
+            "packages/nana-pack/tests/gate-corpus.test.mjs::allow cap: config_invalid names the entries not considered"
+          ],
+          "assertion": "invalid.length === expectLines (journal line present, parametrised over journal.enabled true/false); mine().length === 1 && mine()[0].t === \"warning\" within one session"
+        },
+        {
+          "id": "R-780",
+          "text": "A new session shall warn again about a config problem already reported in a prior session.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::UI: a new session warns once more"
+          ],
+          "assertion": "mine().length === 2 after a second session_start with the same still-malformed config"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
+          "anchor": "a new session warns once more",
+          "old": "// req: R-082",
+          "new": "// req: R-780"
+        }
+      ]
+    },
+    {
+      "origin": "R-083",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-083",
+          "text": "No handler shall throw on a malformed config.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: no handler throws"
+          ],
+          "assertion": "errors.length === 0"
+        },
+        {
+          "id": "R-781",
+          "text": "Every other extension shall keep working when a config is malformed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: gate still blocks rm -rf /tmp/x headless",
+            "packages/nana-pack/tests/config-handlers-malformed.test.mjs::${label}: objective text or OBJECTIVE UNAVAILABLE marker injected"
+          ],
+          "assertion": "gateOut.some(r => r?.block === true) and prompts.includes(\"OBJ: ship the thing\")||prompts.includes(\"OBJECTIVE UNAVAILABLE\") — the gate and the objective extension both still function despite one malformed handler"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
+          "anchor": "gate still blocks rm -rf /tmp/x headless",
+          "old": "// req: R-083",
+          "new": "// req: R-781"
+        },
+        {
+          "file": "packages/nana-pack/tests/config-handlers-malformed.test.mjs",
+          "anchor": "objective text or OBJECTIVE UNAVAILABLE marker injected",
+          "old": "// req: R-083",
+          "new": "// req: R-781"
+        }
+      ]
+    },
+    {
+      "origin": "R-084",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-084",
+          "text": "WHEN an edit or write succeeds, the pack shall run every postEdit.commands entry whose match regex hits the edited path.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::a: status text counts the checks and names the file",
+            "packages/nana-pack/tests/receipt-binding.test.mjs::a: status checks_passed"
+          ],
+          "assertion": "last(statuses)?.text === \"[dim]post-edit ✓ 2 checks · foo.txt\" (both matching commands ran); r1?.status === \"checks_passed\""
+        },
+        {
+          "id": "R-782",
+          "text": "WHEN no postEdit.commands entry's match regex hits the edited path, no status shall be set.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::e: a run where no command matched sets no status"
+          ],
+          "assertion": "statuses.length === 0"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-status.test.mjs",
+          "anchor": "e: a run where no command matched sets no status",
+          "old": "// req: R-084",
+          "new": "// req: R-782"
+        }
+      ]
+    },
+    {
+      "origin": "R-089",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-089",
+          "text": "The edited path shall be resolved the way pi resolves tool paths.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: recorded command carries the cwd-resolved absolute path"
+          ],
+          "assertion": "(r?.command ?? \"\").includes(abs) — the cwd-resolved absolute path (pi's own resolution) is what the command actually ran against"
+        },
+        {
+          "id": "R-783",
+          "text": "That one resolution shall feed the command, the digest and the queue key.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: relative path check passed (the checker saw the file)",
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::d: receipt input still bound repo-relative"
+          ],
+          "assertion": "r?.status === \"checks_passed\" (the checker, fed that one resolution, saw the real file) AND r?.inputs?.[0]?.path === path.join(\"sub\", \"rel.txt\") (the same resolution also feeds the receipt's digest input, bound repo-relative)"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "d: relative path check passed (the checker saw the file)",
+          "old": "// req: R-089",
+          "new": "// req: R-783"
+        },
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "d: receipt input still bound repo-relative",
+          "old": "// req: R-089",
+          "new": "// req: R-783"
+        }
+      ]
+    },
+    {
+      "origin": "R-091",
+      "originalShallCount": 3,
+      "clauses": [
+        {
+          "id": "R-091",
+          "text": "IF the queue exists but the lock cannot be taken THEN the checker shall not run.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-file-queue.test.mjs::b: unlockable file does not silently run the checker"
+          ],
+          "assertion": "readOrder() === before — the checker's run-order log is unchanged; it never ran"
+        },
+        {
+          "id": "R-784",
+          "text": "IF the queue exists but the lock cannot be taken THEN the receipt shall record not_run.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-file-queue.test.mjs::b: receipt records not_run (never passed)"
+          ],
+          "assertion": "r?.status === \"not_run\""
+        },
+        {
+          "id": "R-785",
+          "text": "IF the queue exists but the lock cannot be taken THEN the model shall be told it did not run.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-file-queue.test.mjs::b: refusal is fed back to the model"
+          ],
+          "assertion": "text.includes(\"did not run\") && text.includes(\"could not lock\")"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-file-queue.test.mjs",
+          "anchor": "b: receipt records not_run (never passed)",
+          "old": "// req: R-091",
+          "new": "// req: R-784"
+        },
+        {
+          "file": "packages/nana-pack/tests/post-edit-file-queue.test.mjs",
+          "anchor": "b: refusal is fed back to the model",
+          "old": "// req: R-091",
+          "new": "// req: R-785"
+        }
+      ]
+    },
+    {
+      "origin": "R-092",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-092",
+          "text": "IF the queue module cannot be resolved THEN the check shall still run unserialized.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — checker received the real file"
+          ],
+          "assertion": "r?.status === \"checks_passed\" — this entire harness runs outside pi (comment: \"running outside pi means no file-mutation queue\"), so every one of these hostile-path checks completing to checks_passed IS the queue-module-unavailable scenario, proving the check still runs",
+          "note": "re-judged against the trimmed clause 1; the pre-existing cite (shared with R-103) genuinely still pins it once the surrounding comment is read"
+        },
+        {
+          "id": "R-786",
+          "text": "IF the queue module cannot be resolved THEN the absence shall be journaled, never swallowed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::j: an unavailable file-mutation queue is journaled, not swallowed"
+          ],
+          "assertion": "reports.length === 1 (exactly one postedit_file_queue_unavailable journal entry — reported once per load, not swallowed)"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "j: an unavailable file-mutation queue is journaled, not swallowed",
+          "old": "// req: R-092",
+          "new": "// req: R-786"
+        }
+      ]
+    },
+    {
+      "origin": "R-093",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-093",
+          "text": "WHEN a checker ignores SIGTERM, its process group shall get SIGTERM then SIGKILL after a grace.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::a: the checker is gone, not just abandoned"
+          ],
+          "assertion": "left === \"\" (survivors(marker) empty) — the process group was actually killed (SIGKILL after the grace), not merely sent a SIGTERM it could ignore"
+        },
+        {
+          "id": "R-787",
+          "text": "WHEN a checker ignores SIGTERM, the run shall settle within deadline plus grace with the checker gone.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::a: SIGTERM-ignoring checker does not hang the handler",
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::a: resolved within deadline + kill grace (${ms}ms)"
+          ],
+          "assertion": "!hung && ms < 6000"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "a: SIGTERM-ignoring checker does not hang the handler",
+          "old": "// req: R-093",
+          "new": "// req: R-787"
+        },
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "a: resolved within deadline + kill grace (${ms}ms)",
+          "old": "// req: R-093",
+          "new": "// req: R-787"
+        }
+      ]
+    },
+    {
+      "origin": "R-096",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-096",
+          "text": "WHEN a turn is aborted, the run shall be recorded not_run and the checker killed, not orphaned.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::c: aborted check recorded not_run (never passed)",
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::c: the aborted checker is killed, not orphaned"
+          ],
+          "assertion": "r?.status === \"not_run\" && left === \"\" (survivors empty — killed, not orphaned)",
+          "note": "the middle fragment ('the checker killed not orphaned') carries no literal shall — kept attached to clause 1 as an elliptical continuation of 'the run shall be [recorded/killed]', inventing no new shall token, per the sentence rule's 'rewritten only enough to stand alone'"
+        },
+        {
+          "id": "R-788",
+          "text": "WHEN a turn is aborted, the chip shall say skipped.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::d: aborted turn chip says skipped (aborted)"
+          ],
+          "assertion": "last(statuses)?.text === \"[warning]post-edit – skipped (aborted) · abort.txt\""
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-status.test.mjs",
+          "anchor": "d: aborted turn chip says skipped (aborted)",
+          "old": "// req: R-096",
+          "new": "// req: R-788"
+        }
+      ]
+    },
+    {
+      "origin": "R-097",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-097",
+          "text": "WHERE timeoutMs is 0 there shall be no deadline.",
+          "status": "untested",
+          "cites": [],
+          "note": "dropped from the origin's prior 'implemented'; the one existing test exits the checker instantly (`process.exit(0)`), so it cannot distinguish 'no deadline' from 'a deadline long enough not to matter here' — no fixture runs a long-lived check under timeoutMs:0 to prove the absence of a cap"
+        },
+        {
+          "id": "R-789",
+          "text": "WHERE timeoutMs is 0, a passing check shall be checks_passed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/receipt-binding.test.mjs::h: timeoutMs:0 passing check is checks_passed (not timeout)"
+          ],
+          "assertion": "r?.status === \"checks_passed\" (never \"timeout\") — guards exactly the defect the test's own comment names: treating timeoutMs:0 as an instant 0ms deadline"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/receipt-binding.test.mjs",
+          "anchor": "h: timeoutMs:0 passing check is checks_passed (not timeout)",
+          "old": "// req: R-097",
+          "new": "// req: R-789"
+        }
+      ]
+    },
+    {
+      "origin": "R-099",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-099",
+          "text": "The post-edit status shall use key nana-post-edit.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::a: status key is nana-post-edit",
+            "packages/nana-pack/tests/post-edit-status.test.mjs::c: timeout chip says timeout"
+          ],
+          "assertion": "last(statuses)?.key === \"nana-post-edit\" on the happy path; the timeout chip is the same status key under a different scenario"
+        },
+        {
+          "id": "R-790",
+          "text": "A failure chip shall show the failed-over-total count in the error colour.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::b: failure chip is ✗ n/m in the error color"
+          ],
+          "assertion": "last(statuses)?.text === \"[error]post-edit ✗ 1/2 · bar.txt\""
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-status.test.mjs",
+          "anchor": "b: failure chip is ✗ n/m in the error color",
+          "old": "// req: R-099",
+          "new": "// req: R-790"
+        }
+      ]
+    },
+    {
+      "origin": "R-100",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-100",
+          "text": "A headless run shall not throw.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::f: headless run does not throw (no ctx.ui to call)"
+          ],
+          "assertion": "!threw with a ctx carrying no ui at all"
+        },
+        {
+          "id": "R-791",
+          "text": "A throwing setStatus shall not escape the handler.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-status.test.mjs::g: a throwing setStatus does not throw out of the handler"
+          ],
+          "assertion": "!threw when ctx.ui.setStatus itself throws"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-status.test.mjs",
+          "anchor": "g: a throwing setStatus does not throw out of the handler",
+          "old": "// req: R-100",
+          "new": "// req: R-791"
+        }
+      ]
+    },
+    {
+      "origin": "R-103",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-103",
+          "text": "The checker shall receive the real file, even under hostile path shapes.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — checker received the real file"
+          ],
+          "assertion": "r?.status === \"checks_passed\" across tilde-expansion, leading-@-stripped and Unicode-space-folded path shapes (shared with R-092)",
+          "note": "re-judged against the trimmed clause 1; the pre-existing cite genuinely still pins it, unchanged"
+        },
+        {
+          "id": "R-792",
+          "text": "The receipt shall bind the real file, even under hostile path shapes.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — receipt binds the real file"
+          ],
+          "assertion": "r?.inputs?.[0]?.path === real across the same hostile-path corpus"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/post-edit-hardening.test.mjs",
+          "anchor": "— receipt binds the real file",
+          "old": "// req: R-103",
+          "new": "// req: R-792"
+        }
+      ]
+    },
+    {
+      "origin": "R-104",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-104",
+          "text": "Receipt handling shall never throw on a non-string receipts.dir or a malformed command entry.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/receipt-binding.test.mjs::g: non-string receipts.dir does not throw",
+            "packages/nana-pack/tests/receipt-binding.test.mjs::i: malformed command (missing run / negative timeoutMs) does not throw"
+          ],
+          "assertion": "!threw"
+        },
+        {
+          "id": "R-793",
+          "text": "A malformed entry shall be skipped without skipping the valid ones.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/receipt-binding.test.mjs::i: the valid check still ran (malformed entries skipped, not the rest)"
+          ],
+          "assertion": "ret.content.at(-1).text.includes(\"check(s) failed\") reporting exactly ONE failure — the two malformed entries produced no feedback of their own, so the valid check ran and the malformed ones did not block it"
+        }
+      ],
+      "markerEdits": [
+        {
+          "file": "packages/nana-pack/tests/receipt-binding.test.mjs",
+          "anchor": "i: the valid check still ran (malformed entries skipped, not the rest)",
+          "old": "// req: R-104",
+          "new": "// req: R-793"
+        }
+      ]
+    },
+    {
+      "origin": "R-106",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-106",
+          "text": "WHERE receipts.enabled is false, no receipt shall be written.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "R-794",
+          "text": "receipts.dir shall relocate the store.",
+          "status": "untested",
+          "cites": []
+        }
+      ],
+      "markerEdits": []
+    }
+  ],
+  "merged": [
+    {
+      "origin": "R-050",
+      "reason": "\"shall be kept and enforced\" and \"shall not police the owner's own regex\" are the same observable promise stated from two directions (the one existing test — a catastrophic regex enforced as written — proves both at once); splitting would leave the second clause 'untested' on the exact same evidence the first already claims, the sibling-cite shape the lane is built to avoid"
+    }
+  ],
+  "rowsAddedThisBatch": [
+    "R-758",
+    "R-759",
+    "R-760",
+    "R-761",
+    "R-762",
+    "R-763",
+    "R-764",
+    "R-765",
+    "R-766",
+    "R-767",
+    "R-768",
+    "R-769",
+    "R-770",
+    "R-771",
+    "R-772",
+    "R-773",
+    "R-774",
+    "R-775",
+    "R-776",
+    "R-777",
+    "R-778",
+    "R-779",
+    "R-780",
+    "R-781",
+    "R-782",
+    "R-783",
+    "R-784",
+    "R-785",
+    "R-786",
+    "R-787",
+    "R-788",
+    "R-789",
+    "R-790",
+    "R-791",
+    "R-792",
+    "R-793",
+    "R-794"
+  ],
+  "allowanceBefore": 194,
+  "allowanceAfter": 157,
+  "measuredOffFormBeforeBatch": 194,
+  "measuredOffFormAfterBatch": 157
+}
