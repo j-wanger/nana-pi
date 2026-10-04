@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact -- <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 169 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 172 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1487,7 +1487,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/project-key.mjs`
 
 - **purpose** — Reproduce Claude Code's ~/.claude/projects/<key> directory name for a project path and report whether that project's memory dir carries the `shared` symlink.
-- **inputs** — a project's absolute path; the layout's projectsDir and sharedMemoryDir; the filesystem (lstat + readlink of <projectsDir>/<key>/memory/shared)
+- **inputs** — a project's absolute path; the layout's projectsDir and sharedMemoryDir; the filesystem (lstat + readlink of <projectsDir>/<key>/memory/shared); sharedLinkState's 4th arg optionally injects readlinkSync (a test seam — production callers never pass it)
 - **outputs** — KEY_MAX (200); slug() and pathHash() strings; projectKey() (the slug, or 200 chars plus "-<base36 32-bit hash>"); projectMemoryDir() path; sharedLinkState() — "absent" | "not-a-symlink" | "linked" | "elsewhere"
 - **effects** — disk (lstat and readlink only, read-only)
 - **errors** — none — a missing or unreadable link reads as "absent"
@@ -1536,10 +1536,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/desk-service.test.mjs`
 
-- **purpose** — Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, and never bootstrapped from a test
-- **inputs** — lib/steps.mjs renderPlist, the plist template, bin/nana-setup.mjs, and a throwaway --home
+- **purpose** — Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, never bootstrapped from a test, and that a skipped plist write (a symlink in the way) makes zero launchctl calls
+- **inputs** — lib/steps.mjs renderPlist/stepDesk, the plist template, bin/nana-setup.mjs, a throwaway --home, and (for the caller-level section) a stubbed `launchctl` script placed first on PATH
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (throwaway home layouts and rendered plists), process (spawns the installer CLI; launchctl is never called)
+- **effects** — disk (throwaway home layouts, rendered plists and a stub launchctl script), process (spawns the installer CLI, and — only via the PATH-stubbed fake — `launchctl`; the REAL launchctl is never called)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
@@ -1554,12 +1554,32 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — —
 
+### `packages/nana-setup/tests/fsops.test.mjs`
+
+- **purpose** — Pins writeIfChanged's non-destructive contract: a symlink (live or dangling) in the way is left untouched and reported SKIPPED, with no read targeting the link or its destination and no write through it
+- **inputs** — lib/fsops.mjs writeIfChanged, throwaway scratch directories with real symlinks, and (for the no-read instrumentation) a global spy on fs.readFileSync installed via require('fs') + syncBuiltinESMExports()
+- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+- **effects** — disk (a throwaway scratch dir, files and symlinks, removed on exit); process-global (readFileSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — —
+
 ### `packages/nana-setup/tests/install.test.mjs`
 
 - **purpose** — Pins that `install` is idempotent, additive, and never destroys what the owner wrote by hand
 - **inputs** — bin/nana-setup.mjs, lib/settings.mjs, lib/steps.mjs, lib/doctor.mjs, and a throwaway --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — —
+
+### `packages/nana-setup/tests/paths.test.mjs`
+
+- **purpose** — Pins resolveLayout's isRealHome guard: false whenever ANY explicit override (--home, --claude-home, --pi-home) is in force, even when --home resolves to the same path as the real home directory
+- **inputs** — lib/paths.mjs resolveLayout, and os.homedir() (under the suite runner this is already a fresh per-file temp HOME, never the developer's real one — scripts/test.mjs scrubs it; resolveLayout itself touches no disk either way)
+- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+- **effects** — none (pure path arithmetic; nothing on disk is read or written)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
@@ -1620,6 +1640,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — lib/settings.mjs, lib/steps.mjs, bin/nana-setup.mjs, and settings fixtures under a throwaway --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts, settings files and lock files), process (spawns the installer CLI)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — —
+
+### `packages/nana-setup/tests/shared-link-state.test.mjs`
+
+- **purpose** — Pins sharedLinkState's no-error contract: a readlink failure on a confirmed symlink reads as "absent", never throws — proven both as a deterministic unit check and as a true base reproduction of the original race
+- **inputs** — lib/project-key.mjs sharedLinkState, a throwaway home, an injected readlinkSync failure (the seam sharedLinkState's 4th arg adds), and — for the true reproduction — a global spy on fs.lstatSync installed via require('fs') + syncBuiltinESMExports()
+- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+- **effects** — disk (a throwaway home, real project memory dirs and real symlinks, removed on exit); process-global (lstatSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —

@@ -570,6 +570,13 @@ export function stepDesk(layout, o) {
 	const w = writeIfChanged(layout.plistPath, contents, o);
 	const out = [{ label: "desk plist", ...w }];
 	if (o.dryRun) return out;
+	if (w.status === SKIPPED) {
+		// writeIfChanged refused a symlink or directory in the way (fsops.mjs R-379): there is
+		// no plist of ours to read, so no launchctl call can be trusted to target the right
+		// thing — print/bootout/bootstrap never run, and nothing already loaded is touched.
+		out.push({ label: "desk launchctl", status: SKIPPED, detail: "not touched (desk plist write was skipped)" });
+		return out;
+	}
 	if (!layout.isRealHome) {
 		out.push({ label: "desk launchctl", status: SKIPPED, detail: "not loaded (--home override in play)" });
 		return out;

@@ -3,7 +3,8 @@
  * @purpose Reproduce Claude Code's ~/.claude/projects/<key> directory name for a project path and
  *  report whether that project's memory dir carries the `shared` symlink.
  * @inputs a project's absolute path; the layout's projectsDir and sharedMemoryDir; the filesystem
- *  (lstat + readlink of <projectsDir>/<key>/memory/shared)
+ *  (lstat + readlink of <projectsDir>/<key>/memory/shared); sharedLinkState's 4th arg optionally
+ *  injects readlinkSync (a test seam — production callers never pass it)
  * @outputs KEY_MAX (200); slug() and pathHash() strings; projectKey() (the slug, or 200 chars plus
  *  "-<base36 32-bit hash>"); projectMemoryDir() path; sharedLinkState() — "absent" |
  *  "not-a-symlink" | "linked" | "elsewhere"
@@ -44,7 +45,7 @@ export function projectMemoryDir(projectsDir, projectPath) {
 }
 
 /** Does this project's memory dir carry the `shared` symlink the hook maintains? */
-export function sharedLinkState(projectsDir, projectPath, sharedMemoryDir) {
+export function sharedLinkState(projectsDir, projectPath, sharedMemoryDir, { readlinkSync = fs.readlinkSync } = {}) {
 	const link = path.join(projectMemoryDir(projectsDir, projectPath), "shared");
 	let st;
 	try {
@@ -53,6 +54,15 @@ export function sharedLinkState(projectsDir, projectPath, sharedMemoryDir) {
 		return "absent";
 	}
 	if (!st.isSymbolicLink()) return "not-a-symlink";
-	const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
+	let linkTarget;
+	try {
+		linkTarget = readlinkSync(link);
+	} catch {
+		// The link existed at lstat but can no longer be read — removed between the two calls,
+		// or unreadable for any other reason. Read it as "absent", the same as a missing link,
+		// rather than throwing past this module's no-error contract (line 11).
+		return "absent";
+	}
+	const target = path.resolve(path.dirname(link), linkTarget);
 	return target === path.resolve(sharedMemoryDir) ? "linked" : "elsewhere";
 }

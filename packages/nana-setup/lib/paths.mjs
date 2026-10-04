@@ -81,7 +81,7 @@ export function resolveLayout(opts = {}) {
 		plistPath: path.join(base, "Library", "LaunchAgents", `${DESK_LABEL}.plist`),
 		/** False whenever a --home/--claude-home/--pi-home override is in play: nothing that
 		 *  touches the live machine (launchctl, `pi install`) may run then. */
-		isRealHome: path.resolve(base) === path.resolve(os.homedir()) && !opts.claudeHome && !opts.piHome,
+		isRealHome: path.resolve(base) === path.resolve(os.homedir()) && !opts.home && !opts.claudeHome && !opts.piHome,
 	};
 }
 
