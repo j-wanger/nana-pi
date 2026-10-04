@@ -1536,10 +1536,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/desk-service.test.mjs`
 
-- **purpose** — Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, and never bootstrapped from a test
-- **inputs** — lib/steps.mjs renderPlist, the plist template, bin/nana-setup.mjs, and a throwaway --home
+- **purpose** — Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, never bootstrapped from a test, and that a skipped plist write (a symlink in the way) makes zero launchctl calls
+- **inputs** — lib/steps.mjs renderPlist/stepDesk, the plist template, bin/nana-setup.mjs, a throwaway --home, and (for the caller-level section) a stubbed `launchctl` script placed first on PATH
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (throwaway home layouts and rendered plists), process (spawns the installer CLI; launchctl is never called)
+- **effects** — disk (throwaway home layouts, rendered plists and a stub launchctl script), process (spawns the installer CLI, and — only via the PATH-stubbed fake — `launchctl`; the REAL launchctl is never called)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
@@ -1556,10 +1556,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/fsops.test.mjs`
 
-- **purpose** — Pins writeIfChanged's non-destructive contract: a symlink (live or dangling) in the way is left untouched and reported SKIPPED, never read or written through
-- **inputs** — lib/fsops.mjs writeIfChanged, and throwaway scratch directories with real symlinks
+- **purpose** — Pins writeIfChanged's non-destructive contract: a symlink (live or dangling) in the way is left untouched and reported SKIPPED, with no read targeting the link or its destination and no write through it
+- **inputs** — lib/fsops.mjs writeIfChanged, throwaway scratch directories with real symlinks, and (for the no-read instrumentation) a global spy on fs.readFileSync installed via require('fs') + syncBuiltinESMExports()
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (a throwaway scratch dir, files and symlinks, removed on exit)
+- **effects** — disk (a throwaway scratch dir, files and symlinks, removed on exit); process-global (readFileSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
@@ -1646,10 +1646,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/shared-link-state.test.mjs`
 
-- **purpose** — Pins sharedLinkState's no-error contract: a readlink failure on a confirmed symlink reads as "absent", never throws
-- **inputs** — lib/project-key.mjs sharedLinkState, a throwaway home, and an injected readlinkSync failure (the test seam sharedLinkState's 4th arg adds for exactly this)
+- **purpose** — Pins sharedLinkState's no-error contract: a readlink failure on a confirmed symlink reads as "absent", never throws — proven both as a deterministic unit check and as a true base reproduction of the original race
+- **inputs** — lib/project-key.mjs sharedLinkState, a throwaway home, an injected readlinkSync failure (the seam sharedLinkState's 4th arg adds), and — for the true reproduction — a global spy on fs.lstatSync installed via require('fs') + syncBuiltinESMExports()
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (a throwaway home, a real project memory dir and a real symlink, removed on exit)
+- **effects** — disk (a throwaway home, real project memory dirs and real symlinks, removed on exit); process-global (lstatSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —

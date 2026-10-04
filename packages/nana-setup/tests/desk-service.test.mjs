@@ -1,14 +1,19 @@
 /**
  * @module packages/nana-setup/tests/desk-service.test.mjs
- * @purpose Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, and never bootstrapped from a test
- * @inputs lib/steps.mjs renderPlist, the plist template, bin/nana-setup.mjs, and a throwaway --home
+ * @purpose Pins that the desk launchd service is opt-in, rendered from the template with REAL resolved values, never bootstrapped from a test, and that a skipped plist write (a symlink in the way) makes zero launchctl calls
+ * @inputs lib/steps.mjs renderPlist/stepDesk, the plist template, bin/nana-setup.mjs, a throwaway --home, and (for the caller-level section) a stubbed `launchctl` script placed first on PATH
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (throwaway home layouts and rendered plists), process (spawns the installer CLI; launchctl is never called)
+ * @effects disk (throwaway home layouts, rendered plists and a stub launchctl script), process (spawns the installer CLI, and — only via the PATH-stubbed fake — `launchctl`; the REAL launchctl is never called)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate: the desk launchd service is opt-in, rendered from the template with REAL resolved
 // values, and never loaded from a test. launchctl is only ever called when the install targets
 // the real home — every run here uses --home, so the service is written and not bootstrapped.
+//
+// The second section below calls stepDesk() directly with a hand-built layout (isRealHome:
+// true) and a FAKE `launchctl` placed first on PATH for the duration of the call, restored
+// immediately after — this is the only way to exercise the isRealHome branch (where launchctl
+// IS called) without ever touching the real machine's real launchctl.
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -17,7 +22,8 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { renderPlist } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { renderPlist, stepDesk, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { SKIPPED, UPDATED, CREATED } = await import(new URL("../lib/fsops.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -94,6 +100,99 @@ const again = run(["install", "--home", home, "--desk"]);
 check("--desk is idempotent", again.stdout.includes("nothing to do"));
 check("doctor sees the service", run(["doctor", "--home", home]).stdout.includes(plist));
 check("doctor still exits 0", run(["doctor", "--home", home]).status === 0);
+
+/* --- caller-level: a SKIPPED plist write must make zero launchctl calls (MUST 1, astra r1) --- */
+{
+	// A fake launchctl that logs every invocation and reports success for everything, so if
+	// stepDesk DID call it we would see the call land in the log, not infer silence from a crash.
+	const stubDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-launchctl-"));
+	tmps.push(stubDir);
+	const callLog = path.join(stubDir, "calls.log");
+	fs.writeFileSync(callLog, "");
+	const stubPath = path.join(stubDir, "launchctl");
+	fs.writeFileSync(stubPath, '#!/bin/bash\necho "$@" >> "' + callLog + '"\nexit 0\n');
+	fs.chmodSync(stubPath, 0o755);
+
+	const calls = () =>
+		fs
+			.readFileSync(callLog, "utf8")
+			.split("\n")
+			.filter(Boolean);
+	const withStubFirst = (fn) => {
+		const savedPath = process.env.PATH;
+		process.env.PATH = `${stubDir}:${savedPath}`;
+		try {
+			return fn();
+		} finally {
+			process.env.PATH = savedPath;
+		}
+	};
+
+	const baseLayout = (dir) => ({
+		base: dir,
+		piHome: path.join(dir, ".pi", "agent"),
+		deskLog: path.join(dir, ".pi", "agent", "desk.log"),
+		plistPath: path.join(dir, "Library", "LaunchAgents", "com.nana.pi-desk.plist"),
+		isRealHome: true, // forces the branch where launchctl WOULD be called — exactly what MUST 1 is about
+	});
+
+	/* a LIVE symlinked plist pointing outside the install's own tree */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-live-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		const victim = path.join(dir, "victim-plist.xml");
+		fs.writeFileSync(victim, "the owner's original plist content\n");
+		fs.symlinkSync(victim, layout.plistPath);
+		fs.writeFileSync(callLog, "");
+
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		// req: R-380
+		check("live symlink: desk plist is SKIPPED", out[0]?.status === SKIPPED, JSON.stringify(out));
+		// req: R-380
+		check("live symlink: desk launchctl is SKIPPED too, not reloaded/bootstrapped", out[1]?.status === SKIPPED, JSON.stringify(out));
+		// req: R-380
+		check("live symlink: ZERO launchctl calls were made", calls().length === 0, calls().join(" | "));
+		check("live symlink: the victim's content is untouched", fs.readFileSync(victim, "utf8") === "the owner's original plist content\n");
+		check("live symlink: the plist path is still a symlink", fs.lstatSync(layout.plistPath).isSymbolicLink());
+	}
+
+	/* a DANGLING symlinked plist */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-dangling-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		const missing = path.join(dir, "nowhere-plist.xml");
+		fs.symlinkSync(missing, layout.plistPath);
+		fs.writeFileSync(callLog, "");
+
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		// req: R-380
+		check("dangling symlink: desk plist is SKIPPED", out[0]?.status === SKIPPED, JSON.stringify(out));
+		// req: R-380
+		check("dangling symlink: desk launchctl is SKIPPED too", out[1]?.status === SKIPPED, JSON.stringify(out));
+		// req: R-380
+		check("dangling symlink: ZERO launchctl calls were made", calls().length === 0, calls().join(" | "));
+		check("dangling symlink: the dangling target was NOT created", !fs.existsSync(missing));
+		check("dangling symlink: the plist path is still a symlink", fs.lstatSync(layout.plistPath).isSymbolicLink());
+	}
+
+	/* regression: a REGULAR plist still proceeds to launchctl as before */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-regular-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		check("regular file: desk plist is CREATED, not SKIPPED", out[0]?.status === CREATED, JSON.stringify(out));
+		check("regular file: desk launchctl proceeded (not SKIPPED)", out[1]?.status !== SKIPPED, JSON.stringify(out));
+		check("regular file: launchctl WAS called (print, then bootstrap)", calls().length >= 2, calls().join(" | "));
+	}
+}
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);
