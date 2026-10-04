@@ -1,0 +1,40 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "pi-1.0-adoption" (git:/Users/jwang/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (adversarial @ 21f181b152a7)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=1.07s flat=0/15
+  [pi-review a1] cpu=1.14s flat=0/15
+  [pi-review a1] cpu=1.3s flat=0/15
+  [pi-review a1] cpu=1.35s flat=0/15
+  [pi-review a1] cpu=1.36s flat=0/15
+  [pi-review a1] cpu=1.36s flat=1/15
+  [pi-review a1] cpu=1.36s flat=2/15
+  [pi-review a1] cpu=1.36s flat=3/15
+  [pi-review a1] cpu=1.36s flat=4/15
+  [pi-review a1] cpu=1.37s flat=0/15
+  [pi-review a1] cpu=1.37s flat=1/15
+  [pi-review a1] cpu=1.37s flat=2/15
+  [pi-review a1] cpu=1.37s flat=3/15
+  [pi-review a1] cpu=1.45s flat=0/15
+  [pi-review a1] cpu=1.48s flat=0/15
+  [pi-review a1] cpu=1.48s flat=1/15
+  [pi-review a1] cpu=1.48s flat=2/15
+  [pi-review a1] cpu=1.48s flat=3/15
+  [pi-review a1] cpu=1.49s flat=0/15
+  [pi-review a1] cpu=1.49s flat=1/15
+  [pi-review a1] cpu=1.49s flat=2/15
+  [pi-review a1] cpu=1.49s flat=3/15
+  [pi-review a1] cpu=1.49s flat=4/15
+  [pi-review a1] cpu=1.5s flat=0/15
+  [pi-review a1] cpu=1.5s flat=1/15
+  [pi-review a1] cpu=1.5s flat=2/15
+  [pi-review a1] cpu=1.5s flat=3/15
+  [pi-review a1] cpu=1.5s flat=4/15
+  [pi-review a1] cpu=1.5s flat=5/15
+  [pi-review a1] cpu=1.55s flat=0/15
+  [pi-review a1] cpu=1.55s flat=1/15
+  [pi-review a1] cpu=1.65s flat=0/15
+  [pi-review a1] cpu=1.85s flat=0/15
+  [pi-review a1] cpu=1.98s flat=0/15
+  [pi-review a1] cpu=2.11s flat=0/15
+  [pi-review a1] cpu=2.24s flat=0/15
+[pi-review] SUCCESS on attempt 1 (7065 chars → /Users/jwang/nana-pi/docs/reviews/pi-1.0-2026-10-04/astra-r3.md; round 3)
