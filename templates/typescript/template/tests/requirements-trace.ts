@@ -111,7 +111,7 @@ function maskCodeSpans(text: string): string {
  * language's own tests would ever catch. An explicit ASCII class has no Unicode database to
  * disagree about. See PARITY_FIXTURES below for the codepoints this was measured against.
  */
-const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
+export const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
 
 /**
  * The allowance default for a project with no declared value: a new project writes rows

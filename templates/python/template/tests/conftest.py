@@ -66,9 +66,18 @@ BACKTICK_RE = re.compile(r"`([^`]+)`")
 #: database, and Node 22 (Unicode 17) and this rendered Python (3.14, Unicode 16) disagreed
 #: on 4,657 codepoints' letter/digit membership, including U+088F and U+A7F1 -- a silent,
 #: version-dependent split neither language's own tests would ever catch. An explicit ASCII
-#: class has no Unicode database to disagree about. See PARITY_FIXTURES (the test file) for
+#: class has no Unicode database to disagree about. ``re.ASCII`` is REQUIRED alongside
+#: ``re.IGNORECASE`` (astra r3 MUST 1): Python's case-insensitive matching is Unicode-aware
+#: by default, so plain ``re.IGNORECASE`` makes ``[A-Za-z]`` ALSO match four non-ASCII
+#: characters that case-fold to an ASCII letter -- U+0130 (İ), U+0131 (ı), U+017F (ſ, which
+#: also makes "ſhall" itself match "shall") and U+212A (the Kelvin sign, folds to K) -- all
+#: four confirmed by an exhaustive sweep (`docs/reviews/ears-form-2026-10-04/
+#: boundary-sweep.mjs`) over every codepoint. ``re.ASCII`` restricts `\w`-adjacent
+#: case-folding to ASCII only, closing that gap; it does not affect the literal class or the
+#: literal "shall" otherwise. JS's own `/gi` (no `u` flag) never had this bug -- confirmed by
+#: the same sweep -- so only Python needed the flag. See PARITY_FIXTURES (the test file) for
 #: the codepoints this was measured against.
-SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE)
+SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE | re.ASCII)
 
 #: The allowance default for a project with no declared ini value: a new project writes
 #: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same

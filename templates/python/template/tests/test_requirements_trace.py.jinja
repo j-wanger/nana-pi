@@ -88,6 +88,22 @@ PARITY_FIXTURES: list[tuple[str, int]] = [
     ("The system shall print shallʰ.", 2),  # U+02B0 modifier letter small h (Lm)
     ("The system shall print shall一.", 2),  # U+4E00 CJK ideograph (Lo)
     ("The system shall print shall‍.", 2),  # U+200D zero-width joiner
+    # astra r3 MUST 1: Python's case-INSENSITIVE matching is Unicode-aware by default, so
+    # plain re.IGNORECASE made [A-Za-z] ALSO match four characters that case-fold to an
+    # ASCII letter -- a live contract violation, not a Unicode-version residual. Each is a
+    # boundary under the ASCII-only rule, both before and after "shall" (one match: the
+    # adjacent occurrence alone, no separate ordinary "shall" in these fixtures).
+    ("shallİ", 1),  # U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE, folds to i
+    ("İshall", 1),
+    ("shallı", 1),  # U+0131 LATIN SMALL LETTER DOTLESS I, folds to i
+    ("ıshall", 1),
+    ("shallſ", 1),  # U+017F LATIN SMALL LETTER LONG S, folds to s
+    ("ſshall", 1),
+    ("shallK", 1),  # U+212A KELVIN SIGN, folds to k
+    ("Kshall", 1),
+    # the long s IS "shall"'s own first letter under full Unicode case folding -- "ſhall"
+    # must NOT count as a `shall` (the TS counts are the contract both languages must meet)
+    ("ſhall", 0),
     # a code span replaced by a separator, not nothing (astra r2 MUST 3): deleting it would
     # either falsely glue "sh" + "all" back into "shall", or glue a real "shall" onto what
     # follows the span

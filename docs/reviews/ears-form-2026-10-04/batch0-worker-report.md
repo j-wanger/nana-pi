@@ -272,3 +272,72 @@ unchanged — there is nothing in this repo's rows for the rule change to have s
 What I have NOT separately re-verified: whether any OTHER project's REQUIREMENTS.md (not this
 lane's concern, but a future adopter) could have such a row; the template's own adopt-mode
 instructions don't call this out as something to check.
+
+---
+
+## Round 3 — astra BLOCK 8/10, the last review round (`batch0-astra-r3.md`), fixed
+
+### MUST 1 — Python's `re.IGNORECASE` itself violated the ASCII-only contract
+
+Round 2's explicit `[A-Za-z0-9_]` class was right, but Python's `re.IGNORECASE` is
+Unicode-aware by default and case-folds four extra codepoints into that class: U+0130 (İ),
+U+0131 (ı), U+017F (ſ, which also makes "ſhall" itself match "shall"), and U+212A (the
+Kelvin sign, folds to K). JS's own `/gi` (no `u` flag) never had this bug — confirmed
+empirically. **Fix:** `re.IGNORECASE | re.ASCII` on `SHALL_RE` in `conftest.py`. Checked
+every other regex in both rails for the same flag: `ID_RE`/`EXTERNAL_RE`/`MARKER_RE`/
+`DEF_RE`/`BACKTICK_RE`/`CALL_RE` (Python) and `ID`/`ROW`/`EXTERNAL`/`MARKER`/`CALL` (TS) —
+`SHALL_RE` was the only one using `IGNORECASE` at all.
+
+### Exhaustive sweep (item 3) — 0 differences across all 1,114,112 codepoints
+
+Wrote `docs/reviews/ears-form-2026-10-04/boundary-sweep.mjs` (orchestrator) +
+`boundary-sweep-python-worker.py` (companion), evidence artifacts, not suite tests. For
+every codepoint 0..0x10FFFF (surrogates 0xD800–0xDFFF excluded from scoring), places the
+character both before and after "shall" and compares the two rails' REAL regexes directly
+(`SHALL`, now exported from `requirements-trace.ts`; `SHALL_RE`, already public in
+`conftest.py`) — not a re-implementation. **Result: 0 differences**, with the fix applied.
+Runtime: TS computes in-process (~0.25s); Python runs via `uv run --with pytest python3`
+(~0.9s), writing a binary result file the orchestrator diffs against.
+
+### New parity fixtures (item 2) — the four characters, both placements, plus "ſhall"
+
+Added to both `PARITY_FIXTURES` (identical strings, verified programmatically codepoint by
+codepoint after catching my own transcription slip — see below): `shallİ`/`İshall`,
+`shallı`/`ıshall`, `shallſ`/`ſshall`, `shall<Kelvin>`/`<Kelvin>shall` (each expecting 1, the
+adjacent occurrence alone — astra's exact wording), and `ſhall` alone (expecting 0, since
+the long s is not "s" under the ASCII contract).
+
+**Caught my own bug before it shipped:** my first attempt typed a literal "K" for the Kelvin
+sign fixture instead of U+212A — visually indistinguishable in this font, silently wrong. A
+programmatic codepoint dump of every new fixture in both files (not a visual read) caught
+it; fixed with an explicit `K` escape and re-verified all 9 fixtures' exact codepoints
+in both languages before moving on.
+
+### Mutation (item 4)
+
+Removed `re.ASCII` from a disposable rendered Python scaffold's `conftest.py` → the parity
+test failed on `shallİ` (expected 1, got 0) — the first of the four. Also confirmed directly
+against the regex (not just the suite): all four characters, both placements, flip to
+"no match" under the mutation, reproducing astra's exact 4×2 discrepancy table. Restored;
+the real template source was untouched during this (mutation applied only in a disposable
+`/tmp` render).
+
+### Re-verified after the fix
+
+- `packages/nana-pack/tests/requirements-trace.test.mjs`: 8/8 pass.
+- `packages/nana-pack/tests/templates-render.test.mjs`: all 61 pass.
+- Fresh renders, both languages, scaffold: TS 52/52, Python 58/58.
+- `npm run map:check`: 0 problems.
+- Exhaustive sweep: 0 differences (re-confirmed immediately before committing).
+- `npm test` once, alone: **95 files: 93 PASS, 1 FAIL, 1 SKIP · checks: 5521 pass, 2 fail, 6
+  skip · exit 1**, completed in 289.7s — the same single environmental failure
+  (`readme-check.test.mjs`), unchanged. (Astra's own round-3 run of this command timed out
+  at 240s without a completed result; this run was given more time and completed.)
+
+### The claim I would most expect to be wrong, now
+
+The exhaustive sweep tests the boundary rule in isolation (a bare "shall" + one adjacent
+character, or the reverse) — it does not sweep EVERY possible surrounding context (e.g., two
+adjacent special characters at once, or a character adjacent to a masked code span's
+replacement space). I believe the regex's lookaround semantics make per-character
+composition irrelevant to this specific contract, but I have not separately swept pairs.
