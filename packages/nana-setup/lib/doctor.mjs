@@ -6,7 +6,8 @@
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
- *  nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json,
+ *  nana-pack.json and the objective file it names, <piHome>/AGENTS.md (the writing rule link),
+ *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
@@ -25,7 +26,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, WRITING_RULE_SRC, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -241,6 +242,14 @@ export function diagnose(layout, opts = {}) {
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+
+	// --- pi AGENTS.md (writing rule, R-373-R-376) --- the pi half of the same two links
+	// CLAUDE_RULES above installs; linkOk already covers win32's byte-identical-copy case.
+	{
+		const agentsTarget = path.join(layout.piHome, "AGENTS.md");
+		const ok = linkOk(agentsTarget, WRITING_RULE_SRC);
+		add(ok ? OK : FAIL, "pi AGENTS.md (writing rule)", ok ? `-> ${WRITING_RULE_SRC}` : `missing or not linked at ${agentsTarget} — run \`nana-setup install\` (a foreign file there needs manual repair first: back it up, then point it at ${WRITING_RULE_SRC} yourself)`);
+	}
 
 	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
 	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:

@@ -92,6 +92,8 @@ for (const h of ["nana-objective.sh", "nana-shared-memory.sh", "context-size-che
 check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
 // req: R-301
 check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
+// req: R-301
+check("rule nana-writing.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-writing.md")) === path.join(pkg, "claude", "rules", "nana-writing.md"));
 // Claude Code reads the pack's own skill — one source for both runtimes (skills-and-standards.test.mjs owns the detail)
 // req: R-302
 check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));

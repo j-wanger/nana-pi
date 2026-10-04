@@ -9,21 +9,23 @@
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  NANA_SETUP_PLATFORM
  * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules
- *  and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries
+ *  and skills/requirements (copies on win32), <piHome>/AGENTS.md linked to the writing rule, a
+ *  seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist
  *  (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES,
- *  CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER,
- *  firstBodyLine, SetupError and the helpers doctor reuses
+ *  WRITING_RULE_SRC, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER,
+ *  REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; the settings lock already held; settings.json changed on disk during the run; a plist
  *  placeholder with no value. Every other failure is a row: PROBLEM for a non-regular
- *  nana-personal.md or anything already sitting where the skill symlink belongs, SKIPPED for win32,
- *  a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
+ *  nana-personal.md, a foreign AGENTS.md, or anything already sitting where the skill symlink
+ *  belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or
+ *  launchctl bootstrap
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
@@ -39,7 +41,10 @@ export class SetupError extends Error {}
 
 export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "context-size-check.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here. */
-export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md"];
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
+/** The source nana-writing.md, as the pi agent-dir AGENTS.md link also points at
+ *  (R-373–R-376, design-ruling.md, 2026-10-04, §2). */
+export const WRITING_RULE_SRC = path.join(pkgRoot, "claude", "rules", "nana-writing.md");
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
 export const CLAUDE_SKILLS = ["requirements"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
@@ -99,6 +104,57 @@ export function stepRules(layout, o) {
 	const personal = seedFile(personalPath, fs.readFileSync(path.join(pkgRoot, "claude", "rules", "nana-personal.example.md"), "utf8"), o);
 	out.push({ label: "rule nana-personal.md (private)", ...personal });
 	return out;
+}
+
+/* -------------------------------------------------------------- pi AGENTS.md (writing rule) */
+
+/**
+ * pi reads `<agent dir>/AGENTS.md` as "user instructions applied across working directories"
+ * (design-ruling.md, 2026-10-04, §2) — unlike CLAUDE_RULES above, this file is NOT nana-owned:
+ * a user may already have written general instructions there for reasons that have nothing to
+ * do with nana. Seed-if-absent only (the same caution as nana-personal.md above, inverted: here
+ * the shared text is PUBLIC and the caution is about not clobbering someone ELSE's file): an
+ * existing AGENTS.md that is not already a link into the repo is left untouched and reported
+ * PROBLEM rather than backed up and replaced (R-373, R-374) — `linkFile`'s own backup-and-replace
+ * semantics are right for a nana-owned rule name, wrong for a file whose name nana does not own.
+ */
+export function stepWritingRule(layout, o) {
+	const label = "pi AGENTS.md (writing rule)";
+	const target = path.join(layout.piHome, "AGENTS.md");
+	const source = WRITING_RULE_SRC;
+	const st = lstatSafe(target);
+	if (!st) return [{ label, ...linkFile(target, source, { ...o, copyInstead: win() }) }];
+	const resolved = path.resolve(source);
+	if (st.isSymbolicLink()) {
+		let current = null;
+		try {
+			current = path.resolve(path.dirname(target), fs.readlinkSync(target));
+		} catch {
+			/* unreadable link */
+		}
+		if (current === resolved) return [{ label, status: UNCHANGED, detail: null }];
+		return [
+			{
+				label,
+				status: PROBLEM,
+				detail: `a symlink${current ? ` to ${current}` : " (unreadable)"} is already at ${target} — left untouched; point it at ${source} yourself, then re-run`,
+			},
+		];
+	}
+	if (win() && st.isFile()) {
+		try {
+			if (fs.readFileSync(target).equals(fs.readFileSync(source))) return [{ label, status: UNCHANGED, detail: "copy" }];
+		} catch {
+			/* fall through to PROBLEM below */
+		}
+	}
+	return [
+		{
+			label,
+			status: PROBLEM,
+			detail: `${target} already exists and is not a link into the repo — left untouched; back it up, then point it at ${source} yourself (a symlink, or a byte-identical copy on win32), then re-run`,
+		},
+	];
 }
 
 /* ----------------------------------------------------------------------------- claude skills */
@@ -725,6 +781,7 @@ export function install(layout, opts = {}) {
 	const results = [];
 	results.push(...stepHooks(layout, o));
 	results.push(...stepRules(layout, o));
+	results.push(...stepWritingRule(layout, o));
 	results.push(...stepSkills(layout, o));
 	results.push(...stepSettings(layout, o, settingsState));
 	results.push(...stepSharedMemory(layout, o));

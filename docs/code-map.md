@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact -- <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 162 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 167 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -784,6 +784,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`
 
+### `packages/nana-pack/bin/nana-writing.mjs`
+
+- **purpose** — Report-only CLI over the writing checker: stdin or named files, four checks always, two more under --report, one summary line, exit 0 always.
+- **inputs** — argv (paths, --report); stdin when no path is given; each named file's bytes
+- **outputs** — stdout: one `<file>:<line>: <check>: <detail>` line per finding, then one `summary …` line; always exits 0 (R-750)
+- **effects** — disk (reads each named file; reads stdin when no path is given)
+- **errors** — none thrown for a finding — an unreadable file prints one `<file>:0: error: …` line and is otherwise skipped; always exits 0
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/writing-check.mjs`
+
 ### `packages/nana-pack/bin/pi-review.mjs`
 
 - **purpose** — Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict only when a review was produced.
@@ -983,6 +993,26 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — none — a write failure is swallowed (best-effort by design), an unreadable or vanished input yields null or `stale`, and a status outside the enum is forced to not_run
 - **callers** — `packages/nana-pack/extensions/nana-post-edit.ts`
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`
+
+### `packages/nana-pack/lib/writing-check.mjs`
+
+- **purpose** — The pure checks behind the writing checker: split text into sentences and find every length, passive-voice, banned-word, verdict and identifier finding, plus the summary line.
+- **inputs** — a label and its text (checkText); an array of per-input results (summaryLine); --report on/off
+- **outputs** — per input, {label, findings, stats}; one aggregate summary line string over every input checked
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/nana-writing.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`
+- **callees** — `packages/nana-pack/lib/writing-config.mjs`
+
+### `packages/nana-pack/lib/writing-config.mjs`
+
+- **purpose** — Every tunable the writing checker reads, each defined once with its provenance (G-001, G-002), so no inline literal appears at a point of use.
+- **inputs** — none — pure constants
+- **outputs** — SENTENCE_CAP, PASSIVE, PASSIVE_EXCEPTIONS, VERDICT_WORDS, BANNED_WORDS, IDENTIFIER_CODE_SPAN, IDENTIFIER_PATH, MIN_SENTENCE_WORDS
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`
+- **callees** — —
 
 ### `packages/nana-pack/tests/adoption-producer.test.mjs`
 
@@ -1384,6 +1414,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — —
 
+### `packages/nana-pack/tests/writing-check.test.mjs`
+
+- **purpose** — Pins the writing checker: stdin and file labelling, the four always-on checks, the two --report-only checks, the summary line's exact shape, and the always-0 exit.
+- **inputs** — the writing checker CLI (spawned) and its pure functions (imported directly)
+- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+- **effects** — disk (a throwaway temp dir for the two-file case), process (spawns the CLI)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-config.mjs`
+
 ### `packages/nana-setup/bin/nana-setup.mjs`
 
 - **purpose** — The nana-setup CLI: parse argv, resolve one layout, run the install / doctor / project command it names, and print one marked line per piece.
@@ -1397,7 +1437,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/doctor.mjs`
 
 - **purpose** — Judge one machine and return an ordered check list covering the Node floor, the Claude Code half, the two-tier auto-memory, pi's user config, the knowledge index, PATH and the desk service.
-- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and nana-pack.json and the objective file it names, <piHome>/AGENTS.md (the writing rule link), <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
 - **outputs** — an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); PI_SUBAGENTS_FLOOR ("0.75.0"); nodeMeetsFloor(); versionAtLeast(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }
 - **effects** — disk (reads only), process (spawns node and launchctl to probe)
 - **errors** — none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
@@ -1458,9 +1498,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The install steps and the `install` sequencer: each step links, seeds, merges or registers one piece of the experience and reports { label, status, detail }.
 - **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json, pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills; the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
-- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
+- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules and skills/requirements (copies on win32), <piHome>/AGENTS.md linked to the writing rule, a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES, WRITING_RULE_SRC, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
 - **effects** — disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`, `pi --version` / `pi install`, `git rev-parse`)
-- **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
+- **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md, a foreign AGENTS.md, or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`
 - **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`
 
@@ -1590,6 +1630,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and a throwaway --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
+- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — —
+
+### `packages/nana-setup/tests/writing-rule.test.mjs`
+
+- **purpose** — Pins that pi's agent-dir AGENTS.md is linked to the writing rule when absent, left untouched (install exit 1) when it is a foreign file, and that doctor reads the same state
+- **inputs** — lib/steps.mjs's stepWritingRule and WRITING_RULE_SRC, bin/nana-setup.mjs, and a throwaway temp dir / --home
+- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
+- **effects** — disk (throwaway temp dirs and homes, symlinks), process (spawns the installer CLI for the exit-code case)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —

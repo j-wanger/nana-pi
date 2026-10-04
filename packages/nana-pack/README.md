@@ -236,6 +236,36 @@ while a completion waits on the lock is recorded unverified.
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
+## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
+
+The ninth CLI. Zero-dep, Node only, cross-platform; the pure checks live in
+`lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
+`docs/reviews/writing-trial-2026-10-04/design-ruling.md`). Not wired into any hook or post-edit
+command during the trial — run it by hand, from the rule it is named by
+(`packages/nana-setup/claude/rules/nana-writing.md`).
+
+```bash
+node packages/nana-pack/bin/nana-writing.mjs file.md            # check one or more files
+node packages/nana-pack/bin/nana-writing.mjs --report < draft.txt   # stdin, + verdict + identifier checks
+```
+
+With no path it reads stdin (named `-` in the output). Four checks run always — sentence
+length, passive voice, a banned word, and the closing summary — and two more run only with
+`--report`: a verdict word in the first sentence, and identifiers (a backtick span, or a
+slash-path token). Each finding is one line, `<file>:<line>: <check>: <detail>`; the output
+always ends with one summary line:
+
+```
+summary sentences=N words=N over=N passive=N banned=N verdict=yes|no|n/a identifiers=N
+```
+
+It exits 0 whatever it finds — this CLI reports, it never blocks.
+
+**Known limit.** Sentence splitting is simple: a period, `!` or `?` followed by space (or a
+line break) ends a sentence, after masking backtick spans and URLs so a period inside one does
+not split early. It has no abbreviation engine, so "e.g." and "vs." still split a sentence
+early — recorded here, not fixed.
+
 ## What you will see
 
 In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
