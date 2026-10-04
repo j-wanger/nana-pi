@@ -74,7 +74,7 @@ function workspace() {
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
 	// req: R-136
 	check("b: symlinked handoff does not throw at compaction", !threw);
-	// req: R-134
+	// req: R-806
 	check("b: symlink target not overwritten", fs.readFileSync(target, "utf-8") === "ORIGINAL\n");
 	check("b: the link itself is left alone (not replaced by a regular file)", fs.lstatSync(link).isSymbolicLink());
 	fs.rmSync(td, { recursive: true, force: true });
@@ -102,11 +102,12 @@ function workspace() {
 	check("d: symlinked state directory does not throw at session_start", !threw);
 	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 	check("d: nothing injected through a symlinked state directory", r === undefined);
-	// req: R-134
+	// req: R-806
 	check("d: external contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("EXTERNAL SECRET"));
 
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
 	check("e: symlinked state directory does not throw at compaction", !threw);
+	// req: R-806
 	check("e: external handoff.md not overwritten", fs.readFileSync(path.join(outside, "handoff.md"), "utf-8") === "EXTERNAL SECRET\n");
 	check("e: no .gitignore written into the external directory", !fs.existsSync(path.join(outside, ".gitignore")));
 	fs.rmSync(td, { recursive: true, force: true });

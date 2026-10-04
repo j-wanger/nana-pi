@@ -74,13 +74,14 @@ for (const f of FORMS) {
 
 	// ---- (c) only the DEFAULT dir holds a config
 	const s1 = ctx(`${f.name}-s1`);
-	// req: R-193
+	// req: R-829
 	check(`${T} (c) stale default deny is NOT read`, (await decide(s1, "bash", { command: "zorble now" })) === "ALLOW");
-	// req: R-193
+	// req: R-829
 	check(`${T} (c) gate still runs on defaults (built-in deny)`, (await decide(s1, "bash", { command: "rm -rf /" })) === "BLOCK");
 	check(`${T} (c) no stop`, loadConfig(s1).gate.stopReason === null);
 	await decide(s1, "edit", { path: "src/x.ts" });
 	const mine = notes.filter((m) => m.includes("agent dir") || m.includes("PI_CODING_AGENT_DIR"));
+	// req: R-194
 	check(`${T} (c) mismatch UI note fires exactly once in the session`, mine.length === 1, `${mine.length}`);
 	// req: R-194
 	check(`${T} (c) the note names both paths`, mine.length === 1 && mine[0].includes(path.join(f.link, "nana-pack.json")) && mine[0].includes(path.join(DEFAULT_DIR, "nana-pack.json")), mine[0]);
@@ -101,7 +102,6 @@ for (const f of FORMS) {
 	check(`${T} (a) active protectedPaths enforced (edit)`, (await decide(s2, "edit", { path: "vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) active protectedPaths enforced (bash)`, (await decide(s2, "bash", { command: "cat vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) control: ordinary command allowed`, (await decide(s2, "bash", { command: "echo hi" })) === "ALLOW");
-	// req: R-194
 	check(`${T} (a) no mismatch note once the active dir has a config`, notes.length === before, notes.slice(before).join(" | "));
 
 	// ---- (b) the active config is on the policy floor — env path and realpath
@@ -130,7 +130,7 @@ for (const [name, env] of [["missing dir", path.join(HOME, "nope")], ["a file", 
 	let cfg;
 	try { cfg = loadConfig({ cwd: HOME, hasUI: false }); } catch { cfg = null; }
 	check(`${name}: loadConfig total, no stop`, !!cfg && cfg.gate.stopReason === null);
-	// req: R-193
+	// req: R-829
 	check(`${name}: default config not read`, !!cfg && cfg.gate.extraPatterns.length === 0);
 }
 

@@ -224,7 +224,7 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
 	fs.writeFileSync(secret, "SUPERSECRET\n");
 	fs.symlinkSync(secret, w.productFile);
 	await golden("symlinked OBJECTIVE.md", w, w.product, (t) => {
-// req: R-758
+		// req: R-758
 		check("symlink: target never shown", !t.includes("SUPERSECRET"));
 		check("symlink: refusal printed", t.includes(`(ignored ${w.productFile}: reached through a symlink — the program file governs)`), t);
 		check("symlink: umbrella governs", t.includes(`governing: ${w.umbrellaFile}\n`));
@@ -414,7 +414,7 @@ for (const lines of [false, true]) {
 {
 	const lone = String.fromCharCode(0xd800);
 	// finish()'s layer alone: produce() never feeds it a lone surrogate (displayPath got there first), so only a direct call pins it
-	// req: R-178
+	// req: R-819
 	check("finish(): a lone surrogate never leaves the backstop", finish(`a${lone}b`).isWellFormed() && finish(`a${lone}b`) === `a\ufffdb\n`);
 	// displayPath()'s layer alone: its exported contract, without finish() behind it
 	// req: R-178

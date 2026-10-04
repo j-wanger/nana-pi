@@ -111,7 +111,7 @@ for (const scope of ["user", "user-elsewhere", "project"]) {
 	check(`${tag}: handoff_legacy_write_refused journaled with the path`, /"handoff_legacy_write_refused"[^\n]*/.test(journal()) && journal().split("\n").some((l) => l.includes('"handoff_legacy_write_refused"') && l.includes(target)));
 	check(`${tag}: no handoff_written`, !journal().includes('"handoff_written"'));
 	check(`${tag}: the write refusal is notified once per session`, notes.filter((m) => /NOT written/.test(m)).length === 1);
-	// req: R-133
+	// req: R-805
 	check(`${tag}: no temp litter beside the repo file`, fs.readdirSync(path.join(repo, ".pi")).every((f) => !f.endsWith(".tmp")));
 	console.log(`  pointer: ${refusal[0]}`);
 	console.log(`  journal: ${journal().trim().split("\n").filter((l) => /legacy/.test(l)).join("\n           ")}`);

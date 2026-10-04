@@ -154,7 +154,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const wt = mk(path.join(outer, "wt"));
 	fs.writeFileSync(path.join(wt, ".git"), `gitdir: ${outer}/.git/worktrees/wt\n`);
 	await prompt(mk(path.join(wt, "src")));
-	// req: R-145
+	// req: R-809
 	check("b: a linked worktree is reported as its own root", reportsFor(wt).length === 1 && reportsFor(outer).length === 0);
 }
 // a symlinked repo root is one canonical entry
@@ -212,11 +212,11 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	// req: R-160
 	check("journal: the project journal.path IS honoured by config (test is not vacuous)", loadConfig({ cwd: r, hasUI: false, isProjectTrusted: () => true }).journal.path === projJ);
 	await prompt(r);
-	// req: R-148
+	// req: R-810
 	check("journal: project journal.path does NOT capture directory_unadopted", !(fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"directory_unadopted"')));
 	// req: R-148
 	check("journal: …the user-scope journal does", reportsFor(r).length === 1);
-	// req: R-148 R-159
+	// req: R-810 R-159
 	check("journal: …other events still follow the project journal.path", fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"handoff_missing"'));
 	// req: R-160
 	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
@@ -233,6 +233,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const inDefault = fs.existsSync(DEFAULT_J) && fs.readFileSync(DEFAULT_J, "utf8").split("\n").some((l) => l.includes('"directory_unadopted"') && l.includes(JSON.stringify(r2)));
 	// req: R-148
 	check("journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl", inDefault);
+	// req: R-810
 	check("journal: …not to a cwd-relative file", !fs.existsSync(path.resolve(relJ)) || !fs.readFileSync(path.resolve(relJ), "utf8").includes('"directory_unadopted"'));
 	check("journal: …and the reader, from another cwd, lists it", listed(out, r2), out);
 }
@@ -255,7 +256,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const { projectFileName } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 	for (const v of ["GOALS.md", "", ".", "..", "a/b", "a\\b", 7, null, false]) {
 		cfg({ objective: { projectFile: v } });
-		// req: R-150
+		// req: R-811
 		check(`objective: adoption's name agrees with lib/objective.ts for ${JSON.stringify(v)}`, lib.adoptionSettings().objectiveFile === projectFileName({ projectFile: v }));
 	}
 	cfg();

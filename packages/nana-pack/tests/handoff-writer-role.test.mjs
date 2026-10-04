@@ -64,10 +64,8 @@ fs.rmSync(JOURNAL, { force: true });
 	check("marker: handoff_skipped_role journaled for write AND pickup", lines.some((l) => l.includes('"op":"write"')) && lines.some((l) => l.includes('"op":"pickup"')));
 }
 process.env.NANA_HANDOFF = "on";
-// req: R-138
 check("any other marker value: normal behaviour (picks up)", (await session(repo).prompt()).includes("WRITER-STATE"));
 delete process.env.NANA_HANDOFF;
-// req: R-138
 check("no marker: normal behaviour (picks up)", (await session(repo).prompt()).includes("WRITER-STATE"));
 
 // pi-review's child spawn env carries the marker (stub `pi` prints its env; zero model calls)

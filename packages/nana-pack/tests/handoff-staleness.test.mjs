@@ -106,7 +106,7 @@ await session(repo).compact(SUMMARY);
 	const added = sp.slice("BASE".length);
 	const pointer = added.split("\n").find((l) => l.startsWith("Stale handoff")) ?? "";
 	check("15d: pointer names the store as ~/.pi/agent/handoffs/<hash>.md (expands to the file)", pointer.includes(`: ~/.pi/agent/handoffs/${path.basename(file)} `) && path.join(os.homedir(), ".pi", "agent", "handoffs", path.basename(file)) === file);
-	// req: R-124
+	// req: R-802
 	check("15d: summary text NOT injected", !sp.includes(SUMMARY));
 	// req: R-124
 	check("15d: pointer present, ≤300 chars", pointer.length > 0 && pointer.length <= 300);
@@ -325,7 +325,7 @@ const resolvesTo = (shown, cwd, file) => {
 		check(`${label}: emitted form is a JSON string of the exact absolute path`, emitted !== "" && JSON.parse(emitted) === f && fs.readFileSync(JSON.parse(emitted), "utf-8").includes(SUMMARY));
 		// req: R-128
 		check(`${label}: emitted form never resolves to the decoy (nor to any existing file)`, r !== decoy && !fs.existsSync(r));
-		// req: R-128
+		// req: R-803
 		check(`${label}: the raw path never appears in the pointer`, !p.includes(f));
 		if (label === "NBSP") {
 			// fresh summary: the Source / update-in-place locator gets the same treatment

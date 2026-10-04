@@ -46,7 +46,7 @@ await handlers.session_compact({ compactionEntry: { summary: "second compaction"
 await handlers.session_start({ reason: "startup" }, ctx);
 const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
 check("pickup injects handoff", r?.systemPrompt.includes("second compaction"));
-// req: R-142
+// req: R-828
 check("prompt says update in place", r?.systemPrompt.includes(`update ${store} in place`));
 
 // custom handoff.path: the prompt must name THAT file (pi-review MAJOR
@@ -61,11 +61,11 @@ fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff
 const ctx2 = { cwd: td2, hasUI: false, isProjectTrusted: () => true };
 await handlers2.session_compact({ compactionEntry: { summary: "custom-path state" }, reason: "manual" }, ctx2);
 check("custom path: handoff written", fs.readFileSync(custom, "utf-8").includes("custom-path state"));
-// req: R-112
+// req: R-796
 check("custom path: no .gitignore beside it", !fs.existsSync(path.join(td2, "STATE", ".gitignore")));
 await handlers2.session_start({ reason: "startup" }, ctx2);
 const r2 = await handlers2.before_agent_start({ systemPrompt: "BASE" }, ctx2);
-// req: R-142
+// req: R-142 R-828
 check("custom path: prompt names the configured file", r2?.systemPrompt.includes(`update ${path.join("STATE", "HANDOFF.md")} in place`));
 // req: R-142
 check("custom path: prompt never says .pi/handoff.md", !r2?.systemPrompt.includes(".pi/handoff.md"));

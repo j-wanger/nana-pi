@@ -56,7 +56,7 @@ const TABLE = [
 	["four kilobytes", KB4, `/${"a".repeat(158)}…${"a".repeat(160)}`, `/${"a".repeat(59)}`, null, KB4], // codeSpan refuses over CODE_SPAN_CAP (sol r1 #3): a 4 KB span is unreadable to the person it is for
 ];
 // the code-span cap is a boundary, so assert both sides of it
-// req: R-179
+// req: R-820
 check("codeSpan: exactly CODE_SPAN_CAP is rendered", d.codeSpan("/" + "a".repeat(d.CODE_SPAN_CAP - 1)) === `\`/${"a".repeat(d.CODE_SPAN_CAP - 1)}\``);
 // req: R-179
 check("codeSpan: one over CODE_SPAN_CAP is refused", d.codeSpan("/" + "a".repeat(d.CODE_SPAN_CAP)) === null);
@@ -71,13 +71,13 @@ check("codeSpan: a caller's tighter cap wins", d.codeSpan("/abcdefghij", 5) === 
 	check("extra: omitted → unchanged", d.displayPath(plain) === plain);
 	const dashed = d.displayPath(plain, "\u2014");
 	check("extra: a BMP character is escaped and the path is quoted", dashed === '"/repo/a \\u2014 b.md"');
-	// req: R-181
+	// req: R-822
 	check("extra: …and it round-trips exactly", JSON.parse(dashed) === plain);
 	const astral = "/repo/a\u{1F600}b.md";
 	const esc = d.displayPath(astral, "\u{1F600}");
-	// req: R-181
+	// req: R-823
 	check("extra: an astral character escapes BOTH units", esc === '"/repo/a\\uD83D\\uDE00b.md"', esc);
-	// req: R-181
+	// req: R-822
 	check("extra: …and it round-trips exactly", JSON.parse(esc) === astral);
 	check("extra: a clean path with no extra match is untouched", d.displayPath("/repo/ok.md", "\u2014") === "/repo/ok.md");
 	const long = "/" + "a".repeat(400) + "—end.md";
@@ -94,7 +94,7 @@ for (const [label, input, p, t, c, l] of TABLE) {
 	check(`table ${label}: codeSpan ${c === null ? "refuses" : "renders"}`, d.codeSpan(input) === c, j(d.codeSpan(input)));
 	// req: R-180
 	check(`table ${label}: locator exact`, d.locator(input).text === l && d.locator(input).escaped === (l !== input), j(d.locator(input)));
-	// req: R-180
+	// req: R-821
 	if (d.locator(input).escaped) check(`table ${label}: locator decodes to the exact input`, JSON.parse(d.locator(input).text) === input);
 	// req: R-175
 	check(`table ${label}: promptPath one line, ≤ PATH_CAP`, !RAW_CONTROL.test(d.promptPath(input)) && !/\n/.test(d.promptPath(input)) && d.promptPath(input).length <= d.PATH_CAP);
@@ -122,7 +122,7 @@ for (const [name, fn] of Object.entries({ promptPath: d.promptPath, promptText: 
 	// req: R-182
 	check(`total: ${name} never throws (undefined, symbol, hostile toString…)${name === "codeSpan" ? " — refuses a non-string" : ""}`, ok);
 }
-// req: R-182
+// req: R-824
 check("total: a throwing toString renders as [unprintable]", d.promptText({ toString() { throw 1; } }) === "[unprintable]");
 
 // widening, never narrowing: the adoption predicate now refuses a bidi control (L5's class did not)

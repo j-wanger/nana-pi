@@ -80,7 +80,7 @@ check("a: carries a description (desk completion and TUI autocomplete both show 
 
 // ── c. the lifecycle handlers are still there, and still fire ──
 for (const ev of ["session_start", "session_before_compact", "session_compact", "session_compact_failed", "session_shutdown"])
-	// req: R-163
+	// req: R-814
 	check(`c: ${ev} handler still registered`, typeof handlers[ev] === "function");
 {
 	const statuses = [];
