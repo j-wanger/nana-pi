@@ -67,10 +67,10 @@ The suite. Its root is layerExempt, so a test may import any layer (G-007) - but
 
 ### `tests/requirements-trace.ts`
 
-- **purpose** — Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries.
+- **purpose** — Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries, and that its Requirement cell carries exactly one `shall`.
 - **inputs** — REQUIREMENTS.md and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
-- **outputs** — the parsed rows, the traced ids, a list of human-readable problems and a one-line summary
-- **effects** — disk (reads REQUIREMENTS.md and the test sources)
+- **outputs** — the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems and a one-line summary
+- **effects** — disk (reads REQUIREMENTS.md and the test sources), process (printReport writes the report to stdout)
 - **errors** — a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
 - **callers** — `tests/requirements-trace.test.ts`
 - **callees** — —

@@ -1,8 +1,9 @@
 """@module tests/conftest.py
-@purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry.
+@purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry, and that its Requirement cell carries exactly one `shall`.
 @inputs REQUIREMENTS.md and every tests/**/test_*.py source, read from the pytest rootdir
-@outputs the parsed rows, the traced ids, a problem list, a summary line on the
-  terminal, and a non-zero exit status on a full run that disagrees
+@outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line,
+  a problem list, a summary line on the terminal, and a non-zero exit status on a full
+  run that disagrees
 @effects disk (reads REQUIREMENTS.md and the test sources), process (sets the session exit status)
 @errors pytest.UsageError for a malformed requirements table or a bad or orphan marker
 
@@ -29,6 +30,13 @@ Evidence that lives in another repo is cited with a ``<repo>:`` prefix; a row
 whose evidence is entirely external is traced there, not here. A PARTIAL run
 (pytest given paths) only reports -- it never fails -- because the markers it can
 see are the whole suite's but the status claims are not its business to judge.
+
+``check()`` also counts the EARS form (G-013/G-014/G-015): every non-retired row's
+Requirement cell must carry exactly one whole-word ``shall`` outside a code span. The
+count of off-form rows is reported on its own ``ears:`` line every run, and once that
+count exceeds the ``requirements_ears_allowance`` ini option (default
+EARS_ALLOWANCE_DEFAULT), each off-form row becomes a problem line too -- subject to the
+same full/partial distinction as every other problem here.
 """
 
 from __future__ import annotations
@@ -48,6 +56,34 @@ EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
 MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
+#: A `shall`, case-insensitive, not preceded or followed by an ASCII letter, digit or
+#: underscore -- explicitly ``[A-Za-z0-9_]``, written identically (the literal class, never
+#: ``\w`` or a Unicode property) in both rails (astra r2 MUST 1). Requirement rows are
+#: English prose, so this is a deliberately NARROWER contract than "every Unicode word
+#: character": a non-ASCII letter immediately touching "shall" (e.g. "shallé") counts as a
+#: BOUNDARY, not part of a longer word -- "shallé" carries a `shall`. The reason is version
+#: independence, not linguistics: ``\w``/``\p{L}`` read from the runtime's OWN Unicode
+#: database, and Node 22 (Unicode 17) and this rendered Python (3.14, Unicode 16) disagreed
+#: on 4,657 codepoints' letter/digit membership, including U+088F and U+A7F1 -- a silent,
+#: version-dependent split neither language's own tests would ever catch. An explicit ASCII
+#: class has no Unicode database to disagree about. ``re.ASCII`` is REQUIRED alongside
+#: ``re.IGNORECASE`` (astra r3 MUST 1): Python's case-insensitive matching is Unicode-aware
+#: by default, so plain ``re.IGNORECASE`` makes ``[A-Za-z]`` ALSO match four non-ASCII
+#: characters that case-fold to an ASCII letter -- U+0130 (İ), U+0131 (ı), U+017F (ſ, which
+#: also makes "ſhall" itself match "shall") and U+212A (the Kelvin sign, folds to K) -- all
+#: four confirmed by an exhaustive sweep (`docs/reviews/ears-form-2026-10-04/
+#: boundary-sweep.mjs`) over every codepoint. ``re.ASCII`` restricts `\w`-adjacent
+#: case-folding to ASCII only, closing that gap; it does not affect the literal class or the
+#: literal "shall" otherwise. JS's own `/gi` (no `u` flag) never had this bug -- confirmed by
+#: the same sweep -- so only Python needed the flag. See PARITY_FIXTURES (the test file) for
+#: the codepoints this was measured against.
+SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE | re.ASCII)
+
+#: The allowance default for a project with no declared ini value: a new project writes
+#: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same
+#: default as the TypeScript rail). Pinned by
+#: test_requirements_trace.py::test_seal_ears_allowance_default_is_0.
+EARS_ALLOWANCE_DEFAULT = 0
 
 #: The call names that count as a test declaration in a helper-driven suite, where the
 #: marked call is a call and not a ``def`` -- and may sit ANYWHERE on the line
@@ -117,6 +153,78 @@ def load_requirements(path: Path) -> dict[str, Row]:
             other=[c for c in cites if not _is_local(c) and not EXTERNAL_RE.match(c)],
         )
     return found
+
+
+def _mask_code_spans(text: str) -> str:
+    """Mask every code span, CommonMark style (astra r1 MUST 1): a run of N backticks opens a
+    span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``, ``shall``
+    and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side of a bare
+    "shall". An unmatched backtick run is literal text, not a span. The whole span --
+    delimiters and content -- is replaced with a SINGLE SPACE, never with nothing (astra r2
+    MUST 3): deleting it outright let the words either side glue together -- `` sh`x`all ``
+    read back as the word "shall" (falsely counted), and `` shall`x`é `` read back as one
+    token "shallé" (a real `shall` lost). A `shall` inside a span is a mention, never a
+    promise (G-013); the space is a separator, not content."""
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != "`":
+            out.append(text[i])
+            i += 1
+            continue
+        j = i
+        while j < n and text[j] == "`":
+            j += 1
+        run = j - i
+        k = j
+        close_end = -1
+        while k < n:
+            if text[k] != "`":
+                k += 1
+                continue
+            m = k
+            while m < n and text[m] == "`":
+                m += 1
+            if m - k == run:
+                close_end = m
+                break
+            k = m
+        if close_end == -1:
+            out.append(text[i:j])  # no matching close: the opening run is literal text
+            i = j
+        else:
+            out.append(" ")  # the whole span becomes ONE separator, delimiters and content gone
+            i = close_end
+    return "".join(out)
+
+
+def _shall_count(requirement: str) -> int:
+    """Whole-word, case-insensitive `shall` tokens in a Requirement cell, code spans masked first."""
+    return len(SHALL_RE.findall(_mask_code_spans(requirement)))
+
+
+def shall_counts(text: str) -> dict[str, int]:
+    """Every row's `shall` count in its Requirement cell, read straight from the table text --
+    independent of ``load_requirements()`` so ``Row``'s shape carries no new field and every
+    existing comparison against it stays exact."""
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if not cells or not ID_RE.match(cells[0]):
+            continue
+        if len(cells) != 4:
+            continue  # load_requirements already raises on this shape
+        counts[cells[0]] = _shall_count(cells[1])
+    return counts
+
+
+def ears_off_form(requirements: dict[str, Row], counts: dict[str, int]) -> list[str]:
+    """Ids off EARS form (G-013): not ``retired``, and the Requirement cell's `shall` count,
+    code spans masked, is not exactly one."""
+    return sorted(rid for rid, row in requirements.items() if row.status != "retired" and counts.get(rid, 0) != 1)
 
 
 def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
@@ -231,21 +339,37 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
 
 
 def check(
-    root: Path, test_roots: tuple[str, ...] = ("tests",), call_names: tuple[str, ...] = CALL_NAMES
-) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str]:
-    """Read a project's REQUIREMENTS.md, scan its test roots and report the disagreements.
+    root: Path,
+    test_roots: tuple[str, ...] = ("tests",),
+    call_names: tuple[str, ...] = CALL_NAMES,
+    ears_allowance: int = EARS_ALLOWANCE_DEFAULT,
+) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str, list[str], str, str]:
+    """Read a project's REQUIREMENTS.md, scan its test roots and report the disagreements,
+    including rows off EARS form (G-013/G-014/G-015).
 
     ``test_roots`` are project-root-relative, so citations stay project-root-relative too
     -- a repo with several suites passes them all and cites each by its real path.
     """
-    requirements = load_requirements(root / "REQUIREMENTS.md")
+    reqs_path = root / "REQUIREMENTS.md"
+    text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
+    requirements = load_requirements(reqs_path)
+    counts = shall_counts(text)
+    off_form = ears_off_form(requirements, counts)
     traced: dict[str, list[str]] = {}
     for rel in test_roots:
         if not (root / rel).is_dir():
             continue
         for rid, cites in scan_dir(root / rel, call_names, rel).items():
             traced.setdefault(rid, []).extend(cites)
-    return requirements, traced, trace_problems(requirements, traced), summary(requirements, traced)
+    problems = trace_problems(requirements, traced)
+    if len(off_form) > ears_allowance:
+        problems += [f"{rid} carries {counts.get(rid, 0)} shall (one is the form)" for rid in off_form]
+    line = summary(requirements, traced)
+    ears_line = f"ears: {len(off_form)} rows off form (allowance {ears_allowance})"
+    # `line` and `ears_line` joined by one newline, in that order -- a structural guarantee
+    # (G-014's "in its own line after the summary line") pinned without spying on a consumer.
+    report = f"{line}\n{ears_line}"
+    return requirements, traced, problems, line, off_form, ears_line, report
 
 
 def _is_full_run(config: pytest.Config) -> bool:
@@ -254,23 +378,39 @@ def _is_full_run(config: pytest.Config) -> bool:
     return args == testpaths
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register the EARS allowance ini option (G-013/G-014/G-015): rows tolerated off form
+    before a FULL run fails naming them. Default EARS_ALLOWANCE_DEFAULT (see above)."""
+    parser.addini(
+        "requirements_ears_allowance",
+        help="rows tolerated off EARS form (not exactly one `shall`) before a full run fails naming them",
+        type="int",
+        default=EARS_ALLOWANCE_DEFAULT,
+    )
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Compare REQUIREMENTS.md against the markers; fail a full run that disagrees."""
     config = session.config
+    ears_allowance = config.getini("requirements_ears_allowance")
     try:
-        requirements, traced, problems, line = check(config.rootpath)
+        requirements, traced, problems, _line, _off_form, _ears_line, report = check(
+            config.rootpath, ears_allowance=ears_allowance
+        )
     except pytest.UsageError as err:
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
-        requirements, traced, problems, line = {}, {}, [str(err)], "requirements: unreadable"
+        requirements, traced, problems = {}, {}, [str(err)]
+        report = "requirements: unreadable" + "\n" + "ears: unreadable"
     if not requirements and not traced and not problems:
         return
     reporter = config.pluginmanager.get_plugin("terminalreporter")
     full = _is_full_run(config)
     if reporter is not None:
         reporter.write_line("")
-        reporter.write_line(line)
+        for line_out in report.split("\n"):
+            reporter.write_line(line_out)
         if problems:
             head = "requirements trace FAILED:" if full else "requirements trace (partial run, informational):"
             reporter.write_line(head, red=full)

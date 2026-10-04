@@ -131,17 +131,55 @@ const LANGS = {
 	},
 };
 
-/** The Part G block arrived through the shared include with its ids unrenumbered. */
+/**
+ * The Part G block arrived through the shared include with its ids unrenumbered: the SET of
+ * ids is exactly G-001..G-022, each appearing once. R-737 promises stable ids, not table
+ * order — astra r1 MUST 3 ruled the explicit split-placement rule wins (directly after the
+ * origin), so split-born rows now sit interleaved among G1-G4, not in sequence; the check
+ * below compares SORTED arrays and keeps its own duplicate check, rather than requiring the
+ * unsorted array to already read G-001, G-002, G-003, ….
+ */
 function partG(language, dest, mode) {
 	const reqs = fs.readFileSync(path.join(dest, "REQUIREMENTS.md"), "utf-8");
 	const gIds = [...reqs.matchAll(/^\|\s*(G-\d{3})\s*\|/gm)].map((m) => m[1]);
-	const wantG = Array.from({ length: 12 }, (_, i) => `G-${String(i + 1).padStart(3, "0")}`);
+	const wantG = Array.from({ length: 22 }, (_, i) => `G-${String(i + 1).padStart(3, "0")}`);
+	const noDupes = gIds.length === new Set(gIds).size;
+	const sorted = [...gIds].sort();
 	// req: R-737
-	check(`${language} ${mode}: Part G ships G-001..G-012 unrenumbered`, `${gIds}` === `${wantG}`, `got ${gIds}`);
+	check(`${language} ${mode}: Part G ships G-001..G-022 unrenumbered`,
+		noDupes && `${sorted}` === `${wantG}`,
+		`got ${gIds} (sorted ${sorted}, duplicates: ${!noDupes})`);
 	// req: R-737
 	check(`${language} ${mode}: no jinja survives into REQUIREMENTS.md`, !/\{[{%]/.test(reqs), "an unrendered tag is left");
 	return reqs;
 }
+
+/**
+ * The Requirement cell text of every G-id in templates/_shared/requirements-general.md,
+ * stripped of the Jinja `{%- set -%}` statement lines (which produce no output and carry
+ * no `|`-delimited row shape).
+ */
+function sharedPartGRequirementText() {
+	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-general.md"), "utf-8");
+	const text = new Map();
+	for (const m of shared.matchAll(/^\|\s*(G-\d{3})\s*\|([^|]+)\|/gm)) text.set(m[1], m[2].trim());
+	return text;
+}
+
+/** R-756: nana-pi's own Part G Requirement cells must read byte-identical to the shared file's. */
+function checkNanaPiPartGMirrorsTheSharedFile() {
+	const nanaPi = fs.readFileSync(path.join(REPO, "REQUIREMENTS.md"), "utf-8");
+	const own = new Map();
+	for (const m of nanaPi.matchAll(/^\|\s*(G-\d{3})\s*\|([^|]+)\|/gm)) own.set(m[1], m[2].trim());
+	const shared = sharedPartGRequirementText();
+	const mismatched = [...shared].filter(([id, text]) => own.get(id) !== text).map(([id]) => id);
+	// req: R-756
+	check("nana-pi Part G mirrors templates/_shared/requirements-general.md",
+		mismatched.length === 0,
+		`mismatched: ${mismatched}`,
+	);
+}
+checkNanaPiPartGMirrorsTheSharedFile();
 
 const version = copierAvailable();
 if (!version) {
@@ -239,7 +277,7 @@ if (!version) {
 			const reqs = partG(language, dir, "adopt");
 			check(`${language} adopt: no row claims implemented`, !/^\|\s*[RG]-\d{3}\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "a row claims implemented");
 			const statuses = [...reqs.matchAll(/^\|\s*G-\d{3}\s*\|.*\|\s*(\w+)\s*\|/gm)].map((m) => m[1]);
-			check(`${language} adopt: every Part G row starts untested`, statuses.length === 12 && statuses.every((s) => s === "untested"), `got ${statuses}`);
+			check(`${language} adopt: every Part G row starts untested`, statuses.length === 22 && statuses.every((s) => s === "untested"), `got ${statuses}`);
 			check(`${language} adopt: no product row is invented`, !/^\|\s*R-\d{3}\s*\|/m.test(reqs), "an R row was emitted");
 			check(`${language} adopt: the confirm-the-statuses blockquote is gone`, !/ADOPTED rather than scaffolded/.test(reqs), "the old blockquote survives");
 

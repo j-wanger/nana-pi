@@ -36,8 +36,11 @@ An `implemented` row with no marker and no external evidence fails; an `implemen
 whose evidence names no test in this repo fails; an `untested`, `planned` or `violated` row
 that a marker traces fails; a marker naming an unknown id fails; and an `implemented` row
 citing a test that does not exist, or that does not carry that row's marker, fails. The rail
-is the plugin in `tests/conftest.py`; it scans `tests/` recursively, fails a full run and
-only reports on a partial one.
+also counts the EARS form (G-013): a non-`retired` row whose Requirement cell does not carry
+exactly one `shall` outside a code span is off form, and a full run fails naming each
+off-form row once the count exceeds the `requirements_ears_allowance` ini option (default 0).
+The rail is the plugin in `tests/conftest.py`; it scans `tests/` recursively, fails a full run
+and only reports on a partial one.
 
 **ID blocks:** `R-001` onward are this project's rows. `G-001` onward are Part G, the
 general engineering requirements every nana project carries — they arrive with the
@@ -56,7 +59,10 @@ test in this repo pins it and the evidence cell names that test. The self-tests 
 `req-candidate:` markers instead of `req:` for exactly that reason — rename one to `req:`
 when you promote its row. Until every mapped module carries a contract header, the
 self-test that checks THIS project's headers and map fails: that is the audit's work, not
-a reason to delete the test.
+a reason to delete the test. The EARS form check (G-013) also runs on day one: if the
+audit's own rows land off form before they are split, declare the allowance at the count
+the first run names (`requirements_ears_allowance` in `pyproject.toml`'s
+`[tool.pytest.ini_options]`) rather than leaving the rail red.
 G-012 arrives the same way: `scripts/readme_check.py` checks that this project's README names
 nothing that does not exist — run it, fix what it reports (or the README), and promote the
 row when it is green.

@@ -1,9 +1,9 @@
 /**
  * @module tests/requirements-trace.ts
- * @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries.
+ * @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries, and that its Requirement cell carries exactly one `shall`.
  * @inputs REQUIREMENTS.md and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
- * @outputs the parsed rows, the traced ids, a list of human-readable problems and a one-line summary
- * @effects disk (reads REQUIREMENTS.md and the test sources)
+ * @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems and a one-line summary
+ * @effects disk (reads REQUIREMENTS.md and the test sources), process (printReport writes the report to stdout)
  * @errors a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
  */
 // The requirements-first rail. A test declares which rows it evidences with a
@@ -24,6 +24,12 @@
 // Evidence that lives in another repo is cited with a `<repo>:` prefix
 // (`other-repo:tests/...`); a row whose evidence is entirely external is traced
 // there, not here, and is exempt from the local-marker rule.
+//
+// `check()` also counts the EARS form (G-013/G-014/G-015): every non-retired row's
+// Requirement cell must carry exactly one whole-word `shall` outside a code span. The
+// count of off-form rows is reported on its own `ears:` line every run, and once that
+// count exceeds the declared allowance (CheckOptions.earsAllowance, default
+// EARS_ALLOWANCE_DEFAULT), each off-form row becomes a problem line too.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -42,6 +48,77 @@ const EXTERNAL = /^[a-z][a-z0-9-]*:/;
 const MARKER = /^\s*\/\/\s*req:\s*(.+?)\s*$/;
 /** The statuses that a traced row contradicts. */
 const STALE = new Set(["untested", "planned", "violated"]);
+
+/**
+ * Mask every code span in `text`, CommonMark style (astra r1 MUST 1): a run of N backticks
+ * opens a span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``,
+ * ``shall`` and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side
+ * of a bare "shall". An unmatched backtick run is literal text, not a span. The whole span —
+ * delimiters and content — is replaced with a SINGLE SPACE, never with nothing (astra r2
+ * MUST 3): deleting it outright let the words either side glue together — `` sh`x`all ``
+ * read back as the word "shall" (falsely counted), and `` shall`x`é `` read back as one
+ * token "shallé" (a real `shall` lost). A `shall` inside a span is a mention, never a
+ * promise (G-013); the space is a separator, not content.
+ */
+function maskCodeSpans(text: string): string {
+	let out = "";
+	let i = 0;
+	while (i < text.length) {
+		if (text[i] !== "`") {
+			out += text[i];
+			i++;
+			continue;
+		}
+		let j = i;
+		while (j < text.length && text[j] === "`") j++;
+		const n = j - i;
+		let k = j;
+		let closeEnd = -1;
+		while (k < text.length) {
+			if (text[k] !== "`") {
+				k++;
+				continue;
+			}
+			let m = k;
+			while (m < text.length && text[m] === "`") m++;
+			if (m - k === n) {
+				closeEnd = m;
+				break;
+			}
+			k = m;
+		}
+		if (closeEnd === -1) {
+			out += text.slice(i, j); // no matching close: the opening run is literal text
+			i = j;
+		} else {
+			out += " "; // the whole span becomes ONE separator, delimiters and content gone
+			i = closeEnd;
+		}
+	}
+	return out;
+}
+
+/**
+ * A `shall`, case-insensitive, not preceded or followed by an ASCII letter, digit or
+ * underscore — explicitly `[A-Za-z0-9_]`, written identically (the literal class, not `\w`
+ * or a Unicode property) in both rails (astra r2 MUST 1). Requirement rows are English
+ * prose, so this is a deliberately NARROWER contract than "every Unicode word character":
+ * a non-ASCII letter immediately touching "shall" (e.g. "shallé") counts as a BOUNDARY, not
+ * as part of a longer word — "shallé" carries a `shall`. The reason is version independence,
+ * not linguistics: `\p{L}`/`\w` read from the runtime's OWN Unicode database, and Node
+ * 22 (Unicode 17) and Python 3.14 (Unicode 16) disagreed on 4,657 codepoints' letter/digit
+ * membership, including U+088F and U+A7F1 — a silent, version-dependent split neither
+ * language's own tests would ever catch. An explicit ASCII class has no Unicode database to
+ * disagree about. See PARITY_FIXTURES below for the codepoints this was measured against.
+ */
+export const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
+
+/**
+ * The allowance default for a project with no declared value: a new project writes rows
+ * one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1). Pinned by
+ * requirements-trace.test.ts::seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015).
+ */
+export const EARS_ALLOWANCE_DEFAULT = 0;
 
 /** The call names that count as a test declaration, when a project does not say. */
 export const CALL_NAMES = ["test", "it"];
@@ -130,6 +207,39 @@ export function loadRequirements(text: string): Map<string, Row> {
 		});
 	}
 	return rows;
+}
+
+/**
+ * Every row's `shall` count in its Requirement cell, read straight from the table text —
+ * independent of `loadRequirements()` so `Row`'s shape carries no new field and every
+ * existing comparison against it stays exact.
+ */
+export function shallCounts(text: string): Map<string, number> {
+	const counts = new Map<string, number>();
+	for (const line of text.split("\n")) {
+		const m = ROW.exec(line);
+		if (!m) continue;
+		const id = m[1] as string;
+		const cells = (m[2] as string).split("|").map((c) => c.trim());
+		if (cells.length !== 3) continue; // loadRequirements already throws on this shape
+		const requirement = cells[0] as string;
+		counts.set(id, (maskCodeSpans(requirement).match(SHALL) ?? []).length);
+	}
+	return counts;
+}
+
+/**
+ * Ids off EARS form (G-013): not `retired`, and the Requirement cell's `shall` count,
+ * code spans masked, is not exactly one.
+ */
+export function earsOffForm(
+	requirements: Map<string, Row>,
+	counts: Map<string, number>,
+): string[] {
+	return [...requirements]
+		.filter(([id, row]) => row.status !== "retired" && (counts.get(id) ?? 0) !== 1)
+		.map(([id]) => id)
+		.sort();
 }
 
 /** The ids of the marker block starting at `start`, and the line after it. */
@@ -315,6 +425,16 @@ export interface CheckResult {
 	traced: Map<string, string[]>;
 	problems: string[];
 	line: string;
+	/** Ids off EARS form (G-013), sorted — in the result so a caller can list them unflagged. */
+	earsOffForm: string[];
+	/** The `ears:` report line (G-014), printed after `line` every run regardless of pass/fail. */
+	earsLine: string;
+	/**
+	 * `line` and `earsLine` joined by one newline, in that order — a structural guarantee
+	 * (G-014's "in its own line after the summary line") a caller can print as one block and
+	 * a test can pin without spying on a consumer's print statements.
+	 */
+	report: string;
 }
 
 export interface CheckOptions {
@@ -322,6 +442,8 @@ export interface CheckOptions {
 	testRoots?: string[];
 	/** What this project spells its test declaration. Default `['test', 'it']`. */
 	callNames?: string[];
+	/** Rows off EARS form tolerated before the rail fails naming them (G-015). Default EARS_ALLOWANCE_DEFAULT. */
+	earsAllowance?: number;
 }
 
 /**
@@ -332,9 +454,9 @@ export interface CheckOptions {
 export function check(root: string, options: CheckOptions = {}): CheckResult {
 	const testRoots = options.testRoots ?? TEST_ROOTS;
 	const callNames = options.callNames ?? CALL_NAMES;
-	const requirements = loadRequirements(
-		readFileSync(join(root, "REQUIREMENTS.md"), "utf8"),
-	);
+	const earsAllowance = options.earsAllowance ?? EARS_ALLOWANCE_DEFAULT;
+	const text = readFileSync(join(root, "REQUIREMENTS.md"), "utf8");
+	const requirements = loadRequirements(text);
 	const traced = new Map<string, string[]>();
 	for (const dir of testRoots) {
 		if (!existsSync(join(root, dir))) continue;
@@ -344,10 +466,34 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 			else traced.set(id, [...cites]);
 		}
 	}
+	const counts = shallCounts(text);
+	const earsOffFormIds = earsOffForm(requirements, counts);
+	const problems = traceProblems(requirements, traced);
+	if (earsOffFormIds.length > earsAllowance) {
+		for (const id of earsOffFormIds) {
+			problems.push(`${id} carries ${counts.get(id) ?? 0} shall (one is the form)`);
+		}
+	}
+	const line = summary(requirements, traced);
+	const earsLine = `ears: ${earsOffFormIds.length} rows off form (allowance ${earsAllowance})`;
 	return {
 		requirements,
 		traced,
-		problems: traceProblems(requirements, traced),
-		line: summary(requirements, traced),
+		problems,
+		line,
+		earsOffForm: earsOffFormIds,
+		earsLine,
+		report: `${line}\n${earsLine}`,
 	};
+}
+
+/**
+ * Print a check() result's report to the console — the ONE function every real caller
+ * uses (this rail ships no separate CLI of its own; a project's own test run, printed by
+ * vitest, is its reporting surface). A test spies on THIS function directly (astra r2
+ * MUST 2), so a mutation to its body — not just to the computed `report` field a test
+ * could read without ever printing it — turns the cited test red.
+ */
+export function printReport(result: CheckResult): void {
+	console.log(result.report);
 }

@@ -1,3 +1,4 @@
+{%- set rq = '# req-candidate:' if adopt else '# req:' -%}
 """@module tests/test_requirements_trace.py
 @purpose Pin the requirements rail in tests/conftest.py against fixtures and against a real pytest run.
 @inputs the functions of tests/conftest.py, fixture requirement tables, and pytester projects
@@ -5,6 +6,10 @@
 @effects disk (pytester writes and removes scratch projects under the tmp dir),
   process (pytester runs pytest in a subprocess)
 @errors none beyond assertion failures
+
+The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+`req-candidate:` instead: nothing is claimed about this project until the audit
+promotes the row, and then the marker is renamed to `req:`.
 
 Fixture test sources are built from one-line f-strings on purpose: a marker
 comment spelled on its own line in this file would be picked up as a real marker
@@ -16,9 +21,21 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from conftest import Row, load_requirements, scan_dir, scan_source, summary, trace_problems
+from conftest import (
+    EARS_ALLOWANCE_DEFAULT,
+    Row,
+    check,
+    ears_off_form,
+    load_requirements,
+    scan_dir,
+    scan_source,
+    shall_counts,
+    summary,
+    trace_problems,
+)
 
 CONFTEST_SRC = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+PROJECT = Path(__file__).resolve().parent.parent
 
 REQS = """# reqs
 | ID | Requirement | Status | Evidence |
@@ -30,6 +47,83 @@ REQS = """# reqs
 """
 
 MARK = "# req: "
+
+# Shared with requirements-trace.test.ts.jinja's PARITY_FIXTURES: the SAME strings and
+# expected counts in both languages (astra r1 MUST 1 + MUST 4, astra r2 MUST 1 + MUST 3) --
+# matching-run code-span masking that replaces a span with ONE separator, never nothing, and
+# one EXPLICIT ASCII-only word-boundary rule for `shall`, case-insensitive (`[A-Za-z0-9_]`,
+# never `\w` or a Unicode property): requirement rows are English prose, so a non-ASCII
+# letter or digit touching "shall" counts as a BOUNDARY, not as part of a longer word --
+# "shallé" carries a `shall`. This is deliberately narrower than "every Unicode word
+# character" so the count never depends on the runtime's OWN Unicode database version: Node
+# 22 ships Unicode 17, this rendered Python 3.14 ships Unicode 16, and an exhaustive sweep
+# found 4,657 codepoints where the two disagreed on `\p{L}`/`\p{N}` membership -- including
+# U+088F and U+A7F1 below, assigned letters in one database, unassigned (so non-word) in the
+# other. The ASCII class has no database to disagree about.
+PARITY_FIXTURES: list[tuple[str, int]] = [
+    ("The system shall do one thing.", 1),
+    ("The system shall mention `shall` in backticks.", 1),
+    ("The system shall print ``shall``.", 1),
+    ("The system shall use `` `shall` `` as an example.", 1),
+    ('The system shall quote "shall" in output.', 2),
+    ("The shallower pool is shallow.", 0),
+    ("Shall the system respond.", 1),
+    # a non-ASCII letter next to "shall" is a boundary under the ASCII-only rule: BOTH the
+    # ordinary "shall" and the adjacent one count (astra r2 MUST 1; round 1 expected 1, not 2)
+    ("The system shall print shallé.", 2),
+    ("The system shall print éshall.", 2),
+    ("The system shall print shall_.", 1),
+    ("Shall.", 1),
+    ("No promise word here.", 0),
+    ("The system shall do X and shall do Y.", 2),
+    # astra r2's exact counterexample and category attacks: every character below is
+    # non-ASCII, so none of them block a match under the new rule -- each fixture's ordinary
+    # "shall" plus its adjacent "shall<char>" both count, every time, in both languages
+    ("The system shall print shall࢏.", 2),  # U+088F: letter in Unicode 17, unassigned in 16
+    ("The system shall print shall꟱.", 2),  # U+A7F1: same cross-version split
+    ("The system shall print shalĺ.", 2),  # U+0301 combining acute accent
+    ("The system shall print shall٠.", 2),  # U+0660 Arabic-Indic digit zero
+    ("The system shall print shallⅠ.", 2),  # U+2160 Roman numeral one
+    ("The system shall print shall².", 2),  # U+00B2 superscript two
+    ("The system shall print shallʰ.", 2),  # U+02B0 modifier letter small h (Lm)
+    ("The system shall print shall一.", 2),  # U+4E00 CJK ideograph (Lo)
+    ("The system shall print shall‍.", 2),  # U+200D zero-width joiner
+    # astra r3 MUST 1: Python's case-INSENSITIVE matching is Unicode-aware by default, so
+    # plain re.IGNORECASE made [A-Za-z] ALSO match four characters that case-fold to an
+    # ASCII letter -- a live contract violation, not a Unicode-version residual. Each is a
+    # boundary under the ASCII-only rule, both before and after "shall" (one match: the
+    # adjacent occurrence alone, no separate ordinary "shall" in these fixtures).
+    ("shallİ", 1),  # U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE, folds to i
+    ("İshall", 1),
+    ("shallı", 1),  # U+0131 LATIN SMALL LETTER DOTLESS I, folds to i
+    ("ıshall", 1),
+    ("shallſ", 1),  # U+017F LATIN SMALL LETTER LONG S, folds to s
+    ("ſshall", 1),
+    ("shallK", 1),  # U+212A KELVIN SIGN, folds to k
+    ("Kshall", 1),
+    # the long s IS "shall"'s own first letter under full Unicode case folding -- "ſhall"
+    # must NOT count as a `shall` (the TS counts are the contract both languages must meet)
+    ("ſhall", 0),
+    # a code span replaced by a separator, not nothing (astra r2 MUST 3): deleting it would
+    # either falsely glue "sh" + "all" back into "shall", or glue a real "shall" onto what
+    # follows the span
+    ("The system does sh`x`all nothing.", 0),
+    ("The system shall`x`é afterward.", 1),
+    ("The system shall``x``é afterward.", 1),
+]
+
+
+def _fixture_shall_count(requirement_text: str) -> int:
+    """One Requirement cell, wrapped in a minimal table and read through the real,
+    public `shall_counts()` -- the actual cell-splitting and row-matching path, not a
+    private helper called directly."""
+    table = f"| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | {requirement_text} | untested | — |\n"
+    return shall_counts(table).get("R-999", -1)
+
+
+def test_shall_count_parity_fixtures() -> None:
+    for text, expected in PARITY_FIXTURES:
+        assert _fixture_shall_count(text) == expected, f"{text!r}: expected {expected}"
 
 
 def load_requirements_text(text: str, tmp: Path) -> dict[str, Row]:
@@ -233,3 +327,72 @@ def test_bad_marker_id_is_a_usage_error(pytester: pytest.Pytester) -> None:
     result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
     assert result.ret != 0
     result.stdout.re_match_lines([r".*bad requirement id 'R1'.*"])
+
+
+{{ rq }} G-013
+def test_this_project_every_row_carries_exactly_one_shall(pytestconfig: pytest.Config) -> None:
+    # Filtered to the EARS problem shape, not every problem the full run checks, so this
+    # pins G-013 alone -- and reads against the project's declared
+    # requirements_ears_allowance ini option, the same value pytest_sessionfinish uses.
+    ears_allowance = pytestconfig.getini("requirements_ears_allowance")
+    _, _, problems, _, _, _, report = check(PROJECT, ears_allowance=ears_allowance)
+    ears_problems = [p for p in problems if p.endswith("(one is the form)")]
+    assert ears_problems == [], f"{report}: {ears_problems}"
+
+
+EARS_REQS = (
+    REQS
+    + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+    + "| R-901 | The system does Z with no promise word. | untested | — |\n"
+    + "| R-902 | Gone from the product. | retired | — |\n"
+)
+
+
+{{ rq }} G-014
+def test_ears_counts_a_two_shall_row_and_a_no_shall_row_but_not_a_retired_one(tmp_path: Path) -> None:
+    rows = load_requirements_text(EARS_REQS, tmp_path)
+    counts = shall_counts(EARS_REQS)
+    assert ears_off_form(rows, counts) == ["R-900", "R-901"]
+    # G-014: the count is reported on its OWN line, with the real count and allowance, AFTER
+    # the summary line (astra r1 MUST 2) -- pinned on `report`, the exact structure
+    # pytest_sessionfinish prints verbatim (conftest.py), not just the off-form id list.
+    (tmp_path / "REQUIREMENTS.md").write_text(EARS_REQS, encoding="utf-8")
+    (tmp_path / "tests").mkdir(exist_ok=True)
+    _, _, _, line, off_form, ears_line, report = check(tmp_path, ears_allowance=99)
+    assert off_form == ["R-900", "R-901"]
+    assert ears_line == "ears: 2 rows off form (allowance 99)"
+    assert report == f"{line}\n{ears_line}"
+    assert report.splitlines() == [line, ears_line]
+
+
+def test_ears_report_prints_after_the_summary_in_a_real_pytest_run(pytester: pytest.Pytester) -> None:
+    # The same claim as above, proven through the REAL pytest_sessionfinish hook's own
+    # terminal output rather than the returned tuple: fnmatch_lines checks these two
+    # patterns appear in THIS order in the actual run.
+    _project(pytester, EARS_REQS, _test_src())
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    result.stdout.fnmatch_lines(["requirements: * total*", "ears: 2 rows off form (allowance 0)"])
+
+
+{{ rq }} G-015
+def test_ears_over_the_allowance_each_off_form_row_is_a_problem_at_the_allowance_none(tmp_path: Path) -> None:
+    # TWO off-form rows (astra r1 MUST 2): a fixture with only one cannot tell "names EACH
+    # off-form row" apart from "names the first offending row, done".
+    text = (
+        REQS
+        + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+        + "| R-901 | The system shall do A and shall do B and shall do C. | untested | — |\n"
+    )
+    (tmp_path / "REQUIREMENTS.md").write_text(text, encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    _, _, problems_over, _, off_form_over, ears_line_over, _ = check(tmp_path, ears_allowance=0)
+    _, _, problems_at, _, _, _, _ = check(tmp_path, ears_allowance=2)
+    assert off_form_over == ["R-900", "R-901"]
+    assert ears_line_over == "ears: 2 rows off form (allowance 0)"
+    assert "R-900 carries 2 shall (one is the form)" in problems_over
+    assert "R-901 carries 3 shall (one is the form)" in problems_over
+    assert not any(p.startswith(("R-900", "R-901")) for p in problems_at)
+
+
+def test_seal_ears_allowance_default_is_0() -> None:
+    assert EARS_ALLOWANCE_DEFAULT == 0, "seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015)"

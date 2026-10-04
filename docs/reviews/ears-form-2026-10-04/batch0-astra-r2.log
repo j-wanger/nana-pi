@@ -1,0 +1,45 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "ears-form-batch0" (git:/Users/jwang/nana-pi/.git): 1 round(s) used (1 completed, 0 review(s) in flight); admitted as round 2/3 (adversarial @ 0704531731b1)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.89s flat=0/15
+  [pi-review a1] cpu=0.98s flat=0/15
+  [pi-review a1] cpu=1.06s flat=0/15
+  [pi-review a1] cpu=1.1s flat=0/15
+  [pi-review a1] cpu=1.25s flat=0/15
+  [pi-review a1] cpu=1.34s flat=0/15
+  [pi-review a1] cpu=1.37s flat=0/15
+  [pi-review a1] cpu=1.37s flat=1/15
+  [pi-review a1] cpu=1.37s flat=2/15
+  [pi-review a1] cpu=1.38s flat=0/15
+  [pi-review a1] cpu=1.38s flat=1/15
+  [pi-review a1] cpu=1.38s flat=2/15
+  [pi-review a1] cpu=1.38s flat=3/15
+  [pi-review a1] cpu=1.38s flat=4/15
+  [pi-review a1] cpu=1.38s flat=5/15
+  [pi-review a1] cpu=1.39s flat=0/15
+  [pi-review a1] cpu=1.48s flat=0/15
+  [pi-review a1] cpu=1.64s flat=0/15
+  [pi-review a1] cpu=1.78s flat=0/15
+  [pi-review a1] cpu=1.81s flat=0/15
+  [pi-review a1] cpu=1.81s flat=1/15
+  [pi-review a1] cpu=1.81s flat=2/15
+  [pi-review a1] cpu=1.81s flat=3/15
+  [pi-review a1] cpu=1.82s flat=0/15
+  [pi-review a1] cpu=1.82s flat=1/15
+  [pi-review a1] cpu=1.82s flat=2/15
+  [pi-review a1] cpu=1.82s flat=3/15
+  [pi-review a1] cpu=1.82s flat=4/15
+  [pi-review a1] cpu=1.82s flat=5/15
+  [pi-review a1] cpu=1.83s flat=0/15
+  [pi-review a1] cpu=1.83s flat=1/15
+  [pi-review a1] cpu=1.83s flat=2/15
+  [pi-review a1] cpu=1.83s flat=3/15
+  [pi-review a1] cpu=1.84s flat=0/15
+  [pi-review a1] cpu=1.86s flat=0/15
+  [pi-review a1] cpu=2.12s flat=0/15
+  [pi-review a1] cpu=2.22s flat=0/15
+  [pi-review a1] cpu=2.35s flat=0/15
+  [pi-review a1] cpu=2.43s flat=0/15
+  [pi-review a1] cpu=2.59s flat=0/15
+  [pi-review a1] cpu=2.72s flat=0/15
+[pi-review] SUCCESS on attempt 1 (8470 chars → /Users/jwang/nana-pi/docs/reviews/ears-form-2026-10-04/batch0-astra-r2.md; round 2)

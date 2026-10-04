@@ -1,0 +1,150 @@
+{
+  "batch": 0,
+  "date": "2026-10-04",
+  "scope": "the one-shall form check in both rails (G-013/G-014/G-015), the Part G split of its six multi-shall origins, and the declared ID-block continuations",
+  "seed": null,
+  "notes": "No merges: every extra `shall` clause found below is a distinct promise, not one promise in two wordings, so none were rewritten as one sentence instead of split. Every new row defaults to 'untested' unless a cited test and assertion demonstrably breaks on that exact clause by mutation; the standard applied is design-ruling.md §2's 'when in doubt, untested'.",
+  "origins": [
+    {
+      "origin": "G-001",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "G-001",
+          "text": "WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall be defined once in a declared configuration surface and read by name. A contract number is a sealed tunable in that surface with provenance naming its row, pinned by one test, and a retune is a requirement diff first.",
+          "status": "untested",
+          "cites": [],
+          "note": "origin keeps its ID; kept the trailing non-shall sentence (restates the sealed-tunable/provenance rule, not a second promise)"
+        },
+        {
+          "id": "G-016",
+          "text": "WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall not appear as an inline literal at a point of use.",
+          "status": "untested",
+          "cites": [],
+          "note": "no generic or nana-pi test asserts the absence of inline literals across the codebase; genuinely unpinned"
+        }
+      ]
+    },
+    {
+      "origin": "G-003",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "G-003",
+          "text": "WHEN a tunable changes, no code shall change.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "G-017",
+          "text": "WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates.",
+          "status": "untested",
+          "cites": []
+        }
+      ]
+    },
+    {
+      "origin": "G-005",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "G-005",
+          "text": "A module shall expose its behaviour only through named exports that are its entry points.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "G-018",
+          "text": "No module shall reach into another module's internals, private helpers or mutable state.",
+          "status": "untested",
+          "cites": []
+        }
+      ]
+    },
+    {
+      "origin": "G-007",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "G-007",
+          "text": "Imports shall follow the layer direction declared in the code-map config — a module may import its own layer or the one directly after it, and tests may import anything.",
+          "status": "implemented (nana-pi only; untested in the generic template)",
+          "cites": ["packages/nana-pack/tests/code-map.test.mjs::no module in a package imports an app"],
+          "assertion": "reversed.length === 0, computed from the live import graph's layer ids — breaks if any package module calls an app module",
+          "note": "re-judged against the trimmed clause 1 only; the existing cite genuinely still pins it, unchanged"
+        },
+        {
+          "id": "G-019",
+          "text": "A reverse or layer-skipping import shall fail a check.",
+          "status": "untested",
+          "cites": [],
+          "note": "the G-007 cite tests the graph's CURRENT state (no violation present), not that running --check actually fails when one is introduced; that is a different, unpinned claim about the checker's mechanism, so this clause is NOT given the sibling's cite"
+        }
+      ]
+    },
+    {
+      "origin": "G-008",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "G-008",
+          "text": "A module shall have one purpose statable in one sentence.",
+          "status": "untested",
+          "cites": []
+        },
+        {
+          "id": "G-020",
+          "text": "WHEN a module's header needs more than one sentence of purpose, it shall be split.",
+          "status": "untested",
+          "cites": []
+        }
+      ]
+    },
+    {
+      "origin": "G-012",
+      "originalShallCount": 3,
+      "clauses": [
+        {
+          "id": "G-012",
+          "text": "The README shall state what the project is and is for, how to install it, how to run it and how to test it.",
+          "status": "implemented (nana-pi); implemented in scaffold mode / untested in adopt mode for the generic template",
+          "cites": ["packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims"],
+          "assertion": "problems.length === 0 from checkProject(), which fails if the first-paragraph/install/run/test structure is missing",
+          "note": "re-judged against the trimmed clause 1 only; unchanged"
+        },
+        {
+          "id": "G-021",
+          "text": "Every command, script name, path, flag and file the README names shall exist and run as written.",
+          "status": "untested",
+          "cites": [],
+          "note": "the SAME checkProject() result that pins G-012 clause 1 ALSO breaks if a named command/path/flag is missing, so an argument could be made this clause is already pinned too. Left untested deliberately (design-ruling.md §2's 'when in doubt, untested'): copying a sibling's cite onto a second clause without an independent mutation check is exactly the failure shape the ruling calls out (sol r3, the 'cite set equals the origin's' pattern) and this worker chose not to assert it without running that mutation explicitly for this clause."
+        },
+        {
+          "id": "G-022",
+          "text": "A README claim the project no longer honours shall fail the suite.",
+          "status": "untested",
+          "cites": [],
+          "note": "same reasoning as G-021: plausibly pinned by the same test, left untested for an independent reviewer or a later lane to verify by mutation before promoting"
+        }
+      ]
+    }
+  ],
+  "siblingCiteFlags": [
+    "G-019 was NOT given G-007's cite (see note above) — the one case in this batch that matches the sol r3 failure shape, deliberately avoided rather than fixed after the fact",
+    "G-021 and G-022 were NOT given G-012's cite for the same reason, left untested instead"
+  ],
+  "idBlocksDeclaredUpFront": {
+    "R-756_to_R-879": "packages/nana-pack continuation after R-755",
+    "R-880_to_R-909": "packages/nana-knowledge continuation",
+    "R-910_to_R-919": "the repo test runner continuation",
+    "R-920_to_R-939": "packages/nana-setup continuation, after R-399",
+    "R-940_to_R-959": "apps/desk continuation, after R-499",
+    "G-013_to_G-015": "the EARS form check rows",
+    "G-016_to_G-022": "the Part G split rows"
+  },
+  "rowsAddedThisBatch": ["G-013", "G-014", "G-015", "G-016", "G-017", "G-018", "G-019", "G-020", "G-021", "G-022", "R-756", "R-757"],
+  "allowanceBefore": 200,
+  "allowanceAfter": 194,
+  "measuredOffFormBeforeBatch": 200,
+  "measuredOffFormAfterBatch": 194
+}

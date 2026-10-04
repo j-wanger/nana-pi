@@ -1,0 +1,49 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "ears-form-batch0" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (adversarial @ 6f21ea9dd32d)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.89s flat=0/15
+  [pi-review a1] cpu=0.95s flat=0/15
+  [pi-review a1] cpu=0.97s flat=0/15
+  [pi-review a1] cpu=1.09s flat=0/15
+  [pi-review a1] cpu=1.14s flat=0/15
+  [pi-review a1] cpu=1.32s flat=0/15
+  [pi-review a1] cpu=1.46s flat=0/15
+  [pi-review a1] cpu=1.62s flat=0/15
+  [pi-review a1] cpu=1.64s flat=0/15
+  [pi-review a1] cpu=1.65s flat=0/15
+  [pi-review a1] cpu=1.65s flat=1/15
+  [pi-review a1] cpu=1.65s flat=2/15
+  [pi-review a1] cpu=1.65s flat=3/15
+  [pi-review a1] cpu=1.65s flat=4/15
+  [pi-review a1] cpu=1.65s flat=5/15
+  [pi-review a1] cpu=1.66s flat=0/15
+  [pi-review a1] cpu=1.66s flat=1/15
+  [pi-review a1] cpu=1.66s flat=2/15
+  [pi-review a1] cpu=1.66s flat=3/15
+  [pi-review a1] cpu=1.66s flat=4/15
+  [pi-review a1] cpu=1.67s flat=0/15
+  [pi-review a1] cpu=1.86s flat=0/15
+  [pi-review a1] cpu=1.87s flat=0/15
+  [pi-review a1] cpu=1.88s flat=0/15
+  [pi-review a1] cpu=1.88s flat=1/15
+  [pi-review a1] cpu=1.88s flat=2/15
+  [pi-review a1] cpu=1.88s flat=3/15
+  [pi-review a1] cpu=1.88s flat=4/15
+  [pi-review a1] cpu=1.88s flat=5/15
+  [pi-review a1] cpu=1.88s flat=6/15
+  [pi-review a1] cpu=1.89s flat=0/15
+  [pi-review a1] cpu=1.89s flat=1/15
+  [pi-review a1] cpu=1.89s flat=2/15
+  [pi-review a1] cpu=1.89s flat=3/15
+  [pi-review a1] cpu=1.89s flat=4/15
+  [pi-review a1] cpu=1.89s flat=5/15
+  [pi-review a1] cpu=1.91s flat=0/15
+  [pi-review a1] cpu=2.04s flat=0/15
+  [pi-review a1] cpu=2.15s flat=0/15
+  [pi-review a1] cpu=2.16s flat=0/15
+  [pi-review a1] cpu=2.27s flat=0/15
+  [pi-review a1] cpu=2.3s flat=0/15
+  [pi-review a1] cpu=2.44s flat=0/15
+  [pi-review a1] cpu=2.55s flat=0/15
+  [pi-review a1] cpu=2.64s flat=0/15
+[pi-review] SUCCESS on attempt 1 (7870 chars → /Users/jwang/nana-pi/docs/reviews/ears-form-2026-10-04/batch0-astra-r1.md; round 1)

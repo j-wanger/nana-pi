@@ -1,3 +1,4 @@
+{%- set rq = '// req-candidate:' if adopt else '// req:' -%}
 /**
  * @module tests/requirements-trace.test.ts
  * @purpose Pin the requirements rail — the checker against fixtures, then this project's REQUIREMENTS.md against the markers its suite carries.
@@ -11,6 +12,10 @@
 // `implemented` row nobody tests, or an `untested` row a test already pins. The
 // checker reads test SOURCE, so a single-file run is still a full check.
 //
+// The `req:` markers below are the trace rail's. In ADOPT mode they are emitted as
+// `req-candidate:` instead: nothing is claimed about this project until the audit
+// promotes the row, and then the marker is renamed to `req:`.
+//
 // Fixture test sources are written as ONE physical line with \n escapes on
 // purpose: a marker comment spelled on its own line in this file would be picked
 // up as a real marker when the checker scans this very file.
@@ -18,12 +23,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, test } from "vitest";
+import { afterAll, describe, expect, test, vi } from "vitest";
 
 import {
 	check,
+	EARS_ALLOWANCE_DEFAULT,
+	earsOffForm,
 	loadRequirements,
+	printReport,
 	scanSource,
+	shallCounts,
 	summary,
 	traceProblems,
 } from "./requirements-trace.js";
@@ -42,6 +51,88 @@ const REQS = `# reqs
 const scratch: string[] = [];
 afterAll(() => {
 	for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
+
+// Shared with test_requirements_trace.py.jinja's PARITY_FIXTURES: the SAME strings and
+// expected counts in both languages (astra r1 MUST 1 + MUST 4, astra r2 MUST 1 + MUST 3) —
+// matching-run code-span masking that replaces a span with ONE separator, never nothing, and
+// one EXPLICIT ASCII-only word-boundary rule for `shall`, case-insensitive
+// (`[A-Za-z0-9_]`, never `\w` or a Unicode property): requirement rows are English prose, so
+// a non-ASCII letter or digit touching "shall" counts as a BOUNDARY, not as part of a longer
+// word — "shallé" carries a `shall`. This is deliberately narrower than "every Unicode word
+// character" so the count never depends on the runtime's OWN Unicode database version: Node
+// 22 ships Unicode 17, the rendered Python 3.14 ships Unicode 16, and an exhaustive sweep
+// found 4,657 codepoints where the two disagreed on `\p{L}`/`\p{N}` membership — including
+// U+088F and U+A7F1 below, assigned letters in one database, unassigned (so non-word) in the
+// other. The ASCII class has no database to disagree about.
+const PARITY_FIXTURES: [string, number][] = [
+	["The system shall do one thing.", 1],
+	["The system shall mention `shall` in backticks.", 1],
+	["The system shall print ``shall``.", 1],
+	["The system shall use `` `shall` `` as an example.", 1],
+	['The system shall quote "shall" in output.', 2],
+	["The shallower pool is shallow.", 0],
+	["Shall the system respond.", 1],
+	// a non-ASCII letter next to "shall" is a boundary under the ASCII-only rule: BOTH the
+	// ordinary "shall" and the adjacent one count (astra r2 MUST 1; round 1 expected 1, not 2)
+	["The system shall print shallé.", 2],
+	["The system shall print éshall.", 2],
+	["The system shall print shall_.", 1],
+	["Shall.", 1],
+	["No promise word here.", 0],
+	["The system shall do X and shall do Y.", 2],
+	// astra r2's exact counterexample and category attacks: every character below is
+	// non-ASCII, so none of them block a match under the new rule — each fixture's ordinary
+	// "shall" plus its adjacent "shall<char>" both count, every time, in both languages
+	["The system shall print shall࢏.", 2], // U+088F: assigned letter in Unicode 17, unassigned in 16
+	["The system shall print shall꟱.", 2], // U+A7F1: same cross-version split
+	["The system shall print shalĺ.", 2], // U+0301 combining acute accent
+	["The system shall print shall٠.", 2], // U+0660 Arabic-Indic digit zero
+	["The system shall print shallⅠ.", 2], // U+2160 Roman numeral one
+	["The system shall print shall².", 2], // U+00B2 superscript two
+	["The system shall print shallʰ.", 2], // U+02B0 modifier letter small h (Lm)
+	["The system shall print shall一.", 2], // U+4E00 CJK ideograph (Lo)
+	["The system shall print shall‍.", 2], // U+200D zero-width joiner
+	// astra r3 MUST 1: Python's case-INSENSITIVE matching is Unicode-aware by default, so
+	// plain re.IGNORECASE made [A-Za-z] ALSO match four characters that case-fold to an
+	// ASCII letter — a live contract violation, not a Unicode-version residual. Each is a
+	// boundary under the ASCII-only rule, both before and after "shall" (one match: the
+	// adjacent occurrence alone, no separate ordinary "shall" in these fixtures).
+	["shallİ", 1], // U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE, folds to i
+	["İshall", 1],
+	["shallı", 1], // U+0131 LATIN SMALL LETTER DOTLESS I, folds to i
+	["ıshall", 1],
+	["shallſ", 1], // U+017F LATIN SMALL LETTER LONG S, folds to s
+	["ſshall", 1],
+	["shallK", 1], // U+212A KELVIN SIGN, folds to k
+	["Kshall", 1],
+	// the long s IS "shall"'s own first letter under full Unicode case folding — "ſhall"
+	// must NOT count as a `shall` (the TS counts are the contract both languages must meet)
+	["ſhall", 0],
+	// a code span replaced by a separator, not nothing (astra r2 MUST 3): deleting it would
+	// either falsely glue "sh" + "all" back into "shall", or glue a real "shall" onto what
+	// follows the span
+	["The system does sh`x`all nothing.", 0],
+	["The system shall`x`é afterward.", 1],
+	["The system shall``x``é afterward.", 1],
+];
+
+/**
+ * One Requirement cell, wrapped in a minimal table and read through the real, public
+ * `shallCounts()` — the actual cell-splitting and row-matching path, not the internal
+ * regex called directly.
+ */
+function fixtureShallCount(requirementText: string): number {
+	const table = `| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | ${requirementText} | untested | — |\n`;
+	return shallCounts(table).get("R-999") ?? -1;
+}
+
+describe("shall count parity (shared with the Python rail)", () => {
+	test("both rails give the same count on every fixture", () => {
+		for (const [text, expected] of PARITY_FIXTURES) {
+			expect(fixtureShallCount(text), text).toBe(expected);
+		}
+	});
 });
 
 describe("loadRequirements", () => {
@@ -300,13 +391,109 @@ describe("check options", () => {
 	});
 });
 
+/**
+ * This project's declared EARS allowance (astra r1 SHOULD) — the ONE place to raise it.
+ * `check(ROOT)` has no project-wide config of its own, unlike Python's
+ * `requirements_ears_allowance` ini option, so both call sites below read this constant
+ * instead of each hard-coding (or drifting on) their own number. Default
+ * EARS_ALLOWANCE_DEFAULT; an adopted project with off-form rows before they are split
+ * raises this one constant, not CheckOptions.earsAllowance at each call site.
+ */
+const PROJECT_EARS_ALLOWANCE = EARS_ALLOWANCE_DEFAULT;
+
 describe("this project", () => {
 	test("REQUIREMENTS.md status agrees with the markers in tests/", () => {
-		const { problems, line } = check(ROOT);
-		console.log(line);
+		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
+		printReport(result);
 		expect(
-			problems,
-			`requirements trace FAILED:\n  ${problems.join("\n  ")}`,
+			result.problems,
+			`requirements trace FAILED:\n  ${result.problems.join("\n  ")}`,
 		).toEqual([]);
+	});
+
+	{{ rq }} G-013
+	test("this project: every row carries exactly one shall", () => {
+		// Filtered to the EARS problem shape, not the full `problems` list above, so this
+		// pins G-013 alone — and reads against PROJECT_EARS_ALLOWANCE, the one constant
+		// above both call sites share.
+		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
+		printReport(result);
+		const earsProblems = result.problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
+		expect(earsProblems, result.earsLine).toEqual([]);
+	});
+});
+
+describe("ears form", () => {
+	{{ rq }} G-014
+	test("ears: a two-shall row and a no-shall row are counted, a retired one is not", () => {
+		const text = `${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |
+| R-901 | The system does Z with no promise word. | untested | — |
+| R-902 | Gone from the product. | retired | — |
+`;
+		const rows = loadRequirements(text);
+		expect(earsOffForm(rows, shallCounts(text))).toEqual(["R-900", "R-901"]);
+
+		// G-014: the count is reported on its OWN line, with the real count and allowance,
+		// AFTER the summary line (astra r1 MUST 2) — pinned on `report`, the exact
+		// structure every real caller prints verbatim, not just the off-form id list above.
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-report-"));
+		scratch.push(dir);
+		writeFileSync(join(dir, "REQUIREMENTS.md"), text);
+		const result = check(dir, { earsAllowance: 99 });
+		expect(result.earsOffForm).toEqual(["R-900", "R-901"]);
+		expect(result.earsLine).toBe("ears: 2 rows off form (allowance 99)");
+		expect(result.report).toBe(`${result.line}\n${result.earsLine}`);
+		expect(result.report.split("\n")).toEqual([result.line, result.earsLine]);
+
+		// astra r2 MUST 2: the fixture above pins the COMPUTED `report`, which a mutation to
+		// the PRINTING code (not the computation) would never touch. This pins the actual
+		// reporting surface instead: printReport is the one function every real caller uses,
+		// so spying on console.log around a call to it catches a mutation like
+		// `console.log("WRONG REPORT")` inside printReport's own body.
+		const logs: string[] = [];
+		const spy = vi.spyOn(console, "log").mockImplementation((msg: unknown) => {
+			logs.push(String(msg));
+		});
+		try {
+			printReport(result);
+		} finally {
+			spy.mockRestore();
+		}
+		expect(logs).toEqual([result.report]);
+		expect(logs[0]?.split("\n")).toEqual([result.line, result.earsLine]);
+	});
+
+	{{ rq }} G-015
+	test("ears: over the allowance each off-form row is a problem, at the allowance none", () => {
+		// TWO off-form rows (astra r1 MUST 2): a fixture with only one cannot tell "names
+		// EACH off-form row" apart from "names the first offending row, done".
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-"));
+		scratch.push(dir);
+		mkdirSync(join(dir, "tests"));
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |
+| R-901 | The system shall do A and shall do B and shall do C. | untested | — |
+`,
+		);
+		writeFileSync(
+			join(dir, "tests", "a.test.ts"),
+			"// req: R-001\ntest('one', () => {});\n",
+		);
+		const over = check(dir, { earsAllowance: 0 });
+		expect(over.earsOffForm).toEqual(["R-900", "R-901"]);
+		expect(over.earsLine).toBe("ears: 2 rows off form (allowance 0)");
+		expect(over.problems).toContain("R-900 carries 2 shall (one is the form)");
+		expect(over.problems).toContain("R-901 carries 3 shall (one is the form)");
+		const atAllowance = check(dir, { earsAllowance: 2 });
+		expect(
+			atAllowance.problems.filter(
+				(p) => p.startsWith("R-900") || p.startsWith("R-901"),
+			),
+		).toEqual([]);
+	});
+
+	test("seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015)", () => {
+		expect(EARS_ALLOWANCE_DEFAULT).toBe(0);
 	});
 });

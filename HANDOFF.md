@@ -34,6 +34,10 @@
 - **Writing trial LANDED 2026-10-04**: one rule for the seat's messages to Jake and for `HANDOFF.md` lines. Claude Code reads it as a rule file; every pi session gets it from the seventh pack extension. The checker `packages/nana-pack/bin/nana-writing.mjs` reports and never blocks. Baseline, daily tally and the stop condition live in `docs/reviews/writing-trial-2026-10-04/` (`baseline.md`, `tally.md`). The trial ends on day 14 or at 20 reports, or after two lost-detail complaints, with one of adopt, extend once, or drop. Review: astra r1 to r3 BLOCK 6/8/8, every item closed by execution; `land-ruling.md` in the same folder.
 - The next `v*` tag must also carry the seven-extension wording of `templates/_shared/working-under-nana-pi.md`; copier consumers get six until it is cut, while `nana-setup project` emits it at once.
 
+## Landed 2026-10-04 — EARS form batch 0
+
+- **EARS form batch 0 LANDED 2026-10-04** (`docs/reviews/ears-form-2026-10-04/`): the trace rail counts `shall` per row and fails over a declared allowance (G-013 to G-015). A rendered project sets it with `PROJECT_EARS_ALLOWANCE` or the `requirements_ears_allowance` ini option. nana-pi's own is `EARS_ALLOWANCE`: 194, lowered at every landing and sealed. Part G's six origins split into G-016 to G-022, each directly after its origin. Off form: 200 → 194, 233 rows to come. Batches A1, A2 (A2+A3 if A1 is clean), B and C run sequentially, one worktree at a time. Each lands on a mechanical verifier plus one astra round (`batch0-land-ruling.md` §5). aml-desk's rail copy and basketball-geek are out of scope; the check reaches them only at the next pushed tag.
+
 ## Landing-day chores (T2b) — DONE 2026-09-28
 
 - `~/.local/bin/pi-worker` symlink created · `~/jev-research` launchers fixed (`6e835bc`: builds go through `pi-worker` with no retries, the sol review passes `--item`/`--role`) · the `pi-review` shared memory rewritten to the post-T2b contract.
