@@ -131,13 +131,24 @@ const LANGS = {
 	},
 };
 
-/** The Part G block arrived through the shared include with its ids unrenumbered. */
+/**
+ * The Part G block arrived through the shared include with its ids unrenumbered: the SET of
+ * ids is exactly G-001..G-022, each appearing once. R-737 promises stable ids, not table
+ * order — astra r1 MUST 3 ruled the explicit split-placement rule wins (directly after the
+ * origin), so split-born rows now sit interleaved among G1-G4, not in sequence; the check
+ * below compares SORTED arrays and keeps its own duplicate check, rather than requiring the
+ * unsorted array to already read G-001, G-002, G-003, ….
+ */
 function partG(language, dest, mode) {
 	const reqs = fs.readFileSync(path.join(dest, "REQUIREMENTS.md"), "utf-8");
 	const gIds = [...reqs.matchAll(/^\|\s*(G-\d{3})\s*\|/gm)].map((m) => m[1]);
 	const wantG = Array.from({ length: 22 }, (_, i) => `G-${String(i + 1).padStart(3, "0")}`);
+	const noDupes = gIds.length === new Set(gIds).size;
+	const sorted = [...gIds].sort();
 	// req: R-737
-	check(`${language} ${mode}: Part G ships G-001..G-022 unrenumbered`, `${gIds}` === `${wantG}`, `got ${gIds}`);
+	check(`${language} ${mode}: Part G ships G-001..G-022 unrenumbered`,
+		noDupes && `${sorted}` === `${wantG}`,
+		`got ${gIds} (sorted ${sorted}, duplicates: ${!noDupes})`);
 	// req: R-737
 	check(`${language} ${mode}: no jinja survives into REQUIREMENTS.md`, !/\{[{%]/.test(reqs), "an unrendered tag is left");
 	return reqs;

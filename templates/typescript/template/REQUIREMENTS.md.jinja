@@ -59,8 +59,8 @@ when you promote its row. Until every mapped module carries a contract header, t
 self-test that checks THIS project's headers and map fails: that is the audit's work, not
 a reason to delete the test. The EARS form check (G-013) also runs on day one: if the audit's
 own rows land off form before they are split, declare the allowance at the count the first
-run names (`CheckOptions.earsAllowance` in `tests/requirements-trace.ts`) rather than leaving
-the rail red.
+run names by raising `PROJECT_EARS_ALLOWANCE` in `tests/requirements-trace.test.ts` — the ONE
+constant both of that file's `check(ROOT)` calls read — rather than leaving the rail red.
 G-012 arrives the same way: `scripts/readme-check.mjs` checks that this project's README names
 nothing that does not exist — run it, fix what it reports (or the README), and promote the
 row when it is green.

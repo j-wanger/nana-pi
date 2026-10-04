@@ -57,9 +57,8 @@ export const checkRepo = () =>
 	check(REPO_ROOT, { testRoots: TEST_ROOTS, callNames: CALL_NAMES, earsAllowance: EARS_ALLOWANCE });
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
-	const { earsLine, problems, line } = checkRepo();
-	process.stdout.write(`${line}\n`);
-	process.stdout.write(`${earsLine}\n`);
+	const { report, problems } = checkRepo();
+	process.stdout.write(`${report}\n`);
 	for (const p of problems) process.stdout.write(`  ${p}\n`);
 	process.exit(problems.length ? 1 : 0);
 }

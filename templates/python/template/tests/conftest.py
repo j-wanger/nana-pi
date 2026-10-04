@@ -56,9 +56,15 @@ EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
 MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
-#: A `shall` inside a code span is a mention, not a promise (G-013); masked before counting.
-CODE_SPAN_RE = re.compile(r"`[^`]*`")
-SHALL_RE = re.compile(r"\bshall\b", re.IGNORECASE)
+#: A `shall`, case-insensitive, not preceded or followed by a Unicode letter, digit or
+#: underscore (astra r1 MUST 4) -- ONE boundary rule, written identically in both rails rather
+#: than relying on ``\b``: Python's ``\b`` is Unicode-aware (would miss "shallé" being a
+#: mention of a longer word), JS's is ASCII-only (would wrongly count it), so the two silently
+#: disagreed. ``\w`` is Python's stdlib, Unicode-aware equivalent of JS's explicit
+#: ``[\p{L}\p{N}_]`` lookarounds (`requirements-trace.ts`) -- no third-party dependency needed
+#: for `\p{L}` -- and gives the same answer on every fixture both rails share
+#: (`test_requirements_trace.py.jinja` / `requirements-trace.test.ts.jinja`).
+SHALL_RE = re.compile(r"(?<!\w)shall(?!\w)", re.IGNORECASE)
 
 #: The allowance default for a project with no declared ini value: a new project writes
 #: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same
@@ -136,9 +142,49 @@ def load_requirements(path: Path) -> dict[str, Row]:
     return found
 
 
+def _mask_code_spans(text: str) -> str:
+    """Mask every code span, CommonMark style (astra r1 MUST 1): a run of N backticks opens a
+    span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``, ``shall``
+    and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side of a bare
+    "shall". An unmatched backtick run is literal text, not a span. The whole span --
+    delimiters and content -- is replaced with nothing: a `shall` inside it is a mention,
+    never a promise (G-013)."""
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != "`":
+            out.append(text[i])
+            i += 1
+            continue
+        j = i
+        while j < n and text[j] == "`":
+            j += 1
+        run = j - i
+        k = j
+        close_end = -1
+        while k < n:
+            if text[k] != "`":
+                k += 1
+                continue
+            m = k
+            while m < n and text[m] == "`":
+                m += 1
+            if m - k == run:
+                close_end = m
+                break
+            k = m
+        if close_end == -1:
+            out.append(text[i:j])  # no matching close: the opening run is literal text
+            i = j
+        else:
+            i = close_end  # mask the whole span, delimiters included
+    return "".join(out)
+
+
 def _shall_count(requirement: str) -> int:
     """Whole-word, case-insensitive `shall` tokens in a Requirement cell, code spans masked first."""
-    return len(SHALL_RE.findall(CODE_SPAN_RE.sub("", requirement)))
+    return len(SHALL_RE.findall(_mask_code_spans(requirement)))
 
 
 def shall_counts(text: str) -> dict[str, int]:
@@ -280,7 +326,7 @@ def check(
     test_roots: tuple[str, ...] = ("tests",),
     call_names: tuple[str, ...] = CALL_NAMES,
     ears_allowance: int = EARS_ALLOWANCE_DEFAULT,
-) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str, list[str], str]:
+) -> tuple[dict[str, Row], dict[str, list[str]], list[str], str, list[str], str, str]:
     """Read a project's REQUIREMENTS.md, scan its test roots and report the disagreements,
     including rows off EARS form (G-013/G-014/G-015).
 
@@ -301,8 +347,12 @@ def check(
     problems = trace_problems(requirements, traced)
     if len(off_form) > ears_allowance:
         problems += [f"{rid} carries {counts.get(rid, 0)} shall (one is the form)" for rid in off_form]
+    line = summary(requirements, traced)
     ears_line = f"ears: {len(off_form)} rows off form (allowance {ears_allowance})"
-    return requirements, traced, problems, summary(requirements, traced), off_form, ears_line
+    # `line` and `ears_line` joined by one newline, in that order -- a structural guarantee
+    # (G-014's "in its own line after the summary line") pinned without spying on a consumer.
+    report = f"{line}\n{ears_line}"
+    return requirements, traced, problems, line, off_form, ears_line, report
 
 
 def _is_full_run(config: pytest.Config) -> bool:
@@ -328,19 +378,22 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     config = session.config
     ears_allowance = config.getini("requirements_ears_allowance")
     try:
-        requirements, traced, problems, line, _off_form, ears_line = check(config.rootpath, ears_allowance=ears_allowance)
+        requirements, traced, problems, _line, _off_form, _ears_line, report = check(
+            config.rootpath, ears_allowance=ears_allowance
+        )
     except pytest.UsageError as err:
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
-        requirements, traced, problems, line, ears_line = {}, {}, [str(err)], "requirements: unreadable", "ears: unreadable"
+        requirements, traced, problems = {}, {}, [str(err)]
+        report = "requirements: unreadable" + "\n" + "ears: unreadable"
     if not requirements and not traced and not problems:
         return
     reporter = config.pluginmanager.get_plugin("terminalreporter")
     full = _is_full_run(config)
     if reporter is not None:
         reporter.write_line("")
-        reporter.write_line(line)
-        reporter.write_line(ears_line)
+        for line_out in report.split("\n"):
+            reporter.write_line(line_out)
         if problems:
             head = "requirements trace FAILED:" if full else "requirements trace (partial run, informational):"
             reporter.write_line(head, red=full)

@@ -48,9 +48,63 @@ const EXTERNAL = /^[a-z][a-z0-9-]*:/;
 const MARKER = /^\s*\/\/\s*req:\s*(.+?)\s*$/;
 /** The statuses that a traced row contradicts. */
 const STALE = new Set(["untested", "planned", "violated"]);
-/** A `shall` inside a code span is a mention, not a promise (G-013); masked before counting. */
-const CODE_SPAN = /`[^`]*`/g;
-const SHALL = /\bshall\b/gi;
+
+/**
+ * Mask every code span in `text`, CommonMark style (astra r1 MUST 1): a run of N backticks
+ * opens a span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``,
+ * ``shall`` and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side
+ * of a bare "shall". An unmatched backtick run is literal text, not a span. The whole span —
+ * delimiters and content — is replaced with nothing: a `shall` inside it is a mention, never
+ * a promise (G-013).
+ */
+function maskCodeSpans(text: string): string {
+	let out = "";
+	let i = 0;
+	while (i < text.length) {
+		if (text[i] !== "`") {
+			out += text[i];
+			i++;
+			continue;
+		}
+		let j = i;
+		while (j < text.length && text[j] === "`") j++;
+		const n = j - i;
+		let k = j;
+		let closeEnd = -1;
+		while (k < text.length) {
+			if (text[k] !== "`") {
+				k++;
+				continue;
+			}
+			let m = k;
+			while (m < text.length && text[m] === "`") m++;
+			if (m - k === n) {
+				closeEnd = m;
+				break;
+			}
+			k = m;
+		}
+		if (closeEnd === -1) {
+			out += text.slice(i, j); // no matching close: the opening run is literal text
+			i = j;
+		} else {
+			i = closeEnd; // mask the whole span, delimiters included
+		}
+	}
+	return out;
+}
+
+/**
+ * A `shall`, case-insensitive, not preceded or followed by a Unicode letter, digit or
+ * underscore (astra r1 MUST 4) — ONE boundary rule, written identically in both rails rather
+ * than relying on `\b`: JS's `\b` is ASCII-only (would wrongly count "shallé"), Python's is
+ * Unicode-aware (would not), so the two silently disagreed. Here: explicit lookarounds over
+ * `\p{L}\p{N}_` with the `u` flag. Python (`conftest.py`) uses `(?<!\w)…(?!\w)`: its stdlib
+ * `\w` is Unicode-aware by default and gives the same answer on every fixture both rails
+ * share (`requirements-trace.test.ts.jinja` / `test_requirements_trace.py.jinja`), with no
+ * third-party dependency for `\p{L}`.
+ */
+const SHALL = /(?<![\p{L}\p{N}_])shall(?![\p{L}\p{N}_])/giu;
 
 /**
  * The allowance default for a project with no declared value: a new project writes rows
@@ -162,7 +216,7 @@ export function shallCounts(text: string): Map<string, number> {
 		const cells = (m[2] as string).split("|").map((c) => c.trim());
 		if (cells.length !== 3) continue; // loadRequirements already throws on this shape
 		const requirement = cells[0] as string;
-		counts.set(id, (requirement.replace(CODE_SPAN, "").match(SHALL) ?? []).length);
+		counts.set(id, (maskCodeSpans(requirement).match(SHALL) ?? []).length);
 	}
 	return counts;
 }
@@ -368,6 +422,12 @@ export interface CheckResult {
 	earsOffForm: string[];
 	/** The `ears:` report line (G-014), printed after `line` every run regardless of pass/fail. */
 	earsLine: string;
+	/**
+	 * `line` and `earsLine` joined by one newline, in that order — a structural guarantee
+	 * (G-014's "in its own line after the summary line") a caller can print as one block and
+	 * a test can pin without spying on a consumer's print statements.
+	 */
+	report: string;
 }
 
 export interface CheckOptions {
@@ -407,12 +467,15 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 			problems.push(`${id} carries ${counts.get(id) ?? 0} shall (one is the form)`);
 		}
 	}
+	const line = summary(requirements, traced);
+	const earsLine = `ears: ${earsOffFormIds.length} rows off form (allowance ${earsAllowance})`;
 	return {
 		requirements,
 		traced,
 		problems,
-		line: summary(requirements, traced),
+		line,
 		earsOffForm: earsOffFormIds,
-		earsLine: `ears: ${earsOffFormIds.length} rows off form (allowance ${earsAllowance})`,
+		earsLine,
+		report: `${line}\n${earsLine}`,
 	};
 }

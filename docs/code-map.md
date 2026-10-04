@@ -1376,10 +1376,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 
-- **purpose** — Holds nana-pi to the requirements-first rail it ships: an implemented row has a marked test behind it, a lesser row has no marker contradicting it, every cited test exists and carries the marker, and the EARS form count and allowance behave on fixtures.
+- **purpose** — Holds nana-pi to the requirements-first rail it ships: an implemented row has a marked test behind it, a lesser row has no marker contradicting it, every cited test exists and carries the marker, the EARS form count and allowance behave on fixtures, and the shipped CLI really prints the report line after the summary line.
 - **inputs** — scripts/requirements-trace.mjs, REQUIREMENTS.md, and the markers in the six test dirs npm test collects
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads this checkout; writes and removes scratch dirs under the OS temp dir for the EARS fixtures)
+- **effects** — disk (reads this checkout; writes and removes scratch dirs under the OS temp dir for the EARS fixtures), process (spawns the real CLI once)
 - **errors** — a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —

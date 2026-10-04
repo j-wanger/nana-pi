@@ -48,6 +48,39 @@ REQS = """# reqs
 
 MARK = "# req: "
 
+# Shared with requirements-trace.test.ts.jinja's PARITY_FIXTURES: the SAME strings and
+# expected counts in both languages (astra r1 MUST 1 + MUST 4) -- matching-run code-span
+# masking (single, double and embedded-backtick spans) and one word-boundary rule for
+# `shall`, case-insensitive, that neither language's native `\b` gave on its own.
+PARITY_FIXTURES: list[tuple[str, int]] = [
+    ("The system shall do one thing.", 1),
+    ("The system shall mention `shall` in backticks.", 1),
+    ("The system shall print ``shall``.", 1),
+    ("The system shall use `` `shall` `` as an example.", 1),
+    ('The system shall quote "shall" in output.', 2),
+    ("The shallower pool is shallow.", 0),
+    ("Shall the system respond.", 1),
+    ("The system shall print shallé.", 1),
+    ("The system shall print éshall.", 1),
+    ("The system shall print shall_.", 1),
+    ("Shall.", 1),
+    ("No promise word here.", 0),
+    ("The system shall do X and shall do Y.", 2),
+]
+
+
+def _fixture_shall_count(requirement_text: str) -> int:
+    """One Requirement cell, wrapped in a minimal table and read through the real,
+    public `shall_counts()` -- the actual cell-splitting and row-matching path, not a
+    private helper called directly."""
+    table = f"| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | {requirement_text} | untested | — |\n"
+    return shall_counts(table).get("R-999", -1)
+
+
+def test_shall_count_parity_fixtures() -> None:
+    for text, expected in PARITY_FIXTURES:
+        assert _fixture_shall_count(text) == expected, f"{text!r}: expected {expected}"
+
 
 def load_requirements_text(text: str, tmp: Path) -> dict[str, Row]:
     """Parse a fixture table through the real reader, which takes a path."""
@@ -258,9 +291,9 @@ def test_this_project_every_row_carries_exactly_one_shall(pytestconfig: pytest.C
     # pins G-013 alone -- and reads against the project's declared
     # requirements_ears_allowance ini option, the same value pytest_sessionfinish uses.
     ears_allowance = pytestconfig.getini("requirements_ears_allowance")
-    _, _, problems, _, _, ears_line = check(PROJECT, ears_allowance=ears_allowance)
+    _, _, problems, _, _, _, report = check(PROJECT, ears_allowance=ears_allowance)
     ears_problems = [p for p in problems if p.endswith("(one is the form)")]
-    assert ears_problems == [], f"{ears_line}: {ears_problems}"
+    assert ears_problems == [], f"{report}: {ears_problems}"
 
 
 EARS_REQS = (
@@ -274,19 +307,48 @@ EARS_REQS = (
 {{ rq }} G-014
 def test_ears_counts_a_two_shall_row_and_a_no_shall_row_but_not_a_retired_one(tmp_path: Path) -> None:
     rows = load_requirements_text(EARS_REQS, tmp_path)
-    assert ears_off_form(rows, shall_counts(EARS_REQS)) == ["R-900", "R-901"]
+    counts = shall_counts(EARS_REQS)
+    assert ears_off_form(rows, counts) == ["R-900", "R-901"]
+    # G-014: the count is reported on its OWN line, with the real count and allowance, AFTER
+    # the summary line (astra r1 MUST 2) -- pinned on `report`, the exact structure
+    # pytest_sessionfinish prints verbatim (conftest.py), not just the off-form id list.
+    (tmp_path / "REQUIREMENTS.md").write_text(EARS_REQS, encoding="utf-8")
+    (tmp_path / "tests").mkdir(exist_ok=True)
+    _, _, _, line, off_form, ears_line, report = check(tmp_path, ears_allowance=99)
+    assert off_form == ["R-900", "R-901"]
+    assert ears_line == "ears: 2 rows off form (allowance 99)"
+    assert report == f"{line}\n{ears_line}"
+    assert report.splitlines() == [line, ears_line]
+
+
+def test_ears_report_prints_after_the_summary_in_a_real_pytest_run(pytester: pytest.Pytester) -> None:
+    # The same claim as above, proven through the REAL pytest_sessionfinish hook's own
+    # terminal output rather than the returned tuple: fnmatch_lines checks these two
+    # patterns appear in THIS order in the actual run.
+    _project(pytester, EARS_REQS, _test_src())
+    result = pytester.runpytest_subprocess("-p", "no:cacheprovider")
+    result.stdout.fnmatch_lines(["requirements: * total*", "ears: 2 rows off form (allowance 0)"])
 
 
 {{ rq }} G-015
 def test_ears_over_the_allowance_each_off_form_row_is_a_problem_at_the_allowance_none(tmp_path: Path) -> None:
-    text = REQS + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+    # TWO off-form rows (astra r1 MUST 2): a fixture with only one cannot tell "names EACH
+    # off-form row" apart from "names the first offending row, done".
+    text = (
+        REQS
+        + "| R-900 | The system shall do X and shall do Y. | untested | — |\n"
+        + "| R-901 | The system shall do A and shall do B and shall do C. | untested | — |\n"
+    )
     (tmp_path / "REQUIREMENTS.md").write_text(text, encoding="utf-8")
     (tmp_path / "tests").mkdir()
-    _, _, problems_over, _, _, _ = check(tmp_path, ears_allowance=0)
-    _, _, problems_at, _, _, _ = check(tmp_path, ears_allowance=1)
+    _, _, problems_over, _, off_form_over, ears_line_over, _ = check(tmp_path, ears_allowance=0)
+    _, _, problems_at, _, _, _, _ = check(tmp_path, ears_allowance=2)
+    assert off_form_over == ["R-900", "R-901"]
+    assert ears_line_over == "ears: 2 rows off form (allowance 0)"
     assert "R-900 carries 2 shall (one is the form)" in problems_over
-    assert not any(p.startswith("R-900") for p in problems_at)
+    assert "R-901 carries 3 shall (one is the form)" in problems_over
+    assert not any(p.startswith(("R-900", "R-901")) for p in problems_at)
 
 
 def test_seal_ears_allowance_default_is_0() -> None:
-    assert EARS_ALLOWANCE_DEFAULT == 0
+    assert EARS_ALLOWANCE_DEFAULT == 0, "seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015)"

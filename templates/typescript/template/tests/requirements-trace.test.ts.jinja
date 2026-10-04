@@ -52,6 +52,44 @@ afterAll(() => {
 	for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
 });
 
+// Shared with test_requirements_trace.py.jinja's PARITY_FIXTURES: the SAME strings and
+// expected counts in both languages (astra r1 MUST 1 + MUST 4) — matching-run code-span
+// masking (single, double and embedded-backtick spans) and one word-boundary rule for
+// `shall`, case-insensitive, that neither language's native `\b` gave on its own.
+const PARITY_FIXTURES: [string, number][] = [
+	["The system shall do one thing.", 1],
+	["The system shall mention `shall` in backticks.", 1],
+	["The system shall print ``shall``.", 1],
+	["The system shall use `` `shall` `` as an example.", 1],
+	['The system shall quote "shall" in output.', 2],
+	["The shallower pool is shallow.", 0],
+	["Shall the system respond.", 1],
+	["The system shall print shallé.", 1],
+	["The system shall print éshall.", 1],
+	["The system shall print shall_.", 1],
+	["Shall.", 1],
+	["No promise word here.", 0],
+	["The system shall do X and shall do Y.", 2],
+];
+
+/**
+ * One Requirement cell, wrapped in a minimal table and read through the real, public
+ * `shallCounts()` — the actual cell-splitting and row-matching path, not the internal
+ * regex called directly.
+ */
+function fixtureShallCount(requirementText: string): number {
+	const table = `| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | ${requirementText} | untested | — |\n`;
+	return shallCounts(table).get("R-999") ?? -1;
+}
+
+describe("shall count parity (shared with the Python rail)", () => {
+	test("both rails give the same count on every fixture", () => {
+		for (const [text, expected] of PARITY_FIXTURES) {
+			expect(fixtureShallCount(text), text).toBe(expected);
+		}
+	});
+});
+
 describe("loadRequirements", () => {
 	test("reads id, status and whether the evidence is external", () => {
 		const rows = loadRequirements(REQS);
@@ -308,9 +346,19 @@ describe("check options", () => {
 	});
 });
 
+/**
+ * This project's declared EARS allowance (astra r1 SHOULD) — the ONE place to raise it.
+ * `check(ROOT)` has no project-wide config of its own, unlike Python's
+ * `requirements_ears_allowance` ini option, so both call sites below read this constant
+ * instead of each hard-coding (or drifting on) their own number. Default
+ * EARS_ALLOWANCE_DEFAULT; an adopted project with off-form rows before they are split
+ * raises this one constant, not CheckOptions.earsAllowance at each call site.
+ */
+const PROJECT_EARS_ALLOWANCE = EARS_ALLOWANCE_DEFAULT;
+
 describe("this project", () => {
 	test("REQUIREMENTS.md status agrees with the markers in tests/", () => {
-		const { problems, line } = check(ROOT);
+		const { problems, line } = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
 		console.log(line);
 		expect(
 			problems,
@@ -321,10 +369,9 @@ describe("this project", () => {
 	{{ rq }} G-013
 	test("this project: every row carries exactly one shall", () => {
 		// Filtered to the EARS problem shape, not the full `problems` list above, so this
-		// pins G-013 alone — and reads against whatever earsAllowance this call declares
-		// (CheckOptions.earsAllowance, default EARS_ALLOWANCE_DEFAULT), the same way an
-		// adopted project's declared allowance is meant to be edited here.
-		const { earsLine, problems } = check(ROOT);
+		// pins G-013 alone — and reads against PROJECT_EARS_ALLOWANCE, the one constant
+		// above both call sites share.
+		const { earsLine, problems } = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
 		console.log(earsLine);
 		const earsProblems = problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
 		expect(earsProblems, earsLine).toEqual([]);
@@ -340,27 +387,49 @@ describe("ears form", () => {
 `;
 		const rows = loadRequirements(text);
 		expect(earsOffForm(rows, shallCounts(text))).toEqual(["R-900", "R-901"]);
+
+		// G-014: the count is reported on its OWN line, with the real count and allowance,
+		// AFTER the summary line (astra r1 MUST 2) — pinned on `report`, the exact
+		// structure the CLI (scripts/requirements-trace.mjs) prints verbatim, not just the
+		// off-form id list above.
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-report-"));
+		scratch.push(dir);
+		writeFileSync(join(dir, "REQUIREMENTS.md"), text);
+		const { line, earsLine, earsOffForm: offForm, report } = check(dir, { earsAllowance: 99 });
+		expect(offForm).toEqual(["R-900", "R-901"]);
+		expect(earsLine).toBe("ears: 2 rows off form (allowance 99)");
+		expect(report).toBe(`${line}\n${earsLine}`);
+		expect(report.split("\n")).toEqual([line, earsLine]);
 	});
 
 	{{ rq }} G-015
 	test("ears: over the allowance each off-form row is a problem, at the allowance none", () => {
+		// TWO off-form rows (astra r1 MUST 2): a fixture with only one cannot tell "names
+		// EACH off-form row" apart from "names the first offending row, done".
 		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-"));
 		scratch.push(dir);
 		mkdirSync(join(dir, "tests"));
 		writeFileSync(
 			join(dir, "REQUIREMENTS.md"),
-			`${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |\n`,
+			`${REQS}| R-900 | The system shall do X and shall do Y. | untested | — |
+| R-901 | The system shall do A and shall do B and shall do C. | untested | — |
+`,
 		);
 		writeFileSync(
 			join(dir, "tests", "a.test.ts"),
 			"// req: R-001\ntest('one', () => {});\n",
 		);
 		const over = check(dir, { earsAllowance: 0 });
+		expect(over.earsOffForm).toEqual(["R-900", "R-901"]);
+		expect(over.earsLine).toBe("ears: 2 rows off form (allowance 0)");
 		expect(over.problems).toContain("R-900 carries 2 shall (one is the form)");
-		const atAllowance = check(dir, { earsAllowance: 1 });
-		expect(atAllowance.problems.filter((p) => p.startsWith("R-900"))).toEqual(
-			[],
-		);
+		expect(over.problems).toContain("R-901 carries 3 shall (one is the form)");
+		const atAllowance = check(dir, { earsAllowance: 2 });
+		expect(
+			atAllowance.problems.filter(
+				(p) => p.startsWith("R-900") || p.startsWith("R-901"),
+			),
+		).toEqual([]);
 	});
 
 	test("seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015)", () => {

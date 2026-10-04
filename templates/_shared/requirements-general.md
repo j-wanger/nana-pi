@@ -25,8 +25,10 @@ directory, so a dropped header outside `src/` fails the check too.
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | G-001 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall be defined once in a declared configuration surface and read by name. A contract number is a sealed tunable in that surface with provenance naming its row, pinned by one test, and a retune is a requirement diff first. | untested | — |
+| G-016 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall not appear as an inline literal at a point of use. | untested | split from G-001 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-002 | Every tunable shall carry its provenance beside its definition: the source and date for a measured value, or the word chosen and the reason for a chosen one. | untested | — |
 | G-003 | WHEN a tunable changes, no code shall change. | untested | — |
+| G-017 | WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates. | untested | split from G-003 2026-10-04 (EARS form batch 0): no test pins this clause |
 
 ## G2. Module boundaries
 
@@ -34,9 +36,12 @@ directory, so a dropped header outside `src/` fails the check too.
 |---|---|---|---|
 | G-004 | Every module shall open with a contract header in a fixed, scannable form stating its purpose in one sentence, its inputs (what it reads or is given), its outputs (what it returns, writes or emits), its side effects (none, disk, database, network, process) and the typed errors or statuses it can produce. | {{ _status }} | {{ ('`' ~ _g004 ~ '`') if _ev else '—' }} |
 | G-005 | A module shall expose its behaviour only through named exports that are its entry points. | untested | — |
+| G-018 | No module shall reach into another module's internals, private helpers or mutable state. | untested | split from G-005 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-006 | Resources with identity or side effects (database handles, clocks, random sources, fetchers, file roots) shall be injected at a module's boundary so the module is exercisable without the real resource. | untested | — |
 | G-007 | Imports shall follow the layer direction declared in the code-map config — a module may import its own layer or the one directly after it, and tests may import anything. | untested | — |
+| G-019 | A reverse or layer-skipping import shall fail a check. | untested | split from G-007 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-008 | A module shall have one purpose statable in one sentence. | untested | — |
+| G-020 | WHEN a module's header needs more than one sentence of purpose, it shall be split. | untested | split from G-008 2026-10-04 (EARS form batch 0): no test pins this clause |
 
 ## G3. The code map
 
@@ -51,6 +56,8 @@ directory, so a dropped header outside `src/` fails the check too.
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it. | {{ _status }} | {{ ('`' ~ _g012 ~ '`') if _ev else '—' }} |
+| G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
+| G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 
 ## G5. The requirement set
 
@@ -59,10 +66,3 @@ directory, so a dropped header outside `src/` fails the check too.
 | G-013 | WHERE a row is not retired, it shall carry exactly one `shall` outside a code span. | {{ _status }} | {{ ('`' ~ _g013 ~ '`') if _ev else '—' }} |
 | G-014 | The rail shall report the count of rows off form in its own line after the summary line. | {{ _status }} | {{ ('`' ~ _g014 ~ '`') if _ev else '—' }} |
 | G-015 | IF the count of rows off form exceeds the declared allowance THEN the rail shall fail naming each off-form row. | {{ _status }} | {{ ('`' ~ _g015 ~ '`') if _ev else '—' }} |
-| G-016 | WHEN a value tunes behaviour (a threshold, cap, weight, budget, timeout, port, path, model name, seed or vocabulary), it shall not appear as an inline literal at a point of use. | untested | split from G-001 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-017 | WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates. | untested | split from G-003 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-018 | No module shall reach into another module's internals, private helpers or mutable state. | untested | split from G-005 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-019 | A reverse or layer-skipping import shall fail a check. | untested | split from G-007 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-020 | WHEN a module's header needs more than one sentence of purpose, it shall be split. | untested | split from G-008 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
-| G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
