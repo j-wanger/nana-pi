@@ -5,25 +5,27 @@
  * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
- *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills; the
+ *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
+ *  packages/nana-pack/rules (the writing rule); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  NANA_SETUP_PLATFORM
- * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks, rules
- *  and skills/requirements (copies on win32), a seeded nana-personal.md, the missing hook entries
+ * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
+ *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist
  *  (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES,
- *  CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER,
- *  firstBodyLine, SetupError and the helpers doctor reuses
+ *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI,
+ *  DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; the settings lock already held; settings.json changed on disk during the run; a plist
  *  placeholder with no value. Every other failure is a row: PROBLEM for a non-regular
- *  nana-personal.md or anything already sitting where the skill symlink belongs, SKIPPED for win32,
- *  a failed knowledge build, a missing pi, a failed `pi install` or launchctl bootstrap
+ *  nana-personal.md, or anything already sitting where the skill symlink
+ *  belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or
+ *  launchctl bootstrap
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
@@ -38,8 +40,17 @@ import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.m
 export class SetupError extends Error {}
 
 export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "context-size-check.sh"];
-/** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here. */
-export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md"];
+/** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
+ *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
+/** nana-writing.md ships with the pack, not with this package, because the pi half (the
+ *  nana-writing.ts extension) reads the SAME file — one source for both runtimes, the way
+ *  PACK_SKILLS_DIR already shares the requirements skill (design-ruling.md Amendment 1, §A1). */
+export const PACK_RULES_DIR = path.join(repoRoot, "packages", "nana-pack", "rules");
+/** Where a CLAUDE_RULES entry's content actually lives. */
+export function ruleSource(rule) {
+	return rule === "nana-writing.md" ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
+}
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
 export const CLAUDE_SKILLS = ["requirements"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
@@ -72,7 +83,7 @@ export function stepHooks(layout, o) {
 export function stepRules(layout, o) {
 	const out = [];
 	for (const rule of CLAUDE_RULES) {
-		const r = linkFile(path.join(layout.rulesDir, rule), path.join(pkgRoot, "claude", "rules", rule), {
+		const r = linkFile(path.join(layout.rulesDir, rule), ruleSource(rule), {
 			...o,
 			// Windows needs a privilege for symlinks; a copy still gets the identity in place.
 			copyInstead: win(),

@@ -33,6 +33,7 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | `claude/hooks/nana-objective.sh`, `claude/hooks/nana-adoption.sh`, `claude/hooks/nana-shared-memory.sh`, `claude/hooks/context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
 | `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
 | `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
+| `packages/nana-pack/rules/nana-writing.md` (writing for Jake — trial, 2026-10-04) | `~/.claude/rules/nana-writing.md` | **symlink** — sourced from `packages/nana-pack/rules/`, not this package's own `claude/rules/`, because the `nana-writing` pack extension reads the SAME file for pi (one source, two runtimes — design-ruling.md Amendment 1, 2026-10-04, §A1) |
 | the `requirements` skill | `~/.claude/skills/requirements` | **symlink** to `packages/nana-pack/skills/requirements` — the directory pi already reads, so Claude Code and pi get ONE source and a `git pull` updates both. A regular directory already sitting there is someone else's skill: it is reported ✗ and **left untouched** (a `requirements.bak-<date>` directory inside `~/.claude/skills/` would be loaded as a second skill claiming the same name), so install exits 1 until you move it. A symlink pointing elsewhere is relinked |
 | `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
 | SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
@@ -66,6 +67,8 @@ boundary; real enforcement is the sandbox/container layer, exactly as everywhere
 repo. That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Behavior
 notes for the two documented cases where a child does NOT load nana-gate even under this seeded
 config.
+
+- Registration: `registrationState` recognises string `packages` entries only. An object-form entry (pi's resource filter) reads as unregistered, doctor reads ✗, and install would run `pi install` again.
 
 ## pi-subagents' version, and mcp.json — read-only checks
 

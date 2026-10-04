@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/config-handlers-malformed.test.mjs
  * @purpose Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks and the problem is journaled once
- * @inputs the six extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
+ * @inputs the seven extensions under extensions/, malformed nana-pack.json variants, and a fresh temp HOME and workspace per variant
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -17,7 +17,7 @@ import * as path from "node:path";
 // shown as one UI warning per session when a UI exists.
 // Each variant: fresh temp HOME + USERPROFILE, fresh workspace, fresh registrations.
 // Run: node --experimental-strip-types <this file>
-const EXT = ["nana-gate", "nana-post-edit", "nana-objective", "nana-handoff", "nana-notify", "nana-lifecycle"];
+const EXT = ["nana-gate", "nana-post-edit", "nana-objective", "nana-handoff", "nana-notify", "nana-lifecycle", "nana-writing"];
 const exts = {};
 for (const n of EXT) exts[n] = (await import(new URL(`../extensions/${n}.ts`, import.meta.url).href)).default;
 

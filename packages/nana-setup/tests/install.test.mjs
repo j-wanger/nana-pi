@@ -15,6 +15,7 @@ import * as path from "node:path";
 
 const { commandInvokes, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 
 /**
  * A minimal, SEPARATE re-implementation of pi-subagents' own documented frontmatter contract
@@ -92,6 +93,11 @@ for (const h of ["nana-objective.sh", "nana-shared-memory.sh", "context-size-che
 check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
 // req: R-301
 check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
+// req: R-301
+check("rule nana-writing.md is a symlink into the repo (sourced from the pack, not nana-setup's own claude/rules)", link(path.join(home, ".claude", "rules", "nana-writing.md")) === ruleSource("nana-writing.md"));
+// Amendment 1 acceptance #10: delivery to pi moved to a pack extension — install never
+// creates an agent-dir AGENTS.md (the agent-dir link step was removed).
+check("no AGENTS.md was created in the pi agent dir", !fs.existsSync(path.join(home, ".pi", "agent", "AGENTS.md")));
 // Claude Code reads the pack's own skill — one source for both runtimes (skills-and-standards.test.mjs owns the detail)
 // req: R-302
 check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));

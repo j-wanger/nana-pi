@@ -25,7 +25,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -174,7 +174,7 @@ export function diagnose(layout, opts = {}) {
 		else add(linkOk(path.join(layout.hooksDir, h), src) ? OK : FAIL, `hook ${h}`, `-> ${src}`);
 	}
 	for (const rule of CLAUDE_RULES) {
-		const src = path.join(pkgRoot, "claude", "rules", rule);
+		const src = ruleSource(rule);
 		add(linkOk(path.join(layout.rulesDir, rule), src) ? OK : FAIL, `rule ${rule}`, `-> ${src}`);
 	}
 	// lstat, not existsSync: this file must be a REGULAR file. A symlink here aims the owner's

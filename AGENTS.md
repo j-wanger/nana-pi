@@ -47,7 +47,7 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 - `packages/nana-pack/` — the pi extension pack: gate, post-edit checks + receipts,
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
-  adopt-ts, adopt-structure, dev workflow); `bin/` — eight CLIs: the `pi-review` runner (canonical home since
+  adopt-ts, adopt-structure, dev workflow); `bin/` — nine CLIs: the `pi-review` runner (canonical home since
   2026-09-18, on PATH via `~/.local/bin/pi-review`) with `review-round`, `review-shape`,
   `review-ledger` and `pi-worker` behind it, `pi-watchdog`, and the two producers the seat's
   Claude Code SessionStart hooks run — `nana-objective` and `nana-adoption`.
@@ -109,8 +109,8 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Working under nana-pi
 
-This project runs under the nana-pi pack: six pi extensions (gate, post-edit,
-lifecycle, notify, handoff, objective) that load in every
+This project runs under the nana-pi pack: seven pi extensions (gate, post-edit,
+lifecycle, notify, handoff, objective, writing) that load in every
 session once the pack is installed at user scope — any project, no per-project
 setup. What that means while you work here:
 

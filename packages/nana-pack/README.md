@@ -21,7 +21,7 @@ ones that load a real extension skip themselves when pi is not installed globall
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
-Six extensions giving pi the hook coverage we require (Claude Code parity classes):
+Seven extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
 |---|---|---|
@@ -31,6 +31,7 @@ Six extensions giving pi the hook coverage we require (Claude Code parity classe
 | `nana-notify` | Outward notifications | `agent_settled` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
+| `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
 ## Install
 
@@ -236,6 +237,64 @@ while a completion waits on the lock is recorded unverified.
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
+## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
+
+The ninth CLI. Zero-dep, Node only, cross-platform; the pure checks live in
+`lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
+`docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
+named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an
+append, not a context-file link — Amendment 1 §A1, after astra r1 found a link could both hide
+a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one); the CHECKER stays manual and
+report-only during the trial — run it by hand, once per report, before you send it.
+
+```bash
+node packages/nana-pack/bin/nana-writing.mjs file.md            # check one or more files
+node packages/nana-pack/bin/nana-writing.mjs --report < draft.txt   # stdin, + verdict + identifier checks
+```
+
+With no path it reads stdin (named `-` in the output). Four checks run always — sentence
+length, passive-voice CANDIDATES (a heuristic, not a parser — see Known limit), a banned word
+outside a code span, and the closing summary — and two more run only with `--report`: a
+verdict word or phrase in the first prose sentence, and identifiers (a backtick span, or a
+slash-path token — including the banned word's own code span, since a quoted word is a
+mention, not a use). Each finding is one line, `<file>:<line>: <check>: <detail>`; the output
+always ends with one summary line:
+
+```
+summary sentences=N words=N over=N passive=N banned=N verdict=<k>/<n>|n/a identifiers=N
+```
+
+`verdict` is the cross-file SHARE in `--report` mode — `<k>` inputs whose first prose sentence
+carried a verdict word, out of `<n>` checked — and "n/a" otherwise.
+
+It exits 0 whatever it finds — this CLI reports, it never blocks.
+
+**Trial tally.** The seat runs one invocation per report sent (`--report`) and a SEPARATE one
+per `HANDOFF.md` edit (no `--report` — verdict and identifiers do not apply there), recording
+the day's counts in `docs/reviews/writing-trial-2026-10-04/tally.md` in two columns, never
+mixed (astra r2 SHOULD 3): reports checked, verdict passes, report sentences/over-cap, HANDOFF
+sentences/over-cap, and any lost-detail complaint. Stop at day 14 or 20 REPORTS (HANDOFF does
+not count toward this), whichever is first, or after two lost-detail complaints.
+
+**Markdown-aware splitting (Amendment 1 §A2).** A fence (3+ backticks/tildes) toggles fenced
+state; every check skips a fenced line, banned included. A heading or a table row (`|`-led)
+never becomes a sentence, though the banned scan still reads it. A blank line or a list-item
+line (`-`, `*`, `+`, or `1.`/`1)`) ends the current paragraph; a list item starts a new one with
+its marker stripped. Any other line joins the current paragraph with one space (a soft wrap),
+so the same prose wrapped across two lines or written on one gives the identical summary.
+Within a paragraph, a sentence ends at `.`, `!` or `?`, optionally followed by a closing quote
+or bracket, then whitespace or the end; code spans and URLs are masked first so a period inside
+one never splits early.
+
+**Known limit.** No abbreviation engine: "e.g." and "vs." still split a sentence early —
+recorded here, not fixed. The passive check is a regex heuristic, not a parser: the labelled
+24-sentence diagnostic fixture in `tests/writing-check.test.mjs` currently measures 100.0%
+precision / 66.7% recall (astra r1 SHOULD 1 labelled the set, 2026-10-04; astra r2 SHOULD 1,
+2026-10-04, after the whole-word exception fix — the pre-fix measurement on the same labelled
+sentences was 77.8%/58.3%). These are diagnostic results on 24 sentences, not a general
+performance estimate, and the fixture pins no number — a floor would be a tunable with no
+provenance, and the check is report-only.
+
 ## What you will see
 
 In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
@@ -335,6 +394,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
 ```
 
 ## Behavior notes
+
+- Writing block: the character cap slices UTF-16 units. A rule over 4,000 chars with an astral character at the cut leaves a lone surrogate in the block. The shipped rule is far shorter; one `toWellFormed()` is due at the adopt verdict.
+- Writing block: it has no switch of its own. pi's filter (`-extensions/nana-writing.ts` on the pack's `packages` entry in object form, or `pi config`) removes it, and nana-setup then reads the pack as unregistered until the plain entry is restored.
+- Writing block: reviewer and worker sessions carry it too. The first `pi-review` corpus after landing is the check. A dropped path or a shortened finding moves delivery behind `hasUI`.
+- Writing checker: it reads any argument except `--report` as a file path, so `--help` prints one error line and an empty summary.
 
 - **One renderer per surface** (`lib/display.mjs`, lane S1). **What it guarantees:** structural
   protection for INTERPOLATED DISPLAY FIELDS in this package — a repo-controlled value placed into
@@ -757,3 +821,25 @@ is user-scope only** — project config never contributes to it, trusted or not.
 - **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
   per repo+checker under `<agent dir>/receipts`). Turn them off with
   `receipts.enabled: false`; relocate the store with `receipts.dir`.
+- **Writing trial residuals, recorded at landing rather than fixed further (astra r3, 2026-10-04):**
+  - The read ceiling is a BYTE budget; the injected block's cap is a CHARACTER budget. A
+    multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of
+    `WRITING_INJECT_CAP` characters while the truncation notice still names the character cap —
+    the notice is imprecise in that direction (REQUIREMENTS.md Open questions).
+  - `statSync` then `openSync` is two syscalls, not one: a stable FIFO is refused correctly, but
+    a regular file swapped for a FIFO between those two calls is not caught. The guarantee is
+    "never hangs on a stable, trusted shipped resource", not an unconditional one.
+  - The production composition probe (a real objective, the installed pi 1.0.2 runner) already
+    passed before this trial's own regression test caught up to it; no injector redesign
+    followed from closing that gap.
+  - The FIFO subprocess fixture needs `mkfifo` on `PATH`; absent (including on native Windows,
+    not exercised), it reports a skip, not a failure.
+  - The verdict check has no line of its own: a heading followed by a failing first prose
+    sentence on line 3 still reports that finding at line 1 (REQUIREMENTS.md Open questions,
+    R-743). Report-only; low consequence.
+  - Unchanged from earlier rounds: the abbreviation splitter still breaks on "e.g."/"vs.", the
+    passive check is a measured heuristic (not a parser), a child session's extension set can
+    exclude this one depending on how it was launched, and behavioral compliance with the
+    rule's own technical-record exclusion has not been tested against a real model.
+  - The readme-check test stays red for pre-existing worktree-only dependency gaps (the bench
+    extension sandbox, nana-knowledge's node_modules) — unrelated to this trial.
