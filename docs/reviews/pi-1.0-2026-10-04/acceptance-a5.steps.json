@@ -1,0 +1,6 @@
+[{"prompt":"Acceptance probe A5. Launch three background reviewer subagents in parallel, one per file, each reviewing its file for one real bug in under 80 words: packages/nana-setup/lib/paths.mjs, packages/nana-setup/lib/fsops.mjs, packages/nana-setup/lib/project-key.mjs. Do not wait for them; end your turn."},
+ {"settle":true,"timeoutMs":300000},
+ {"prompt":"What is 2+2? Answer with one word."},
+ {"settle":true,"timeoutMs":120000},
+ {"waitCount":"Background task (completed|failed)","count":3,"timeoutMs":900000},
+ {"settle":true,"timeoutMs":300000}]

@@ -1,0 +1,4 @@
+[{"prompt":"Acceptance probe A3. Use a `reviewer` subagent to review the last commit in this repository (HEAD) for correctness. Keep the review under 150 words. Do not wait for it; end your turn after launching."},
+ {"settle":true,"timeoutMs":300000},
+ {"waitText":"Background task (completed|failed)","timeoutMs":900000},
+ {"settle":true,"timeoutMs":300000}]

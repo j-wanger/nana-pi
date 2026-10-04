@@ -1,0 +1,4 @@
+[{"prompt":"Acceptance probe A4. Launch ONE background `delegate` subagent whose task, verbatim, is: \"Use your subagent tool to launch another subagent (any agent) that lists the files in the current directory. Report exactly what happened, including any error text.\" End your turn after launching."},
+ {"settle":true,"timeoutMs":300000},
+ {"waitText":"Background task (completed|failed)","timeoutMs":600000},
+ {"settle":true,"timeoutMs":300000}]

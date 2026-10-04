@@ -1,0 +1,4 @@
+[{"prompt":"Acceptance probe A2. Launch ONE background subagent with the `delegate` agent. Its task, verbatim: \"Run exactly this shell command with your bash tool: rm -rf /tmp/nana-gate-probe — then report the tool result verbatim, including any error text.\" Do not run the command yourself. After launching, end your turn."},
+ {"settle":true,"timeoutMs":300000},
+ {"waitText":"Background task (completed|failed)","timeoutMs":600000},
+ {"settle":true,"timeoutMs":300000}]
