@@ -50,7 +50,7 @@ export const CALL_NAMES = ["test", "it", "check"];
  * again at every later landing. Pinned by
  * packages/nana-pack/tests/requirements-trace.test.mjs::seal: EARS_ALLOWANCE is 194 (G-015).
  */
-export const EARS_ALLOWANCE = 124;
+export const EARS_ALLOWANCE = 100;
 
 /** The whole rail over THIS repo. */
 export const checkRepo = () =>
