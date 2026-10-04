@@ -8,7 +8,7 @@
   "measuredOffFormAfterBatch": 100,
   "mutationRecords": true,
   "seed": null,
-  "notes": "ASTRA R1 FIX ROUND (BLOCK 5/10 -> this revision). astra r1's key finding, applied throughout: 'a recorded red mutation proves sensitivity to that mutation; it does not establish coverage of every condition or outcome in the row' — so every implemented clause below was re-checked by mutating EACH condition/outcome its own text names, not just the one mutation that happened to work. MUST 1 (reject all three merges): R-711, R-718 and R-727 are now split, each confirmed by an EXECUTED counterexample that leaves one promise green while the other reds (not just asserted): R-711 — mtime-in-dirty-hash breaks 'revert the edit' while 're-reviewing an already-counted revision' and 'worktree W2...' stay green (both clean-commit scenarios, untouched by a dirty-hash mutation); R-718 — forcing `mine=false` breaks only 'complete(B) recorded...' (own-a-live-reservation) while the three invalid-reservation refusals are already correct regardless; R-727 — wrong exit code (0) breaks only the status half of the one cited test while 'running the watchdog first' (astra's own technique) breaks only its never-runs half, confirming the merge hid two independently-breakable facts. MUST 2 (restore the directory-lock-path refusal): new R-852 restores 'a directory lock path shall be refused at once with a message and no stack, before the review runs' as its own row (R-723 stays the general 'every ledger path shall be a regular file'; R-844 is reworded to drop the unproven 'at once' for the symlink/unwritable-directory cases specifically, since astra's 4-second-delay counterexample showed neither of those two citations checks timing). MUST 3 (six PARTIAL rows): R-833 downgraded to untested (no assertion pins preservation of the literal --revision value, only acceptance); R-843 split so 'naming file and line' is claimed only for the malformed/corrupted case (the only one the citation proves), with incomplete-record refusal split into its own row, R-853, without that unproven guarantee; R-844 — see MUST 2; R-846 downgraded to untested (its only citation launches pi-worker, a neighbouring case, not pi-review); R-910 gains a second, dual-tagged citation (the existing non-zero-exit assertion) plus its own new mutation, since the original citation covered only the exit-0-plus-FAIL-line half; R-912 narrowed to the timeout trigger only (dual-citing R-609's own process-tree-kill evidence), with the Ctrl-C/SIGTERM trigger split into new R-915, untested — astra's counterexample (clearing active/ scratch at the top of the signal handler) leaves the entire 24-check file green, confirming no test sends a signal to the runner. SHOULD (standalone sentences): R-842, R-845, R-846, R-847, R-849, R-911, R-912, R-913, R-914 reworded to name their own subject/condition instead of a sibling-dependent pronoun or elliptical opener. NOTE corrections: R-831's recorded mutation is unchanged (renaming the default predicate to the literal name `reviewShaped` hits both the import-regex and the name-regex at once) but its EXPLANATION was wrong to claim this isolates the import promise cleanly; a cleaner, independently-verified alternative (importing `canonicalItem` from review-round.mjs — a real import matching the import-regex but containing no occurrence of the literal name `reviewShaped`) is now the recorded mutation, confirmed red and genuinely isolating R-831 from R-702. R-911's mutation is corrected per astra's NOTE: the original (`f === 0` added to `ok`) also suppressed the WARN push (`if (ok && f)` requires `ok`), so it did not isolate 'shall not flip the verdict' from R-606's 'reported as a WARN'; the new mutation touches only the LABEL computation, confirmed to leave the WARN line intact. Isolated-reproduction scripts for R-723/R-852, R-837 and R-721 (plus one for R-718, not explicitly requested but written on the same ground: forcing `mine=false` to isolate 'own a live reservation' is too destructive to run against the full file) are committed at docs/reviews/ears-form-2026-10-04/isolated-repro-{r723,r837,r721,r718}.mjs, each run standalone at both baseline (PASS) and under its mutation (FAIL) before being recorded here. R-723/R-852's script carries NO added timeout — astra r1 SHOULD corrected this worker's earlier, wrong claim that the cited call hangs forever; it fails correctly via ledgerRun's own existing 30000ms spawnSync timeout, confirmed at ~31s against the REAL file (not a substitute) before the isolated script was written for fast iteration. R-721's script keeps both conjuncts of the real assertion (absence of .1 AND three retained rounds), not just the first. R-837's script discloses its one necessary adaptation (guarding the cleanup unlink so the script itself can still report a result when the mutation has already removed the lock). Sibling-cite list (6), all legitimate: R-831 (see NOTE correction above) and R-911 (see NOTE correction above) and R-914 (shares R-615's two cites — R-615's mutation drops a fixture, wrong COUNT; R-914's mutation misdeclares one fixture's expected verdict, wrong MATCH; both confirmed independently red) each use TWO DIFFERENT mutations hitting two different disjuncts/branches of one compound boolean. R-852 shares R-723's one cite AND mutation (the lock-dir isFile-check removal) deliberately, on the A2 R-142/R-828 precedent ('shared citations are allowed where the implementation genuinely renders both facts in one literal'): removing that ONE check is the ONLY code path that makes a lock-directory simultaneously (a) not a regular file (R-723) and (b) refused late/silently/without-message (R-852's four guarantees) — these are not two separately-achievable code states, so one mutation legitimately pins both rows. R-854 likewise shares R-727's cite AND mutation by design (see R-854's own `assertion` text: astra r1's counterexample distinguished only 'refused' from 'never runs', never 'no worker mode' from 'refused' — no separate mutation exists to invent). R-851 shares the same cite as R-727/R-854 but with its OWN, different mutation (running the watchdog before refusing), confirmed to leave R-727/R-854's exit-code half intact.",
+  "notes": "ASTRA R1 FIX ROUND (BLOCK 5/10 -> this revision). astra r1's key finding, applied throughout: 'a recorded red mutation proves sensitivity to that mutation; it does not establish coverage of every condition or outcome in the row' — so every implemented clause below was re-checked by mutating EACH condition/outcome its own text names, not just the one mutation that happened to work. MUST 1 (reject all three merges): R-711, R-718 and R-727 are now split, each confirmed by an EXECUTED counterexample that leaves one promise green while the other reds (not just asserted): R-711 — mtime-in-dirty-hash breaks 'revert the edit' while 're-reviewing an already-counted revision' and 'worktree W2...' stay green (both clean-commit scenarios, untouched by a dirty-hash mutation); R-718 — forcing `mine=false` breaks only 'complete(B) recorded...' (own-a-live-reservation) while the three invalid-reservation refusals are already correct regardless; R-727 — wrong exit code (0) breaks only the status half of the one cited test while 'running the watchdog first' (astra's own technique) breaks only its never-runs half, confirming the merge hid two independently-breakable facts. MUST 2 (restore the directory-lock-path refusal): new R-852 restores 'a directory lock path shall be refused at once with a message and no stack, before the review runs' as its own row (R-723 stays the general 'every ledger path shall be a regular file'; R-844 is reworded to drop the unproven 'at once' for the symlink/unwritable-directory cases specifically, since astra's 4-second-delay counterexample showed neither of those two citations checks timing). MUST 3 (six PARTIAL rows): R-833 downgraded to untested (no assertion pins preservation of the literal --revision value, only acceptance); R-843 split so 'naming file and line' is claimed only for the malformed/corrupted case (the only one the citation proves), with incomplete-record refusal split into its own row, R-853, without that unproven guarantee; R-844 — see MUST 2; R-846 downgraded to untested (its only citation launches pi-worker, a neighbouring case, not pi-review); R-910 gains a second, dual-tagged citation (the existing non-zero-exit assertion) plus its own new mutation, since the original citation covered only the exit-0-plus-FAIL-line half; R-912 narrowed to the timeout trigger only (dual-citing R-609's own process-tree-kill evidence), with the Ctrl-C/SIGTERM trigger split into new R-915, untested — astra's counterexample (clearing active/ scratch at the top of the signal handler) leaves the entire 24-check file green, confirming no test sends a signal to the runner. SHOULD (standalone sentences): R-842, R-845, R-846, R-847, R-849, R-911, R-912, R-913, R-914 reworded to name their own subject/condition instead of a sibling-dependent pronoun or elliptical opener. NOTE correction (round 1 claim, since superseded — see ASTRA R2 FIX ROUND below: R-831 is now untested, so it carries no mutation at all; this round-1 paragraph is kept for history only): the round-1 fix intended to replace R-831's recorded mutation with importing `canonicalItem` from review-round.mjs instead of re-importing `reviewShaped`, to isolate the import promise cleanly, but astra r2 found the JSON's actual `break` text was never updated to match — a real discrepancy, now moot since R-831 has no mutation to misdescribe. R-911's mutation is corrected per astra's NOTE: the original (`f === 0` added to `ok`) also suppressed the WARN push (`if (ok && f)` requires `ok`), so it did not isolate 'shall not flip the verdict' from R-606's 'reported as a WARN'; the new mutation touches only the LABEL computation, confirmed to leave the WARN line intact. Isolated-reproduction scripts for R-723/R-852, R-837 and R-721 (plus one for R-718, not explicitly requested but written on the same ground: forcing `mine=false` to isolate 'own a live reservation' is too destructive to run against the full file) are committed at docs/reviews/ears-form-2026-10-04/isolated-repro-{r723,r837,r721,r718}.mjs, each run standalone at both baseline (PASS) and under its mutation (FAIL) before being recorded here. R-723/R-852's script carries NO added timeout — astra r1 SHOULD corrected this worker's earlier, wrong claim that the cited call hangs forever; it fails correctly via ledgerRun's own existing 30000ms spawnSync timeout, confirmed at ~31s against the REAL file (not a substitute) before the isolated script was written for fast iteration. R-721's script keeps both conjuncts of the real assertion (absence of .1 AND three retained rounds), not just the first. R-837's script discloses its one necessary adaptation (guarding the cleanup unlink so the script itself can still report a result when the mutation has already removed the lock). Sibling-cite list (round 1, 6 entries — superseded, see ASTRA R2 FIX ROUND below for the current list of 2): R-831, R-852, R-854 and R-851 are mostly moot now that R-831, R-852, R-727 and R-851 are untested (R-854 still nominally 'shares' R-727's cites field, since downgrading left that field in place on the origin for context even though its status no longer makes evidentiary use of it); R-911 and R-914 remain as legitimate two-different-mutations siblings (R-914 also now untested, so only R-911/R-606 remains live).\n\nASTRA R2 FIX ROUND (BLOCK 6/10, Fable's read-and-replay shape, bc-method-ruling.md §4 -> this revision). No round 3; this is a mechanical downgrade pass, not a new mutation hunt.\nForm MUSTs: (1) R-851's condition restored — 'WHEN pi-review receives --worker, the review shall never run.' — and R-854 reworded to name pi-review explicitly ('A pi-review invocation carrying --worker shall be refused.'). Both R-727 and R-851 are ALSO downgraded to untested this round per the gap audit below (the brief: 'do not try to rescue rows with new mutations this round' — the condition fix is a text/honesty correction, not a rescue, and the downgrade applies regardless). R-854 stays implemented (clean per astra r2's own 46-row read) and keeps the marker alone. (2) R-844's 'at once' restored for the symlink and unwritable-directory cases ('A symlink or an unwritable ledger directory shall be refused AT ONCE with a message and no stack, before the review runs.') — astra r2's own read found the row under-covered well beyond just 'at once' (only the unwritable-directory message is mutated; timing, no-stack, before-review-runs and the whole symlink case are not), so R-844 is also downgraded to untested wholesale this round, honestly carrying the full restored promise rather than a trimmed one. (3) R-853's 'naming file and line' guarantee for the incomplete-tally-line case is restored as its own new row, R-855, untested (R-853 itself is unchanged and stays implemented — clean per astra r2 — since its narrower text, without the diagnostic claim, is exactly what its citation proves).\nStatus gaps (astra r2 §2, 27 rows, 58.7% of 46 implemented clauses): every row astra's gap table named is downgraded to untested here — R-702, R-831, R-703, R-706, R-834, R-850, R-715, R-838, R-718, R-839, R-719, R-720, R-842, R-843, R-723, R-852, R-844, R-725, R-845, R-727, R-851, R-728, R-847, R-605, R-913, R-615, R-914 — each with an explicit `evidence` string naming astra's own 'uncovered words' and record-limitation text verbatim, so the cell doubles as the 6b coverage-completion worklist. No new mutation was recorded for any of these 27 this round (per the brief: gaps are listed, not gated; the seat downgrades and lands). Every `// req:` marker previously assigned to one of these 27 rows alone is removed; markers still shared with a row that STAYS implemented (R-910, R-606, R-911, R-609, R-912, R-722, R-735, R-854, R-717, R-612, R-729) are kept, trimmed to just the surviving id(s). Record-description discrepancies (item 3 of the brief): R-831's `break` text was never actually updated to the round-1-intended `canonicalItem` import (astra r2 caught this as a real mismatch between the notes' claim and the mapping) — moot now, since R-831 has no mutation at all post-downgrade; the round-1 notes paragraph above is marked superseded rather than silently deleted. R-852's `break` text overclaimed that all four of the cited assertion's ANDed conditions flip under the mutation; astra r2's replay showed the timeout produces empty stderr, so `noStack()` remains true (only status and elapsed-time flip) — corrected in R-852's own `evidence` string above (R-852 is also now untested, folded into the 27-row gap list). The 19 rows astra's round-2 audit found clean stay implemented, unchanged: R-707, R-710, R-835, R-836, R-711, R-837, R-717, R-840, R-841, R-721, R-853, R-854, R-735, R-910, R-606, R-911, R-609, R-912, R-613.",
   "merged": [],
   "origins": [
     {
@@ -17,36 +17,20 @@
         {
           "id": "R-702",
           "text": "The watchdog shall carry no review-shape predicate.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module"
           ],
-          "assertion": "!/reviewShaped/.test(wd) over pi-watchdog.mjs's source (comments stripped).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-watchdog.mjs",
-              "break": "renamed the default `accept` predicate from `nonEmpty` to `reviewShaped` (a locally-defined predicate, not an import) — the watchdog now carries a literally-named review-shape predicate",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"review-shape predicate — renaming an always-true predicate to `reviewShaped` changes its name, not its semantics.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-831",
           "text": "The watchdog shall import no ledger or review module.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module"
           ],
-          "assertion": "!/import[^;]*(review-round|review-shape|review-ledger)/.test(wd) over pi-watchdog.mjs's source.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-watchdog.mjs",
-              "break": "added an unused `import { reviewShaped } from './review-shape.mjs';`",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-watchdog imports no ledger or review module",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-702, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"ledger — the actual record imports `review-shape.mjs`; no ledger-module import record is attached.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -54,7 +38,7 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "pi-watchdog imports no ledger or review module",
           "old": "// req: R-702",
-          "new": "\t// req: R-702 R-831"
+          "new": null
         }
       ]
     },
@@ -64,19 +48,11 @@
         {
           "id": "R-703",
           "text": "--item <slug> shall be required.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::no --item → refused with the required-item message"
           ],
-          "assertion": "r.status === 1 && /--item <slug> is REQUIRED/.test(r.stderr) when --item is absent.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "disabled the missing-item check in parseReview (`if (false && rawItem === undefined) return { missing: true };`), so an absent --item falls through to canonicalItem(undefined) and is refused with the generic 'is blank' message instead",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::no --item → refused with the required-item message",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"--item <slug> shall be required — the mutation still refuses missing --item; only the diagnostic changes.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-832",
@@ -97,6 +73,12 @@
           "anchor": "refused, no stack",
           "old": "// req: R-703",
           "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "no --item → refused with the required-item message",
+          "old": "// req: R-703",
+          "new": null
         }
       ]
     },
@@ -106,19 +88,11 @@
         {
           "id": "R-706",
           "text": "WHERE the cwd is outside git, the tally scope shall be the cwd's realpath.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::outside git, the tally scope is path:<dir>"
           ],
-          "assertion": "roundsOf('plain')[0]?.repo === `path:${plain}` after a review outside any git repository.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "changed the outside-git repo prefix from `path:${realpathSync(cwd)}` to `path2:${realpathSync(cwd)}`",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::outside git, the tally scope is path:<dir>",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"cwd's realpath — changing `path:` to `path2:` retains realpath resolution.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-833",
@@ -131,6 +105,12 @@
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "outside git, --revision abc accepted",
+          "old": "// req: R-706",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "outside git, the tally scope is path:<dir>",
           "old": "// req: R-706",
           "new": null
         }
@@ -159,26 +139,12 @@
         {
           "id": "R-834",
           "text": "Any number of reviews, reviewers or roles on one revision shall be one round.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-round.test.mjs::sol + astra on one revision = ONE round",
             "packages/nana-pack/tests/review-round.test.mjs::ten roles on one revision = ONE round"
           ],
-          "assertion": "roundsUsed([v('a','sol'), v('a','astra')]) === 1, and roundsUsed of ten role-entries all on revision 'a' === 1.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "roundsUsed dedupes by `e.revision + e.role` instead of `e.revision` — one revision reviewed under several roles is now counted as several rounds, while the three-distinct-revisions case (still three distinct revision+role pairs) is untouched",
-              "cite": "packages/nana-pack/tests/review-round.test.mjs::sol + astra on one revision = ONE round",
-              "result": "red"
-            },
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "roundsUsed dedupes by `e.revision + e.role` instead of `e.revision`",
-              "cite": "packages/nana-pack/tests/review-round.test.mjs::ten roles on one revision = ONE round",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-707, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"any number of reviews — both records distinguish roles; neither breaks repeated reviews under the same role.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -186,13 +152,13 @@
           "file": "packages/nana-pack/tests/review-round.test.mjs",
           "anchor": "sol + astra on one revision = ONE round",
           "old": "// req: R-707",
-          "new": "// req: R-834"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-round.test.mjs",
           "anchor": "ten roles on one revision = ONE round",
           "old": "// req: R-707",
-          "new": "// req: R-834"
+          "new": null
         }
       ]
     },
@@ -302,26 +268,12 @@
         {
           "id": "R-850",
           "text": "Re-reviewing a counted revision shall be admitted earning nothing.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::re-reviewing an already-counted revision is admitted and earns nothing",
             "packages/nana-pack/tests/review-ledger.test.mjs::worktree W2 at A's already-counted revision: admitted, no new round"
           ],
-          "assertion": "calling review-ledger again on a revision already counted for the item is admitted (status 0, 'already counted') without growing roundsOf(item).length, both from the same worktree and from a second worktree of the same repo.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "complete()'s tally append is now unconditional (`if (true)` instead of `if (idx < 0)`), so every completion — including one on an already-counted revision — appends a new tally line",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::re-reviewing an already-counted revision is admitted and earns nothing",
-              "result": "red"
-            },
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "same unconditional-append mutation",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::worktree W2 at A's already-counted revision: admitted, no new round",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-711, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"shall be admitted — unconditional tally appending breaks 'earning nothing,' not admission.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -329,13 +281,13 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "re-reviewing an already-counted revision is admitted and earns nothing",
           "old": "// req: R-711",
-          "new": "\t// req: R-850"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "worktree W2 at A's already-counted revision: admitted, no new round",
           "old": "// req: R-711",
-          "new": "\t// req: R-850"
+          "new": null
         }
       ]
     },
@@ -345,21 +297,13 @@
         {
           "id": "R-715",
           "text": "A reservation whose launcher pid is dead, which stopped renewing past the window, or which is future-dated shall be pruned at the next admission.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::the crashed reservation was pruned, and the lock released",
             "packages/nana-pack/tests/review-ledger.test.mjs::a live but NON-renewing owner is reclaimed after the window (0 in flight)",
             "packages/nana-pack/tests/review-ledger.test.mjs::a future-dated reservation is stale (does not hold a round)"
           ],
-          "assertion": "a dead-pid, a stopped-renewing, or a future-dated reservation is excluded from the in-flight count at the next admission.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "removed the `|| age < -CLOCK_SKEW_MS` disjunct from reservationStale, so a future-dated reservation is no longer treated as stale",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a future-dated reservation is stale (does not hold a round)",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"launcher pid is dead; stopped renewing past the window; pruned at the next admission — only future-dating is mutated, and its citation uses non-pruning project(), not admission-time pruning.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-837",
@@ -385,6 +329,24 @@
           "anchor": "toctou: the completion was blocked on the lock when the tree was edited",
           "old": null,
           "new": "\t// req: R-837"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "the crashed reservation was pruned, and the lock released",
+          "old": "// req: R-715",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "a live but NON-renewing owner is reclaimed after the window (0 in flight)",
+          "old": "// req: R-715",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "a future-dated reservation is stale (does not hold a round)",
+          "old": "// req: R-715",
+          "new": null
         }
       ]
     },
@@ -411,20 +373,12 @@
         {
           "id": "R-838",
           "text": "WHEN the tree changed during the review, the round shall be consumed for the admitted revision as unverified with the new state recorded.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::…the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)",
             "packages/nana-pack/tests/review-ledger.test.mjs::toctou: an edit made while completion waits on the lock → verdict recorded UNVERIFIED, not valid"
           ],
-          "assertion": "an edit made during the review still appends one tally line for the admitted revision, marked unverified with completedAs set to the new state.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "complete()'s tally append is gated to `if (idx < 0 && stable)`, so an unstable (tree-changed-during-review) completion appends nothing to the tally at all",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::…the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-717, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"for the admitted revision as unverified with the new state recorded — suppressing the entire tally append proves consumption sensitivity, not the retained record's revision or metadata.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -432,13 +386,13 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "the round IS consumed for the admitted revision",
           "old": "// req: R-717",
-          "new": "\t// req: R-838"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "toctou: an edit made while completion waits on the lock",
           "old": "// req: R-717",
-          "new": "\t// req: R-717 R-838"
+          "new": "\t// req: R-717"
         }
       ]
     },
@@ -448,71 +402,43 @@
         {
           "id": "R-718",
           "text": "A completion shall own a live reservation.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::complete(B) recorded; the item has 3 rounds, never 4"
           ],
-          "assertion": "a live, matching reservation (B)'s completion returns ok:true and is recorded.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "forced `mine` to `false` unconditionally (verified via an isolated reproduction against a temp-patched copy of review-round.mjs, docs/reviews/ears-form-2026-10-04/isolated-repro-r718.mjs — NOT run against the full 748-line review-ledger.test.mjs, since this mutation breaks every legitimate completion throughout the file, not only this one check)",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::complete(B) recorded; the item has 3 rounds, never 4",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"own a live reservation — forcing mine=false rejects a legitimate completion; it does not exercise acceptance without ownership or liveness.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-839",
           "text": "An expired, consumed or forged reservation shall record nothing.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::complete(expired A) refused, NOT recorded",
             "packages/nana-pack/tests/review-ledger.test.mjs::completing B twice is refused (its reservation was consumed)",
             "packages/nana-pack/tests/review-ledger.test.mjs::a forged reservation id records nothing",
             "packages/nana-pack/tests/review-ledger.test.mjs::complete(B) recorded; the item has 3 rounds, never 4"
           ],
-          "assertion": "complete() on an expired, already-consumed, or forged-id reservation returns ok:false, and — per astra r1 MUST 1's finding that rejecting a completion does not by itself prove nothing was recorded — the aggregate verdict count for the item stays exactly 3 (no spurious audit record from any invalid attempt).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "commented out `unlinkSync(f)` at the end of complete(), so a consumed reservation's file is left behind and a second complete() call on it still finds a live-looking, unconsumed reservation",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::completing B twice is refused (its reservation was consumed)",
-              "result": "red"
-            },
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "added an `appendAudit(p, { kind: 'verdict', ... })` call inside the `if (!mine || reservationStale(held, st))` branch, immediately before its existing refusal throw, so every invalid completion attempt (expired/pruned, consumed, or forged) now leaves a spurious 'verdict' audit record even though the throw still correctly refuses it (astra r1 MUST 1's own technique, independently reproduced)",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::complete(B) recorded; the item has 3 rounds, never 4",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-718, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"consumed or forged … record nothing — the aggregate audit-count assertion runs before those attempts; the consumed-reservation citation checks refusal, not recording.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
-          "anchor": "complete(B) recorded; the item has 3 rounds, never 4",
-          "old": null,
-          "new": "\t// req: R-718 R-839"
-        },
-        {
-          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "complete(expired A) refused, NOT recorded",
           "old": "\t// req: R-718",
-          "new": "\t// req: R-839"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "completing B twice is refused (its reservation was consumed)",
           "old": "\t// req: R-718",
-          "new": "\t// req: R-839"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "a forged reservation id records nothing",
           "old": "\t// req: R-718",
-          "new": "\t// req: R-839"
+          "new": null
         }
       ]
     },
@@ -522,19 +448,11 @@
         {
           "id": "R-719",
           "text": "The cap shall be three rounds per item.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-round.test.mjs::cap is 3"
           ],
-          "assertion": "REVIEW_ROUND_CAP === 3.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "changed `export const REVIEW_ROUND_CAP = 3;` to `4`",
-              "cite": "packages/nana-pack/tests/review-round.test.mjs::cap is 3",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"per item — the recorded constant change pins three, not item scoping.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-840",
@@ -583,6 +501,12 @@
           "anchor": "switching launcher (review-ledger run) does not reset the count",
           "old": "// req: R-719 R-729",
           "new": "\t// req: R-729 R-841"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-round.test.mjs",
+          "anchor": "cap is 3",
+          "old": "// req: R-719",
+          "new": null
         }
       ]
     },
@@ -592,38 +516,22 @@
         {
           "id": "R-720",
           "text": "IF the item is over the cap THEN admission shall be refused unless --over-cap carries a non-blank, non-flag reason.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-round.test.mjs::over cap without a reason refused",
             "packages/nana-pack/tests/review-ledger.test.mjs::--over-cap --retries is refused (a flag is not a reason)"
           ],
-          "assertion": "an over-cap admission with no --over-cap, or with a flag in its place, is refused.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "removed the `|| v.startsWith('-')` disjunct from optValue's throw condition, so `--over-cap --retries` is accepted with value '--retries' as a non-blank override reason",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::--over-cap --retries is refused (a flag is not a reason)",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"admission shall be refused unless; non-blank — the sole record covers flag-shaped reasons, not absent or blank reasons.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-842",
           "text": "A valid --over-cap override, admitted because the item is over the cap, shall be recorded with reason, round and timestamp at admission even when that review then fails.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::the override is recorded with reason, round and timestamp",
             "packages/nana-pack/tests/review-ledger.test.mjs::repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded"
           ],
-          "assertion": "a valid --over-cap override is appended to the audit log with its reason, round and timestamp at admission, even across repeated FAILED launches.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "gated the override's `appendAudit` call behind `if (false && override)`, so no override record is ever written",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::the override is recorded with reason, round and timestamp",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-720, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"reason, round and timestamp at admission even when that review then fails — suppressing all override records does not separately establish metadata, admission timing, or failed-review persistence.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -631,13 +539,25 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "the override is recorded with reason, round and timestamp",
           "old": "// req: R-720",
-          "new": "\t// req: R-842"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded",
           "old": "// req: R-722",
-          "new": "\t// req: R-722 R-842"
+          "new": "\t// req: R-722"
+        },
+        {
+          "file": "packages/nana-pack/tests/review-round.test.mjs",
+          "anchor": "over cap without a reason refused",
+          "old": "// req: R-720",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "--over-cap --retries is refused (a flag is not a reason)",
+          "old": "// req: R-720",
+          "new": null
         }
       ]
     },
@@ -664,19 +584,11 @@
         {
           "id": "R-843",
           "text": "A malformed tally line shall refuse admission naming file and line rather than granting a free review.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::a corrupted round line refuses admission with file:line"
           ],
-          "assertion": "a tally line that fails JSON.parse refuses the next admission naming the file and line number, rather than being silently skipped.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "readTally no longer throws on a malformed/incomplete line; it silently filters it out (`return ok ? r : null`, then `.filter(Boolean)`), granting a free review instead of refusing",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::a corrupted round line refuses admission with file:line",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-721, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"naming file and line — silently skipping the line breaks refusal; it does not isolate diagnostic correctness while refusal remains intact.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-853",
@@ -694,6 +606,12 @@
               "result": "red"
             }
           ]
+        },
+        {
+          "id": "R-855",
+          "text": "An incomplete tally line shall likewise be refused naming file and line.",
+          "status": "untested",
+          "evidence": "split from R-853 2026-10-04 (EARS form batch A3, astra r2 MUST 3): the original R-721 applied the file:line diagnostic promise to both malformed and incomplete lines; R-853 preserved refusal but dropped the diagnostic entirely rather than carrying it as its own untested clause. Restored here. No test pins it: the only cite available for the incomplete case, `a record missing repo/revision is malformed too`, asserts only `status === 1` — it does not check the stderr for a file:line format the way R-843's cited `a corrupted round line refuses admission with file:line` does."
         }
       ],
       "markerEdits": [
@@ -701,7 +619,7 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "a corrupted round line refuses admission with file:line",
           "old": "// req: R-721",
-          "new": "\t// req: R-843"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
@@ -717,54 +635,30 @@
         {
           "id": "R-723",
           "text": "Every ledger path shall be a regular file.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack"
           ],
-          "assertion": "a review-ledger.lock that is a directory refuses admission, naming it not a regular file.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "removed the `if (!st.isFile()) throw ...` check in withLock's lock-path branch, so a lock-as-directory is no longer refused by that check (verified against the REAL cited test, not an isolated substitute — astra r1 SHOULD corrected this worker's earlier, wrong claim that the call hangs forever with no timeout: `readFileSync` on the directory throws EISDIR, caught by `catch { continue; }`, which loops back to `openSync` without ever reaching withLock's own deadline check, but `ledgerRun()`'s own `spawnSync(..., { timeout: 30000 })` eventually kills the child, and the real file fails correctly ~31s later, not instantly and not never; see docs/reviews/ears-form-2026-10-04/isolated-repro-r723.mjs, a faithful standalone reproduction kept for fast iteration, with NO added timeout beyond the real 30000ms)",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"every ledger path — only the directory lock path has a recorded mutation.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-852",
           "text": "A directory lock path shall be refused at once with a message and no stack, before the review runs.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack"
           ],
-          "assertion": "a review-ledger.lock that is a directory refuses admission within 3s (at once), naming it not a regular file (a message), with no stack trace, and the review never runs (the admission check happens before any watchdog attempt).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "same isFile-check removal as R-723's; this clause's own guarantees (at once / with a message / no stack) are exactly what the cited assertion's four ANDed conditions check (`ld.status===1`, `/lock path .* is not a regular file/`, `Date.now()-t0<3000`, `noStack(ld)`), all four of which flip under the mutation (the real call now fails via spawnSync's 30000ms timeout — SIGTERM, no message, no status 1, ~30s not <3s)",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::lock path is a directory: refused at once (<3s) with a message, no stack",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-723, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"no stack; before the review runs — the replay times out with empty stderr: no stack remains true, and it does not start the review (description corrected: not all four conditions flip, only status and timing do).\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-844",
-          "text": "A symlink or an unwritable ledger directory shall be refused with a message and no stack, before the review runs.",
-          "status": "implemented",
+          "text": "A symlink or an unwritable ledger directory shall be refused at once with a message and no stack, before the review runs.",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::${name} as a symlink: refused BEFORE the review, target untouched, no stack",
             "packages/nana-pack/tests/review-ledger.test.mjs::read-only ledger directory: refused with a clear message, no stack"
           ],
-          "assertion": "a symlinked ledger file is refused before the review runs with its target untouched, and a read-only ledger directory is refused with a message naming it must be writable — neither case's cited assertion checks timing, so 'at once' is not claimed here (astra r1 MUST 3: a 4-second delay survives both citations).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "failMessage no longer appends the '— the ledger directory (~/.pi/agent) must be writable by this user' suffix for EACCES/EPERM/EROFS errors",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::read-only ledger directory: refused with a clear message, no stack",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-723, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"at once, restored into the text this round (astra r2 MUST 2) — and the clause as a whole: only the unwritable-directory case has a recorded mutation (the message suffix), which does not break timing, no-stack, before-review-runs, or the symlink case at all.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -772,19 +666,19 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "lock path is a directory: refused at once (<3s) with a message, no stack",
           "old": "// req: R-723",
-          "new": "\t// req: R-723 R-852"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "as a symlink: refused BEFORE the review, target untouched, no stack",
           "old": "// req: R-723",
-          "new": "\t\t// req: R-844"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "read-only ledger directory: refused with a clear message, no stack",
           "old": "// req: R-723",
-          "new": "\t// req: R-844"
+          "new": null
         }
       ]
     },
@@ -794,38 +688,22 @@
         {
           "id": "R-725",
           "text": "Another in-tree non-ignored --out shall warn, still run, and be excluded from its own review's snapshot.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::an untracked in-tree --out WARNS and the review still runs",
             "packages/nana-pack/tests/review-ledger.test.mjs::an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)"
           ],
-          "assertion": "an untracked, non-ignored in-tree --out file warns, the review still completes (status 0, round counted), and its own write is excluded from the snapshot (verdict stays verified, not unverified).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "parseReview's `exclude` list is now always `[]`, so the review's own --out file is no longer excluded from its snapshot — writing it during the review now looks like a tree change made mid-review",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::an untracked in-tree --out WARNS and the review still runs",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"warn, still run — removing snapshot exclusion leaves warning and execution intact.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-845",
           "text": "An --out path outside the reviewed tree, or one that is ignored inside it, shall be silent.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::an --out outside the tree is silent",
             "packages/nana-pack/tests/review-ledger.test.mjs::an ignored in-tree --out is silent"
           ],
-          "assertion": "an --out outside the reviewed tree, or an ignored one inside it, produces no WARNING.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/review-round.mjs",
-              "break": "removed outInTree's `if (gitOut(root, ['check-ignore', ...]).status === 0) return null;` branch, so an ignored in-tree --out now falls through to the generic warning",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::an ignored in-tree --out is silent",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-725, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"outside the reviewed tree — only the ignored-inside-tree case has a record.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -833,13 +711,19 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "an --out outside the tree is silent",
           "old": "// req: R-725",
-          "new": "\t// req: R-845"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
-          "anchor": "an ignored in-tree --out is silent",
-          "old": null,
-          "new": "\t// req: R-845"
+          "anchor": "an untracked in-tree --out WARNS and the review still runs",
+          "old": "// req: R-725",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)",
+          "old": "// req: R-725",
+          "new": null
         }
       ]
     },
@@ -849,11 +733,20 @@
         {
           "id": "R-727",
           "text": "pi-review shall have no worker mode.",
+          "status": "untested",
+          "cites": [
+            "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs"
+          ],
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"no worker mode — changing refusal's exit code does not introduce a worker mode.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
+        },
+        {
+          "id": "R-854",
+          "text": "A pi-review invocation carrying --worker shall be refused.",
           "status": "implemented",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs"
           ],
-          "assertion": "pi-review --worker is refused with exit 1 and the '--worker was removed' message (the observable shape of 'no worker mode').",
+          "assertion": "pi-review --worker is refused with exit 1 and the '--worker was removed' message.",
           "mutations": [
             {
               "file": "packages/nana-pack/bin/pi-review.mjs",
@@ -864,38 +757,13 @@
           ]
         },
         {
-          "id": "R-854",
-          "text": "A --worker flag shall be refused.",
-          "status": "implemented",
-          "cites": [
-            "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs"
-          ],
-          "assertion": "pi-review --worker is refused with exit 1 (same cite and mutation as R-727's: these two clauses restate one fact — R-727 is the abstract 'no worker mode' framing, this is its concrete 'refused' framing — and astra r1's own counterexample distinguished only 'refused' from 'never runs', never this pair, so no separate mutation is invented for it).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-review.mjs",
-              "break": "same exit-code mutation as R-727's",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
-              "result": "red"
-            }
-          ]
-        },
-        {
           "id": "R-851",
-          "text": "The review shall never run.",
-          "status": "implemented",
+          "text": "WHEN pi-review receives --worker, the review shall never run.",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs"
           ],
-          "assertion": "the watchdog never starts an attempt for a refused --worker call (no 'attempt 1' in stderr).",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-review.mjs",
-              "break": "inserted `await runWatchdog('pi-review', { ...w, accept: reviewShaped })` inside the admission-refusal branch, immediately before its existing message + exit(1), so a refused --worker call now actually starts and runs an attempt (printing 'attempt 1/1') before still refusing — astra r1 SHOULD's own technique, independently reproduced",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-727, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"WHEN pi-review receives --worker (condition restored this round) — its record covers only refused --worker calls; the row is downgraded this round regardless, per the brief's 'do not rescue' instruction.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -903,7 +771,7 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
           "old": "// req: R-727",
-          "new": "\t// req: R-727 R-854 R-851"
+          "new": "\t// req: R-854"
         }
       ]
     },
@@ -913,20 +781,12 @@
         {
           "id": "R-728",
           "text": "--retries N shall mean N re-attempts after the first, with a one-line notice only when passed explicitly.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: explicit --retries → one-line notice",
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: no --retries → no notice"
           ],
-          "assertion": "an explicit --retries on pi-review prints exactly one RETRIES_NOTICE line; the default (no --retries passed) prints none.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-review.mjs",
-              "break": "removed the `if (w.retriesExplicit)` guard, so RETRIES_NOTICE prints unconditionally even when --retries was never passed",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::pi-review: no --retries → no notice",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"N re-attempts after the first; a one-line notice when explicitly passed — the record only makes the notice appear when the flag is absent.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-846",
@@ -939,6 +799,18 @@
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "a pi arg named --retries (after --) is not the flag",
+          "old": "// req: R-728",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "pi-review: explicit --retries → one-line notice",
+          "old": "// req: R-728",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/review-ledger.test.mjs",
+          "anchor": "pi-review: no --retries → no notice",
           "old": "// req: R-728",
           "new": null
         }
@@ -967,20 +839,12 @@
         {
           "id": "R-847",
           "text": "A pi-worker invocation's explicit --retries shall opt in with a mutation warning.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/review-ledger.test.mjs::--retries 1 opts in explicitly, with a mutation warning (2 attempts)",
             "packages/nana-pack/tests/review-ledger.test.mjs::pi-worker: explicit --retries → notice; default → none"
           ],
-          "assertion": "pi-worker --retries 1 prints the 'REPEATS any file mutations' warning and makes two attempts.",
-          "mutations": [
-            {
-              "file": "packages/nana-pack/bin/pi-worker.mjs",
-              "break": "removed the `if (w.retries > 0) { process.stderr.write('...REPEATS any file mutations...') }` block entirely",
-              "cite": "packages/nana-pack/tests/review-ledger.test.mjs::--retries 1 opts in explicitly, with a mutation warning (2 attempts)",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-735, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"explicit --retries shall opt in — removing the mutation warning leaves retry opt-in intact.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -988,13 +852,13 @@
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "opts in explicitly, with a mutation warning",
           "old": "// req: R-735",
-          "new": "\t// req: R-847"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/review-ledger.test.mjs",
           "anchor": "pi-worker: explicit --retries → notice; default → none",
           "old": "// req: R-735",
-          "new": "\t// req: R-735 R-847"
+          "new": "\t// req: R-735"
         }
       ]
     },
@@ -1037,21 +901,13 @@
         {
           "id": "R-605",
           "text": "A file shall FAIL if it exits non-zero, dies on a signal, or times out.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/test-runner.test.mjs::a file that exits non-zero is FAIL and the run exits 1",
             "packages/nana-pack/tests/test-runner.test.mjs::a file killed by a signal is FAIL, naming the signal",
             "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL"
           ],
-          "assertion": "a file exiting non-zero, one killed by a signal, and one that times out are each labeled FAIL.",
-          "mutations": [
-            {
-              "file": "scripts/test.mjs",
-              "break": "changed `const ok = r.code === 0 && !r.timedOut;` to `const ok = (r.code === 0 || r.signal) && !r.timedOut;`, so a file killed by a signal is wrongly labeled PASS",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::a file killed by a signal is FAIL, naming the signal",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"exits non-zero; times out — this row's only record changes signal handling.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-910",
@@ -1083,7 +939,19 @@
           "file": "packages/nana-pack/tests/test-runner.test.mjs",
           "anchor": "a file that exits non-zero is FAIL and the run exits 1",
           "old": "// req: R-605",
-          "new": "// req: R-605 R-910"
+          "new": "// req: R-910"
+        },
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "a file killed by a signal is FAIL, naming the signal",
+          "old": "// req: R-605",
+          "new": null
+        },
+        {
+          "file": "packages/nana-pack/tests/test-runner.test.mjs",
+          "anchor": "NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL",
+          "old": "// req: R-605 R-612",
+          "new": "// req: R-612"
         }
       ]
     },
@@ -1223,19 +1091,11 @@
         {
           "id": "R-913",
           "text": "WHEN --verbose is not passed, only a failing file's last lines shall be shown.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/test-runner.test.mjs::without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown"
           ],
-          "assertion": "without --verbose, a passing file's own output never reaches stdout, while a failing file's FAIL-tagged tail lines do.",
-          "mutations": [
-            {
-              "file": "scripts/test.mjs",
-              "break": "moved the non-verbose tail-printing block out from under `if (!ok)`, so it now runs unconditionally for every file (passing or failing)",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-613, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"a failing file's last lines shall be shown — printing passing-file output breaks the exclusion; it leaves failing-tail emission and truncation unchanged.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -1243,7 +1103,7 @@
           "file": "packages/nana-pack/tests/test-runner.test.mjs",
           "anchor": "without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown",
           "old": "// req: R-613",
-          "new": "// req: R-913"
+          "new": null
         }
       ]
     },
@@ -1253,50 +1113,22 @@
         {
           "id": "R-615",
           "text": "WHEN --self-test or NANA_TEST_SELFTEST=1 is set, the runner's own red, warn and pipe-holding fixtures shall be added.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
             "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test"
           ],
-          "assertion": "--self-test (and NANA_TEST_SELFTEST=1) adds exactly 3 fixture files to the run (totals(...).files === 3).",
-          "mutations": [
-            {
-              "file": "scripts/test.mjs",
-              "break": "removed the third (pipe-holding hang) fixture object from the FIXTURES array entirely, so only 2 fixtures are added instead of 3",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
-              "result": "red"
-            },
-            {
-              "file": "scripts/test.mjs",
-              "break": "same dropped-fixture mutation",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test",
-              "result": "red"
-            }
-          ]
+          "evidence": "downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"red, warn — both records remove only the pipe-holding fixture.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         },
         {
           "id": "R-914",
           "text": "WHEN --self-test or NANA_TEST_SELFTEST=1 is set, each of the runner's own fixtures shall get its expected verdict, the run exiting non-zero.",
-          "status": "implemented",
+          "status": "untested",
           "cites": [
             "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
             "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test"
           ],
-          "assertion": "every self-test fixture's actual verdict matches its declared `expect`, printing 'self-test: every fixture got its expected verdict', not a MISMATCH line.",
-          "mutations": [
-            {
-              "file": "scripts/test.mjs",
-              "break": "changed the red fixture's (`runner-self-test.test.mjs`) declared `expect` from 'FAIL' to 'PASS', so its correct FAIL verdict now reads as a mismatch against its (wrong) declaration",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
-              "result": "red"
-            },
-            {
-              "file": "scripts/test.mjs",
-              "break": "same wrong-expect mutation",
-              "cite": "packages/nana-pack/tests/test-runner.test.mjs::NANA_TEST_SELFTEST=1 is the same as --self-test",
-              "result": "red"
-            }
-          ]
+          "evidence": "split from R-615, downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins \"the run exiting non-zero — changing a fixture's expected verdict leaves the non-zero exit intact.\" No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b)."
         }
       ],
       "markerEdits": [
@@ -1304,13 +1136,13 @@
           "file": "packages/nana-pack/tests/test-runner.test.mjs",
           "anchor": "self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero",
           "old": "// req: R-615",
-          "new": "// req: R-615 R-914"
+          "new": null
         },
         {
           "file": "packages/nana-pack/tests/test-runner.test.mjs",
           "anchor": "NANA_TEST_SELFTEST=1 is the same as --self-test",
           "old": "// req: R-615",
-          "new": "// req: R-615 R-914"
+          "new": null
         }
       ]
     }

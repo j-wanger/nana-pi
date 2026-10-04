@@ -81,3 +81,34 @@ Astra r1 **BLOCK 5/10** (`batch-a3-astra-r1.md`) — 14 PINS/6 PARTIAL (exceeds 
 - `refusal-test.mjs`: `REFUSAL TEST: ALL PASS`.
 - `map:check`: 172 modules, 0 problems, exit 0.
 - `npm test` (alone, after confirming no other `scripts/test.mjs` running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 294.4s. The one failure is the same pre-existing environmental `readme-check` gap (5 problems: missing `node_modules`, missing `apps/bench/.ext`), unchanged across both rounds. `review-ledger.test.mjs` (134 pass, 62.9s), `review-round.test.mjs` (33 pass) and `test-runner.test.mjs` (24 pass) all pass clean.
+
+## Round 3: astra r2 fixes (read-and-replay; no round 4)
+
+Astra r2 **BLOCK 6/10** (`batch-a3-astra-r2.md`), using Fable's read-and-replay shape (`bc-method-ruling.md` §4): 11/11 sampled records replayed red (mechanics sound), but 3 form MUSTs (promises dropped during round-2's own fixes) and a 27/46 = 58.7% record-coverage gap rate across all 46 implemented clauses, read against each clause's own named conditions/outcomes. Per the method ruling, A3 lands under its in-flight fix: the gap table is the seat's downgrade worklist, not a mutation-hunt mandate — no round 4.
+
+**Form MUSTs — every dropped promise restored, none deleted:**
+1. **R-851** restored its governing condition: "WHEN pi-review receives --worker, the review shall never run." **R-854** reworded to name pi-review: "A pi-review invocation carrying --worker shall be refused." (R-854 stays `implemented` — clean per astra r2's own read — and keeps the shared citation alone, now that R-727/R-851 no longer need it.)
+2. **R-844** restored "at once" for the symlink and unwritable-directory cases (full text: "...shall be refused **at once** with a message and no stack, before the review runs."). astra r2's own read found the row under-covered well beyond timing alone, so the whole clause folds into the status-gap downgrade below rather than a narrower split.
+3. **R-855** (new, `untested`) restores "naming file and line" for the incomplete-tally-line case, split off from R-853 — R-853 itself is unchanged and stays `implemented` (its narrower, diagnostic-free text is exactly what its citation proves).
+
+**Status gaps — all 27 rows astra's §2 audit named downgraded to `untested`**, no new mutation invented to rescue any of them this round (per the brief): R-702, R-831, R-703, R-706, R-834, R-850, R-715, R-838, R-718, R-839, R-719, R-720, R-842, R-843, R-723, R-852, R-844, R-725, R-845, R-727, R-851, R-728, R-847, R-605, R-913, R-615, R-914. Each carries an explicit `evidence` string quoting astra's own "uncovered words" and record-limitation text, so the cell is the 6b coverage-completion worklist, not a bare "—". Every `// req:` marker those 27 rows held alone is removed; markers still shared with a row that stays `implemented` (R-910, R-606, R-911, R-609, R-912, R-722, R-735, R-854, R-717, R-612, R-729) are kept, trimmed to the surviving id(s) — including 8 origins (R-605, R-703, R-706, R-715, R-719, R-720, R-725, R-728) whose own first-clause marker had never been touched by any prior round's `markerEdits` and so needed a fresh removal edit this round.
+
+**Record-description discrepancies fixed:** R-831's `break` text never actually matched round 1's claimed fix (still imported `reviewShaped`, not `canonicalItem`) — moot now, since R-831 is untested and carries no mutation; the stale round-1 notes paragraph is marked superseded rather than deleted. R-852's `break` text overclaimed that all four of the cited assertion's conditions flip; corrected (only status and elapsed-time do — `noStack()` stays true on the empty-stderr timeout) and folded into its own downgrade evidence.
+
+**The 19 clean rows kept `implemented`, unchanged:** R-707, R-710, R-835, R-836, R-711, R-837, R-717, R-840, R-841, R-721, R-853, R-854, R-735, R-910, R-606, R-911, R-609, R-912, R-613.
+
+### Rows and mutations: after round 3
+
+24 origins, **31 new rows** (R-831–R-855 in the pack continuation block, R-910–R-915 in the runner continuation block) — **19 implemented, 36 untested**, 1 `planned` (R-740). Repo-wide: 655 requirements, 524 implemented, 120 untested, 2 planned, 9 violated.
+
+### Sibling-cite list: after round 3
+
+**2** (R-854, R-911) — down from 6, since R-831/R-852/R-727/R-851/R-914 are now untested and no longer make evidentiary use of a shared citation. R-911 still shares R-606's compound test via two different, independently-verified mutations (unchanged from round 2).
+
+### Totals: after round 3
+
+- Verifier (`apply-batch.mjs --base main`): `ALL CHECKS GREEN`, exit 0, idempotent (`rows added: 0` on re-run).
+- Rail: `ears: 100 rows off form (allowance 100)`, exit 0 (off-form count unchanged — downgrading a row's status doesn't change its EARS form). Rail test: 8/8 pass.
+- `refusal-test.mjs`: `REFUSAL TEST: ALL PASS`.
+- `map:check`: 172 modules, 0 problems, exit 0.
+- `npm test` (alone, after confirming no other `scripts/test.mjs` running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 292.5s. The one failure is the same pre-existing environmental `readme-check` gap, unchanged across all three rounds. `review-ledger.test.mjs` (134 pass, 63.0s), `review-round.test.mjs` (33 pass) and `test-runner.test.mjs` (24 pass) all pass clean — only `// req:` marker lines changed in any test file this round, confirmed by `git diff` (no assertion line touched).

@@ -18,12 +18,9 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 const v = (revision, role) => ({ revision, role });
 const throws = (f) => { try { f(); return false; } catch { return true; } };
 
-// req: R-719
 check("cap is 3", REVIEW_ROUND_CAP === 3);
 check("no verdicts, no rounds", roundsUsed([]) === 0);
-// req: R-834
 check("sol + astra on one revision = ONE round", roundsUsed([v("a", "sol"), v("a", "astra")]) === 1);
-// req: R-834
 check("ten roles on one revision = ONE round", roundsUsed(Array.from({ length: 10 }, (_, i) => v("a", "r" + i))) === 1);
 check("the same role twice on one revision = ONE round (a revision, not a role count)", roundsUsed([v("a", "sol"), v("a", "sol")]) === 1);
 // req: R-707
@@ -31,7 +28,6 @@ check("three revisions = three rounds", roundsUsed([v("a", "sol"), v("b", "sol")
 
 check("at the cap allowed", roundCapVerdict(REVIEW_ROUND_CAP, undefined) === "allow");
 check("null round allowed (pre-T2b contract)", roundCapVerdict(null, "") === "allow");
-// req: R-720
 check("over cap without a reason refused", roundCapVerdict(REVIEW_ROUND_CAP + 1, undefined) === "refuse");
 check("over cap with '' refused", roundCapVerdict(REVIEW_ROUND_CAP + 1, "") === "refuse");
 check("over cap with '   ' refused (blank is no reason)", roundCapVerdict(REVIEW_ROUND_CAP + 1, "   ") === "refuse");
