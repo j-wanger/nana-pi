@@ -58,7 +58,7 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "hando
 	check("b: the canonical cwd is recorded inside", fs.readFileSync(file, "utf-8").includes(`Cwd: ${repo}\n`));
 	// req: R-112
 	check("b: nothing written to <cwd>/.pi/handoff.md", !fs.existsSync(path.join(repo, ".pi", "handoff.md")));
-	// req: R-796
+	// req: R-112
 	check("b: no .gitignore written into the repo", !fs.existsSync(path.join(repo, ".pi", ".gitignore")));
 	// req: R-795
 	check("b: the write notice prints the store path", notes.some((m) => m.includes(file)));

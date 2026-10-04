@@ -8,7 +8,7 @@
   "measuredOffFormAfterBatch": 124,
   "mutationRecords": true,
   "seed": null,
-  "notes": "Astra r1 BLOCK 6/10 on the first build (17 PINS/3 PARTIAL, two rejected merges, one lost IF condition, four code-read PARTIALs, five standalone-sentence SHOULDs). Every fix below was re-verified by an EXECUTED mutation in a disposable copy (git-reverted after each run), per the seat's tightened rule: an implemented split row's mapping entry now carries a `mutations` array (file/break/cite/result), and apply-batch.mjs mechanically refuses any implemented clause lacking at least one `result: \"red\"` entry whose `cite` is one of the clause's own citations (gated behind this batch's `mutationRecords: true`, so batch-a1.json needs no retrofit). Both merges (R-142, R-193) are REJECTED per astra and split into two rows each, adding 2 more new rows than A2's original cut (35 instead of 33); the off-form reduction is unchanged (33 origins resolved, 157→124) since a split row is on-form exactly like a merged one. R-803 regains its governing IF condition (\"the path cannot be addressed as written\"), dropped by mistake when its text was trimmed. R-796/R-806/R-812/R-816 gained astra-named citations with their own executed mutations. R-807, R-825, R-827 and R-193's own \"shall not be read\" clause are downgraded from implemented to untested: each had an executed mutation (astra's, independently re-run here) that left every existing cited assertion green, confirming no test in this repo currently pins that exact promise. R-807, R-811, R-816, R-825, R-826, R-827, R-829 are reworded to name their own input, condition and object rather than refer back to a sibling row (\"any other value\", \"that name\", \"a hung one\", \"otherwise\", \"the handler\").",
+  "notes": "Astra r1 BLOCK 6/10 on the first build (17 PINS/3 PARTIAL, two rejected merges, one lost IF condition, four code-read PARTIALs, five standalone-sentence SHOULDs). Every fix below was re-verified by an EXECUTED mutation in a disposable copy (git-reverted after each run), per the seat's tightened rule: an implemented split row's mapping entry now carries a `mutations` array (file/break/cite/result), and apply-batch.mjs mechanically refuses any implemented clause lacking at least one `result: \"red\"` entry whose `cite` is one of the clause's own citations (gated behind this batch's `mutationRecords: true`, so batch-a1.json needs no retrofit). Both merges (R-142, R-193) are REJECTED per astra and split into two rows each, adding 2 more new rows than A2's original cut (35 instead of 33); the off-form reduction is unchanged (33 origins resolved, 157→124) since a split row is on-form exactly like a merged one. R-803 regains its governing IF condition (\"the path cannot be addressed as written\"), dropped by mistake when its text was trimmed. R-796/R-806/R-812/R-816 gained astra-named citations with their own executed mutations. R-807, R-825, R-827 and R-193's own \"shall not be read\" clause are downgraded from implemented to untested: each had an executed mutation (astra's, independently re-run here) that left every existing cited assertion green, confirming no test in this repo currently pins that exact promise. R-807, R-811, R-816, R-825, R-826, R-827, R-829 are reworded to name their own input, condition and object rather than refer back to a sibling row (\"any other value\", \"that name\", \"a hung one\", \"otherwise\", \"the handler\").\n\nAstra r2 BLOCK 8/10 (19 PINS/1 PARTIAL, all 12 replays passed; one MUST on apply-batch.mjs's write-before-validate order, one SHOULD on per-record shape validation, one SHOULD — R-796 still overclaimed the default-store case). Fixed: apply-batch.mjs restructured so every check computable without live files (mutation records — now validating EVERY record's shape, not `some(valid)` — IDs, block/placement, committed-cell text, the standard evidence sentence) runs BEFORE any write; the two checks that need live files (the rail spawn; the whole-branch git diff) run after the write and roll every touched file back to its exact pre-write bytes on failure. A new `refusal-test.mjs` reproduces astra's exact case (remove R-110's mutation record, reword its sentence) and asserts non-zero exit with every affected file's hash unchanged. R-796 split: the custom-path promise keeps its id, implemented, with its own recorded mutation; the default-store promise (no test in this repo checks the actual ~/.pi/agent/handoffs/ directory for a stray .gitignore) is a new row, R-830, untested; R-112 regains the repo-local legacy .gitignore citation it originally held (an independently provable sub-instance of \"nothing written into the repository\").",
   "merged": [],
   "origins": [
     {
@@ -75,50 +75,51 @@
           "text": "Nothing shall be written into the repository.",
           "status": "implemented",
           "cites": [
-            "packages/nana-pack/tests/handoff-store.test.mjs::b: nothing written to <cwd>/.pi/handoff.md"
+            "packages/nana-pack/tests/handoff-store.test.mjs::b: nothing written to <cwd>/.pi/handoff.md",
+            "packages/nana-pack/tests/handoff-store.test.mjs::b: no .gitignore written into the repo"
           ],
-          "assertion": "!fs.existsSync(path.join(repo, \".pi\", \"handoff.md\")) after compaction.",
+          "assertion": "!fs.existsSync(path.join(repo, \".pi\", \"handoff.md\")) and !fs.existsSync(path.join(repo, \".pi\", \".gitignore\")) after compaction — a stray .gitignore is as much \"something written into the repository\" as the legacy handoff file.",
           "mutations": [
             {
               "file": "packages/nana-pack/extensions/nana-handoff.ts",
               "break": "added fs.writeFileSync(path.join(ctx.cwd, \".pi\", \"handoff.md\")) in session_compact's success path",
               "cite": "packages/nana-pack/tests/handoff-store.test.mjs::b: nothing written to <cwd>/.pi/handoff.md",
               "result": "red"
+            },
+            {
+              "file": "packages/nana-pack/extensions/nana-handoff.ts",
+              "break": "wrote a .gitignore into <repo>/.pi/ from session_compact — observed: the handoff.md cite above stayed green under this mutation, and vice versa, confirming both are independently breakable",
+              "cite": "packages/nana-pack/tests/handoff-store.test.mjs::b: no .gitignore written into the repo",
+              "result": "red"
             }
           ]
         },
         {
           "id": "R-796",
-          "text": "No .gitignore shall be created beside any handoff, default store or custom path alike.",
+          "text": "No .gitignore shall be created beside a custom handoff.path.",
           "status": "implemented",
           "cites": [
-            "packages/nana-pack/tests/handoff-store.test.mjs::b: no .gitignore written into the repo",
             "packages/nana-pack/tests/handoff-artifact.test.mjs::custom path: no .gitignore beside it"
           ],
-          "assertion": "!fs.existsSync(path.join(repo, \".pi\", \".gitignore\")) for the repo-local legacy location, and !fs.existsSync(path.join(td2, \"STATE\", \".gitignore\")) beside the actual custom-path handoff file.",
+          "assertion": "!fs.existsSync(path.join(td2, \"STATE\", \".gitignore\")) beside the actual custom-path handoff file.",
           "mutations": [
             {
               "file": "packages/nana-pack/extensions/nana-handoff.ts",
-              "break": "wrote a .gitignore into <repo>/.pi/ from session_compact",
-              "cite": "packages/nana-pack/tests/handoff-store.test.mjs::b: no .gitignore written into the repo",
-              "result": "red"
-            },
-            {
-              "file": "packages/nana-pack/extensions/nana-handoff.ts",
-              "break": "wrote a .gitignore beside the real handoff file (path.dirname(file)) right after atomicWrite, for both default-store and custom-path writes — observed: astra r1 MUST: the original repo-local cite alone left this assertion green",
+              "break": "wrote a .gitignore beside the real handoff file (path.dirname(file)) right after atomicWrite",
               "cite": "packages/nana-pack/tests/handoff-artifact.test.mjs::custom path: no .gitignore beside it",
               "result": "red"
             }
           ]
+        },
+        {
+          "id": "R-830",
+          "text": "No .gitignore shall be created beside the default store's handoff file.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "astra r2 SHOULD: the only two .gitignore checks that survive a default-only mutation (writing beside the store regardless of a configured custom path) are the repo-local legacy one (a DIFFERENT, pre-L3 location, <repo>/.pi/.gitignore — now R-112) and the custom-path one (R-796, unaffected by a default-only write since its fixture always configures handoff.path). No test in this repo writes to the actual default store's directory (~/.pi/agent/handoffs/) and then checks that directory for a stray .gitignore; astra's refined mutation (write it only when !custom) left both cited files green, confirming the gap. Kept untested rather than re-using either existing cite."
         }
       ],
       "markerEdits": [
-        {
-          "file": "packages/nana-pack/tests/handoff-store.test.mjs",
-          "anchor": "no .gitignore written into the repo",
-          "old": "// req: R-112",
-          "new": "// req: R-796"
-        },
         {
           "file": "packages/nana-pack/tests/handoff-artifact.test.mjs",
           "anchor": "custom path: no .gitignore beside it",

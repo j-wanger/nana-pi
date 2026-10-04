@@ -45,10 +45,31 @@ The seat tightened the standard: **an implemented split row is valid only if the
 
 `ALL CHECKS GREEN`, exit 0, idempotent (`rows added: 0` on the final re-run), including the new mutation-record check. To rebuild cleanly against astra's fully-corrected mapping, the worktree's A2 files were first reset to `main` (`git checkout main -- <files>`) and `apply-batch.mjs` re-run fresh — this round's commit therefore carries the complete corrected diff from `main`, not an incremental patch over the flawed first build. Two mechanical misses surfaced and were fixed before green: R-827's reworded text accidentally carried two `shall`s (fixed to one); R-138/R-193/R-194's pre-existing (pre-lane) markers on now-reassigned or now-untested citations needed explicit `markerEdits` (several were missing in the first pass of this round's fix; the rail's own `status X but N test(s) trace it` diagnostic caught each one before green).
 
-## Totals
+## Totals (round 2, superseded by round 3 below)
 
 - Rail: `ears: 124 rows off form (allowance 124)`, exit 0.
 - `packages/nana-pack/tests/requirements-trace.test.mjs`: 8/8 pass, including `seal: EARS_ALLOWANCE is 124 (G-015)` and the R-757 equality seal.
 - `map:check`: 172 modules, 0 problems, exit 0.
 - All 17 touched test files re-run individually: exit 0, no FAIL lines; whitespace (tab-indentation) of every inserted/moved marker line re-checked and fixed to match surrounding style.
 - `npm test` (alone, after confirming no other `scripts/test.mjs` was running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 294.7s. The one failure, `packages/nana-pack/tests/readme-check.test.mjs`, is the worktree's pre-existing environmental gap (missing `node_modules` and `apps/bench/.ext`), identical in kind to A1's and batch 0's finding — not caused by this batch.
+
+## Round 3: astra r2 fixes
+
+Astra r2 **BLOCK 8/10** (`batch-a2-astra-r2.md`) — 19 PINS/1 PARTIAL (passes the bar), all 12 replayed records succeeded. One MUST (mechanical), two SHOULD.
+
+1. **MUST — validate before writing.** `apply-batch.mjs`'s write-then-verify order meant a rejected mapping (astra's repro: drop R-110's `mutations`, reword its sentence) still left the rejected REQUIREMENTS.md edit on disk even though the process exited 1. Restructured: every check computable from the mapping and the in-memory computed text — mutation records (now validating **every** record's shape, not `some(valid)`), ID existence/block/placement, committed-cell text, the standard evidence sentence, assertion presence — now runs **before** any `writeFileSync`, using the already-computed `reqTextAfter`/`railTextAfter`/`railTestTextAfter`/marker-edit buffers instead of reading them back from disk. The two checks that genuinely need live files (the rail spawned as a child process; the whole-branch `git diff` against base, which reads the working tree) still run after the write, but now wrapped in a rollback: on any failure there, every touched file is rewritten to its exact pre-run bytes before exiting 1. Added `docs/reviews/ears-form-2026-10-04/refusal-test.mjs`: hashes every file the script can touch, builds astra's exact tampered mapping in a disposable temp copy, runs the verifier, and asserts non-zero exit with every hash unchanged — `node refusal-test.mjs` → `REFUSAL TEST: ALL PASS` (18 files checked).
+2. **SHOULD — per-record shape validation.** The check now validates every entry in a clause's `mutations` array individually (non-empty `file`/`break`, `cite` a member of the clause's own `cites`, `result` exactly `"red"` or `"green"`) rather than accepting the clause once any one entry looked valid; a malformed record beside a valid one (astra's `{"file":"","break":"","cite":"unrelated","result":"red"}`) now fails, naming the clause and the record's index.
+3. **SHOULD — R-796 still overclaimed the default-store case.** Astra's refined mutation (write the `.gitignore` only when `!custom`) left both cited files green — no test in this repo checks the actual default store directory (`~/.pi/agent/handoffs/`) for a stray `.gitignore`. Split: **R-796** now reads "No .gitignore shall be created beside a custom handoff.path," implemented, keeping its one custom-path citation and mutation. New **R-830**, untested, carries the default-store promise honestly (searched first: confirmed no existing assertion anywhere touches that directory). **R-112** regains the repo-local legacy `.gitignore` citation (`handoff-store.test.mjs::b: no .gitignore written into the repo`) it held before this lane — an independently provable sub-instance of "nothing shall be written into the repository," with its own mutation record.
+
+### Rows: after round 3
+
+69 total clauses (33 origins + 36 new rows) — **58 implemented, 11 untested** (R-830 added to the untested set; R-796 stays implemented, re-scoped).
+
+## Totals (round 3, final)
+
+- Verifier: `apply-batch.mjs --base main` → `ALL CHECKS GREEN`, exit 0, idempotent (`rows added: 0` on re-run).
+- Refusal test: `node refusal-test.mjs` → `REFUSAL TEST: ALL PASS`, exit 0, non-zero exit from the tampered run, all 18 affected files byte-identical before/after.
+- Rail: `ears: 124 rows off form (allowance 124)`, exit 0. Rail test: 8/8 pass.
+- `map:check`: 172 modules, 0 problems, exit 0.
+- All 17 touched test files re-run individually: exit 0, no FAIL lines.
+- `npm test` (alone, after confirming no other `scripts/test.mjs` was running): 95 files — 93 PASS, 1 FAIL, 1 SKIP; 5521 checks pass, 2 fail, 6 skip; 294.4s. The one failure, `packages/nana-pack/tests/readme-check.test.mjs`, is the worktree's pre-existing environmental gap (missing `node_modules` and `apps/bench/.ext`) — unchanged across all three rounds, not caused by this batch.
