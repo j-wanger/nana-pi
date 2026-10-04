@@ -58,15 +58,15 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "hando
 	check("b: the canonical cwd is recorded inside", fs.readFileSync(file, "utf-8").includes(`Cwd: ${repo}\n`));
 	// req: R-112
 	check("b: nothing written to <cwd>/.pi/handoff.md", !fs.existsSync(path.join(repo, ".pi", "handoff.md")));
-	// req: R-112
+	// req: R-796
 	check("b: no .gitignore written into the repo", !fs.existsSync(path.join(repo, ".pi", ".gitignore")));
-	// req: R-110
+	// req: R-795
 	check("b: the write notice prints the store path", notes.some((m) => m.includes(file)));
 	console.log(`  store path: ${notes.find((m) => m.includes(file))}`);
 	const sp = await s.prompt();
 	// req: R-110
 	check("b: fresh session picks it up", sp.includes("REPO-STATE"));
-	// req: R-110
+	// req: R-795
 	check("b: the pickup notice prints the store path", notes.some((m) => m.startsWith("handoff picked up") && m.includes(file)));
 	console.log(`  pickup: ${notes.find((m) => m.startsWith("handoff picked up"))}`);
 	// (f) resume, fork, reload skip pickup
@@ -82,7 +82,7 @@ if (process.platform === "darwin") {
 	const viaLink = path.join("/tmp", name);
 	fs.mkdirSync(viaLink);
 	await session(viaLink).compact("TMP-STATE");
-	// req: R-113
+	// req: R-797
 	check("darwin: /tmp/x and /private/tmp/x → same key", mod.storePathFor(mod.canonicalCwd(viaLink)) === mod.storePathFor(mod.canonicalCwd(path.join("/private/tmp", name))));
 	check("darwin: written via /tmp/x, picked up via /private/tmp/x", (await session(path.join("/private/tmp", name)).prompt()).includes("TMP-STATE"));
 	fs.rmSync(viaLink, { recursive: true, force: true });
@@ -108,7 +108,7 @@ if (process.platform === "darwin") {
 	await session(root).compact("ROOT-STATE");
 	fs.rmSync(JOURNAL, { force: true });
 	const sp = await session(nested).prompt();
-	// req: R-140
+	// req: R-808
 	check("g: nested cwd does not inject the root's text", !sp.includes("ROOT-STATE"));
 	// req: R-140
 	check("g: nested cwd is told 'no handoff for this directory'", /no handoff for this directory/i.test(sp));
@@ -144,7 +144,7 @@ if (spawnSync("git", ["--version"]).status === 0) {
 	fs.rmSync(JOURNAL, { force: true });
 	// req: R-114
 	check("cwd mismatch: planted entry not injected", !(await session(victim).prompt()).includes("PLANTED-STATE"));
-	// req: R-114
+	// req: R-798
 	check("cwd mismatch: handoff_cwd_mismatch journaled", journal().includes('"handoff_cwd_mismatch"'));
 }
 
@@ -174,7 +174,7 @@ for (const [label, getSessionFile] of [["throws", () => { throw new Error("no se
 	fs.writeFileSync(file, Buffer.concat([Buffer.from(`# x\n\nCwd: ${proj}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\nCORRUPT-STATE `), Buffer.from([0xff, 0xfe, 0xc3]), Buffer.from("\n")]));
 	fs.rmSync(JOURNAL, { force: true });
 	const sp = await session(proj).prompt();
-	// req: R-119
+	// req: R-799
 	check("bad utf-8: nothing injected", sp === "BASE");
 	// req: R-119
 	check("bad utf-8: handoff_pickup_failed journaled with the reason", /"handoff_pickup_failed".*ERR_ENCODING_INVALID_ENCODED_DATA/.test(journal()));
@@ -208,11 +208,11 @@ else {
 	try { await session(proj).compact("NEW-STATE"); } catch { threw = true; } finally { fs.chmodSync(STORE, 0o755); }
 	// req: R-120
 	check("failed write: no throw", !threw);
-	// req: R-120
+	// req: R-801
 	check("failed write: prior file byte-identical", Buffer.compare(before, fs.readFileSync(file)) === 0);
 	// req: R-109
 	check("failed write: no temp litter", fs.readdirSync(STORE).every((f) => !f.endsWith(".tmp")));
-	// req: R-120
+	// req: R-800
 	check("failed write: handoff_write_failed journaled", journal().includes('"handoff_write_failed"'));
 }
 

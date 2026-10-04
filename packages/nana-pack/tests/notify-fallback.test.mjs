@@ -194,7 +194,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 	await sleep(50);
 	process.off("unhandledRejection", onUnhandled);
 	process.off("uncaughtException", onUnhandled);
-	// req: R-172
+	// req: R-817
 	check("c: headless failure is still journalled", journal().includes("notify_fallback"));
 	// req: R-172
 	check("c: a missing ctx.ui raises nothing into the agent process", unhandled === null);
@@ -272,9 +272,9 @@ if (!POSIX) {
 			await ok.fire();
 			await sleep(400);
 		}));
-		// req: R-166
+		// req: R-815
 		check("f: a working notifier raises no fallback notification", ok.notifies.length === 0);
-		// req: R-166
+		// req: R-815
 		check("f: a working notifier writes no fallback line", !ok.journal().includes("notify_fallback"));
 		fs.rmSync(okDir, { recursive: true, force: true });
 		fs.rmSync(ok.td, { recursive: true, force: true });
@@ -295,9 +295,9 @@ if (!POSIX) {
 			await waitFor(() => notifies.length > 0, NOTIFIER_TIMEOUT_MS + 7000);
 		}));
 		const elapsed = Date.now() - startedAt;
-		// req: R-171
+		// req: R-816
 		check("g: a hung notifier still falls back", notifies.length === 1 && notifies[0].message === "Ready for input");
-		// req: R-171
+		// req: R-816
 		check("g: the hang is journalled with the kill signal",
 			/notify_fallback/.test(journal()) && /killed \(SIG/.test(journal()));
 		// req: R-171

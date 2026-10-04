@@ -81,6 +81,7 @@ for (const f of FORMS) {
 	check(`${T} (c) no stop`, loadConfig(s1).gate.stopReason === null);
 	await decide(s1, "edit", { path: "src/x.ts" });
 	const mine = notes.filter((m) => m.includes("agent dir") || m.includes("PI_CODING_AGENT_DIR"));
+	// req: R-194
 	check(`${T} (c) mismatch UI note fires exactly once in the session`, mine.length === 1, `${mine.length}`);
 	// req: R-194
 	check(`${T} (c) the note names both paths`, mine.length === 1 && mine[0].includes(path.join(f.link, "nana-pack.json")) && mine[0].includes(path.join(DEFAULT_DIR, "nana-pack.json")), mine[0]);
@@ -101,7 +102,7 @@ for (const f of FORMS) {
 	check(`${T} (a) active protectedPaths enforced (edit)`, (await decide(s2, "edit", { path: "vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) active protectedPaths enforced (bash)`, (await decide(s2, "bash", { command: "cat vault/secret-vault.txt" })) === "BLOCK");
 	check(`${T} (a) control: ordinary command allowed`, (await decide(s2, "bash", { command: "echo hi" })) === "ALLOW");
-	// req: R-194
+	// req: R-825
 	check(`${T} (a) no mismatch note once the active dir has a config`, notes.length === before, notes.slice(before).join(" | "));
 
 	// ---- (b) the active config is on the policy floor — env path and realpath
@@ -140,6 +141,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 	const n = [];
 	const cfg = loadConfig({ cwd: HOME, hasUI: true, ui: { notify: (m) => n.push(m) }, sessionManager: { getSessionId: () => "unset" } });
 	check("unset: default config is the user config", cfg.gate.extraPatterns.includes("\\bzorble\\b"));
+	// req: R-825
 	check("unset: no mismatch note", n.length === 0, n.join(" | "));
 	// req: R-192
 	check("unset: (d) ledger dir is ~/.pi/agent", ledgerPaths().dir === DEFAULT_DIR);

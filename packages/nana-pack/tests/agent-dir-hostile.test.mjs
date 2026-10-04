@@ -133,11 +133,11 @@ console.log(JSON.stringify(out));
 `);
 	const res = JSON.parse(execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", script], { env: { ...process.env, HOME, USERPROFILE: HOME }, encoding: "utf-8" }).trim().split("\n").at(-1));
 	for (const n of ["piAgentDir", "piAgentDirIsCwdRelative", "piTrustStorePath", "commandPolicyHit", "loadConfig", "tool_call"])
-		// req: R-197
+		// req: R-826
 		check(`C: ${n} returns under a deleted cwd`, res[n] && !("threw" in res[n]), JSON.stringify(res[n]));
 	// req: R-197
 	check("C: loadConfig STOPS (the active file is unknowable) rather than using defaults", /agent dir unresolvable/.test(res.loadConfig?.ok ?? ""), JSON.stringify(res.loadConfig));
-	// req: R-197
+	// req: R-826
 	check("C: the handler blocks with that reason (does not throw)", res.tool_call?.ok?.block === true && /agent dir unresolvable/.test(res.tool_call.ok.reason), JSON.stringify(res.tool_call));
 }
 

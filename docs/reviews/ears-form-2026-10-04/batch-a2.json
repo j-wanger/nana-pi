@@ -1,0 +1,873 @@
+{
+  "batch": "A2",
+  "date": "2026-10-04",
+  "scope": "REQUIREMENTS.md Part A §5-9: handoff/compaction/adoption signal, journal and session lifecycle, notify, display renderer (S1/S2), agent-dir resolution (U2) (packages/nana-pack) — 33 off-form origins split or merged per design-ruling.md §2",
+  "allowanceBefore": 157,
+  "allowanceAfter": 124,
+  "measuredOffFormBeforeBatch": 157,
+  "measuredOffFormAfterBatch": 124,
+  "seed": null,
+  "notes": "Two merges found (R-142, R-193): in both, the implementation produces the two clauses' observable effects through ONE unconditional code path with no branch that could satisfy one half while breaking the other, so a split would hand the second clause either the origin's exact cite set (the sibling-cite shape the lane exists to catch) or an untested status on evidence the first clause already claims. R-142: nana-handoff.ts's pickup block builds ONE literal `Source: ... update ${loc.text} in place.` string from a single `loc` value — mutating to drop the custom path (keep \"in place\") or to drop \"in place\" (keep the path) each turns the SAME two custom-path assertions red together, and a source-level override of `loc.text` breaks the default-store scenario's independent assertion too, confirming one shared, unconditional rendering step. R-193: lib/config.ts's loadConfig, when the active user file is absent, never reads the stranded default file at all (`// Never read it.`) and sets gate to built-in defaults in the same branch — there is no code path that reads-but-ignores versus simply not-reading. One overclaim caught and corrected before judgement, not after a review round: R-166's two pre-existing cites (`f: a working notifier raises/writes no fallback`) hold identically whether the OS notifier call is ever invoked at all — verified by commenting out every `darwinNotify`/`windowsNotify`/OSC-777 call site: both cited assertions stayed green. So R-166's own clause (\"a working OS notifier shall be used\") drops to untested; the surviving clause (\"no fallback … raised or journaled\") keeps both cites under a new id. New-row status defaults to 'untested' unless an existing cited test, read directly and independently, pins that clause by an assertion that would fail if the clause broke; when in doubt, untested, per design-ruling.md §2. Every implemented split below was proved by an actual mutation run in a disposable copy of the source (git-reverted after each check) — not merely read and reasoned about; the full list is in the worker report. 34 clause slots were needed for 33 origins (31 split 1-for-1, 2 split 1-for-2: R-120, R-181) minus 2 merges (R-142, R-193) = 33 new rows, R-795 to R-827, inside the pack's declared continuation block R-756-879 (A1 used R-756-794; 52 numbers remain free after this batch).",
+  "merged": [
+    { "origin": "R-142", "reason": "\"the prompt shall name that file, never .pi/handoff.md\" and \"shall say to update it in place\" are rendered by ONE literal template string (nana-handoff.ts: `Source: ... update ${loc.text} in place.`) built from a single `loc` value with no conditional between the two halves; the custom-path test's own assertion requires BOTH the correct path AND the exact \"in place\" wording in one `includes()` call, so every mutation tried (wrong path kept \"in place\"; correct path dropped \"in place\"; a source-level override of `loc.text`) turned the SAME assertion red for both reasons at once, the sibling-cite shape the lane exists to avoid. Rewritten to one shall sentence; same three pre-existing cites, no marker change." },
+    { "origin": "R-193", "reason": "lib/config.ts's loadConfig: `if (!user.present) { gate = {...gateLeaves(undefined), stopReason: null}; ... never read it }` is ONE unconditional branch — the stranded default file is never opened AND its content never influences `gate` in the same statement group. There is no implementation path that reads the file but discards its denies versus one that never reads it; splitting would make the second clause either untested on the first's exact evidence or cite the identical assertions. Rewritten to one shall sentence; same three pre-existing cites, no marker change." }
+  ],
+  "origins": [
+    {
+      "origin": "R-110",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-110",
+          "text": "WHEN a fresh session starts in that exact directory, the stored summary shall be injected.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::b: fresh session picks it up"],
+          "assertion": "sp.includes(\"REPO-STATE\") after a fresh session_start+before_agent_start in the SAME directory that was compacted — verified by mutation: blanking the pushed body line (nana-handoff.ts, the `h.body.slice(0, INJECT_CAP)` push) turns this red while the write-notice and pickup-notice checks (clause 2) stay green, since the notify call sits outside the body push"
+        },
+        {
+          "id": "R-795",
+          "text": "The store path shall be printed on write and on pickup.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-store.test.mjs::b: the write notice prints the store path",
+            "packages/nana-pack/tests/handoff-store.test.mjs::b: the pickup notice prints the store path"
+          ],
+          "assertion": "notes.some(m => m.includes(file)) at write time and notes.some(m => m.startsWith(\"handoff picked up\") && m.includes(file)) at pickup — two separate ctx.ui.notify call sites (session_compact's write handler; session_start's pickup branch); verified both notify calls are independent of the body-injection push (see clause 1's mutation)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "the write notice prints the store path", "old": "// req: R-110", "new": "// req: R-795" },
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "the pickup notice prints the store path", "old": "// req: R-110", "new": "// req: R-795" }
+      ]
+    },
+    {
+      "origin": "R-112",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-112",
+          "text": "Nothing shall be written into the repository.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::b: nothing written to <cwd>/.pi/handoff.md"],
+          "assertion": "!fs.existsSync(path.join(repo, \".pi\", \"handoff.md\")) after compaction — verified by mutation: adding a deliberate fs.writeFileSync(path.join(ctx.cwd,\".pi\",\"handoff.md\")) write in session_compact's success path turns this red while \"no .gitignore written\" (clause 2) stays green"
+        },
+        {
+          "id": "R-796",
+          "text": "No .gitignore shall be created beside any handoff.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::b: no .gitignore written into the repo"],
+          "assertion": "!fs.existsSync(path.join(repo, \".pi\", \".gitignore\")) — verified by mutation: writing a .gitignore in the same spot turns this red while \"nothing written to <cwd>/.pi/handoff.md\" (clause 1) stays green, the converse of clause 1's mutation"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "no .gitignore written into the repo", "old": "// req: R-112", "new": "// req: R-796" }
+      ]
+    },
+    {
+      "origin": "R-113",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-113",
+          "text": "Store keys shall be distinct per directory, per sibling and per worktree.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-store.test.mjs::siblings: distinct keys",
+            "packages/nana-pack/tests/handoff-store.test.mjs::worktree: does not pick up the main checkout's handoff"
+          ],
+          "assertion": "mod.storePathFor(a) !== mod.storePathFor(b) for two sibling dirs, and the worktree session never picks up the main checkout's state — verified by mutation: making lib/adoption.mjs's storePathFor hash a CONSTANT key (ignoring its argument) turns both red, while \"darwin: /tmp/x and /private/tmp/x → same key\" (clause 2) stays green (a constant key trivially satisfies \"same key\" too, confirming clause 2's test does not depend on clause 1 holding)"
+        },
+        {
+          "id": "R-797",
+          "text": "On darwin, /tmp and /private/tmp shall map to one key.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::darwin: /tmp/x and /private/tmp/x → same key"],
+          "assertion": "mod.storePathFor(mod.canonicalCwd(viaTmp)) === mod.storePathFor(mod.canonicalCwd(viaPrivateTmp)) — relies on canonicalCwd's fs.realpathSync.native resolving both spellings to the same path before hashing; verified by mutation: making canonicalCwd skip realpath resolution (`return path.resolve(cwd)`) turns this red while general distinctness (clause 1) stays green, since path.resolve alone still differentiates unrelated directories"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "/tmp/x and /private/tmp/x → same key", "old": "// req: R-113", "new": "// req: R-797" }
+      ]
+    },
+    {
+      "origin": "R-114",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-114",
+          "text": "IF a store entry's recorded Cwd: is another directory THEN it shall not be injected.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::cwd mismatch: planted entry not injected"],
+          "assertion": "!(sp).includes(\"PLANTED-STATE\") for a store entry whose Cwd: field names another directory — verified by mutation: adding `lines.push(h.body)` inside the cwd-mismatch branch (alongside the existing journal call) turns this red while \"handoff_cwd_mismatch journaled\" (clause 2) stays green"
+        },
+        {
+          "id": "R-798",
+          "text": "IF a store entry's recorded Cwd: is another directory THEN handoff_cwd_mismatch shall be journaled.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::cwd mismatch: handoff_cwd_mismatch journaled"],
+          "assertion": "journal().includes('\"handoff_cwd_mismatch\"') — the journal call and the injection-skip are two independent statements in the same branch; see clause 1's mutation for the converse direction"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "handoff_cwd_mismatch journaled", "old": "// req: R-114", "new": "// req: R-798" }
+      ]
+    },
+    {
+      "origin": "R-119",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-119",
+          "text": "IF a store file is not valid UTF-8 THEN it shall be a failed pickup.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-store.test.mjs::bad utf-8: handoff_pickup_failed journaled with the reason",
+            "packages/nana-pack/tests/handoff-store.test.mjs::bad utf-8 (L5 seam): an unreadable entry is NOT journaled as missing"
+          ],
+          "assertion": "journal() matches /\"handoff_pickup_failed\".*ERR_ENCODING_INVALID_ENCODED_DATA/ and never journals handoff_missing for the same event — verified by mutation: suppressing the `j(\"handoff_pickup_failed\", ...)` call for read.kind===\"error\" turns this red while \"bad utf-8: nothing injected\" (clause 2) stays green, since injection is governed by a separate `h?.body` check that never becomes truthy for a read error regardless of journaling"
+        },
+        {
+          "id": "R-799",
+          "text": "IF a store file is not valid UTF-8 THEN nothing shall be injected.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::bad utf-8: nothing injected"],
+          "assertion": "sp === \"BASE\" — governed by `h?.body` staying null when read.kind !== \"ok\"; independent of clause 1's journal call per the mutation above"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "bad utf-8: nothing injected", "old": "// req: R-119", "new": "// req: R-799" }
+      ]
+    },
+    {
+      "origin": "R-120",
+      "originalShallCount": 3,
+      "clauses": [
+        {
+          "id": "R-120",
+          "text": "A failed write shall not throw.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::failed write: no throw"],
+          "assertion": "!threw across a session_compact() call under a read-only store dir — verified by mutation: re-throwing `e` after the journal call in session_compact's outer catch turns this red while \"handoff_write_failed journaled\" and \"prior file byte-identical\" (clauses 2, 3) both stay green (the journal call runs before the re-throw; atomicWrite's temp-then-rename already prevented any write to the original file before the outer catch even runs)"
+        },
+        {
+          "id": "R-800",
+          "text": "A failed write shall journal handoff_write_failed.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::failed write: handoff_write_failed journaled"],
+          "assertion": "journal().includes('\"handoff_write_failed\"') — see clause 1's mutation for independence from the no-throw guarantee; atomicWrite's own internal catch (unlink the temp, rethrow) is a separate layer from this outer journal call"
+        },
+        {
+          "id": "R-801",
+          "text": "A failed write shall leave the prior file byte-identical.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::failed write: prior file byte-identical"],
+          "assertion": "Buffer.compare(before, fs.readFileSync(file)) === 0 — relies on atomicWrite's temp-file-then-rename never touching `file` before the rename succeeds; verified by mutation: having atomicWrite pre-write `text.slice(0,10)` directly to `file` BEFORE attempting the real temp-write (which then still fails under the read-only dir, still journals, still doesn't throw) turns ONLY this check red — \"no throw\" and \"handoff_write_failed journaled\" (clauses 1, 2) both stay green"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "failed write: handoff_write_failed journaled", "old": "// req: R-120", "new": "// req: R-800" },
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "failed write: prior file byte-identical", "old": "// req: R-120", "new": "// req: R-801" }
+      ]
+    },
+    {
+      "origin": "R-124",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-124",
+          "text": "WHEN the artifact is older than handoff.staleAfterDays, default 7, the summary shall be replaced by one pointer line of at most 300 chars.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-staleness.test.mjs::15d: pointer present, ≤300 chars",
+            "packages/nana-pack/tests/handoff-staleness.test.mjs::15d with staleAfterDays=30: full text again"
+          ],
+          "assertion": "pointer.length > 0 && pointer.length <= 300 at 15 days with the default threshold, and full text returns when staleAfterDays is raised to 30 — the age-vs-threshold branch itself, independent of what else gets pushed alongside the pointer"
+        },
+        {
+          "id": "R-802",
+          "text": "WHEN the artifact is older than handoff.staleAfterDays, no summary text shall be injected.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-staleness.test.mjs::15d: summary text NOT injected"],
+          "assertion": "!sp.includes(SUMMARY) — verified by mutation: pushing `h.body` alongside the stale pointer in the stale branch (nana-handoff.ts) turns this red while \"pointer present, ≤300 chars\" (clause 1) stays green, since the pointer line itself is unaffected by the extra push"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-staleness.test.mjs", "anchor": "15d: summary text NOT injected", "old": "// req: R-124", "new": "// req: R-802" }
+      ]
+    },
+    {
+      "origin": "R-128",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-128",
+          "text": "IF the path cannot be addressed as written THEN it shall be emitted as a JSON string literal of the exact absolute path with a decode instruction, never claimed readable.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-staleness.test.mjs::${label}: pointer is one line and carries the marker, not the \"read it\" tail",
+            "packages/nana-pack/tests/handoff-staleness.test.mjs::${label}: emitted form is a JSON string of the exact absolute path",
+            "packages/nana-pack/tests/handoff-staleness.test.mjs::${label}: emitted form never resolves to the decoy (nor to any existing file)"
+          ],
+          "assertion": "for a path containing NBSP/tab/CR/LF, the pointer carries UNADDRESSABLE_MARK instead of \"read it if relevant\", and JSON.parse(emitted) === f — verified by mutation: appending the raw file path after the marked/escaped form (addressable's `p` value) turns \"the raw path never appears\" (clause 2) red for 4 of 5 labels while these three checks stay green (same emitted JSON literal, same marker, same decoy-non-resolution)"
+        },
+        {
+          "id": "R-803",
+          "text": "The raw path shall not appear in the pointer.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-staleness.test.mjs::${label}: the raw path never appears in the pointer"],
+          "assertion": "!p.includes(f) — see clause 1's mutation (appending the raw path alongside the escaped form breaks only this check, for NBSP/narrow-NBSP/tab/LF; the CR label's own raw path contains a literal \\r so that one mutation also collaterally breaks the unrelated one-line check, an artifact of CR's own content, not of this clause's citation)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-staleness.test.mjs", "anchor": "the raw path never appears in the pointer", "old": "// req: R-128", "new": "// req: R-803" }
+      ]
+    },
+    {
+      "origin": "R-248",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-248",
+          "text": "The .pi/handoff.md refusal shall match case-insensitively.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-248 2026-10-04 (EARS form batch A2): no fixture passes an uppercase/mixed-case .PI/HANDOFF.MD-shaped path to isLegacyShape() — the function's own `.toLowerCase()` comparison (nana-handoff.ts) is unexercised by any test in this repo; carries forward R-248's own pre-existing honest untested status (split 2026-10-02 after sol r3)"
+        },
+        {
+          "id": "R-880",
+          "text": "The .pi/handoff.md refusal shall still hold after resolving the parent's real path.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-248 2026-10-04 (EARS form batch A2): no fixture gives isLegacyShape() a path whose PARENT directory is itself a symlink to a directory ending in .pi — the function's realpath-of-the-parent fallback branch (nana-handoff.ts:167-171) is unexercised by any test in this repo"
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-133",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-133",
+          "text": "A refused legacy file shall be left byte-identical, never deleted, rewritten or migrated.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-trust.test.mjs::${tag}: the repo file is NOT deleted or rewritten",
+            "packages/nana-pack/tests/handoff-trust.test.mjs::${tag}: the repo file is byte-identical after compaction attempts"
+          ],
+          "assertion": "Buffer.compare(fs.readFileSync(target), before) === 0 across two compaction attempts against a legacy-shaped handoff.path — the early `return` in the legacy-write-refused branch runs before any write touches `file`; verified by mutation: adding a temp-file write beside (not to) `file` just before that return turns \"no temp litter\" (clause 2) red while these byte-identity checks stay green, confirming the original file's bytes are untouched by a change scoped only to litter"
+        },
+        {
+          "id": "R-805",
+          "text": "A refused legacy file shall leave no temp litter.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-trust.test.mjs::${tag}: no temp litter beside the repo file"],
+          "assertion": "fs.readdirSync(path.join(repo, \".pi\")).every(f => !f.endsWith(\".tmp\")) — verified by mutation: writing `${file}.mutation.tmp` just before the legacy-write-refused branch's early return turns this red for all three scopes (user/user-elsewhere/project) while byte-identity (clause 1) stays green"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-trust.test.mjs", "anchor": "no temp litter beside the repo file", "old": "// req: R-133", "new": "// req: R-805" }
+      ]
+    },
+    {
+      "origin": "R-134",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-134",
+          "text": "A custom handoff.path shall be refused when any path component below the workspace root is a symlink, with a handoff_symlink_refused line and a UI warning.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-symlink.test.mjs::a: nothing injected from a symlinked handoff"],
+          "assertion": "r === undefined (nothing injected) when a path component below the workspace root is a symlink — the refusal itself, read.kind set to \"error\" with reason \"symlink\", distinct from what happens to the target file (clause 2)"
+        },
+        {
+          "id": "R-806",
+          "text": "The target's contents shall never reach the prompt or be overwritten.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-symlink.test.mjs::b: symlink target not overwritten",
+            "packages/nana-pack/tests/handoff-symlink.test.mjs::d: external contents never reach the system prompt"
+          ],
+          "assertion": "fs.readFileSync(target, \"utf-8\") === \"ORIGINAL\\n\" after a compact() attempt through the symlink, and the system prompt never includes \"EXTERNAL SECRET\" — these pin the TARGET file's fate, a fact distinct from clause 1's refusal-is-registered promise (R-806 is placed directly after R-245, the pre-existing sibling split from this same origin on 2026-10-02)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-symlink.test.mjs", "anchor": "symlink target not overwritten", "old": "// req: R-134", "new": "// req: R-806" },
+        { "file": "packages/nana-pack/tests/handoff-symlink.test.mjs", "anchor": "external contents never reach the system prompt", "old": "// req: R-134", "new": "// req: R-806" }
+      ]
+    },
+    {
+      "origin": "R-138",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-138",
+          "text": "Only the exact lowercase value off shall be honored.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-138 2026-10-04 (EARS form batch A2): no fixture sets NANA_HANDOFF to a non-lowercase variant of \"off\" (e.g. \"Off\", \"OFF\") to confirm the strict `=== \"off\"` equality actually rejects it — the existing \"any other marker value\" test only tries \"on\", which is not a case-variant of the special value, so the exclusivity half of this clause is unexercised"
+        },
+        {
+          "id": "R-807",
+          "text": "Any other value shall behave normally.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-writer-role.test.mjs::any other marker value: normal behaviour (picks up)",
+            "packages/nana-pack/tests/handoff-writer-role.test.mjs::no marker: normal behaviour (picks up)"
+          ],
+          "assertion": "(await session(repo).prompt()).includes(\"WRITER-STATE\") with NANA_HANDOFF=\"on\", and again with it unset — both confirm pickup proceeds normally for a non-\"off\" marker value"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-writer-role.test.mjs", "anchor": "any other marker value: normal behaviour (picks up)", "old": "// req: R-138", "new": "// req: R-807" },
+        { "file": "packages/nana-pack/tests/handoff-writer-role.test.mjs", "anchor": "no marker: normal behaviour (picks up)", "old": "// req: R-138", "new": "// req: R-807" }
+      ]
+    },
+    {
+      "origin": "R-140",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-140",
+          "text": "WHEN a nested cwd has no handoff of its own but an ancestor does, the session shall be told there is no handoff for this directory and given that file's path, journaled handoff_ancestor_named.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-store.test.mjs::g: nested cwd is told 'no handoff for this directory'",
+            "packages/nana-pack/tests/handoff-store.test.mjs::g: …and given the ancestor's store path",
+            "packages/nana-pack/tests/handoff-store.test.mjs::g: handoff_ancestor_named journaled"
+          ],
+          "assertion": "a single literal line (\"No handoff for this directory. An ancestor directory (...) has one at ...\") plus a j(\"handoff_ancestor_named\") call, both inside the ancestor-walk loop — verified by mutation: pushing the ancestor file's own body text right after the existing line (nana-handoff.ts) turns \"nested cwd does not inject the root's text\" (clause 2) red while these three stay green, since they only check for the NAMING line/journal, not for absence of body text"
+        },
+        {
+          "id": "R-808",
+          "text": "The ancestor's text shall never be injected.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/handoff-store.test.mjs::g: nested cwd does not inject the root's text"],
+          "assertion": "!sp.includes(\"ROOT-STATE\") — see clause 1's mutation: the ancestor-walk branch never reads the ancestor file's body in the unmodified code, only its path"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/handoff-store.test.mjs", "anchor": "g: nested cwd does not inject the root's text", "old": "// req: R-140", "new": "// req: R-808" }
+      ]
+    },
+    {
+      "origin": "R-142",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-142",
+          "text": "WHERE a custom handoff.path is configured, the prompt shall name that file, instead of .pi/handoff.md, with an instruction to update it in place.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/handoff-artifact.test.mjs::custom path: prompt names the configured file",
+            "packages/nana-pack/tests/handoff-artifact.test.mjs::custom path: prompt never says .pi/handoff.md",
+            "packages/nana-pack/tests/handoff-artifact.test.mjs::prompt says update in place"
+          ],
+          "assertion": "r2.systemPrompt.includes(`update ${path.join(\"STATE\",\"HANDOFF.md\")} in place`) and never includes \".pi/handoff.md\" — merged (see batch notes): mutating to drop the custom path (keep \"in place\") or to drop \"in place\" (keep the path) each turns this SAME assertion red for both reasons simultaneously, so the two halves are not independently provable with the current fixture and are kept as one promise"
+        }
+      ],
+      "markerEdits": [],
+      "merged": "see batch.merged[0] — one literal template string proves both halves at once; same three pre-existing cites, no marker change"
+    },
+    {
+      "origin": "R-145",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-145",
+          "text": "The reported path shall be the canonical repository root, never a session subdirectory.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-producer.test.mjs::a: a session in a subdirectory reports the repository root",
+            "packages/nana-pack/tests/adoption-producer.test.mjs::symlinked root: reported once, under the canonical path"
+          ],
+          "assertion": "reportsFor(r).length === 1 for a session run in a subdirectory (not the subdir itself), and a symlinked spelling of the root collapses to one canonical entry — repoRootOf()'s nearest-ancestor walk, independent of the linked-worktree case (clause 2)"
+        },
+        {
+          "id": "R-809",
+          "text": "A linked worktree shall be its own root.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/adoption-producer.test.mjs::b: a linked worktree is reported as its own root"],
+          "assertion": "reportsFor(wt).length === 1 && reportsFor(outer).length === 0 — verified by mutation: changing lib/adoption.mjs's repoRootOf() to require `isDir(.git)` instead of `present(.git)` (so a worktree's .git FILE no longer counts) turns this red while \"a session in a subdirectory reports the repository root\" and \"symlinked root: reported once\" (clause 1) both stay green, since neither fixture involves a file-shaped .git"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/adoption-producer.test.mjs", "anchor": "a linked worktree is reported as its own root", "old": "// req: R-145", "new": "// req: R-809" }
+      ]
+    },
+    {
+      "origin": "R-148",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-148",
+          "text": "The directory_unadopted line shall go to the user-scope journal.path when that is absolute, else to the active agent dir's journal.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-producer.test.mjs::journal: …the user-scope journal does",
+            "packages/nana-pack/tests/adoption-producer.test.mjs::journal: relative user journal.path → the event goes to <agent dir>/nana-journal.jsonl"
+          ],
+          "assertion": "reportsFor(r).length === 1 against the configured absolute JOURNAL path (the positive/absolute branch), and a RELATIVE user-scope journal.path still lands the event at <agent dir>/nana-journal.jsonl (the else/default branch) — both read via adoptionSettings(), USER SCOPE ONLY"
+        },
+        {
+          "id": "R-810",
+          "text": "The directory_unadopted line shall never be captured by a project-scope or relative path, while other events keep following the configured path.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-producer.test.mjs::journal: project journal.path does NOT capture directory_unadopted",
+            "packages/nana-pack/tests/adoption-producer.test.mjs::journal: …other events still follow the project journal.path",
+            "packages/nana-pack/tests/adoption-producer.test.mjs::journal: …not to a cwd-relative file"
+          ],
+          "assertion": "!(projJ exists and holds directory_unadopted) even though the project nana-pack.json configures journal.path, while handoff_missing DOES land in that same project journal — adoptionSettings() is called instead of the project-merged cfg specifically for this write, so project scope and a relative user path are structurally excluded; verified by mutation: swapping the call for the merged `cfg.journal.path` turned the project-exclusion and relative-exclusion checks red (confirming they depend on this choice), though the mutation was broad enough to also disturb clause 1's two checks — recorded as a wider-than-minimal but still clause-confirming mutation (see worker report)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/adoption-producer.test.mjs", "anchor": "project journal.path does NOT capture directory_unadopted", "old": "// req: R-148", "new": "// req: R-810" },
+        { "file": "packages/nana-pack/tests/adoption-producer.test.mjs", "anchor": "other events still follow the project journal.path", "old": "// req: R-148 R-159", "new": "// req: R-810 R-159" },
+        { "file": "packages/nana-pack/tests/adoption-producer.test.mjs", "anchor": "not to a cwd-relative file", "old": null, "new": "// req: R-810" }
+      ]
+    },
+    {
+      "origin": "R-150",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-150",
+          "text": "An objective file renamed by user-scope objective.projectFile shall count as adoption.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-producer.test.mjs::objective: GOALS.md with objective.projectFile=GOALS.md → adopted, no line",
+            "packages/nana-pack/tests/adoption-producer.test.mjs::objective: without the setting GOALS.md is not an objective → line"
+          ],
+          "assertion": "reportsFor(r).length === 0 once objective.projectFile=\"GOALS.md\" names the file present at the root, and reportsFor(r2).length === 1 for the identical file layout WITHOUT the setting — the adoption-counting behaviour itself, independent of whether the chosen name agrees with lib/objective.ts (clause 2)"
+        },
+        {
+          "id": "R-811",
+          "text": "That name shall agree with the objective producer's.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/adoption-producer.test.mjs::objective: adoption's name agrees with lib/objective.ts for ${JSON.stringify(v)}"],
+          "assertion": "lib.adoptionSettings().objectiveFile === projectFileName({projectFile: v}) across [\"GOALS.md\", \"\", \".\", \"..\", \"a/b\", \"a\\\\b\", 7, null, false] — verified by mutation: loosening adoptionSettings()'s validation to `pf !== \"\"` only (dropping the \".\" / \"..\" / slash checks lib/objective.ts's projectFileName still enforces) turns this red for \".\", \"..\", \"a/b\", \"a\\\\b\" while the GOALS.md adoption checks (clause 1) stay green"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/adoption-producer.test.mjs", "anchor": "adoption's name agrees with lib/objective.ts", "old": "// req: R-150", "new": "// req: R-811" }
+      ]
+    },
+    {
+      "origin": "R-154",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-154",
+          "text": "IF the journal exists but cannot be read THEN ADOPTION UNAVAILABLE: <why> shall be printed with exit 0.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-reader.test.mjs::fail: unreadable journal → ADOPTION UNAVAILABLE (EACCES), exit 0",
+            "packages/nana-pack/tests/adoption-reader.test.mjs::fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0"
+          ],
+          "assertion": "stdout === \"[nana:adoption]\\nADOPTION UNAVAILABLE: journal unreadable (EACCES).\\n\" (mode 000) and the directory-as-journal case, both exit 0 — verified by mutation: having the tailLines() catch set `lines = []` instead of `unavailable = ...` (bin/nana-adoption.mjs) turns both red while the absent-journal silence checks (clause 2) stay green, since an absent journal never enters this catch at all"
+        },
+        {
+          "id": "R-812",
+          "text": "Only an absent journal shall be silent.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-reader.test.mjs::c: absent journal (again) → empty stdout"
+          ],
+          "assertion": "stdout === \"\" only once JOURNAL is actually removed (fs.rmSync) after the unreadable-journal case — see clause 1's mutation for the converse: silently treating an UNREADABLE journal as empty would make this row's promise false (an existing file would also go silent)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/adoption-reader.test.mjs", "anchor": "absent journal (again) → empty stdout", "old": "// req: R-153", "new": "// req: R-153 R-812" }
+      ]
+    },
+    {
+      "origin": "R-156",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-156",
+          "text": "A printable root shall print as data inside its own code span.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/adoption-reader.test.mjs::hostile: exactly the one printable repo is listed",
+            "packages/nana-pack/tests/adoption-reader.test.mjs::hostile: a backslash/markdown name prints verbatim inside one code span",
+            "packages/nana-pack/tests/display-surfaces.test.mjs::adoption: the clean repo prints in its own code span"
+          ],
+          "assertion": "rows.includes(`- \\`${slashes}\\` — has: nothing · last session ...`) for a root containing backslashes/brackets/asterisks, rendered verbatim but wrapped — verified by mutation: changing lib/display.mjs's codeSpan() to return the bare string without backticks turns this red while \"no forged heading reaches stdout\" (clause 2) stays green, since the forged-heading root is filtered upstream by printable()/codeSpanSafe before codeSpan() ever renders it"
+        },
+        {
+          "id": "R-813",
+          "text": "No forged heading shall reach stdout.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/adoption-reader.test.mjs::hostile: no forged heading reaches stdout"],
+          "assertion": "!stdout.includes(\"FORGED\") && exactly one line starts with \"#\" — enforced upstream by lib/adoption.mjs's printable()/codeSpanSafe refusing any root holding a newline before it ever reaches the reader's rendering step; see clause 1's mutation showing this check is insensitive to how codeSpan() itself renders a CLEAN root"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/adoption-reader.test.mjs", "anchor": "a backslash/markdown name prints verbatim inside one code span", "old": null, "new": "// req: R-156" },
+        { "file": "packages/nana-pack/tests/adoption-reader.test.mjs", "anchor": "no forged heading reaches stdout", "old": "// req: R-156", "new": "// req: R-813" }
+      ]
+    },
+    {
+      "origin": "R-163",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-163",
+          "text": "WHEN a session starts with a UI, the lifecycle extension shall set the nana-pack ✓ status chip.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/lifecycle-reload.test.mjs::c: session_start still sets the nana-pack chip"],
+          "assertion": "statuses.at(-1)?.key === \"nana-pack\" after session_start with hasUI:true — verified by mutation: commenting out the `ctx.ui.setStatus(\"nana-pack\", ...)` call (nana-lifecycle.ts) turns this red while every \"handler still registered\" check (clause 2) stays green, since registration happens at `ext()` call time via separate `pi.on(...)` calls untouched by this line"
+        },
+        {
+          "id": "R-814",
+          "text": "Every lifecycle handler shall stay registered.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/lifecycle-reload.test.mjs::c: ${ev} handler still registered"],
+          "assertion": "typeof handlers[ev] === \"function\" for each of session_start/session_before_compact/session_compact/session_compact_failed/session_shutdown — proves adding the reload-runtime command did not cost the pack its other five pi.on() registrations; see clause 1's mutation for independence"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/lifecycle-reload.test.mjs", "anchor": "handler still registered", "old": "// req: R-163", "new": "// req: R-814" }
+      ]
+    },
+    {
+      "origin": "R-166",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-166",
+          "text": "WHEN the agent settles and waits for input, a working OS notifier shall be used.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-166 2026-10-04 (EARS form batch A2): verified by mutation — commenting out the darwinNotify/windowsNotify/OSC-777 call sites in nana-notify.ts's agent_settled handler (so the notifier is NEVER invoked at all) left BOTH of the row's pre-existing cites (\"f: a working notifier raises/writes no fallback\") green, since those assertions only check the ABSENCE of a fallback, which a pure no-op also produces; no test in this repo distinguishes \"the notifier was genuinely invoked and succeeded\" from \"nothing was attempted\""
+        },
+        {
+          "id": "R-815",
+          "text": "WHEN a working OS notifier succeeds, no fallback shall be raised or journaled.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/notify-fallback.test.mjs::f: a working notifier raises no fallback notification",
+            "packages/nana-pack/tests/notify-fallback.test.mjs::f: a working notifier writes no fallback line"
+          ],
+          "assertion": "ok.notifies.length === 0 and !ok.journal().includes(\"notify_fallback\") when the stub notifier exits 0 with benign output — the two cites moved here verbatim from R-166 (see that row's evidence for why they do not also pin \"a working notifier shall be used\")"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/notify-fallback.test.mjs", "anchor": "a working notifier raises no fallback notification", "old": "// req: R-166", "new": "// req: R-815" },
+        { "file": "packages/nana-pack/tests/notify-fallback.test.mjs", "anchor": "a working notifier writes no fallback line", "old": "// req: R-166", "new": "// req: R-815" }
+      ]
+    },
+    {
+      "origin": "R-171",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-171",
+          "text": "The notifier shall run under an 8 s deadline.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/notify-fallback.test.mjs::g: the fallback is bounded by the deadline, not by the hung child"],
+          "assertion": "elapsed >= NOTIFIER_TIMEOUT_MS && elapsed < NOTIFIER_TIMEOUT_MS + 6000 against a notifier stub that sleeps 60s — verified by mutation: changing NOTIFIER_TIMEOUT_MS from 8000 to 2000 turns this red (elapsed no longer >= 8000) while \"a hung notifier still falls back\" and \"the hang is journalled with the kill signal\" (clause 2) both stay green, since they only check that SOME fallback+journal eventually happened, not how long it took"
+        },
+        {
+          "id": "R-816",
+          "text": "A hung one shall fall back bounded by the deadline and be journaled with the kill signal.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/notify-fallback.test.mjs::g: a hung notifier still falls back",
+            "packages/nana-pack/tests/notify-fallback.test.mjs::g: the hang is journalled with the kill signal"
+          ],
+          "assertion": "notifies.length === 1 && notifies[0].message === \"Ready for input\", and journal() matches /notify_fallback/ and /killed \\(SIG/ — see clause 1's mutation for independence from the specific 8s value"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/notify-fallback.test.mjs", "anchor": "a hung notifier still falls back", "old": "// req: R-171", "new": "// req: R-816" },
+        { "file": "packages/nana-pack/tests/notify-fallback.test.mjs", "anchor": "the hang is journalled with the kill signal", "old": "// req: R-171", "new": "// req: R-816" }
+      ]
+    },
+    {
+      "origin": "R-172",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-172",
+          "text": "A missing ctx.ui shall raise nothing into the agent process.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/notify-fallback.test.mjs::c: a missing ctx.ui raises nothing into the agent process"],
+          "assertion": "unhandled === null (no unhandledRejection/uncaughtException) when ctx.ui is undefined and the notifier fails — the try/catch wrapping onFail(), independent of whether journaling itself succeeds (clause 2)"
+        },
+        {
+          "id": "R-817",
+          "text": "A headless failure shall still be journaled.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/notify-fallback.test.mjs::c: headless failure is still journalled"],
+          "assertion": "journal().includes(\"notify_fallback\") with hasUI:false — verified by mutation: moving the appendJournal() call inside the `if (ctx.hasUI)` block (nana-notify.ts's onFail) turns this red while \"a missing ctx.ui raises nothing\" (clause 1) stays green, since the try/catch still swallows the (now skipped) ctx.ui.notify branch without throwing"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/notify-fallback.test.mjs", "anchor": "headless failure is still journalled", "old": "// req: R-172", "new": "// req: R-817" }
+      ]
+    },
+    {
+      "origin": "R-173",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-173",
+          "text": "Headless notifications shall be opt-in via notify.headless.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-173 2026-10-04 (EARS form batch A2): every fixture in notify-fallback.test.mjs's setup() hardcodes notify.headless:true; no test sets hasUI:false with notify.headless:false to confirm the early-return gate (`if (!ctx.hasUI && !cfg.notify.headless) return;`) actually suppresses a headless run that did NOT opt in"
+        },
+        {
+          "id": "R-818",
+          "text": "No terminal escape codes shall be written without an attached UI.",
+          "status": "untested",
+          "cites": [],
+          "evidence": "split from R-173 2026-10-04 (EARS form batch A2): no test captures process.stdout for the OSC-777 branch (`else if (ctx.hasUI) process.stdout.write(...)`); its ctx.hasUI guard is read but never exercised with hasUI:false to confirm the write is skipped"
+        }
+      ],
+      "markerEdits": []
+    },
+    {
+      "origin": "R-178",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-178",
+          "text": "A lone surrogate shall be made well-formed.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/config-display-text.test.mjs::displayText: lone surrogate made well-formed",
+            "packages/nana-pack/tests/objective-golden.test.mjs::displayPath(): a lone surrogate is made well-formed"
+          ],
+          "assertion": "displayText(\"a\\ud800b\").isWellFormed() and displayPath(`/x${lone}.md`) === `/x\\ufffd.md` — the two DISPLAY renderers' own `.toWellFormed()` step, distinct from finish()'s separate backstop layer (clause 2)"
+        },
+        {
+          "id": "R-819",
+          "text": "A lone surrogate shall never leave the backstop.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/objective-golden.test.mjs::finish(): a lone surrogate never leaves the backstop"],
+          "assertion": "finish(`a${lone}b`).isWellFormed() && finish(`a${lone}b`) === `a\\ufffdb\\n` — pins finish() DIRECTLY (not through produce(), which never feeds it a lone surrogate since displayPath already fixed it upstream per the file's own comment), a separate function from displayPath/displayText (clause 1)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/objective-golden.test.mjs", "anchor": "a lone surrogate never leaves the backstop", "old": "// req: R-178", "new": "// req: R-819" }
+      ]
+    },
+    {
+      "origin": "R-179",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-179",
+          "text": "codeSpan shall refuse, never escape, a string holding a backtick or any unsafe character, or one over its cap.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/display-surfaces.test.mjs::codeSpan: one over CODE_SPAN_CAP is refused",
+            "packages/nana-pack/tests/display-surfaces.test.mjs::table ${label}: codeSpan ${c === null ? \"refuses\" : \"renders\"}",
+            "packages/nana-pack/tests/display-surfaces.test.mjs::adoption: printable still refuses a backtick and a newline, accepts a clean root"
+          ],
+          "assertion": "d.codeSpan(\"/\" + \"a\".repeat(CAP)) === null (one over cap), and across the hostile-input TABLE every unsafe row (backtick, bidi, ANSI, C1, newline+heading) yields null while clean rows render — the refuse side of the boundary, distinct from the exactly-at-cap render case (clause 2)"
+        },
+        {
+          "id": "R-820",
+          "text": "codeSpan shall render a string exactly at the cap.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::codeSpan: exactly CODE_SPAN_CAP is rendered"],
+          "assertion": "d.codeSpan(\"/\" + \"a\".repeat(CAP - 1)) === the backtick-wrapped string — the other side of the same boundary; a `>` vs `>=` bug in codeSpanSafe's cap check would flip one of these two assertions without the other"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "exactly CODE_SPAN_CAP is rendered", "old": "// req: R-179", "new": "// req: R-820" }
+      ]
+    },
+    {
+      "origin": "R-180",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-180",
+          "text": "locator shall never elide.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::table ${label}: locator exact"],
+          "assertion": "d.locator(input).text === l for every TABLE row INCLUDING \"four kilobytes\" (KB4), where the expected value is the full, un-truncated 4096-char string — unlike promptPath, which elides the same input with \"…\"; locator's own no-truncation guarantee, independent of decode fidelity for escaped rows (clause 2)"
+        },
+        {
+          "id": "R-821",
+          "text": "locator shall decode to the exact input.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::table ${label}: locator decodes to the exact input"],
+          "assertion": "JSON.parse(d.locator(input).text) === input, checked only for rows where .escaped is true (newline+heading, bidi, ANSI, C1, lone surrogate, quote/backslash/BEL, the model-injection sentence) — round-trip fidelity of the escaped form, independent of the no-elision guarantee (clause 1)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "locator decodes to the exact input", "old": "// req: R-180", "new": "// req: R-821" }
+      ]
+    },
+    {
+      "origin": "R-181",
+      "originalShallCount": 3,
+      "clauses": [
+        {
+          "id": "R-181",
+          "text": "The additive extra escape class shall be byte-identical to the base renderer when omitted.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::extra: omitted → unchanged"],
+          "assertion": "d.displayPath(plain) === plain when no `extra` argument is passed — the omitted-argument case, distinct from the round-trip and astral-escaping promises that only apply when `extra` IS passed (clauses 2, 3)"
+        },
+        {
+          "id": "R-822",
+          "text": "The additive extra escape class shall round-trip exactly.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/display-surfaces.test.mjs::extra: …and it round-trips exactly",
+            "packages/nana-pack/tests/display-surfaces.test.mjs::extra: …and it round-trips exactly"
+          ],
+          "assertion": "JSON.parse(dashed) === plain (a BMP extra char) and JSON.parse(esc) === astral (an astral extra char) — two separate check() calls sharing one title, cited via their distinct assertion code (JSON.parse(dashed)===plain / JSON.parse(esc)===astral) for the marker anchors; proves decodability specifically, distinct from clause 3's units-escaped promise and clause 1's omitted case"
+        },
+        {
+          "id": "R-823",
+          "text": "The additive extra escape class shall escape both code units of an astral character.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::extra: an astral character escapes BOTH units"],
+          "assertion": "esc === '\"/repo/a\\\\uD83D\\\\uDE00b.md\"' — both UTF-16 surrogate halves individually escaped (sol S2 r3's fix: Array.from yields an astral char as one two-unit string), distinct from whether the result later round-trips (clause 2, a separate check on the same esc value)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "JSON.parse(dashed) === plain", "old": "// req: R-181", "new": "// req: R-822" },
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "JSON.parse(esc) === astral", "old": "// req: R-181", "new": "// req: R-822" },
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "an astral character escapes BOTH units", "old": "// req: R-181", "new": "// req: R-823" }
+      ]
+    },
+    {
+      "origin": "R-182",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-182",
+          "text": "No renderer shall throw on any input.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::total: ${name} never throws (undefined, symbol, hostile toString…)${name === \"codeSpan\" ? \" — refuses a non-string\" : \"\"}"],
+          "assertion": "across promptPath/promptText/uiPath/uiText/fileField/codeSpan/locator and every hostile input (undefined, null, 42, a Symbol, a throwing toString, an object with a non-string toString, Object.create(null)), the call never throws and returns a string (or null for codeSpan) — the general totality guarantee, independent of the SPECIFIC placeholder text used for an unprintable value (clause 2)"
+        },
+        {
+          "id": "R-824",
+          "text": "An unprintable value shall render as a named placeholder.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/display-surfaces.test.mjs::total: a throwing toString renders as [unprintable]"],
+          "assertion": "d.promptText({toString(){throw 1;}}) === \"[unprintable]\" — verified by mutation: changing lib/display.mjs's str() to return \"\" instead of \"[unprintable]\" on a throw turns this red while all seven \"never throws\" checks (clause 1) stay green, since they only assert the TYPE of the return value, not its exact text"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/display-surfaces.test.mjs", "anchor": "a throwing toString renders as [unprintable]", "old": "// req: R-182", "new": "// req: R-824" }
+      ]
+    },
+    {
+      "origin": "R-193",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-193",
+          "text": "WHERE the active agent dir has no nana-pack.json, the default dir's file shall never be read, so its stale denies cannot apply.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${name}: default config not read",
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (c) stale default deny is NOT read",
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (c) gate still runs on defaults (built-in deny)"
+          ],
+          "assertion": "cfg.gate.extraPatterns.length === 0 when the active dir has no file at all, and the stale \"zorble\" pattern from ~/.pi/agent (a DIFFERENT, stranded dir) never blocks a command naming it, while the gate's own built-in denies still fire — merged (see batch notes): lib/config.ts's loadConfig takes ONE branch (`if (!user.present) { gate = {...gateLeaves(undefined), stopReason: null}; ... Never read it. }`) that both skips the read and sets defaults in the same statement group; no implementation path reads-but-filters"
+        }
+      ],
+      "markerEdits": [],
+      "merged": "see batch.merged[1] — one unconditional branch both skips the read and applies defaults; same three pre-existing cites, no marker change"
+    },
+    {
+      "origin": "R-194",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-194",
+          "text": "WHEN the active config is absent AND a stranded default config exists, exactly one UI note and one config_agent_dir_mismatch journal line shall name both paths per session.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (c) mismatch UI note fires exactly once in the session",
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (c) the note names both paths",
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (c) exactly one config_agent_dir_mismatch journal line"
+          ],
+          "assertion": "mine.length === 1 across a session that performs TWO tool calls (bash + edit), the one UI note names both the active and the stranded default nana-pack.json paths, and exactly one config_agent_dir_mismatch journal line is written — the mismatch-detected branch, distinct from the no-mismatch branch (clause 2)"
+        },
+        {
+          "id": "R-825",
+          "text": "Otherwise no note shall be emitted.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::${T} (a) no mismatch note once the active dir has a config",
+            "packages/nana-pack/tests/agent-dir-config.test.mjs::unset: no mismatch note"
+          ],
+          "assertion": "notes.length === before once the active dir gets its own nana-pack.json (no more mismatch to report), and zero notes when PI_CODING_AGENT_DIR is unset entirely (the active dir IS the default dir, so there is no \"elsewhere\" to be stranded) — both the condition in clause 1's WHEN becoming false"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/agent-dir-config.test.mjs", "anchor": "mismatch UI note fires exactly once in the session", "old": null, "new": "// req: R-194" },
+        { "file": "packages/nana-pack/tests/agent-dir-config.test.mjs", "anchor": "no mismatch note once the active dir has a config", "old": "// req: R-194", "new": "// req: R-825" },
+        { "file": "packages/nana-pack/tests/agent-dir-config.test.mjs", "anchor": "unset: no mismatch note", "old": null, "new": "// req: R-825" }
+      ]
+    },
+    {
+      "origin": "R-197",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-197",
+          "text": "IF the active agent dir is unresolvable THEN loadConfig shall stop rather than use defaults.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/agent-dir-hostile.test.mjs::C: loadConfig STOPS (the active file is unknowable) rather than using defaults"],
+          "assertion": "/agent dir unresolvable/.test(res.loadConfig?.ok) under a relative PI_CODING_AGENT_DIR whose process cwd has been deleted — loadConfig's own stop/throw behaviour, distinct from the gate HANDLER's separate decision (clause 2)"
+        },
+        {
+          "id": "R-826",
+          "text": "The handler shall block with that named reason without throwing.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-hostile.test.mjs::C: the handler blocks with that reason (does not throw)",
+            "packages/nana-pack/tests/agent-dir-hostile.test.mjs::C: ${n} returns under a deleted cwd"
+          ],
+          "assertion": "res.tool_call?.ok?.block === true && /agent dir unresolvable/.test(res.tool_call.ok.reason) — the gate's tool_call handler, a separate function from loadConfig (clause 1), confirmed non-throwing by the parametrized \"returns under a deleted cwd\" sweep which includes tool_call among its names"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/agent-dir-hostile.test.mjs", "anchor": "the handler blocks with that reason (does not throw)", "old": "// req: R-197", "new": "// req: R-826" },
+        { "file": "packages/nana-pack/tests/agent-dir-hostile.test.mjs", "anchor": "returns under a deleted cwd", "old": "// req: R-197", "new": "// req: R-826" }
+      ]
+    },
+    {
+      "origin": "R-199",
+      "originalShallCount": 2,
+      "clauses": [
+        {
+          "id": "R-199",
+          "text": "nana-setup and the desk shall agree with the resolver on every derived path.",
+          "status": "implemented",
+          "cites": ["packages/nana-pack/tests/agent-dir-parity.test.mjs::[${name}] nana-setup piHome === piAgentDir()"],
+          "assertion": "layout.piHome === want (piAgentDir()'s own resolution) across the absolute/relative/tilde forms — nana-setup's resolveLayout() agreeing with the shared resolver, distinct from CLI flag precedence (clause 2)"
+        },
+        {
+          "id": "R-827",
+          "text": "--pi-home shall beat --home and the ambient env without writing into the ambient dir.",
+          "status": "implemented",
+          "cites": [
+            "packages/nana-pack/tests/agent-dir-parity.test.mjs::--pi-home beats --home and the env",
+            "packages/nana-pack/tests/agent-dir-parity.test.mjs::--home install writes nothing into the ambient agent dir"
+          ],
+          "assertion": "lp.piHome === path.join(HOME, \"explicit\") when both --home and --pi-home are given, and an actual `nana-setup install --home <dir>` under an ambient PI_CODING_AGENT_DIR leaves that ambient dir untouched (!fs.existsSync(ambient)) — CLI precedence and the no-stray-write guarantee, independent of the general resolver-agreement property (clause 1)"
+        }
+      ],
+      "markerEdits": [
+        { "file": "packages/nana-pack/tests/agent-dir-parity.test.mjs", "anchor": "--pi-home beats --home and the env", "old": "// req: R-199", "new": "// req: R-827" },
+        { "file": "packages/nana-pack/tests/agent-dir-parity.test.mjs", "anchor": "--home install writes nothing into the ambient agent dir", "old": "// req: R-199", "new": "// req: R-827" }
+      ]
+    }
+  ]
+}

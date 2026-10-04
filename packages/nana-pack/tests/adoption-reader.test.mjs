@@ -155,7 +155,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	}
 	fs.rmSync(JOURNAL, { force: true });
 	const a = run();
-	// req: R-153
+	// req: R-153 R-812
 	check("c: absent journal (again) → empty stdout", a.status === 0 && a.stdout === "", JSON.stringify(a));
 }
 // hostile claims (sol r1 MUST 1): the reviewer's probe set — a real repo whose name holds a
@@ -181,7 +181,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	console.log(r.stdout.replace(/^/gm, "  | "));
 	const rows = r.stdout.split("\n").filter((l) => l.startsWith("- "));
 	check("hostile: exit 0", r.status === 0);
-	// req: R-156
+	// req: R-813
 	check("hostile: no forged heading reaches stdout", !r.stdout.includes("FORGED") && r.stdout.split("\n").filter((l) => l.startsWith("#")).length === 1, r.stdout);
 	// req: R-155
 	check("hostile: '/', '.', relative and 4 KB claims never printed", !rows.some((l) => l.startsWith("- `/` ") || l.includes("relative-claim") || l.includes("xxxx") || l.includes("yyyy")), rows.join("\n"));
@@ -189,6 +189,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("hostile: …the distinct refused claims (rel === \"relative-claim\") are counted on one line", r.stdout.includes("\n10 entries were not printable (a relative, root, over-long path, one holding a control character or a backtick, or a bad timestamp) and were skipped.\n"), r.stdout);
 	// req: R-155
 	check("hostile: a backtick in the name is REFUSED, not escaped (astra land)", !r.stdout.includes("closes-the-span"), r.stdout);
+	// req: R-156
 	check("hostile: a backslash/markdown name prints verbatim inside one code span", rows.includes(`- \`${slashes}\` — has: nothing · last session ${now.slice(0, 10)}`), rows.join("\n"));
 	// req: R-155
 	check("hostile: ANY future ts is refused, one minute included (sol r2)", !rows.some((l) => l.includes("future-1min")), rows.join("\n"));

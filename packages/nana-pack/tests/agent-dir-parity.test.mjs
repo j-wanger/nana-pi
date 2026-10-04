@@ -153,13 +153,13 @@ for (const [name, value] of FORMS) {
 	check("--home: piHome is <home>/.pi/agent, not the ambient env", l.piHome === path.join(tmpHome, ".pi", "agent"), l.piHome);
 	check("--home: piHomeSource names the flag", l.piHomeSource === "--home", l.piHomeSource);
 	const lp = resolveLayout({ home: tmpHome, piHome: path.join(HOME, "explicit") });
-	// req: R-199
+	// req: R-827
 	check("--pi-home beats --home and the env", lp.piHome === path.join(HOME, "explicit"), lp.piHome);
 	const r = spawnSync(process.execPath, [SETUP_BIN, "install", "--home", tmpHome], { cwd: HOME, env: { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome, PI_CODING_AGENT_DIR: ambient }, encoding: "utf-8" });
 	check("--home install exits 0 with an ambient PI_CODING_AGENT_DIR", r.status === 0, r.stdout + r.stderr);
 	const seeded = path.join(tmpHome, ".pi", "agent", "nana-pack.json");
 	check("--home install seeds <home>/.pi/agent/nana-pack.json", fs.existsSync(seeded));
-	// req: R-199
+	// req: R-827
 	check("--home install writes nothing into the ambient agent dir", !fs.existsSync(ambient));
 	const seed = JSON.parse(fs.readFileSync(seeded, "utf-8"));
 	check("seed pins no objective.path (the pack's active-dir default applies)", seed.objective && !("path" in seed.objective), JSON.stringify(seed));
