@@ -136,6 +136,10 @@
       "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
     },
     {
+      "path": "docs/agents.md",
+      "reason": "pi-subagents' own docs (its documented agent discovery/shadowing precedence), not this repo — cited by path like pi's own docs below"
+    },
+    {
       "path": "docs/json.md",
       "reason": "inside an installed dependency — pi and its bundled pi-ai under `$(npm root -g)/@earendil-works/pi-coding-agent`, whose docs and dist are cited by path"
     },

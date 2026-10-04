@@ -14,8 +14,26 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 const { commandInvokes, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { REVIEWER_MARKER, firstBodyLine } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+
+/**
+ * A minimal, SEPARATE re-implementation of pi-subagents' own documented frontmatter contract
+ * (byte 0 is "---", a line starting "---" ends the block) — deliberately not steps.mjs's
+ * firstBodyLine(), so this pins the seed's DISCOVERABILITY as a valid agent independently of
+ * nana's own helper (astra r1, 2026-10-04, MUST 3b: astra ran the real pi-subagents 0.75.0
+ * discovery code against this seed and confirmed these exact frontmatter values).
+ */
+function parseFrontmatterIndependently(content) {
+	if (!content.startsWith("---\n")) return null;
+	const end = content.indexOf("\n---", 4);
+	if (end === -1) return null;
+	const fm = {};
+	for (const line of content.slice(4, end).split("\n")) {
+		const m = line.match(/^([\w-]+):\s*(.*)$/);
+		if (m) fm[m[1]] = m[2].trim();
+	}
+	return fm;
+}
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -99,9 +117,21 @@ const seededSubagentConfig = JSON.stringify(JSON.parse(fs.readFileSync(path.join
 const subagentConfigSeed = JSON.stringify(JSON.parse(fs.readFileSync(path.join(pkg, "pi", "subagent-config.seed.json"), "utf8")));
 // req: R-360
 check("subagent config seeded when absent", seededSubagentConfig === subagentConfigSeed);
-const seededReviewerFirstLine = firstBodyLine(fs.readFileSync(path.join(home, ".pi", "agent", "agents", "reviewer.md"), "utf8"));
+const installedReviewerBytes = fs.readFileSync(path.join(home, ".pi", "agent", "agents", "reviewer.md"), "utf8");
+const reviewerSeedBytes = fs.readFileSync(path.join(pkg, "pi", "reviewer.seed.md"), "utf8");
 // req: R-363
-check("reviewer agent seeded when absent", seededReviewerFirstLine === REVIEWER_MARKER);
+check("reviewer agent seeded when absent (full byte match with the seed)", installedReviewerBytes === reviewerSeedBytes);
+// A file holding only the marker would pass a marker-only check without being the seed, or a
+// discoverable reviewer (astra r1 MUST 3b) — so this independently parses the INSTALLED file's
+// frontmatter and checks the fields pi-subagents' own discovery reads.
+const installedReviewerFrontmatter = parseFrontmatterIndependently(installedReviewerBytes);
+const isValidReviewerAgent =
+	installedReviewerBytes.startsWith("---") &&
+	installedReviewerFrontmatter?.name === "reviewer" &&
+	Boolean(installedReviewerFrontmatter?.description) &&
+	(installedReviewerFrontmatter?.tools ?? "").split(",").map((t) => t.trim()).includes("bash");
+// req: R-363
+check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, name/description/tools incl. bash)", isValidReviewerAgent, JSON.stringify(installedReviewerFrontmatter));
 // req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // req: R-311

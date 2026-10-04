@@ -117,6 +117,19 @@ export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
  */
 export const PI_SUBAGENTS_FLOOR = "0.75.0";
 
+/** True for a parsed JSON value usable as a config object — never null, an array, or a scalar.
+ *  JSON.parse succeeds for all of those; reading a key off one must never throw (astra r1 MUST 2). */
+export function isPlainObject(v) {
+	return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/** Describes a non-object JSON value for an error message. */
+export function kindOf(v) {
+	if (v === null) return "null";
+	if (Array.isArray(v)) return "an array";
+	return typeof v;
+}
+
 /** Three-segment numeric version compare (no pre-release handling — the versions this floor
  *  check reads, an npm package.json's own `version`, never carry one). Non-numeric input (an
  *  absent or malformed version) reads as NOT meeting any floor. */
@@ -229,28 +242,51 @@ export function diagnose(layout, opts = {}) {
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
 
-	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-365, architecture ruling
-	// 2026-10-04) --- a third-party vendor extension nana-pi only consumes: seed-once,
-	// doctor-verifies, never rewrite a hand edit — same policy as pi nana-pack.json above.
-	let subCfg = null;
-	let subCfgErr = null;
+	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
+	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:
+	// seed-once, doctor-verifies, never rewrite a hand edit — same policy as pi nana-pack.json
+	// above. ABSENT and PRESENT-BUT-INVALID are two different remedies (astra r1 MUST 1):
+	// `nana-setup install` only creates a file that does not exist yet — seedFile() never
+	// rewrites one that is already there, however broken — so a present-but-invalid file is
+	// told to repair itself by hand, never to run install.
+	const subCfgRepairHint = (why) =>
+		`${why} — repair ${layout.subagentConfig} by hand: fix its JSON and set asyncByDefault, forceTopLevelAsync and maxSubagentDepth to the required values, keeping any other settings you have there (\`nana-setup install\` will not touch this file)`;
+	let subCfgRaw;
+	let subCfgReadErr;
 	try {
-		subCfg = JSON.parse(fs.readFileSync(layout.subagentConfig, "utf8"));
+		subCfgRaw = fs.readFileSync(layout.subagentConfig, "utf8");
 	} catch (err) {
-		subCfgErr = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
+		subCfgReadErr = err;
 	}
-	if (subCfgErr) {
-		add(FAIL, "pi subagent config", `${subCfgErr}: ${layout.subagentConfig} — run \`nana-setup install\` to seed it`);
-	} else if (subCfg.forceTopLevelAsync !== true) {
-		add(FAIL, "pi subagent config", `forceTopLevelAsync is ${JSON.stringify(subCfg.forceTopLevelAsync)}, not true, in ${layout.subagentConfig} — fix that key to true (this is the key that forces background at the top level)`);
-	} else if (subCfg.maxSubagentDepth !== 1) {
-		add(FAIL, "pi subagent config", `maxSubagentDepth is ${JSON.stringify(subCfg.maxSubagentDepth)}, not 1, in ${layout.subagentConfig} — fix that key to 1 (this is the key that caps nested fan-out)`);
-	} else if (subCfg.asyncByDefault === false) {
-		// Explicitly false, not merely absent: upstream already defaults this to true, so a
-		// user who set it false made a deliberate choice this reads as a warning, not a failure.
-		add(WARN, "pi subagent config", `asyncByDefault is explicitly false in ${layout.subagentConfig} — a nested call with an omitted async will run foreground (ungated)`);
+	if (subCfgReadErr?.code === "ENOENT") {
+		add(FAIL, "pi subagent config", `missing: ${layout.subagentConfig} — run \`nana-setup install\` to seed it`);
+	} else if (subCfgReadErr) {
+		add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} exists but could not be read (${subCfgReadErr.message})`));
 	} else {
-		add(OK, "pi subagent config", layout.subagentConfig);
+		let subCfg;
+		let parseErr;
+		try {
+			subCfg = JSON.parse(subCfgRaw);
+		} catch (err) {
+			parseErr = err;
+		}
+		if (parseErr) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} is not valid JSON (${parseErr.message})`));
+		} else if (!isPlainObject(subCfg)) {
+			// JSON.parse succeeds for null, an array, or a scalar — none of those is a usable
+			// config object, and reading a key off one must never throw (astra r1 MUST 2).
+			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} must hold a JSON object, not ${kindOf(subCfg)}`));
+		} else if (subCfg.forceTopLevelAsync !== true) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`forceTopLevelAsync is ${JSON.stringify(subCfg.forceTopLevelAsync)}, not true, in ${layout.subagentConfig} (this is the key that forces background at the top level)`));
+		} else if (subCfg.maxSubagentDepth !== 1) {
+			add(FAIL, "pi subagent config", subCfgRepairHint(`maxSubagentDepth is ${JSON.stringify(subCfg.maxSubagentDepth)}, not 1, in ${layout.subagentConfig} (this is the key that caps nested fan-out)`));
+		} else if (subCfg.asyncByDefault === false) {
+			// Explicitly false, not merely absent: upstream already defaults this to true, so a
+			// user who set it false made a deliberate choice this reads as a warning, not a failure.
+			add(WARN, "pi subagent config", `asyncByDefault is explicitly false in ${layout.subagentConfig} — a nested call with an omitted async will run foreground (ungated)`);
+		} else {
+			add(OK, "pi subagent config", layout.subagentConfig);
+		}
 	}
 
 	let reviewerBody = null;
@@ -262,7 +298,9 @@ export function diagnose(layout, opts = {}) {
 	if (reviewerBody === null) {
 		add(FAIL, "pi reviewer agent", `missing: ${layout.reviewerAgent} — run \`nana-setup install\` to seed it`);
 	} else if (firstBodyLine(reviewerBody) !== REVIEWER_MARKER) {
-		add(FAIL, "pi reviewer agent", `${layout.reviewerAgent} is missing the nana marker (${REVIEWER_MARKER}) as the first line of its body — replace with nana-setup's seed`);
+		// Present but unmarked: same ABSENT-vs-INVALID split as the subagent config above —
+		// install will never overwrite a file that already exists, so the fix is a manual one.
+		add(FAIL, "pi reviewer agent", `${layout.reviewerAgent} is missing the nana marker (${REVIEWER_MARKER}) as the first line of its body — repair it by hand (or delete it and run \`nana-setup install\` to get the full seed; install will not overwrite a file that already exists)`);
 	} else {
 		add(OK, "pi reviewer agent", layout.reviewerAgent);
 	}
@@ -283,31 +321,48 @@ export function diagnose(layout, opts = {}) {
 
 	// Read-only: nana-setup never writes mcp.json (the seat edits it by hand, architecture
 	// ruling §3). WHERE it exists, a server with no `exposure` key defaults to pi's own
-	// `codemode` exposure the moment it connects, unless `autoEnableCodemode` is `false`.
-	let mcpCfg = null;
-	let mcpCfgErr = null;
+	// `codemode` exposure the moment it connects, unless `autoEnableCodemode` is `false`. The
+	// same shape defence as the subagent config above (astra r1 MUST 2): a parsed value that is
+	// not a usable object — top-level, or `mcpServers` itself — is a failure row, never a crash.
+	let mcpCfgRaw;
+	let mcpCfgReadErr;
 	try {
-		mcpCfg = JSON.parse(fs.readFileSync(layout.mcpConfig, "utf8"));
+		mcpCfgRaw = fs.readFileSync(layout.mcpConfig, "utf8");
 	} catch (err) {
-		mcpCfgErr = err.code === "ENOENT" ? null : `unreadable (${err.message})`;
+		mcpCfgReadErr = err;
 	}
-	if (mcpCfgErr) {
-		add(NOTE, "pi mcp.json", `${layout.mcpConfig} ${mcpCfgErr}`);
-	} else if (mcpCfg) {
-		const servers = mcpCfg.mcpServers && typeof mcpCfg.mcpServers === "object" ? mcpCfg.mcpServers : {};
-		const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
-		const unexposed = Object.keys(servers).filter((name) => servers[name] && typeof servers[name] === "object" && servers[name].exposure === undefined);
-		if (codemodeDefault && unexposed.length) {
-			add(
-				WARN,
-				"pi mcp.json",
-				`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
-			);
-		} else {
-			add(OK, "pi mcp.json", layout.mcpConfig);
-		}
-	} else {
+	if (mcpCfgReadErr?.code === "ENOENT") {
 		add(NOTE, "pi mcp.json", `not present: ${layout.mcpConfig}`);
+	} else if (mcpCfgReadErr) {
+		add(FAIL, "pi mcp.json", `${layout.mcpConfig} exists but could not be read (${mcpCfgReadErr.message})`);
+	} else {
+		let mcpCfg;
+		let parseErr;
+		try {
+			mcpCfg = JSON.parse(mcpCfgRaw);
+		} catch (err) {
+			parseErr = err;
+		}
+		if (parseErr) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig} is not valid JSON (${parseErr.message})`);
+		} else if (!isPlainObject(mcpCfg)) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig} must hold a JSON object, not ${kindOf(mcpCfg)}`);
+		} else if (mcpCfg.mcpServers !== undefined && !isPlainObject(mcpCfg.mcpServers)) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig}'s mcpServers must be an object, not ${kindOf(mcpCfg.mcpServers)}`);
+		} else {
+			const servers = mcpCfg.mcpServers ?? {};
+			const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
+			const unexposed = Object.keys(servers).filter((name) => isPlainObject(servers[name]) && servers[name].exposure === undefined);
+			if (codemodeDefault && unexposed.length) {
+				add(
+					WARN,
+					"pi mcp.json",
+					`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
+				);
+			} else {
+				add(OK, "pi mcp.json", layout.mcpConfig);
+			}
+		}
 	}
 
 	// --- knowledge pull ---

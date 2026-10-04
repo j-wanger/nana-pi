@@ -153,26 +153,41 @@ try {
 	};
 	{
 		const { c } = subagentCheck(undefined);
+		const namesTheFix = c?.status === "fail" && /missing/.test(c.detail) && c.detail.includes("run `nana-setup install` to seed it");
 		// req: R-362
-		check("subagent config: missing file reads ✗ naming the key", c?.status === "fail" && /missing/.test(c.detail), JSON.stringify(c));
+		check("subagent config: missing file reads ✗ naming nana-setup install as the fix", namesTheFix, JSON.stringify(c));
 	}
+	// astra r1 MUST 1: a PRESENT-but-invalid file must never be told "run nana-setup install" —
+	// seedFile() never rewrites a file that already exists, so that remedy cannot fix it. Every
+	// present-but-invalid case below is pinned on BOTH halves: it names the file/problem, and it
+	// does NOT recommend install.
 	{
 		const { c } = subagentCheck("{ not json");
-		// req: R-362
-		check("subagent config: unparseable reads ✗ naming the key", c?.status === "fail" && /unreadable/.test(c.detail), JSON.stringify(c));
+		const repairsByHand = c?.status === "fail" && /not valid JSON/.test(c.detail) && c.detail.includes("repair") && c.detail.includes("by hand") && !c.detail.includes("run `nana-setup install`");
+		// req: R-366
+		check("subagent config: unparseable reads ✗ naming the file, instructing a manual repair, never install", repairsByHand, JSON.stringify(c));
+	}
+	for (const [label, bad] of [["null", "null"], ["an array", "[]"], ["a number", "42"], ["a string", '"x"']]) {
+		const { c } = subagentCheck(bad);
+		const repairsByHand = c?.status === "fail" && /must hold a JSON object/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
+		// astra r1 MUST 2: JSON.parse succeeds for these; reading a key off the result must not throw.
+		// req: R-366
+		check(`subagent config: parses to ${label} reads ✗ naming a manual repair, never install (no crash)`, repairsByHand, JSON.stringify(c));
 	}
 	{
 		const { c } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: false, maxSubagentDepth: 1 }));
-		// req: R-362
-		check("subagent config: forceTopLevelAsync false reads ✗ naming the key", c?.status === "fail" && /forceTopLevelAsync/.test(c.detail), JSON.stringify(c));
+		const repairsByHand = c?.status === "fail" && /forceTopLevelAsync/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
+		// req: R-367
+		check("subagent config: forceTopLevelAsync false reads ✗ naming the key, never install", repairsByHand, JSON.stringify(c));
 	}
 	{
 		const { c, layout } = subagentCheck(JSON.stringify({ asyncByDefault: true, forceTopLevelAsync: true, maxSubagentDepth: 2 }));
-		// req: R-362
-		check("subagent config: maxSubagentDepth 2 reads ✗ naming the key", c?.status === "fail" && /maxSubagentDepth/.test(c.detail), JSON.stringify(c));
+		const repairsByHand = c?.status === "fail" && /maxSubagentDepth/.test(c.detail) && c.detail.includes("repair") && !c.detail.includes("run `nana-setup install`");
+		// req: R-368
+		check("subagent config: maxSubagentDepth 2 reads ✗ naming the key, never install", repairsByHand, JSON.stringify(c));
 		const before = fs.readFileSync(layout.subagentConfig, "utf8");
 		diagnose(layout, { projectDir: layout.base });
-		// req: R-362
+		// req: R-369
 		check("doctor leaves a wrong config.json byte-identical", fs.readFileSync(layout.subagentConfig, "utf8") === before);
 	}
 	{
@@ -184,8 +199,32 @@ try {
 		check("subagent config: the seed's own shape reads ✓", c?.status === "ok", JSON.stringify(c));
 	}
 
-	// pi reviewer agent (R-363): the marker's exact position is the first line of the BODY, not
-	// byte 0 of the file (see steps.mjs REVIEWER_MARKER for why — frontmatter parsing would break).
+	// pi mcp.json: the same shape defence (astra r1 MUST 2), checked here for the two spots the
+	// existing R-365 tests below do not reach — a non-object top level and a non-object mcpServers.
+	const mcpShapeCheck = (content) => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		tmps.push(home);
+		const layout = resolveLayout({ home });
+		fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
+		fs.writeFileSync(layout.mcpConfig, content);
+		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
+	};
+	for (const [label, bad] of [["null", "null"], ["an array", "[]"], ["a number", "7"]]) {
+		const c = mcpShapeCheck(bad);
+		check(`mcp.json: parses to ${label} reads ✗, not a crash`, c?.status === "fail" && /must hold a JSON object/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const c = mcpShapeCheck(JSON.stringify({ mcpServers: "oops" }));
+		check("mcp.json: mcpServers as a string reads ✗, not a crash", c?.status === "fail" && /mcpServers must be an object/.test(c.detail), JSON.stringify(c));
+	}
+	{
+		const c = mcpShapeCheck(JSON.stringify({ mcpServers: { memory: "not an object", real: { command: "x" } } }));
+		check("mcp.json: a non-object server entry is skipped, not a crash", c?.status === "warn" && /\breal\b/.test(c.detail) && !c.detail.includes("memory"), JSON.stringify(c));
+	}
+
+	// pi reviewer agent — doctor's absent/unmarked split (R-370, R-371). The install-side seeding
+	// promise (R-363) and the full-byte/independent-frontmatter pins live in install.test.mjs,
+	// which checks the INSTALLED artifact; these check doctor's reaction to arbitrary content.
 	const reviewerCheck = (body) => {
 		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
@@ -198,13 +237,17 @@ try {
 	};
 	{
 		const c = reviewerCheck(undefined);
-		// req: R-363
-		check("reviewer agent: absent reads ✗", c?.status === "fail" && /missing/.test(c.detail), JSON.stringify(c));
+		const namesTheFix = c?.status === "fail" && /missing/.test(c.detail) && c.detail.includes("run `nana-setup install` to seed it");
+		// req: R-370
+		check("reviewer agent: absent reads ✗ naming nana-setup install as the fix", namesTheFix, JSON.stringify(c));
 	}
 	{
 		const c = reviewerCheck("---\nname: reviewer\ndescription: x\n---\n\nNo marker here.\n");
-		// req: R-363
-		check("reviewer agent: unmarked reads ✗", c?.status === "fail" && /nana marker/.test(c.detail), JSON.stringify(c));
+		// astra r1 MUST 1's split applies here too: install never overwrites a PRESENT file, so
+		// an unmarked-but-present reviewer.md must not be told to run install either.
+		const repairsByHand = c?.status === "fail" && /nana marker/.test(c.detail) && c.detail.includes("repair it by hand");
+		// req: R-371
+		check("reviewer agent: unmarked reads ✗ instructing a manual repair, not a bare install", repairsByHand, JSON.stringify(c));
 	}
 	{
 		const c = reviewerCheck(`---\nname: reviewer\ndescription: x\n---\n\n${REVIEWER_MARKER}\n\nBody.\n`);
@@ -232,6 +275,7 @@ try {
 		// req: R-364
 		check("pi-subagents 0.75.0 reads ✓", good?.status === "ok", JSON.stringify(good));
 		const absent = subagentsVersionCheck(undefined);
+		// req: R-364
 		check("pi-subagents: absent reads ✗ with the same pin", absent?.status === "fail" && absent.detail.includes(`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`), JSON.stringify(absent));
 	}
 

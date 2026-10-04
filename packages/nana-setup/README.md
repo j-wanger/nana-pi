@@ -47,6 +47,26 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID`. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute) and the service desk opens the dir the pack was installed into. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
 
+## The nana-owned reviewer agent — why `agents/reviewer.md` shadows the builtin
+
+`agents/reviewer.md` doesn't add a new agent — it REPLACES pi-subagents' builtin `reviewer` for
+anyone using this pack, because pi loads a user-scope agent file of the same name instead of the
+builtin (`docs/agents.md`'s own documented precedence: builtin → package → user → project). The
+seed is the upstream reviewer persona and output format verbatim, with one tools change (`bash`
+added) and three rule changes (architecture-ruling.md, 2026-10-04): the review role gathers its
+own `git`/test evidence with that `bash` tool instead of asking the parent for it, and reports a
+gap under "Could not verify" rather than blocking on a supervisor reply.
+
+`bash` here is instructed-read-only, not sandboxed enforcement: this agent runs as a LEAF — the
+subagent config seed above caps `maxSubagentDepth` at 1 — inside pi-subagents' detached background
+runner process, where nana-gate (`packages/nana-pack`'s own `tool_call` hook) loads as an ambient
+extension and inspects every command and edit target before it runs, the same as any other
+background subagent. nana-gate is advisory by doctrine — a load-path convenience, not a security
+boundary; real enforcement is the sandbox/container layer, exactly as everywhere else in this
+repo. That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Known
+limits for the two documented cases where a child does NOT load nana-gate even under this seeded
+config.
+
 ## pi-subagents' version, and mcp.json — read-only checks
 
 `doctor` also reads two things `install` never writes, because they belong to pieces outside its

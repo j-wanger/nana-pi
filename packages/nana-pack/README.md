@@ -447,14 +447,23 @@ is user-scope only** — project config never contributes to it, trusted or not.
   stays at the container/sandbox layer.
 - **Subagent children and nana-gate (architecture-ruling.md, 2026-10-04).** `nana-setup`'s
   subagent config seed (`extensions/subagent/config.json` in the pi agent dir) sets
-  `forceTopLevelAsync: true`, which is what keeps every TOP-LEVEL subagent launch backgrounded —
-  and therefore inside the detached runner process that loads this pack, gate included — no
-  matter what the model asks for. A hand-edited copy of that file that flips the key back reopens
-  a foreground, ungated top-level child: same posture as every other residual above, advisory,
-  not a security boundary. A NESTED child (depth ≥ 1) the model launches with an explicit
-  `async:false` is not reached by `forceTopLevelAsync` either — pi-subagents' own docs say nested
-  calls keep their own inherited settings — and runs foreground, ungated, at any depth
-  `maxSubagentDepth` still permits.
+  `forceTopLevelAsync: true`, which keeps an ORDINARY, model-driven top-level `subagent` tool
+  launch backgrounded — and therefore inside the detached runner process that loads this pack,
+  gate included, with default extension inheritance — no matter what the model asks for. A
+  hand-edited copy of that file that flips the key back reopens a foreground, ungated top-level
+  child: same posture as every other residual above, advisory, not a security boundary. A NESTED
+  child (depth ≥ 1) the model launches with an explicit `async:false` is not reached by
+  `forceTopLevelAsync` either — pi-subagents' own docs say nested calls keep their own inherited
+  settings — and runs foreground, ungated, at any depth `maxSubagentDepth` still permits.
+- **Slash-command delegation bypasses `forceTopLevelAsync` too** (astra review r1, 2026-10-04,
+  pi-subagents 0.75.0 `src/slash/delegation-adapters.js:170-189`): `/delegate` and similar slash
+  commands build their launch params with `foregroundOnly: true`, which `forceTopLevelAsync`'s
+  own depth-0 check skips outright — and a foreground child never loads ambient extensions
+  (nana-gate included) regardless of how it was launched.
+- **An explicit `extensions` override, or a capability ceiling that denies extensions, disables
+  ambient extensions on a child outright** (same review, pi-subagents 0.75.0
+  `src/runs/shared/child-tool-plan.js:271-273`) — background or not. Background alone is never
+  proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
 - **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
   runner process is a second nana-pack session in the SAME working directory as its parent, so the
   handoff store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
