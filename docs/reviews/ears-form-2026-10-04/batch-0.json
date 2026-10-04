@@ -142,7 +142,7 @@
     "G-013_to_G-015": "the EARS form check rows",
     "G-016_to_G-022": "the Part G split rows"
   },
-  "rowsAddedThisBatch": ["G-013", "G-014", "G-015", "G-016", "G-017", "G-018", "G-019", "G-020", "G-021", "G-022", "R-756"],
+  "rowsAddedThisBatch": ["G-013", "G-014", "G-015", "G-016", "G-017", "G-018", "G-019", "G-020", "G-021", "G-022", "R-756", "R-757"],
   "allowanceBefore": 200,
   "allowanceAfter": 194,
   "measuredOffFormBeforeBatch": 200,

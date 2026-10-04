@@ -3,7 +3,7 @@
  * @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries, and that its Requirement cell carries exactly one `shall`.
  * @inputs REQUIREMENTS.md and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
  * @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems and a one-line summary
- * @effects disk (reads REQUIREMENTS.md and the test sources)
+ * @effects disk (reads REQUIREMENTS.md and the test sources), process (printReport writes the report to stdout)
  * @errors a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
  */
 // The requirements-first rail. A test declares which rows it evidences with a
@@ -54,8 +54,11 @@ const STALE = new Set(["untested", "planned", "violated"]);
  * opens a span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``,
  * ``shall`` and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side
  * of a bare "shall". An unmatched backtick run is literal text, not a span. The whole span —
- * delimiters and content — is replaced with nothing: a `shall` inside it is a mention, never
- * a promise (G-013).
+ * delimiters and content — is replaced with a SINGLE SPACE, never with nothing (astra r2
+ * MUST 3): deleting it outright let the words either side glue together — `` sh`x`all ``
+ * read back as the word "shall" (falsely counted), and `` shall`x`é `` read back as one
+ * token "shallé" (a real `shall` lost). A `shall` inside a span is a mention, never a
+ * promise (G-013); the space is a separator, not content.
  */
 function maskCodeSpans(text: string): string {
 	let out = "";
@@ -88,23 +91,27 @@ function maskCodeSpans(text: string): string {
 			out += text.slice(i, j); // no matching close: the opening run is literal text
 			i = j;
 		} else {
-			i = closeEnd; // mask the whole span, delimiters included
+			out += " "; // the whole span becomes ONE separator, delimiters and content gone
+			i = closeEnd;
 		}
 	}
 	return out;
 }
 
 /**
- * A `shall`, case-insensitive, not preceded or followed by a Unicode letter, digit or
- * underscore (astra r1 MUST 4) — ONE boundary rule, written identically in both rails rather
- * than relying on `\b`: JS's `\b` is ASCII-only (would wrongly count "shallé"), Python's is
- * Unicode-aware (would not), so the two silently disagreed. Here: explicit lookarounds over
- * `\p{L}\p{N}_` with the `u` flag. Python (`conftest.py`) uses `(?<!\w)…(?!\w)`: its stdlib
- * `\w` is Unicode-aware by default and gives the same answer on every fixture both rails
- * share (`requirements-trace.test.ts.jinja` / `test_requirements_trace.py.jinja`), with no
- * third-party dependency for `\p{L}`.
+ * A `shall`, case-insensitive, not preceded or followed by an ASCII letter, digit or
+ * underscore — explicitly `[A-Za-z0-9_]`, written identically (the literal class, not `\w`
+ * or a Unicode property) in both rails (astra r2 MUST 1). Requirement rows are English
+ * prose, so this is a deliberately NARROWER contract than "every Unicode word character":
+ * a non-ASCII letter immediately touching "shall" (e.g. "shallé") counts as a BOUNDARY, not
+ * as part of a longer word — "shallé" carries a `shall`. The reason is version independence,
+ * not linguistics: `\p{L}`/`\w` read from the runtime's OWN Unicode database, and Node
+ * 22 (Unicode 17) and Python 3.14 (Unicode 16) disagreed on 4,657 codepoints' letter/digit
+ * membership, including U+088F and U+A7F1 — a silent, version-dependent split neither
+ * language's own tests would ever catch. An explicit ASCII class has no Unicode database to
+ * disagree about. See PARITY_FIXTURES below for the codepoints this was measured against.
  */
-const SHALL = /(?<![\p{L}\p{N}_])shall(?![\p{L}\p{N}_])/giu;
+const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
 
 /**
  * The allowance default for a project with no declared value: a new project writes rows
@@ -478,4 +485,15 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		earsLine,
 		report: `${line}\n${earsLine}`,
 	};
+}
+
+/**
+ * Print a check() result's report to the console — the ONE function every real caller
+ * uses (this rail ships no separate CLI of its own; a project's own test run, printed by
+ * vitest, is its reporting surface). A test spies on THIS function directly (astra r2
+ * MUST 2), so a mutation to its body — not just to the computed `report` field a test
+ * could read without ever printing it — turns the cited test red.
+ */
+export function printReport(result: CheckResult): void {
+	console.log(result.report);
 }

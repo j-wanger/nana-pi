@@ -56,15 +56,19 @@ EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
 MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
-#: A `shall`, case-insensitive, not preceded or followed by a Unicode letter, digit or
-#: underscore (astra r1 MUST 4) -- ONE boundary rule, written identically in both rails rather
-#: than relying on ``\b``: Python's ``\b`` is Unicode-aware (would miss "shallé" being a
-#: mention of a longer word), JS's is ASCII-only (would wrongly count it), so the two silently
-#: disagreed. ``\w`` is Python's stdlib, Unicode-aware equivalent of JS's explicit
-#: ``[\p{L}\p{N}_]`` lookarounds (`requirements-trace.ts`) -- no third-party dependency needed
-#: for `\p{L}` -- and gives the same answer on every fixture both rails share
-#: (`test_requirements_trace.py.jinja` / `requirements-trace.test.ts.jinja`).
-SHALL_RE = re.compile(r"(?<!\w)shall(?!\w)", re.IGNORECASE)
+#: A `shall`, case-insensitive, not preceded or followed by an ASCII letter, digit or
+#: underscore -- explicitly ``[A-Za-z0-9_]``, written identically (the literal class, never
+#: ``\w`` or a Unicode property) in both rails (astra r2 MUST 1). Requirement rows are
+#: English prose, so this is a deliberately NARROWER contract than "every Unicode word
+#: character": a non-ASCII letter immediately touching "shall" (e.g. "shallé") counts as a
+#: BOUNDARY, not part of a longer word -- "shallé" carries a `shall`. The reason is version
+#: independence, not linguistics: ``\w``/``\p{L}`` read from the runtime's OWN Unicode
+#: database, and Node 22 (Unicode 17) and this rendered Python (3.14, Unicode 16) disagreed
+#: on 4,657 codepoints' letter/digit membership, including U+088F and U+A7F1 -- a silent,
+#: version-dependent split neither language's own tests would ever catch. An explicit ASCII
+#: class has no Unicode database to disagree about. See PARITY_FIXTURES (the test file) for
+#: the codepoints this was measured against.
+SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE)
 
 #: The allowance default for a project with no declared ini value: a new project writes
 #: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same
@@ -147,8 +151,11 @@ def _mask_code_spans(text: str) -> str:
     span that closes only at the NEXT run of EXACTLY N backticks, so `` `shall` ``, ``shall``
     and `` `` `shall` `` `` are each ONE span, not a pair of empty ones either side of a bare
     "shall". An unmatched backtick run is literal text, not a span. The whole span --
-    delimiters and content -- is replaced with nothing: a `shall` inside it is a mention,
-    never a promise (G-013)."""
+    delimiters and content -- is replaced with a SINGLE SPACE, never with nothing (astra r2
+    MUST 3): deleting it outright let the words either side glue together -- `` sh`x`all ``
+    read back as the word "shall" (falsely counted), and `` shall`x`é `` read back as one
+    token "shallé" (a real `shall` lost). A `shall` inside a span is a mention, never a
+    promise (G-013); the space is a separator, not content."""
     out: list[str] = []
     i = 0
     n = len(text)
@@ -178,7 +185,8 @@ def _mask_code_spans(text: str) -> str:
             out.append(text[i:j])  # no matching close: the opening run is literal text
             i = j
         else:
-            i = close_end  # mask the whole span, delimiters included
+            out.append(" ")  # the whole span becomes ONE separator, delimiters and content gone
+            i = close_end
     return "".join(out)
 
 

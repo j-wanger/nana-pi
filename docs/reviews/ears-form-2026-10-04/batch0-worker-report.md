@@ -2,6 +2,7 @@
 
 Worker: Sonnet (build), worktree `~/nana-pi-wt/ears`, branch `feat/ears-form`, cut from main `ed90650`.
 Spec: `docs/reviews/ears-form-2026-10-04/design-ruling.md`. Mapping: `docs/reviews/ears-form-2026-10-04/batch-0.json`.
+Review history: astra r1 BLOCK 6/10 (`batch0-astra-r1.md`, fixed in `0704531`) → astra r2 BLOCK 7/10 (`batch0-astra-r2.md`, fixed below) → round 3 is the last review round.
 
 ## Commit
 
@@ -170,3 +171,104 @@ but I did not re-litigate whether that document now reads worse for a human scan
 top to bottom. I'd also flag: the Python-side MUST 4 "fix" is inert behaviorally (see above) — if
 a reviewer expects a Python-side mutation to prove it, there isn't one that the parity fixtures
 can produce, because Python's original regex was never the bug.
+
+---
+
+## Round 2 — astra BLOCK 7/10 (`batch0-astra-r2.md`), all findings fixed (round 3 is the last review round)
+
+### MUST 1 — version-independent word boundary: ASCII only, both languages
+
+Round 1's `\p{L}\p{N}_`/`\w` approach still depended on the RUNTIME's own Unicode database —
+Node 22 ships Unicode 17, the rendered Python 3.14 ships Unicode 16, and astra's exhaustive
+sweep found 4,657 codepoints where the two disagreed on letter/digit membership (U+088F,
+U+A7F1 among them). Per the seat's ruling, both rails now use the explicitly NARROWER,
+version-independent contract: `(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])` — the ASCII class
+spelled out literally in Python too, never `\w`. Both template headers now document that
+requirement rows are English prose and a non-ASCII letter/digit next to "shall" is a
+boundary, not part of the word. **Behavior change:** `shallé`/`éshall` now count as 2 (the
+ordinary `shall` plus the adjacent one), not 1 as round 1 had it — updated in both
+`PARITY_FIXTURES`. Added astra's U+088F and U+A7F1 counterexamples plus the seven requested
+category cases (U+0301, U+0660, U+2160, U+00B2, U+02B0, U+4E00, U+200D), each expecting 2 in
+both languages — verified programmatically (not just via the suite) that both rails give
+identical counts on the full corpus before running anything else.
+
+### MUST 2 — TypeScript now prints the tested `report`, from one function, proven by a spy
+
+`check()` already had a `report` field; the gap was that NOTHING in the rendered TS suite
+ever printed it — `console.log(line)` and `console.log(earsLine)` were separate calls
+elsewhere, so astra's `console.log("WRONG REPORT")` mutation (in the would-be printing code)
+left the suite green. Added `printReport(result)`, exported from the rail itself, as the ONE
+function every real caller uses (there is no separate TS CLI to spawn, unlike Python's
+`pytest_sessionfinish` or nana-pi's CLI). The two "this project" tests now call
+`printReport(result)` instead of ad hoc logging. The G-014 test now spies on `console.log`
+around a call to `printReport` and asserts the captured output equals `result.report`,
+split correctly into `[line, earsLine]`. Astra's exact mutation —
+`console.log("WRONG REPORT")` inside `printReport`'s body — now turns that test red.
+
+### MUST 3 — a masked code span becomes a SPACE, never nothing, both languages
+
+The matching-run masker from round 1 still deleted a span outright, so text on either side
+could glue into a false token (`` sh`x`all `` read back as "shall") or lose a real one
+(`` shall`x`é `` read back as one token "shallé"). Both maskers now insert exactly one space
+in place of the whole span. Added astra's three fixtures, recomputed under the new ASCII
+rule: `` sh`x`all `` → 0, `` shall`x`é `` → 1, ```` shall``x``é ```` → 1 — identical in both
+`PARITY_FIXTURES`.
+
+### SHOULD — R-757's wording matches where the enforcement actually lives
+
+R-757 now reads "...the **repository suite** shall fail naming the stale headroom", not "the
+rail" — the equality check lives only in `packages/nana-pack/tests/requirements-trace.test.mjs`;
+generic `check()` and both templates stay the ceiling-only `count > allowance`, unchanged.
+Reproduced astra's count-reduction probe exactly: retiring one real off-form row dropped the
+measured count to 193 (allowance unchanged at 194) — the repository suite failed naming
+`measured 193, declared 194`, while the standalone CLI (`node scripts/requirements-trace.mjs`)
+exited 0, confirming the ceiling/equality split is real and correctly scoped. Restored.
+
+### Residuals recorded (REQUIREMENTS.md Open questions #7 and new #8)
+
+- #7 updated: astra r2's ruling — **keep R-757** as a nana-pi-only repository-suite
+  invariant — is now recorded in the row and in Open questions, with Fable's landing
+  sign-off named as the formal close.
+- #8 added, astra r2's four residuals, one line each: the form check counts tokens, not
+  semantic promises or clause coverage (ties to 6b); generic allowances stay ceilings, R-757
+  is additive and nana-pi-only; `templates-render.test.mjs` does not execute the rendered
+  suites itself, so the manual acceptance run stays a required separate step; this
+  worktree's missing `node_modules`/`apps/bench/.ext` mean only the EARS-touched tests are
+  claimed green, not the whole-repo suite.
+- `batch-0.json`'s `rowsAddedThisBatch` now includes `R-757`.
+
+### Mutation proofs (all red, then restored)
+
+1. TS: astra's exact `console.log("WRONG REPORT")` inside `printReport` → the spy-based
+   G-014 test red. Also reproduced directly against nana-pi's real CLI print statement
+   (`scripts/requirements-trace.mjs`) → nana-pi's CLI test red. Both restored.
+2. TS: reverted `SHALL` to the round-1 `\p{L}\p{N}_` rule → the parity test red on `shallé`
+   (expected 2, got 1) in a fresh render. Restored.
+3. Python: reverted `SHALL_RE` to `(?<!\w)...(?!\w)` → the parity test red on `shallé`
+   (expected 2, got 1) in a disposable render — this time a REAL regression, unlike round 1.
+   Restored.
+4. TS and Python: reverted the masker to delete spans instead of inserting a space → the
+   parity test red on `` sh`x`all `` (expected 0, got 1) in both languages. Restored.
+5. R-757: retired one real off-form row (194 → 193) → the repository suite failed naming
+   measured/declared; the standalone CLI exited 0. Restored.
+
+### Re-verified after all round-2 fixes
+
+- `packages/nana-pack/tests/requirements-trace.test.mjs`: 8/8 pass.
+- `packages/nana-pack/tests/templates-render.test.mjs`: all pass (after regenerating the TS
+  seed `docs/code-map.md.jinja` for `printReport`'s new `@effects` line).
+- `npm run map:check`: 0 problems.
+- Fresh renders, both languages, scaffold: TS 52/52, Python 58/58 — unchanged counts (the new
+  fixture entries extended existing tests rather than adding new ones).
+- `npm test` once, alone: **95 files: 93 PASS, 1 FAIL, 1 SKIP · checks: 5521 pass, 2 fail, 6
+  skip · exit 1** — the same single environmental failure (`readme-check.test.mjs`), unchanged.
+
+### The claim I would most expect to be wrong, now
+
+The ASCII-only boundary rule is a real behavior change from round 1 (non-ASCII letters no
+longer block a match). Checked directly: a regex sweep of REQUIREMENTS.md for a non-ASCII
+character immediately touching "shall"/"Shall" found none, so the 194 count is not coincidentally
+unchanged — there is nothing in this repo's rows for the rule change to have silently flipped.
+What I have NOT separately re-verified: whether any OTHER project's REQUIREMENTS.md (not this
+lane's concern, but a future adopter) could have such a row; the template's own adopt-mode
+instructions don't call this out as something to check.

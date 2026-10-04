@@ -23,13 +23,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, test } from "vitest";
+import { afterAll, describe, expect, test, vi } from "vitest";
 
 import {
 	check,
 	EARS_ALLOWANCE_DEFAULT,
 	earsOffForm,
 	loadRequirements,
+	printReport,
 	scanSource,
 	shallCounts,
 	summary,
@@ -53,9 +54,17 @@ afterAll(() => {
 });
 
 // Shared with test_requirements_trace.py.jinja's PARITY_FIXTURES: the SAME strings and
-// expected counts in both languages (astra r1 MUST 1 + MUST 4) — matching-run code-span
-// masking (single, double and embedded-backtick spans) and one word-boundary rule for
-// `shall`, case-insensitive, that neither language's native `\b` gave on its own.
+// expected counts in both languages (astra r1 MUST 1 + MUST 4, astra r2 MUST 1 + MUST 3) —
+// matching-run code-span masking that replaces a span with ONE separator, never nothing, and
+// one EXPLICIT ASCII-only word-boundary rule for `shall`, case-insensitive
+// (`[A-Za-z0-9_]`, never `\w` or a Unicode property): requirement rows are English prose, so
+// a non-ASCII letter or digit touching "shall" counts as a BOUNDARY, not as part of a longer
+// word — "shallé" carries a `shall`. This is deliberately narrower than "every Unicode word
+// character" so the count never depends on the runtime's OWN Unicode database version: Node
+// 22 ships Unicode 17, the rendered Python 3.14 ships Unicode 16, and an exhaustive sweep
+// found 4,657 codepoints where the two disagreed on `\p{L}`/`\p{N}` membership — including
+// U+088F and U+A7F1 below, assigned letters in one database, unassigned (so non-word) in the
+// other. The ASCII class has no database to disagree about.
 const PARITY_FIXTURES: [string, number][] = [
 	["The system shall do one thing.", 1],
 	["The system shall mention `shall` in backticks.", 1],
@@ -64,12 +73,32 @@ const PARITY_FIXTURES: [string, number][] = [
 	['The system shall quote "shall" in output.', 2],
 	["The shallower pool is shallow.", 0],
 	["Shall the system respond.", 1],
-	["The system shall print shallé.", 1],
-	["The system shall print éshall.", 1],
+	// a non-ASCII letter next to "shall" is a boundary under the ASCII-only rule: BOTH the
+	// ordinary "shall" and the adjacent one count (astra r2 MUST 1; round 1 expected 1, not 2)
+	["The system shall print shallé.", 2],
+	["The system shall print éshall.", 2],
 	["The system shall print shall_.", 1],
 	["Shall.", 1],
 	["No promise word here.", 0],
 	["The system shall do X and shall do Y.", 2],
+	// astra r2's exact counterexample and category attacks: every character below is
+	// non-ASCII, so none of them block a match under the new rule — each fixture's ordinary
+	// "shall" plus its adjacent "shall<char>" both count, every time, in both languages
+	["The system shall print shall࢏.", 2], // U+088F: assigned letter in Unicode 17, unassigned in 16
+	["The system shall print shall꟱.", 2], // U+A7F1: same cross-version split
+	["The system shall print shalĺ.", 2], // U+0301 combining acute accent
+	["The system shall print shall٠.", 2], // U+0660 Arabic-Indic digit zero
+	["The system shall print shallⅠ.", 2], // U+2160 Roman numeral one
+	["The system shall print shall².", 2], // U+00B2 superscript two
+	["The system shall print shallʰ.", 2], // U+02B0 modifier letter small h (Lm)
+	["The system shall print shall一.", 2], // U+4E00 CJK ideograph (Lo)
+	["The system shall print shall‍.", 2], // U+200D zero-width joiner
+	// a code span replaced by a separator, not nothing (astra r2 MUST 3): deleting it would
+	// either falsely glue "sh" + "all" back into "shall", or glue a real "shall" onto what
+	// follows the span
+	["The system does sh`x`all nothing.", 0],
+	["The system shall`x`é afterward.", 1],
+	["The system shall``x``é afterward.", 1],
 ];
 
 /**
@@ -358,11 +387,11 @@ const PROJECT_EARS_ALLOWANCE = EARS_ALLOWANCE_DEFAULT;
 
 describe("this project", () => {
 	test("REQUIREMENTS.md status agrees with the markers in tests/", () => {
-		const { problems, line } = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
-		console.log(line);
+		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
+		printReport(result);
 		expect(
-			problems,
-			`requirements trace FAILED:\n  ${problems.join("\n  ")}`,
+			result.problems,
+			`requirements trace FAILED:\n  ${result.problems.join("\n  ")}`,
 		).toEqual([]);
 	});
 
@@ -371,10 +400,10 @@ describe("this project", () => {
 		// Filtered to the EARS problem shape, not the full `problems` list above, so this
 		// pins G-013 alone — and reads against PROJECT_EARS_ALLOWANCE, the one constant
 		// above both call sites share.
-		const { earsLine, problems } = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
-		console.log(earsLine);
-		const earsProblems = problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
-		expect(earsProblems, earsLine).toEqual([]);
+		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
+		printReport(result);
+		const earsProblems = result.problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
+		expect(earsProblems, result.earsLine).toEqual([]);
 	});
 });
 
@@ -390,16 +419,32 @@ describe("ears form", () => {
 
 		// G-014: the count is reported on its OWN line, with the real count and allowance,
 		// AFTER the summary line (astra r1 MUST 2) — pinned on `report`, the exact
-		// structure the CLI (scripts/requirements-trace.mjs) prints verbatim, not just the
-		// off-form id list above.
+		// structure every real caller prints verbatim, not just the off-form id list above.
 		const dir = mkdtempSync(join(tmpdir(), "req-trace-ears-report-"));
 		scratch.push(dir);
 		writeFileSync(join(dir, "REQUIREMENTS.md"), text);
-		const { line, earsLine, earsOffForm: offForm, report } = check(dir, { earsAllowance: 99 });
-		expect(offForm).toEqual(["R-900", "R-901"]);
-		expect(earsLine).toBe("ears: 2 rows off form (allowance 99)");
-		expect(report).toBe(`${line}\n${earsLine}`);
-		expect(report.split("\n")).toEqual([line, earsLine]);
+		const result = check(dir, { earsAllowance: 99 });
+		expect(result.earsOffForm).toEqual(["R-900", "R-901"]);
+		expect(result.earsLine).toBe("ears: 2 rows off form (allowance 99)");
+		expect(result.report).toBe(`${result.line}\n${result.earsLine}`);
+		expect(result.report.split("\n")).toEqual([result.line, result.earsLine]);
+
+		// astra r2 MUST 2: the fixture above pins the COMPUTED `report`, which a mutation to
+		// the PRINTING code (not the computation) would never touch. This pins the actual
+		// reporting surface instead: printReport is the one function every real caller uses,
+		// so spying on console.log around a call to it catches a mutation like
+		// `console.log("WRONG REPORT")` inside printReport's own body.
+		const logs: string[] = [];
+		const spy = vi.spyOn(console, "log").mockImplementation((msg: unknown) => {
+			logs.push(String(msg));
+		});
+		try {
+			printReport(result);
+		} finally {
+			spy.mockRestore();
+		}
+		expect(logs).toEqual([result.report]);
+		expect(logs[0]?.split("\n")).toEqual([result.line, result.earsLine]);
 	});
 
 	{{ rq }} G-015

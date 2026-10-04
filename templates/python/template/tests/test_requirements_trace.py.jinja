@@ -49,9 +49,17 @@ REQS = """# reqs
 MARK = "# req: "
 
 # Shared with requirements-trace.test.ts.jinja's PARITY_FIXTURES: the SAME strings and
-# expected counts in both languages (astra r1 MUST 1 + MUST 4) -- matching-run code-span
-# masking (single, double and embedded-backtick spans) and one word-boundary rule for
-# `shall`, case-insensitive, that neither language's native `\b` gave on its own.
+# expected counts in both languages (astra r1 MUST 1 + MUST 4, astra r2 MUST 1 + MUST 3) --
+# matching-run code-span masking that replaces a span with ONE separator, never nothing, and
+# one EXPLICIT ASCII-only word-boundary rule for `shall`, case-insensitive (`[A-Za-z0-9_]`,
+# never `\w` or a Unicode property): requirement rows are English prose, so a non-ASCII
+# letter or digit touching "shall" counts as a BOUNDARY, not as part of a longer word --
+# "shallé" carries a `shall`. This is deliberately narrower than "every Unicode word
+# character" so the count never depends on the runtime's OWN Unicode database version: Node
+# 22 ships Unicode 17, this rendered Python 3.14 ships Unicode 16, and an exhaustive sweep
+# found 4,657 codepoints where the two disagreed on `\p{L}`/`\p{N}` membership -- including
+# U+088F and U+A7F1 below, assigned letters in one database, unassigned (so non-word) in the
+# other. The ASCII class has no database to disagree about.
 PARITY_FIXTURES: list[tuple[str, int]] = [
     ("The system shall do one thing.", 1),
     ("The system shall mention `shall` in backticks.", 1),
@@ -60,12 +68,32 @@ PARITY_FIXTURES: list[tuple[str, int]] = [
     ('The system shall quote "shall" in output.', 2),
     ("The shallower pool is shallow.", 0),
     ("Shall the system respond.", 1),
-    ("The system shall print shallé.", 1),
-    ("The system shall print éshall.", 1),
+    # a non-ASCII letter next to "shall" is a boundary under the ASCII-only rule: BOTH the
+    # ordinary "shall" and the adjacent one count (astra r2 MUST 1; round 1 expected 1, not 2)
+    ("The system shall print shallé.", 2),
+    ("The system shall print éshall.", 2),
     ("The system shall print shall_.", 1),
     ("Shall.", 1),
     ("No promise word here.", 0),
     ("The system shall do X and shall do Y.", 2),
+    # astra r2's exact counterexample and category attacks: every character below is
+    # non-ASCII, so none of them block a match under the new rule -- each fixture's ordinary
+    # "shall" plus its adjacent "shall<char>" both count, every time, in both languages
+    ("The system shall print shall࢏.", 2),  # U+088F: letter in Unicode 17, unassigned in 16
+    ("The system shall print shall꟱.", 2),  # U+A7F1: same cross-version split
+    ("The system shall print shalĺ.", 2),  # U+0301 combining acute accent
+    ("The system shall print shall٠.", 2),  # U+0660 Arabic-Indic digit zero
+    ("The system shall print shallⅠ.", 2),  # U+2160 Roman numeral one
+    ("The system shall print shall².", 2),  # U+00B2 superscript two
+    ("The system shall print shallʰ.", 2),  # U+02B0 modifier letter small h (Lm)
+    ("The system shall print shall一.", 2),  # U+4E00 CJK ideograph (Lo)
+    ("The system shall print shall‍.", 2),  # U+200D zero-width joiner
+    # a code span replaced by a separator, not nothing (astra r2 MUST 3): deleting it would
+    # either falsely glue "sh" + "all" back into "shall", or glue a real "shall" onto what
+    # follows the span
+    ("The system does sh`x`all nothing.", 0),
+    ("The system shall`x`é afterward.", 1),
+    ("The system shall``x``é afterward.", 1),
 ]
 
 
