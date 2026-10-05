@@ -30,7 +30,8 @@ of those is optional and reports "skipped" with the reason when it is missing.
 
 | Piece | Where | How |
 |---|---|---|
-| `claude/hooks/nana-objective.sh`, `claude/hooks/nana-adoption.sh`, `claude/hooks/nana-shared-memory.sh`, `claude/hooks/context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
+| `claude/hooks/nana-objective.sh`, `claude/hooks/nana-adoption.sh`, `claude/hooks/nana-shared-memory.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
+| `claude/hooks/context-size-check.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `UserPromptSubmit` hook that warns once per repo root when the transcript passes 5 MB, suggesting `/dev-debrief` then `/compact` |
 | `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
 | `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
 | `packages/nana-pack/rules/nana-writing.md` (writing for Jake — trial, 2026-10-04) | `~/.claude/rules/nana-writing.md` | **symlink** — sourced from `packages/nana-pack/rules/`, not this package's own `claude/rules/`, because the `nana-writing` pack extension reads the SAME file for pi (one source, two runtimes — design-ruling.md Amendment 1, 2026-10-04, §A1) |
@@ -74,7 +75,7 @@ config.
 
 Limits recorded at landing (2026-10-04):
 
-- While pi-mcp-adapter is installed, pi does not read mcp.json (pi 1.0.2 docs, mcp.md). doctor does not detect the adapter, so its `!` stays moot until the adapter is removed.
+- pi-mcp-adapter was removed from this machine on 2026-10-05. While it was installed, pi did not read mcp.json directly (pi 1.0.2 docs, mcp.md), and doctor never detected the adapter, so its `!` stayed moot the whole time it was present.
 - doctor's `pi reviewer agent` line reads any read error as missing and suggests install. Install's own row then names what is there, such as a directory or an unreadable file.
 - An unmarked reviewer.md reads ✗ because it is not nana's seed, not because it is broken. A reviewer you wrote reads ✗ by design. Adding the marker by hand turns it ✓ without the bash and evidence rules.
 

@@ -70,24 +70,13 @@ the pi-hosted ones. Per component:
 
 | Component | Runtime | Dev / test |
 |---|---|---|
-| `apps/desk/` (nana code) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (tested on 0.87.1, 2026-09-28)** — spawned as `pi --mode rpc` per live session AND imported in-process for session parsing (`parseSessionEntries`, `migrateSessionEntries`, `CURRENT_SESSION_VERSION`). Enforced at startup: below 0.84.4, or when the package cannot be tied to the `pi` the desk spawns, it refuses to start. No npm dependencies of its own. | Playwright 1.61.1 (`playwright`/`playwright-core`, root `node_modules`) for the `test/*.e2e.mjs` browser tests only; `PW_ROOT` points at it if it lives elsewhere. `test/*.test.mjs` are zero-dep `node <file>` runs. Details: `apps/desk/README.md`. |
+| `apps/desk/` (nana code) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (tested on 1.0.2, 2026-10-05)** — spawned as `pi --mode rpc` per live session AND imported in-process for session parsing (`parseSessionEntries`, `migrateSessionEntries`, `CURRENT_SESSION_VERSION`). Enforced at startup: below 0.84.4, or when the package cannot be tied to the `pi` the desk spawns, it refuses to start. No npm dependencies of its own. | Playwright 1.61.1 (`playwright`/`playwright-core`, root `node_modules`) for the `test/*.e2e.mjs` browser tests only; `PW_ROOT` points at it if it lives elsewhere. `test/*.test.mjs` are zero-dep `node <file>` runs. Details: `apps/desk/README.md`. |
 | `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; the ones that load a real extension skip themselves when pi is not installed globally. |
 | `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
 | `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
 | `packages/nana-knowledge/` (the knowledge pull) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, no npm dependencies, no model calls. pi is an optional peerDependency — the index, the `nana-knowledge` CLI and the Claude Code `UserPromptSubmit` hook run without it — but the package also ships a live pi extension (`packages/nana-knowledge/extensions/nana-knowledge.ts`, manifested in the root `package.json`) that pi loads when the pack is installed. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
-| `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (tested on 0.87.1, 2026-09-28)** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
-
-## Tests
-
-`npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
-and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
-temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
-if any file fails — also when no file matched the filter, or a `--self-test` fixture missed
-its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
-active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
-`npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
-deliberately failing file to prove the runner turns red.
+| `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (tested on 1.0.2, 2026-10-05)** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
 
 ## Install — the whole experience ships from this repo
 
@@ -238,3 +227,14 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 
 Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.
+
+## Tests
+
+`npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
+and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
+temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
+if any file fails — also when no file matched the filter, or a `--self-test` fixture missed
+its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
+active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
+`npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
+deliberately failing file to prove the runner turns red.

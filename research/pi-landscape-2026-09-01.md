@@ -370,3 +370,44 @@ Only what changes the capability map above; the capability rows themselves are n
 - **Lifecycle boundaries (0.87):** `turn_end` and new `agent_before_settle` are actionable (`BoundaryResult {entries?: SessionBoundaryDraft[], continue?: boolean}`; drafts are `custom`/`custom_message`/`context_edit`/`compaction`). `agent_settled` stays notification-only; runs requested from it are deferred until all settled handlers return. `shouldStopAfterTurn` removed (→ `finishTurn` returning `{action:"end"}`); nana-pi never used it.
 - **Other contract changes nana-pi does not touch today:** `context` handlers no longer see system messages (`context_with_system` does); `user_bash` fails closed; `TranscriptContext` for custom providers; `SessionManager` canonical for `AgentSession` context; invalid `--mode` now exits non-zero.
 - **Operator note:** `pi -p` with a non-TTY stdin that never reaches EOF (e.g. a harness pipe) waits on stdin; run it with `</dev/null`.
+
+## Addendum 2026-10-05 — pi 0.87.1 → 1.0.2
+
+Only what changes the capability map above; the capability rows themselves are not rewritten.
+Verified against `docs/reviews/pi-1.0-2026-10-04/{compat-audit,architecture-ruling,acceptance}.md`,
+`docs/reviews/edge-builtin-mcp-2026-10-04/land-notes.md`, and pi 1.0.2's installed `docs/`.
+
+- **Built-in MCP (shipped 0.99.0; now the baseline instead of `pi-mcp-adapter`).** Two config
+  scopes: user-level `~/.pi/agent/mcp.json` and project-level `.pi/mcp.json` (read only after
+  project trust; a project entry replaces a user-level one of the same name) — `docs/mcp.md`
+  "Configure servers". Each server tool registers as `mcp__<server>__<tool>` (every character
+  other than a letter, digit or `_` folded to `_`), so nana-gate and nana-post-edit see the real
+  tool name, not an adapter proxy (`architecture-ruling.md` §3). `exposure` (default `codemode`;
+  or `deferred`, `direct`, `hidden`) controls how a tool reaches the model — `docs/mcp.md` "Control
+  tool exposure". An extension can add a session-scoped server with
+  `pi.registerMcpServer(name, config)` (`docs/mcp.md`, `docs/extensions.md#mcp-servers`); it
+  connects like a configured server and shows in `/mcp` with the extension as its source, but a
+  file-configured server of the same name still wins. `pi-mcp-adapter` was removed from this
+  machine on 2026-10-05 (`compat-audit.md` §3, `architecture-ruling.md` §3, `land-notes.md`); the
+  edge desk now loads `builtin:mcp` directly.
+- **`--no-extensions` / `-e builtin:<name>`.** `-ne`/`--no-extensions` disables every discovered,
+  configured AND built-in extension; an explicit `-e` path still loads, so `pi -ne -e builtin:mcp`
+  keeps only the built-in MCP support (`docs/cli.md`). The desk's own narrowed spawn uses exactly
+  this: a `--no-extensions` session loses pi's built-in MCP and every configured MCP server, and
+  nothing in the spawn picker re-adds `builtin:mcp` for it (`apps/desk/README.md` Known limits,
+  2026-10-05).
+- **`structuredContent` on a tool result.** A tool that declares `outputSchema` returns a matching
+  `structuredContent` alongside `content`; the model still sees `content`, while a programmatic
+  caller — a codemode script, or `ctx.executeTool()`'s nested-call result — receives
+  `structuredContent` instead of the text (`docs/extensions.md`, `docs/mcp.md`). A `tool_result`
+  handler that redacts `content` must also replace `structuredContent`, or the redaction leaks
+  (`docs/extensions.md`). Observed live: a tool with no declared `outputSchema` carries no
+  `structuredContent` on its `tool_execution_end` (`edge-builtin-mcp-2026-10-04/land-notes.md`).
+- **pi-subagents floor raised to 0.75.0.** `nana-setup doctor` now reads `!` below 0.75.0, fix text
+  `pi install npm:pi-subagents@0.75.0` (`architecture-ruling.md` §2; `acceptance.md` A1: pi 1.0.2
+  and pi-subagents 0.75.0 verified together).
+- **`pi-mcp-adapter` removed.** Gone from this machine as of 2026-10-05 (seat action,
+  `architecture-ruling.md` §3: `pi remove npm:pi-mcp-adapter`); while it was installed, it stopped
+  pi reading `mcp.json` directly, and `doctor` never detected it (`packages/nana-setup/README.md`).
+  The edge desk's app manifest now loads `builtin:mcp` in its `extensions` array instead
+  (`land-notes.md`).

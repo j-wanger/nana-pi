@@ -6,7 +6,8 @@ models), plus the nana pack, the desk ("nana code"), the knowledge pull, and the
 templates every other repo scaffolds or adopts from. Sibling repo to `~/nana-agent-loop`.
 
 Read in order: `~/nana-agent-loop/OBJECTIVE.md` (the umbrella objective + current priority —
-nana-pi has none of its own) → `HANDOFF.md` (the frontier) →
+nana-pi has none of its own) → `HANDOFF.md` (the frontier) → `REQUIREMENTS.md` (the standing
+contract) →
 `research/pi-landscape-2026-09-01.md` (the verified pi capability map; do not re-research
 what it answers — append dated addenda when facts drift, pi releases fast).
 
@@ -49,8 +50,9 @@ what it answers — append dated addenda when facts drift, pi releases fast).
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
   adopt-ts, adopt-structure, dev workflow); `bin/` — nine CLIs: the `pi-review` runner (canonical home since
   2026-09-18, on PATH via `~/.local/bin/pi-review`) with `review-round`, `review-shape`,
-  `review-ledger` and `pi-worker` behind it, `pi-watchdog`, and the two producers the seat's
-  Claude Code SessionStart hooks run — `nana-objective` and `nana-adoption`.
+  `review-ledger` and `pi-worker` behind it, `pi-watchdog`, the two producers the seat's
+  Claude Code SessionStart hooks run — `nana-objective` and `nana-adoption` — and `nana-writing`
+  (the report-only writing checker).
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
   over the markdown knowledge stores on this machine, read from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` via one shared `hook` CLI.

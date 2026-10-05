@@ -22,7 +22,7 @@ node apps/desk/server.mjs     # → http://127.0.0.1:7317   (DESK_PORT to change
 | | What | Why |
 |---|---|---|
 | Runtime | **Node ≥ 22.19** | pi's own floor (`engines` in its package.json). The desk's own code needs nothing newer than Node 18, but it imports pi in-process, so pi's floor is the desk's floor. |
-| Runtime | **`@earendil-works/pi-coding-agent` 0.87.1, installed globally** (`npm i -g @earendil-works/pi-coding-agent@0.87.1`; tested on 0.87.1 since 2026-09-28 — the startup floor below stays 0.84.4, because the imported exports are unchanged since then) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in a terminal started with the same `PI_CODING_AGENT_DIR` — see *Agent directory* below for the one qualification) and, since 2026-09-09, **imported** for session reading. |
+| Runtime | **`@earendil-works/pi-coding-agent` 1.0.2, installed globally** (`npm i -g @earendil-works/pi-coding-agent@1.0.2`; tested on 1.0.2 since 2026-10-05 — the startup floor below stays 0.84.4, because the imported exports are unchanged since then) | Both **spawned** (`pi --mode rpc`, one child per live session — that is why auth, models.json and installed packages behave exactly as in a terminal started with the same `PI_CODING_AGENT_DIR` — see *Agent directory* below for the one qualification) and, since 2026-09-09, **imported** for session reading. |
 | Tests (browser e2e only) | **Playwright** (`playwright` or `playwright-core`; 1.61.1 in this repo's root `node_modules`) | Only `test/*.e2e.mjs`. They resolve it from `PW_ROOT` if set, else from the test directory's own require chain — i.e. the repo root — so a plain `npm i playwright` at the repo root is enough and `PW_ROOT` is only for a Playwright that lives somewhere else. The `test/*.test.mjs` files are zero-dep: `node <file>`, exit 0 = PASS. |
 | | *nothing else from npm* | No package.json, no lockfile, no build step. Everything else is `node:` builtins. |
 
@@ -86,7 +86,7 @@ one version are two different parsers); the floor is semver precedence. On succe
 running* is answerable from the startup line:
 
 ```
-nana code: pi 0.87.1 — spawning /Users/x/.local/bin/pi, parsing sessions with
+nana code: pi 1.0.2 — spawning /Users/x/.local/bin/pi, parsing sessions with
            /Users/x/.local/lib/node_modules/@earendil-works/pi-coding-agent (resolved via PI_BIN walk-up)
 ```
 
@@ -573,8 +573,8 @@ would send it twice.
   pi's own `-e`/`--extension` grammar accepts either (cli.md); `--no-extensions` (every app
   session's `resources` narrowing) disables built-in extensions too — including pi's built-in
   MCP support (`builtin:mcp`) — so an app whose own extension registers an MCP server with
-  `pi.registerMcpServer()` (docs/mcp.md: "The core only validates and stores registrations. The
-  MCP extension … connects them") must name `builtin:mcp` in `extensions` alongside it, or
+  `pi.registerMcpServer()` (pi's `dist/core/mcp-servers.d.ts`: "The core only validates and stores
+  registrations. The MCP extension … connects them") must name `builtin:mcp` in `extensions` alongside it, or
   nothing connects the registration (live `extension_error`: "… no loaded extension connects MCP
   servers"). `apps.mjs` `normalizeManifest` and `server.mjs` `spawnChild` both treat a
   `builtin:<name>` entry as a literal pi token — never `fs.existsSync`-checked, never a project
@@ -718,6 +718,10 @@ is not":
   spawned narrowed, or one whose project you did not trust — pi re-applies the CLI flags and
   keeps the trust decision — so in those cases the desk reloads, sees nothing new in
   `get_commands`, and says so.
+- **A narrowed spawn loses your MCP servers.** `--no-extensions` (any resource-toggle narrowing,
+  pi 1.0+) disables pi's built-in MCP along with every configured MCP server; the spawn picker
+  neither lists a built-in MCP toggle nor re-adds `builtin:mcp` for a narrowed session. See the
+  2026-10-04 Contract note below.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
   this repo, including everything above, do not reach it until it is restarted.

@@ -56,7 +56,7 @@ The agent never paints durable state. The layout is fixed and app-owned. The age
                                └──────────────────────────────────────────┘
 ```
 
-### 3.1 The block contract (kit; JS + Python validators)
+### 3.1 The block contract (kit; one JS validator, by design — no Python validator was built)
 
 Two blocks in v0: `table` and `card`. Four more (`kpi`, `chart`, `timeline`, `graph`) are reserved names, added only when a slice needs them.
 

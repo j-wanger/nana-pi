@@ -1046,9 +1046,10 @@ in this repo pins it, and say where.
 
 Where a row says *every module*, that is every module under the roots declared in
 `code-map.config.json` — here the four packages' `lib/`, `bin/` and `extensions/`, both
-apps and this repo's own `scripts/`, 73 modules in all. The test dirs, the recorded study
-trees and `templates/` (whose headers name the RENDERED project's paths) are declared
-outside the map by `ignore`; three bench modules content-pinned by a closed study are
+apps and this repo's own `scripts/`, 73 modules in all. The six test roots are mapped too,
+each declared `layerExempt` so a test may import across the layer direction — not declared
+outside the map. The recorded study trees and `templates/` (whose headers name the RENDERED
+project's paths) are declared outside the map by `ignore`; three bench modules content-pinned by a closed study are
 declared `exempt` with their reasons. Generated and checked by `npm run map` /
 `npm run map:check` — shims over the generator the templates ship.
 
