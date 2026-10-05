@@ -14,6 +14,30 @@ installed source/docs, or **[I]** inferred.
 not a workaround, pi's own grammar for loading a built-in extension back under `--no-extensions`
 (cli.md). Built with that one addition; the full chain is proven live, including the real e2e.
 
+**astra r1 (BLOCK, 7/10) — all four findings addressed, 2026-10-05.** Read in full at
+`docs/reviews/edge-builtin-mcp-2026-10-04/astra-r1.md` (left untracked, with `astra-r1.log` — the
+seat commits those). One line each:
+1. MUST, R-760: a genuinely held, empty-but-unreadable proper-lockfile lock (astra's own probe,
+   mode 333 under a restrictive umask) was classified "lock path obstructed" / move it aside;
+   `lockProblem()` now checks staleness before the readdir verdict, so a fresh/future-dated
+   unreadable folder reads "store locked" like a readable one, and a stale unreadable folder
+   still reads obstructed. New T17 cases (two held, one stale-obstructed, one reproducing
+   astra's exact acquired-lock probe with pi's own `proper-lockfile`) and a mutation restoring
+   the old classification turns 18 checks red.
+2. SHOULD: the shared `spawnChild` is also the general `POST /api/spawn`, where
+   `approve:false` makes the project-path refusal live (an app manifest never does); added that
+   case to `apps/desk/test/spawn-and-persist.test.mjs` (R-944, widened from "an app session's"
+   to "a session's"), reproduced astra's mutation staying green on the old 75 app-listener tests
+   and confirmed it turns the new general-spawn test red.
+3. SHOULD: "no residual" was wrong — block count and aggregate structured bytes are unbounded
+   (astra's probe: 200 valid cards, 12 MB patch, no error); replaced the claim in
+   `packages/nana-stage/README.md`, the design doc and the `blocks.mjs` comment with the true
+   limitation. No cap added, as instructed.
+4. MUST: corrected the "Machine steps" section below — the running desk loads every manifest
+   once and keeps the old `spawnChild` code; only an explicit desk-server restart after both the
+   merge and the manifest replacement picks up either, and the vendor directory comes out last,
+   after a live verification, not before.
+
 **Commits:**
 - nana-pi `feat/edge-builtin-mcp`: `1ed473411338494e4062f29e724d24ccc299879c`,
   `ec080dc` (report hashes), `4737027bca66633444e6618f7173e8574335d18a` (seat follow-up:
@@ -171,6 +195,24 @@ confirmed empty before and after):**
 | `node scripts/requirements-trace.mjs` | 0 | `requirements: 793 total (506 implemented · 1 planned · 2 retired · 277 untested · 7 violated); 506 traced by tests` / `ears: 0 rows off form (allowance 0)` |
 | `npm run map:check` | 0 | 172 modules, 0 problems |
 | `node scripts/readme-check.mjs --check` | 1 | 549 claims, 1 problem (`node_modules` only — environmental, see below) |
+
+**astra r1 follow-up — same five, plus the spawn test file touched for fix 2, `apps/bench/.ext`
+symlinked in again for this one re-run, then removed (tree clean before and after apart from the
+two untracked astra-r1 files):**
+
+| Check | Exit | Result |
+|---|---|---|
+| `node --experimental-strip-types packages/nana-pack/tests/objective-golden.test.mjs` | 0 | 1,157 pass, 0 fail |
+| `node packages/nana-stage/tests/blocks.test.mjs` | 0 | 116 pass, 0 fail |
+| `node apps/desk/test/app-listener.test.mjs` | 0 | 75 pass, 0 fail |
+| `node --experimental-strip-types apps/desk/test/spawn-and-persist.test.mjs` | 0 | 120 pass, 0 fail |
+| `node scripts/requirements-trace.mjs` | 0 | `requirements: 793 total (506 implemented · 1 planned · 2 retired · 277 untested · 7 violated); 506 traced by tests` / `ears: 0 rows off form (allowance 0)` |
+| `npm run map:check` | 0 | 172 modules, 0 problems |
+| `node scripts/readme-check.mjs --check` (`.ext` symlinked) | 1 | 550 claims, 1 problem (`node_modules` only) |
+| `node scripts/readme-check.mjs --check` (baseline, no symlink) | 1 | 550 claims, 5 problems — the same 5 as every prior run, unchanged by this round |
+
+Did not rerun the full `npm test` or the e2e suite in this round either, per the seat's
+instruction (the seat runs the full suite after merge).
 
 Did not rerun the full `npm test` or the e2e suite, per the seat's instruction (the seat runs the
 full suite after merge).
@@ -364,25 +406,41 @@ adapter path, prefixes the six tool names) and `mutating` (prefixed). `port`, `t
 
 ## Machine steps the seat must do after landing
 
+**Corrected (astra r1 MUST, 2026-10-05): my original step 5 ("respawning just the edge child
+picks up the new manifest") is wrong, and the order below fixes it.** The running desk loads
+every manifest ONCE at startup, keeps that parsed object live inside its app listener, and
+spawns every later child from THAT retained object, not from a fresh re-read of `edge.json`.
+The running desk ALSO still runs the pre-lane `spawnChild()` code. astra reproduced this live:
+loaded a temporary manifest, replaced its file on disk with prefixed tools and `builtin:mcp`,
+and found the retained in-memory object still held the old tools/extensions; calling
+`writeManifestSession()` afterward wrote those stale values back to the manifest FILE. So
+respawning the edge child alone does neither: it spawns from the stale retained object, and a
+session writeback can silently undo a manual edit to `edge.json`. These are machine steps for
+the seat; I did not perform any of them (the hard rule forbids touching `~/edge-screener`,
+`~/.pi/agent/apps/edge.json`, `~/.pi/agent/apps/vendor/`, and the running desk on
+7317/7320/7321 — including restarting it, which is now itself one of these steps).
+
 1. Merge `feat/edge-builtin-mcp` into nana-pi `main`, and `feat/builtin-mcp` into edge-screener's
    `p87-setup` (not `main` — the edge desk code lives on `p87-setup`).
 2. Update the live `~/edge-screener` checkout to that merged `p87-setup` state (pulls in
    `.pi/extensions/edge-mcp.ts`, the deleted `.pi/mcp.json`, the `mcp_server.py` docstring fix).
-3. Replace `~/.pi/agent/apps/edge.json` with the JSON above.
-4. Remove `~/.pi/agent/apps/vendor/` (the pi-mcp-adapter vendor tree) — nothing reads it any
-   more; I found no other reference to it anywhere in nana-pi's live code or docs (the only other
-   hit, `apps/bench/studies/tool-profiles-2026-09-08/fixture/...`, is a frozen benchmark artifact,
-   left untouched).
-5. Stop and respawn the edge app's **own** child session (not the desk server on 7317/7320/7321
-   itself) so it picks up the new manifest — e.g. `DELETE` then `POST /api/session` on the edge
-   app's listener (port 7321), or the desk UI's own session controls. I did not do this myself:
-   the hard rule names 7321 among the ports I may never stop or restart, and this step only makes
-   sense against the real `~/edge-screener` + the real `~/.pi/agent/apps/edge.json`, neither of
-   which I touched.
-6. After that restart, a quick live smoke check (same shape as probe (d) above, or just a real
-   prompt through the desk UI) is worth doing once, since the live machine's `uv`/python env at
-   `~/edge-screener` could in principle differ from the worktree's (it didn't, here, but I ran
-   everything against the worktree, never the live checkout, by the hard rule).
+3. Replace `~/.pi/agent/apps/edge.json` with the JSON in this report.
+4. Restart the desk server (`launchd com.nana.pi-desk`) AT ONCE after step 3 — create no edge
+   session in between the manifest replacement and the restart, so the desk never loads the new
+   manifest text with the old `spawnChild()` code, or the old manifest with the new code. The
+   restart is what makes the desk re-read every manifest fresh and load the landed `apps.mjs`/
+   `server.mjs`; nothing short of a restart does.
+5. Only then verify: the edge session (port 7321) reports the new manifest (`GET /api/manifest`
+   shows the six `mcp__edge__*` tool names), and a live smoke prompt through it actually stages
+   signed blocks (the same shape as probe (d) in this report, or a real prompt through the desk
+   UI) — since the live machine's `uv`/python env at `~/edge-screener` could in principle differ
+   from the worktree's, and this is the first time the landed code runs against the real paths.
+6. Only after step 5 confirms the new manifest is live and working, remove
+   `~/.pi/agent/apps/vendor/` (the pi-mcp-adapter vendor tree) — nothing reads it any more; I
+   found no other reference to it anywhere in nana-pi's live code or docs (the only other hit,
+   `apps/bench/studies/tool-profiles-2026-09-08/fixture/...`, is a frozen benchmark artifact,
+   left untouched). Removing it before step 5 confirms success would leave no way back if the
+   restart surfaces a problem the worktree didn't.
 
 ## Residuals
 
@@ -396,7 +454,16 @@ adapter path, prefixes the six tool names) and `mutating` (prefixed). `port`, `t
   owns, so I fixed only the README's claim, not the gap itself.
 - The over-cap/overflow scenario the old e2e tested (adapter `outputGuard.detailsMaxBytes`) has
   no built-in-MCP equivalent and was retired, not replaced; the rejection mechanics it exercised
-  stay pinned at the unit level only (R-255, pre-existing).
+  stay pinned at the unit level only (R-255, pre-existing). **Corrected (astra r1 SHOULD, 2026-10-05):**
+  retiring that scenario does not mean nothing is unbounded. Per-block caps hold (64 KiB block
+  JSON, 500 table rows, bounded chart series/points, 256 KiB rendered text), but block COUNT and
+  the aggregate structured bytes of one tool result are unbounded: astra's probe put 200 valid
+  cards in one built-in MCP result and got 200 accepted entries and a 12,049,148-byte patch, no
+  error — pi's built-in MCP keeps the whole structured result in memory regardless of block
+  count, and the desk's stdout/SSE limits sit downstream of validation, signing and ledger
+  construction. No cap was added in this lane (not asked for; would need a sealed value and a
+  deterministic over-cap test, and would still not be a transport-level, pre-allocation bound).
+  Updated `packages/nana-stage/README.md` to state this instead of "no residual."
 - `edge_screener/desk/mcp_server.py`'s docstring said "Five tools"; it is six — fixed in passing
   while rewriting the docstring for the carrier change (not a separate finding worth its own
   line, noted here only for completeness).
@@ -415,5 +482,6 @@ edge_screener.desk.mcp_server` under the real `~/edge-screener` checkout and the
 agent` behaves identically to the worktree's. I never ran anything against either (hard rule), so
 this is **[I]** inferred from the worktree being a plain git worktree of the same repo, branched
 from `p87-setup` at `085a3a5f` (the brief's own starting point) — not a different environment in
-any way I can see, but genuinely untested on the real paths. Machine step 6 above covers it.
+any way I can see, but genuinely untested on the real paths. Machine step 5 above (verify the
+live manifest and a live smoke prompt) covers it.
 

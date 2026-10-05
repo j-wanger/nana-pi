@@ -117,10 +117,15 @@ verified against (§11).
   `structuredContent.structuredContent.blocks` (pi puts the server's own `CallToolResult` at
   `structuredContent`), not `details.mcpResult.structuredContent.blocks`. `nana-stage` extracts
   from `details.blocks` (pi-extension tools, unchanged) or that built-in carrier.
-- **No adapter cap, no overflow case.** pi's built-in MCP never truncates or omits
-  `structuredContent` — only the model-facing text, at 20 KB, which `nana-stage` doesn't read.
-  The adapter's `outputGuard.detailsMaxBytes` cap and its "block too large for the adapter cap"
-  error have no replacement (`packages/nana-stage` R-278, retired).
+- **No adapter cap, no overflow case — and no aggregate bound either (residual, astra r1
+  2026-10-05).** pi's built-in MCP never truncates or omits `structuredContent` — only the
+  model-facing text, at 20 KB, which `nana-stage` doesn't read. The adapter's
+  `outputGuard.detailsMaxBytes` cap and its "block too large for the adapter cap" error have no
+  replacement (`packages/nana-stage` R-278, retired) — and per-block caps (64 KiB block JSON, 500
+  table rows, bounded chart series/points, 256 KiB rendered text) do not bound block COUNT or the
+  aggregate structured bytes of one tool result: 200 valid cards in one built-in MCP result
+  produced 200 accepted entries and a 12 MB patch, no error. No cap added in this lane; see
+  `packages/nana-stage/README.md`.
 - **The carrier-drop mechanism is now explicit, not an artifact of `stripCarrier`.** On success
   AND on rejection, `nana-stage`'s patch never sets `structuredContent`: pi deletes a tool
   result's `structuredContent` when a handler replaces `content` without also returning it, so

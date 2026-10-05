@@ -268,10 +268,18 @@ const PI_LOCK_STALE_MS = 10_000;
  * `stat.mtime.getTime() < Date.now() - options.stale`, stale 10000. So pi can use an OCCUPIED lock path
  * only when it is an empty real folder that is stale by that exact comparison — then pi reclaims it, and
  * since time only moves forward, a folder stale now is stale when pi looks. Otherwise every get()/set() throws:
- * - "lock path obstructed": a file, a link (rmdir → ENOTDIR; a dangling one → ELOCKED) or a non-empty
- *   folder (rmdir → ENOTEMPTY) — never cleared by pi;
+ * - "lock path obstructed": a file, a link (rmdir → ENOTDIR; a dangling one → ELOCKED), a non-empty
+ *   folder (rmdir → ENOTEMPTY, readable at any age), or an UNREADABLE folder that is also stale — never
+ *   cleared by pi, or not provably so (we cannot confirm it is the empty folder pi's own rule would
+ *   reclaim, and if it is not, "move it aside" remains the right advice);
  * - "store locked": an empty folder that is NOT stale — a live pi's lock, or one dated in the future
- *   (held until 10 s past that date). Not evidence of usability: our verdict is startup-only.
+ *   (held until 10 s past that date) — INCLUDING when we cannot read it (astra r1, 2026-10-05):
+ *   proper-lockfile's own mkdir, under a restrictive umask, can leave a genuinely held, empty lock with
+ *   no read bit (observed mode 333), so `readdirSync` throwing EACCES is not by itself evidence the
+ *   folder is non-empty. pi's own stale-reclaim (`stat` + conditional `rmdir`) never needs to READ the
+ *   folder either — only `stat` it and, if stale, `rmdir` it — so an unreadable folder is exactly as
+ *   usable to pi as a readable one; only staleness decides. Not evidence of usability: our verdict is
+ *   startup-only.
  */
 function lockProblem(lock: string): WriteProblem | null {
 	let st: fs.Stats;
@@ -283,18 +291,27 @@ function lockProblem(lock: string): WriteProblem | null {
 	const obstructed = (detail: string): WriteProblem => ({ problem: "lock path obstructed", object: lock, detail });
 	if (st.isSymbolicLink()) return obstructed("a symbolic link");
 	if (!st.isDirectory()) return obstructed(st.isFile() ? "a file" : "a non-folder entry");
-	try {
-		if (fs.readdirSync(lock).length) return obstructed("a non-empty folder");
-	} catch {
-		return obstructed("an unreadable folder");
-	}
+	// Staleness first (pi's own stale-reclaim test), so the readdir verdict below can use it: an
+	// unreadable folder's held-ness turns on staleness, not on whether WE can list it.
 	const mtime = st.mtime.getTime();
 	const now = Date.now();
-	if (mtime < now - PI_LOCK_STALE_MS) return null; // pi's own isLockStale: it removes this and locks
-	const detail = mtime > now
+	const stale = mtime < now - PI_LOCK_STALE_MS;
+	const heldDetail = mtime > now
 		? `dated in the future (${new Date(mtime).toISOString()}), so pi treats it as held until 10 s after that time`
 		: "less than 10 s old, so pi treats it as held";
-	return { problem: "store locked", object: lock, detail };
+	try {
+		if (fs.readdirSync(lock).length) return obstructed("a non-empty folder"); // readable + non-empty: never pi's lock, any age
+	} catch {
+		// Unreadable: we cannot confirm emptiness ourselves. pi's own reclaim does not need to read the
+		// folder's contents either (stat + rmdir), so a FRESH or future-dated unreadable folder is
+		// exactly what a genuinely acquired, empty proper-lockfile lock looks like from here (astra r1:
+		// mode 333 under a restrictive umask) — pi treats it as HELD, never recommend moving it. A STALE
+		// unreadable folder stays obstructed: unlike pi's own rmdir, we have no way to verify it is
+		// empty, and if it is not, "move it aside" is still the right advice.
+		return stale ? obstructed("an unreadable folder") : { problem: "store locked", object: lock, detail: `unreadable, and ${heldDetail}` };
+	}
+	if (stale) return null; // pi's own isLockStale: it removes this and locks
+	return { problem: "store locked", object: lock, detail: heldDetail };
 }
 
 /**

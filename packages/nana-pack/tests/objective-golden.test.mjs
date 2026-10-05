@@ -8,6 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1073,6 +1074,109 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const { eGet, eSet, got } = piOps(w);
 			check(`T17 WHY (stale empty lock, ${rec ? "affirmative" : "no"} record): pi's get() and set() succeed, get() === ${rec === true}`, !eGet && !eSet && (got === true) === (rec === true), `${eGet?.code} / ${eSet?.code} / ${got}`);
 		}
+	}
+	// astra r1 BLOCK: an UNREADABLE lock folder is not necessarily obstructed. A genuinely acquired,
+	// EMPTY proper-lockfile lock can lose its read bit under a restrictive umask (astra's probe: mode
+	// 333), so readdirSync throwing EACCES is not by itself evidence of non-emptiness. Fresh/future-dated
+	// + unreadable must read exactly like the readable held cases above (never move/delete advice);
+	// STALE + unreadable stays "lock path obstructed" — we cannot prove it is empty, and if it is not,
+	// "move it aside" is still correct. win32's chmod does not restrict directory listing the same way,
+	// so these cases are POSIX-only.
+	if (process.platform !== "win32") {
+		const unreadableHeld = {
+			"fresh unreadable lock folder": {
+				make: (l) => { fs.mkdirSync(l, { recursive: true }); const t = new Date(); fs.utimesSync(l, t, t); fs.chmodSync(l, 0o333); },
+				detail: "unreadable, and less than 10 s old, so pi treats it as held",
+			},
+			"future-dated unreadable lock folder": {
+				make: (l) => { fs.mkdirSync(l, { recursive: true }); fs.utimesSync(l, future, future); fs.chmodSync(l, 0o333); },
+				detail: `unreadable, and dated in the future (${future.toISOString()}), so pi treats it as held until 10 s after that time`,
+			},
+		};
+		for (const [k, { make, detail }] of Object.entries(unreadableHeld)) {
+			for (const rec of [true, undefined]) {
+				const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
+				const lock = `${store(w)}.lock`; make(lock);
+				try {
+					await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
+					const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+					// req: R-760
+					check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
+					if (piMod) {
+						make(lock); // re-date + re-chmod: the runtimes above took time
+						const { eGet, eSet } = piOps(w);
+						// req: R-027
+						check(`T17 WHY (${k}, ${rec ? "affirmative" : "no"} record): pi's get() AND /trust's set() throw ELOCKED`, eGet?.code === "ELOCKED" && eSet?.code === "ELOCKED", `${eGet?.code} / ${eSet?.code}`);
+						// req: R-027
+						check(`T17 ${k}: pi left the lock in place`, fs.existsSync(lock));
+					}
+				} finally {
+					try { fs.chmodSync(lock, 0o700); } catch {} // restore before scratch cleanup
+				}
+			}
+		}
+		// A STALE unreadable lock folder is not provably pi's own reclaimable lock: we cannot read it to
+		// confirm emptiness, so it stays obstructed rather than silently assuming pi will take it over.
+		{
+			const w = productWorld();
+			const lock = `${store(w)}.lock`;
+			const makeStaleUnreadable = () => { fs.mkdirSync(lock, { recursive: true }); const old = new Date(Date.now() - 60000); fs.utimesSync(lock, old, old); fs.chmodSync(lock, 0o333); };
+			makeStaleUnreadable();
+			try {
+				// A negative control, not an R-760 pin: R-760 covers only the fresh/future-dated
+				// (held) case; a STALE unreadable folder stays obstructed, outside that row's scope.
+				await provenance("stale unreadable lock folder (stays obstructed)", w, true, { problem: "lock path obstructed", object: lock, detail: "an unreadable folder" });
+			} finally {
+				// pi's own get()/set() inside provenance() can reclaim a genuinely stale, empty lock
+				// (rmdir+mkdir needs no read permission on the target) even though WE call it
+				// obstructed, so the folder may already be gone by the time we try to restore it.
+				try { fs.chmodSync(lock, 0o700); } catch {}
+			}
+		}
+		// astra r1 exact regression: pi's OWN proper-lockfile primitive (trust-manager.js:114 —
+		// lockfile.lockSync(dir, {realpath:false, lockfilePath})), acquired under the same restrictive
+		// umask astra used, must read "store locked", never "lock path obstructed".
+		if (piMod) {
+			let lockfileLib = null;
+			try { lockfileLib = createRequire(piIndex)("proper-lockfile"); } catch {}
+			if (lockfileLib) {
+				const w = productWorld();
+				const lockDir = path.dirname(store(w));
+				fs.mkdirSync(lockDir, { recursive: true });
+				const lock = `${store(w)}.lock`;
+				const oldUmask = process.umask(0o444);
+				let release = null;
+				try { release = lockfileLib.lockSync(lockDir, { realpath: false, lockfilePath: lock }); } finally { process.umask(oldUmask); }
+				try {
+					const mode = fs.statSync(lock).mode & 0o777;
+					check("T17 astra r1 regression: pi's own acquired lock (proper-lockfile under umask 0o444) has mode 333", mode === 0o333, mode.toString(8));
+					let readErr = null;
+					try { fs.readdirSync(lock); } catch (e) { readErr = e; }
+					check("T17 astra r1 regression: readdirSync on the acquired lock throws EACCES, as astra found", readErr?.code === "EACCES", String(readErr?.code));
+					// A REAL lock's mtime can land a hair before or after our own Date.now() read (clock/FS
+					// timestamp granularity), flipping "less than 10 s old" vs. "dated in the future" — both
+					// mean HELD, so this checks the invariant (store locked, never obstructed, held-shaped
+					// detail), not which of the two sub-messages won that race. The two SYNTHETIC cases above
+					// pin each exact message deterministically (mtime set by us via utimesSync).
+					enter(w);
+					let rec;
+					try { rec = trustRecord(w.product); } finally { leave(); }
+					const heldDetail = /^unreadable, and (less than 10 s old, so pi treats it as held|dated in the future \([^)]+\), so pi treats it as held until 10 s after that time)$/;
+					// req: R-760
+					check("T17 astra r1 regression: pi's genuinely acquired lock reads store locked, not obstructed", rec.problem === "store locked" && heldDetail.test(rec.detail ?? ""), JSON.stringify(rec));
+					const t = await golden("T17 astra r1 regression: remedy", w, w.product, () => {});
+					// req: R-760
+					check("T17 astra r1 regression: remedy never tells the owner to delete or move the lock", !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
+				} finally {
+					try { fs.chmodSync(lock, 0o700); } catch {}
+					try { release?.(); } catch {}
+				}
+			} else {
+				console.log("SKIP T17 astra r1 regression: proper-lockfile not resolvable from the installed pi package");
+			}
+		}
+	} else {
+		console.log("SKIP T17 unreadable lock cases: chmod does not restrict directory listing the same way on win32");
 	}
 }
 // T18 (r6, astra MED): a DANGLING link on the agent dir path is not absence — pi's recursive mkdir fails

@@ -581,6 +581,10 @@ would send it twice.
   path `refuseProject` can refuse (`apps.mjs` `isBuiltinExtensionRef`); pi itself refuses an
   unknown builtin name at spawn time. The edge app (`~/.pi/agent/apps/edge.json`) is the first
   consumer: `extensions: ["<repo>/.pi/extensions/edge-mcp.ts", "builtin:mcp", "<nana-stage path>"]`.
+  `spawnChild` is shared code: the general desk endpoint `POST /api/spawn` (`resources.extensions`)
+  now accepts a `builtin:<name>` entry too, exempt from the project-path refusal there exactly as
+  for an app manifest, even when `approve:false` would otherwise refuse a real project path
+  (astra r1 follow-up, `apps/desk/test/spawn-and-persist.test.mjs`).
 - **The edge app no longer loads `pi-mcp-adapter`.** Its six tools are now pi's built-in MCP
   tools, named `mcp__edge__<tool>` (not the adapter's unprefixed names); nana-stage's carrier
   extraction moved with it (`packages/nana-stage/README.md`, R-282/R-283/R-284). `apps/desk/test/

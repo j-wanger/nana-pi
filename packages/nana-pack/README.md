@@ -729,13 +729,20 @@ is user-scope only** — project config never contributes to it, trusted or not.
     its store with `mkdir <store>.lock` (proper-lockfile) and takes over an existing lock only
     when it is **stale by proper-lockfile's own rule** — an empty folder whose mtime is more
     than 10 s in the past (`lockfile.js` `isLockStale`); otherwise it retries for ~0.2 s and
-    throws. So an empty lock folder is NOT evidence the store is usable: a fresh one (a running
-    pi's lock) or one dated in the future is "store locked" — even a recorded `true` is
-    labelled, and the remedy says another pi holds the lock, that it clears on its own once
+    throws — and pi's own reclaim only ever `stat`s and conditionally `rmdir`s the lock, never
+    reads its contents. So an empty lock folder is NOT evidence the store is usable: a fresh one
+    (a running pi's lock) or one dated in the future is "store locked" — even a recorded `true`
+    is labelled, and the remedy says another pi holds the lock, that it clears on its own once
     that pi finishes, to wait and restart the session, and never to remove it (it may belong to
-    a running pi). Only a stale empty folder counts as usable (pi reclaims it). A file, a link
-    or a non-empty folder there is "lock path obstructed" — pi never clears it, every pi trust
-    lookup and `/trust` throw, and the label names the lock path and what occupies it. It
+    a running pi). An UNREADABLE lock folder is held exactly the same way when it is fresh or
+    future-dated: proper-lockfile's own `mkdir`, under a restrictive umask, can leave a
+    genuinely acquired, empty lock with no read bit, so a failed directory listing is not by
+    itself evidence of a non-empty folder. Only a STALE empty-or-unreadable folder counts as
+    usable (pi reclaims it; an unreadable one that is stale but turns out not to be empty stays
+    obstructed, since nothing here can prove its emptiness the way pi's own `rmdir` effectively
+    does). A file, a link or a non-empty readable folder there is "lock path obstructed" at any
+    age — pi never clears it, every pi trust lookup and `/trust` throw, and the label names the
+    lock path and what occupies it. It
     never names a store that does not exist. `/trust` alone cannot be relied on then: pi's own
     `/trust` reads the store (under that lock) before showing its selector and throws on a
     malformed file, and its write needs the folder and the file writable. Its rewrite *can*

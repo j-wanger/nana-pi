@@ -365,7 +365,12 @@ export function processToolResult(event, { now = () => new Date().toISOString(),
 		if (sign) b.produced_by.sig = sign(b);
 		stamped.push(b);
 	}
-	// Bounded per block AND over the whole result: a tool may return many blocks.
+	// The MODEL-FACING TEXT is bounded per block AND over the whole result (MAX_BLOCK_TEXT_BYTES,
+	// MAX_RESULT_TEXT_BYTES) — but `stamped` itself, which rides into the patch's `details.blocks`
+	// and one ledger entry per block, is not: block COUNT and the aggregate structured bytes of one
+	// tool result are unbounded (astra r1, 2026-10-05 — packages/nana-stage/README.md residual;
+	// 200 valid cards in one result produced 200 entries and a 12 MB patch, no error). Not capped
+	// here on purpose this lane; a cap would need a sealed value and its own over-cap test.
 	const text = clampText(stamped.filter((b) => b.show).map(renderBlockText).join("\n\n") || "(blocks hidden: show=false)", MAX_RESULT_TEXT_BYTES, `${event.toolName} result text`);
 	const details = stripCarrier(event.details);
 	return {

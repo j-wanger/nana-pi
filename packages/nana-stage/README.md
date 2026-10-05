@@ -47,7 +47,18 @@ returning it (pi's own extension runner, `emitToolResult`), so the raw, unstampe
 never rides `tool_execution_end` into a live stage — proved live over the real RPC chain by
 `apps/desk/test/stage-chain-edge.e2e.mjs`. There is no built-in equivalent of the adapter's
 `outputGuard.detailsMaxBytes` cap: pi never truncates or omits `structuredContent` (only the
-model-facing text, at 20 KB), so that scenario (`retired` R-278) has no replacement — no residual.
+model-facing text, at 20 KB), so that scenario (`retired` R-278) has no replacement.
+
+**Residual (astra r1, 2026-10-05): the aggregate carrier is unbounded.** The per-block caps hold
+— 64 KiB block JSON, 500 table rows, bounded chart series/points, 256 KiB rendered result text —
+but nothing bounds block COUNT or the aggregate structured bytes of one tool result. astra's
+probe: 200 individually valid cards in one built-in MCP result produced 200 accepted entries and
+a 12,049,148-byte patch, no error. pi's built-in MCP keeps the whole structured result in memory
+(its own `convertMcpResult`) regardless of block count; the desk's own
+stdout/SSE limits sit downstream of validation, signing and ledger construction, so they do not
+protect any of those three. No cap is added in this lane — a sealed aggregate byte/count cap and
+a deterministic over-cap carrier test would close it, but that is still not a transport-level,
+pre-allocation bound (the whole result is already in memory before any cap here could run).
 
 Design: `docs/agent-frontend-design-2026-09-04.md` §3.1 (the contract) and §3.2 (the ledger).
 

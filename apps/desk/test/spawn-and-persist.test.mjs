@@ -265,6 +265,25 @@ try {
 	check("…and with trust on it fails on its own merits (no such extension)", r.status >= 400 && /no such extension/.test((await r.json()).error || ""), String(r.status));
 	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
 
+	// ── A3. astra r1 SHOULD: spawnChild is shared with the GENERAL /api/spawn, not just an app
+	// listener's POST /api/session (where denyProject is always false — app manifests disable
+	// project-path refusal on purpose). Under an ACTUAL project-trust denial (approve:false, no
+	// manifest trust), a builtin:<name> entry must still ride through unrefused, while a real
+	// project-path extension right beside it is still refused — proving the exemption is narrow. ──
+	const before3 = rpcRuns().length;
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: ["builtin:mcp"] } });
+	check("trust unchecked + builtin:mcp → spawn ACCEPTED (never a project path to refuse)", r.status === 200, String(r.status));
+	argv = await lastRpcArgv(before3 + 1);
+	// req: R-944
+	check("…argv carries -e builtin:mcp under -na", / -na /.test(argv) && argv.includes("-e builtin:mcp"), argv);
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: [projExt] } });
+	// req: R-944
+	check("…a real project-path extension is STILL refused under the same denial (the exemption is narrow)", r.status >= 400 && /project trust/.test((await r.json()).error || ""), String(r.status));
+	r = await post("/api/spawn", { cwd: repo, approve: false, resources: { extensions: ["builtin:../x"] } });
+	// req: R-944
+	check("a near-miss (builtin:../x) is refused as a project path, never exempted as a builtin ref", r.status >= 400 && /project trust/.test((await r.json()).error || ""), String(r.status));
+	for (const c of await fetch(`${BASE}/api/live`).then((x) => x.json())) await fetch(`${BASE}/api/session/${c.id}`, { method: "DELETE" });
+
 	// ── B + C. title derivation: no tools, fenced data, capped — and the append chains ──
 	const q = await post("/api/derive-titles", { files: [INJECT_FILE, LONG_FILE] }).then((x) => x.json());
 	check("two unnamed sessions queued", q.queued === 2, JSON.stringify(q));
