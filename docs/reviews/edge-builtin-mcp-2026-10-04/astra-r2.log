@@ -1,0 +1,21 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "edge-builtin-mcp" (git:/Users/jwang/nana-pi/.git): 1 round(s) used (1 completed, 0 review(s) in flight); admitted as round 2/3 (contract @ 9c2c2d3b8aa0)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.86s flat=0/15
+  [pi-review a1] cpu=0.93s flat=0/15
+  [pi-review a1] cpu=0.97s flat=0/15
+  [pi-review a1] cpu=1.12s flat=0/15
+  [pi-review a1] cpu=1.13s flat=0/15
+  [pi-review a1] cpu=1.27s flat=0/15
+  [pi-review a1] cpu=1.41s flat=0/15
+  [pi-review a1] cpu=1.41s flat=1/15
+  [pi-review a1] cpu=1.51s flat=0/15
+  [pi-review a1] cpu=1.64s flat=0/15
+  [pi-review a1] cpu=1.67s flat=0/15
+  [pi-review a1] cpu=1.87s flat=0/15
+  [pi-review a1] cpu=1.91s flat=0/15
+  [pi-review a1] cpu=1.97s flat=0/15
+  [pi-review a1] cpu=2.06s flat=0/15
+  [pi-review a1] cpu=2.22s flat=0/15
+  [pi-review a1] cpu=2.33s flat=0/15
+[pi-review] SUCCESS on attempt 1 (7463 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/eddb9d32-a04d-4940-bf4f-7aa79f40ad8f/scratchpad/astra-r2.md; round 2)
