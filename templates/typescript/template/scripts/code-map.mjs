@@ -386,8 +386,8 @@ export function parseContractHeader(source) {
 
 // Static `from '...'`, bare side-effect `import '...'`, dynamic `import('...')`, and
 // dynamic `import(new URL('...', import.meta.url))` — bare, `.href` or `.pathname`,
-// with or without a second argument to `import()` (R-945). A non-literal URL (a
-// template string, a variable) matches neither this nor DYNAMIC: a test built that
+// with or without a second argument to `import()` (nana-pi R-860). A non-literal URL
+// (a template string, a variable) matches neither this nor DYNAMIC: a test built that
 // way stays invisible, same as before (see REQUIREMENTS.md Open questions).
 const STATIC_FROM = /\bfrom\s*(['"])(\.[^'"]*)\1/g;
 const BARE_IMPORT = /^\s*import\s*(['"])(\.[^'"]*)\1/gm;
@@ -633,7 +633,7 @@ export function impact(graph, paths) {
 /**
  * G-011: how many test modules (under a `layerExempt`/`testRoots` root) import no
  * mapped module at all — the part of the blast radius `--impact` still cannot see,
- * because a dropped or process-only test never shows up as anyone's caller (R-946).
+ * because a dropped or process-only test never shows up as anyone's caller (nana-pi R-861).
  */
 export function untracedTests(graph) {
 	const tests = graph.order.filter((p) => isLayerExempt(graph.config, p));

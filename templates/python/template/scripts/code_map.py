@@ -605,7 +605,7 @@ def impact(graph: Graph, paths: list[str]) -> Impact:
 
 
 def untraced_tests(graph: Graph) -> tuple[int, int]:
-    """G-011 (parity, R-947): how many test modules (under a layerExempt/testRoots root)
+    """G-011 (parity, nana-pi R-862): how many test modules (under a layerExempt/testRoots root)
 
     import no mapped module at all -- the part of the blast radius ``--impact`` still
     cannot see, because a dropped or process-only test never shows up as anyone's caller.

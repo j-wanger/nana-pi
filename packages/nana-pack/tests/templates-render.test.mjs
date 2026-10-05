@@ -263,7 +263,7 @@ if (!version) {
 				language === "python"
 					? "untraced tests: 4 of 5 test modules import no mapped module (a test that only starts a process is not linked)"
 					: "untraced tests: 1 of 5 test modules import no mapped module (a test that only starts a process is not linked)";
-			// req: R-946 R-947
+			// req: R-861 R-862
 			check(`${language}: --impact prints the untraced-test count for a fresh scaffold`,
 				impactRun.status === 0 && out(impactRun).includes(expectedUntraced),
 				out(impactRun).slice(-600),

@@ -18,6 +18,11 @@ import * as path from "node:path";
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
 const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+// R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
+// directly against the generator template ships, not the shim: tests may import anything
+// (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
+// a broken edge.
+const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, why = "") => {
@@ -43,7 +48,7 @@ check("only the three content-pinned bench modules are excused a header, each wi
 // PRODUCTION module in a package may import an app. Asserted on the edges, not on the
 // absence of a problem — the claim is about the repo's shape, not about the checker having
 // run. A test root is declared layerExempt (G-007: a test may import any layer), so a
-// packages/*/tests module importing an app — now visible once R-945's dynamic-import forms
+// packages/*/tests module importing an app — now visible once R-860's dynamic-import forms
 // resolve — is excluded here rather than misread as a reversed production import.
 const isExemptFrom = (p) => (config.exemptRoots ?? []).some((r) => p === r || p.startsWith(`${r}/`));
 const reversed = [];
@@ -102,25 +107,50 @@ check("the browser-only e2e suites are still outside the map",
 	graph.order.filter((p) => p.endsWith(".e2e.mjs")).join(", "),
 );
 
-// R-945: most of this repo's OWN tests load the module they exercise via a dynamic import
+// R-860: most of this repo's OWN tests load the module they exercise via a dynamic import
 // of new URL(<relative path>, import.meta.url) — bare, .href or .pathname — which the
 // generator used to read as opaque and silently record no edge for: before this fix, 67 of
 // the 95 test modules above had zero callees. paths.test.mjs uses exactly that form (not
 // spelled out literally here — this file is itself a mapped module, and a real import
 // specifier written out would be read as one of THIS file's own imports once scanned).
-// req: R-945
+// req: R-860
 check("a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)",
 	graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.includes("packages/nana-setup/lib/paths.mjs"),
 	`callees: ${graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.join(" ")}`,
 );
 
-// R-946: --impact also names the part of the blast radius it still cannot see — a per-run
+// R-860's full breadth: bare, .href, .pathname and a second import() argument all resolve;
+// a template-string URL, a variable, and a non-relative literal (a bare specifier, an
+// absolute URL, an absolute path) all resolve to nothing — the row only ever claims a
+// RELATIVE string literal, same as every other form this generator already parses. The `@`
+// placeholder is the same trick the template's own fixture uses: a real import specifier
+// written out here would be read as one of THIS file's own imports once scanned.
+const dynamicUrlFixture = [
+	"const a = await import(new URL(@./a.mjs@, import.meta.url));", // bare
+	"const b = await import(new URL(@./b.mjs@, import.meta.url).href);", // .href
+	"const c = await import(new URL(@./c.mjs@, import.meta.url).pathname);", // .pathname
+	"const d = await import(new URL(@./d.mjs@, import.meta.url).href, { assert: { type: @json@ } });", // 2nd arg
+	"const e = await import(new URL(`./e-${n}.mjs`, import.meta.url).href);", // template string: no edge
+	"const f = await import(new URL(someVar, import.meta.url).href);", // a variable: no edge
+	"const g = await import(new URL(@node:fs@, import.meta.url).href);", // non-relative (bare specifier): no edge
+	"const h = await import(new URL(@https://example.com/x.mjs@, import.meta.url).href);", // non-relative (absolute URL): no edge
+	"const i = await import(new URL(@/abs/path.mjs@, import.meta.url).href);", // non-relative (absolute path): no edge
+]
+	.join("\n")
+	.replace(/@/g, '"');
+// req: R-860
+check("new URL(...)'s bare, .href, .pathname and second-argument forms all resolve; a template string, a variable and a non-relative literal all resolve to nothing",
+	JSON.stringify(parseRelativeImports(dynamicUrlFixture)) === JSON.stringify(["./a.mjs", "./b.mjs", "./c.mjs", "./d.mjs"]),
+	`found: ${parseRelativeImports(dynamicUrlFixture).join(" ")}`,
+);
+
+// R-861: --impact also names the part of the blast radius it still cannot see — a per-run
 // count of test modules whose own callees are empty (a child-process-only test, or one
 // spelled a form this generator does not parse), recomputed independently of formatImpact
 // so this does not just mirror the implementation.
 const untracedModules = mappedTests.filter((p) => graph.modules.get(p).callees.length === 0);
 const impactLine = `untraced tests: ${untracedModules.length} of ${mappedTests.length} test modules import no mapped module (a test that only starts a process is not linked)`;
-// req: R-946
+// req: R-861
 check("--impact's output carries the untraced-test line with the real count",
 	formatImpact(graph, ["packages/nana-pack/lib/agent-dir.mjs"]).includes(impactLine),
 	`expected: ${impactLine}`,
