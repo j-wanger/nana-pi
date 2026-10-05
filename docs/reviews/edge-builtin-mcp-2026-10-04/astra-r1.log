@@ -1,0 +1,26 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "edge-builtin-mcp" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (contract @ dc7ed2627f89+snap:c507d5605d0564c86b9159d49b450f89c5f8b20217821c53ea1476786e155274)
+pi-review: WARNING: --out /Users/jwang/nana-pi-wt/edge-builtin-mcp/docs/reviews/edge-builtin-mcp-2026-10-04/astra-r1.md is inside the reviewed tree (/Users/jwang/nana-pi-wt/edge-builtin-mcp) and not ignored: it is excluded from this review's snapshot, but a leftover output there changes the next revision. Prefer a path outside the tree or an ignored one
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.93s flat=0/15
+  [pi-review a1] cpu=1.01s flat=0/15
+  [pi-review a1] cpu=1.13s flat=0/15
+  [pi-review a1] cpu=1.23s flat=0/15
+  [pi-review a1] cpu=1.29s flat=0/15
+  [pi-review a1] cpu=1.46s flat=0/15
+  [pi-review a1] cpu=1.47s flat=0/15
+  [pi-review a1] cpu=1.55s flat=0/15
+  [pi-review a1] cpu=1.69s flat=0/15
+  [pi-review a1] cpu=1.79s flat=0/15
+  [pi-review a1] cpu=2.01s flat=0/15
+  [pi-review a1] cpu=2.2s flat=0/15
+  [pi-review a1] cpu=2.31s flat=0/15
+  [pi-review a1] cpu=2.44s flat=0/15
+  [pi-review a1] cpu=2.46s flat=0/15
+  [pi-review a1] cpu=2.53s flat=0/15
+  [pi-review a1] cpu=2.65s flat=0/15
+  [pi-review a1] cpu=2.7s flat=0/15
+  [pi-review a1] cpu=2.85s flat=0/15
+  [pi-review a1] cpu=2.98s flat=0/15
+  [pi-review a1] cpu=3.09s flat=0/15
+pi-review: review written to docs/reviews/edge-builtin-mcp-2026-10-04/astra-r1.md, but review ledger: the reviewed tree changed during the review (admitted dc7ed2627f89+snap:c507d5605d0564c86b9159d49b450f89c5f8b20217821c53ea1476786e155274, now dc7ed2627f89+snap:eacc809e5d5aa3c15844a1feb735ca31ad55ea5650651dba1b865b2f6012798d) — the verdict is NOT recorded as valid for either state; round 1 was consumed for the admitted revision. Re-review the current state (output kept at docs/reviews/edge-builtin-mcp-2026-10-04/astra-r1.md)
