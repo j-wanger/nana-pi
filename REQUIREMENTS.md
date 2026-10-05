@@ -1194,10 +1194,11 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 9. (ears-form batch 0, Fable) About 150 three-digit IDs remain after the lane. Widening to four digits is a rail change in both templates and in aml-desk's copy; the seat's call. The rail's older behaviours (markers, cites, statuses) have no rows of their own; only the form check does.
 10. (map-test-links lane, 2026-10-05) R-860 only teaches the TypeScript code-map generator the `new URL(<literal>, import.meta.url)` dynamic-import form. A dynamic import whose argument is NOT a string literal — built from a template string, a variable, or any other expression — still resolves to no edge, SILENTLY: the generator records no problem for it, unlike the Python generator, which fails `--check` naming it `unmapped dynamic import at line N`. Measured on nana-pi (2026-10-05): about 56 such sites exist in this repo alone (pi's own entry point, a handful of temp-file loaders, code built inside a spawned child-process script's own source string) — making the TypeScript generator fail on them the way Python's does would turn every TypeScript project (nana-pi included) red on day one. Not changed in this lane. Jake's call later: fail the same way Python does (and fix the ~56 sites), or document the asymmetry and leave it.
 11. (map-test-links lane, 2026-10-05) A separate, pre-existing gap found while measuring R-862 on a fresh Python scaffold: the Python generator's import graph does not resolve a bare `import code_map` (or `import readme_check`, `import requirements_trace`) the way `tests/test_code_map.py`, `tests/test_readme_check.py` and `tests/test_requirements_trace.py` actually import the script they exercise (via a `sys.path` insert, not a dotted `scripts.code_map` import) — so those three test modules, plus `tests/conftest.py`, show zero callees in a fresh scaffold (4 of 5 test modules `untraced tests` reports there, against 1 of 5 for the equivalent TypeScript scaffold). This is unrelated to dynamic imports (item 10) and to R-860/861/862, which only claim the PRINTED count is correct, not that the underlying graph is complete — not measured or fixed in this lane. Jake's call later: teach `dotted_name`/`_link_imports` to also recognize a bare top-level name that matches a mapped script's own basename, or leave it as a known Python-generator blind spot.
-12. (map-test-links lane, 2026-10-05, astra r1) `codeMask` (R-863) is a minimal lexer, not a
-    parser, and knowingly does not handle every JS/TS source shape: (a) JSX — a `<Foo>` tag is
-    not recognized, so a `<` that would start JSX is read as an ordinary punctuator and a `/`
-    inside `</Foo>` can be misread for division or a regex start, same ambiguity real JSX-aware
+12. (map-test-links lane, 2026-10-05, astra r1; part (c) rewritten round 2 after a seat probe
+    found the round-1 wording false) `codeMask` (R-863) is a minimal lexer, not a parser, and
+    knowingly does not handle every JS/TS source shape: (a) JSX — a `<Foo>` tag is not
+    recognized, so a `<` that would start JSX is read as an ordinary punctuator and a `/` inside
+    `</Foo>` can be misread for division or a regex start, same ambiguity real JSX-aware
     tokenizers resolve with grammar context this lexer does not carry; untested, not measured in
     this lane (nana-pi's own sources are all `.mjs`/`.ts`, no `.tsx`). (b) An HTML comment
     (`<!--`/`-->`, legal in a non-module script, not in an ES module) is not a recognized comment
@@ -1205,11 +1206,26 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
     heuristic (`PUNCT_REGEX_OK`/`KEYWORD_REGEX_OK`) is the documented simplification, not the
     full ECMAScript grammar: a `/` right after `)` or `]` is always read as division, even in the
     rare case it is not (e.g. `if (x) /re/.test(y)`, where a real tokenizer allows a regex after
-    an `if (...)` head but this lexer does not special-case it) — a false "division" reading only
-    ever makes the lexer MISS a region boundary (over-eager code, not over-eager exclusion), so
-    the failure mode is the same direction as never fixing MUST 1 would have been: a rare false
-    edge, never a lost real one in the cases this lane measured. Jake's call later: extend the
-    heuristic, or accept the gap as documented.
+    an `if (...)` head but this lexer does not special-case it). Round 1 claimed this reading
+    only ever produces a rare spurious edge, never costs a real one — FALSE, disproved by a
+    seat probe: when the misread "division" is followed by a QUOTE, the fix for
+    MUST 1 round 2 confines the damage to one line (a string cannot hold a raw line terminator),
+    so `if (x) /re"/.test(s);` on its own line no longer costs the real import on the next line
+    — but when it is followed by a BACKTICK instead, the backtick legitimately opens template
+    text that CAN span lines, and this lexer cannot tell "a backtick that really starts a
+    template" from "a backtick inside what should have been a regex body"; it always reads the
+    latter as the former. Two measured, opposite outcomes from that single root cause, both
+    confirmed against `parseRelativeImports` directly (not a committed test — the point is to
+    record the gap, not to pin either reading as correct): ``if (x) /re`/.test(s);`` followed on
+    the next line by `import("./a.mjs");` LOSES that real edge (the bogus template consumes to
+    EOF with no closing backtick to stop it); ``if (x) /z`/.test(1);`` followed on the next line
+    by `` `mid from "./fake.mjs" post`; `` ADDS a spurious one (an unrelated later backtick
+    closes the bogus template early, resyncing to code mode mid-text, so the `from "..."` sitting
+    in what should still be template TEXT reads as a live import). The direction is NOT
+    guaranteed — it depends on what backtick, if any, the bogus template happens to hit next —
+    and no test in this lane asserts either reading as the intended one. Jake's call later:
+    extend the heuristic (distinguishing these needs lookahead this lexer does not carry), or
+    accept the gap as documented.
 
 ## Deliberate omissions
 

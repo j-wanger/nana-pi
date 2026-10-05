@@ -201,6 +201,23 @@ check("a real import inside a template's ${...} interpolation still resolves",
 	`found: ${parseRelativeImports(interpolationSource).join(" ")}`,
 );
 
+// R-863 (astra r1 round 2 seat probe): a single- or double-quoted string cannot hold a raw
+// line terminator in real JS, so a `/` mis-lexed as division right before a stray quote
+// must not let that "string" swallow the rest of the file — confined to its own line, a
+// real import on the NEXT line still resolves. Both quote kinds.
+const afterMisreadDivisionDouble = ["if (x) /re\"/.test(s);", "import(@./after-misread-double.mjs@);"].join("\n").replace(/@/g, '"');
+const afterMisreadDivisionSingle = ["if (x) /re'/.test(s);", "import(@./after-misread-single.mjs@);"].join("\n").replace(/@/g, '"');
+// req: R-863
+check("a real import on the next line still resolves after a `/` mis-lexed as division runs into a stray double quote",
+	parseRelativeImports(afterMisreadDivisionDouble).includes("./after-misread-double.mjs"),
+	`found: ${parseRelativeImports(afterMisreadDivisionDouble).join(" ")}`,
+);
+// req: R-863
+check("a real import on the next line still resolves after a `/` mis-lexed as division runs into a stray single quote",
+	parseRelativeImports(afterMisreadDivisionSingle).includes("./after-misread-single.mjs"),
+	`found: ${parseRelativeImports(afterMisreadDivisionSingle).join(" ")}`,
+);
+
 // R-863, graph-level: astra r1's own two reproduction snippets, through buildGraph (not
 // just the regex layer), so the claim is about the shipped edge/problem set astra actually
 // inspected, not a lower-level function in isolation.

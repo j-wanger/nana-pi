@@ -446,6 +446,9 @@ const KEYWORD_REGEX_OK = new Set([
 ]);
 const ID_START = /[A-Za-z_$]/;
 const ID_PART = /[A-Za-z0-9_$]/;
+/** The four characters ECMAScript treats as a LineTerminator — none may appear raw
+ *  (unescaped) inside a single- or double-quoted string. */
+const LINE_TERMINATORS = new Set(["\n", "\r", " ", " "]);
 
 /**
  * One boolean per character of `source`: true where that position is executable code
@@ -511,10 +514,17 @@ function codeMask(source) {
 			continue;
 		}
 		if (ch === "'" || ch === '"') {
+			// A single- or double-quoted string cannot hold a raw line terminator (CR,
+			// LF, U+2028, U+2029) — JS does not allow one there unescaped, so a `/`
+			// mis-lexed as division just before a stray quote (seat probe, astra r1
+			// round 2: `if (x) /re"/.test(s);` then a real import on the next line)
+			// must not let the "string" swallow the rest of the file. Stop at the
+			// terminator, same as a real tokenizer would call this unterminated.
 			const quote = ch;
 			let j = i + 1;
-			while (j < n && source[j] !== quote) j += source[j] === "\\" ? 2 : 1;
-			i = j < n ? j + 1 : n;
+			while (j < n && source[j] !== quote && !LINE_TERMINATORS.has(source[j]))
+				j += source[j] === "\\" ? 2 : 1;
+			i = j < n && source[j] === quote ? j + 1 : Math.min(j, n);
 			regexAllowed = false;
 			continue;
 		}

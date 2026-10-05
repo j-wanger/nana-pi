@@ -363,6 +363,31 @@ test("a real import still resolves after a regex literal, inside a template inte
 	);
 });
 
+{{ rq }} G-011
+test("a real import on the next line still resolves after a / mis-lexed as division runs into a stray quote, either kind (astra r1 round 2)", () => {
+	// A single- or double-quoted string cannot hold a raw line terminator in real JS, so a
+	// `/` mis-lexed as division right before a stray quote must not let that "string"
+	// swallow the rest of the file.
+	const afterDouble = [
+		'if (x) /re"/.test(s);',
+		"import(@./after-misread-double.js@);",
+	]
+		.join("\n")
+		.replace(/@/g, '"');
+	const afterSingle = [
+		"if (x) /re'/.test(s);",
+		"import(@./after-misread-single.js@);",
+	]
+		.join("\n")
+		.replace(/@/g, '"');
+	expect(parseRelativeImports(afterDouble)).toContain(
+		"./after-misread-double.js",
+	);
+	expect(parseRelativeImports(afterSingle)).toContain(
+		"./after-misread-single.js",
+	);
+});
+
 // NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin
 // the CHECK, not this project's own layering, so that row stays `untested` until
 // the project declares real layers and a test pins them.
