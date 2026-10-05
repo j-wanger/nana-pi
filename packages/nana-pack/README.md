@@ -741,7 +741,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     check cannot read the folder to confirm it is really empty — and never ends with the
     `/trust` steps, because waiting and re-checking is the honest next step, not a diagnosis
     this check could not establish. Only a STALE, READABLE, empty folder counts as usable here
-    (pi reclaims it, and so does nana's own check, since it can confirm the folder is empty). A
+    (pi reclaims it; nana's check confirms it is empty and reads the path as usable). A
     STALE folder nana cannot read is always "lock path obstructed" — nana has no way to confirm
     it is the empty folder pi's own rule would reclaim, so it never claims usability it cannot
     see. pi itself may still reclaim that exact folder if it genuinely is empty (pi's `rmdir`

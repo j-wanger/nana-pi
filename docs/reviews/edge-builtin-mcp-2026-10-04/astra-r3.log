@@ -1,0 +1,30 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "edge-builtin-mcp" (git:/Users/jwang/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (land-ruling @ 63daf4148e28)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.83s flat=0/15
+  [pi-review a1] cpu=0.84s flat=0/15
+  [pi-review a1] cpu=0.89s flat=0/15
+  [pi-review a1] cpu=0.94s flat=0/15
+  [pi-review a1] cpu=0.96s flat=0/15
+  [pi-review a1] cpu=0.98s flat=0/15
+  [pi-review a1] cpu=1s flat=0/15
+  [pi-review a1] cpu=1.04s flat=0/15
+  [pi-review a1] cpu=1.17s flat=0/15
+  [pi-review a1] cpu=1.17s flat=1/15
+  [pi-review a1] cpu=1.18s flat=0/15
+  [pi-review a1] cpu=1.19s flat=0/15
+  [pi-review a1] cpu=1.26s flat=0/15
+  [pi-review a1] cpu=1.46s flat=0/15
+  [pi-review a1] cpu=1.54s flat=0/15
+  [pi-review a1] cpu=1.6s flat=0/15
+  [pi-review a1] cpu=1.79s flat=0/15
+  [pi-review a1] cpu=1.89s flat=0/15
+  [pi-review a1] cpu=2s flat=0/15
+  [pi-review a1] cpu=2s flat=1/15
+  [pi-review a1] cpu=2.01s flat=0/15
+  [pi-review a1] cpu=2.02s flat=0/15
+  [pi-review a1] cpu=2.03s flat=0/15
+  [pi-review a1] cpu=2.07s flat=0/15
+  [pi-review a1] cpu=2.09s flat=0/15
+  [pi-review a1] cpu=2.2s flat=0/15
+[pi-review] SUCCESS on attempt 1 (5238 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/eddb9d32-a04d-4940-bf4f-7aa79f40ad8f/scratchpad/astra-r3.md; round 3)
