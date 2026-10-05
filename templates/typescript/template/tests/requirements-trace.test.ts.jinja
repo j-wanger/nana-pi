@@ -418,7 +418,9 @@ describe("this project", () => {
 		// above both call sites share.
 		const result = check(ROOT, { earsAllowance: PROJECT_EARS_ALLOWANCE });
 		printReport(result);
-		const earsProblems = result.problems.filter((p) => / carries \d+ shall \(one is the form\)$/.test(p));
+		const earsProblems = result.problems.filter((p) =>
+			/ carries \d+ shall \(one is the form\)$/.test(p),
+		);
 		expect(earsProblems, result.earsLine).toEqual([]);
 	});
 });

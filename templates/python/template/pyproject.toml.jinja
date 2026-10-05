@@ -41,6 +41,11 @@ max-complexity = 10
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "PLR2004", "T201"]
 "scripts/**" = ["T201"]  # a generator CLI prints
+# The rail's own fixtures/helpers carry deliberate ambiguous-unicode cases (the EARS
+# `shall`-counter's unicode-safety fixtures) and one long table literal; scoped to these
+# two rail files only, not all of tests/**, so real violations elsewhere still fail.
+"tests/conftest.py" = ["RUF001", "RUF003", "E501"]
+"tests/test_requirements_trace.py" = ["RUF001", "RUF003", "E501"]
 
 [tool.mypy]
 strict = true

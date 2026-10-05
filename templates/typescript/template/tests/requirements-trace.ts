@@ -125,7 +125,12 @@ export const CALL_NAMES = ["test", "it"];
 /** The test directories scanned, when a project does not say. */
 export const TEST_ROOTS = ["tests"];
 /** The filename suffixes a test source carries, in either runtime. */
-export const TEST_EXTENSIONS = [".test.ts", ".test.tsx", ".test.mjs", ".test.js"];
+export const TEST_EXTENSIONS = [
+	".test.ts",
+	".test.tsx",
+	".test.mjs",
+	".test.js",
+];
 
 /**
  * The marked call may sit ANYWHERE on the line — `for (const c of CASES) check(...)`,
@@ -237,7 +242,9 @@ export function earsOffForm(
 	counts: Map<string, number>,
 ): string[] {
 	return [...requirements]
-		.filter(([id, row]) => row.status !== "retired" && (counts.get(id) ?? 0) !== 1)
+		.filter(
+			([id, row]) => row.status !== "retired" && (counts.get(id) ?? 0) !== 1,
+		)
 		.map(([id]) => id)
 		.sort();
 }
@@ -471,7 +478,9 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	const problems = traceProblems(requirements, traced);
 	if (earsOffFormIds.length > earsAllowance) {
 		for (const id of earsOffFormIds) {
-			problems.push(`${id} carries ${counts.get(id) ?? 0} shall (one is the form)`);
+			problems.push(
+				`${id} carries ${counts.get(id) ?? 0} shall (one is the form)`,
+			);
 		}
 	}
 	const line = summary(requirements, traced);

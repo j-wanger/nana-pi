@@ -117,7 +117,9 @@ def _fixture_shall_count(requirement_text: str) -> int:
     """One Requirement cell, wrapped in a minimal table and read through the real,
     public `shall_counts()` -- the actual cell-splitting and row-matching path, not a
     private helper called directly."""
-    table = f"| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | {requirement_text} | untested | — |\n"
+    table = (
+        f"| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | {requirement_text} | untested | — |\n"
+    )
     return shall_counts(table).get("R-999", -1)
 
 

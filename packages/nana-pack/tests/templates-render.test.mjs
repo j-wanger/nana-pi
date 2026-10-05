@@ -225,6 +225,34 @@ if (!version) {
 				out(r).slice(-400),
 			);
 
+			// a fresh scaffold's own lint/format gates pass with no edits (R-858): the
+			// rail's own unicode/complexity fixtures are scoped exceptions in each
+			// template's own lint config, not a project-wide loosening. Guarded the same
+			// way uvx copier itself is above: SKIP, not FAIL, when the tool is not
+			// resolvable on this machine (first use may fetch over the network).
+			if (language === "python") {
+				const probe = run("uvx", ["ruff", "--version"], REPO);
+				if (probe.status === 0) {
+					const lint = run("uvx", ["ruff", "check", "."], dest);
+					// req: R-858
+					check(`${language}: a fresh scaffold passes ruff check with no edits`, lint.status === 0, out(lint).slice(-1000));
+					const fmt = run("uvx", ["ruff", "format", "--check", "."], dest);
+					// req: R-858
+					check(`${language}: a fresh scaffold is ruff-format clean with no edits`, fmt.status === 0, out(fmt).slice(-1000));
+				} else {
+					skip(`${language}: a fresh scaffold passes its own lint/format gates`, "uvx ruff is not resolvable on this machine");
+				}
+			} else {
+				const probe = run("pnpm", ["dlx", "@biomejs/biome", "--version"], REPO);
+				if (probe.status === 0) {
+					const lint = run("pnpm", ["dlx", "@biomejs/biome", "check", "."], dest);
+					// req: R-858
+					check(`${language}: a fresh scaffold passes biome check with no edits`, lint.status === 0, out(lint).slice(-1000));
+				} else {
+					skip(`${language}: a fresh scaffold passes its own lint/format gates`, "pnpm dlx @biomejs/biome is not resolvable on this machine");
+				}
+			}
+
 			// the README passes its own check on day one, with nothing installed
 			const [rcmd, rargs] = spec.readmeCmd;
 			const readme = run(rcmd, rargs, dest);

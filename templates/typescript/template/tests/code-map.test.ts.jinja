@@ -504,9 +504,9 @@ test("an ignored path is outside the map: not collected, and importing it is all
 	expect(run.code).toBe(0);
 	// the scratch project carries the real CLI under scripts/, so it is mapped too
 	expect(run.stdout).toMatch(/code map: 2 modules/);
-	expect(mapEntries(readFileSync(join(root, "docs/code-map.md"), "utf8"))).toEqual(
-		["scripts/code-map.mjs", "src/core/a.ts"],
-	);
+	expect(
+		mapEntries(readFileSync(join(root, "docs/code-map.md"), "utf8")),
+	).toEqual(["scripts/code-map.mjs", "src/core/a.ts"]);
 	expect(() =>
 		parseConfig(JSON.stringify({ ...FIXTURE_CONFIG, ignore: [""] })),
 	).toThrow(/'ignore' must be an array of paths/);

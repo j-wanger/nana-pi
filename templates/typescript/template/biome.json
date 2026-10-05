@@ -20,5 +20,17 @@
 	},
 	"formatter": {
 		"enabled": true
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["tests/requirements-trace.ts", "scripts/code-map.mjs"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noExcessiveCognitiveComplexity": "off"
+					}
+				}
+			}
+		}
+	]
 }

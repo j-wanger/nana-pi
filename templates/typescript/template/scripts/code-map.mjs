@@ -764,7 +764,9 @@ export function checkRepo(root) {
 	const problems = [...graph.problems];
 	const mapFile = join(root, config.mapPath);
 	if (!existsSync(mapFile)) {
-		problems.push(`${config.mapPath} does not exist; run '${config.runner} map'`);
+		problems.push(
+			`${config.mapPath} does not exist; run '${config.runner} map'`,
+		);
 	} else {
 		const onDisk = readFileSync(mapFile, "utf8");
 		const listed = new Set(mapEntries(onDisk));
