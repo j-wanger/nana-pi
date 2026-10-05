@@ -12,6 +12,12 @@ installed source/docs, or **[I]** inferred.
 not a workaround, pi's own grammar for loading a built-in extension back under `--no-extensions`
 (cli.md). Built with that one addition; the full chain is proven live, including the real e2e.
 
+**Commits:**
+- nana-pi `feat/edge-builtin-mcp`: `1ed473411338494e4062f29e724d24ccc299879c`
+- edge-screener `feat/builtin-mcp`: `ecace8a6b536fbbd5535e4364d9e71aadd2e3eba`
+
+Neither pushed, neither merged, per the brief.
+
 ## Step 1 — probe, with evidence
 
 Ran from `~/edge-screener-wt/builtin-mcp`, a throwaway `.pi/extensions/edge-mcp.ts` calling
