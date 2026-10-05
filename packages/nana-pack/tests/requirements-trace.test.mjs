@@ -125,7 +125,7 @@ check("ears: over the allowance each off-form row is a problem, at the allowance
 rmSync(allowDir, { recursive: true, force: true });
 
 // req: G-015
-check("seal: EARS_ALLOWANCE is 53 (G-015)", EARS_ALLOWANCE === 53);
+check("seal: EARS_ALLOWANCE is 0 (G-015)", EARS_ALLOWANCE === 0);
 
 // req: R-757
 check("seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom)",

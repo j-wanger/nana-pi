@@ -1,0 +1,7 @@
+# Review brief — EARS split batch C, the last batch (reviewer: gpt-6-astra, ONE round, FORM only)
+
+Worktree `~/nana-pi-wt/ears-c`, branch `feat/ears-c`, base `main` `70ef61e`, commit `85f033d`. C splits for form only (`bc-method-ruling.md` trigger): every split-born row is `untested`; every origin keeps its status and cites for its first clause; no merges; no mutations. C covers §27–47 (desk and bench): 53 origins, 69 new rows. Off form 53 → 0. Your B review (`batch-b-astra-r1.md`) shows the form failure classes.
+1. Run the verifier with `--base main` and `refusal-test.mjs`: both green, nothing changed. Confirm `ears: 0 rows off form (allowance 0)`. Confirm the desk ID-block widening (R-468 to R-499, then R-940 onward) collides with nothing.
+2. FORM, the only MUSTs: read every origin as it was on main against its clauses on the branch. Report each lost, narrowed or merged promise and each dropped condition or scope. Each split sentence must stand alone (a named subject; no "it", "that" or "the run").
+3. STATUS check, mechanical: is every split-born row `untested`, with the standard sentence and no new `// req:` marker? Does every origin keep its main-branch status? Does an origin that keeps `implemented` now carry a first clause its cites still address? Flag any origin whose remaining first clause is no longer what its cite tests, as a NOTE.
+Verdict: `VERDICT: LAND` with no form MUST, otherwise `VERDICT: BLOCK`, with a score out of 10.
