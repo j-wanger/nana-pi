@@ -662,7 +662,7 @@ export function renderMap(graph) {
 		"",
 		`Generated — do not edit. \`${config.runner} map\` rewrites it from the import graph and the`,
 		`contract header at the top of each module; \`${config.runner} map:check\` fails when this file`,
-		`and the code disagree (G-009, G-010). \`${config.runner} map:impact -- <file...>\` prints a`,
+		`and the code disagree (G-009, G-010). \`${config.runner} map:impact <file...>\` prints a`,
 		"change's transitive callers and callees (G-011).",
 		"",
 		`Covers \`${config.roots.join("`, `")}\` — ${graph.order.length} modules, as declared in`,

@@ -591,9 +591,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   (file, directory, symlink) counts: it is a decision record whose content is never read.
   Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
 - **Handoff** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
-  compaction summary to a **user-scope store, by default fixed at**
+  compaction summary to a store — **by default the user-scope store fixed at**
   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
-  `PI_CODING_AGENT_DIR`** — replaced by a configured `handoff.path` (Custom `handoff.path` below)
+  `PI_CODING_AGENT_DIR`**; a configured `handoff.path` replaces it (Custom `handoff.path` below)
   (canonical = realpath; the key is case-folded on win32 only; the cwd is
   recorded inside) — one of four deliberate U2 exceptions to the agent-dir override, beside the
   round-cap ledger, the stage-key store and the knowledge index, none of whose runtime reads the

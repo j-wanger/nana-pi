@@ -14,7 +14,7 @@ contract header at the top of each module (G-009, G-010).
 
 Generated — do not edit. `pnpm map` rewrites it from the import graph and the
 contract header at the top of each module; `pnpm map:check` fails when this file
-and the code disagree (G-009, G-010). `pnpm map:impact -- <file...>` prints a
+and the code disagree (G-009, G-010). `pnpm map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
 Covers `src`, `scripts`, `tests` — 8 modules, as declared in
