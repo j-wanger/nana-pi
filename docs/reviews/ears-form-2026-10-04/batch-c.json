@@ -1,0 +1,1232 @@
+{
+  "batch": "C",
+  "date": "2026-10-04",
+  "allowanceBefore": 53,
+  "allowanceAfter": 0,
+  "measuredOffFormBeforeBatch": 53,
+  "measuredOffFormAfterBatch": 0,
+  "mutationRecords": false,
+  "conditionRecords": false,
+  "untestedSentence": "no recorded red mutation per named condition; 6b worklist",
+  "merged": [],
+  "origins": [
+    {
+      "origin": "R-401",
+      "clauses": [
+        {
+          "id": "R-401",
+          "text": "The desk shall parse sessions with the pi package tied by construction to the pi executable it spawns.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/pi-resolution.test.mjs::walk-up finds the package that contains the executable",
+            "apps/desk/test/pi-resolution.test.mjs::…and that is what resolution returns, tied by construction",
+            "apps/desk/test/pi-session-parity.test.mjs::…and the startup line names the pi install it parses with"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-468",
+          "text": "The desk shall name, in its startup line, the pi install tied by construction to the pi executable it spawns.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-403",
+      "clauses": [
+        {
+          "id": "R-403",
+          "text": "WHERE the package root is overridden, the desk shall use it exclusively and spawn nothing to resolve.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/pi-resolution.test.mjs::DESK_PI_ROOT is used exclusively — nothing else is consulted",
+            "apps/desk/test/pi-resolution.test.mjs::…and it spawns nothing: the shim recorded no run",
+            "apps/desk/test/pi-resolution.test.mjs::an override that disagrees with the binary's own package → refuses",
+            "apps/desk/test/pi-resolution.test.mjs::…unless DESK_PI_BIN names the binary too, and then it is a warning"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-469",
+          "text": "WHERE the package root is overridden, the desk shall still refuse an override that contradicts the binary unless the binary is named explicitly too, which downgrades the refusal to a warning.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-408",
+      "clauses": [
+        {
+          "id": "R-408",
+          "text": "The desk's active branch shall equal pi's own branch walk.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/pi-session-parity.test.mjs::active branch equals SessionManager.getBranch()",
+            "apps/desk/test/crash-paths.test.mjs::two-entry parentId ring answers (no infinite walk)",
+            "apps/desk/test/crash-paths.test.mjs::self-referential parentId answers too"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-470",
+          "text": "A cyclic parent chain shall terminate rather than loop.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-409",
+      "clauses": [
+        {
+          "id": "R-409",
+          "text": "WHERE a session carries pi 0.86 or 0.87 bookkeeping entries, the transcript shall omit them from the rendered entries while keeping them in the branch index.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/pi-087-entries.test.mjs::no usage entry reaches the page",
+            "apps/desk/test/pi-087-entries.test.mjs::no context_edit entry reaches the page",
+            "apps/desk/test/pi-087-entries.test.mjs::no system-role message reaches the page",
+            "apps/desk/test/pi-087-entries.test.mjs::the context_edit TARGET is still rendered (raw history unchanged)",
+            "apps/desk/test/pi-087-entries.test.mjs::active branch = pi's getBranch() minus the hidden bookkeeping",
+            "apps/desk/test/pi-087-entries.test.mjs::…so nothing is dimmed as an abandoned branch"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-471",
+          "text": "WHERE a session carries pi 0.86 or 0.87 bookkeeping entries, the transcript shall still render a context edit's target.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-410",
+      "clauses": [
+        {
+          "id": "R-410",
+          "text": "WHEN a historical session is renamed, the desk shall append one name entry chained to the file's real leaf with carriage returns and newlines collapsed as pi does.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/spawn-and-persist.test.mjs::rename chains to the leaf",
+            "apps/desk/test/spawn-and-persist.test.mjs::…CR/LF collapsed the way pi's own appendSessionInfo does",
+            "apps/desk/test/spawn-and-persist.test.mjs::an entry LARGER than the budget → 409 naming the budget",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and that file is left untouched",
+            "apps/desk/test/spawn-and-persist.test.mjs::rename on a 0-byte file → 409, not a headerless session_info",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and the file is left alone",
+            "apps/desk/test/spawn-and-persist.test.mjs::rename on a file with no session header → 409",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and that file is left alone too"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-472",
+          "text": "WHEN a historical session is renamed, the desk shall answer 409 leaving the file untouched for an empty, headerless or over-budget file.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-411",
+      "clauses": [
+        {
+          "id": "R-411",
+          "text": "WHEN a title is derived from history, the derivation child shall run with no tools, no session, no extensions, no skills and no context files.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/spawn-and-persist.test.mjs::derivation runs with --no-tools (no read/bash/edit/write to hijack)",
+            "apps/desk/test/spawn-and-persist.test.mjs::…still isolated: --no-session/--no-extensions/--no-skills/--no-context-files",
+            "apps/desk/test/spawn-and-persist.test.mjs::…historical text is fenced and labelled as data, not spliced into the instruction",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and it is length-capped (a 3.6k-char request does not ride in whole)"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-473",
+          "text": "WHEN a title is derived from history, the historical text shall be fenced as data and length-capped.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-413",
+      "clauses": [
+        {
+          "id": "R-413",
+          "text": "The rail's name scan shall be bounded to a head and tail window while the transcript route reads the whole file.",
+          "status": "untested"
+        },
+        {
+          "id": "R-474",
+          "text": "The subagent tool shall render as a readable card with agent, model, task and a per-child activity strip rather than raw JSON.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-415",
+      "clauses": [
+        {
+          "id": "R-415",
+          "text": "A resource shall be classified project-controlled by where its real path lives rather than by which config named it.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/spawn-and-persist.test.mjs::a GLOBAL settings entry pointing inside the project is labelled project",
+            "apps/desk/test/spawn-and-persist.test.mjs::a GLOBAL package entry is not resolved from the PROJECT's install dir",
+            "apps/desk/test/spawn-and-persist.test.mjs::trust unchecked + a project extension → spawn REFUSED",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and no child was started for it"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-475",
+          "text": "A packages entry shall resolve only in its declared scope.",
+          "status": "untested"
+        },
+        {
+          "id": "R-476",
+          "text": "IF project trust is declined THEN a resource resolving inside the session cwd shall make the spawn refuse with no child started.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-416",
+      "clauses": [
+        {
+          "id": "R-416",
+          "text": "WHEN built-in tools are unchecked for a spawn, the server shall pass them as an exclusion list and never as a strict allowlist.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/spawn-and-persist.test.mjs::unchecked built-ins ride out as -xt",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and never as -t, which would drop the extension tools too",
+            "apps/desk/test/spawn-and-persist.test.mjs::no narrowing → no tool flag at all (pure pi defaults)",
+            "apps/desk/test/spawn-and-persist.test.mjs::an unknown tool name is refused, never spliced into the -xt list",
+            "apps/desk/test/spawn-and-persist.test.mjs::a non-array excludeTools is refused"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-477",
+          "text": "WHEN built-in tools are unchecked for a spawn, the server shall pass no tool flag at all when nothing is narrowed.",
+          "status": "untested"
+        },
+        {
+          "id": "R-478",
+          "text": "WHEN built-in tools are unchecked for a spawn, the server shall refuse an unknown tool name or a non-array request.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-419",
+      "clauses": [
+        {
+          "id": "R-419",
+          "text": "WHEN pi has not accepted a prompt within the detach window, the route shall answer pending with its own prompt id.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/prompt-detach.test.mjs::detach: a prompt pi has not accepted in 5 s answers pending",
+            "apps/desk/test/prompt-detach.test.mjs::detach: …with a promptId of its own",
+            "apps/desk/test/prompt-detach.test.mjs::settle: exactly one settled event per detached prompt",
+            "apps/desk/test/prompt-detach.test.mjs::ring: the snapshot keeps 32 of them, not all 35"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-479",
+          "text": "WHEN pi has not accepted a prompt within the detach window, the route shall later broadcast exactly one settled event for that prompt.",
+          "status": "untested"
+        },
+        {
+          "id": "R-480",
+          "text": "WHEN pi has not accepted a prompt within the detach window, the route shall replay the last 32 outcomes per session in every hello snapshot.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-421",
+      "clauses": [
+        {
+          "id": "R-421",
+          "text": "A finished bash card shall show at most 20000 characters of output and of error cut without splitting a surrogate pair and marked truncated.",
+          "status": "untested"
+        },
+        {
+          "id": "R-481",
+          "text": "Events arriving before their row exists shall be held per id within a bounded budget and flushed when the row is created.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-422",
+      "clauses": [
+        {
+          "id": "R-422",
+          "text": "The changes bar shall report the working tree against HEAD for a live session, counting untracked files as added, with root-relative posix paths sorted by path and totals that sum the rows returned.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/changes-endpoint.test.mjs::untracked file is ?? and its lines are counted",
+            "apps/desk/test/changes-endpoint.test.mjs::paths are posix and root-relative",
+            "apps/desk/test/changes-endpoint.test.mjs::files are sorted by path",
+            "apps/desk/test/changes-endpoint.test.mjs::totals count the rows we returned",
+            "apps/desk/test/changes-endpoint.test.mjs::totals sum added/removed",
+            "apps/desk/test/changes-endpoint.test.mjs::no git on PATH: repo:false with a reason, never a throw",
+            "apps/desk/test/changes-endpoint.test.mjs::a non-repo cwd answers repo:false, not an error",
+            "apps/desk/test/changes-endpoint.test.mjs::a vanished cwd says so, and is not blamed on git",
+            "apps/desk/test/changes-endpoint.test.mjs::route: /changes answers 200 with the file list"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-482",
+          "text": "WHERE the cwd is not a repository, git is absent or the cwd has vanished, the answer shall say so with a reason rather than throwing.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-425",
+      "clauses": [
+        {
+          "id": "R-425",
+          "text": "An untracked symlink shall be listed and never read in the file list or the diff window.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/changes-endpoint.test.mjs::an untracked symlink is listed but not counted",
+            "apps/desk/test/changes-endpoint.test.mjs::the file endpoint refuses an untracked symlink inside the root",
+            "apps/desk/test/changes-endpoint.test.mjs::swap: the diff window refuses a path that became a symlink after the check",
+            "apps/desk/test/changes-endpoint.test.mjs::swap: …and nothing from the target is in the answer",
+            "apps/desk/test/changes-endpoint.test.mjs::path rejected: a symlink that resolves outside the root"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-483",
+          "text": "A path escaping the work tree shall be refused reading nothing.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-426",
+      "clauses": [
+        {
+          "id": "R-426",
+          "text": "WHEN the floating diff window is open, Esc shall close the floating diff window without aborting the running turn.",
+          "status": "untested"
+        },
+        {
+          "id": "R-484",
+          "text": "WHEN no floating diff window is open, Esc shall still abort the running turn.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-427",
+      "clauses": [
+        {
+          "id": "R-427",
+          "text": "WHEN a reload is requested in a session carrying the pack, the desk shall send the pack's reload command as a prompt and report what the command list actually came back with.",
+          "status": "untested"
+        },
+        {
+          "id": "R-485",
+          "text": "WHEN a reload is requested in a session carrying the pack, the desk shall hold a typed prompt until that reload answers.",
+          "status": "untested"
+        },
+        {
+          "id": "R-486",
+          "text": "WHEN a reload is requested in a session carrying the pack, the desk shall auto-reload only when the resource set grew and only after a running turn ends.",
+          "status": "untested"
+        },
+        {
+          "id": "R-487",
+          "text": "IF a reload is requested in a session where the pack is absent THEN the desk shall send nothing and say to restart.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-428",
+      "clauses": [
+        {
+          "id": "R-428",
+          "text": "WHILE a turn runs the page shall show an activity line naming what the turn is doing with elapsed time.",
+          "status": "untested"
+        },
+        {
+          "id": "R-488",
+          "text": "WHEN a compaction leaves pi reporting no context percentage the meter shall show the compaction's own estimate marked as an estimate rather than going stale.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-434",
+      "clauses": [
+        {
+          "id": "R-434",
+          "text": "Every async continuation that touches the transcript, the header, the editor or the live handle shall carry the stage generation it began in.",
+          "status": "untested"
+        },
+        {
+          "id": "R-489",
+          "text": "Every async continuation that touches the transcript, the header, the editor or the live handle shall return without painting anything, toasts included, when the stage generation it began in is stale.",
+          "status": "untested"
+        },
+        {
+          "id": "R-490",
+          "text": "History shall be re-read through one door that coalesces to exactly one follow-up read however many callers asked.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-439",
+      "clauses": [
+        {
+          "id": "R-439",
+          "text": "The ledger read shall verify each block against the live child's key plus every key recorded for the session the child reports holding.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/stage-key-persistence.test.mjs::run 4: every block of session B verifies, across BOTH keys the desk issued for it",
+            "apps/desk/test/stage-key-persistence.test.mjs::run 2: a hand-forged signature is still redacted",
+            "apps/desk/test/stage-key-persistence.test.mjs::run 2: a block signed under a key this desk never issued is still redacted"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-491",
+          "text": "The ledger read shall redact a forged signature or a key this desk never issued.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-441",
+      "clauses": [
+        {
+          "id": "R-441",
+          "text": "WHEN a fork or clone runs, the new session's record shall be seeded from the source the child reported before the fork.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/stage-key-persistence.test.mjs::run 3: the fork's record was seeded from the source, not just given this child's key",
+            "apps/desk/test/stage-key-persistence.test.mjs::run 3: an unconfirmed fork inherits NOTHING; its copied blocks stay redacted",
+            "apps/desk/test/stage-key-persistence.test.mjs::run 3: an answer landing ON the deadline confirms nothing either"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-492",
+          "text": "IF a fork or clone runs and the destination is not confirmed inside the budget, an answer landing on or after the deadline included, THEN the fork shall inherit nothing.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-447",
+      "clauses": [
+        {
+          "id": "R-447",
+          "text": "The desk shall open one listener per app manifest serving only that app's route table and no desk-wide surface.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/app-listener.test.mjs::app port has no ${method} ${p}",
+            "apps/desk/test/app-listener.test.mjs::invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)",
+            "apps/desk/test/app-listener.test.mjs::empty-tools app has no listener"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-493",
+          "text": "The desk shall refuse at load a manifest that is invalid or declares an empty tool allowlist.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-449",
+      "clauses": [
+        {
+          "id": "R-449",
+          "text": "Concurrent session requests on one app listener shall produce exactly one child.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/app-listener.test.mjs::three concurrent POST /api/session → ONE child",
+            "apps/desk/test/app-listener.test.mjs::manifest.session = sessionFile from get_state",
+            "apps/desk/test/app-listener.test.mjs::no temp file left behind"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-494",
+          "text": "The manifest's session pointer shall be rewritten atomically from the child's reported state leaving no temp file.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-450",
+      "clauses": [
+        {
+          "id": "R-450",
+          "text": "WHILE an app child has not reported its manifest tools ready, prompts shall be refused with 409.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/app-listener.test.mjs::silent child: POST /api/session held until the bound, then tools = unreported",
+            "apps/desk/test/app-listener.test.mjs::silent child: prompts refused (409) — never run the model without the app's tools",
+            "apps/desk/test/app-listener.test.mjs::dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-495",
+          "text": "WHILE an app child has not reported its manifest tools ready, readiness shall never be assumed.",
+          "status": "untested"
+        },
+        {
+          "id": "R-496",
+          "text": "IF an app child exits mid-wait THEN the request shall answer 502 naming the exit.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-452",
+      "clauses": [
+        {
+          "id": "R-452",
+          "text": "A pending extension dialog shall be carried in the app listener's hello snapshot.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/app-listener.test.mjs::desk_hello on the app port names the app and carries the pending dialog",
+            "apps/desk/test/app-listener.test.mjs::foreign origin cannot answer the dialog",
+            "apps/desk/test/app-listener.test.mjs::answering twice → 409 (dialog no longer open)",
+            "apps/desk/test/app-listener.test.mjs::answering an expired dialog → 409"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-497",
+          "text": "A pending extension dialog shall be answerable only from the app listener's own origin.",
+          "status": "untested"
+        },
+        {
+          "id": "R-498",
+          "text": "Answering an already-answered or expired dialog shall return 409.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-453",
+      "clauses": [
+        {
+          "id": "R-453",
+          "text": "An app data key shall run a manifest-fixed argv in the app cwd ignoring the query string and body.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/app-listener.test.mjs::data command runs with fixed argv in the app cwd; query string and body ignored",
+            "apps/desk/test/app-listener.test.mjs::GET /api/data → 404 (no command-running GET exists for legacy cross-site fetches)",
+            "apps/desk/test/app-listener.test.mjs::cross-origin POST /api/data → 403",
+            "apps/desk/test/app-listener.test.mjs::text/plain POST /api/data (a form/simple request) → 403",
+            "apps/desk/test/app-listener.test.mjs::data command over the timeout → 504, killed"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-499",
+          "text": "An app data key shall be reachable only by a same-origin JSON POST with no command-running GET existing.",
+          "status": "untested"
+        },
+        {
+          "id": "R-940",
+          "text": "An app data key shall answer 504 when it outruns its timeout.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-455",
+      "clauses": [
+        {
+          "id": "R-455",
+          "text": "IF a config file exists but cannot be read, does not parse as an object, or cannot be backed up, THEN the write shall be refused.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/spawn-and-persist.test.mjs::patching an UNREADABLE settings.json is refused",
+            "apps/desk/test/spawn-and-persist.test.mjs::a write whose .bak FAILS is refused, not silently done anyway",
+            "apps/desk/test/spawn-and-persist.test.mjs::…and the previous settings survive"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-941",
+          "text": "IF a config file exists but cannot be read, does not parse as an object, or cannot be backed up, THEN the previous contents shall survive untouched.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-460",
+      "clauses": [
+        {
+          "id": "R-460",
+          "text": "A child being torn down, including one whose stdin failed, shall go through one escalation that keeps it counted toward the live-session limit until the process is really gone.",
+          "status": "implemented",
+          "cites": [
+            "apps/desk/test/crash-paths.test.mjs::…the desk escalates to SIGKILL and the process is really gone",
+            "apps/desk/test/crash-paths.test.mjs::…a child whose stdin failed is not written off as exited while it still runs",
+            "apps/desk/test/teardown-invariants.test.mjs::the retained child still occupies a slot: the 5th spawn is refused",
+            "apps/desk/test/teardown-invariants.test.mjs::after the SIGKILL deadline the record is RETAINED (pid still alive)",
+            "apps/desk/test/teardown-invariants.test.mjs::once the pid is really gone the record is dropped"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-942",
+          "text": "The record of a child being torn down, including one whose stdin failed, shall be dropped only on real exit.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-500",
+      "clauses": [
+        {
+          "id": "R-500",
+          "text": "WHEN no run flag is given the runner shall only print the schedule and the exact argv and spend nothing.",
+          "status": "untested"
+        },
+        {
+          "id": "R-544",
+          "text": "Every bench test collected by the repo runner shall drive stub children and make zero model calls.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-502",
+      "clauses": [
+        {
+          "id": "R-502",
+          "text": "Profile validation shall reject an extension tool missing from the allowlist, an unknown tool, a bad thinking level, duplicates and an empty list.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/argv.test.mjs::rejects an extension tool missing from --tools",
+            "apps/bench/test/argv.test.mjs::rejects an unknown tool name",
+            "apps/bench/test/argv.test.mjs::rejects a bad thinking level",
+            "apps/bench/test/argv.test.mjs::rejects duplicate tools",
+            "apps/bench/test/argv.test.mjs::rejects an empty tool list",
+            "apps/bench/test/argv.test.mjs::declared-but-unset env → needs-key"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-545",
+          "text": "A profile whose declared environment variable is unset shall be recorded as needing a key rather than spent.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-504",
+      "clauses": [
+        {
+          "id": "R-504",
+          "text": "Nested model spend shall be kept strictly apart from own spend so the reported spend adds each exactly once.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/usage.test.mjs::own tokens EXCLUDE the nested call (no double counting)",
+            "apps/bench/test/nested.test.mjs::own + nested = the true total (astra's 1,530 + 4,810 = 6,340)",
+            "apps/bench/test/nested.test.mjs::a request outside any tool window is NOT counted",
+            "apps/bench/test/nested.test.mjs::a request AFTER the window closes is not counted",
+            "apps/bench/test/nested.test.mjs::an unwatched tool does not open a counting window",
+            "apps/bench/test/nested.test.mjs::…and is recorded as a skipped own call"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-546",
+          "text": "Nested model spend shall be counted only while a watched tool is executing.",
+          "status": "untested"
+        },
+        {
+          "id": "R-547",
+          "text": "A request outside any window shall be recorded as a skipped own call so the scoping is auditable.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-506",
+      "clauses": [
+        {
+          "id": "R-506",
+          "text": "Money shall come from pi's own cost function with nested spend bucketed and priced per model.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/usage.test.mjs::real stream: cost is summed from pi's own per-message cost",
+            "apps/bench/test/nested.test.mjs::each bucket is priced with ITS OWN model, not the first one seen",
+            "apps/bench/test/usage.test.mjs::nested spend with no pricer is null, not 0",
+            "apps/bench/test/usage.test.mjs::…and says why",
+            "apps/bench/test/usage.test.mjs::unknown nested spend: the reason names the unmeasured part",
+            "apps/bench/test/usage.test.mjs::unknown nested spend: the observed bound is STILL the known dollars, not 0"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-548",
+          "text": "Money shall be null with a reason whenever any part went unmeasured or unpriced.",
+          "status": "untested"
+        },
+        {
+          "id": "R-549",
+          "text": "Money shall keep the priced part separately as an explicit lower bound.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-508",
+      "clauses": [
+        {
+          "id": "R-508",
+          "text": "IF the installed pi is missing a required root export or the overridden package root is wrong, THEN the bench shall fail loudly at startup naming the export or the path tried and the verified version.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/usage.test.mjs::a pi without calculateCost fails LOUDLY at startup",
+            "apps/bench/test/usage.test.mjs::…naming the missing export",
+            "apps/bench/test/usage.test.mjs::…and refusing to fall back",
+            "apps/bench/test/usage.test.mjs::…and naming the version it was verified against",
+            "apps/bench/test/usage.test.mjs::a wrong BENCH_PI_ROOT fails and names the path tried"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-550",
+          "text": "IF the installed pi is missing a required root export or the overridden package root is wrong, THEN the bench shall refuse to substitute its own arithmetic.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-510",
+      "clauses": [
+        {
+          "id": "R-510",
+          "text": "The study fingerprint shall cover study content, task files, pins, the pi version and the seed while excluding machine-local paths and operational keys.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/plan.test.mjs::a changed prompt changes it",
+            "apps/bench/test/plan.test.mjs::a changed pi version changes it",
+            "apps/bench/test/plan.test.mjs::a changed fixture pin changes it",
+            "apps/bench/test/plan.test.mjs::but the SEED is, because it decides the order",
+            "apps/bench/test/plan.test.mjs::a machine-local agentDir path does NOT change it",
+            "apps/bench/test/plan.test.mjs::operational key ${k} is not in the fingerprint",
+            "apps/bench/test/plan.test.mjs::assertFingerprint REFUSES mixed experiments",
+            "apps/bench/test/plan.test.mjs::a schedule from another fingerprint is REFUSED"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-551",
+          "text": "A results file or schedule carrying a different fingerprint than the study fingerprint shall be refused rather than mixed.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-511",
+      "clauses": [
+        {
+          "id": "R-511",
+          "text": "WHEN repeats are raised the study shall extend under the same fingerprint keeping every scheduled run in its position.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/plan.test.mjs::extending 3→5 keeps the first three reps byte-identical",
+            "apps/bench/test/plan.test.mjs::extending writes a longer schedule under the SAME fingerprint",
+            "apps/bench/test/plan.test.mjs::asking for FEWER reps afterwards does not truncate the schedule",
+            "apps/bench/test/plan.test.mjs::resume skips exactly the completed tuples",
+            "apps/bench/test/plan.test.mjs::a FAILED run counts as completed — the harness never retries it",
+            "apps/bench/test/plan.test.mjs::a GRADER-ERROR run is also not silently re-run"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-552",
+          "text": "WHEN fewer repeats are asked for after an earlier extension, the schedule shall not be truncated.",
+          "status": "untested"
+        },
+        {
+          "id": "R-553",
+          "text": "Resume shall skip every tuple already recorded, failed and grader-error ones included.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-514",
+      "clauses": [
+        {
+          "id": "R-514",
+          "text": "Credentials shall be shared as one link to the operator's file rather than copied.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/agentdir.test.mjs::…as a SYMLINK, not a copy",
+            "apps/bench/test/agentdir.test.mjs::refuses to prepare a dir with no auth.json",
+            "apps/bench/test/agentdir.test.mjs::…and creates nothing",
+            "apps/bench/test/agentdir.test.mjs::verifyAuth refuses to run without credentials",
+            "apps/bench/test/agentdir.test.mjs::a DANGLING credential symlink is refused",
+            "apps/bench/test/agentdir.test.mjs::the settings fingerprint contains no credential material"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-554",
+          "text": "No credential material shall enter the fingerprint.",
+          "status": "untested"
+        },
+        {
+          "id": "R-555",
+          "text": "IF the credential link's source is missing or the link dangles THEN the runner shall refuse to start before any spend.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-515",
+      "clauses": [
+        {
+          "id": "R-515",
+          "text": "Before any graded spend each profile shall pass a zero-token load probe asserting the model resolved with compaction off as proof the pinned settings were read.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/orchestration-paths.test.mjs::loadProbe: a profile whose model resolves with compaction off passes",
+            "apps/bench/test/orchestration-paths.test.mjs::loadProbe: compaction still ON means the pinned settings were not read",
+            "apps/bench/test/integration.test.mjs::probe: fails when a declared tool is not registered",
+            "apps/bench/test/integration.test.mjs::orchestration: a failed probe stops the study before any graded run"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-556",
+          "text": "Before any graded spend each extension profile shall pass one registration probe that aborts when a declared extension tool is not registered.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-518",
+      "clauses": [
+        {
+          "id": "R-518",
+          "text": "Budgets shall be between-run thresholds that cap each child's timeout by the remaining wall allowance with no floor.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/integration.test.mjs::wall cap: with almost no allowance left, the study STOPS instead of granting 30s",
+            "apps/bench/test/ops.test.mjs::the budget reports itself NOT fully accounted",
+            "apps/bench/test/ops.test.mjs::budget counts runs carrying unmeasured nested spend"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-557",
+          "text": "A study carrying any run with unmeasured nested spend shall report itself as not fully accounted.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-519",
+      "clauses": [
+        {
+          "id": "R-519",
+          "text": "WHEN three consecutive non-model failures occur the study shall abort, the streak being restored from the trailing records on resume and cleared by any decided run.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/ops.test.mjs::a run-error streak trips the limit too",
+            "apps/bench/test/ops.test.mjs::mixed non-model failures still count as one streak",
+            "apps/bench/test/ops.test.mjs::a FAILING but decided run also resets it (that is a measurement, not a fault)",
+            "apps/bench/test/ops.test.mjs::a trailing run of non-model failures is restored on resume",
+            "apps/bench/test/ops.test.mjs::…and stops the study immediately at the limit",
+            "apps/bench/test/ops.test.mjs::a child that could not be confirmed dead stops the study",
+            "apps/bench/test/ops.test.mjs::treeAlive sees the group die"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-558",
+          "text": "A child that cannot be confirmed dead across its whole process group shall stop the study at once.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-520",
+      "clauses": [
+        {
+          "id": "R-520",
+          "text": "WHEN an interrupt begins the salvage shall own the in-flight record so each tuple yields exactly one row whatever the ordering.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/orchestration-paths.test.mjs::race/${label}: exactly ONE row for the tuple",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/append: …exactly one row for the tuple",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: the hook is consumed, so a second interrupt writes nothing twice",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: …a second pass persists nothing"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-559",
+          "text": "WHEN an interrupt begins a second pass shall write nothing twice.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-521",
+      "clauses": [
+        {
+          "id": "R-521",
+          "text": "An interrupted run shall be recorded as a run error naming the interrupt with the tokens measured so far, no invented price and the raw stream as evidence, the record landing before the exit is requested with code 130.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: the record is a run-error naming the interrupt",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: …with the tokens measured so far, not zero",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: …with no invented price",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/child: the RAW LIVE BUFFER was persisted as evidence",
+            "apps/bench/test/orchestration-paths.test.mjs::SIGINT wiring: the record lands before the exit is requested",
+            "apps/bench/test/orchestration-paths.test.mjs::SIGINT wiring: …and it exits 130",
+            "apps/bench/test/orchestration-paths.test.mjs::interrupt/probe: …not marked ok, so a resume re-runs it rather than trusting it"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-560",
+          "text": "An interrupted paid probe shall land in the ledger not marked successful so a resume re-runs it.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-522",
+      "clauses": [
+        {
+          "id": "R-522",
+          "text": "Every checker shall be deterministic with no model judge in the set.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/checkers.test.mjs::no LLM-judge checker exists",
+            "apps/bench/test/checkers.test.mjs::unknown checker type is a grader error",
+            "apps/bench/test/checkers.test.mjs::exact: 304 does not match 1304 under whole"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-561",
+          "text": "An unknown checker type shall be a grader error.",
+          "status": "untested"
+        },
+        {
+          "id": "R-562",
+          "text": "Exact matching shall default to whole text so a contained number is not accepted for a different one.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-523",
+      "clauses": [
+        {
+          "id": "R-523",
+          "text": "The suite checker shall be a non-authoritative smoke signal that catches an early exit which still exits zero.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/checkers.test.mjs::suite: an EARLY EXIT that still exits 0 is caught",
+            "apps/bench/test/checkers.test.mjs::the forgeable trusted-suite checker is gone",
+            "apps/bench/test/checkers.test.mjs::behaviour evaluation replaced it"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-563",
+          "text": "The forgeable same-process trusted-suite checker shall not exist.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-525",
+      "clauses": [
+        {
+          "id": "R-525",
+          "text": "Two valid signed lines shall be a grader error rather than a selection.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: TWO valid lines are ambiguous, not a selection",
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: an ambiguous verdict is a GRADER error, never a pass",
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: no signed line at all is a FAILURE (the module blocked the evaluator)",
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: a verdict that is not an object is a grader error",
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: fewer probe results than declared probes is a grader error",
+            "apps/bench/test/evaluator-hardening.test.mjs::A2: more probe results than declared probes is a grader error too"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-564",
+          "text": "No signed line shall be a failure.",
+          "status": "untested"
+        },
+        {
+          "id": "R-565",
+          "text": "A verdict of the wrong shape or probe count shall be a grader error.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-526",
+      "clauses": [
+        {
+          "id": "R-526",
+          "text": "Between importing the module and signing the verdict the evaluator shall reach no user-writable function property.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/evaluator-hardening.test.mjs::A3 sweep: …and reaches NO user-writable function property after the import",
+            "apps/bench/test/evaluator-hardening.test.mjs::A3 sweep: the evaluator still grades correctly with every writable global wrapped",
+            "apps/bench/test/evaluator-hardening.test.mjs::A3: a module that patches ALL of them and then FIXES the behaviour still PASSES"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-566",
+          "text": "Between importing the module and signing the verdict the evaluator shall still grade correctly with every writable global wrapped.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-527",
+      "clauses": [
+        {
+          "id": "R-527",
+          "text": "The evaluator shall compare returned primitives only, rejecting a non-primitive return and a non-primitive expectation.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/evaluator-hardening.test.mjs::A4: REJECTS ${label} instead of coercing it",
+            "apps/bench/test/evaluator-hardening.test.mjs::A4: a non-primitive EXPECTATION is a grader error",
+            "apps/bench/test/evaluator-hardening.test.mjs::A3: a RangeError renamed TypeError (and faking hasInstance) is still REJECTED"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-567",
+          "text": "The evaluator shall decide a required error class by walking the thrown value's prototype chain rather than its name.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-529",
+      "clauses": [
+        {
+          "id": "R-529",
+          "text": "The shape rule shall bound every change to the declared path allowlist, the protected set and the declared line range.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/checkers.test.mjs::changed-paths: an edit outside the allowlist FAILS",
+            "apps/bench/test/checkers.test.mjs::changed-paths: protect catches a modified protected file",
+            "apps/bench/test/checkers.test.mjs::withinLines: a change outside it is rejected",
+            "apps/bench/test/checkers.test.mjs::changed-paths: bench-owned assets are never counted as the model's edits",
+            "apps/bench/test/checkers.test.mjs::a denylist is no longer part of the shape rule"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-568",
+          "text": "The shape rule shall never count bench-owned assets as the model's edits.",
+          "status": "untested"
+        },
+        {
+          "id": "R-569",
+          "text": "The shape rule shall carry no token denylist over added lines.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-530",
+      "clauses": [
+        {
+          "id": "R-530",
+          "text": "A detection checker shall reject a vacuous test that passes with the fix reverted and treat an unspawnable or hanging grader command as a grader error rather than proof of detection.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/checkers.test.mjs::revert-and-fail: a vacuous test that always passes is REJECTED",
+            "apps/bench/test/checkers.test.mjs::revert-and-fail: an unspawnable command is a GRADER error, not proof of detection",
+            "apps/bench/test/checkers.test.mjs::revert-and-fail: a HANGING command is a GRADER error, not proof of detection",
+            "apps/bench/test/checkers.test.mjs::live-key: an empty key is a GRADER error (never grades against nothing)",
+            "apps/bench/test/checkers.test.mjs::live-key: a pinned value that drifted is a GRADER error, not a wrong answer",
+            "apps/bench/test/checkers.test.mjs::live-key: snapshotKey is used INSTEAD of re-fetching"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-570",
+          "text": "A pinned live key shall make drift or an empty key a grader error with a snapshot reused on resume instead of refetched.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-531",
+      "clauses": [
+        {
+          "id": "R-531",
+          "text": "In a composite checker every child shall run with a grader error anywhere dominating an ordinary failure.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/checkers.test.mjs::all: a grader error AFTER an ordinary failure still dominates",
+            "apps/bench/test/checkers.test.mjs::all: every child runs, so the detail reports all of them",
+            "apps/bench/test/integration.test.mjs::executeRun: a post-processing failure is a grader error, not a model failure",
+            "apps/bench/test/aggregate.test.mjs::r2/C: a grader error is excluded from the denominator",
+            "apps/bench/test/aggregate.test.mjs::r2/C: …but is counted in states",
+            "apps/bench/test/aggregate.test.mjs::a cell of nothing but grader errors has a null success rate, not 0%"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-571",
+          "text": "In a composite checker every grader error shall be recorded undecided and excluded from every success denominator while still appearing in the state counts.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-533",
+      "clauses": [
+        {
+          "id": "R-533",
+          "text": "The workspace diff shall be taken against what the model started from, the pinned fixture with the task's mutations applied.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/orchestration-paths.test.mjs::fixture run: the pinned fixture verified, materialised and mutated",
+            "apps/bench/test/orchestration-paths.test.mjs::shipped c7: the workspace diff SHOWS the fix rather than being empty",
+            "apps/bench/test/orchestration-paths.test.mjs::fixture run: the bench asset was copied in AFTER the child exited",
+            "apps/bench/test/orchestration-paths.test.mjs::fixture run: …and is on disk for the grader, not counted as the model's edit"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-572",
+          "text": "Grading assets shall be copied in only after the model exits and never counted as its edits.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-534",
+      "clauses": [
+        {
+          "id": "R-534",
+          "text": "IF the fixture has drifted from its pin THEN the run shall be a grader error with no paid child spawned.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/orchestration-paths.test.mjs::fixture run: a drifted fixture is a grader error, never a graded run",
+            "apps/bench/test/orchestration-paths.test.mjs::fixture run: …and no paid child was spawned for it",
+            "apps/bench/test/study-tasks.test.mjs::pinnedSha ${k} matches the file on disk",
+            "apps/bench/test/study-tasks.test.mjs::the sidecar's accounting module is pinned, not just the wrapper",
+            "apps/bench/test/study-tasks.test.mjs::the trusted evaluator is pinned too"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-573",
+          "text": "Every content pin a study declares shall name a file that exists and match it on disk, the sidecar's accounting module and the trusted evaluator included.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-536",
+      "clauses": [
+        {
+          "id": "R-536",
+          "text": "Extraction from the review corpus shall be deterministic across runs with unique row ids and no silent drop, every top-level item being a row or logged as skipped.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/catch-ledger.test.mjs::extraction is deterministic (two runs byte-identical)",
+            "apps/bench/test/catch-ledger.test.mjs::row ids unique",
+            "apps/bench/test/catch-ledger.test.mjs::no silent drop: every top-level item is a row or logged",
+            "apps/bench/test/catch-ledger.test.mjs::seeded sample is order-independent and deterministic",
+            "apps/bench/test/catch-ledger.test.mjs::κ rejects unequal vectors"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-574",
+          "text": "Agreement shall be computed as Cohen's kappa over equal-length rater vectors from a seeded order-independent sample.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-537",
+      "clauses": [
+        {
+          "id": "R-537",
+          "text": "A judge that is unavailable, exits nonzero, returns non-JSON, reports an error or silently answers on another model shall fail closed with nothing labelled.",
+          "status": "implemented",
+          "cites": [
+            "apps/bench/test/catch-ledger.test.mjs::judge missing → throws 'unavailable'",
+            "apps/bench/test/catch-ledger.test.mjs::judge exit 1 → throws",
+            "apps/bench/test/catch-ledger.test.mjs::judge non-JSON → throws",
+            "apps/bench/test/catch-ledger.test.mjs::judge is_error → throws",
+            "apps/bench/test/catch-ledger.test.mjs::judge silently on another model → throws",
+            "apps/bench/test/catch-ledger.test.mjs::CLI: judge unavailable → exit non-zero, nothing labelled",
+            "apps/bench/test/catch-ledger.test.mjs::labels: unverifiable quote forces 'unmatched' and keeps the raw claim"
+          ],
+          "assertion": "unchanged this batch: carries the origin's pre-existing status and cites forward (batch C splits for form only per bc-method-ruling.md's trigger — the per-condition rule did not converge, so C promotes nothing; mutationRecords and conditionRecords are false; no new judgement, no mutation evidence)."
+        },
+        {
+          "id": "R-575",
+          "text": "A quote that cannot be verified shall force an unmatched disposition keeping the raw claim.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-538",
+      "clauses": [
+        {
+          "id": "R-538",
+          "text": "The catch ledger shall be measurement tooling only, so nothing in it may change review practice, model choice, roles or spend.",
+          "status": "untested"
+        },
+        {
+          "id": "R-576",
+          "text": "The build shall refuse to write the catch ledger's table when agreement on the top-level class falls below the gate, writing the measured kappa and the refusal instead.",
+          "status": "untested"
+        }
+      ]
+    },
+    {
+      "origin": "R-540",
+      "clauses": [
+        {
+          "id": "R-540",
+          "text": "pi's default tool profile shall stand until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict.",
+          "status": "untested"
+        },
+        {
+          "id": "R-577",
+          "text": "The web-access extension shall stay uninstalled until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict.",
+          "status": "untested"
+        }
+      ]
+    }
+  ]
+}

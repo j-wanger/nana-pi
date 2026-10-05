@@ -371,7 +371,11 @@ const PACKAGE_BLOCKS = [
 	// guard in section 2 above still refuses any id already occupied, so widening the
 	// allowed range here cannot let a new row overwrite an existing one.
 	{ name: "installer", own: [[300, 399]], continuation: [[920, 939], [381, 399]] },
-	{ name: "desk", own: [[400, 499]], continuation: [[940, 959]] },
+	// R-940–959 (20 ids) was the declared continuation; batch C's 35 desk clauses fit the
+	// block's own free numbers first (R-468–499, design-ruling.md §0: "Free today 32") with
+	// only the overflow (3) spilling into continuation — same pattern as installer above.
+	// The collision guard in section 2 still refuses any id already occupied.
+	{ name: "desk", own: [[400, 499]], continuation: [[940, 959], [468, 499]] },
 	{ name: "bench", own: [[500, 599]], continuation: [[500, 599]] }, // "none": same as stage
 	{ name: "runner", own: [[600, 619]], continuation: [[910, 919]] },
 ];
