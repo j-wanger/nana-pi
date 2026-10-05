@@ -1,10 +1,13 @@
 # Worker report — fixes from the 2026-10-05 nana-pi audit
 
-Worktree `~/nana-pi-wt/audit-fixes`, branch `feat/audit-fixes`, off main `5bae6cc`. Three commits:
+Worktree `~/nana-pi-wt/audit-fixes`, branch `feat/audit-fixes`, off main `5bae6cc`. Commits:
 
 - `e433e5a` — A (the lint-gate defect)
 - `b4f3fe0` — B (the shared-file canonicalization)
 - `6fa06b7` — C (the eleven documentation drifts)
+- `1632409` — this report, first cut
+- `af287dd` — the seat's own commit: the sol r1 review brief (not mine)
+- `d3c9e5a` — round 2: the gpt-5.6-sol r1 BLOCK response (see that section below)
 
 No push, no merge, no `pi-review` run, `HANDOFF.md`/`~/.pi`/`~/.claude`/`~/.agents`/the live
 checkout/the running desk untouched. Tags: `[V]` directly verified in this pass (ran a command,
@@ -291,3 +294,112 @@ confirmed by `ears: 0 rows off form` after each edit.
   scope, which only concerned the ignore/layerExempt sentence); a quick count found 77 non-test
   modules under the declared roots today, so that number may itself be stale — flagged here, not
   fixed, since the brief did not ask for it and changing it would need its own verification pass.
+  (Fixed in round 2 below, once named by the review this residual predicted.)
+
+## Round 2 — gpt-5.6-sol r1, BLOCK 6/10
+
+Review at `docs/reviews/audit-2026-10-05/sol-brief.md` (the seat's brief to sol) and the full
+findings the coordinator relayed (not copied into this tree — the seat's own commit carries only
+the brief, per instruction). Commit `d3c9e5a`.
+
+**1 — MUST — R-858 returned to `untested`.** Done. `[V]` sol's own reproduction (a `PATH` with
+only Node present, confirmed by the SKIP/SKIP/"all passed"/exit 0 transcript in the review) is
+real: the three lint checks added in round 1 are each gated behind a `uvx ruff --version` /
+`pnpm dlx @biomejs/biome --version` probe that SKIPs silently, so a machine without those tools
+asserts R-858's clause not at all while the suite still exits green. On top of that, even where
+they DO run, they invoke `uvx ruff` / `pnpm dlx @biomejs/biome` directly, not the rendered
+project's own installed `uv run ruff` / `pnpm lint` — a different command than the row's "its
+own ... gates" wording promises. Removed all three `// req: R-858` markers (checks themselves
+kept — they still catch a real regression on a machine that has the tools, which is worth
+keeping even unmarked). Row flipped to `untested`; its Evidence cell now states, in prose, (a)
+the manual fresh-render proof from 2026-10-05 (both languages, scaffold + adopt, with the
+project's own installed commands), (b) that the suite's checks run here but skip silently
+elsewhere, and (c) that they call `uvx`/`pnpm dlx`, not the rendered project's own commands —
+exactly the three things the coordinator's instruction named. `requirements-trace.mjs` confirms:
+509 implemented (down 1), 278 untested (up 1), 0 rows off form.
+
+**2 — MUST — six categorical claims qualified, each verified in code first.** Done. `[V]` for
+all six:
+- Objective: `nana-objective.ts:71`, `if (!cfg.objective.enabled) return;` inside
+  `session_start` — confirmed user-scope-only by `lib/config.ts:567`'s
+  `merge("objective", u.objective)` (one argument, no project-scope source, unlike keys that
+  take `merge(key, u.key, project.key)`).
+- Handoff: `nana-handoff.ts:309,442` gate both read and write on `cfg.handoff.enabled`;
+  `:327,454` read `cfg.handoff.path` and use it in place of the default store path when set.
+  Case-folding on Windows re-confirmed at `lib/adoption.mjs`'s `storePathFor()`. Applied the same
+  qualification to `packages/nana-pack/README.md`'s Handoff bullet (L593) — its opening clause
+  said "fixed at ... regardless of PI_CODING_AGENT_DIR" with no "by default" of its own, even
+  though the bullet's own later sub-bullets (`Custom handoff.path`, `Disable with
+  handoff.enabled: false`) already covered both facts — the opening sentence alone was the
+  unqualified part the review meant.
+- Notify: `nana-notify.ts:121-122`, `if (!cfg.notify.enabled) return; if (!ctx.hasUI &&
+  !cfg.notify.headless) return;` — confirms both the enabled gate and the headless-silent-by-
+  default rule in one pair of lines. The in-app fallback (`ctx.ui.notify(...)` at line 136) sits
+  strictly inside the `onFail` callback passed to the OS notifier (`:126-139`), confirming it
+  fires only on an OS-notifier failure.
+- Gate / auth: `PROTECTED_PATHS` in `nana-gate.ts:54-64` is a literal-string regex,
+  `/\.pi[/\\]agent[/\\]auth\.json/i` — it matches the DEFAULT path's own text, not a resolved
+  `PI_CODING_AGENT_DIR`, so a relocated agent dir's `auth.json`/`settings.json` is genuinely
+  unprotected; `REQUIREMENTS.md:104`'s `R-058` is already `violated` with exactly this
+  attribution.
+- Gate / symlink: `activeDirPolicyFiles()` in `lib/gate-paths.ts:109-123` walks only
+  `[piAgentDir(), ~/.pi/agent]` and resolves each file's symlink target within those two dirs —
+  there is no equivalent walk for a project-scope `.pi/nana-pack.json`'s own symlink target.
+  `HANDOFF.md`'s U2 line already carries this as "a project-scope policy symlink target is not
+  covered."
+- Gate / loosening vs. malformed-stop: `config-gate-fallback.test.mjs` case (c) writes a
+  malformed `gate` leaf, confirms every tool call blocked, then repairs the file and calls the
+  SAME gate instance again in the SAME test (no restart, no reload) — "repaired file — benign
+  command allowed again" passes. `REQUIREMENTS.md:112`'s `R-065` states the rule directly: "Repairing
+  the named file shall lift the stop live, while its allow patterns wait for the next session
+  start."
+
+All six qualifications were written into `templates/_shared/working-under-nana-pi.md` first,
+then the file was re-copied into `AGENTS.md` (`head -n 109 AGENTS.md` + `cat` the shared file)
+and `diff`-confirmed byte-identical, same mechanism as round 1's B. The
+`templates-render.test.mjs` mirror check (`R-859`) still passes.
+
+**3 — SHOULD — two addendum fixes.** Done. `[V]` `doctor.mjs:317-321`: the pi-subagents
+below-floor branch calls `add(FAIL, "pi pi-subagents", ...)`, and `nana-setup.mjs:140`'s own
+symbol table maps `FAIL` → `✗`, `WARN` → `!` — confirmed I had mis-attributed the `!` from
+`architecture-ruling.md`'s adjacent, unrelated sentence about the `mcp.json` codemode-default
+check. Fixed. Added the hash-suffix fact for colliding/overlong MCP tool names, confirmed in
+`docs/mcp.md` ("tools of a server whose names then collide all get a hash suffix") and
+`dist/extensions/mcp/tools.js:29-54` (`MAX_TOOL_NAME_LENGTH = 64`, a sha256-derived 8-char
+suffix).
+
+**4 — SHOULD — Part G intro module count.** Done. `[V]` Recounted directly from
+`docs/code-map.md`'s own headings (172 total; 95 paths matching `/test(s)?/`; 77 not) —
+matches sol's count exactly. Replaced "73 modules in all" with "172 modules in all ... 77
+non-test ... plus 95 under the six test roots," naming what each counts.
+
+**5 — NOTE — the bogus `--` in `pnpm map:impact -- <file...>`.** Done, scope widened slightly
+on my own initiative. `[V]` Reproduced live against a freshly rendered TypeScript project:
+`pnpm map:impact -- src/index.ts` → `node scripts/code-map.mjs --impact -- src/index.ts` →
+pnpm forwards the `--` token literally (confirmed by a side-by-side `npm run` test, which DOES
+strip it — `node scripts/code-map.mjs --impact scripts/code-map.mjs`, no bogus line), so the
+CLI reads `--` as a second file argument and prints `-- [NOT A MAPPED MODULE]` before the real
+result. Fixed the one line named
+(`templates/_shared/working-under-nana-pi.md`). Checked the Python twin
+(`uv run python scripts/code_map.py --impact <file>` — never uses a package-manager
+script-forwarding layer, so `--` never appears; nothing to fix) and found two more TypeScript
+template files carrying the byte-identical bug, not named by the review but caught while
+searching for "any template README with the same form":
+`templates/typescript/template/AGENTS.md.jinja` and
+`templates/typescript/template/{% if not adopt %}src{% endif %}/AGENTS.md`. Fixed those too
+(pure text, zero logic risk) rather than leave a known, verified, trivial-to-fix instance of the
+exact same defect sitting uncorrected a few files away.
+
+**Gate results, round 2** (symlinks re-added, then removed after):
+
+| Gate | Result |
+|---|---|
+| `npm test` | 95/95 files, 5780/5780 checks, 0 fail, 4 skip · exit 0 |
+| `npm run map:check` | 172 modules, 0 problems · exit 0 |
+| `npm run readme:check` | 553 claims, 0 problems · exit 0 |
+| `node scripts/requirements-trace.mjs` | 797 total, 0 rows off form · exit 0 |
+| Fresh render, python, from new `HEAD` | render, `uv sync`, `ruff check`, `ruff format --check`, `pytest` (58/58) — all exit 0 |
+| Fresh render, typescript, from new `HEAD` | render, `pnpm install`, `pnpm check` (52/52) — all exit 0; `pnpm map:impact src/index.ts` runs clean, no bogus `--` line |
+
+Every exit code captured directly (redirected to a file, `echo $?` immediately after), never
+through a `| tail` pipe.
