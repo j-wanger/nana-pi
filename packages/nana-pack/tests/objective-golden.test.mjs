@@ -1049,6 +1049,7 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const lock = `${store(w)}.lock`; make(lock);
 			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
 			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+			// req: R-760
 			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
 			if (piMod) {
 				make(lock); // re-date: the runtimes above took time
