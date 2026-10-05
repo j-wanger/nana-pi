@@ -19,6 +19,8 @@ import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
 const DESK = Number(process.env.DESK_TEST_PORT || 4401);
 const PA = 4402, PB = 4403;
+// zeta: a `builtin:<name>` extensions entry mixed with real file extensions (R-943/R-944).
+const PZ = 4414;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // The desk imports pi's session parser from the install tied to the `pi` it
 // SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
@@ -125,6 +127,11 @@ fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cw
 fs.writeFileSync(path.join(appsDir, "Bad Name.json"), JSON.stringify(manifest(4404, cwdA)));
 fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(4405, "/no/such/dir")));
 fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(4406, cwdA, { tools: [] })));
+// Fixtures for R-943/R-944: a builtin: entry mixed with real file extensions, and two
+// near-misses that must NOT be treated as a builtin ref (still need an existing file).
+fs.writeFileSync(path.join(appsDir, "zeta.json"), JSON.stringify(manifest(PZ, cwdA, { extensions: [extA, "builtin:mcp", extStage] })));
+fs.writeFileSync(path.join(appsDir, "badbuiltin.json"), JSON.stringify(manifest(4415, cwdA, { extensions: [extA, "builtin:"] })));
+fs.writeFileSync(path.join(appsDir, "badbuiltin2.json"), JSON.stringify(manifest(4416, cwdA, { extensions: [extA, "builtin:../x"] })));
 
 const server = spawn("node", [SERVER], {
 	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
@@ -136,20 +143,26 @@ server.stderr.on("data", (c) => (serverLog += c));
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`, D = `http://127.0.0.1:${DESK}`;
+const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`, D = `http://127.0.0.1:${DESK}`, Z = `http://127.0.0.1:${PZ}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
 const stubRuns = () => fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf-8").trim().split("\n").map((l) => JSON.parse(l)) : [];
 
 try {
 	for (let i = 0; i < 40; i++) {
-		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); await fetch(Dl + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
+		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); await fetch(Dl + "/api/manifest"); await fetch(Z + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
 	// req: R-447
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
 	// req: R-447
 	check("empty-tools app has no listener", await fetch("http://127.0.0.1:4406/api/manifest").then(() => false).catch(() => true));
+	// req: R-943
+	check("zeta (a builtin: entry mixed with real file extensions) loads and has a listener", (await get(Z, "/api/manifest")).name === "zeta");
+	// req: R-943
+	check(`near-miss "builtin:" (empty name) rejected at load, same as a missing file`, /badbuiltin\.json: extensions: no such file builtin:$/m.test(serverLog), serverLog.split("\n").filter((l) => /badbuiltin\.json/.test(l)).join(" | "));
+	// req: R-943
+	check(`near-miss "builtin:../x" rejected at load, same as a missing file`, /badbuiltin2\.json: extensions: no such file builtin:\.\.\/x/.test(serverLog), serverLog.split("\n").filter((l) => /badbuiltin2\.json/.test(l)).join(" | "));
 
 	// ── route table: none of the desk's surfaces exist on an app port ──
 	for (const [method, p] of [["GET", "/api/live"], ["POST", "/api/spawn"], ["POST", "/api/session/1/bash"], ["GET", "/api/settings"], ["GET", "/api/sessions"], ["DELETE", "/api/session/1"], ["POST", "/api/session/1/rpc"]]) {
@@ -220,6 +233,14 @@ try {
 
 	check("child was told the expected tools (NANA_STAGE_EXPECT_TOOLS = manifest tools)", run.expect === "read,player_card", String(run.expect));
 	check("session reports tools READY from the stub's status report", s1.tools === "ready", String(s1.tools));
+
+	// ── R-944: a builtin:<name> extensions entry rides through as a literal -e, in manifest order ──
+	// (spawned after the alpha reattach/count checks above, which assume exactly one child so far)
+	const sZ = await post(Z, "/api/session", {}).then((r) => r.json());
+	check("zeta spawned", typeof sZ.id === "string", JSON.stringify(sZ));
+	const argvZ = stubRuns().at(-1).argv.join(" ");
+	// req: R-944
+	check("argv: a builtin:<name> extensions entry rides through as literal -e builtin:mcp, in manifest order", argvZ.includes("-e builtin:mcp") && argvZ.indexOf(`-e ${extA}`) < argvZ.indexOf("-e builtin:mcp") && argvZ.indexOf("-e builtin:mcp") < argvZ.indexOf(`-e ${extStage}`), argvZ);
 
 	// ── fail-closed readiness: a child that never reports is UNREPORTED after the bound, never ready ──
 	const t0 = Date.now();

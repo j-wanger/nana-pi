@@ -1,7 +1,9 @@
 # Worker report — the edge desk moves to pi's built-in MCP
 
-Worker: Opus 5.5 (fork of the brief's assigned worker role). Date 2026-10-04/05. pi on this
-machine: 1.0.2. Brief: `docs/reviews/edge-builtin-mcp-2026-10-04/brief.md`.
+Worker: Claude Sonnet 5 (claude-sonnet-5) — the brief names the worker role as "Opus 5.5", but
+that is not the model actually running this lane; corrected here per the seat's follow-up
+2026-10-05. Date 2026-10-04/05. pi on this machine: 1.0.2. Brief:
+`docs/reviews/edge-builtin-mcp-2026-10-04/brief.md`.
 
 Every claim below is marked **[V]** verified by execution in this session, **[S]** read in pi's
 installed source/docs, or **[I]** inferred.
@@ -131,7 +133,10 @@ the probe found necessary (`builtin:mcp` in the manifest's `extensions`):
   no consumer remains, and there is no built-in equivalent to port (next bullet).
   `extensions/nana-stage.ts` now passes `structuredContent: event.structuredContent` through.
 - **Requirements**: R-263 and R-278 retired (reasons below); R-279 reworded in place (ID kept,
-  clause's truth carried over); three new rows added (R-282/283/284).
+  clause's truth carried over); three new rows added (R-282/283/284). **Seat follow-up (2026-10-05):**
+  the desk's `builtin:<name>` acceptance had shipped with no row and no test — added R-943/R-944
+  and the tests/mutations for them (below); this was a real gap in the original pass, not a
+  disagreement with the seat.
 - **Desk**: fixed the one stale panel string in `app.js` (`tabMcp`, was "Bridged by
   pi-mcp-adapter…"); it does **not** write adapter-only keys (`directTools`, `toolPrefix`,
   `lifecycle`, `settings.*`) into `mcp.json` — checked the whole function, it only ever
@@ -152,6 +157,21 @@ the probe found necessary (`builtin:mcp` in the manifest's `extensions`):
   correctly calls `mcp__edge__explore_screen` without needing the prefix spelled out.
 
 ## Tests run
+
+**Seat follow-up 4 — the five named checks, real exit codes, `apps/bench/.ext` symlinked in from
+`~/nana-pi/apps/bench/.ext` for this re-run only, then removed (tree left clean, `git status`
+confirmed empty before and after):**
+
+| Check | Exit | Result |
+|---|---|---|
+| `node packages/nana-stage/tests/blocks.test.mjs` | 0 | 116 pass, 0 fail |
+| `node apps/desk/test/app-listener.test.mjs` | 0 | 75 pass, 0 fail |
+| `node scripts/requirements-trace.mjs` | 0 | `requirements: 793 total (506 implemented · 1 planned · 2 retired · 277 untested · 7 violated); 506 traced by tests` / `ears: 0 rows off form (allowance 0)` |
+| `npm run map:check` | 0 | 172 modules, 0 problems |
+| `node scripts/readme-check.mjs --check` | 1 | 549 claims, 1 problem (`node_modules` only — environmental, see below) |
+
+Did not rerun the full `npm test` or the e2e suite, per the seat's instruction (the seat runs the
+full suite after merge).
 
 - **Unit** — `packages/nana-stage/tests/blocks.test.mjs`: **116/116 pass**, `node
   packages/nana-stage/tests/blocks.test.mjs`, exit 0. New/changed checks: built-in carrier found
@@ -182,19 +202,24 @@ the probe found necessary (`builtin:mcp` in the manifest's `extensions`):
 - **nana-pi full suite** — `npm test` (clean single run, real exit code checked — not piped
   through head/tail before this decision): **95 files: 93 PASS, 1 FAIL, 1 SKIP, 0 WARN · checks:
   5526 pass, 2 fail, 6 skip · 297.5s**. The one failing file is `packages/nana-pack/tests/
-  readme-check.test.mjs` — **0 introduced failures**, see "Pre-existing, not mine" below. (Two
+  readme-check.test.mjs` — **0 introduced failures**, environmental to the worktree, not
+  pre-existing on main — see below. (Two
   earlier attempts raced on a shared output file across two backgrounded invocations and produced
   garbled, untrustworthy text; both are discarded in favor of this clean rerun, whose only FAIL
   line matches every other check of the same claim in this report.)
 - **`npm run map:check`**: 0 problems (172 modules; map regenerated and committed).
-- **`npm run readme:check`** (standalone, `node scripts/readme-check.mjs --check`): 549 claims,
-  **5 problems — all 5 pre-existing**, confirmed by `git status` showing the three affected
-  READMEs (`README.md`, `apps/bench/README.md`, `packages/nana-knowledge/README.md`) untouched by
-  me and `apps/bench/.ext` genuinely absent from disk; these are about `apps/bench/.ext/
-  pi-web-access` and `nana-knowledge`'s `node_modules` claim, unrelated to nana-stage/desk/edge.
-- **`node scripts/requirements-trace.mjs`**: `requirements: 791 total (504 implemented · 1
-  planned · 2 retired · 277 untested · 7 violated); 504 traced by tests` / `ears: 0 rows off form
-  (allowance 0)`, exit 0.
+- **`npm run readme:check`** — **corrected** (my first pass called this "pre-existing"; it is
+  not). **[V]** On `main` (`~/nana-pi`, read-only check): `544 claims checked; 0 problem(s)`. In
+  this worktree, before any fix: `549 claims checked; 5 problem(s)` — all 5 are the worktree
+  missing two **gitignored** paths main's checkout happens to have: `apps/bench/.ext/
+  pi-web-access` (an npm-installed package, never vendored) and the repo-root `node_modules`
+  (manually symlinked `playwright`/`playwright-core`). Symlinked `apps/bench/.ext` in from
+  `~/nana-pi/apps/bench/.ext` (read, not write, against the live checkout) for the seat's
+  follow-up re-run: **549 claims, 1 problem** (`node_modules` only) — removed the symlink
+  afterward, tree clean. **This branch introduces zero README problems.**
+- **`node scripts/requirements-trace.mjs`**: exit 0 — see the seat follow-up table above for the
+  current (post-R-943/944) count; this bullet originally reported the pre-follow-up number (791
+  total), now superseded.
 - **edge-screener** — `uv run ruff check src/edge_screener/desk/mcp_server.py`: clean. `uv run
   mypy src/edge_screener/desk/mcp_server.py`: clean. `uv run pytest -q` (whole suite): **691
   passed**, coverage 92.93% (gate 85%). `uv run pre-commit run --files
@@ -204,13 +229,16 @@ the probe found necessary (`builtin:mcp` in the manifest's `extensions`):
   ("mypy has 81 pre-existing errors in `tests/firm/`, untouched") exactly; not touched by this
   lane.
 
-### Pre-existing, not mine [V]
+### Environmental to the worktree, not pre-existing on main [V] — corrected 2026-10-05
 
-Five readme-check problems and the `packages/nana-pack/tests/readme-check.test.mjs` failure
-predate this lane: `git status --short README.md apps/bench/README.md
-packages/nana-knowledge/README.md` on the base commit shows all three **unmodified**, and
-`apps/bench/.ext` does not exist on disk. I did not touch any of the three files and did not fix
-this — out of this lane's remit (surgical change discipline), flagged here for the seat.
+My first pass called the readme-check / `readme-check.test.mjs` red **"pre-existing"**. Wrong,
+per the seat's follow-up: `git status --short` showing the affected READMEs unmodified by me only
+proves I didn't edit their *text*; it says nothing about whether the *paths they claim* exist,
+and those paths are gitignored, so a fresh worktree starts without them while `main`'s own
+checkout (`~/nana-pi`) already has them from normal use. **[V]** `main` reads 0 problems (above).
+The `readme-check.test.mjs` failure in my `npm test` run is the same gap, not a second bug — that
+test shells out to the same checker. This branch changes no README claim and breaks nothing;
+the corrected "Tests run" bullet above is the accurate record.
 
 ## Rows retired / reworded / added
 
@@ -222,6 +250,8 @@ this — out of this lane's remit (surgical change discipline), flagged here for
 | R-282 | **added** — built-in carrier extraction + stamping | `blocks.test.mjs::built-in MCP carrier found` pins `extractBlocks` reading `structuredContent.structuredContent.blocks`; `::built-in path: blocks extracted, stamped, carrier moved to details.blocks` and `::built-in path: produced_by.tool is the mcp__ tool name` pin that a built-in MCP event's blocks get the same stamp (`produced_by.tool` = the real `mcp__edge__*` name) and land in `details.blocks` same as the extension path |
 | R-283 | **added** — carrier dropped from the patch on success | `blocks.test.mjs::valid: patch carries no structuredContent (pi drops the raw carrier)` and `::built-in path: patch carries no structuredContent (raw carrier dropped)` pin that a successful patch never sets the `structuredContent` key; also proved live by the e2e's `raw MCP carrier dropped from the live event` check (not a formal rail citation — `.e2e.mjs` is outside `TEST_EXTENSIONS`) |
 | R-284 | **added** — carrier dropped on rejection | `blocks.test.mjs::malformed: patch carries no structuredContent either (rejection drops the raw carrier too)` and `::built-in path, malformed: isError, no entries, no structuredContent in the patch` pin the same omission on the `fail()` path |
+| R-943 | **added** 2026-10-05, seat follow-up 1 — a `builtin:<name>` manifest extension is accepted with no filesystem check; a near-miss is not | `app-listener.test.mjs::zeta (a builtin: entry mixed with real file extensions) loads and has a listener` pins acceptance; `::near-miss "builtin:" (empty name) rejected at load, same as a missing file` and `::near-miss "builtin:../x" rejected at load, same as a missing file` pin that only an exact `builtin:<name>` match is exempt |
+| R-944 | **added** 2026-10-05, seat follow-up 1 — spawnChild passes a `builtin:<name>` entry through as `-e builtin:<name>`, in manifest order, skipping the project-path refusal | `app-listener.test.mjs::argv: a builtin:<name> extensions entry rides through as literal -e builtin:mcp, in manifest order` |
 
 ## Mutation proofs (red output recorded)
 
@@ -261,6 +291,30 @@ directly and were unaffected).
 
 After each: reverted, `node packages/nana-stage/tests/blocks.test.mjs` → 116/116 pass, exit 0;
 `diff` against the pre-mutation saved copy → identical.
+
+**Seat follow-up 1 — two more mutations, same discipline, applied to `apps/desk/apps.mjs` and
+`apps/desk/server.mjs`, reverted and `diff`-verified identical after each:**
+
+**R-943** — dropped the `isBuiltinExtensionRef` short-circuit in `normalizeManifest` (so every
+`extensions` entry, including `builtin:mcp`, goes straight to `fs.existsSync`):
+```
+(uncaught) Error: app listeners never came up: … apps: zeta.json: extensions: no such file builtin:mcp …
+```
+`zeta.json` is rejected at load exactly like a missing file would be, so the zeta listener never
+binds and the test's own startup wait times out — exit 1. (A harness-level throw, not a `FAIL`
+line, because the fixture this row depends on no longer exists at all under the mutation; still
+unambiguous red, directly naming the mutated line's effect.)
+
+**R-944** — in `spawnChild`, changed `if (isBuiltinExtensionRef(p)) { args.push("-e", p);
+continue; }` to `if (isBuiltinExtensionRef(p)) { continue; }` (silently drop instead of pass
+through):
+```
+FAIL argv: a builtin:<name> extensions entry rides through as literal -e builtin:mcp, in manifest order
+```
+exit 1.
+
+After each: reverted, `node apps/desk/test/app-listener.test.mjs` → 75/75 pass, exit 0; `diff`
+against the pre-mutation saved copy → identical.
 
 ## Proposed new `~/.pi/agent/apps/edge.json` (not applied — report only, per the brief)
 
@@ -330,10 +384,14 @@ adapter path, prefixes the six tool names) and `mutating` (prefixed). `port`, `t
 
 ## Residuals
 
-- `apps/desk/README.md` line ~142 ("pi has no MCP — extensions are the pluggable surface") is now
-  a false claim about the desk's **general** interactive-session spawn picker (pi 1.0.2 has
-  built-in MCP) — but it is about that general picker's MCP-toggle gap, not the edge app-session
-  contract this lane owns, so left as found; flagging for the seat rather than touching it.
+- Fixed per seat follow-up: `apps/desk/README.md` ~L142 said "pi has no MCP"; now states the
+  truth (built-in MCP and the user's MCP servers go with it when a narrowed spawn's
+  `--no-extensions` fires, pi 1.0+). Did not touch the picker's own behavior.
+- **Open item for the seat:** a narrowed interactive desk spawn (any skills/extensions toggle)
+  has lost built-in MCP since pi 1.0 — the picker has no way to list or re-add `builtin:mcp`, so
+  the user's own MCP servers (and the `/mcp` panel's servers) go dark on any narrowed session,
+  silently. This is the desk's general spawn picker, not the edge app-session contract this lane
+  owns, so I fixed only the README's claim, not the gap itself.
 - The over-cap/overflow scenario the old e2e tested (adapter `outputGuard.detailsMaxBytes`) has
   no built-in-MCP equivalent and was retired, not replaced; the rejection mechanics it exercised
   stay pinned at the unit level only (R-255, pre-existing).

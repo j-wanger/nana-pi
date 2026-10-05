@@ -139,8 +139,10 @@ ports, so they are run by hand, one at a time (`node apps/desk/test/<name>.e2e.m
   `.agents/skills` + plain-path settings entries + installed packages; settings
   glob/exclusion entries are NOT enumerated — the UI says so). All-on spawns with
   pure pi defaults (no flags); any narrowing spawns `--no-skills`/`--skill` +
-  `--no-extensions`/`-e` with exactly the checked set. pi has no MCP — extensions
-  are the pluggable surface, so that's what the toggles cover. "Trust project
+  `--no-extensions`/`-e` with exactly the checked set — skills and extensions are
+  what the toggles cover. That same `--no-extensions` also disables pi's built-in
+  MCP (and the user's MCP servers with it, pi 1.0+), which the picker neither
+  lists nor re-adds. "Trust project
   config" maps to `-a` (RPC sessions never prompt); when unchecked, project-local
   items are locked off so untrusted project code can't ride in via explicit flags.
   The box (`-a`, one run) does **not** make nana-pack honor a folder's
