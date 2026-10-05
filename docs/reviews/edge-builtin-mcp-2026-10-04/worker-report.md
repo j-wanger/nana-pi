@@ -70,7 +70,9 @@ complete. One line each:
   `ec080dc` (report hashes), `4737027bca66633444e6618f7173e8574335d18a` (seat follow-up:
   R-943/R-944 + tests, README fix, corrected readme-check/model claims),
   `615ca872de96747af0e7b1edeee22d66792d5f4b` (astra r1 BLOCK fixes: R-760, shared spawn path,
-  aggregate-bound residual, machine-steps order)
+  aggregate-bound residual, machine-steps order),
+  `42e7432484b9dc40b055f318ba472f6fea2cb7c8` (astra r2 BLOCK fixes: uncertainty-aware lock
+  remedies R-856/R-857, pack README alignment, quiesce-first runbook)
 - edge-screener `feat/builtin-mcp`: `ecace8a6b536fbbd5535e4364d9e71aadd2e3eba`
 
 Neither pushed, neither merged, per the brief.
