@@ -16,5 +16,5 @@
   `@purpose` with a second sentence in it is the module telling you it is two
   modules.
 - Before changing a mapped module, read its blast radius:
-  `pnpm map:impact -- src/<file>.ts`.
+  `pnpm map:impact src/<file>.ts` (no `--` before the path).
 

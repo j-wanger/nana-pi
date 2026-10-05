@@ -381,8 +381,10 @@ Verified against `docs/reviews/pi-1.0-2026-10-04/{compat-audit,architecture-ruli
   scopes: user-level `~/.pi/agent/mcp.json` and project-level `.pi/mcp.json` (read only after
   project trust; a project entry replaces a user-level one of the same name) — `docs/mcp.md`
   "Configure servers". Each server tool registers as `mcp__<server>__<tool>` (every character
-  other than a letter, digit or `_` folded to `_`), so nana-gate and nana-post-edit see the real
-  tool name, not an adapter proxy (`architecture-ruling.md` §3). `exposure` (default `codemode`;
+  other than a letter, digit or `_` folded to `_`; a sha256-derived 8-char hash suffix is added
+  when sanitized names collide, or when the full name would exceed pi's 64-character tool-name
+  cap — `docs/mcp.md` "Configuration rules", `dist/extensions/mcp/tools.js`), so nana-gate and
+  nana-post-edit see the real tool name, not an adapter proxy (`architecture-ruling.md` §3). `exposure` (default `codemode`;
   or `deferred`, `direct`, `hidden`) controls how a tool reaches the model — `docs/mcp.md` "Control
   tool exposure". An extension can add a session-scoped server with
   `pi.registerMcpServer(name, config)` (`docs/mcp.md`, `docs/extensions.md#mcp-servers`); it
@@ -403,9 +405,11 @@ Verified against `docs/reviews/pi-1.0-2026-10-04/{compat-audit,architecture-ruli
   handler that redacts `content` must also replace `structuredContent`, or the redaction leaks
   (`docs/extensions.md`). Observed live: a tool with no declared `outputSchema` carries no
   `structuredContent` on its `tool_execution_end` (`edge-builtin-mcp-2026-10-04/land-notes.md`).
-- **pi-subagents floor raised to 0.75.0.** `nana-setup doctor` now reads `!` below 0.75.0, fix text
-  `pi install npm:pi-subagents@0.75.0` (`architecture-ruling.md` §2; `acceptance.md` A1: pi 1.0.2
-  and pi-subagents 0.75.0 verified together).
+- **pi-subagents floor raised to 0.75.0.** `nana-setup doctor` now reads `✗` (a FAIL row, not a
+  `!` WARN) below 0.75.0, fix text `pi install npm:pi-subagents@0.75.0` — `doctor.mjs`'s
+  `pi pi-subagents` check, confirmed by its own `add(FAIL, "pi pi-subagents", ...)` call
+  (`architecture-ruling.md` §2; `acceptance.md` A1: pi 1.0.2 and pi-subagents 0.75.0 verified
+  together).
 - **`pi-mcp-adapter` removed.** Gone from this machine as of 2026-10-05 (seat action,
   `architecture-ruling.md` §3: `pi remove npm:pi-mcp-adapter`); while it was installed, it stopped
   pi reading `mcp.json` directly, and `doctor` never detected it (`packages/nana-setup/README.md`).
