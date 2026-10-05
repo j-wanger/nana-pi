@@ -1,0 +1,15 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "map-test-links-2026-10-05" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (slice @ 1dc1e694def4+snap:bced6f6fe2690bfd039e51deaa37ca085cec9209c622c80df3fbf56320f4c881)
+pi-review: WARNING: --out /Users/jwang/nana-pi-wt/map-test-links/docs/reviews/map-test-links-2026-10-05/astra-r1.md is inside the reviewed tree (/Users/jwang/nana-pi-wt/map-test-links) and not ignored: it is excluded from this review's snapshot, but a leftover output there changes the next revision. Prefer a path outside the tree or an ignored one
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.9s flat=0/15
+  [pi-review a1] cpu=0.95s flat=0/15
+  [pi-review a1] cpu=0.95s flat=1/15
+  [pi-review a1] cpu=1.27s flat=0/15
+  [pi-review a1] cpu=1.37s flat=0/15
+  [pi-review a1] cpu=1.43s flat=0/15
+  [pi-review a1] cpu=1.56s flat=0/15
+  [pi-review a1] cpu=1.67s flat=0/15
+  [pi-review a1] cpu=1.76s flat=0/15
+  [pi-review a1] cpu=1.91s flat=0/15
+pi-review: review written to docs/reviews/map-test-links-2026-10-05/astra-r1.md, but review ledger: the reviewed tree changed during the review (admitted 1dc1e694def4+snap:bced6f6fe2690bfd039e51deaa37ca085cec9209c622c80df3fbf56320f4c881, now 1dc1e694def4+snap:d2692e722ed324549962b533d176d93e5a21793134f444d7f49b074ca1fd13fc) — the verdict is NOT recorded as valid for either state; round 1 was consumed for the admitted revision. Re-review the current state (output kept at docs/reviews/map-test-links-2026-10-05/astra-r1.md)

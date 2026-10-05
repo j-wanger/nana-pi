@@ -258,26 +258,109 @@ test("the import reader finds static, bare and dynamic specifiers and resolves t
 	).toBe("src/core/b.ts");
 });
 
+// All SIX combinations of {bare, .href, .pathname} x {no second argument, a second
+// argument}, each with its own distinct target, so a mutation that rejects just one
+// combination (astra r1 SHOULD 1's own repro: bare + a second argument) fails exactly one
+// case here, not a blended assertion the other five could cover for.
+const SIX_URL_FORMS: { name: string; target: string; line: string }[] = [
+	{
+		name: "bare, no second argument",
+		target: "./bare-no-arg.js",
+		line: "const a = await import(new URL(@TARGET@, import.meta.url));",
+	},
+	{
+		name: "bare, with a second argument",
+		target: "./bare-with-arg.js",
+		line: "const b = await import(new URL(@TARGET@, import.meta.url), { assert: { type: @json@ } });",
+	},
+	{
+		name: ".href, no second argument",
+		target: "./href-no-arg.js",
+		line: "const c = await import(new URL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: ".href, with a second argument",
+		target: "./href-with-arg.js",
+		line: "const d = await import(new URL(@TARGET@, import.meta.url).href, { assert: { type: @json@ } });",
+	},
+	{
+		name: ".pathname, no second argument",
+		target: "./pathname-no-arg.js",
+		line: "const e = await import(new URL(@TARGET@, import.meta.url).pathname);",
+	},
+	{
+		name: ".pathname, with a second argument",
+		target: "./pathname-with-arg.js",
+		line: "const f = await import(new URL(@TARGET@, import.meta.url).pathname, { assert: { type: @json@ } });",
+	},
+];
+
+for (const { name, target, line } of SIX_URL_FORMS) {
+	{{ rq }} G-011
+	test(`a dynamic import of new URL(...), ${name}, is a mapped edge`, () => {
+		const source = line.replace("@TARGET@", `@${target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(target);
+	});
+}
+
 {{ rq }} G-011
-test("a dynamic import of new URL(path, import.meta.url) is a mapped edge — bare, .href, .pathname, with or without a second import() argument — but a non-literal URL creates none", () => {
+test("a dynamic import of new URL(...) with a non-literal URL creates no edge", () => {
 	// Same @-for-quote trick as above: this fixture text must not itself read as an
 	// import of this test file once tests/ is mapped.
 	const source = `${[
-		"const a = await import(new URL(@./a.js@, import.meta.url));",
-		"const b = await import(new URL(@./b.js@, import.meta.url).href);",
-		"const c = await import(new URL(@./c.js@, import.meta.url).pathname);",
-		"const d = await import(new URL(@./d.js@, import.meta.url).href, { assert: { type: @json@ } });",
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: deliberately NOT a template literal in the fixture it builds — this is the non-literal form the generator must create no edge for
 		"const e = await import(new URL(`./e-${n}.js`, import.meta.url).href);",
+		"const f = await import(new URL(someVar, import.meta.url).href);",
+		"const g = await import(new URL(@node:fs@, import.meta.url).href);",
+		"const h = await import(new URL(@https://example.com/x.js@, import.meta.url).href);",
+		"const i = await import(new URL(@/abs/path.js@, import.meta.url).href);",
 	]
 		.join("\n")
 		.replace(/@/g, '"')}\n`;
-	expect(parseRelativeImports(source)).toEqual([
-		"./a.js",
-		"./b.js",
-		"./c.js",
-		"./d.js",
-	]);
+	expect(parseRelativeImports(source)).toEqual([]);
+});
+
+{{ rq }} G-011
+test("text in a comment or a string never creates an edge (astra r1 MUST 1)", () => {
+	// The exact two reproductions astra r1 gave, plus a block comment and template-literal
+	// TEXT. The `@` trick again: a real import specifier written out here would be read as
+	// one of THIS file's own imports.
+	const source = `${[
+		"// a line comment: const x = await import(new URL(@./from-line-comment.js@, import.meta.url).href);",
+		"/* a block comment:",
+		"   const x = await import(new URL(@./from-block-comment.js@, import.meta.url).href); */",
+		"const s1 = 'import(new URL(@./from-single-quoted-string.js@, import.meta.url).href)';",
+		"const s2 = `plain template text: import(new URL(@./from-template-text.js@, import.meta.url).href)`;",
+	]
+		.join("\n")
+		.replace(/@/g, '"')}\n`;
+	expect(parseRelativeImports(source)).toEqual([]);
+});
+
+{{ rq }} G-011
+test("a real import still resolves after a regex literal, inside a template interpolation, and after a string containing // (astra r1 MUST 1)", () => {
+	const afterRegex = ['const pattern = /"/;', "import(@./after-regex.js@);"]
+		.join("\n")
+		.replace(/@/g, '"');
+	const afterUrlString = [
+		"const u = @http://example.com@;",
+		"import(@./after-url-string.js@);",
+	]
+		.join("\n")
+		.replace(/@/g, '"');
+	// biome-ignore lint/suspicious/noTemplateCurlyInString: deliberately not evaluated — a plain string being fed to parseRelativeImports, not a template literal in this file's own code
+	const interpolation =
+		"const s = `x ${await import(@./inside-interpolation.js@)} y`;".replace(
+			/@/g,
+			'"',
+		);
+	expect(parseRelativeImports(afterRegex)).toContain("./after-regex.js");
+	expect(parseRelativeImports(afterUrlString)).toContain(
+		"./after-url-string.js",
+	);
+	expect(parseRelativeImports(interpolation)).toContain(
+		"./inside-interpolation.js",
+	);
 });
 
 // NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin

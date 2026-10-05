@@ -22,7 +22,7 @@ const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig }
 // directly against the generator template ships, not the shim: tests may import anything
 // (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
 // a broken edge.
-const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
+const { buildGraph: templateBuildGraph, parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, why = "") => {
@@ -119,17 +119,33 @@ check("a dynamic import via new URL(...).href is a mapped edge (the form most of
 	`callees: ${graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.join(" ")}`,
 );
 
-// R-860's full breadth: bare, .href, .pathname and a second import() argument all resolve;
-// a template-string URL, a variable, and a non-relative literal (a bare specifier, an
-// absolute URL, an absolute path) all resolve to nothing — the row only ever claims a
-// RELATIVE string literal, same as every other form this generator already parses. The `@`
-// placeholder is the same trick the template's own fixture uses: a real import specifier
-// written out here would be read as one of THIS file's own imports once scanned.
-const dynamicUrlFixture = [
-	"const a = await import(new URL(@./a.mjs@, import.meta.url));", // bare
-	"const b = await import(new URL(@./b.mjs@, import.meta.url).href);", // .href
-	"const c = await import(new URL(@./c.mjs@, import.meta.url).pathname);", // .pathname
-	"const d = await import(new URL(@./d.mjs@, import.meta.url).href, { assert: { type: @json@ } });", // 2nd arg
+// R-860's full breadth: all SIX combinations of {bare, .href, .pathname} x {no second
+// argument, a second argument}, each with its OWN distinct target so a mutation that
+// rejects just one combination fails exactly one check here, not a blended assertion three
+// of six could silently cover for. The `@` placeholder is the same trick the template's own
+// fixture uses: a real import specifier written out here would be read as one of THIS
+// file's own imports once scanned.
+const SIX_FORMS = [
+	{ name: "bare, no second argument", target: "./bare-no-arg.mjs", line: "const a = await import(new URL(@TARGET@, import.meta.url));" },
+	{ name: "bare, with a second argument", target: "./bare-with-arg.mjs", line: "const b = await import(new URL(@TARGET@, import.meta.url), { assert: { type: @json@ } });" },
+	{ name: ".href, no second argument", target: "./href-no-arg.mjs", line: "const c = await import(new URL(@TARGET@, import.meta.url).href);" },
+	{ name: ".href, with a second argument", target: "./href-with-arg.mjs", line: "const d = await import(new URL(@TARGET@, import.meta.url).href, { assert: { type: @json@ } });" },
+	{ name: ".pathname, no second argument", target: "./pathname-no-arg.mjs", line: "const e = await import(new URL(@TARGET@, import.meta.url).pathname);" },
+	{ name: ".pathname, with a second argument", target: "./pathname-with-arg.mjs", line: "const f = await import(new URL(@TARGET@, import.meta.url).pathname, { assert: { type: @json@ } });" },
+];
+const sixFormsSource = SIX_FORMS.map((f) => f.line.replace("@TARGET@", `@${f.target}@`))
+	.join("\n")
+	.replace(/@/g, '"');
+const sixFormsFound = parseRelativeImports(sixFormsSource);
+for (const f of SIX_FORMS) {
+	// req: R-860
+	check(`new URL(...) ${f.name} resolves to an edge`, sixFormsFound.includes(f.target), `found: ${sixFormsFound.join(" ")}`);
+}
+
+// R-860's exclusions: a template-string URL, a variable, and a non-relative literal (a bare
+// specifier, an absolute URL, an absolute path) all resolve to nothing — the row only ever
+// claims a RELATIVE string literal, same as every other form this generator already parses.
+const exclusionsFixture = [
 	"const e = await import(new URL(`./e-${n}.mjs`, import.meta.url).href);", // template string: no edge
 	"const f = await import(new URL(someVar, import.meta.url).href);", // a variable: no edge
 	"const g = await import(new URL(@node:fs@, import.meta.url).href);", // non-relative (bare specifier): no edge
@@ -139,9 +155,73 @@ const dynamicUrlFixture = [
 	.join("\n")
 	.replace(/@/g, '"');
 // req: R-860
-check("new URL(...)'s bare, .href, .pathname and second-argument forms all resolve; a template string, a variable and a non-relative literal all resolve to nothing",
-	JSON.stringify(parseRelativeImports(dynamicUrlFixture)) === JSON.stringify(["./a.mjs", "./b.mjs", "./c.mjs", "./d.mjs"]),
-	`found: ${parseRelativeImports(dynamicUrlFixture).join(" ")}`,
+check("a template-string URL, a variable, and a non-relative literal all resolve to nothing",
+	parseRelativeImports(exclusionsFixture).length === 0,
+	`found (should be empty): ${parseRelativeImports(exclusionsFixture).join(" ")}`,
+);
+
+// R-863 (astra r1 MUST 1): text in a comment or a string must never create an edge — the
+// four fake specifiers below each have the exact bytes a real import would, just not in
+// code. Each targets a distinct, identifiable path.
+const noiseFixture = [
+	"// a line comment: const x = await import(new URL(@./from-line-comment.mjs@, import.meta.url).href);",
+	"/* a block comment:",
+	"   const x = await import(new URL(@./from-block-comment.mjs@, import.meta.url).href); */",
+	"const s1 = 'import(new URL(@./from-single-quoted-string.mjs@, import.meta.url).href)';",
+	"const s2 = `plain template text: import(new URL(@./from-template-text.mjs@, import.meta.url).href)`;",
+]
+	.join("\n")
+	.replace(/@/g, '"');
+const noiseFound = parseRelativeImports(noiseFixture);
+// req: R-863
+check("a line comment, a block comment, a single-quoted string and template-literal TEXT never create an edge for the fake specifier they hold",
+	noiseFound.length === 0,
+	`found (should be empty): ${noiseFound.join(" ")}`,
+);
+
+// R-863 (astra r1 MUST 1, positive side): a real import still resolves right after a regex
+// literal containing a quote, right after a string whose text contains "//" (not a comment
+// start), and from inside a template's ${...} interpolation (code, not template TEXT).
+const afterRegexSource = ["const pattern = /\"/;", "import(@./after-regex.mjs@);"].join("\n").replace(/@/g, '"');
+const afterUrlStringSource = ["const u = @http://example.com@;", "import(@./after-url-string.mjs@);"].join("\n").replace(/@/g, '"');
+const interpolationSource = "const s = `x ${await import(@./inside-interpolation.mjs@)} y`;".replace(/@/g, '"');
+// req: R-863
+check("a real import after a regex literal containing a quote still resolves",
+	parseRelativeImports(afterRegexSource).includes("./after-regex.mjs"),
+	`found: ${parseRelativeImports(afterRegexSource).join(" ")}`,
+);
+// req: R-863
+check("a real import after a string containing // (not a comment start) still resolves",
+	parseRelativeImports(afterUrlStringSource).includes("./after-url-string.mjs"),
+	`found: ${parseRelativeImports(afterUrlStringSource).join(" ")}`,
+);
+// req: R-863
+check("a real import inside a template's ${...} interpolation still resolves",
+	parseRelativeImports(interpolationSource).includes("./inside-interpolation.mjs"),
+	`found: ${parseRelativeImports(interpolationSource).join(" ")}`,
+);
+
+// R-863, graph-level: astra r1's own two reproduction snippets, through buildGraph (not
+// just the regex layer), so the claim is about the shipped edge/problem set astra actually
+// inspected, not a lower-level function in isolation.
+const astraHeader = (p) => `/**\n * @module ${p}\n * @purpose fixture.\n * @inputs none\n * @outputs none\n * @effects none\n * @errors none\n */\n`;
+const astraConfig = { ...config, exempt: [] }; // a lone fixture module can't satisfy the
+// real config's exempt-path existence check; irrelevant to what this is pinning
+function buildGraphOf(bodySource) {
+	const p = "packages/nana-pack/tests/_astra-r1-fixture.mjs";
+	return templateBuildGraph([{ path: p, source: astraHeader(p) + bodySource }], astraConfig);
+}
+const astraRepro1 = buildGraphOf("// import(new URL(@./from-comment-repro.mjs@, import.meta.url).href)".replace(/@/g, '"'));
+const astraRepro2 = buildGraphOf("const text = 'import(new URL(@./from-string-repro.mjs@, import.meta.url).href)';".replace(/@/g, '"'));
+// req: R-863
+check("astra r1's own line-comment repro creates no edge and no problem",
+	astraRepro1.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.length === 0 && astraRepro1.problems.length === 0,
+	`callees: ${astraRepro1.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.join(" ")}; problems: ${astraRepro1.problems.join(" | ")}`,
+);
+// req: R-863
+check("astra r1's own single-quoted-string repro creates no edge and no problem",
+	astraRepro2.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.length === 0 && astraRepro2.problems.length === 0,
+	`callees: ${astraRepro2.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.join(" ")}; problems: ${astraRepro2.problems.join(" | ")}`,
 );
 
 // R-861: --impact also names the part of the blast radius it still cannot see — a per-run

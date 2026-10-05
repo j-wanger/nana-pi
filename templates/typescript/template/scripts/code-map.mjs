@@ -386,21 +386,234 @@ export function parseContractHeader(source) {
 
 // Static `from '...'`, bare side-effect `import '...'`, dynamic `import('...')`, and
 // dynamic `import(new URL('...', import.meta.url))` — bare, `.href` or `.pathname`,
-// with or without a second argument to `import()` (nana-pi R-860). A non-literal URL
-// (a template string, a variable) matches neither this nor DYNAMIC: a test built that
-// way stays invisible, same as before (see REQUIREMENTS.md Open questions).
+// with or without a second argument to `import()`, whitespace allowed around every dot
+// and paren (nana-pi R-860). A non-literal URL (a template string, a variable) matches
+// neither this nor DYNAMIC: a test built that way stays invisible, same as before (see
+// REQUIREMENTS.md Open questions).
 const STATIC_FROM = /\bfrom\s*(['"])(\.[^'"]*)\1/g;
 const BARE_IMPORT = /^\s*import\s*(['"])(\.[^'"]*)\1/gm;
 const DYNAMIC = /\bimport\s*\(\s*(['"])(\.[^'"]*)\1\s*\)/g;
 const DYNAMIC_URL =
-	/\bimport\s*\(\s*new\s+URL\s*\(\s*(['"])(\.[^'"]*)\1\s*,\s*import\.meta\.url\s*\)(?:\.(?:href|pathname))?\s*(?:,[^)]*)?\)/g;
+	/\bimport\s*\(\s*new\s+URL\s*\(\s*(['"])(\.[^'"]*)\1\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\)\s*(?:\.\s*(?:href|pathname))?\s*(?:,[^)]*)?\)/g;
 
-/** Every relative specifier a module names, deduplicated, in source order. */
+// --------------------------------------------------- comment/string-aware gating (nana-pi
+// R-863): the four regexes above read raw text, so without this they also match a fake
+// specifier sitting in a comment, a string, or template-literal TEXT — exactly the bytes a
+// real import would have, just not executable. `codeMask` is a minimal, dependency-free
+// lexer (not a parser: it tracks lexical regions only, never validates syntax) that marks
+// every character CODE or not, so a match is accepted only when the `from`/`import`
+// keyword it starts with sits in a code region. A `${...}` template interpolation is code
+// (nesting allowed, via a depth counter per open template); a `/` is read as a regex
+// literal start, never division, exactly when the previous significant token is one of the
+// listed punctuators/keywords or this is the start of input — the same heuristic real JS
+// tokenizers use, simplified to what gating these four regexes needs.
+const PUNCT_REGEX_OK = new Set([
+	"(",
+	",",
+	"=",
+	":",
+	"[",
+	"!",
+	"&",
+	"|",
+	"?",
+	"{",
+	"}",
+	";",
+	"+",
+	"-",
+	"*",
+	"%",
+	"<",
+	">",
+	"~",
+	"^",
+]);
+const KEYWORD_REGEX_OK = new Set([
+	"return",
+	"typeof",
+	"case",
+	"in",
+	"of",
+	"new",
+	"delete",
+	"void",
+	"throw",
+	"yield",
+	"await",
+	"else",
+	"do",
+]);
+const ID_START = /[A-Za-z_$]/;
+const ID_PART = /[A-Za-z0-9_$]/;
+
+/**
+ * One boolean per character of `source`: true where that position is executable code
+ * (top-level, or inside a template's `${...}` interpolation), false inside a line comment,
+ * a block comment, a quoted string, template-literal TEXT, or a regex literal's body.
+ * @param {string} source
+ * @returns {Uint8Array}
+ */
+function codeMask(source) {
+	const n = source.length;
+	const mask = new Uint8Array(n);
+	let i = 0;
+	let regexAllowed = true; // true at start of input
+	// One entry per open template literal: null while in its TEXT, or the current brace
+	// depth (a number) while inside its `${...}` interpolation — depth lets a nested `{`
+	// (an object literal, a block) close before the interpolation itself does.
+	const templates = [];
+
+	while (i < n) {
+		const top = templates.length ? templates[templates.length - 1] : undefined;
+		if (top === null) {
+			// template TEXT: nothing here is code until `${` or the closing backtick
+			const ch = source[i];
+			if (ch === "\\") {
+				i += 2;
+				continue;
+			}
+			if (ch === "`") {
+				templates.pop();
+				i += 1;
+				continue;
+			}
+			if (ch === "$" && source[i + 1] === "{") {
+				templates[templates.length - 1] = 0;
+				i += 2;
+				regexAllowed = true; // a fresh expression starts the interpolation
+				continue;
+			}
+			i += 1;
+			continue;
+		}
+
+		// top-level code, or inside a `${...}` interpolation (top is a depth number) —
+		// both are code contexts and share the rest of this scan.
+		const inInterpolation = typeof top === "number";
+		const ch = source[i];
+
+		if (ch === " " || ch === "\t" || ch === "\r" || ch === "\n") {
+			i += 1;
+			continue;
+		}
+
+		if (ch === "/" && source[i + 1] === "/") {
+			let j = i + 2;
+			while (j < n && source[j] !== "\n") j += 1;
+			i = j;
+			continue;
+		}
+		if (ch === "/" && source[i + 1] === "*") {
+			let j = i + 2;
+			while (j < n && !(source[j] === "*" && source[j + 1] === "/")) j += 1;
+			i = j < n ? j + 2 : n;
+			continue;
+		}
+		if (ch === "'" || ch === '"') {
+			const quote = ch;
+			let j = i + 1;
+			while (j < n && source[j] !== quote) j += source[j] === "\\" ? 2 : 1;
+			i = j < n ? j + 1 : n;
+			regexAllowed = false;
+			continue;
+		}
+		if (ch === "`") {
+			templates.push(null);
+			i += 1;
+			continue;
+		}
+		if (inInterpolation && ch === "{") {
+			templates[templates.length - 1] = top + 1;
+			mask[i] = 1;
+			i += 1;
+			regexAllowed = true;
+			continue;
+		}
+		if (inInterpolation && ch === "}") {
+			if (top === 0)
+				templates[templates.length - 1] = null; // back to template TEXT
+			else templates[templates.length - 1] = top - 1;
+			mask[i] = 1;
+			i += 1;
+			regexAllowed = top !== 0; // '}' closing an interpolation says nothing; a
+			// nested brace closing (object/block) allows a regex to follow, like elsewhere
+			continue;
+		}
+		if (ch === "/") {
+			if (regexAllowed) {
+				let j = i + 1;
+				let inClass = false;
+				let closed = false;
+				while (j < n && source[j] !== "\n") {
+					if (source[j] === "\\") {
+						j += 2;
+						continue;
+					}
+					if (source[j] === "[") {
+						inClass = true;
+						j += 1;
+						continue;
+					}
+					if (source[j] === "]") {
+						inClass = false;
+						j += 1;
+						continue;
+					}
+					if (source[j] === "/" && !inClass) {
+						closed = true;
+						break;
+					}
+					j += 1;
+				}
+				if (closed) {
+					j += 1;
+					while (j < n && /[A-Za-z]/.test(source[j])) j += 1; // flags
+					i = j;
+					regexAllowed = false;
+					continue;
+				}
+				// unterminated: fall through and treat '/' as an ordinary character
+			}
+			mask[i] = 1;
+			i += 1;
+			regexAllowed = false; // '/' itself is not in PUNCT_REGEX_OK
+			continue;
+		}
+		if (ID_START.test(ch)) {
+			let j = i + 1;
+			while (j < n && ID_PART.test(source[j])) j += 1;
+			for (let k = i; k < j; k++) mask[k] = 1;
+			const word = source.slice(i, j);
+			regexAllowed = KEYWORD_REGEX_OK.has(word);
+			i = j;
+			continue;
+		}
+		mask[i] = 1;
+		regexAllowed = PUNCT_REGEX_OK.has(ch);
+		i += 1;
+	}
+	return mask;
+}
+
+/** The index within `match[0]` where its `from`/`import` keyword starts. */
+function keywordOffset(matchText) {
+	const at = matchText.search(/from|import/);
+	return at === -1 ? 0 : at;
+}
+
+/** Every relative specifier a module names, deduplicated, in source order — a match whose
+ *  `from`/`import` keyword sits in a comment, a string, or template-literal TEXT is not an
+ *  import, however the bytes read (nana-pi R-863). */
 export function parseRelativeImports(source) {
+	const mask = codeMask(source);
 	const found = [];
 	for (const re of [STATIC_FROM, BARE_IMPORT, DYNAMIC, DYNAMIC_URL]) {
 		re.lastIndex = 0;
-		for (let m = re.exec(source); m; m = re.exec(source)) found.push(m[2]);
+		for (let m = re.exec(source); m; m = re.exec(source)) {
+			const at = m.index + keywordOffset(m[0]);
+			if (mask[at]) found.push(m[2]);
+		}
 	}
 	return [...new Set(found)];
 }

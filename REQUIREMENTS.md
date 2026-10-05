@@ -498,24 +498,31 @@ A bounded read validates only the bytes it reads. Before decoding it trims a tra
 Not a nana-pack module: the generator both project templates ship
 (`templates/typescript/template/scripts/code-map.mjs`, `templates/python/template/scripts/code_map.py`),
 which G-009/G-010/G-011 already cover generically. nana-pi exercises the TypeScript one
-directly, over its own repo, through the shim at `scripts/code-map.mjs` AND, for R-860's full
-breadth, by importing the template module itself (tests may import anything, and `templates/`
-is not a mapped root — G-007); the Python one has no shim (nana-pi carries no Python source),
-so it is exercised only through a rendered project in
+directly, over its own repo, through the shim at `scripts/code-map.mjs` AND, for R-860's and
+R-863's full breadth, by importing the template module itself (tests may import anything, and
+`templates/` is not a mapped root — G-007); the Python one has no shim (nana-pi carries no
+Python source), so it is exercised only through a rendered project in
 `packages/nana-pack/tests/templates-render.test.mjs`. Added 2026-10-05 (map-test-links lane,
 Jake's call: "Fix the map" — `research/karpathy-x-2026-10-04.md` background) after measuring
 that the TypeScript generator's dynamic-import detection only matched a bare string literal
 argument to `import(...)`, never nana-pi's own tests' `await import(new URL("../lib/x.mjs",
 import.meta.url).href)` form — 67 of this repo's 95 test modules linked to no mapped module as
-a result, and 56 of 77 non-test modules had no direct test caller the map could show. IDs
-consumed from the pack's own continuation block (R-756 to R-879), not a new one — template
-rows already live there (R-737, R-738, R-756, R-858, R-859).
+a result, and 56 of 77 non-test modules had no direct test caller the map could show. R-863
+added after astra r1 (`docs/reviews/map-test-links-2026-10-05/astra-r1.md`) MUST 1: the first
+cut of R-860 read raw text, so a fake specifier sitting in a comment or a string created an
+edge or a `--check` problem exactly as a real one would (confirmed pre-existing for the OLD
+patterns too, on main, not introduced by this lane). MUST 2 (whitespace around every dot and
+paren in the `new URL(...)`/`import.meta.url` forms) is folded into R-860, not a separate row:
+it is the same clause, "the argument is new URL(...)", applying to a spelling the row already
+promised to cover. IDs consumed from the pack's own continuation block (R-756 to R-879), not a
+new one — template rows already live there (R-737, R-738, R-756, R-858, R-859).
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-860 | WHEN a module names a dynamic import whose argument is new URL(<relative string literal>, import.meta.url) — bare, with .href, or with .pathname, with or without a second argument to import() — the TypeScript code-map generator shall record an import edge for it. | implemented | `packages/nana-pack/tests/code-map.test.mjs::a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)`, `packages/nana-pack/tests/code-map.test.mjs::new URL(...)'s bare, .href, .pathname and second-argument forms all resolve; a template string, a variable and a non-relative literal all resolve to nothing` |
+| R-860 | WHEN a module names a dynamic import whose argument is new URL(<relative string literal>, import.meta.url) — bare, with .href, or with .pathname, with or without a second argument to import(), whitespace allowed around every dot and paren — the TypeScript code-map generator shall record an import edge for it. | implemented | `packages/nana-pack/tests/code-map.test.mjs::a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)`, `packages/nana-pack/tests/code-map.test.mjs::new URL(...) ${f.name} resolves to an edge` (looped over all six combinations of bare/.href/.pathname x no-second-argument/a-second-argument, each a distinct target — astra r1 SHOULD 1; mutation-verified in a scratch copy, 2026-10-05: astra's own exact repro, rejecting bare-plus-a-second-argument, fails only that one of the six, and four further targeted mutations — dropping the optional suffix, dropping the optional second argument, dropping pathname, dropping href — each fail exactly the combinations they should and no others), `packages/nana-pack/tests/code-map.test.mjs::a template-string URL, a variable, and a non-relative literal all resolve to nothing`; the template's own fixture-level tests (templates/typescript/template/tests/code-map.test.ts.jinja, the same six-combination loop plus the exclusions test) manually verified green against a fresh render (vitest 62/62, 2026-10-05) |
 | R-861 | WHEN --impact runs, the TypeScript code-map generator shall print the count of test modules (modules under a layerExempt/testRoots root) that import no mapped module. | implemented | `packages/nana-pack/tests/code-map.test.mjs::--impact's output carries the untraced-test line with the real count`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: --impact prints the untraced-test count for a fresh scaffold`; the template's own fixture-level test (templates/typescript/template/tests/code-map.test.ts.jinja, "--impact also reports how many test-root modules import no mapped module at all") manually verified green against a fresh render, same as R-860 |
 | R-862 | WHEN --impact runs, the Python code-map generator shall print the count of test modules (modules under a layerExempt/testRoots root) that import no mapped module. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language}: --impact prints the untraced-test count for a fresh scaffold` — the same marked test, looped over both languages; python3 was installed on the machine this lane ran on, so this clause ran for real rather than SKIPping. The template's own fixture-level test (templates/python/template/tests/test_code_map.py.jinja, test_impact_also_reports_untraced_test_modules) manually verified green against a fresh render with uv run pytest, 2026-10-05 |
+| R-863 | The TypeScript code-map generator shall accept a match of any of its four import-detection patterns only when the from/import keyword it starts with sits in executable code, never inside a line comment, a block comment, a quoted string, or template-literal text. | implemented | `packages/nana-pack/tests/code-map.test.mjs::a line comment, a block comment, a single-quoted string and template-literal TEXT never create an edge for the fake specifier they hold` (astra r1 MUST 1's own two reproductions plus a block comment and template-literal text), `packages/nana-pack/tests/code-map.test.mjs::a real import after a regex literal containing a quote still resolves`, `packages/nana-pack/tests/code-map.test.mjs::a real import after a string containing // (not a comment start) still resolves`, `packages/nana-pack/tests/code-map.test.mjs::a real import inside a template's ${...} interpolation still resolves`, `packages/nana-pack/tests/code-map.test.mjs::astra r1's own line-comment repro creates no edge and no problem`, `packages/nana-pack/tests/code-map.test.mjs::astra r1's own single-quoted-string repro creates no edge and no problem` (the last two through buildGraph, not just parseRelativeImports, replicating astra's own reproduction method); edge-set diff against the pre-lexer generator over nana-pi's own 172 modules: 0 removed, 0 added (245 edges both before and after — this repo's real source has none of these shapes, so the fix changes nothing observable here beyond closing the gap); the template's own fixture-level tests (templates/typescript/template/tests/code-map.test.ts.jinja, the matching comment/string and after-regex/interpolation/url-string tests) manually verified green against a fresh render, same as R-860 |
 
 Measured on nana-pi itself after the fix (R-860): 245 import edges over the same 172 modules
 (144 before), 0 new `--check` problems; 27 of 77 non-test modules now have no direct test
@@ -1187,6 +1194,22 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 9. (ears-form batch 0, Fable) About 150 three-digit IDs remain after the lane. Widening to four digits is a rail change in both templates and in aml-desk's copy; the seat's call. The rail's older behaviours (markers, cites, statuses) have no rows of their own; only the form check does.
 10. (map-test-links lane, 2026-10-05) R-860 only teaches the TypeScript code-map generator the `new URL(<literal>, import.meta.url)` dynamic-import form. A dynamic import whose argument is NOT a string literal — built from a template string, a variable, or any other expression — still resolves to no edge, SILENTLY: the generator records no problem for it, unlike the Python generator, which fails `--check` naming it `unmapped dynamic import at line N`. Measured on nana-pi (2026-10-05): about 56 such sites exist in this repo alone (pi's own entry point, a handful of temp-file loaders, code built inside a spawned child-process script's own source string) — making the TypeScript generator fail on them the way Python's does would turn every TypeScript project (nana-pi included) red on day one. Not changed in this lane. Jake's call later: fail the same way Python does (and fix the ~56 sites), or document the asymmetry and leave it.
 11. (map-test-links lane, 2026-10-05) A separate, pre-existing gap found while measuring R-862 on a fresh Python scaffold: the Python generator's import graph does not resolve a bare `import code_map` (or `import readme_check`, `import requirements_trace`) the way `tests/test_code_map.py`, `tests/test_readme_check.py` and `tests/test_requirements_trace.py` actually import the script they exercise (via a `sys.path` insert, not a dotted `scripts.code_map` import) — so those three test modules, plus `tests/conftest.py`, show zero callees in a fresh scaffold (4 of 5 test modules `untraced tests` reports there, against 1 of 5 for the equivalent TypeScript scaffold). This is unrelated to dynamic imports (item 10) and to R-860/861/862, which only claim the PRINTED count is correct, not that the underlying graph is complete — not measured or fixed in this lane. Jake's call later: teach `dotted_name`/`_link_imports` to also recognize a bare top-level name that matches a mapped script's own basename, or leave it as a known Python-generator blind spot.
+12. (map-test-links lane, 2026-10-05, astra r1) `codeMask` (R-863) is a minimal lexer, not a
+    parser, and knowingly does not handle every JS/TS source shape: (a) JSX — a `<Foo>` tag is
+    not recognized, so a `<` that would start JSX is read as an ordinary punctuator and a `/`
+    inside `</Foo>` can be misread for division or a regex start, same ambiguity real JSX-aware
+    tokenizers resolve with grammar context this lexer does not carry; untested, not measured in
+    this lane (nana-pi's own sources are all `.mjs`/`.ts`, no `.tsx`). (b) An HTML comment
+    (`<!--`/`-->`, legal in a non-module script, not in an ES module) is not a recognized comment
+    form; untested, and the generator's own module sources never use one. (c) The regex/division
+    heuristic (`PUNCT_REGEX_OK`/`KEYWORD_REGEX_OK`) is the documented simplification, not the
+    full ECMAScript grammar: a `/` right after `)` or `]` is always read as division, even in the
+    rare case it is not (e.g. `if (x) /re/.test(y)`, where a real tokenizer allows a regex after
+    an `if (...)` head but this lexer does not special-case it) — a false "division" reading only
+    ever makes the lexer MISS a region boundary (over-eager code, not over-eager exclusion), so
+    the failure mode is the same direction as never fixing MUST 1 would have been: a rare false
+    edge, never a lost real one in the cases this lane measured. Jake's call later: extend the
+    heuristic, or accept the gap as documented.
 
 ## Deliberate omissions
 
