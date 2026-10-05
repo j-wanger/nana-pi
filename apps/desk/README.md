@@ -565,6 +565,26 @@ would send it twice.
 - **Not followed up here:** session cost/usage totals that should include `usage` entries come
   from pi (`get_session_stats`), not from the desk's own sums.
 
+## Contract notes (2026-10-04 — the edge app moves to pi's built-in MCP)
+
+- **An app manifest's `extensions` entry may now be `builtin:<name>`, not only a file path.**
+  pi's own `-e`/`--extension` grammar accepts either (cli.md); `--no-extensions` (every app
+  session's `resources` narrowing) disables built-in extensions too — including pi's built-in
+  MCP support (`builtin:mcp`) — so an app whose own extension registers an MCP server with
+  `pi.registerMcpServer()` (docs/mcp.md: "The core only validates and stores registrations. The
+  MCP extension … connects them") must name `builtin:mcp` in `extensions` alongside it, or
+  nothing connects the registration (live `extension_error`: "… no loaded extension connects MCP
+  servers"). `apps.mjs` `normalizeManifest` and `server.mjs` `spawnChild` both treat a
+  `builtin:<name>` entry as a literal pi token — never `fs.existsSync`-checked, never a project
+  path `refuseProject` can refuse (`apps.mjs` `isBuiltinExtensionRef`); pi itself refuses an
+  unknown builtin name at spawn time. The edge app (`~/.pi/agent/apps/edge.json`) is the first
+  consumer: `extensions: ["<repo>/.pi/extensions/edge-mcp.ts", "builtin:mcp", "<nana-stage path>"]`.
+- **The edge app no longer loads `pi-mcp-adapter`.** Its six tools are now pi's built-in MCP
+  tools, named `mcp__edge__<tool>` (not the adapter's unprefixed names); nana-stage's carrier
+  extraction moved with it (`packages/nana-stage/README.md`, R-282/R-283/R-284). `apps/desk/test/
+  stage-chain-edge.e2e.mjs` is the live proof; it no longer carries the adapter's
+  `outputGuard.detailsMaxBytes` overflow scenario (no built-in equivalent — R-278 retired).
+
 ## Known limits
 
 The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then

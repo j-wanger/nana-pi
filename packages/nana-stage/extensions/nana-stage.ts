@@ -2,8 +2,9 @@
  * @module packages/nana-stage/extensions/nana-stage.ts
  * @purpose pi extension that validates, stamps, signs and journals the blocks any tool result carries,
  *  replacing the tool's text with the canonical rendering.
- * @inputs pi `tool_result` events (toolName, toolCallId, input, content, details, isError), `session_start`
- *  for the readiness watcher, env NANA_STAGE_KEY and NANA_STAGE_EXPECT_TOOLS, and pi.getActiveTools()
+ * @inputs pi `tool_result` events (toolName, toolCallId, input, content, details, structuredContent,
+ *  isError), `session_start` for the readiness watcher, env NANA_STAGE_KEY and NANA_STAGE_EXPECT_TOOLS,
+ *  and pi.getActiveTools()
  * @outputs a patched tool result (canonical text + stamped blocks, or an isError rejection with every
  *  carrier stripped), one `nana-block` session entry per block, and a `nana-tools` UI status of waiting /
  *  ready / missing
@@ -15,10 +16,9 @@
 /**
  * nana-stage — the stage ledger (docs/agent-frontend-design-2026-09-04.md §3.2).
  *
- * Hooks tool_result for EVERY tool. If the result carries blocks (details.blocks
- * for pi-extension tools; details.mcpResult.structuredContent.blocks for MCP
- * tools through pi-mcp-adapter in "bounded" mode) it validates them at this
- * boundary, stamps `produced_by` from the tool event, SIGNS the stamp with the
+ * Hooks tool_result for EVERY tool. If the result carries blocks (details.blocks for
+ * pi-extension tools; structuredContent.structuredContent.blocks for pi's built-in MCP
+ * tools) it validates them at this boundary, stamps `produced_by` from the tool event, SIGNS the stamp with the
  * per-session key the desk handed this child (NANA_STAGE_KEY; the desk server
  * refuses unsigned blocks on both the live event and the ledger read), appends
  * one `nana-block` session entry per block (durable; not LLM context), and
@@ -39,9 +39,10 @@ export default function nanaStage(pi: ExtensionAPI): void {
 	delete process.env.NANA_STAGE_KEY;
 	const sign = key ? (b: unknown) => signBlock(key, b) : null;
 	// Tool readiness (design §11.7): the desk names the tools the app session must
-	// have; MCP-adapter direct tools register asynchronously, so this reports — via the
-	// RPC status channel the desk already tracks — when they are all active, or which
-	// are missing after the wait. The desk holds POST /api/session until "ready".
+	// have; pi's built-in MCP direct tools register asynchronously (the server connects
+	// after session_start), so this reports — via the RPC status channel the desk already
+	// tracks — when they are all active, or which are missing after the wait. The desk
+	// holds POST /api/session until "ready".
 	const expect = (process.env.NANA_STAGE_EXPECT_TOOLS || "").split(",").map((t) => t.trim()).filter(Boolean);
 	delete process.env.NANA_STAGE_EXPECT_TOOLS;
 	if (expect.length) {
@@ -85,6 +86,7 @@ export default function nanaStage(pi: ExtensionAPI): void {
 				input: event.input,
 				content: event.content,
 				details: event.details,
+				structuredContent: event.structuredContent,
 				isError: event.isError,
 			},
 			{ sign },

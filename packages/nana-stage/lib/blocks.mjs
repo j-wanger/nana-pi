@@ -2,8 +2,9 @@
  * @module packages/nana-stage/lib/blocks.mjs
  * @purpose The pure block contract — validate, render, extract and reduce the code-authored blocks a stage
  *  shows.
- * @inputs block objects authored by app-tool code, a tool result's `details` carrier (details.blocks or
- *  details.mcpResult.structuredContent.blocks), and session entries {id, parentId, type, customType, data}
+ * @inputs block objects authored by app-tool code, a tool result's `details` carrier (details.blocks, for
+ *  pi-extension tools) and/or its `structuredContent` carrier (structuredContent.structuredContent.blocks,
+ *  for pi's built-in MCP tools), and session entries {id, parentId, type, customType, data}
  * @outputs a validation verdict with its error list, the canonical model-visible text of a block
  *  (byte-capped), the stage's upserted block array for a leaf, and the tool_result patch plus the
  *  `nana-block` entries to append
@@ -252,33 +253,32 @@ export function rowPrompt(template, row) {
 }
 
 // ── carrier extraction ──
-// pi-extension tools:  details.blocks
-// MCP tools (adapter, directToolResultDetails:"bounded"): details.mcpResult.structuredContent.blocks;
-// over the adapter cap the raw result is replaced by an omission summary → reported as `overflow`.
-export function extractBlocks(details) {
-	if (!isObj(details)) return { blocks: null, where: null };
-	if (details.blocks !== undefined) return { blocks: details.blocks, where: "blocks" };
-	const m = details.mcpResult;
-	if (isObj(m)) {
-		const sc = m.structuredContent;
-		if (isObj(sc) && sc.blocks !== undefined) return { blocks: sc.blocks, where: "mcpResult" };
-		if (m.omitted !== undefined || (isObj(sc) && sc.omitted !== undefined) || m.summary !== undefined)
-			return { blocks: null, where: "mcpResult", overflow: true };
+// pi-extension tools (e.g. basketball): details.blocks.
+// pi's built-in MCP tools: structuredContent.structuredContent.blocks — `structuredContent` on
+// the tool_result event is the MCP server's own CallToolResult (minus _meta; pi
+// extensions/mcp/tools.js convertMcpResult), so the SERVER's `structuredContent` (what
+// edge_screener.desk.mcp_server returns as `{"blocks": [...]}`) sits one level down. `details`
+// for a built-in MCP tool is only `{server, tool, fullOutputPath?}` — never a blocks carrier.
+// There is no built-in equivalent of the adapter's outputGuard.detailsMaxBytes cap: pi never
+// truncates or omits structuredContent (only the model-facing text, at 20 KB), so there is no
+// "overflow" case on this path (R-278 retired).
+export function extractBlocks(details, structuredContent) {
+	if (isObj(details) && details.blocks !== undefined) return { blocks: details.blocks, where: "blocks" };
+	if (isObj(structuredContent)) {
+		const sc = structuredContent.structuredContent;
+		if (isObj(sc) && sc.blocks !== undefined) return { blocks: sc.blocks, where: "structuredContent" };
 	}
 	return { blocks: null, where: null };
 }
 
-// Remove every block carrier from a details object (failure path: the invalid
-// blocks must not ride tool_execution_end into the live stage).
+// Remove the pi-extension block carrier from a details object (failure path: the invalid
+// blocks must not ride tool_execution_end into the live stage). The built-in MCP carrier lives
+// in `structuredContent`, not `details` — processToolResult drops that by never returning
+// `structuredContent` in its patch (pi: replacing `content` without `structuredContent` drops it).
 export function stripCarrier(details) {
 	if (!isObj(details)) return details;
 	const d = { ...details };
 	delete d.blocks;
-	if (isObj(d.mcpResult) && isObj(d.mcpResult.structuredContent)) {
-		const sc = { ...d.mcpResult.structuredContent };
-		delete sc.blocks;
-		d.mcpResult = { ...d.mcpResult, structuredContent: sc };
-	}
 	return d;
 }
 
@@ -338,21 +338,15 @@ export function applyLiveBlocks(current, blocks, event) {
 }
 
 // ── the hook logic, pure (nana-stage.ts is a thin adapter over this) ──
-// event: {toolName, toolCallId, input, content, details, isError}
+// event: {toolName, toolCallId, input, content, details, structuredContent, isError}
 // → null (not a block result) | { patch, entries } where patch is the tool_result
 //   return value and entries are the nana-block data objects to append, in order.
+// The patch NEVER sets `structuredContent`, success or rejection alike: pi deletes a tool
+// result's structuredContent when a handler replaces `content` without also returning
+// `structuredContent` (core/extensions/runner.js emitToolResult), so the raw, unstamped MCP
+// carrier never rides tool_execution_end into the live stage (R-283, R-284).
 export function processToolResult(event, { now = () => new Date().toISOString(), sign = null } = {}) {
-	const { blocks, where, overflow } = extractBlocks(event.details);
-	if (overflow) {
-		return {
-			patch: {
-				isError: true,
-				content: [{ type: "text", text: `nana-stage: ${event.toolName} returned blocks over the MCP adapter details cap (outputGuard.detailsMaxBytes); paginate the query or raise the cap.` }],
-				details: stripCarrier(event.details),
-			},
-			entries: [],
-		};
-	}
+	const { blocks, where } = extractBlocks(event.details, event.structuredContent);
 	if (blocks === null || blocks === undefined) return null;
 	if (!Array.isArray(blocks)) {
 		return { patch: fail(event, [`${where}: blocks must be an array`]), entries: [] };

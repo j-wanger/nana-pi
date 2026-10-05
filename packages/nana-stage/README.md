@@ -21,7 +21,7 @@ Two modules, one extension:
 
 | File | What it is |
 |---|---|
-| `lib/blocks.mjs` | the pure block contract — `validateBlock` (schema + the size caps), `renderBlockText` (the canonical model-visible text), `extractBlocks` (find the carrier in a tool result's `details`), `reduceEntries` (session entries → the stage). Zero deps, no I/O, runs in the browser too |
+| `lib/blocks.mjs` | the pure block contract — `validateBlock` (schema + the size caps), `renderBlockText` (the canonical model-visible text), `extractBlocks` (find the carrier in a tool result's `details`, for pi-extension tools, or `structuredContent`, for pi's built-in MCP tools), `reduceEntries` (session entries → the stage). Zero deps, no I/O, runs in the browser too |
 | `lib/sign.mjs` | `signBlock` / `verifyBlock` / `canonical` — HMAC-SHA256 over a block's sorted-key JSON (`produced_by.sig` excluded), keyed by the per-session `NANA_STAGE_KEY` the desk hands each app child |
 | `extensions/nana-stage.ts` | the pi extension: hooks `tool_result` for every tool, validates, stamps `produced_by`, signs, appends one `nana-block` entry per block, and patches the tool's text. Registers no tools and no commands |
 
@@ -36,10 +36,18 @@ the readiness watcher waits for). Without a key — plain TUI use — blocks are
 unsigned; the desk server is what refuses unsigned blocks, on the live event and on the ledger
 read alike (`apps/desk/apps.mjs` imports `verifyBlock` from here).
 
-**Residual (architecture-ruling.md, 2026-10-04):** the MCP block path (R-263) reads the carrier at
-`details.mcpResult.structuredContent.blocks` — the shape `pi-mcp-adapter` writes. Blocks returned
-over pi's own built-in MCP are not stamped by this path; R-263 stays `implemented` because its
-`WHERE` clause (blocks arrive through the MCP adapter) is still true while the adapter is present.
+**Built-in MCP (edge-builtin-mcp lane, 2026-10-04):** `pi-mcp-adapter` is gone. An MCP tool's
+blocks now arrive at `structuredContent.structuredContent.blocks` — pi's built-in MCP puts the
+server's own `CallToolResult` at the tool_result event's `structuredContent`, so the server's
+`{"blocks": [...]}` sits one level down (R-282, supersedes `retired` R-263). `extractBlocks`
+checks `details.blocks` (pi-extension tools, e.g. basketball) and that built-in carrier, in that
+order. On success AND on rejection, the patch never sets `structuredContent` (R-283, R-284):
+pi deletes a tool result's `structuredContent` when a handler replaces `content` without also
+returning it (pi's own extension runner, `emitToolResult`), so the raw, unstamped MCP carrier
+never rides `tool_execution_end` into a live stage — proved live over the real RPC chain by
+`apps/desk/test/stage-chain-edge.e2e.mjs`. There is no built-in equivalent of the adapter's
+`outputGuard.detailsMaxBytes` cap: pi never truncates or omits `structuredContent` (only the
+model-facing text, at 20 KB), so that scenario (`retired` R-278) has no replacement — no residual.
 
 Design: `docs/agent-frontend-design-2026-09-04.md` §3.1 (the contract) and §3.2 (the ledger).
 

@@ -191,15 +191,22 @@ check("card text has fields, badge, note, evidence", c1.includes("PTS") && c1.in
 }
 
 // ── extractBlocks / stripCarrier ──
+// The built-in MCP carrier (pi 1.0.2+, extensions/mcp/tools.js convertMcpResult): the tool_result
+// event's own `structuredContent` IS the server's CallToolResult minus _meta, so the server's
+// `{"blocks": [...]}` sits at structuredContent.structuredContent.blocks — NOT nested under `details`
+// (details for a built-in MCP tool is only {server, tool, fullOutputPath?}).
+const mcpSC = (blocksArr, extra = {}) => ({ content: [{ type: "text", text: "raw mcp text" }], isError: false, structuredContent: { blocks: blocksArr }, ...extra });
 check("extension carrier found", extractBlocks({ blocks: [table()] }).where === "blocks");
-check("mcp carrier found", extractBlocks({ mcpResult: { structuredContent: { blocks: [table()] } } }).where === "mcpResult");
-check("mcp omission summary → overflow", extractBlocks({ mcpResult: { omitted: ["structuredContent"], summary: {} } }).overflow === true);
-check("no carrier → null", extractBlocks({ diff: "x" }).blocks === null && extractBlocks(undefined).blocks === null);
-const stripped = stripCarrier({ blocks: [1], mcpResult: { structuredContent: { blocks: [1], other: 2 } }, diff: "d" });
-check("stripCarrier removes both carriers, keeps the rest", stripped.blocks === undefined && stripped.mcpResult.structuredContent.blocks === undefined && stripped.mcpResult.structuredContent.other === 2 && stripped.diff === "d");
+// req: R-282
+check("built-in MCP carrier found", extractBlocks({ server: "edge", tool: "screen_detail" }, mcpSC([table()])).where === "structuredContent");
+check("no carrier → null (details, structuredContent, or both absent)", extractBlocks({ diff: "x" }).blocks === null && extractBlocks(undefined).blocks === null && extractBlocks({ server: "edge" }, { content: [] }).blocks === null);
+const stripped = stripCarrier({ blocks: [1], diff: "d" });
+check("stripCarrier removes the extension carrier, keeps the rest", stripped.blocks === undefined && stripped.diff === "d");
 
 // ── processToolResult: the hook logic ──
 check("non-block tool result is untouched (null)", processToolResult(ev({ diff: "x" })) === null);
+// req: R-279
+check("non-block built-in MCP result (no blocks key) is untouched (null)", processToolResult(ev({ server: "edge", tool: "screen_detail" }, { structuredContent: { content: [{ type: "text", text: "plain text, no blocks" }], isError: false } })) === null);
 
 const ok = processToolResult(ev({ blocks: [table(), card()], other: 1 }), { now: NOW });
 // req: R-256
@@ -211,6 +218,8 @@ check("valid: patch details.blocks are the stamped blocks (carrier replaced)", o
 check("valid: content is exactly the canonical rendering, tool text dropped", ok.patch.content.length === 1 && ok.patch.content[0].text === `${renderBlockText(ok.entries[0])}\n\n${renderBlockText(ok.entries[1])}` && !ok.patch.content[0].text.includes("raw tool text"));
 // req: R-256
 check("valid: defaults slot=main show=true", ok.entries[0].slot === "main" && ok.entries[0].show === true);
+// req: R-283
+check("valid: patch carries no structuredContent (pi drops the raw carrier)", !("structuredContent" in ok.patch));
 
 const forged = processToolResult(ev({ blocks: [{ ...card(), produced_by: { tool: "forged", args: {}, toolCallId: "x", at: "1999" } }] }), { now: NOW });
 // req: R-256
@@ -223,15 +232,24 @@ const bad = processToolResult(ev({ blocks: [table(), { ...card(), scope: "" }], 
 check("malformed: isError, no entries", bad.patch.isError === true && bad.entries.length === 0);
 check("malformed: content is a text-part array naming the block index + reason", Array.isArray(bad.patch.content) && /blocks\[1\].*scope/.test(bad.patch.content[0].text));
 check("malformed: carrier stripped, other details kept", bad.patch.details.blocks === undefined && bad.patch.details.diff === "keep");
+// req: R-284
+check("malformed: patch carries no structuredContent either (rejection drops the raw carrier too)", !("structuredContent" in bad.patch));
 
 const notArr = processToolResult(ev({ blocks: { id: "x" } }));
 check("blocks not an array → error", notArr.patch.isError === true);
 
-const mcpOk = processToolResult(ev({ mcpResult: { structuredContent: { blocks: [card()] }, server: "fp" } }), { now: NOW });
-check("mcp path: blocks extracted, stamped, carrier moved to details.blocks", mcpOk.entries.length === 1 && mcpOk.patch.details.blocks.length === 1 && mcpOk.patch.details.mcpResult.structuredContent.blocks === undefined);
+// ── built-in MCP carrier through the hook (pi 1.0.2+: structuredContent.structuredContent.blocks) ──
+const mcpOk = processToolResult(ev({ server: "edge", tool: "screen_detail" }, { toolName: "mcp__edge__screen_detail", structuredContent: mcpSC([card()]) }), { now: NOW });
+// req: R-282
+check("built-in path: blocks extracted, stamped, carrier moved to details.blocks", mcpOk.entries.length === 1 && mcpOk.patch.details.blocks.length === 1 && mcpOk.patch.details.server === "edge");
+// req: R-282
+check("built-in path: produced_by.tool is the mcp__ tool name", mcpOk.entries[0].produced_by.tool === "mcp__edge__screen_detail");
+// req: R-283
+check("built-in path: patch carries no structuredContent (raw carrier dropped)", !("structuredContent" in mcpOk.patch));
 
-const over = processToolResult(ev({ mcpResult: { omitted: ["structuredContent"] } }));
-check("mcp overflow → error naming the cap", over.patch.isError === true && /detailsMaxBytes/.test(over.patch.content[0].text));
+const mcpBad = processToolResult(ev({ server: "edge", tool: "screen_detail" }, { toolName: "mcp__edge__screen_detail", structuredContent: mcpSC([{ ...card(), scope: "" }]) }));
+// req: R-284
+check("built-in path, malformed: isError, no entries, no structuredContent in the patch", mcpBad.patch.isError === true && mcpBad.entries.length === 0 && !("structuredContent" in mcpBad.patch));
 
 // ── reduceEntries: leafId ancestry, upsert by id, abandoned branches ignored, only stamped ──
 const stamp = (b) => ({ ...b, produced_by: { tool: "t", args: {}, toolCallId: "c", at: NOW() } });

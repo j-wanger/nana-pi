@@ -86,7 +86,7 @@
  */
 
 import { exec, execFile, spawn } from "node:child_process";
-import { loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
+import { isBuiltinExtensionRef, loadManifests, startAppListeners, verifiedBlocks } from "./apps.mjs";
 import { collectChanges, fileDiff } from "./changes.mjs";
 import { loadPiSession, resolvePiBin } from "./pi-session.mjs";
 import { StageKeyStore } from "./stage-keys.mjs";
@@ -441,6 +441,12 @@ function spawnChild({ cwd, session, name, approve, trust, tools, excludeTools, r
 		}
 		args.push("--no-extensions");
 		for (const p of resources.extensions || []) {
+			// pi's own `-e` grammar: a `builtin:<name>` reference (cli.md), never a filesystem path —
+			// `--no-extensions` disables built-in extensions too, so loading one back (e.g. `builtin:mcp`
+			// for an app session an app-owned extension registers an MCP server into) needs this literal
+			// form; it is not project-supplied code, so it skips refuseProject and existsSync alike. pi
+			// itself refuses an unknown builtin name at spawn time.
+			if (isBuiltinExtensionRef(p)) { args.push("-e", p); continue; }
 			refuseProject(p, "extension");
 			if (!fs.existsSync(p)) throw new Error(`no such extension: ${p}`);
 			args.push("-e", p);

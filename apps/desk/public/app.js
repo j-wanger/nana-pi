@@ -1835,7 +1835,7 @@ async function tabMcp(body) {
 		await saveMcp(parsed);
 		tabReload(body, tabMcp);
 	}));
-	body.appendChild(el("p", "dim", "Bridged by pi-mcp-adapter: one ~200-token proxy tool, servers connect on first use. In-session: /mcp for status, OAuth, and direct-tool toggles. Env vars and secrets: edit the file directly."));
+	body.appendChild(el("p", "dim", "pi's built-in MCP: servers connect at session start (exposure: codemode/deferred/direct/hidden, per server or per tool). A narrowed spawn (--no-extensions) needs builtin:mcp re-added to connect them. In-session: /mcp for status, OAuth, and exposure toggles. Env vars and secrets: edit the file directly."));
 }
 
 async function saveMcp(mcpServers) {

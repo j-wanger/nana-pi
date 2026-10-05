@@ -1697,7 +1697,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-stage/extensions/nana-stage.ts`
 
 - **purpose** — pi extension that validates, stamps, signs and journals the blocks any tool result carries, replacing the tool's text with the canonical rendering.
-- **inputs** — pi `tool_result` events (toolName, toolCallId, input, content, details, isError), `session_start` for the readiness watcher, env NANA_STAGE_KEY and NANA_STAGE_EXPECT_TOOLS, and pi.getActiveTools()
+- **inputs** — pi `tool_result` events (toolName, toolCallId, input, content, details, structuredContent, isError), `session_start` for the readiness watcher, env NANA_STAGE_KEY and NANA_STAGE_EXPECT_TOOLS, and pi.getActiveTools()
 - **outputs** — a patched tool result (canonical text + stamped blocks, or an isError rejection with every carrier stripped), one `nana-block` session entry per block, and a `nana-tools` UI status of waiting / ready / missing
 - **effects** — disk (block entries appended to pi's session), process (reads then deletes both env vars so tool subprocesses never inherit the key)
 - **errors** — none thrown — invalid or over-cap blocks come back as an isError tool result, and a watcher error downgrades the status and keeps polling
@@ -1707,7 +1707,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-stage/lib/blocks.mjs`
 
 - **purpose** — The pure block contract — validate, render, extract and reduce the code-authored blocks a stage shows.
-- **inputs** — block objects authored by app-tool code, a tool result's `details` carrier (details.blocks or details.mcpResult.structuredContent.blocks), and session entries {id, parentId, type, customType, data}
+- **inputs** — block objects authored by app-tool code, a tool result's `details` carrier (details.blocks, for pi-extension tools) and/or its `structuredContent` carrier (structuredContent.structuredContent.blocks, for pi's built-in MCP tools), and session entries {id, parentId, type, customType, data}
 - **outputs** — a validation verdict with its error list, the canonical model-visible text of a block (byte-capped), the stage's upserted block array for a leaf, and the tool_result patch plus the `nana-block` entries to append
 - **effects** — none
 - **errors** — never throws — validateBlock returns {ok:false, errors} (bad type, bad field, over MAX_TABLE_ROWS / MAX_CHART_POINTS_TOTAL / MAX_BLOCK_BYTES, an uninspectable block) and processToolResult returns an isError patch with the carrier stripped

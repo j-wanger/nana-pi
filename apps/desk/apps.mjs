@@ -87,6 +87,13 @@ function verifiedEntries(keys, entries) {
 
 const isStr = (v) => typeof v === "string" && v.length > 0;
 const strList = (v) => (Array.isArray(v) ? v.filter(isStr) : []);
+// pi's own `-e`/`--extension` grammar (cli.md): "Load an extension file or builtin:<name>" — not
+// a filesystem path, so it never passes `fs.existsSync` and is never a project path to refuse. pi
+// itself refuses an unknown builtin name at spawn time; this is a syntax check only (probe
+// 2026-10-04: built-in MCP support must be loaded explicitly with `-e builtin:mcp` once the
+// session also passes `--no-extensions`, which disables built-in extensions too — cli.md -ne).
+// Exported so server.mjs's spawnChild applies the identical rule to the SAME manifest field.
+export const isBuiltinExtensionRef = (p) => /^builtin:[A-Za-z0-9_.-]+$/.test(p);
 
 export function loadManifests(dir) {
 	const out = new Map();
@@ -126,7 +133,7 @@ export function normalizeManifest(name, file, raw) {
 	const cwd = isStr(raw.cwd) ? raw.cwd.replace(/^~(?=$|\/)/, process.env.HOME || "") : "";
 	if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) return { error: `cwd: no such directory ${raw.cwd}` };
 	const extensions = strList(raw.extensions);
-	for (const p of extensions) if (!fs.existsSync(p)) return { error: `extensions: no such file ${p}` };
+	for (const p of extensions) if (!isBuiltinExtensionRef(p) && !fs.existsSync(p)) return { error: `extensions: no such file ${p}` };
 	const skills = strList(raw.skills);
 	for (const p of skills) if (!fs.existsSync(p)) return { error: `skills: no such path ${p}` };
 	const trust = raw.trust === "approve" ? "approve" : "no-approve";

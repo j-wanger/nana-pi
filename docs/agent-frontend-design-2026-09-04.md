@@ -49,8 +49,8 @@ The agent never paints durable state. The layout is fixed and app-owned. The age
          │                                        │ pi --mode rpc -t <manifest tools> -a|-na
          │                     ┌──────────────────┴───────────────────────┐
          │                     │ pi session                                │
-         └── mutating tools ───│  app tools (pi extension, or MCP via      │
-                               │   pi-mcp-adapter)                         │
+         └── mutating tools ───│  app tools (pi extension, or pi's         │
+                               │   built-in MCP — §3.1 amendment)          │
                                │  nana-stage: tool_result → validate →     │
                                │   appendEntry("nana-block")               │
                                └──────────────────────────────────────────┘
@@ -88,7 +88,7 @@ Two blocks in v0: `table` and `card`. Four more (`kpi`, `chart`, `timeline`, `gr
 
 There is no `present` tool and no model-authored projection. A tool that returns a block is asking to show it (`show: false` for tools the agent uses to think; hidden blocks still enter the ledger).
 
-Blocks travel in the tool result: for pi-extension tools in `details.blocks`; for MCP tools in the tool's `structuredContent.blocks`, which `pi-mcp-adapter` exposes under `details.mcpResult` when its setting `directToolResultDetails` is `"bounded"`. The adapter caps that raw result (16 KiB default, `outputGuard.detailsMaxBytes`); over the cap it substitutes an omission summary rather than the blocks. `nana-stage` treats a `mcpResult` that is a summary (no `structuredContent.blocks` where the tool's text content announces blocks, or an `omitted` marker) as an error result: "block too large for the adapter cap; paginate or raise `detailsMaxBytes`". Slice 2 pins the exact path, the cap setting, and the overflow test; slice 1 uses extension tools only.
+Blocks travel in the tool result: for pi-extension tools in `details.blocks`; for MCP tools in the tool's `structuredContent.blocks`, which `pi-mcp-adapter` exposes under `details.mcpResult` when its setting `directToolResultDetails` is `"bounded"`. The adapter caps that raw result (16 KiB default, `outputGuard.detailsMaxBytes`); over the cap it substitutes an omission summary rather than the blocks. `nana-stage` treats a `mcpResult` that is a summary (no `structuredContent.blocks` where the tool's text content announces blocks, or an `omitted` marker) as an error result: "block too large for the adapter cap; paginate or raise `detailsMaxBytes`". Slice 2 pins the exact path, the cap setting, and the overflow test; slice 1 uses extension tools only. *(Superseded 2026-10-04 — the adapter is gone; see the Contract amendment right after the numbered list below.)*
 
 **Text and stage cannot diverge, by construction:** after validation, `nana-stage` *replaces* the tool result's text `content` with the canonical text rendering of the validated blocks (table → aligned rows, card → label/value lines, plus each block's `scope` and optional `note`) and nothing else. A tool that wants to say something beyond the data puts it in the block's code-authored `note` field, which the stage renders too. Any other text the tool returned is dropped. The model reads exactly what the stage renders; no correspondence check is needed. Tools that return no blocks are untouched.
 
@@ -100,11 +100,39 @@ Blocks travel in the tool result: for pi-extension tools in `details.blocks`; fo
 
 3. `subtitle` and `badges` are validated on **every** block type, not just `card` — they render on every type, and a `table` carrying `badges: {length: 2}` used to validate and then blank the stage. And `validateBlock` never throws: a block it cannot inspect (a cycle, a hostile getter or `toJSON`) comes back as an ordinary rejection instead of escaping through pi's `tool_result` handler, where a thrown error would BLOCK the tool.
 
+**Contract amendment (2026-10-04, edge-builtin-mcp lane — pi 1.0.2).** The MCP carrier paragraph
+above (§3.1, "Blocks travel in the tool result…") described `pi-mcp-adapter`, which the edge app
+no longer loads: it is replaced everywhere by pi's own built-in MCP support. Supersedes that
+paragraph and the parallel statements in §3.2 and the manifest's `tools` field (§3.4) wherever
+they name the adapter; left as written below as the historical record of what slice 2 built and
+verified against (§11).
+
+- MCP tools are now **pi's built-in MCP tools**, named `mcp__<server>__<tool>` (not the adapter's
+  unprefixed names via a project `.pi/mcp.json`); an app-owned extension registers the server
+  with `pi.registerMcpServer()` (docs/mcp.md), and the manifest's `extensions` list must also
+  name `builtin:mcp` — `--no-extensions` (every app session's narrowing) disables *built-in*
+  extensions too, pi's built-in MCP support included, and nothing else connects a registration
+  (pi: "The core only validates and stores registrations. The MCP extension … connects them").
+- The carrier moved: an MCP tool's blocks arrive at a `tool_result` event's
+  `structuredContent.structuredContent.blocks` (pi puts the server's own `CallToolResult` at
+  `structuredContent`), not `details.mcpResult.structuredContent.blocks`. `nana-stage` extracts
+  from `details.blocks` (pi-extension tools, unchanged) or that built-in carrier.
+- **No adapter cap, no overflow case.** pi's built-in MCP never truncates or omits
+  `structuredContent` — only the model-facing text, at 20 KB, which `nana-stage` doesn't read.
+  The adapter's `outputGuard.detailsMaxBytes` cap and its "block too large for the adapter cap"
+  error have no replacement (`packages/nana-stage` R-278, retired).
+- **The carrier-drop mechanism is now explicit, not an artifact of `stripCarrier`.** On success
+  AND on rejection, `nana-stage`'s patch never sets `structuredContent`: pi deletes a tool
+  result's `structuredContent` when a handler replaces `content` without also returning it, so
+  the raw, unstamped carrier never rides `tool_execution_end` into a live stage
+  (`packages/nana-stage` R-283, R-284).
+- Full report: `docs/reviews/edge-builtin-mcp-2026-10-04/worker-report.md`.
+
 ### 3.2 `nana-stage` (kit; pi extension)
 
-- Hooks `tool_result` for every tool (MCP-bridged tools are registered through `pi.registerTool` by the adapter, so the hook sees them). Looks for blocks at the two paths above. If present: validate each against the schema. On failure, return `{isError: true, content: [{type: "text", text: "<one-line reason>"}], details: <original details with the block carrier removed>}` (`content` patches are arrays of content parts); `tool_result` patches replace fields, so the carrier must be stripped explicitly or the invalid blocks would ride the subsequent `tool_execution_end` into the live stage. On success, stamp `produced_by`, `pi.appendEntry("nana-block", block)` per block, and return `details` with the carrier replaced by the stamped, validated blocks. The live reducer reads `event.result.details.blocks` on `tool_execution_end` and consumes only blocks carrying a `produced_by` stamp; anything else in a tool event is ignored.
+- Hooks `tool_result` for every tool (MCP-bridged tools are registered through `pi.registerTool` by the adapter, so the hook sees them). Looks for blocks at the two paths above. If present: validate each against the schema. On failure, return `{isError: true, content: [{type: "text", text: "<one-line reason>"}], details: <original details with the block carrier removed>}` (`content` patches are arrays of content parts); `tool_result` patches replace fields, so the carrier must be stripped explicitly or the invalid blocks would ride the subsequent `tool_execution_end` into the live stage. On success, stamp `produced_by`, `pi.appendEntry("nana-block", block)` per block, and return `details` with the carrier replaced by the stamped, validated blocks. The live reducer reads `event.result.details.blocks` on `tool_execution_end` and consumes only blocks carrying a `produced_by` stamp; anything else in a tool event is ignored. *(Superseded 2026-10-04 — see the §3.1 Contract amendment: MCP tools are registered by pi's own built-in MCP support, not the adapter, and their carrier moved to `structuredContent`.)*
 - **Ordering:** `tool_result` handlers chain in extension load order. `nana-stage` must be the last block-relevant mutator: the manifest lists it as the final extension, and it re-validates on `tool_execution_end`'s own view (the reducer's stamp check) so a later handler that re-injects a carrier cannot reach the stage.
-- **Size bound for extension blocks:** the validator rejects a block whose JSON exceeds 64 KiB or whose `table.rows` exceed 500; tools paginate. This mirrors the adapter's cap on the MCP path so both paths fail the same way.
+- **Size bound for extension blocks:** the validator rejects a block whose JSON exceeds 64 KiB or whose `table.rows` exceed 500; tools paginate. This mirrored the adapter's cap on the MCP path so both paths failed the same way — the built-in MCP path now has no cap to mirror (§3.1 Contract amendment).
 - Ledger semantics: custom entries do not enter LLM context, survive compaction, and are readable via `get_entries` (with a `since` cursor) from any client and from the session file. The **ledger is the stage**; the browser is a view of it.
 - Registers no tools and no commands. TUI rendering of ledger entries (`registerEntryRenderer`) is deferred; it is not needed for a browser feel check.
 - **Dependencies** *(recorded 2026-09-09)*: none at runtime beyond pi itself — `packages/nana-stage/package.json` declares `@earendil-works/pi-coding-agent` as an *optional* `peerDependency` (pi is the host the extension runs inside) and no `dependencies`/`devDependencies`; `lib/blocks.mjs` and `lib/sign.mjs` use `node:` builtins only, and `tests/blocks.test.mjs` is a zero-dep `node <file>` run.
@@ -137,7 +165,7 @@ Routes carry no app name and no child id: the listener *is* the app, and it hold
 
 **Origin enforcement on every listener, including the existing desk one.** Today the desk parses any POST body as JSON without checking `Origin` or `Content-Type`, so any web page open in the same browser can fire a cross-origin `text/plain` POST at `/api/spawn`. This is a live exposure independent of this design and is fixed first (deliverable 0, §6): every state-changing request must carry `Content-Type: application/json` and either no `Origin` header (curl, scripts) or an `Origin` equal to the listener's own; anything else is rejected with 403 before the body is read. Same rule on app listeners. Test: cross-origin simple POST against 7317 and against an app port both return 403; a same-origin JSON POST succeeds.
 
-**Manifest** (`~/.pi/agent/apps/<app>.json`, server-side, never client-supplied): `port`; `cwd`; `tools` (passed as `-t`, allowlisting built-in, extension, and MCP-adapter tools; app sessions get **no `bash`, `edit`, or `write`** unless listed); `extensions`; `mutating`; `trust: "approve" | "no-approve"` (→ `-a` / `-na`, project-trust only); `session` (last session file).
+**Manifest** (`~/.pi/agent/apps/<app>.json`, server-side, never client-supplied): `port`; `cwd`; `tools` (passed as `-t`, allowlisting built-in, extension, and MCP tools — pi's built-in MCP since 2026-10-04, `mcp__<server>__<tool>`, not the adapter's unprefixed names; app sessions get **no `bash`, `edit`, or `write`** unless listed); `extensions` (a file path, or `builtin:<name>` — needed for `builtin:mcp` when an app's own extension registers an MCP server); `mutating`; `trust: "approve" | "no-approve"` (→ `-a` / `-na`, project-trust only); `session` (last session file).
 
 **Session file tracking:** after spawn, the server calls `get_state`, reads `sessionFile`, and writes the manifest atomically (temp file + rename). App listeners expose no command that changes the session file (no `new_session`, `switch_session`, `fork`, `resume`), so spawn is the only transition in v0 and the only trigger needed. When a fork or resume route is added later, it re-runs the same `get_state` + atomic write.
 
