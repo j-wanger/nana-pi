@@ -44,11 +44,10 @@ export const TEST_ROOTS = [
 export const CALL_NAMES = ["test", "it", "check"];
 
 /**
- * Rows off EARS form (G-013) tolerated before the rail fails naming them (G-015). Measured
- * 200 at design-ruling.md's ground truth (§0, 2026-10-04); lowered to 194 at this landing
- * (batch 0 closes the 6 Part G origins split into form, §2's batch table) and ratcheted
- * again at every later landing. Pinned by
- * packages/nana-pack/tests/requirements-trace.test.mjs::seal: EARS_ALLOWANCE is 194 (G-015).
+ * Rows off EARS form (G-013) tolerated before the rail fails naming them (G-015). Measured 200 at
+ * design-ruling.md §0 (2026-10-04); 0 since the lane close the same day (lane-close-ruling.md §1).
+ * Pinned by packages/nana-pack/tests/requirements-trace.test.mjs::seal: EARS_ALLOWANCE is 0 (G-015)
+ * and held equal to the measured count by R-757's seal.
  */
 export const EARS_ALLOWANCE = 0;
 

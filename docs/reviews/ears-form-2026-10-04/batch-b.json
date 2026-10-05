@@ -2683,7 +2683,7 @@
         },
         {
           "id": "R-931",
-          "text": "A missing parent directory shall abort the run, dry run included.",
+          "text": "WHEN nana-setup project is given a directory whose parent is missing, it shall abort the run, dry run included.",
           "status": "untested",
           "cites": [
             "packages/nana-setup/tests/project.test.mjs::a missing parent still aborts"

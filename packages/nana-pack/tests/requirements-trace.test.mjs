@@ -126,6 +126,10 @@ rmSync(allowDir, { recursive: true, force: true });
 
 // req: G-015
 check("seal: EARS_ALLOWANCE is 0 (G-015)", EARS_ALLOWANCE === 0);
+// G-013 for THIS repo: the lane that split every multi-shall row closed 2026-10-04; from here
+// a new off-form row fails this check by name (lane-close-ruling.md §1).
+// req: G-013
+check("this repo: zero rows off form", earsOffForm.length === 0, `off form: ${earsOffForm.join(", ")}`);
 
 // req: R-757
 check("seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom)",

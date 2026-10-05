@@ -206,12 +206,12 @@
         },
         {
           "id": "R-477",
-          "text": "WHEN nothing is narrowed, the server shall pass no tool flag at all.",
+          "text": "WHEN a spawn request narrows no tools, the desk server shall pass no tool flag at all.",
           "status": "untested"
         },
         {
           "id": "R-478",
-          "text": "The server shall refuse an unknown tool name or a non-array request.",
+          "text": "The desk server shall refuse a spawn request whose tool exclusion names an unknown tool or is not an array.",
           "status": "untested"
         }
       ]
