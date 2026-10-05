@@ -253,6 +253,22 @@ if (!version) {
 				out(r).slice(-400),
 			);
 
+			// --impact names what its own blast-radius walk still cannot see: in a fresh
+			// scaffold the trace-rail library module (tests/requirements-trace, TS; and —
+			// a separate, pre-existing gap — every Python test importing a script by its
+			// sys.path bare name) carries no detected callee, so it is untraced by design,
+			// not by a bug this lane introduces.
+			const impactRun = run(cmd, [args[0], "--impact", spec.markerIn], dest);
+			const expectedUntraced =
+				language === "python"
+					? "untraced tests: 4 of 5 test modules import no mapped module (a test that only starts a process is not linked)"
+					: "untraced tests: 1 of 5 test modules import no mapped module (a test that only starts a process is not linked)";
+			// req: R-946 R-947
+			check(`${language}: --impact prints the untraced-test count for a fresh scaffold`,
+				impactRun.status === 0 && out(impactRun).includes(expectedUntraced),
+				out(impactRun).slice(-600),
+			);
+
 			// A fresh scaffold's own lint/format gates pass with no edits — NOT a pinned
 			// clause of R-858 (see REQUIREMENTS.md: the row stays untested). These checks
 			// still catch a real regression on a machine that HAS the tools, but they are

@@ -17,7 +17,7 @@ import * as path from "node:path";
 //
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
-const { REPO_ROOT, checkRepo, collectModules, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, why = "") => {
@@ -40,10 +40,15 @@ check("only the three content-pinned bench modules are excused a header, each wi
 );
 
 // G-007 as THIS repo declares it: apps and scripts on top, the packages under them, so no
-// module in a package may import an app. Asserted on the edges, not on the absence of a
-// problem — the claim is about the repo's shape, not about the checker having run.
+// PRODUCTION module in a package may import an app. Asserted on the edges, not on the
+// absence of a problem — the claim is about the repo's shape, not about the checker having
+// run. A test root is declared layerExempt (G-007: a test may import any layer), so a
+// packages/*/tests module importing an app — now visible once R-945's dynamic-import forms
+// resolve — is excluded here rather than misread as a reversed production import.
+const isExemptFrom = (p) => (config.exemptRoots ?? []).some((r) => p === r || p.startsWith(`${r}/`));
 const reversed = [];
 for (const from of graph.order) {
+	if (isExemptFrom(from)) continue;
 	const a = graph.modules.get(from).layer?.id;
 	for (const to of graph.modules.get(from).callees) {
 		const b = graph.modules.get(to).layer?.id;
@@ -95,6 +100,30 @@ check("every mapped test module has an entry in docs/code-map.md", unlisted.leng
 check("the browser-only e2e suites are still outside the map",
 	!graph.order.some((p) => p.endsWith(".e2e.mjs")),
 	graph.order.filter((p) => p.endsWith(".e2e.mjs")).join(", "),
+);
+
+// R-945: most of this repo's OWN tests load the module they exercise via a dynamic import
+// of new URL(<relative path>, import.meta.url) — bare, .href or .pathname — which the
+// generator used to read as opaque and silently record no edge for: before this fix, 67 of
+// the 95 test modules above had zero callees. paths.test.mjs uses exactly that form (not
+// spelled out literally here — this file is itself a mapped module, and a real import
+// specifier written out would be read as one of THIS file's own imports once scanned).
+// req: R-945
+check("a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)",
+	graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.includes("packages/nana-setup/lib/paths.mjs"),
+	`callees: ${graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.join(" ")}`,
+);
+
+// R-946: --impact also names the part of the blast radius it still cannot see — a per-run
+// count of test modules whose own callees are empty (a child-process-only test, or one
+// spelled a form this generator does not parse), recomputed independently of formatImpact
+// so this does not just mirror the implementation.
+const untracedModules = mappedTests.filter((p) => graph.modules.get(p).callees.length === 0);
+const impactLine = `untraced tests: ${untracedModules.length} of ${mappedTests.length} test modules import no mapped module (a test that only starts a process is not linked)`;
+// req: R-946
+check("--impact's output carries the untraced-test line with the real count",
+	formatImpact(graph, ["packages/nana-pack/lib/agent-dir.mjs"]).includes(impactLine),
+	`expected: ${impactLine}`,
 );
 
 // the documented command is the one that runs: `npm run map:check` from the repo root

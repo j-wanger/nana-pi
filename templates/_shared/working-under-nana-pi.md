@@ -137,8 +137,9 @@ from the diff.
   decision, never a quiet skip. Before
   touching a mapped module, read its blast radius: `pnpm map:impact <file...>` (no `--`
   before the path — pnpm forwards it literally, unlike npm, so it reads as a bogus module) /
-  `--impact <file...>` — since the tests are mapped too, that names the tests that
-  cover it.
+  `--impact <file...>` — since the tests are mapped too, it names the tests that import
+  the module, and counts the ones it cannot link (a test that only starts a process, or
+  imports through a form the generator does not parse, is not linked).
 
 ### Navigation
 

@@ -32,6 +32,7 @@ import { afterAll, expect, test } from "vitest";
 import {
 	buildGraph,
 	checkRepo,
+	formatImpact,
 	HEADER_TAGS,
 	impact,
 	isLayerExempt,
@@ -255,6 +256,28 @@ test("the import reader finds static, bare and dynamic specifiers and resolves t
 	expect(
 		resolveImport("src/core/a.ts", "./b.ts", new Set(["src/core/b.ts"])),
 	).toBe("src/core/b.ts");
+});
+
+{{ rq }} G-011
+test("a dynamic import of new URL(path, import.meta.url) is a mapped edge — bare, .href, .pathname, with or without a second import() argument — but a non-literal URL creates none", () => {
+	// Same @-for-quote trick as above: this fixture text must not itself read as an
+	// import of this test file once tests/ is mapped.
+	const source = `${[
+		"const a = await import(new URL(@./a.js@, import.meta.url));",
+		"const b = await import(new URL(@./b.js@, import.meta.url).href);",
+		"const c = await import(new URL(@./c.js@, import.meta.url).pathname);",
+		"const d = await import(new URL(@./d.js@, import.meta.url).href, { assert: { type: @json@ } });",
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: deliberately NOT a template literal in the fixture it builds — this is the non-literal form the generator must create no edge for
+		"const e = await import(new URL(`./e-${n}.js`, import.meta.url).href);",
+	]
+		.join("\n")
+		.replace(/@/g, '"')}\n`;
+	expect(parseRelativeImports(source)).toEqual([
+		"./a.js",
+		"./b.js",
+		"./c.js",
+		"./d.js",
+	]);
 });
 
 // NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin
@@ -555,6 +578,29 @@ test("--impact gives the transitive callers and callees of a change", () => {
 	expect(run.code).toBe(0);
 	expect(run.stdout).toMatch(/transitive callers \(1\): src\/core\/a\.ts/);
 	expect(run.stdout).toMatch(/transitive callees \(0\): —/);
+});
+
+{{ rq }} G-011
+test("--impact also reports how many test-root modules import no mapped module at all", () => {
+	const graph = buildGraph(
+		[
+			mod("tests/a.test.ts", ["../src/core/model.js"]),
+			mod("tests/b.test.ts"),
+			mod("tests/c.test.ts", ["../src/core/model.js"]),
+			mod("src/core/model.ts"),
+		],
+		config,
+	);
+	expect(graph.problems).toEqual([]);
+	// one of the three test modules (b) imports no mapped module at all
+	expect(formatImpact(graph, ["src/core/model.ts"])).toMatch(
+		/untraced tests: 1 of 3 test modules import no mapped module \(a test that only starts a process is not linked\)$/,
+	);
+	// a module that itself imports nothing is still 0 untraced of 0 when there are no test modules
+	const noTests = buildGraph([mod("src/core/model.ts")], config);
+	expect(formatImpact(noTests, ["src/core/model.ts"])).toMatch(
+		/untraced tests: 0 of 0 test modules import no mapped module/,
+	);
 });
 
 {{ rq }} G-004 G-009 G-010

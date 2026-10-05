@@ -604,6 +604,18 @@ def impact(graph: Graph, paths: list[str]) -> Impact:
     return Impact(per=per, callers=union("callers"), callees=union("callees"))
 
 
+def untraced_tests(graph: Graph) -> tuple[int, int]:
+    """G-011 (parity, R-947): how many test modules (under a layerExempt/testRoots root)
+
+    import no mapped module at all -- the part of the blast radius ``--impact`` still
+    cannot see, because a dropped or process-only test never shows up as anyone's caller.
+    Returns ``(untraced, total)``.
+    """
+    tests = [p for p in graph.order if graph.config.is_layer_exempt(p)]
+    untraced = [p for p in tests if not graph.modules[p].callees]
+    return len(untraced), len(tests)
+
+
 def format_impact(graph: Graph, paths: list[str]) -> str:
     """The impact report, as the CLI prints it."""
     result = impact(graph, paths)
@@ -616,6 +628,12 @@ def format_impact(graph: Graph, paths: list[str]) -> str:
     if len(paths) > 1:
         out.append("")
         out.append(f"blast radius: {len(result.callers)} upstream, {len(result.callees)} downstream")
+    untraced, total = untraced_tests(graph)
+    out.append("")
+    out.append(
+        f"untraced tests: {untraced} of {total} test modules import no mapped module "
+        "(a test that only starts a process is not linked)"
+    )
     return "\n".join(out)
 
 
