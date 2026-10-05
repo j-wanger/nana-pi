@@ -206,12 +206,12 @@
         },
         {
           "id": "R-477",
-          "text": "WHEN built-in tools are unchecked for a spawn, the server shall pass no tool flag at all when nothing is narrowed.",
+          "text": "WHEN nothing is narrowed, the server shall pass no tool flag at all.",
           "status": "untested"
         },
         {
           "id": "R-478",
-          "text": "WHEN built-in tools are unchecked for a spawn, the server shall refuse an unknown tool name or a non-array request.",
+          "text": "The server shall refuse an unknown tool name or a non-array request.",
           "status": "untested"
         }
       ]
@@ -280,7 +280,7 @@
         },
         {
           "id": "R-482",
-          "text": "WHERE the cwd is not a repository, git is absent or the cwd has vanished, the answer shall say so with a reason rather than throwing.",
+          "text": "WHERE the cwd is not a repository, git is absent or the cwd has vanished, the changes bar's answer for a live session shall say so with a reason rather than throwing.",
           "status": "untested"
         }
       ]
@@ -462,7 +462,7 @@
         },
         {
           "id": "R-494",
-          "text": "The manifest's session pointer shall be rewritten atomically from the child's reported state leaving no temp file.",
+          "text": "An app listener's manifest session pointer shall be rewritten atomically from that app listener's child's reported state leaving no temp file.",
           "status": "untested"
         }
       ]
@@ -488,7 +488,7 @@
         },
         {
           "id": "R-496",
-          "text": "IF an app child exits mid-wait THEN the request shall answer 502 naming the exit.",
+          "text": "IF an app child exits before reporting its manifest tools ready THEN the app listener's session-start request shall answer 502 naming the exit.",
           "status": "untested"
         }
       ]
@@ -515,7 +515,7 @@
         },
         {
           "id": "R-498",
-          "text": "Answering an already-answered or expired dialog shall return 409.",
+          "text": "Answering an already-answered or expired app listener extension dialog shall return 409.",
           "status": "untested"
         }
       ]
@@ -655,7 +655,7 @@
         },
         {
           "id": "R-547",
-          "text": "A request outside any window shall be recorded as a skipped own call so the scoping is auditable.",
+          "text": "A model request outside any watched-tool execution window shall be recorded as a skipped own call so the scoping is auditable.",
           "status": "untested"
         }
       ]
@@ -881,7 +881,7 @@
         },
         {
           "id": "R-559",
-          "text": "WHEN an interrupt begins a second pass shall write nothing twice.",
+          "text": "WHEN an interrupt begins, a second interrupt-salvage pass over the in-flight record shall write nothing twice.",
           "status": "untested"
         }
       ]
@@ -977,7 +977,7 @@
         },
         {
           "id": "R-564",
-          "text": "No signed line shall be a failure.",
+          "text": "IF evaluator output contains no signed verdict line THEN the bench shall record a failure rather than a grader error.",
           "status": "untested"
         },
         {
@@ -1100,7 +1100,7 @@
         },
         {
           "id": "R-571",
-          "text": "In a composite checker every grader error shall be recorded undecided and excluded from every success denominator while still appearing in the state counts.",
+          "text": "Every grader error shall be recorded undecided and excluded from every success denominator while still appearing in the state counts.",
           "status": "untested"
         }
       ]
@@ -1132,7 +1132,7 @@
       "clauses": [
         {
           "id": "R-534",
-          "text": "IF the fixture has drifted from its pin THEN the run shall be a grader error with no paid child spawned.",
+          "text": "IF the fixture has drifted from its pin THEN the bench run using that fixture shall be a grader error with no paid child spawned.",
           "status": "implemented",
           "cites": [
             "apps/bench/test/orchestration-paths.test.mjs::fixture run: a drifted fixture is a grader error, never a graded run",
@@ -1168,7 +1168,7 @@
         },
         {
           "id": "R-574",
-          "text": "Agreement shall be computed as Cohen's kappa over equal-length rater vectors from a seeded order-independent sample.",
+          "text": "Agreement over the review corpus shall be computed as Cohen's kappa over equal-length rater vectors from a seeded order-independent sample.",
           "status": "untested"
         }
       ]
