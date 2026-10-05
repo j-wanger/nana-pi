@@ -15,7 +15,9 @@ not a workaround, pi's own grammar for loading a built-in extension back under `
 (cli.md). Built with that one addition; the full chain is proven live, including the real e2e.
 
 **Commits:**
-- nana-pi `feat/edge-builtin-mcp`: `1ed473411338494e4062f29e724d24ccc299879c`
+- nana-pi `feat/edge-builtin-mcp`: `1ed473411338494e4062f29e724d24ccc299879c`,
+  `ec080dc` (report hashes), `4737027bca66633444e6618f7173e8574335d18a` (seat follow-up:
+  R-943/R-944 + tests, README fix, corrected readme-check/model claims)
 - edge-screener `feat/builtin-mcp`: `ecace8a6b536fbbd5535e4364d9e71aadd2e3eba`
 
 Neither pushed, neither merged, per the brief.
