@@ -737,12 +737,22 @@ is user-scope only** — project config never contributes to it, trusted or not.
     a running pi). An UNREADABLE lock folder is held exactly the same way when it is fresh or
     future-dated: proper-lockfile's own `mkdir`, under a restrictive umask, can leave a
     genuinely acquired, empty lock with no read bit, so a failed directory listing is not by
-    itself evidence of a non-empty folder. Only a STALE empty-or-unreadable folder counts as
-    usable (pi reclaims it; an unreadable one that is stale but turns out not to be empty stays
-    obstructed, since nothing here can prove its emptiness the way pi's own `rmdir` effectively
-    does). A file, a link or a non-empty readable folder there is "lock path obstructed" at any
-    age — pi never clears it, every pi trust lookup and `/trust` throw, and the label names the
-    lock path and what occupies it. It
+    itself evidence of a non-empty folder. The remedy for that case says so directly — this
+    check cannot read the folder to confirm it is really empty — and never ends with the
+    `/trust` steps, because waiting and re-checking is the honest next step, not a diagnosis
+    this check could not establish. Only a STALE, READABLE, empty folder counts as usable here
+    (pi reclaims it, and so does nana's own check, since it can confirm the folder is empty). A
+    STALE folder nana cannot read is always "lock path obstructed" — nana has no way to confirm
+    it is the empty folder pi's own rule would reclaim, so it never claims usability it cannot
+    see. pi itself may still reclaim that exact folder if it genuinely is empty (pi's `rmdir`
+    needs no read permission on the target, only write/execute on its parent) — nana's label can
+    therefore be more conservative than pi's actual outcome, and the remedy for this case says
+    so too: check what the folder holds first, move it aside only if it holds something, and
+    skip straight to the `/trust` steps if it turns out empty, because pi removes an empty one
+    itself. It never claims pi's own trust check and `/trust` both fail here, since whether they
+    do depends on contents this check could not read. A file, a link or a non-empty READABLE
+    folder there is "lock path obstructed" at any age — pi never clears it, every pi trust
+    lookup and `/trust` throw, and the label names the lock path and what occupies it. It
     never names a store that does not exist. `/trust` alone cannot be relied on then: pi's own
     `/trust` reads the store (under that lock) before showing its selector and throws on a
     malformed file, and its write needs the folder and the file writable. Its rewrite *can*

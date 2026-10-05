@@ -38,6 +38,33 @@ seat commits those). One line each:
    merge and the manifest replacement picks up either, and the vendor directory comes out last,
    after a live verification, not before.
 
+**astra r2 (BLOCK, 8/10) — every r1 item closed; two new findings and one doc alignment,
+2026-10-05.** Read in full at the scratchpad path the seat gave (left out of the tree — the seat
+commits it). Round 3 is the last review round for this item, so this pass is meant to be
+complete. One line each:
+1. MUST: unreadable-lock remedies overstated what inspection established — the held-unreadable
+   remedy ended with the `/trust` steps regardless (a fixed next step on an unconfirmed
+   diagnosis), and the stale-unreadable remedy flatly claimed "pi's own trust check and /trust
+   both fail," which astra's own lookup disproved for a genuinely empty stale folder (pi
+   reclaims it and reads the record straight through). Classification is UNCHANGED; a new
+   `unreadable: true` flag (no new `TrustStoreProblem`) carries the uncertainty from
+   `lockProblem()` into two new `trustRemedy()` branches that admit what the check cannot see.
+   New R-856/R-857, four new T17 fixtures asserting the remedy TEXT (fresh unreadable non-empty,
+   stale unreadable empty with an affirmative record pi actually reclaims, stale unreadable
+   non-empty where pi's own rmdir agrees it's obstructed, plus the existing held cases and the
+   astra r1 regression updated to the new text), two mutations each turning the right rows red.
+2. SHOULD: `packages/nana-pack/README.md` wrongly implied a stale unreadable folder could count
+   as usable with an exception — the implementation classifies every stale unreadable folder as
+   obstructed; it cannot determine the exception. Rewrote the paragraph to separate nana's
+   conservative classification from pi's own possible (but unconfirmed) reclamation. Checked
+   `CLAUDE.md`'s T2c paragraph: the named clause ("a fresh or future-dated empty folder means
+   pi's own lookup throws") is still true — fresh/future-dated still always throws for pi
+   regardless of readability — so left unchanged.
+3. MUST: replaced the "Machine steps" runbook with astra's quiesce-first order — stop the desk
+   before either checkout changes (not merely before the manifest edit), update both checkouts,
+   replace the manifest, start the desk, verify live, remove the vendor tree last. One line per
+   step says why.
+
 **Commits:**
 - nana-pi `feat/edge-builtin-mcp`: `1ed473411338494e4062f29e724d24ccc299879c`,
   `ec080dc` (report hashes), `4737027bca66633444e6618f7173e8574335d18a` (seat follow-up:
@@ -216,6 +243,26 @@ two untracked astra-r1 files):**
 Did not rerun the full `npm test` or the e2e suite in this round either, per the seat's
 instruction (the seat runs the full suite after merge).
 
+**astra r2 follow-up — real exit codes, `apps/bench/.ext` symlinked in again for the one
+readme-check re-run, then removed (tree clean before and after apart from the untracked
+astra-r2 scratchpad file the seat holds, outside this tree entirely):**
+
+| Check | Exit | Result |
+|---|---|---|
+| `node --experimental-strip-types packages/nana-pack/tests/objective-golden.test.mjs` | 0 | 1,214 pass, 0 fail (run 3× — stable) |
+| `node scripts/requirements-trace.mjs` | 0 | `requirements: 795 total (508 implemented · 1 planned · 2 retired · 277 untested · 7 violated); 508 traced by tests` / `ears: 0 rows off form (allowance 0)` |
+| `npm run map:check` | 0 | 172 modules, 0 problems |
+| `node scripts/readme-check.mjs --check` (`.ext` symlinked) | 1 | 550 claims, 1 problem (`node_modules` only) |
+| `node scripts/readme-check.mjs --check` (baseline, no symlink) | 1 | 550 claims, 5 problems — the same 5 as every prior run |
+
+**nana-setup tests: not rerun, with evidence.** The coordinator asked to grep first for whether
+`doctor` reads these problems. `grep -rln "lock path obstructed\|store locked\|TrustStoreProblem\|
+lockProblem\|trustRemedy\|unreadable" packages/nana-setup/` hits `doctor.mjs`, but only for the
+unrelated English word "unreadable" in symlink/parse-error messages, and one comment restating
+`objective.ts`'s `isBareFileName` rule — no import of, or reference to, `TrustStoreProblem`,
+`lockProblem`, `trustRemedy`, or the new `unreadable` flag anywhere in `packages/nana-setup/`.
+doctor does not read these problems; nana-setup's suite was not rerun this round.
+
 Did not rerun the full `npm test` or the e2e suite, per the seat's instruction (the seat runs the
 full suite after merge).
 
@@ -298,6 +345,11 @@ the corrected "Tests run" bullet above is the accurate record.
 | R-284 | **added** — carrier dropped on rejection | `blocks.test.mjs::malformed: patch carries no structuredContent either (rejection drops the raw carrier too)` and `::built-in path, malformed: isError, no entries, no structuredContent in the patch` pin the same omission on the `fail()` path |
 | R-943 | **added** 2026-10-05, seat follow-up 1 — a `builtin:<name>` manifest extension is accepted with no filesystem check; a near-miss is not | `app-listener.test.mjs::zeta (a builtin: entry mixed with real file extensions) loads and has a listener` pins acceptance; `::near-miss "builtin:" (empty name) rejected at load, same as a missing file` and `::near-miss "builtin:../x" rejected at load, same as a missing file` pin that only an exact `builtin:<name>` match is exempt |
 | R-944 | **added** 2026-10-05, seat follow-up 1 — spawnChild passes a `builtin:<name>` entry through as `-e builtin:<name>`, in manifest order, skipping the project-path refusal | `app-listener.test.mjs::argv: a builtin:<name> extensions entry rides through as literal -e builtin:mcp, in manifest order` |
+| R-856 | **added** 2026-10-05, astra r2 MUST — an unreadable lock folder's remedy must say this check could not confirm whether it is empty (both the held and the stale-obstructed case) | `objective-golden.test.mjs::T17 ${k}: held-unreadable remedy — no move/delete advice, no /trust steps`, `::T17 astra r1 regression: held-unreadable remedy — no move/delete advice, no /trust steps`, `::T17 stale unreadable EMPTY lock folder: remedy says pi reclaims it ONLY IF it is empty, and names the check first`, `::T17 stale unreadable NON-empty lock folder: remedy says to move it aside IF it holds anything` |
+| R-857 | **added** 2026-10-05, astra r2 MUST — a stale unreadable lock folder's remedy must never claim pi's own trust check fails (only pi's own `rmdir` outcome, which this check cannot see, decides that) | `objective-golden.test.mjs::T17 stale unreadable EMPTY lock folder: remedy never claims pi's own trust check and /trust both fail`, `::T17 stale unreadable NON-empty lock folder: remedy never claims pi's own trust check and /trust both fail` |
+
+R-760 is unchanged (text and classification both), per the seat's instruction; its evidence cell
+was updated only to drop a citation that moved to R-856 under its own, stronger marker.
 
 ## Mutation proofs (red output recorded)
 
@@ -362,6 +414,34 @@ exit 1.
 After each: reverted, `node apps/desk/test/app-listener.test.mjs` → 75/75 pass, exit 0; `diff`
 against the pre-mutation saved copy → identical.
 
+**astra r2 — two more mutations in `trustRemedy()` (`packages/nana-pack/lib/objective.ts`),
+each disabling one new `if (t.unreadable) return …` branch so it falls through to the old,
+non-admitting text; reverted and `diff`-verified identical after each:**
+
+**R-856** — disabled the "store locked" + unreadable branch:
+```
+FAIL T17 fresh unreadable EMPTY lock folder: held-unreadable remedy — no move/delete advice, no /trust steps
+FAIL T17 future-dated unreadable EMPTY lock folder: held-unreadable remedy — no move/delete advice, no /trust steps
+FAIL T17 fresh unreadable NON-empty lock folder: held-unreadable remedy — no move/delete advice, no /trust steps
+FAIL T17 astra r1 regression: held-unreadable remedy — no move/delete advice, no /trust steps
+```
+(19 lines red in total, including the T2c exact-text oracle checks the same production branch
+feeds); exit 19.
+
+**R-856/R-857** — disabled the "lock path obstructed" + unreadable branch:
+```
+FAIL T17 stale unreadable EMPTY lock folder: remedy never claims pi's own trust check and /trust both fail
+FAIL T17 stale unreadable EMPTY lock folder: remedy says pi reclaims it ONLY IF it is empty, and names the check first
+FAIL T17 stale unreadable NON-empty lock folder: remedy never claims pi's own trust check and /trust both fail
+FAIL T17 stale unreadable NON-empty lock folder: remedy says to move it aside IF it holds anything
+```
+(8 lines red in total); exit 8.
+
+After each: reverted, `node --experimental-strip-types packages/nana-pack/tests/
+objective-golden.test.mjs` → 1,214/1,214 pass, exit 0 (run 3× to rule out a timing flake in the
+stale-mtime fixtures — stable every time); `diff` against the pre-mutation saved copy →
+identical.
+
 ## Proposed new `~/.pi/agent/apps/edge.json` (not applied — report only, per the brief)
 
 ```json
@@ -408,41 +488,53 @@ adapter path, prefixes the six tool names) and `mutating` (prefixed). `port`, `t
 
 ## Machine steps the seat must do after landing
 
-**Corrected (astra r1 MUST, 2026-10-05): my original step 5 ("respawning just the edge child
-picks up the new manifest") is wrong, and the order below fixes it.** The running desk loads
-every manifest ONCE at startup, keeps that parsed object live inside its app listener, and
-spawns every later child from THAT retained object, not from a fresh re-read of `edge.json`.
-The running desk ALSO still runs the pre-lane `spawnChild()` code. astra reproduced this live:
-loaded a temporary manifest, replaced its file on disk with prefixed tools and `builtin:mcp`,
-and found the retained in-memory object still held the old tools/extensions; calling
-`writeManifestSession()` afterward wrote those stale values back to the manifest FILE. So
-respawning the edge child alone does neither: it spawns from the stale retained object, and a
-session writeback can silently undo a manual edit to `edge.json`. These are machine steps for
-the seat; I did not perform any of them (the hard rule forbids touching `~/edge-screener`,
-`~/.pi/agent/apps/edge.json`, `~/.pi/agent/apps/vendor/`, and the running desk on
-7317/7320/7321 — including restarting it, which is now itself one of these steps).
+**Corrected again (astra r2 MUST, 2026-10-05).** My r1 fix only forbade spawning a session
+**between the manifest replacement and the restart**. astra showed the unsafe window actually
+begins at the FIRST merge: the running desk loads every manifest once at startup and keeps that
+parsed object (and the pre-lane `spawnChild()` code) live regardless of when the checkouts
+change, so a child spawned any time after nana-pi updates but before a restart can combine the
+retained OLD manifest, the OLD `spawnChild()`, and the freshly-updated nana-stage — which astra
+confirmed no longer recognizes an adapter-shaped result at all (it passes through as `null`,
+unprocessed, where the pre-lane processor made one entry). astra also found an
+outstanding-writeback window a bare "spawn nothing in between" cannot drain: a spawn begun
+before the restart can still finish its awaited `get_state` (and write a stale manifest back)
+afterward. The fix is to QUIESCE the desk — stop it, not merely avoid spawning into it — before
+either checkout changes at all. These are machine steps for the seat; I did not perform any of
+them (the hard rule forbids touching `~/edge-screener`, `~/.pi/agent/apps/edge.json`,
+`~/.pi/agent/apps/vendor/`, and the running desk on 7317/7320/7321, including stopping and
+starting it, which are now themselves two of these steps).
 
-1. Merge `feat/edge-builtin-mcp` into nana-pi `main`, and `feat/builtin-mcp` into edge-screener's
-   `p87-setup` (not `main` — the edge desk code lives on `p87-setup`).
-2. Update the live `~/edge-screener` checkout to that merged `p87-setup` state (pulls in
-   `.pi/extensions/edge-mcp.ts`, the deleted `.pi/mcp.json`, the `mcp_server.py` docstring fix).
-3. Replace `~/.pi/agent/apps/edge.json` with the JSON in this report.
-4. Restart the desk server (`launchd com.nana.pi-desk`) AT ONCE after step 3 — create no edge
-   session in between the manifest replacement and the restart, so the desk never loads the new
-   manifest text with the old `spawnChild()` code, or the old manifest with the new code. The
-   restart is what makes the desk re-read every manifest fresh and load the landed `apps.mjs`/
-   `server.mjs`; nothing short of a restart does.
-5. Only then verify: the edge session (port 7321) reports the new manifest (`GET /api/manifest`
-   shows the six `mcp__edge__*` tool names), and a live smoke prompt through it actually stages
-   signed blocks (the same shape as probe (d) in this report, or a real prompt through the desk
-   UI) — since the live machine's `uv`/python env at `~/edge-screener` could in principle differ
-   from the worktree's, and this is the first time the landed code runs against the real paths.
-6. Only after step 5 confirms the new manifest is live and working, remove
-   `~/.pi/agent/apps/vendor/` (the pi-mcp-adapter vendor tree) — nothing reads it any more; I
-   found no other reference to it anywhere in nana-pi's live code or docs (the only other hit,
-   `apps/bench/studies/tool-profiles-2026-09-08/fixture/...`, is a frozen benchmark artifact,
-   left untouched). Removing it before step 5 confirms success would leave no way back if the
-   restart surfaces a problem the worktree didn't.
+1. **Stop the desk**: `launchctl bootout gui/$(id -u)/com.nana.pi-desk`, then confirm no desk pi
+   children remain (e.g. no `pi --mode rpc` process whose parent is the desk server). *Why
+   first:* this is the only way to actually close the unsafe window astra found — it begins at
+   the first merge, not at the manifest edit, and "spawn nothing in between" cannot drain a
+   writeback already in flight from a session spawned before the stop.
+2. **Merge both branches and update both live checkouts**: `feat/edge-builtin-mcp` into nana-pi
+   `main`; `feat/builtin-mcp` into edge-screener's `p87-setup` (not `main`); pull that merged
+   state into the live `~/nana-pi` and `~/edge-screener` checkouts. *Why now:* with the desk
+   down, nothing can combine an old retained manifest or old `spawnChild()` with any part of
+   this update — the combination astra's evidence showed is unsafe simply cannot occur while
+   there is no running listener to hold stale state.
+3. **Replace** `~/.pi/agent/apps/edge.json` with the JSON in this report. *Why here:* the desk
+   is still down and reads no manifest until it starts, so this can happen any time between
+   steps 1 and 4 without risk; placed here to keep the manifest and the code it names updated
+   together, in one quiesced window.
+4. **Start the desk**: `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nana.pi-desk.plist`.
+   *Why this is what actually applies the change:* a restart is the only way the desk re-reads
+   every manifest fresh and loads the landed `apps.mjs`/`server.mjs` — nothing short of it does,
+   and now it starts with both checkouts and the manifest already consistent from steps 2–3.
+5. **Verify**: the edge session (port 7321) reports the new manifest (`GET /api/manifest` shows
+   the six `mcp__edge__*` tool names), and a live smoke prompt through it actually stages signed
+   blocks (the same shape as probe (d) in this report, or a real prompt through the desk UI).
+   *Why before anything is removed:* this is the first time the landed code runs against the
+   real paths and the real `uv`/python env at `~/edge-screener`, neither of which I touched —
+   confirming it live is the only way to know the quiesced restart actually worked.
+6. **Only then** remove `~/.pi/agent/apps/vendor/` (the pi-mcp-adapter vendor tree) — nothing
+   reads it any more; I found no other reference to it anywhere in nana-pi's live code or docs
+   (the only other hit, `apps/bench/studies/tool-profiles-2026-09-08/fixture/...`, is a frozen
+   benchmark artifact, left untouched). *Why last:* removing it before step 5 confirms success
+   would leave no way back if the restart surfaces a problem the worktree didn't — step 5 is the
+   first live evidence either way, so nothing is removed before it reports good.
 
 ## Residuals
 
