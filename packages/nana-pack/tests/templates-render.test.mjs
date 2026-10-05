@@ -181,6 +181,34 @@ function checkNanaPiPartGMirrorsTheSharedFile() {
 }
 checkNanaPiPartGMirrorsTheSharedFile();
 
+/**
+ * R-859: AGENTS.md's Layout bullet calls `templates/_shared/working-under-nana-pi.md`
+ * "the canonical section below" — true only if AGENTS.md's own "Working under nana-pi"
+ * section (CLAUDE.md is a symlink to AGENTS.md, so this covers both) reads byte-identical
+ * to that shared file, which every template's AGENTS.md.jinja also {% include %}s.
+ */
+function checkAgentsMdMirrorsWorkingUnderNanaPi() {
+	const agents = fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8");
+	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
+	// req: R-859
+	check("AGENTS.md's Working under nana-pi section is byte-identical to the shared file", agents.endsWith(shared));
+
+	// Mutation, in a scratch copy only (the real AGENTS.md is never touched): dropping the
+	// final byte must flip the SAME predicate from true to false, proving the check is live
+	// rather than vacuously true.
+	const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-agents-mutation-"));
+	try {
+		const mutatedPath = path.join(scratch, "AGENTS.md");
+		fs.writeFileSync(mutatedPath, agents.slice(0, -1));
+		const stillMatches = fs.readFileSync(mutatedPath, "utf-8").endsWith(shared);
+		// req: R-859
+		check("…and a one-byte drift is caught, not silently passed (mutation)", !stillMatches);
+	} finally {
+		fs.rmSync(scratch, { recursive: true, force: true });
+	}
+}
+checkAgentsMdMirrorsWorkingUnderNanaPi();
+
 const version = copierAvailable();
 if (!version) {
 	for (const language of Object.keys(LANGS)) {
