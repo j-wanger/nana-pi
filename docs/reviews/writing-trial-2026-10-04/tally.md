@@ -23,9 +23,9 @@ Jake saying a report dropped detail he needed.
 | Date | Reports checked | Verdict passes | Report sentences | Report over-cap | HANDOFF sentences | HANDOFF over-cap | Lost-detail complaints |
 |---|---|---|---|---|---|---|---|
 | 2026-10-04 | 0 | 0/0 | 0 | 0 | 0 | 0 | 0 |
-| 2026-10-05 | 1 | 1/1 | 26 | 0 | 12 | 0 | 0 |
+| 2026-10-05 | 3 | 3/3 | 70 | 0 | 34 | 0 | 0 |
 
-2026-10-05 note: the seat ran the checker on its final report and on its one new `HANDOFF.md` line only. It sent eight shorter status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates.
+2026-10-05 note: the seat checked its three end-of-task reports and its `HANDOFF.md` edits (its own sentences only; renumbered old lines excluded). It sent about fifteen short status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates.
 
 Targets (design-ruling.md §3, re-based on the Markdown-aware splitter), one set per corpus:
 over-cap at or under a quarter of the baseline share `baseline.md` measures on landing day,
