@@ -71,6 +71,8 @@
 
 ## Open for Jake
 
+00. **Hardening program, 2026-10-06: Jake adopted all eleven recommendations.** The builder is a pi luna worker at high effort, sol reviews each lane, astra gives the land review, and Fable only advises the seat. Tranches 1 to 6 run in order. Detail: `docs/hardening-plan-2026-10-06.md`.
+
 0a. **Provenance label, carried (astra land r3, 2026-09-28).** Four items stay open. A broken `trust.json` symlink gets no diagnosis. Writability and staleness are pre-checks, not proof. The Claude hook resolves a relative override against its own cwd. A one-command `nana-setup trust <dir>` would remove the "start pi in that folder" step.
 
 0b. **Known intermittent test failure (evidence 2026-09-28):** `apps/desk/test/stage-key-persistence.test.mjs` failed once under the full `npm test` runner and passed 5/5 standalone and on a full rerun; seen twice today (once by the L3 worker). NOT a port collision — the test uses `DESK_PORT=0`. No root cause yet. Matters because `npm test` is the canonical acceptance path for every lane.
