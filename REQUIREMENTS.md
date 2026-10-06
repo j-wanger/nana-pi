@@ -1224,6 +1224,10 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
     string is never ambiguous with code by construction, not by a pattern the TypeScript
     side has to guess at. Jake's call later: narrow the guard further (more shapes, more
     care, at the risk of repeating R-863's mistake), or accept the gap as documented.
+    The guard's one way to lose a real import (seat probe, 2026-10-05): a line that opens
+    with `*` as a MULTIPLICATION operator and holds an import, e.g. `x` then
+    `* import("./a.mjs")` on the next line. That is valid JavaScript but multiplies by a
+    promise; no known code writes it, so it is accepted, not handled.
 
 ## Deliberate omissions
 
