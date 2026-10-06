@@ -23,9 +23,9 @@ Jake saying a report dropped detail he needed.
 | Date | Reports checked | Verdict passes | Report sentences | Report over-cap | HANDOFF sentences | HANDOFF over-cap | Lost-detail complaints |
 |---|---|---|---|---|---|---|---|
 | 2026-10-04 | 0 | 0/0 | 0 | 0 | 0 | 0 | 0 |
-| 2026-10-05 | 3 | 3/3 | 70 | 0 | 34 | 0 | 0 |
+| 2026-10-05 | 6 | 6/6 | 176 | 0 | 60 | 0 | 0 |
 
-2026-10-05 note: the seat checked its three end-of-task reports and its `HANDOFF.md` edits (its own sentences only; renumbered old lines excluded). It sent about fifteen short status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates.
+2026-10-05 note: the seat checked its three end-of-task reports and its `HANDOFF.md` edits (its own sentences only; renumbered old lines excluded). It sent about fifteen short status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates. A later session checked a fourth and fifth report (pi durable agent and Karpathy's other formats, 50 sentences; the code-map comparison, 28 sentences; three passives fixed before sending) and 7 new HANDOFF sentences; then a sixth report (the map-test-links land, 28 sentences) and 19 more HANDOFF sentences after fixing one over-cap and two passives. Its short status updates went unchecked too.
 
 Targets (design-ruling.md §3, re-based on the Markdown-aware splitter), one set per corpus:
 over-cap at or under a quarter of the baseline share `baseline.md` measures on landing day,

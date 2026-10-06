@@ -353,3 +353,57 @@ template), so applying all three where each fits is cheaper than picking one "wi
   too dated for this domain), Information Mapping/DITA (real but modest gains, and a bigger
   structural lift than nana-pi's existing REQUIREMENTS/code-map scaffolding needs right now).
 
+
+## 6. Where his other three formats fit in nana-pi (seat exploration 2026-10-05)
+
+The writing trial (2026-10-04) covers his first rung only. These are the other three. All
+placement below is **seat inference**, not his claim.
+
+**Frame check.** His ladder ranks formats by how fast a person *understands* an output. Our
+bottleneck is narrower: Jake *verifying* that a lane landed correctly. A richer format raises
+comprehension and also raises the room for a wrong claim to look right. So: anything Jake checks
+against is drawn by code from the evidence; anything an LLM draws is labelled illustration.
+
+| Format | Where it fits here | Who draws it | Use for | Cost |
+|---|---|---|---|---|
+| **Diagram** | `map:impact` blast radius as a graph (the code-map generator already holds the import graph); a lane's review trail as a round timeline from its review folder | script, deterministic | verifying | S |
+| **Diagram** | the densest prose contracts: the provenance-label paragraph in `CLAUDE.md`, the gate's caught / not-caught list | LLM, labelled illustration | understanding | S |
+| **HTML page** | the seat's land report or decision point as a private, discardable page: verdict, diagram, review-trail table, residuals, the one ask; the text report stays the record | LLM page over cited evidence | both | S per report (Claude Code Artifact tool, available now) |
+| **Explainer video** | onboarding and fresh-machine explainers ("how the gate decides", "what nana-pi does") | LLM script + local TTS | understanding only | M; local toolchain partial: `ffmpeg` and macOS `say` present, no `manim` |
+
+**Not recommended:** video for land verification (cannot be skimmed or diffed); adding
+format features to the desk (HANDOFF "Open for Jake" item 6: the unfelt surface is the process,
+not a desk).
+
+**Confound.** Land reports and decision points are the writing trial's corpus until day 14 or
+20 reports. Adding HTML pages to those reports now blurs its "faster to read" judgement. Surfaces
+outside that corpus (the two diagram rows) can start without touching it.
+
+### 6.1 Jake's calls and the code-map comparison (2026-10-05)
+
+Calls: park pi-durable; HTML pages wait for the writing trial's end; diagrams yes, "but compare
+to our code map first". Comparison, measured with the map's own exports (`buildGraph`,
+`impact`) on the current graph:
+
+- **The map already holds the data.** `docs/code-map.md` lists direct callers/callees per
+  module; `map:impact` prints the flat transitive sets. Whole map: 172 modules, 144 links.
+- **Lane blast radii are small enough to draw.** Twelve landed lanes (T2c through the 10-05
+  audit), changed ∪ callers ∪ callees: 1, 3, 5, 13, 14, 15, 20, 21, 22, 22, 25, 48 modules;
+  1–4 packages; at most 61 links (U2).
+- **But the graph misses most tests.** The TS parser's `DYNAMIC` regex
+  (`templates/typescript/template/scripts/code-map.mjs`) matches `import("./x")` only, not
+  `import(new URL("../x", import.meta.url).href)` — the dominant test idiom here. 67 of 95 test
+  modules show no link: 54 use that idiom, 12 only spawn processes, 1 builds the URL from a
+  template string. Reading the literal-URL form adds 106 test→module links; code modules with no
+  direct test link fall from 56 of 77 to 27. G-011's "names the tests that cover it" is mostly
+  false in this repo today, and the TS generator drops a nonliteral dynamic import silently where
+  the Python one reports `unmapped dynamic import`.
+- **Consequence.** A blast-radius diagram drawn now would show most changes as untested — a
+  wrong claim that looks right. The parser fix comes first; it is a template change, so it ships
+  to every project by tag. Spawn-only tests stay structurally invisible to an import graph; the
+  honest move is for `--impact` to say so, not to guess.
+- **Review timeline.** Data exists: the round tally (`~/.pi/agent/review-ledger.rounds.jsonl`:
+  item, role, revision, time, no verdict), the audit log's `out` path, and VERDICT/SCORE in each
+  review file, which `apps/bench/lib/catch-extract.mjs` already parses for the 09-28 tranche
+  naming only. HANDOFF lines already state each trail in one sentence. Its only reader would be a
+  land report, so it folds into the held HTML pages.

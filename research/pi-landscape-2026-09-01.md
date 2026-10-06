@@ -415,3 +415,37 @@ Verified against `docs/reviews/pi-1.0-2026-10-04/{compat-audit,architecture-ruli
   pi reading `mcp.json` directly, and `doctor` never detected it (`packages/nana-setup/README.md`).
   The edge desk's app manifest now loads `builtin:mcp` in its `extensions` array instead
   (`land-notes.md`).
+
+## Addendum 2026-10-05 — `@earendil-works/pi-durable` (verified against upstream `main` and npm)
+
+Not installed here. Facts from `packages/durable/README.md` and `CHANGELOG.md` on `main`
+(1.0.4), `packages/coding-agent/package.json` on `main`, and `npm view`:
+
+- **What it is.** A separate durable agent harness library, not the pi CLI. Every entry, model
+  turn, tool call and app document is committed before it is shown; a killed process reopens the
+  storage and `harness.resume()` continues pending work. Storage: memory, SQLite (WAL,
+  `synchronous = NORMAL`) or append-only JSONL; portable cores run on Bun and Cloudflare Durable
+  Objects. **One process owns a storage; no cross-process locking.**
+- **The pi CLI does not run on it.** `pi-coding-agent` 1.0.4 depends on agent-core, ai,
+  codemode, mcp and tui, not durable; the local 1.0.2 install has no `pi-durable` in its tree.
+  Agent-core keeps one vestige: `AgentTool.replay?: "never" | "safe"`.
+- **Primitives that map onto things nana-pi hand-rolls:** idempotent `submit({ requestId })`
+  (a retried submit after a restart returns the same submission); per-tool `replay: "safe"` vs an
+  `interrupted` result for a non-replayable tool killed mid-call; `defineDoc` typed state
+  committed atomically with transcript entries (cf. nana-stage's ledger via `appendEntry`);
+  `viewState()`/`watch()` — everything a UI needs is committed state, late joiners start from the
+  current view, nothing replays (cf. the desk's no-replay Known limit); `hook(ToolTask,
+  { beforeTool })` block/rewrite (cf. nana-gate); `reset(handoffNote)` and background compaction
+  (cf. nana-handoff); owned child conversations and tasks with `failFast`/`allSettled`, bottom-up
+  abort, and `{ background: true }` boundaries; `harness.taskGraph()`; per-conversation
+  `pi.usage` cost. Examples 22/23 are restart-safe foreground/background subagents.
+- **What it lacks against our stack (README is silent; unverified beyond that):** MCP, skills,
+  `AGENTS.md` loading, pi's extension API (our seven pack extensions do not load), the TUI, and
+  any mention of subscription/OAuth provider auth. Built-in tools are read/write/edit/bash, plus
+  powershell since 1.0.4; image reads unsupported.
+- **Churn.** README: "Experimental. The API changes without notice." npm: first published
+  2026-09-19; 1.0.3 and 1.0.4 both shipped 2026-10-05, each with breaking changes.
+- **Fit (seat inference, 2026-10-05):** same category as `pi-server` in the 09-09 lineup ruling —
+  experimental, so not a foundation for the desk or the seat's tooling now. Candidate foundation
+  for a *product* agent host that needs crash-safe long runs and its own state; a zero-spend
+  faux-provider kill-and-resume spike would verify the replay claims before any such bet.
