@@ -384,15 +384,26 @@ export function parseContractHeader(source) {
 
 // ----------------------------------------------------------------- the graph
 
-// Static `from '...'`, bare side-effect `import '...'`, and dynamic `import('...')`.
+// Static `from '...'`, bare side-effect `import '...'`, dynamic `import('...')`, and
+// dynamic `import(new URL('...', import.meta.url))` — bare, `.href` or `.pathname`,
+// with or without a second argument to `import()`, whitespace allowed around every dot
+// and paren (nana-pi R-860). A non-literal URL (a template string, a variable) matches
+// neither this nor DYNAMIC: a test built that way stays invisible, same as before (see
+// REQUIREMENTS.md Open questions).
 const STATIC_FROM = /\bfrom\s*(['"])(\.[^'"]*)\1/g;
 const BARE_IMPORT = /^\s*import\s*(['"])(\.[^'"]*)\1/gm;
 const DYNAMIC = /\bimport\s*\(\s*(['"])(\.[^'"]*)\1\s*\)/g;
+const DYNAMIC_URL =
+	/\bimport\s*\(\s*new\s+URL\s*\(\s*(['"])(\.[^'"]*)\1\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\)\s*(?:\.\s*(?:href|pathname))?\s*(?:,[^)]*)?\)/g;
 
-/** Every relative specifier a module names, deduplicated, in source order. */
+/** Every relative specifier a module names, deduplicated, in source order. Matching is
+ *  raw-source, same as STATIC_FROM/BARE_IMPORT/DYNAMIC above: a fake specifier sitting in
+ *  a string, a template literal or a comment reads the same as a real one (see
+ *  REQUIREMENTS.md Open questions — two filters were tried here and subtracted, R-863 and
+ *  R-864, because each one LOST real edges trying to tell the two apart). */
 export function parseRelativeImports(source) {
 	const found = [];
-	for (const re of [STATIC_FROM, BARE_IMPORT, DYNAMIC]) {
+	for (const re of [STATIC_FROM, BARE_IMPORT, DYNAMIC, DYNAMIC_URL]) {
 		re.lastIndex = 0;
 		for (let m = re.exec(source); m; m = re.exec(source)) found.push(m[2]);
 	}
@@ -624,6 +635,19 @@ export function impact(graph, paths) {
 	return { per, callers: union("callers"), callees: union("callees") };
 }
 
+/**
+ * G-011: how many test modules (under a `layerExempt`/`testRoots` root) import no
+ * mapped module at all — the part of the blast radius `--impact` still cannot see,
+ * because a dropped or process-only test never shows up as anyone's caller (nana-pi R-861).
+ */
+export function untracedTests(graph) {
+	const tests = graph.order.filter((p) => isLayerExempt(graph.config, p));
+	const untraced = tests.filter(
+		(p) => graph.modules.get(p).callees.length === 0,
+	);
+	return { untraced: untraced.length, total: tests.length };
+}
+
 export function formatImpact(graph, paths) {
 	const r = impact(graph, paths);
 	const out = [];
@@ -642,6 +666,11 @@ export function formatImpact(graph, paths) {
 			`blast radius: ${r.callers.length} upstream, ${r.callees.length} downstream`,
 		);
 	}
+	const { untraced, total } = untracedTests(graph);
+	out.push("");
+	out.push(
+		`untraced tests: ${untraced} of ${total} test modules import no mapped module (a test that only starts a process is not linked)`,
+	);
 	return out.join("\n");
 }
 

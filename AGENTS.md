@@ -246,8 +246,9 @@ from the diff.
   decision, never a quiet skip. Before
   touching a mapped module, read its blast radius: `pnpm map:impact <file...>` (no `--`
   before the path — pnpm forwards it literally, unlike npm, so it reads as a bogus module) /
-  `--impact <file...>` — since the tests are mapped too, that names the tests that
-  cover it.
+  `--impact <file...>` — it lists mapped transitive callers, including tests, and reports
+  the GLOBAL count of test-root modules with no detected mapped import at all. A test with
+  some detected imports may still have missing links the count does not show.
 
 ### Navigation
 

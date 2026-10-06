@@ -32,6 +32,7 @@ import { afterAll, expect, test } from "vitest";
 import {
 	buildGraph,
 	checkRepo,
+	formatImpact,
 	HEADER_TAGS,
 	impact,
 	isLayerExempt,
@@ -256,6 +257,203 @@ test("the import reader finds static, bare and dynamic specifiers and resolves t
 		resolveImport("src/core/a.ts", "./b.ts", new Set(["src/core/b.ts"])),
 	).toBe("src/core/b.ts");
 });
+
+// All SIX combinations of {bare, .href, .pathname} x {no second argument, a second
+// argument}, each with its own distinct target, so a mutation that rejects just one
+// combination (astra r1 SHOULD 1's own repro: bare + a second argument) fails exactly one
+// case here, not a blended assertion the other five could cover for.
+const SIX_URL_FORMS: { name: string; target: string; line: string }[] = [
+	{
+		name: "bare, no second argument",
+		target: "./bare-no-arg.js",
+		line: "const a = await import(new URL(@TARGET@, import.meta.url));",
+	},
+	{
+		name: "bare, with a second argument",
+		target: "./bare-with-arg.js",
+		line: "const b = await import(new URL(@TARGET@, import.meta.url), { assert: { type: @json@ } });",
+	},
+	{
+		name: ".href, no second argument",
+		target: "./href-no-arg.js",
+		line: "const c = await import(new URL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: ".href, with a second argument",
+		target: "./href-with-arg.js",
+		line: "const d = await import(new URL(@TARGET@, import.meta.url).href, { assert: { type: @json@ } });",
+	},
+	{
+		name: ".pathname, no second argument",
+		target: "./pathname-no-arg.js",
+		line: "const e = await import(new URL(@TARGET@, import.meta.url).pathname);",
+	},
+	{
+		name: ".pathname, with a second argument",
+		target: "./pathname-with-arg.js",
+		line: "const f = await import(new URL(@TARGET@, import.meta.url).pathname, { assert: { type: @json@ } });",
+	},
+];
+
+for (const { name, target, line } of SIX_URL_FORMS) {
+	{{ rq }} G-011
+	test(`a dynamic import of new URL(...), ${name}, is a mapped edge`, () => {
+		const source = line.replace("@TARGET@", `@${target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(target);
+	});
+}
+
+{{ rq }} G-011
+test("a dynamic import of new URL(...) with a non-literal URL creates no edge", () => {
+	// Same @-for-quote trick as above: this fixture text must not itself read as an
+	// import of this test file once tests/ is mapped.
+	const source = `${[
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: deliberately NOT a template literal in the fixture it builds — this is the non-literal form the generator must create no edge for
+		"const e = await import(new URL(`./e-${n}.js`, import.meta.url).href);",
+		"const f = await import(new URL(someVar, import.meta.url).href);",
+		"const g = await import(new URL(@node:fs@, import.meta.url).href);",
+		"const h = await import(new URL(@https://example.com/x.js@, import.meta.url).href);",
+		"const i = await import(new URL(@/abs/path.js@, import.meta.url).href);",
+	]
+		.join("\n")
+		.replace(/@/g, '"')}\n`;
+	expect(parseRelativeImports(source)).toEqual([]);
+});
+
+// R-860's "whitespace allowed around every dot and paren": a distinct-target fixture for
+// every position the row's text promises (astra r2 MUST 2, astra r3 MUST 3 — three of
+// these positions were previously supported but unpinned: the space after the suffix dot,
+// between URL and (, and between import and ().
+const WHITESPACE_FORMS: { name: string; target: string; line: string }[] = [
+	{
+		name: "a space between import and (",
+		target: "./ws-import-paren.js",
+		line: "import (new URL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "a newline between new and URL",
+		target: "./ws-new-url.js",
+		line: "import(new\n\tURL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "a space between URL and (",
+		target: "./ws-url-paren.js",
+		line: "import(new URL (@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "spaces inside URL(...)'s parens, around the literal and the comma",
+		target: "./ws-inner-parens.js",
+		line: "import(new URL( @TARGET@ , import.meta.url).href);",
+	},
+	{
+		name: "spaces around every dot in import.meta.url",
+		target: "./ws-meta-dots.js",
+		line: "import(new URL(@TARGET@, import . meta . url).href);",
+	},
+	{
+		name: "a space before the suffix dot (.href)",
+		target: "./ws-href-before.js",
+		line: "import(new URL(@TARGET@, import.meta.url) .href);",
+	},
+	{
+		name: "a space before the suffix dot (.pathname)",
+		target: "./ws-pathname-before.js",
+		line: "import(new URL(@TARGET@, import.meta.url) .pathname);",
+	},
+	{
+		name: "a space after the suffix dot (.href)",
+		target: "./ws-href-after.js",
+		line: "import(new URL(@TARGET@, import.meta.url). href);",
+	},
+	{
+		name: "a space after the suffix dot (.pathname)",
+		target: "./ws-pathname-after.js",
+		line: "import(new URL(@TARGET@, import.meta.url). pathname);",
+	},
+	{
+		name: "a newline between the URL's arguments and .href",
+		target: "./ws-newline.js",
+		line: "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);",
+	},
+];
+for (const { name, target, line } of WHITESPACE_FORMS) {
+	{{ rq }} G-011
+	test(`a dynamic import of new URL(...) resolves to an edge with ${name}`, () => {
+		const source = line.replace("@TARGET@", `@${target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(target);
+	});
+}
+
+{{ rq }} G-011
+test("new URL(...) resolves to an edge from inside a generator method's yielded import (astra r3)", () => {
+	const source =
+		"const loader = {\n  *load() { yield import(new URL(@./preserve-generator-url.js@, import.meta.url).href); }\n};".replace(
+			/@/g,
+			'"',
+		);
+	expect(parseRelativeImports(source)).toContain("./preserve-generator-url.js");
+});
+
+// Preservation regressions (astra r3, round 4): two filters were tried here and both
+// subtracted — R-863 (a comment/string-aware lexer) and R-864 (a comment-line guard) —
+// because each one LOST a real edge trying to tell a real import apart from a fake one in
+// text. Matching is raw-source now, same as every pattern already was, so none of these can
+// ever be mistaken for "commented out" again. Not tied to a numbered row (DYNAMIC's own
+// basic matching is not R-860's or R-861's clause); kept as regressions against the two
+// filters this lane already tried and retired.
+const PRESERVATION_CASES: { name: string; target: string; source: string }[] = [
+	{
+		name: "a generator method's yielded import",
+		target: "./preserve-generator.js",
+		source: "const loader = {\n  *load() { yield import(@T@); }\n};",
+	},
+	{
+		name: "a leading * multiplying an awaited import's property",
+		target: "./preserve-multiply.js",
+		source: "const value = 2\n  * (await import(@T@)).value;",
+	},
+	{
+		name: "a real import after a template literal whose next physical line starts with //",
+		target: "./preserve-template-slashes.js",
+		source: "const text = `prefix\n//`; import(@T@);",
+	},
+	{
+		name: "a real import after a backslash-continued string whose next physical line starts with //",
+		target: "./preserve-backslash-slashes.js",
+		source: 'const text = "prefix\\\n//"; import(@T@);',
+	},
+	{
+		name: "a real import after a // comment ended by CR",
+		target: "./preserve-cr.js",
+		source: "// comment\rimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by LF",
+		target: "./preserve-lf.js",
+		source: "// comment\nimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by CRLF",
+		target: "./preserve-crlf.js",
+		source: "// comment\r\nimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by U+2028",
+		target: "./preserve-u2028.js",
+		source: `// comment${String.fromCharCode(0x2028)}import(@T@);`,
+	},
+	{
+		name: "a real import after a // comment ended by U+2029",
+		target: "./preserve-u2029.js",
+		source: `// comment${String.fromCharCode(0x2029)}import(@T@);`,
+	},
+];
+for (const c of PRESERVATION_CASES) {
+	test(`${c.name}: the real import still resolves`, () => {
+		const source = c.source.replace("@T@", `@${c.target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(c.target);
+	});
+}
 
 // NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin
 // the CHECK, not this project's own layering, so that row stays `untested` until
@@ -555,6 +753,29 @@ test("--impact gives the transitive callers and callees of a change", () => {
 	expect(run.code).toBe(0);
 	expect(run.stdout).toMatch(/transitive callers \(1\): src\/core\/a\.ts/);
 	expect(run.stdout).toMatch(/transitive callees \(0\): —/);
+});
+
+{{ rq }} G-011
+test("--impact also reports how many test-root modules import no mapped module at all", () => {
+	const graph = buildGraph(
+		[
+			mod("tests/a.test.ts", ["../src/core/model.js"]),
+			mod("tests/b.test.ts"),
+			mod("tests/c.test.ts", ["../src/core/model.js"]),
+			mod("src/core/model.ts"),
+		],
+		config,
+	);
+	expect(graph.problems).toEqual([]);
+	// one of the three test modules (b) imports no mapped module at all
+	expect(formatImpact(graph, ["src/core/model.ts"])).toMatch(
+		/untraced tests: 1 of 3 test modules import no mapped module \(a test that only starts a process is not linked\)$/,
+	);
+	// a module that itself imports nothing is still 0 untraced of 0 when there are no test modules
+	const noTests = buildGraph([mod("src/core/model.ts")], config);
+	expect(formatImpact(noTests, ["src/core/model.ts"])).toMatch(
+		/untraced tests: 0 of 0 test modules import no mapped module/,
+	);
 });
 
 {{ rq }} G-004 G-009 G-010

@@ -8,7 +8,7 @@ Statuses: `implemented` (a test in this repo asserts it; cited as `<package or a
 
 Trace: `npm test` fails when a status disagrees with the suite. A test declares the rows it evidences with a `// req: R-001` comment directly above its `test(` / `check(` call. An `implemented` row with no marker fails; an `untested`, `planned` or `violated` row that a marker traces fails; a marker naming an unknown id fails; a cited test must exist and carry the marker. The rail also reports the count of rows off EARS form on its own `ears:` line every run and fails naming each off-form row once that count exceeds the declared allowance (G-014/G-015). `EARS_ALLOWANCE` in `scripts/requirements-trace.mjs` is 0 since 2026-10-04 and sealed equal to the measured count (R-757). Sealed tunables: a contract number is defined once in the package's config surface with provenance naming its row and pinned by one test; a retune is a requirement diff first.
 
-ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 and R-757 consumed batch 0, the rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0
+ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 and R-757 consumed batch 0; R-858 and R-859 consumed 2026-10-05 audit fixes A/B; R-860 to R-864 consumed 2026-10-05 for the code-map generator the templates ship, section 13c (R-863 and R-864 retired before landing; ids never reused) — rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 (R-943 and R-944 consumed 2026-10-05) · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0
 
 New behaviour in this repo: requirement diff, then tagged tests, then code.
 
@@ -492,6 +492,67 @@ seventh pack extension, `extensions/nana-writing.ts`, which appends the rule the
 | R-755 | The extension shall never request more than WRITING_INJECT_CAP plus READ_MARGIN bytes from the rule file, regardless of the file's actual size (split from R-753, astra r3 MUST 3). | implemented | `packages/nana-pack/tests/writing-injection.test.mjs::seal: READ_MARGIN is 4`, `packages/nana-pack/tests/writing-injection.test.mjs::byte ceiling: a file at or above the cap never requests more than WRITING_INJECT_CAP + READ_MARGIN bytes`, `packages/nana-pack/tests/writing-injection.test.mjs::byte ceiling: a file smaller than the ceiling requests exactly its own size, never more`, `packages/nana-pack/tests/writing-injection.test.mjs::byte ceiling: corrupt bytes exactly past the ceiling are never read (result is unaffected)`, `packages/nana-pack/tests/writing-injection.test.mjs::MUST 1 (subprocess): a 64 MiB rule file under a 32 MiB heap cap does not crash, exits in time, block is capped` |
 
 A bounded read validates only the bytes it reads. Before decoding it trims a trailing sequence whose own lead byte proves it incomplete, never a byte invalid on its own (astra r3 MUST 1; the four UTF-8 tail tests).
+
+## 13c. The code-map generator (templates)
+
+Not a nana-pack module: the generator both project templates ship
+(`templates/typescript/template/scripts/code-map.mjs`, `templates/python/template/scripts/code_map.py`),
+which G-009/G-010/G-011 already cover generically. nana-pi exercises the TypeScript one
+directly, over its own repo, through the shim at `scripts/code-map.mjs` AND, for R-860's full
+breadth, by importing the template module itself (tests may import anything, and `templates/`
+is not a mapped root — G-007); the Python one has no shim (nana-pi carries no Python source),
+so it is exercised only through a rendered project in
+`packages/nana-pack/tests/templates-render.test.mjs`. Added 2026-10-05 (map-test-links lane,
+Jake's call: "Fix the map" — `research/karpathy-x-2026-10-04.md` background) after measuring
+that the TypeScript generator's dynamic-import detection only matched a bare string literal
+argument to `import(...)`, never nana-pi's own tests' `await import(new URL("../lib/x.mjs",
+import.meta.url).href)` form — 67 of this repo's 95 test modules linked to no mapped module as
+a result, and 56 of 77 non-test modules had no direct test caller the map could show. Two
+filters were tried after that fix and BOTH retired, in order: R-863 (astra r1 MUST 1: a
+comment/string-aware lexer gating all four patterns) lost real edges in ordinary code
+(division misread after a completed template or object literal, a `//` comment ended by CR
+or U+2028) while still fabricating edges from valid multi-line strings — astra r2,
+`docs/reviews/map-test-links-2026-10-05/astra-r2.md`, 2026-10-05. R-864 (that round's own
+landing call: a narrower guard dropping only a `//`-line or `*`-line match) ALSO lost real
+edges — a generator method's yielded import, a leading `*` multiplying an awaited import's
+property, and a real import whose physical line happened to start with `//` because a
+multi-line string or a backslash continuation put it there — astra r3,
+`docs/reviews/map-test-links-2026-10-05/astra-r3.md`, 2026-10-05. Both filters failed for the
+same reason: a regex over raw text cannot reliably tell code from non-code without becoming a
+parser, and a half-parser is worse than none, because it can LOSE a real edge instead of
+merely adding a spurious one. The seat's final call (astra r3's landing recommendation,
+2026-10-05): subtract filtering entirely. The four patterns match raw source exactly as on
+`main`, plus DYNAMIC_URL's whitespace tolerance (R-860). The accepted residual — a spurious
+edge from text in a string, a template literal or a comment — is recorded in Open questions,
+not hidden behind a heuristic that risks the opposite, worse failure. IDs consumed from the
+pack's own continuation block (R-756 to R-879), not a new one — template rows already live
+there (R-737, R-738, R-756, R-858, R-859); R-863's and R-864's ids are never reused.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-860 | WHEN a module names a dynamic import whose argument is new URL(<relative string literal>, import.meta.url) — bare, with .href, or with .pathname, with or without a second argument to import(), whitespace allowed around every dot and paren — the TypeScript code-map generator shall record an import edge for it. | implemented | `packages/nana-pack/tests/code-map.test.mjs::a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)`, `packages/nana-pack/tests/code-map.test.mjs::new URL(...) ${f.name} resolves to an edge` (six combinations of bare/.href/.pathname x no-second-argument/a-second-argument, each a distinct target — astra r1 SHOULD 1; mutation-verified, 2026-10-05: astra r1's exact repro, rejecting bare-plus-a-second-argument, fails only that one of six, and four further targeted mutations each fail exactly their own combination), `packages/nana-pack/tests/code-map.test.mjs::new URL(...) resolves to an edge with ${f.name}` (astra r2 MUST 2, astra r3 MUST 3: ten distinct-target fixtures, one per promised whitespace position — between import and (, between new and URL, between URL and (, inside URL(...)'s parens around the literal and the comma, around each dot of import.meta.url, before AND after the suffix dot for both .href and .pathname, and a newline between the URL's arguments and .href; mutation-verified, 2026-10-05, one targeted regex mutation per position: each of the ten fails exactly the fixture(s) sharing that token — the one shared token, "after the comma, before import.meta.url", fails all ten, since every fixture carries a plain space there; no mutation fails a fixture it should not), `packages/nana-pack/tests/code-map.test.mjs::new URL(...) resolves to an edge from inside a generator method's yielded import (astra r3)`, `packages/nana-pack/tests/code-map.test.mjs::a template-string URL, a variable, and a non-relative literal all resolve to nothing`; the template's own fixture-level tests (templates/typescript/template/tests/code-map.test.ts.jinja, the same six-combination loop, the same ten whitespace forms, the generator-method case, and the exclusions test) manually verified green against a fresh render (vitest 80/80, 2026-10-05) |
+| R-861 | WHEN --impact runs, the TypeScript code-map generator shall print the count of test modules (modules under a layerExempt/testRoots root) that import no mapped module. | implemented | `packages/nana-pack/tests/code-map.test.mjs::--impact's output carries the untraced-test line with the real count`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: --impact prints the untraced-test count for a fresh scaffold`; the template's own fixture-level test (templates/typescript/template/tests/code-map.test.ts.jinja, "--impact also reports how many test-root modules import no mapped module at all") manually verified green against a fresh render, same as R-860 |
+| R-862 | WHEN --impact runs, the Python code-map generator shall print the count of test modules (modules under a layerExempt/testRoots root) that import no mapped module. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language}: --impact prints the untraced-test count for a fresh scaffold` — the same marked test, looped over both languages; python3 was installed on the machine this lane ran on, so this clause ran for real rather than SKIPping. The template's own fixture-level test (templates/python/template/tests/test_code_map.py.jinja, test_impact_also_reports_untraced_test_modules) manually verified green against a fresh render with uv run pytest, 2026-10-05 |
+| R-863 | The TypeScript code-map generator shall accept a match of any of its four import-detection patterns only when the from/import keyword it starts with sits in executable code, never inside a line comment, a block comment, a quoted string, or template-literal text. | retired | retired 2026-10-05 (map-test-links lane, astra r2 round 3, `docs/reviews/map-test-links-2026-10-05/astra-r2.md`): the lexer this row named fixed the class it targeted (comment/string text making a spurious edge — 0 edges changed on nana-pi either way) while itself LOSING real edges in ordinary code (a division misread right after a completed template or object literal; a `//` comment ended by CR or U+2028, not just LF) and still fabricating edges from valid multi-line strings (an escaped CRLF continuation, a raw U+2028, both legal inside a string). A lost edge is worse than the spurious edge it replaced. Subtracted before landing; superseded by R-864's guard, also later retired. Id never reused. |
+| R-864 | WHEN a module names an import whose keyword (from/import) sits on a line whose first non-blank characters are //, or are * with no */ anywhere on that line, the TypeScript code-map generator shall record no import edge for it. | retired | retired 2026-10-05 (map-test-links lane, astra r3, `docs/reviews/map-test-links-2026-10-05/astra-r3.md`): the guard this row named lost real imports — a generator method (`*load() { yield import(...) }`), a leading `*` multiplying an awaited import's property, and a `//` that opens a line only because a multi-line string or a backslash continuation put it there. Each is ordinary, valid JavaScript. Subtracted before landing; the four patterns match raw source again, as on `main`, with no filter in its place (see Open questions). Id never reused. |
+
+Measured on nana-pi itself after the fix (R-860): 245 import edges over the same 172 modules
+(144 before), 0 new `--check` problems; 27 of 77 non-test modules now have no direct test
+caller the map can show (56 before); 13 of 95 test modules still import no mapped module
+(`--impact` now names them — `apps/desk/test/host-rule.test.mjs`,
+`apps/desk/test/origin-rule.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`,
+`packages/nana-pack/tests/config-gate-fallback.test.mjs`,
+`packages/nana-pack/tests/config-handlers-malformed.test.mjs`,
+`packages/nana-pack/tests/config-project-gate-fallback.test.mjs`,
+`packages/nana-pack/tests/review-ledger.test.mjs`,
+`packages/nana-pack/tests/templates-render.test.mjs`,
+`packages/nana-pack/tests/test-runner.test.mjs`,
+`packages/nana-setup/tests/agent-dir-consumers.test.mjs`,
+`packages/nana-setup/tests/project-dismiss.test.mjs`,
+`packages/nana-setup/tests/project.test.mjs`,
+`packages/nana-setup/tests/relative-agent-dir.test.mjs` — each either only spawns a child
+process or builds the imported path from a template string, the two forms R-860 does not
+cover).
 
 # Part B. Knowledge pull, stage layer, installer
 
@@ -1143,6 +1204,32 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 7. (ears-form batch 0, astra r1 NOTE, 2026-10-04; RULED by astra r2, 2026-10-04) R-757 is a DEVIATION: design-ruling.md §1 only requires the rail to fail when the off-form count *exceeds* the allowance (a ceiling), so a count that quietly drops below the allowance — stale headroom — was never caught; the allowance only ever tightens by a human editing it at landing. R-757 adds a nana-pi-only assertion that the measured count EQUALS `EARS_ALLOWANCE`, failing loudly on any drift either direction. A fresh scaffold needs no equivalent row, because both its measured count and its default allowance are 0. **Ruling (astra r2): keep R-757 as a nana-pi-only repository-suite invariant.** It supplements the ceiling — it does not auto-lower the allowance, and it does not stop one old off-form row being exchanged for a new one. Generic `check()` and both templates' behaviour stay the ceiling-only `count > allowance`, unchanged; the enforcement is additive and lives only in `packages/nana-pack/tests/requirements-trace.test.mjs`, never in the reusable rail. Closed at landing (Fable, batch0-land-ruling.md §2): kept. Any commit that moves the off-form count moves `EARS_ALLOWANCE` and its seal in the same commit.
 8. (ears-form batch 0, astra r2 RESIDUALS to record, 2026-10-04) (a) The form check (G-013) counts `shall` tokens; it does not establish that a row makes one semantic promise, nor that its clause has test coverage — form compliance is orthogonal to the clause-level honesty residual already tracked at 6b. (b) Generic `check()`/template allowances remain ceilings only (`count > allowance`); R-757's equality enforcement is a nana-pi-only suite addition, not a change to the reusable rail's or either template's semantics. (c) `packages/nana-pack/tests/templates-render.test.mjs` does not execute the rendered language suites itself; a separate manual acceptance run (`uvx copier copy` + `pnpm install && pnpm test` / `uv sync && uv run pytest`) stays a required step this lane did by hand each round, not something the automated suite can yet claim. (d) This worktree's missing root `node_modules` and `apps/bench/.ext` mean a green full-repository `npm test` cannot be claimed while those are absent — only the EARS-touched tests are claimed green here; `packages/nana-pack/tests/readme-check.test.mjs`'s 5 environmental problems are pre-existing and unrelated to this lane.
 9. (ears-form batch 0, Fable) About 150 three-digit IDs remain after the lane. Widening to four digits is a rail change in both templates and in aml-desk's copy; the seat's call. The rail's older behaviours (markers, cites, statuses) have no rows of their own; only the form check does.
+10. (map-test-links lane, 2026-10-05) R-860 only teaches the TypeScript code-map generator the `new URL(<literal>, import.meta.url)` dynamic-import form. A dynamic import whose argument is NOT a string literal — built from a template string, a variable, or any other expression — still resolves to no edge, SILENTLY: the generator records no problem for it, unlike the Python generator, which fails `--check` naming it `unmapped dynamic import at line N`. Measured on nana-pi (2026-10-05): about 56 such sites exist in this repo alone (pi's own entry point, a handful of temp-file loaders, code built inside a spawned child-process script's own source string) — making the TypeScript generator fail on them the way Python's does would turn every TypeScript project (nana-pi included) red on day one. Not changed in this lane. Jake's call later: fail the same way Python does (and fix the ~56 sites), or document the asymmetry and leave it. In a `.ts` project a bare `import(new URL(…))` is a type error, so users tend to write `String(new URL(…))`, `new URL(…).toString()` or `fileURLToPath(new URL(…))` instead; all three are in this silent class (land ruling, 2026-10-05).
+11. (map-test-links lane, 2026-10-05) A separate, pre-existing gap found while measuring R-862 on a fresh Python scaffold: the Python generator's import graph does not resolve a bare `import code_map` (or `import readme_check`, `import requirements_trace`) the way `tests/test_code_map.py`, `tests/test_readme_check.py` and `tests/test_requirements_trace.py` actually import the script they exercise (via a `sys.path` insert, not a dotted `scripts.code_map` import) — so those three test modules, plus `tests/conftest.py`, show zero callees in a fresh scaffold (4 of 5 test modules `untraced tests` reports there, against 1 of 5 for the equivalent TypeScript scaffold). This is unrelated to dynamic imports (item 10) and to R-860/861/862, which only claim the PRINTED count is correct, not that the underlying graph is complete — not measured or fixed in this lane. Jake's call later: teach `dotted_name`/`_link_imports` to also recognize a bare top-level name that matches a mapped script's own basename, or leave it as a known Python-generator blind spot.
+12. (map-test-links lane, 2026-10-05; rewritten round 4 after the SECOND filter tried here
+    was also subtracted — astra r3, `docs/reviews/map-test-links-2026-10-05/astra-r3.md`)
+    The four import-detection patterns (STATIC_FROM, BARE_IMPORT, DYNAMIC, DYNAMIC_URL)
+    match raw source text, exactly as on `main` before this lane, with no filter standing
+    between a match and an edge. Raw matching can create a SPURIOUS edge from text that
+    merely looks like an import but is not executable: inside a single- or double-quoted
+    string, inside a template literal, or inside a `//` or `/* ... */` comment — for all
+    four patterns. A spurious edge is not a safe direction to fail in: it can SILENTLY
+    suppress the untraced-test count `--impact` prints (a real gap in coverage now reads as
+    covered), or it can make `--check` fail, loudly, naming a module that does not exist.
+    Two filters were tried here, in order, and both subtracted before landing, because each
+    one LOST a real import instead — a strictly worse failure than the spurious edge either
+    was built to remove: R-863 (astra r1's comment/string-aware lexer, retired by astra r2)
+    and R-864 (astra r2's narrower comment-line guard, retired by astra r3). Neither
+    replacement is attempted a third time in this lane; distinguishing real code from a
+    spurious-looking specifier without a real parser kept costing more than it bought. The
+    Python generator carries no equivalent class of gap: its reader walks a real AST, so a
+    comment or a string is never ambiguous with code by construction, not by a pattern the
+    TypeScript side has to guess at. Jake's call later: build a real parser (a materially
+    bigger lift, and a new dependency this generator is deliberately without today), or
+    accept the gap as documented.
+    Remedy today, when a spurious edge fails `--check` naming a module that does not exist:
+    add that path to the `ignore` list in `code-map.config.json`, as nana-pi already does
+    for three paths that exist only as text inside a test (land ruling, 2026-10-05).
 
 ## Deliberate omissions
 

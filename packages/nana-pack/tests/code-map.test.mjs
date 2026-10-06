@@ -17,7 +17,12 @@ import * as path from "node:path";
 //
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
-const { REPO_ROOT, checkRepo, collectModules, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+// R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
+// directly against the generator template ships, not the shim: tests may import anything
+// (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
+// a broken edge.
+const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, why = "") => {
@@ -40,10 +45,15 @@ check("only the three content-pinned bench modules are excused a header, each wi
 );
 
 // G-007 as THIS repo declares it: apps and scripts on top, the packages under them, so no
-// module in a package may import an app. Asserted on the edges, not on the absence of a
-// problem — the claim is about the repo's shape, not about the checker having run.
+// PRODUCTION module in a package may import an app. Asserted on the edges, not on the
+// absence of a problem — the claim is about the repo's shape, not about the checker having
+// run. A test root is declared layerExempt (G-007: a test may import any layer), so a
+// packages/*/tests module importing an app — now visible once R-860's dynamic-import forms
+// resolve — is excluded here rather than misread as a reversed production import.
+const isExemptFrom = (p) => (config.exemptRoots ?? []).some((r) => p === r || p.startsWith(`${r}/`));
 const reversed = [];
 for (const from of graph.order) {
+	if (isExemptFrom(from)) continue;
 	const a = graph.modules.get(from).layer?.id;
 	for (const to of graph.modules.get(from).callees) {
 		const b = graph.modules.get(to).layer?.id;
@@ -95,6 +105,130 @@ check("every mapped test module has an entry in docs/code-map.md", unlisted.leng
 check("the browser-only e2e suites are still outside the map",
 	!graph.order.some((p) => p.endsWith(".e2e.mjs")),
 	graph.order.filter((p) => p.endsWith(".e2e.mjs")).join(", "),
+);
+
+// R-860: most of this repo's OWN tests load the module they exercise via a dynamic import
+// of new URL(<relative path>, import.meta.url) — bare, .href or .pathname — which the
+// generator used to read as opaque and silently record no edge for: before this fix, 67 of
+// the 95 test modules above had zero callees. paths.test.mjs uses exactly that form (not
+// spelled out literally here — this file is itself a mapped module, and a real import
+// specifier written out would be read as one of THIS file's own imports once scanned).
+// req: R-860
+check("a dynamic import via new URL(...).href is a mapped edge (the form most of this repo's tests use)",
+	graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.includes("packages/nana-setup/lib/paths.mjs"),
+	`callees: ${graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.join(" ")}`,
+);
+
+// R-860's full breadth: all SIX combinations of {bare, .href, .pathname} x {no second
+// argument, a second argument}, each with its OWN distinct target so a mutation that
+// rejects just one combination fails exactly one check here, not a blended assertion three
+// of six could silently cover for. The `@` placeholder is the same trick the template's own
+// fixture uses: a real import specifier written out here would be read as one of THIS
+// file's own imports once scanned.
+const SIX_FORMS = [
+	{ name: "bare, no second argument", target: "./bare-no-arg.mjs", line: "const a = await import(new URL(@TARGET@, import.meta.url));" },
+	{ name: "bare, with a second argument", target: "./bare-with-arg.mjs", line: "const b = await import(new URL(@TARGET@, import.meta.url), { assert: { type: @json@ } });" },
+	{ name: ".href, no second argument", target: "./href-no-arg.mjs", line: "const c = await import(new URL(@TARGET@, import.meta.url).href);" },
+	{ name: ".href, with a second argument", target: "./href-with-arg.mjs", line: "const d = await import(new URL(@TARGET@, import.meta.url).href, { assert: { type: @json@ } });" },
+	{ name: ".pathname, no second argument", target: "./pathname-no-arg.mjs", line: "const e = await import(new URL(@TARGET@, import.meta.url).pathname);" },
+	{ name: ".pathname, with a second argument", target: "./pathname-with-arg.mjs", line: "const f = await import(new URL(@TARGET@, import.meta.url).pathname, { assert: { type: @json@ } });" },
+];
+const sixFormsSource = SIX_FORMS.map((f) => f.line.replace("@TARGET@", `@${f.target}@`))
+	.join("\n")
+	.replace(/@/g, '"');
+const sixFormsFound = parseRelativeImports(sixFormsSource);
+for (const f of SIX_FORMS) {
+	// req: R-860
+	check(`new URL(...) ${f.name} resolves to an edge`, sixFormsFound.includes(f.target), `found: ${sixFormsFound.join(" ")}`);
+}
+
+// R-860's "whitespace allowed around every dot and paren": a distinct-target fixture for
+// every position the row's text promises (astra r2 MUST 2, astra r3 MUST 3 — three of
+// these positions were previously supported but unpinned: the space after the suffix dot,
+// between URL and (, and between import and ().
+const WHITESPACE_FORMS = [
+	{ name: "a space between import and (", target: "./ws-import-paren.mjs", line: "import (new URL(@TARGET@, import.meta.url).href);" },
+	{ name: "a newline between new and URL", target: "./ws-new-url.mjs", line: "import(new\n\tURL(@TARGET@, import.meta.url).href);" },
+	{ name: "a space between URL and (", target: "./ws-url-paren.mjs", line: "import(new URL (@TARGET@, import.meta.url).href);" },
+	{ name: "spaces inside URL(...)'s parens, around the literal and the comma", target: "./ws-inner-parens.mjs", line: "import(new URL( @TARGET@ , import.meta.url).href);" },
+	{ name: "spaces around every dot in import.meta.url", target: "./ws-meta-dots.mjs", line: "import(new URL(@TARGET@, import . meta . url).href);" },
+	{ name: "a space before the suffix dot (.href)", target: "./ws-href-before.mjs", line: "import(new URL(@TARGET@, import.meta.url) .href);" },
+	{ name: "a space before the suffix dot (.pathname)", target: "./ws-pathname-before.mjs", line: "import(new URL(@TARGET@, import.meta.url) .pathname);" },
+	{ name: "a space after the suffix dot (.href)", target: "./ws-href-after.mjs", line: "import(new URL(@TARGET@, import.meta.url). href);" },
+	{ name: "a space after the suffix dot (.pathname)", target: "./ws-pathname-after.mjs", line: "import(new URL(@TARGET@, import.meta.url). pathname);" },
+	{ name: "a newline between the URL's arguments and .href", target: "./ws-newline.mjs", line: "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);" },
+];
+for (const f of WHITESPACE_FORMS) {
+	const source = f.line.replace("@TARGET@", `@${f.target}@`).replace(/@/g, '"');
+	// req: R-860
+	check(`new URL(...) resolves to an edge with ${f.name}`,
+		parseRelativeImports(source).includes(f.target),
+		`source: ${JSON.stringify(source)}; found: ${parseRelativeImports(source).join(" ")}`,
+	);
+}
+
+// R-860's exclusions: a template-string URL, a variable, and a non-relative literal (a bare
+// specifier, an absolute URL, an absolute path) all resolve to nothing — the row only ever
+// claims a RELATIVE string literal, same as every other form this generator already parses.
+const exclusionsFixture = [
+	"const e = await import(new URL(`./e-${n}.mjs`, import.meta.url).href);", // template string: no edge
+	"const f = await import(new URL(someVar, import.meta.url).href);", // a variable: no edge
+	"const g = await import(new URL(@node:fs@, import.meta.url).href);", // non-relative (bare specifier): no edge
+	"const h = await import(new URL(@https://example.com/x.mjs@, import.meta.url).href);", // non-relative (absolute URL): no edge
+	"const i = await import(new URL(@/abs/path.mjs@, import.meta.url).href);", // non-relative (absolute path): no edge
+]
+	.join("\n")
+	.replace(/@/g, '"');
+// req: R-860
+check("a template-string URL, a variable, and a non-relative literal all resolve to nothing",
+	parseRelativeImports(exclusionsFixture).length === 0,
+	`found (should be empty): ${parseRelativeImports(exclusionsFixture).join(" ")}`,
+);
+
+// req: R-860
+check("new URL(...) resolves to an edge from inside a generator method's yielded import (astra r3)",
+	parseRelativeImports('const loader = {\n  *load() { yield import(new URL(@./preserve-generator-url.mjs@, import.meta.url).href); }\n};'.replace(/@/g, '"')).includes("./preserve-generator-url.mjs"),
+	"the generator-method shape must not stop the new URL(...) form from resolving",
+);
+
+// Preservation regressions (astra r3, round 4): two filters were tried here and both
+// subtracted — R-863 (a comment/string-aware lexer) and R-864 (a comment-line guard) —
+// because each one LOST a real edge trying to tell a real import apart from a fake one in
+// text. Matching is raw-source now, same as every pattern already was, so none of these can
+// ever be mistaken for "commented out" again: there is no longer any code path that reads a
+// line's shape before accepting a match. Not tied to a numbered row (DYNAMIC's own basic
+// matching is not R-860's or R-861's clause); kept as regressions against the two filters
+// this lane already tried and retired.
+const PRESERVATION_CASES = [
+	{ name: "a generator method's yielded import", target: "./preserve-generator.mjs", source: "const loader = {\n  *load() { yield import(@T@); }\n};" },
+	{ name: "a leading * multiplying an awaited import's property", target: "./preserve-multiply.mjs", source: "const value = 2\n  * (await import(@T@)).value;" },
+	{ name: "a real import after a template literal whose next physical line starts with //", target: "./preserve-template-slashes.mjs", source: "const text = `prefix\n//`; import(@T@);" },
+	{ name: "a real import after a backslash-continued string whose next physical line starts with //", target: "./preserve-backslash-slashes.mjs", source: 'const text = "prefix\\\n//"; import(@T@);' },
+	{ name: "a real import after a // comment ended by CR", target: "./preserve-cr.mjs", source: "// comment\rimport(@T@);" },
+	{ name: "a real import after a // comment ended by LF", target: "./preserve-lf.mjs", source: "// comment\nimport(@T@);" },
+	{ name: "a real import after a // comment ended by CRLF", target: "./preserve-crlf.mjs", source: "// comment\r\nimport(@T@);" },
+	{ name: "a real import after a // comment ended by U+2028", target: "./preserve-u2028.mjs", source: `// comment${String.fromCharCode(0x2028)}import(@T@);` },
+	{ name: "a real import after a // comment ended by U+2029", target: "./preserve-u2029.mjs", source: `// comment${String.fromCharCode(0x2029)}import(@T@);` },
+];
+for (const c of PRESERVATION_CASES) {
+	const source = c.source.replace("@T@", `@${c.target}@`).replace(/@/g, '"');
+	const found = parseRelativeImports(source);
+	check(`${c.name}: the real import still resolves`,
+		found.includes(c.target),
+		`source: ${JSON.stringify(source)}; found: ${found.join(" ")}`,
+	);
+}
+
+// R-861: --impact also names the part of the blast radius it still cannot see — a per-run
+// count of test modules whose own callees are empty (a child-process-only test, or one
+// spelled a form this generator does not parse), recomputed independently of formatImpact
+// so this does not just mirror the implementation.
+const untracedModules = mappedTests.filter((p) => graph.modules.get(p).callees.length === 0);
+const impactLine = `untraced tests: ${untracedModules.length} of ${mappedTests.length} test modules import no mapped module (a test that only starts a process is not linked)`;
+// req: R-861
+check("--impact's output carries the untraced-test line with the real count",
+	formatImpact(graph, ["packages/nana-pack/lib/agent-dir.mjs"]).includes(impactLine),
+	`expected: ${impactLine}`,
 );
 
 // the documented command is the one that runs: `npm run map:check` from the repo root

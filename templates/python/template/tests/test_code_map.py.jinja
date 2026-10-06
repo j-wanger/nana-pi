@@ -33,6 +33,7 @@ from code_map import (
     ConfigError,
     build_graph,
     check_project,
+    format_impact,
     impact,
     load_config,
     map_entries,
@@ -473,6 +474,30 @@ def test_impact_gives_transitive_callers_and_callees(tmp_path: Path) -> None:
     assert code == 0
     assert "transitive callers (1): src/demo/a.py" in out
     assert "transitive callees (0): —" in out
+
+
+{{ rq }} G-011
+def test_impact_also_reports_untraced_test_modules() -> None:
+    # one of the three test modules (test_b) imports no mapped module at all
+    graph = build_graph(
+        {
+            "tests/test_a.py": mod("tests/test_a.py", ["from demo.core import model"]),
+            "tests/test_b.py": mod("tests/test_b.py"),
+            "tests/test_c.py": mod("tests/test_c.py", ["from demo.core import model"]),
+            "src/demo/core/model.py": mod("src/demo/core/model.py"),
+        },
+        CONFIG,
+    )
+    assert graph.problems == []
+    out = format_impact(graph, ["src/demo/core/model.py"])
+    assert "untraced tests: 1 of 3 test modules import no mapped module" in out
+    assert "(a test that only starts a process is not linked)" in out
+
+    # no test modules at all: 0 of 0, not a crash
+    no_tests = build_graph({"src/demo/core/model.py": mod("src/demo/core/model.py")}, CONFIG)
+    assert "untraced tests: 0 of 0 test modules import no mapped module" in format_impact(
+        no_tests, ["src/demo/core/model.py"]
+    )
 
 
 {{ rq }} G-004
