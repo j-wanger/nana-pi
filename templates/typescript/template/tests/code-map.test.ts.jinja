@@ -320,102 +320,138 @@ test("a dynamic import of new URL(...) with a non-literal URL creates no edge", 
 	expect(parseRelativeImports(source)).toEqual([]);
 });
 
-{{ rq }} G-011
-test("a dynamic import of new URL(...) resolves to an edge with a space before .href", () => {
-	const source = "import(new URL(@TARGET@, import.meta.url) .href);"
-		.replace("@TARGET@", "@./ws-href-space.js@")
-		.replace(/@/g, '"');
-	expect(parseRelativeImports(source)).toContain("./ws-href-space.js");
-});
-
-{{ rq }} G-011
-test("a dynamic import of new URL(...) resolves to an edge with spaces around every dot in import.meta.url", () => {
-	const source = "import(new URL(@TARGET@, import . meta . url).href);"
-		.replace("@TARGET@", "@./ws-meta-dots.js@")
-		.replace(/@/g, '"');
-	expect(parseRelativeImports(source)).toContain("./ws-meta-dots.js");
-});
-
-{{ rq }} G-011
-test("a dynamic import of new URL(...) resolves to an edge with a newline between the URL's arguments and .href", () => {
-	const source = "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);"
-		.replace("@TARGET@", "@./ws-newline.js@")
-		.replace(/@/g, '"');
-	expect(parseRelativeImports(source)).toContain("./ws-newline.js");
-});
-
-// R-864 (astra r2 round 3): the lexer that used to gate these four patterns (R-863) is
-// subtracted — see REQUIREMENTS.md Open questions for why, and for what that gives back
-// up. A simple, monotone guard stands in its place: a match whose line's first non-blank
-// characters are `//`, or are `*` with no `*/` anywhere on that line, is dropped; nothing
-// else changes. Four patterns x five scenarios each (BARE_IMPORT's own `^\s*import`
-// line-start anchor already rules out the fifth on its own — a block comment closing
-// earlier on the SAME line leaves non-whitespace before `import`, so the base pattern
-// never matches there regardless of the guard — so BARE_IMPORT gets four, not five).
-const GUARD_PATTERNS: { name: string; make: (t: string) => string }[] = [
-	{ name: "STATIC_FROM", make: (t) => `import { x } from @${t}@;` },
-	{ name: "BARE_IMPORT", make: (t) => `import @${t}@;` },
-	{ name: "DYNAMIC", make: (t) => `import(@${t}@);` },
+// R-860's "whitespace allowed around every dot and paren": a distinct-target fixture for
+// every position the row's text promises (astra r2 MUST 2, astra r3 MUST 3 — three of
+// these positions were previously supported but unpinned: the space after the suffix dot,
+// between URL and (, and between import and ().
+const WHITESPACE_FORMS: { name: string; target: string; line: string }[] = [
 	{
-		name: "DYNAMIC_URL",
-		make: (t) => `import(new URL(@${t}@, import.meta.url).href);`,
+		name: "a space between import and (",
+		target: "./ws-import-paren.js",
+		line: "import (new URL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "a newline between new and URL",
+		target: "./ws-new-url.js",
+		line: "import(new\n\tURL(@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "a space between URL and (",
+		target: "./ws-url-paren.js",
+		line: "import(new URL (@TARGET@, import.meta.url).href);",
+	},
+	{
+		name: "spaces inside URL(...)'s parens, around the literal and the comma",
+		target: "./ws-inner-parens.js",
+		line: "import(new URL( @TARGET@ , import.meta.url).href);",
+	},
+	{
+		name: "spaces around every dot in import.meta.url",
+		target: "./ws-meta-dots.js",
+		line: "import(new URL(@TARGET@, import . meta . url).href);",
+	},
+	{
+		name: "a space before the suffix dot (.href)",
+		target: "./ws-href-before.js",
+		line: "import(new URL(@TARGET@, import.meta.url) .href);",
+	},
+	{
+		name: "a space before the suffix dot (.pathname)",
+		target: "./ws-pathname-before.js",
+		line: "import(new URL(@TARGET@, import.meta.url) .pathname);",
+	},
+	{
+		name: "a space after the suffix dot (.href)",
+		target: "./ws-href-after.js",
+		line: "import(new URL(@TARGET@, import.meta.url). href);",
+	},
+	{
+		name: "a space after the suffix dot (.pathname)",
+		target: "./ws-pathname-after.js",
+		line: "import(new URL(@TARGET@, import.meta.url). pathname);",
+	},
+	{
+		name: "a newline between the URL's arguments and .href",
+		target: "./ws-newline.js",
+		line: "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);",
 	},
 ];
-const GUARD_CASES: {
-	pattern: string;
-	scenario: string;
-	target: string;
-	expectEdge: boolean;
-	build: (target: string) => string;
-}[] = [];
-for (const p of GUARD_PATTERNS) {
-	const slug = p.name.toLowerCase();
-	GUARD_CASES.push(
-		{
-			pattern: p.name,
-			scenario: "a // line",
-			expectEdge: false,
-			target: `./${slug}-comment.js`,
-			build: (t) => `// ${p.make(t)}`,
-		},
-		{
-			pattern: p.name,
-			scenario: "a * line inside a block comment",
-			expectEdge: false,
-			target: `./${slug}-jsdoc.js`,
-			build: (t) => `/**\n * ${p.make(t)}\n */\n`,
-		},
-		{
-			pattern: p.name,
-			scenario: "an ordinary code line",
-			expectEdge: true,
-			target: `./${slug}-code.js`,
-			build: (t) => p.make(t),
-		},
-		{
-			pattern: p.name,
-			scenario: "a trailing // comment after a real import",
-			expectEdge: true,
-			target: `./${slug}-trailing.js`,
-			build: (t) => `${p.make(t)} // trailing comment`,
-		},
-	);
-	if (p.name !== "BARE_IMPORT") {
-		GUARD_CASES.push({
-			pattern: p.name,
-			scenario: "a block comment that closes earlier on the same line",
-			expectEdge: true,
-			target: `./${slug}-after-close.js`,
-			build: (t) => `/* note */ ${p.make(t)}`,
-		});
-	}
-}
-for (const c of GUARD_CASES) {
+for (const { name, target, line } of WHITESPACE_FORMS) {
 	{{ rq }} G-011
-	test(`${c.pattern}, ${c.scenario}: ${c.expectEdge ? "edge kept" : "no edge"}`, () => {
-		const source = c.build(c.target).replace(/@/g, '"');
-		const found = parseRelativeImports(source);
-		expect(found.includes(c.target)).toBe(c.expectEdge);
+	test(`a dynamic import of new URL(...) resolves to an edge with ${name}`, () => {
+		const source = line.replace("@TARGET@", `@${target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(target);
+	});
+}
+
+{{ rq }} G-011
+test("new URL(...) resolves to an edge from inside a generator method's yielded import (astra r3)", () => {
+	const source =
+		"const loader = {\n  *load() { yield import(new URL(@./preserve-generator-url.js@, import.meta.url).href); }\n};".replace(
+			/@/g,
+			'"',
+		);
+	expect(parseRelativeImports(source)).toContain("./preserve-generator-url.js");
+});
+
+// Preservation regressions (astra r3, round 4): two filters were tried here and both
+// subtracted — R-863 (a comment/string-aware lexer) and R-864 (a comment-line guard) —
+// because each one LOST a real edge trying to tell a real import apart from a fake one in
+// text. Matching is raw-source now, same as every pattern already was, so none of these can
+// ever be mistaken for "commented out" again. Not tied to a numbered row (DYNAMIC's own
+// basic matching is not R-860's or R-861's clause); kept as regressions against the two
+// filters this lane already tried and retired.
+const PRESERVATION_CASES: { name: string; target: string; source: string }[] = [
+	{
+		name: "a generator method's yielded import",
+		target: "./preserve-generator.js",
+		source: "const loader = {\n  *load() { yield import(@T@); }\n};",
+	},
+	{
+		name: "a leading * multiplying an awaited import's property",
+		target: "./preserve-multiply.js",
+		source: "const value = 2\n  * (await import(@T@)).value;",
+	},
+	{
+		name: "a real import after a template literal whose next physical line starts with //",
+		target: "./preserve-template-slashes.js",
+		source: "const text = `prefix\n//`; import(@T@);",
+	},
+	{
+		name: "a real import after a backslash-continued string whose next physical line starts with //",
+		target: "./preserve-backslash-slashes.js",
+		source: 'const text = "prefix\\\n//"; import(@T@);',
+	},
+	{
+		name: "a real import after a // comment ended by CR",
+		target: "./preserve-cr.js",
+		source: "// comment\rimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by LF",
+		target: "./preserve-lf.js",
+		source: "// comment\nimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by CRLF",
+		target: "./preserve-crlf.js",
+		source: "// comment\r\nimport(@T@);",
+	},
+	{
+		name: "a real import after a // comment ended by U+2028",
+		target: "./preserve-u2028.js",
+		source: `// comment${String.fromCharCode(0x2028)}import(@T@);`,
+	},
+	{
+		name: "a real import after a // comment ended by U+2029",
+		target: "./preserve-u2029.js",
+		source: `// comment${String.fromCharCode(0x2029)}import(@T@);`,
+	},
+];
+for (const c of PRESERVATION_CASES) {
+	test(`${c.name}: the real import still resolves`, () => {
+		const source = c.source.replace("@T@", `@${c.target}@`).replace(/@/g, '"');
+		expect(parseRelativeImports(source)).toContain(c.target);
 	});
 }
 

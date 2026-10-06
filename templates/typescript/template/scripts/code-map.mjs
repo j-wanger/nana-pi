@@ -396,60 +396,16 @@ const DYNAMIC = /\bimport\s*\(\s*(['"])(\.[^'"]*)\1\s*\)/g;
 const DYNAMIC_URL =
 	/\bimport\s*\(\s*new\s+URL\s*\(\s*(['"])(\.[^'"]*)\1\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\)\s*(?:\.\s*(?:href|pathname))?\s*(?:,[^)]*)?\)/g;
 
-// ----------------------------------------------- the comment-line guard (R-864, astra r2
-// round 3: a full lexer, R-863, was subtracted here after round 2 found it LOSES real
-// edges in ordinary code (a division right after a completed template literal or object
-// literal, a `//` comment ended by CR or U+2028) and still fabricates edges from valid
-// multi-line strings. A lost edge is worse than a spurious one: a wrong `--check` failure
-// names a module that does not exist, loudly; a silently missing edge hides a test from
-// --impact with no symptom at all. This guard is monotone instead — it can only DROP a
-// match the four regexes below already found, never add one, so it cannot introduce a new
-// lost edge no matter how wrong its own guess is. It is not a lexer: no string handling,
-// no `/*`-opening-line rule, nothing but the two shapes a commented-out import most often
-// takes — a whole `//` line, or a `*`-prefixed JSDoc body line that does not also close
-// the block comment. What it does not catch is recorded honestly in REQUIREMENTS.md's
-// Open questions, not hidden behind a heuristic that might remove a real edge instead.
-const LINE_TERMINATOR = new RegExp(
-	`[\r\n${String.fromCharCode(0x2028, 0x2029)}]`,
-);
-
-/** The line containing `index` — CR, LF, CRLF, U+2028 and U+2029 each count as one
- *  break, and the returned text never includes a terminator character. */
-function lineAt(source, index) {
-	let start = index;
-	while (start > 0 && !LINE_TERMINATOR.test(source[start - 1])) start -= 1;
-	let end = index;
-	while (end < source.length && !LINE_TERMINATOR.test(source[end])) end += 1;
-	return source.slice(start, end);
-}
-
-/** True when `index` sits on a line that reads as commented out: a `//` line, or a
- *  `*`-prefixed block-comment body line that does not also close the comment. */
-function onCommentLine(source, index) {
-	const trimmed = lineAt(source, index).trimStart();
-	if (trimmed.startsWith("//")) return true;
-	if (trimmed.startsWith("*") && !trimmed.includes("*/")) return true;
-	return false;
-}
-
-/** The index within `match[0]` where its `from`/`import` keyword starts. */
-function keywordOffset(matchText) {
-	const at = matchText.search(/from|import/);
-	return at === -1 ? 0 : at;
-}
-
-/** Every relative specifier a module names, deduplicated, in source order — a match whose
- *  line reads as commented out (R-864) is dropped; everything else the four patterns find
- *  is kept, exactly as before this lane (text in a string, a trailing comment, or a one-
- *  line block comment can still produce a spurious edge — see Open questions). */
+/** Every relative specifier a module names, deduplicated, in source order. Matching is
+ *  raw-source, same as STATIC_FROM/BARE_IMPORT/DYNAMIC above: a fake specifier sitting in
+ *  a string, a template literal or a comment reads the same as a real one (see
+ *  REQUIREMENTS.md Open questions — two filters were tried here and subtracted, R-863 and
+ *  R-864, because each one LOST real edges trying to tell the two apart). */
 export function parseRelativeImports(source) {
 	const found = [];
 	for (const re of [STATIC_FROM, BARE_IMPORT, DYNAMIC, DYNAMIC_URL]) {
 		re.lastIndex = 0;
-		for (let m = re.exec(source); m; m = re.exec(source)) {
-			const at = m.index + keywordOffset(m[0]);
-			if (!onCommentLine(source, at)) found.push(m[2]);
-		}
+		for (let m = re.exec(source); m; m = re.exec(source)) found.push(m[2]);
 	}
 	return [...new Set(found)];
 }
