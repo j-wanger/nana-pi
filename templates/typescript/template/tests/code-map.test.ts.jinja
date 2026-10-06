@@ -321,72 +321,103 @@ test("a dynamic import of new URL(...) with a non-literal URL creates no edge", 
 });
 
 {{ rq }} G-011
-test("text in a comment or a string never creates an edge (astra r1 MUST 1)", () => {
-	// The exact two reproductions astra r1 gave, plus a block comment and template-literal
-	// TEXT. The `@` trick again: a real import specifier written out here would be read as
-	// one of THIS file's own imports.
-	const source = `${[
-		"// a line comment: const x = await import(new URL(@./from-line-comment.js@, import.meta.url).href);",
-		"/* a block comment:",
-		"   const x = await import(new URL(@./from-block-comment.js@, import.meta.url).href); */",
-		"const s1 = 'import(new URL(@./from-single-quoted-string.js@, import.meta.url).href)';",
-		"const s2 = `plain template text: import(new URL(@./from-template-text.js@, import.meta.url).href)`;",
-	]
-		.join("\n")
-		.replace(/@/g, '"')}\n`;
-	expect(parseRelativeImports(source)).toEqual([]);
+test("a dynamic import of new URL(...) resolves to an edge with a space before .href", () => {
+	const source = "import(new URL(@TARGET@, import.meta.url) .href);"
+		.replace("@TARGET@", "@./ws-href-space.js@")
+		.replace(/@/g, '"');
+	expect(parseRelativeImports(source)).toContain("./ws-href-space.js");
 });
 
 {{ rq }} G-011
-test("a real import still resolves after a regex literal, inside a template interpolation, and after a string containing // (astra r1 MUST 1)", () => {
-	const afterRegex = ['const pattern = /"/;', "import(@./after-regex.js@);"]
-		.join("\n")
+test("a dynamic import of new URL(...) resolves to an edge with spaces around every dot in import.meta.url", () => {
+	const source = "import(new URL(@TARGET@, import . meta . url).href);"
+		.replace("@TARGET@", "@./ws-meta-dots.js@")
 		.replace(/@/g, '"');
-	const afterUrlString = [
-		"const u = @http://example.com@;",
-		"import(@./after-url-string.js@);",
-	]
-		.join("\n")
-		.replace(/@/g, '"');
-	// biome-ignore lint/suspicious/noTemplateCurlyInString: deliberately not evaluated — a plain string being fed to parseRelativeImports, not a template literal in this file's own code
-	const interpolation =
-		"const s = `x ${await import(@./inside-interpolation.js@)} y`;".replace(
-			/@/g,
-			'"',
-		);
-	expect(parseRelativeImports(afterRegex)).toContain("./after-regex.js");
-	expect(parseRelativeImports(afterUrlString)).toContain(
-		"./after-url-string.js",
-	);
-	expect(parseRelativeImports(interpolation)).toContain(
-		"./inside-interpolation.js",
-	);
+	expect(parseRelativeImports(source)).toContain("./ws-meta-dots.js");
 });
 
 {{ rq }} G-011
-test("a real import on the next line still resolves after a / mis-lexed as division runs into a stray quote, either kind (astra r1 round 2)", () => {
-	// A single- or double-quoted string cannot hold a raw line terminator in real JS, so a
-	// `/` mis-lexed as division right before a stray quote must not let that "string"
-	// swallow the rest of the file.
-	const afterDouble = [
-		'if (x) /re"/.test(s);',
-		"import(@./after-misread-double.js@);",
-	]
-		.join("\n")
+test("a dynamic import of new URL(...) resolves to an edge with a newline between the URL's arguments and .href", () => {
+	const source = "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);"
+		.replace("@TARGET@", "@./ws-newline.js@")
 		.replace(/@/g, '"');
-	const afterSingle = [
-		"if (x) /re'/.test(s);",
-		"import(@./after-misread-single.js@);",
-	]
-		.join("\n")
-		.replace(/@/g, '"');
-	expect(parseRelativeImports(afterDouble)).toContain(
-		"./after-misread-double.js",
-	);
-	expect(parseRelativeImports(afterSingle)).toContain(
-		"./after-misread-single.js",
-	);
+	expect(parseRelativeImports(source)).toContain("./ws-newline.js");
 });
+
+// R-864 (astra r2 round 3): the lexer that used to gate these four patterns (R-863) is
+// subtracted — see REQUIREMENTS.md Open questions for why, and for what that gives back
+// up. A simple, monotone guard stands in its place: a match whose line's first non-blank
+// characters are `//`, or are `*` with no `*/` anywhere on that line, is dropped; nothing
+// else changes. Four patterns x five scenarios each (BARE_IMPORT's own `^\s*import`
+// line-start anchor already rules out the fifth on its own — a block comment closing
+// earlier on the SAME line leaves non-whitespace before `import`, so the base pattern
+// never matches there regardless of the guard — so BARE_IMPORT gets four, not five).
+const GUARD_PATTERNS: { name: string; make: (t: string) => string }[] = [
+	{ name: "STATIC_FROM", make: (t) => `import { x } from @${t}@;` },
+	{ name: "BARE_IMPORT", make: (t) => `import @${t}@;` },
+	{ name: "DYNAMIC", make: (t) => `import(@${t}@);` },
+	{
+		name: "DYNAMIC_URL",
+		make: (t) => `import(new URL(@${t}@, import.meta.url).href);`,
+	},
+];
+const GUARD_CASES: {
+	pattern: string;
+	scenario: string;
+	target: string;
+	expectEdge: boolean;
+	build: (target: string) => string;
+}[] = [];
+for (const p of GUARD_PATTERNS) {
+	const slug = p.name.toLowerCase();
+	GUARD_CASES.push(
+		{
+			pattern: p.name,
+			scenario: "a // line",
+			expectEdge: false,
+			target: `./${slug}-comment.js`,
+			build: (t) => `// ${p.make(t)}`,
+		},
+		{
+			pattern: p.name,
+			scenario: "a * line inside a block comment",
+			expectEdge: false,
+			target: `./${slug}-jsdoc.js`,
+			build: (t) => `/**\n * ${p.make(t)}\n */\n`,
+		},
+		{
+			pattern: p.name,
+			scenario: "an ordinary code line",
+			expectEdge: true,
+			target: `./${slug}-code.js`,
+			build: (t) => p.make(t),
+		},
+		{
+			pattern: p.name,
+			scenario: "a trailing // comment after a real import",
+			expectEdge: true,
+			target: `./${slug}-trailing.js`,
+			build: (t) => `${p.make(t)} // trailing comment`,
+		},
+	);
+	if (p.name !== "BARE_IMPORT") {
+		GUARD_CASES.push({
+			pattern: p.name,
+			scenario: "a block comment that closes earlier on the same line",
+			expectEdge: true,
+			target: `./${slug}-after-close.js`,
+			build: (t) => `/* note */ ${p.make(t)}`,
+		});
+	}
+}
+for (const c of GUARD_CASES) {
+	{{ rq }} G-011
+	test(`${c.pattern}, ${c.scenario}: ${c.expectEdge ? "edge kept" : "no edge"}`, () => {
+		const source = c.build(c.target).replace(/@/g, '"');
+		const found = parseRelativeImports(source);
+		expect(found.includes(c.target)).toBe(c.expectEdge);
+	});
+}
 
 // NOTE: G-007 is deliberately NOT claimed by this project. The fixtures below pin
 // the CHECK, not this project's own layering, so that row stays `untested` until

@@ -396,214 +396,40 @@ const DYNAMIC = /\bimport\s*\(\s*(['"])(\.[^'"]*)\1\s*\)/g;
 const DYNAMIC_URL =
 	/\bimport\s*\(\s*new\s+URL\s*\(\s*(['"])(\.[^'"]*)\1\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\)\s*(?:\.\s*(?:href|pathname))?\s*(?:,[^)]*)?\)/g;
 
-// --------------------------------------------------- comment/string-aware gating (nana-pi
-// R-863): the four regexes above read raw text, so without this they also match a fake
-// specifier sitting in a comment, a string, or template-literal TEXT — exactly the bytes a
-// real import would have, just not executable. `codeMask` is a minimal, dependency-free
-// lexer (not a parser: it tracks lexical regions only, never validates syntax) that marks
-// every character CODE or not, so a match is accepted only when the `from`/`import`
-// keyword it starts with sits in a code region. A `${...}` template interpolation is code
-// (nesting allowed, via a depth counter per open template); a `/` is read as a regex
-// literal start, never division, exactly when the previous significant token is one of the
-// listed punctuators/keywords or this is the start of input — the same heuristic real JS
-// tokenizers use, simplified to what gating these four regexes needs.
-const PUNCT_REGEX_OK = new Set([
-	"(",
-	",",
-	"=",
-	":",
-	"[",
-	"!",
-	"&",
-	"|",
-	"?",
-	"{",
-	"}",
-	";",
-	"+",
-	"-",
-	"*",
-	"%",
-	"<",
-	">",
-	"~",
-	"^",
-]);
-const KEYWORD_REGEX_OK = new Set([
-	"return",
-	"typeof",
-	"case",
-	"in",
-	"of",
-	"new",
-	"delete",
-	"void",
-	"throw",
-	"yield",
-	"await",
-	"else",
-	"do",
-]);
-const ID_START = /[A-Za-z_$]/;
-const ID_PART = /[A-Za-z0-9_$]/;
-/** The four characters ECMAScript treats as a LineTerminator — none may appear raw
- *  (unescaped) inside a single- or double-quoted string. */
-const LINE_TERMINATORS = new Set(["\n", "\r", " ", " "]);
+// ----------------------------------------------- the comment-line guard (R-864, astra r2
+// round 3: a full lexer, R-863, was subtracted here after round 2 found it LOSES real
+// edges in ordinary code (a division right after a completed template literal or object
+// literal, a `//` comment ended by CR or U+2028) and still fabricates edges from valid
+// multi-line strings. A lost edge is worse than a spurious one: a wrong `--check` failure
+// names a module that does not exist, loudly; a silently missing edge hides a test from
+// --impact with no symptom at all. This guard is monotone instead — it can only DROP a
+// match the four regexes below already found, never add one, so it cannot introduce a new
+// lost edge no matter how wrong its own guess is. It is not a lexer: no string handling,
+// no `/*`-opening-line rule, nothing but the two shapes a commented-out import most often
+// takes — a whole `//` line, or a `*`-prefixed JSDoc body line that does not also close
+// the block comment. What it does not catch is recorded honestly in REQUIREMENTS.md's
+// Open questions, not hidden behind a heuristic that might remove a real edge instead.
+const LINE_TERMINATOR = new RegExp(
+	`[\r\n${String.fromCharCode(0x2028, 0x2029)}]`,
+);
 
-/**
- * One boolean per character of `source`: true where that position is executable code
- * (top-level, or inside a template's `${...}` interpolation), false inside a line comment,
- * a block comment, a quoted string, template-literal TEXT, or a regex literal's body.
- * @param {string} source
- * @returns {Uint8Array}
- */
-function codeMask(source) {
-	const n = source.length;
-	const mask = new Uint8Array(n);
-	let i = 0;
-	let regexAllowed = true; // true at start of input
-	// One entry per open template literal: null while in its TEXT, or the current brace
-	// depth (a number) while inside its `${...}` interpolation — depth lets a nested `{`
-	// (an object literal, a block) close before the interpolation itself does.
-	const templates = [];
+/** The line containing `index` — CR, LF, CRLF, U+2028 and U+2029 each count as one
+ *  break, and the returned text never includes a terminator character. */
+function lineAt(source, index) {
+	let start = index;
+	while (start > 0 && !LINE_TERMINATOR.test(source[start - 1])) start -= 1;
+	let end = index;
+	while (end < source.length && !LINE_TERMINATOR.test(source[end])) end += 1;
+	return source.slice(start, end);
+}
 
-	while (i < n) {
-		const top = templates.length ? templates[templates.length - 1] : undefined;
-		if (top === null) {
-			// template TEXT: nothing here is code until `${` or the closing backtick
-			const ch = source[i];
-			if (ch === "\\") {
-				i += 2;
-				continue;
-			}
-			if (ch === "`") {
-				templates.pop();
-				i += 1;
-				continue;
-			}
-			if (ch === "$" && source[i + 1] === "{") {
-				templates[templates.length - 1] = 0;
-				i += 2;
-				regexAllowed = true; // a fresh expression starts the interpolation
-				continue;
-			}
-			i += 1;
-			continue;
-		}
-
-		// top-level code, or inside a `${...}` interpolation (top is a depth number) —
-		// both are code contexts and share the rest of this scan.
-		const inInterpolation = typeof top === "number";
-		const ch = source[i];
-
-		if (ch === " " || ch === "\t" || ch === "\r" || ch === "\n") {
-			i += 1;
-			continue;
-		}
-
-		if (ch === "/" && source[i + 1] === "/") {
-			let j = i + 2;
-			while (j < n && source[j] !== "\n") j += 1;
-			i = j;
-			continue;
-		}
-		if (ch === "/" && source[i + 1] === "*") {
-			let j = i + 2;
-			while (j < n && !(source[j] === "*" && source[j + 1] === "/")) j += 1;
-			i = j < n ? j + 2 : n;
-			continue;
-		}
-		if (ch === "'" || ch === '"') {
-			// A single- or double-quoted string cannot hold a raw line terminator (CR,
-			// LF, U+2028, U+2029) — JS does not allow one there unescaped, so a `/`
-			// mis-lexed as division just before a stray quote (seat probe, astra r1
-			// round 2: `if (x) /re"/.test(s);` then a real import on the next line)
-			// must not let the "string" swallow the rest of the file. Stop at the
-			// terminator, same as a real tokenizer would call this unterminated.
-			const quote = ch;
-			let j = i + 1;
-			while (j < n && source[j] !== quote && !LINE_TERMINATORS.has(source[j]))
-				j += source[j] === "\\" ? 2 : 1;
-			i = j < n && source[j] === quote ? j + 1 : Math.min(j, n);
-			regexAllowed = false;
-			continue;
-		}
-		if (ch === "`") {
-			templates.push(null);
-			i += 1;
-			continue;
-		}
-		if (inInterpolation && ch === "{") {
-			templates[templates.length - 1] = top + 1;
-			mask[i] = 1;
-			i += 1;
-			regexAllowed = true;
-			continue;
-		}
-		if (inInterpolation && ch === "}") {
-			if (top === 0)
-				templates[templates.length - 1] = null; // back to template TEXT
-			else templates[templates.length - 1] = top - 1;
-			mask[i] = 1;
-			i += 1;
-			regexAllowed = top !== 0; // '}' closing an interpolation says nothing; a
-			// nested brace closing (object/block) allows a regex to follow, like elsewhere
-			continue;
-		}
-		if (ch === "/") {
-			if (regexAllowed) {
-				let j = i + 1;
-				let inClass = false;
-				let closed = false;
-				while (j < n && source[j] !== "\n") {
-					if (source[j] === "\\") {
-						j += 2;
-						continue;
-					}
-					if (source[j] === "[") {
-						inClass = true;
-						j += 1;
-						continue;
-					}
-					if (source[j] === "]") {
-						inClass = false;
-						j += 1;
-						continue;
-					}
-					if (source[j] === "/" && !inClass) {
-						closed = true;
-						break;
-					}
-					j += 1;
-				}
-				if (closed) {
-					j += 1;
-					while (j < n && /[A-Za-z]/.test(source[j])) j += 1; // flags
-					i = j;
-					regexAllowed = false;
-					continue;
-				}
-				// unterminated: fall through and treat '/' as an ordinary character
-			}
-			mask[i] = 1;
-			i += 1;
-			regexAllowed = false; // '/' itself is not in PUNCT_REGEX_OK
-			continue;
-		}
-		if (ID_START.test(ch)) {
-			let j = i + 1;
-			while (j < n && ID_PART.test(source[j])) j += 1;
-			for (let k = i; k < j; k++) mask[k] = 1;
-			const word = source.slice(i, j);
-			regexAllowed = KEYWORD_REGEX_OK.has(word);
-			i = j;
-			continue;
-		}
-		mask[i] = 1;
-		regexAllowed = PUNCT_REGEX_OK.has(ch);
-		i += 1;
-	}
-	return mask;
+/** True when `index` sits on a line that reads as commented out: a `//` line, or a
+ *  `*`-prefixed block-comment body line that does not also close the comment. */
+function onCommentLine(source, index) {
+	const trimmed = lineAt(source, index).trimStart();
+	if (trimmed.startsWith("//")) return true;
+	if (trimmed.startsWith("*") && !trimmed.includes("*/")) return true;
+	return false;
 }
 
 /** The index within `match[0]` where its `from`/`import` keyword starts. */
@@ -613,16 +439,16 @@ function keywordOffset(matchText) {
 }
 
 /** Every relative specifier a module names, deduplicated, in source order — a match whose
- *  `from`/`import` keyword sits in a comment, a string, or template-literal TEXT is not an
- *  import, however the bytes read (nana-pi R-863). */
+ *  line reads as commented out (R-864) is dropped; everything else the four patterns find
+ *  is kept, exactly as before this lane (text in a string, a trailing comment, or a one-
+ *  line block comment can still produce a spurious edge — see Open questions). */
 export function parseRelativeImports(source) {
-	const mask = codeMask(source);
 	const found = [];
 	for (const re of [STATIC_FROM, BARE_IMPORT, DYNAMIC, DYNAMIC_URL]) {
 		re.lastIndex = 0;
 		for (let m = re.exec(source); m; m = re.exec(source)) {
 			const at = m.index + keywordOffset(m[0]);
-			if (mask[at]) found.push(m[2]);
+			if (!onCommentLine(source, at)) found.push(m[2]);
 		}
 	}
 	return [...new Set(found)];

@@ -22,7 +22,7 @@ const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig }
 // directly against the generator template ships, not the shim: tests may import anything
 // (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
 // a broken edge.
-const { buildGraph: templateBuildGraph, parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
+const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, why = "") => {
@@ -142,6 +142,23 @@ for (const f of SIX_FORMS) {
 	check(`new URL(...) ${f.name} resolves to an edge`, sixFormsFound.includes(f.target), `found: ${sixFormsFound.join(" ")}`);
 }
 
+// R-860 MUST 2 (astra r1), pinned for the exact spellings astra r2 probed (astra r2 MUST
+// 4): whitespace before `.href`, whitespace around every dot in `import.meta.url`, and a
+// newline between the URL's arguments and its `.href`.
+const WHITESPACE_FORMS = [
+	{ name: "a space before .href", target: "./ws-href-space.mjs", line: "import(new URL(@TARGET@, import.meta.url) .href);" },
+	{ name: "spaces around every dot in import.meta.url", target: "./ws-meta-dots.mjs", line: "import(new URL(@TARGET@, import . meta . url).href);" },
+	{ name: "a newline between the URL's arguments and .href", target: "./ws-newline.mjs", line: "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);" },
+];
+for (const f of WHITESPACE_FORMS) {
+	const source = f.line.replace("@TARGET@", `@${f.target}@`).replace(/@/g, '"');
+	// req: R-860
+	check(`new URL(...) resolves to an edge with ${f.name}`,
+		parseRelativeImports(source).includes(f.target),
+		`source: ${JSON.stringify(source)}; found: ${parseRelativeImports(source).join(" ")}`,
+	);
+}
+
 // R-860's exclusions: a template-string URL, a variable, and a non-relative literal (a bare
 // specifier, an absolute URL, an absolute path) all resolve to nothing — the row only ever
 // claims a RELATIVE string literal, same as every other form this generator already parses.
@@ -160,86 +177,62 @@ check("a template-string URL, a variable, and a non-relative literal all resolve
 	`found (should be empty): ${parseRelativeImports(exclusionsFixture).join(" ")}`,
 );
 
-// R-863 (astra r1 MUST 1): text in a comment or a string must never create an edge — the
-// four fake specifiers below each have the exact bytes a real import would, just not in
-// code. Each targets a distinct, identifiable path.
-const noiseFixture = [
-	"// a line comment: const x = await import(new URL(@./from-line-comment.mjs@, import.meta.url).href);",
-	"/* a block comment:",
-	"   const x = await import(new URL(@./from-block-comment.mjs@, import.meta.url).href); */",
-	"const s1 = 'import(new URL(@./from-single-quoted-string.mjs@, import.meta.url).href)';",
-	"const s2 = `plain template text: import(new URL(@./from-template-text.mjs@, import.meta.url).href)`;",
-]
-	.join("\n")
-	.replace(/@/g, '"');
-const noiseFound = parseRelativeImports(noiseFixture);
-// req: R-863
-check("a line comment, a block comment, a single-quoted string and template-literal TEXT never create an edge for the fake specifier they hold",
-	noiseFound.length === 0,
-	`found (should be empty): ${noiseFound.join(" ")}`,
-);
-
-// R-863 (astra r1 MUST 1, positive side): a real import still resolves right after a regex
-// literal containing a quote, right after a string whose text contains "//" (not a comment
-// start), and from inside a template's ${...} interpolation (code, not template TEXT).
-const afterRegexSource = ["const pattern = /\"/;", "import(@./after-regex.mjs@);"].join("\n").replace(/@/g, '"');
-const afterUrlStringSource = ["const u = @http://example.com@;", "import(@./after-url-string.mjs@);"].join("\n").replace(/@/g, '"');
-const interpolationSource = "const s = `x ${await import(@./inside-interpolation.mjs@)} y`;".replace(/@/g, '"');
-// req: R-863
-check("a real import after a regex literal containing a quote still resolves",
-	parseRelativeImports(afterRegexSource).includes("./after-regex.mjs"),
-	`found: ${parseRelativeImports(afterRegexSource).join(" ")}`,
-);
-// req: R-863
-check("a real import after a string containing // (not a comment start) still resolves",
-	parseRelativeImports(afterUrlStringSource).includes("./after-url-string.mjs"),
-	`found: ${parseRelativeImports(afterUrlStringSource).join(" ")}`,
-);
-// req: R-863
-check("a real import inside a template's ${...} interpolation still resolves",
-	parseRelativeImports(interpolationSource).includes("./inside-interpolation.mjs"),
-	`found: ${parseRelativeImports(interpolationSource).join(" ")}`,
-);
-
-// R-863 (astra r1 round 2 seat probe): a single- or double-quoted string cannot hold a raw
-// line terminator in real JS, so a `/` mis-lexed as division right before a stray quote
-// must not let that "string" swallow the rest of the file — confined to its own line, a
-// real import on the NEXT line still resolves. Both quote kinds.
-const afterMisreadDivisionDouble = ["if (x) /re\"/.test(s);", "import(@./after-misread-double.mjs@);"].join("\n").replace(/@/g, '"');
-const afterMisreadDivisionSingle = ["if (x) /re'/.test(s);", "import(@./after-misread-single.mjs@);"].join("\n").replace(/@/g, '"');
-// req: R-863
-check("a real import on the next line still resolves after a `/` mis-lexed as division runs into a stray double quote",
-	parseRelativeImports(afterMisreadDivisionDouble).includes("./after-misread-double.mjs"),
-	`found: ${parseRelativeImports(afterMisreadDivisionDouble).join(" ")}`,
-);
-// req: R-863
-check("a real import on the next line still resolves after a `/` mis-lexed as division runs into a stray single quote",
-	parseRelativeImports(afterMisreadDivisionSingle).includes("./after-misread-single.mjs"),
-	`found: ${parseRelativeImports(afterMisreadDivisionSingle).join(" ")}`,
-);
-
-// R-863, graph-level: astra r1's own two reproduction snippets, through buildGraph (not
-// just the regex layer), so the claim is about the shipped edge/problem set astra actually
-// inspected, not a lower-level function in isolation.
-const astraHeader = (p) => `/**\n * @module ${p}\n * @purpose fixture.\n * @inputs none\n * @outputs none\n * @effects none\n * @errors none\n */\n`;
-const astraConfig = { ...config, exempt: [] }; // a lone fixture module can't satisfy the
-// real config's exempt-path existence check; irrelevant to what this is pinning
-function buildGraphOf(bodySource) {
-	const p = "packages/nana-pack/tests/_astra-r1-fixture.mjs";
-	return templateBuildGraph([{ path: p, source: astraHeader(p) + bodySource }], astraConfig);
+// R-864 (astra r2 round 3): the lexer that used to gate these four patterns (R-863) is
+// subtracted — see REQUIREMENTS.md Open questions for why, and for what that gives back
+// up. A simple, monotone guard stands in its place: a match whose line's first non-blank
+// characters are `//`, or are `*` with no `*/` anywhere on that line, is dropped; nothing
+// else changes. Four patterns x five scenarios each (BARE_IMPORT's own `^\s*import`
+// line-start anchor already rules out the fifth on its own — a block comment closing
+// earlier on the SAME line leaves non-whitespace before `import`, so the base pattern
+// never matches there regardless of the guard — so BARE_IMPORT gets four, not five).
+const GUARD_PATTERNS = [
+	{ name: "STATIC_FROM", make: (t) => `import { x } from @${t}@;` },
+	{ name: "BARE_IMPORT", make: (t) => `import @${t}@;` },
+	{ name: "DYNAMIC", make: (t) => `import(@${t}@);` },
+	{ name: "DYNAMIC_URL", make: (t) => `import(new URL(@${t}@, import.meta.url).href);` },
+];
+const GUARD_CASES = [];
+for (const p of GUARD_PATTERNS) {
+	const slug = p.name.toLowerCase();
+	GUARD_CASES.push(
+		{
+			pattern: p.name, scenario: "a // line", expectEdge: false,
+			target: `./${slug}-comment.mjs`,
+			build: (t) => `// ${p.make(t)}`,
+		},
+		{
+			pattern: p.name, scenario: "a * line inside a block comment", expectEdge: false,
+			target: `./${slug}-jsdoc.mjs`,
+			build: (t) => `/**\n * ${p.make(t)}\n */\n`,
+		},
+		{
+			pattern: p.name, scenario: "an ordinary code line", expectEdge: true,
+			target: `./${slug}-code.mjs`,
+			build: (t) => p.make(t),
+		},
+		{
+			pattern: p.name, scenario: "a trailing // comment after a real import", expectEdge: true,
+			target: `./${slug}-trailing.mjs`,
+			build: (t) => `${p.make(t)} // trailing comment`,
+		},
+	);
+	if (p.name !== "BARE_IMPORT") {
+		GUARD_CASES.push({
+			pattern: p.name, scenario: "a block comment that closes earlier on the same line", expectEdge: true,
+			target: `./${slug}-after-close.mjs`,
+			build: (t) => `/* note */ ${p.make(t)}`,
+		});
+	}
 }
-const astraRepro1 = buildGraphOf("// import(new URL(@./from-comment-repro.mjs@, import.meta.url).href)".replace(/@/g, '"'));
-const astraRepro2 = buildGraphOf("const text = 'import(new URL(@./from-string-repro.mjs@, import.meta.url).href)';".replace(/@/g, '"'));
-// req: R-863
-check("astra r1's own line-comment repro creates no edge and no problem",
-	astraRepro1.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.length === 0 && astraRepro1.problems.length === 0,
-	`callees: ${astraRepro1.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.join(" ")}; problems: ${astraRepro1.problems.join(" | ")}`,
-);
-// req: R-863
-check("astra r1's own single-quoted-string repro creates no edge and no problem",
-	astraRepro2.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.length === 0 && astraRepro2.problems.length === 0,
-	`callees: ${astraRepro2.modules.get("packages/nana-pack/tests/_astra-r1-fixture.mjs").callees.join(" ")}; problems: ${astraRepro2.problems.join(" | ")}`,
-);
+for (const c of GUARD_CASES) {
+	const source = c.build(c.target).replace(/@/g, '"');
+	const found = parseRelativeImports(source);
+	// req: R-864
+	check(`${c.pattern}, ${c.scenario}: ${c.expectEdge ? "edge kept" : "no edge"}`,
+		found.includes(c.target) === c.expectEdge,
+		`source: ${JSON.stringify(source)}; found: ${found.join(" ")}`,
+	);
+}
 
 // R-861: --impact also names the part of the blast radius it still cannot see — a per-run
 // count of test modules whose own callees are empty (a child-process-only test, or one
