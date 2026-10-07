@@ -70,6 +70,19 @@ export function lstatSafe(p) {
 	}
 }
 
+function destinationAncestorsAreDirectories(root, destinationParent) {
+	const relative = path.relative(root, destinationParent);
+	if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) return false;
+	let current = root;
+	for (const part of relative.split(path.sep).filter(Boolean)) {
+		const stat = lstatSafe(current);
+		if (stat && (!stat.isDirectory() || stat.isSymbolicLink())) return false;
+		current = path.join(current, part);
+	}
+	const stat = lstatSafe(current);
+	return !stat || (stat.isDirectory() && !stat.isSymbolicLink());
+}
+
 /* ---------------------------------------------------------------- claude hooks and rules */
 
 export function stepHooks(layout, o) {
@@ -226,16 +239,22 @@ export function stepRetiredArtifacts(layout, o) {
 	const out = [];
 	const date = new Date().toISOString().slice(0, 10);
 	for (const entry of retiredArtifacts(layout.base)) {
-		const source = path.join(layout.base, entry.relative);
+		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
+		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
+		const relativeTail = entry.relative.slice(root.length + 1);
+		const source = root === ".claude" ? path.join(artifactHome, relativeTail) : path.join(artifactHome, entry.relative);
 		const st = lstatSafe(source);
 		if (!st) continue;
 		if (!matchesRetiredArtifact(entry, st, source)) {
 			out.push({ label: `retired ${entry.relative}`, status: SKIPPED, detail: `unrecognized kind or provenance at ${source} — left untouched` });
 			continue;
 		}
-		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
-		const relativeTail = entry.relative.slice(root.length + 1);
-		const destination = path.join(layout.base, root, "backups", `${date}-retired`, relativeTail);
+		const backupRoot = root === ".claude" ? artifactHome : path.join(artifactHome, root);
+		const destination = path.join(backupRoot, "backups", `${date}-retired`, relativeTail);
+		if (!destinationAncestorsAreDirectories(backupRoot, path.dirname(destination))) {
+			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe backup ancestor under ${backupRoot}; source left untouched` });
+			continue;
+		}
 		if (lstatSafe(destination)) {
 			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `backup already exists at ${destination}; source left untouched` });
 			continue;
@@ -429,7 +448,7 @@ export function stepSettings(layout, o, state) {
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 	];
 	const merge = (settings) => {
-		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
+		const retiredContext = removeRetiredContextHook(settings);
 		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
 		const other = applicable.filter((w) => w !== knowledge);
 		const migration = mergeKnowledgeHook(settings, {

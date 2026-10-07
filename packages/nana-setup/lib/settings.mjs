@@ -194,17 +194,15 @@ export function hasHook(settings, event, spec) {
 	return groups.some((g) => Array.isArray(g?.hooks) && g.hooks.some((h) => commandInvokes(h?.command, spec)));
 }
 
-/** Remove only the two exact legacy command spellings emitted by nana-setup. */
-export function removeRetiredContextHook(settings, { hooksDir }) {
+/** Remove only the exact installer-owned context hook object. */
+export function removeRetiredContextHook(settings) {
 	const groups = settings?.hooks?.UserPromptSubmit;
 	if (!Array.isArray(groups)) return false;
-	const exactTargets = new Set([path.resolve(hooksDir, "context-size-check.sh"), "~/.claude/hooks/context-size-check.sh"]);
 	let changed = false;
 	for (const group of groups) {
 		if (!Array.isArray(group?.hooks)) continue;
 		const kept = group.hooks.filter((hook) => {
-			const argv = tokenize(hook?.command);
-			const isRetired = argv?.length === 2 && argv[0] === "bash" && exactTargets.has(argv[1]);
+			const isRetired = hook && Object.keys(hook).length === 2 && hook.type === "command" && hook.command === "bash ~/.claude/hooks/context-size-check.sh";
 			if (isRetired) changed = true;
 			return !isRetired;
 		});

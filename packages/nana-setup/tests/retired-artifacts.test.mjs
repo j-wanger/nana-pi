@@ -88,9 +88,16 @@ try {
 		fs.writeFileSync(juneHook, "# nana June copy retained\n");
 		const foreignBackup = path.join(h, ".claude", "hooks", "foreign.sh.bak-20260918");
 		fs.writeFileSync(foreignBackup, "owner backup mentions nana but is not in the captured manifest\n");
+		const customizedHook = { type: "command", command: "bash ~/.claude/hooks/context-size-check.sh", owner: "Jake", enabled: true };
+		const nonCommandHook = { type: "prompt", command: "bash ~/.claude/hooks/context-size-check.sh", prompt: "owner text" };
+		const ownerHooks = [
+			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh --owner-variant" },
+			customizedHook,
+			nonCommandHook,
+		];
 		fs.writeFileSync(path.join(h, ".claude", "settings.json"), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
 			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" },
-			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh --owner-variant" },
+			...ownerHooks,
 		] }] } }, null, 2));
 		const foreign = path.join(h, "foreign-skill");
 		fs.mkdirSync(foreign, { recursive: true });
@@ -122,9 +129,9 @@ try {
 		// req: R-661
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
-		const commands = settings.hooks.UserPromptSubmit.flatMap((group) => group.hooks.map((hook) => hook.command));
+		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant");
 		// req: R-660
-		check("exact nana settings entry is removed while owner variant remains", !commands.includes("bash ~/.claude/hooks/context-size-check.sh") && commands.includes("bash ~/.claude/hooks/context-size-check.sh --owner-variant"), JSON.stringify(commands));
+		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
 		// req: R-662
 		check("install prints a manual marker cleanup reminder", result.stdout.includes("delete .claude/.context-warned files manually"), result.stdout);
 		// req: R-668
@@ -143,6 +150,28 @@ try {
 		const recovered = install(interrupted);
 		// req: R-669
 		check("rerun recovers after the dated backup directory was created but before rename", recovered.status === 0 && fs.existsSync(backup(interrupted, ".claude", "skills/nana/SKILL.md")), recovered.stdout);
+	}
+	{
+		const h = home();
+		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-backup-target-"));
+		dirs.push(external);
+		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
+		fs.writeFileSync(path.join(h, ".claude", "enforce"), "");
+		fs.symlinkSync(external, path.join(h, ".claude", "backups"));
+		const result = install(h);
+		// req: R-663
+		check("backup symlink ancestors are refused without changing their external target", result.status !== 0 && fs.existsSync(path.join(h, ".claude", "enforce")) && fs.readdirSync(external).length === 0, result.stdout);
+	}
+	{
+		const h = home();
+		const alternateClaude = path.join(h, "alternate-claude");
+		const defaultSkill = path.join(h, ".claude", "skills", "spec");
+		const selectedSkill = path.join(alternateClaude, "skills", "spec");
+		copyTree(path.join(fixture, "spec"), defaultSkill);
+		copyTree(path.join(fixture, "spec"), selectedSkill);
+		const result = run(["install", "--home", h, "--claude-home", alternateClaude]);
+		// req: R-663
+		check("alternate Claude home scopes retirement away from the default home", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.realpathSync(selectedSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
 	}
 	{
 		const h = home();
