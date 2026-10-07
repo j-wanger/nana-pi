@@ -129,7 +129,7 @@ export function loadManifests(dir) {
 export function normalizeManifest(name, file, raw) {
 	if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return { error: "name must be [a-z0-9-]" };
 	const port = Number(raw.port);
-	if (!Number.isInteger(port) || port < 1024 || port > 65535) return { error: "port: integer 1024-65535" };
+	if (!Number.isInteger(port) || port < 0 || port > 65535) return { error: "port: integer 0-65535" };
 	const cwd = isStr(raw.cwd) ? raw.cwd.replace(/^~(?=$|\/)/, process.env.HOME || "") : "";
 	if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) return { error: `cwd: no such directory ${raw.cwd}` };
 	const extensions = strList(raw.extensions);
@@ -204,11 +204,14 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 export function startAppListeners({ manifests, deps, dirs }) {
 	const servers = [];
 	for (const m of manifests.values()) {
-		const app = { manifest: m, childId: null, spawning: null };
+		const app = { manifest: m, childId: null, spawning: null, boundPort: null };
 		const files = staticMap(dirs, m.page);
 		for (const k of Object.keys(files)) if (!files[k]) delete files[k];
 		const server = http.createServer((req, res) => handle(app, req, res, deps, files));
-		server.listen(m.port, "127.0.0.1", () => console.log(`app ${m.name} → http://127.0.0.1:${m.port}`));
+		server.listen(m.port, "127.0.0.1", () => {
+			app.boundPort = server.address().port;
+			console.log(`app ${m.name} → http://127.0.0.1:${app.boundPort}`);
+		});
 		server.on("error", (e) => console.error(`app ${m.name}: ${e.message}`));
 		servers.push({ app, server });
 	}
@@ -324,7 +327,7 @@ async function handle(app, req, res, deps, files) {
 		}
 		const p = url.pathname;
 		// same DNS-rebind rule as the desk listener, against THIS app's port
-		const badHost = hostRejection(req, m.port);
+		const badHost = hostRejection(req, app.boundPort ?? m.port);
 		if (badHost) return json(res, 403, { error: badHost });
 		if (req.method === "GET" && files[p]) {
 			let data;
@@ -337,11 +340,11 @@ async function handle(app, req, res, deps, files) {
 			return res.end(data);
 		}
 		if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
-			const bad = originRejection(req, m.port);
+			const bad = originRejection(req, app.boundPort ?? m.port);
 			if (bad) return json(res, 403, { error: bad });
 		}
 		if (p === "/api/manifest" && req.method === "GET")
-			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: m.port, quick: m.quick, data: Object.keys(m.data) });
+			return json(res, 200, { name: m.name, title: m.title, cwd: m.cwd, mutating: m.mutating, tools: m.tools, port: app.boundPort ?? m.port, quick: m.quick, data: Object.keys(m.data) });
 		if (p.startsWith("/api/data/") && req.method === "POST") {
 			// Running a command is state-changing in cost, so the route is a POST under the
 			// same Origin + application/json rule as every other state-changing route: a

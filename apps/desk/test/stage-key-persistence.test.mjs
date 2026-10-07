@@ -48,27 +48,11 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import net from "node:net";
 import { signBlock } from "../../../packages/nana-stage/lib/sign.mjs";
 import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 import { StageKeyStore } from "../stage-keys.mjs";
 
-// The desk and app ports are dynamically allocated so parallel worktrees do not collide.
-async function freePort() {
-	for (;;) {
-		const probe = net.createServer();
-		try {
-			await new Promise((resolve, reject) => probe.once("error", reject).listen(0, "127.0.0.1", resolve));
-			const port = probe.address().port;
-			await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
-			return port;
-		} catch (error) {
-			probe.close(() => {});
-			if (error.code !== "EADDRINUSE") throw error;
-		}
-	}
-}
-const [PA, PB] = await Promise.all([freePort(), freePort()]);
+// Port zero asks the OS to bind each fixture listener atomically.
 let DESK = 0;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // stub `pi` first on PATH → name the real package explicitly, or the desk refuses
@@ -255,13 +239,13 @@ process.stdin.on("end", () => process.exit(0));
 `;
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
-const manifest = (port, cwd) => ({ port, cwd, tools: ["read"], extensions: [extStage], trust: "no-approve", title: "T" });
-fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, cwdA)));
-fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cwdB)));
+const manifest = (cwd) => ({ port: 0, cwd, tools: ["read"], extensions: [extStage], trust: "no-approve", title: "T" });
+fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(cwdA)));
+fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(cwdB)));
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`;
+let PA = 0, PB = 0, A = "", B = "";
 const D = () => `http://127.0.0.1:${DESK}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
@@ -283,7 +267,15 @@ const setManifestSession = (n, file) => fs.writeFileSync(path.join(appsDir, `${n
 
 let server = null;
 let log = "";
-async function startServer(run, ports, confirmBudget = null) {
+let firstRunPorts = [];
+const concurrentResult = path.join(TD, "concurrent-ports.json");
+const isConcurrentChild = process.argv.includes("--concurrent-fixture-child");
+const concurrentChild = isConcurrentChild ? null : spawn(process.execPath, [new URL(import.meta.url).pathname, "--concurrent-fixture-child"], {
+	env: { ...process.env, DESK_STAGEKEY_CONCURRENT_RESULT: concurrentResult },
+	stdio: "ignore",
+});
+const concurrentExit = concurrentChild ? new Promise((resolve) => concurrentChild.once("exit", resolve)) : null;
+async function startServer(run, confirmBudget = null) {
 	log = "";
 	DESK = 0; // never match the PREVIOUS run's startup line
 	const { DESK_TEST_CONFIRM_BUDGET_MS: _ambientConfirmBudget, ...parentEnv } = process.env;
@@ -305,10 +297,23 @@ async function startServer(run, ports, confirmBudget = null) {
 	server.stdout.on("data", (c) => (log += c));
 	server.stderr.on("data", (c) => (log += c));
 	for (let i = 0; i < 60; i++) {
-		// the desk prints the port it actually bound; the app listeners come up after it
+		// the desk prints its actual port and reports each app's actual bound port
 		const m = log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
 		if (m) DESK = Number(m[1]);
-		try { if (DESK) { for (const p of ports) await fetch(p + "/api/manifest"); return; } } catch { /* not up yet */ }
+		try {
+			if (DESK) {
+				const apps = await fetch(D() + "/api/apps").then((r) => r.json());
+				const byName = Object.fromEntries(apps.map(({ name, port }) => [name, port]));
+				if (Number.isInteger(byName.alpha) && Number.isInteger(byName.beta) && byName.alpha > 0 && byName.beta > 0) {
+					PA = byName.alpha; PB = byName.beta; A = `http://127.0.0.1:${PA}`; B = `http://127.0.0.1:${PB}`;
+					if (run === "1") {
+						if (process.env.DESK_STAGEKEY_CONCURRENT_RESULT) fs.writeFileSync(process.env.DESK_STAGEKEY_CONCURRENT_RESULT, JSON.stringify({ ports: [PA, PB], requested: ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port) }));
+						else firstRunPorts = [PA, PB];
+					}
+					return;
+				}
+			}
+		} catch { /* listeners are still starting */ }
 		await sleep(250);
 	}
 	throw new Error(`run ${run}: app listeners never came up: ${log}`);
@@ -340,10 +345,8 @@ const spawns = (run, cwd) => fs.readFileSync(OUT, "utf-8").trim().split("\n").ma
 	.filter((r) => r.run === run && (!cwd || r.cwd === fs.realpathSync(cwd)));
 
 try {
-	// req: R-949
-	check("stage-key fixture allocates distinct dynamic app ports", Number.isInteger(PA) && Number.isInteger(PB) && PA !== PB && PA > 0 && PB > 0 && ![4452, 4453].includes(PA) && ![4452, 4453].includes(PB));
 	// ── run 1: two fresh sessions (A for alpha, B for beta), one signed block each ──
-	await startServer("1", [A, B]);
+	await startServer("1");
 	let s = await post(A, "/api/session", {}).then((r) => r.json());
 	check("run 1: alpha child spawned", s.state === "running" && s.tools === "ready", JSON.stringify(s));
 	await post(B, "/api/session", {}).then((r) => r.json());
@@ -385,7 +388,7 @@ try {
 	fs.appendFileSync(fileA, JSON.stringify({ id: "hand2", parentId: "hand1", type: "custom", customType: "nana-block", data: foreign }) + "\n");
 
 	// ── run 2: RESTART, resume A. THE REGRESSION. ──
-	await startServer("2", [A, B]);
+	await startServer("2");
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	check("run 2: alpha resumed", s.state === "running", JSON.stringify(s));
 	const run2 = spawns("2", cwdA);
@@ -406,7 +409,7 @@ try {
 	const fileA2 = path.join(path.dirname(fileA), `renamed-${path.basename(fileA)}`);
 	fs.renameSync(fileA, fileA2);
 	setManifestSession("alpha", fileA2);
-	await startServer("3", [A, B]);
+	await startServer("3");
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	// req: R-438
@@ -497,7 +500,7 @@ try {
 	setManifestSession("alpha", fileZ);
 	fs.writeFileSync(TRACE_RESPONSES, "");
 	await stopServer();
-	await startServer("3-overlap", [A, B], 10000);
+	await startServer("3-overlap", 10000);
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// AN OVERLAPPING LEDGER READ MUST NOT DEFEAT THE FORK. Hold the state read the
 	// desk makes right after the fork, and slip a ledger read into that window: it
@@ -600,7 +603,7 @@ try {
 	setManifestSession("alpha", beforeDefaultRestart?.data?.sessionFile);
 	await stopServer();
 	process.env.DESK_TEST_CONFIRM_BUDGET_MS = "10000";
-	await startServer("3-default", [A, B]);
+	await startServer("3-default");
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
 	// child does NOT sign with: if the late answer were accepted, the destination would
@@ -638,7 +641,7 @@ try {
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
 	setManifestSession("alpha", fileB);
-	await startServer("4", [A, B]);
+	await startServer("4");
 	await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
@@ -649,7 +652,7 @@ try {
 
 	// ── run 5: resume the fork nobody ever read the ledger of ──
 	setManifestSession("alpha", fileD);
-	await startServer("5", [A, B]);
+	await startServer("5");
 	await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
@@ -830,6 +833,13 @@ try {
 	fails++;
 } finally {
 	await stopServer();
+	if (concurrentChild) {
+		const childCode = await concurrentExit;
+		const childReport = fs.existsSync(concurrentResult) ? JSON.parse(fs.readFileSync(concurrentResult, "utf-8")) : { ports: [], requested: [] };
+		const requested = ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port);
+		// req: R-949
+		check("concurrent fixture instances request port zero, bind distinct OS-assigned app ports and pass", fails === 0 && childCode === 0 && requested.every((port) => port === 0) && childReport.requested.every((port) => port === 0) && firstRunPorts.length === 2 && childReport.ports.length === 2 && new Set([...firstRunPorts, ...childReport.ports]).size === 4 && firstRunPorts.every((port) => Number.isInteger(port) && port > 0) && childReport.ports.every((port) => Number.isInteger(port) && port > 0), JSON.stringify({ childCode, parent: firstRunPorts, child: childReport }));
+	}
 	fs.rmSync(TD, { recursive: true, force: true });
 }
 console.log(fails ? `${fails} FAILED` : "all PASS");

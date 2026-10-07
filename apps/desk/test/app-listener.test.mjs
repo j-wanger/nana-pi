@@ -14,25 +14,11 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import net from "node:net";
 import { reduceEntries } from "../../../packages/nana-stage/lib/blocks.mjs";
 import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 
-async function freePort() {
-	for (;;) {
-		const probe = net.createServer();
-		try {
-			await new Promise((resolve, reject) => probe.once("error", reject).listen(0, "127.0.0.1", resolve));
-			const port = probe.address().port;
-			await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
-			return port;
-		} catch (error) {
-			probe.close(() => {});
-			if (error.code !== "EADDRINUSE") throw error;
-		}
-	}
-}
-const [DESK, PA, PB, PZ, PG, PD, P_BADPAGE, P_BADDATA, P_BADDATA2, P_BADNAME, P_BADCWD, P_NOTOOLS, P_BADBUILTIN, P_BADBUILTIN2, P_EPSILON, DESK2] = await Promise.all(Array.from({ length: 16 }, freePort));
+const DESK_REQUESTED_PORT = 0;
+let DESK = 0, PA = 0, PB = 0, PZ = 0, PG = 0, PD = 0, P_BADPAGE = 0, P_BADDATA = 0, P_BADDATA2 = 0, P_BADNAME = 0, P_BADCWD = 0, P_NOTOOLS = 0, P_BADBUILTIN = 0, P_BADBUILTIN2 = 0, P_EPSILON = 0, DESK2 = 0;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // The desk imports pi's session parser from the install tied to the `pi` it
 // SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
@@ -109,9 +95,9 @@ process.stdin.on("end", () => process.exit(0));
 `;
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
-const manifest = (port, cwd, extra = {}) => ({ port, cwd, tools: ["read", "player_card"], extensions: [extA, extStage], trust: "no-approve", title: "T", ...extra });
+const manifest = (_port, cwd, extra = {}) => ({ port: 0, cwd, tools: ["read", "player_card"], extensions: [extA, extStage], trust: "no-approve", title: "T", ...extra });
 // gamma: an app with its OWN page and durable-state data commands (slice 2 seam)
-const G = `http://127.0.0.1:${PG}`;
+let G, Dl;
 const pageDir = path.join(tmp, "page"); fs.mkdirSync(pageDir);
 fs.writeFileSync(path.join(pageDir, "index.html"), "<!doctype html><title>gamma page</title><script type=module src=/stage.js></script><script type=module src=/app.js></script>");
 fs.writeFileSync(path.join(pageDir, "app.js"), "// gamma app.js\n");
@@ -131,7 +117,7 @@ fs.writeFileSync(path.join(appsDir, "badpage.json"), JSON.stringify(manifest(P_B
 fs.writeFileSync(path.join(appsDir, "baddata.json"), JSON.stringify(manifest(P_BADDATA, cwdA, { data: { "Bad Key": ["node"] } })));
 fs.writeFileSync(path.join(appsDir, "baddata2.json"), JSON.stringify(manifest(P_BADDATA2, cwdA, { data: { ok: "node -e 1" } })));
 // delta: a child that NEVER reports its tools (its cwd name tells the stub to stay silent)
-const Dl = `http://127.0.0.1:${PD}`;
+// assigned from the desk's bound-port response after startup
 const cwdSilent = path.join(tmp, "repo-silent"); fs.mkdirSync(cwdSilent);
 fs.writeFileSync(path.join(appsDir, "delta.json"), JSON.stringify(manifest(PD, cwdSilent)));
 fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, cwdA)));
@@ -146,31 +132,45 @@ fs.writeFileSync(path.join(appsDir, "badbuiltin.json"), JSON.stringify(manifest(
 fs.writeFileSync(path.join(appsDir, "badbuiltin2.json"), JSON.stringify(manifest(P_BADBUILTIN2, cwdA, { extensions: [extA, "builtin:../x"] })));
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK_REQUESTED_PORT), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
+let reportedApps = [];
 server.stdout.on("data", (c) => (serverLog += c));
 server.stderr.on("data", (c) => (serverLog += c));
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`, D = `http://127.0.0.1:${DESK}`, Z = `http://127.0.0.1:${PZ}`;
+let A, B, D, Z;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
 const stubRuns = () => fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf-8").trim().split("\n").map((l) => JSON.parse(l)) : [];
 
 try {
 	for (let i = 0; i < 40; i++) {
-		try { await fetch(A + "/api/manifest"); await fetch(B + "/api/manifest"); await fetch(G + "/api/manifest"); await fetch(Dl + "/api/manifest"); await fetch(Z + "/api/manifest"); break; } catch { await new Promise((r) => setTimeout(r, 250)); }
+		const deskMatch = serverLog.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
+		if (deskMatch) DESK = Number(deskMatch[1]);
+		try {
+			if (DESK) {
+				reportedApps = await fetch(`http://127.0.0.1:${DESK}/api/apps`).then((r) => r.json());
+				const ports = Object.fromEntries(reportedApps.map(({ name, port }) => [name, port]));
+				if (ports.alpha && ports.beta && ports.gamma && ports.delta && ports.zeta) {
+					PA = ports.alpha; PB = ports.beta; PG = ports.gamma; PD = ports.delta; PZ = ports.zeta;
+					A = `http://127.0.0.1:${PA}`; B = `http://127.0.0.1:${PB}`; G = `http://127.0.0.1:${PG}`; Dl = `http://127.0.0.1:${PD}`; Z = `http://127.0.0.1:${PZ}`; D = `http://127.0.0.1:${DESK}`;
+					break;
+				}
+			}
+		} catch { /* listeners are still starting */ }
+		await new Promise((r) => setTimeout(r, 250));
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
 	// req: R-447
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
 	// req: R-948
-	check("app-listener fixture allocates distinct free ports for its desk, apps and invalid manifests", new Set([DESK, PA, PB, PZ, PG, PD, P_BADPAGE, P_BADDATA, P_BADDATA2, P_BADNAME, P_BADCWD, P_NOTOOLS, P_BADBUILTIN, P_BADBUILTIN2, P_EPSILON, DESK2]).size === 16);
+	check("app-listener fixture requests port zero and reads distinct bound ports", DESK_REQUESTED_PORT === 0 && fs.readdirSync(appsDir).filter((name) => name.endsWith(".json")).every((name) => JSON.parse(fs.readFileSync(path.join(appsDir, name), "utf-8")).port === 0) && reportedApps.length === 5 && reportedApps.every(({ port }) => Number.isInteger(port) && port > 0) && new Set([DESK, ...reportedApps.map(({ port }) => port)]).size === 6, JSON.stringify({ desk: DESK, apps: reportedApps }));
 	// req: R-447
-	check("empty-tools app has no listener", await fetch(`http://127.0.0.1:${P_NOTOOLS}/api/manifest`).then(() => false).catch(() => true));
+	check("empty-tools app has no listener", !reportedApps.some(({ name }) => name === "notools"));
 	// req: R-943
 	check("zeta (a builtin: entry mixed with real file extensions) loads and has a listener", (await get(Z, "/api/manifest")).name === "zeta");
 	// req: R-943
@@ -270,10 +270,23 @@ try {
 	fs.writeFileSync(path.join(appsDir, "epsilon.json"), JSON.stringify(manifest(P_EPSILON, cwdDying)));
 	// (the server loads manifests at start — spawn a second server for this one app)
 	const OUT2 = path.join(tmp, "stub-out-2.jsonl");
-	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK2), DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: "0", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	let server2Log = "";
+	server2.stdout.on("data", (c) => (server2Log += c)); server2.stderr.on("data", (c) => (server2Log += c));
 	try {
-		for (let i = 0; i < 40; i++) { try { await fetch(`http://127.0.0.1:${P_EPSILON}/api/manifest`); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
-		const rE = await post(`http://127.0.0.1:${P_EPSILON}`, "/api/session", {});
+		let epsilonPort = 0;
+		for (let i = 0; i < 40; i++) {
+			const m = server2Log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
+			try {
+				if (m) {
+					const apps = await fetch(`http://127.0.0.1:${m[1]}/api/apps`).then((r) => r.json());
+					epsilonPort = apps.find(({ name }) => name === "epsilon")?.port || 0;
+					if (epsilonPort) break;
+				}
+			} catch { /* second server is still starting */ }
+			await new Promise((r) => setTimeout(r, 250));
+		}
+		const rE = await post(`http://127.0.0.1:${epsilonPort}`, "/api/session", {});
 		// req: R-450
 		check("dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting", rE.status === 502 && /exited before its tools/.test((await rE.json()).error), String(rE.status));
 	} finally { server2.kill(); }

@@ -329,7 +329,8 @@ not just what the server does internally.
   <kind> without project trust: <path>`. A client cannot spend the trust it just declined. App
   listeners do not use `approve` at all: they carry the manifest's own
   `trust: "approve" | "no-approve"`, and an operator-authored `no-approve` manifest may still name
-  extensions inside its own cwd.
+  extensions inside its own cwd. Production app manifests specify explicit stable ports; port zero
+  is reserved for test fixtures, which discover each actual bound port from `GET /api/apps`.
 
 ## Contract notes (2026-09-09 — four buffer caps)
 
@@ -511,8 +512,9 @@ would send it twice.
     before any later observation,
     that session is simply never recorded.
   - **All of it happens inside the one command, or not at all.** After the fork the desk retries
-    the state read that identifies the new session up to three times inside a **1000 ms budget**:
-    what is left of that budget is checked before each attempt, raced against each answer, and
+    the state read that identifies the new session up to three times inside a **1000 ms budget**.
+    Tests may set `DESK_TEST_CONFIRM_BUDGET_MS` for overlap cases; production uses the 1000 ms default.
+    What is left of that budget is checked before each attempt, raced against each answer, and
     rechecked before an answer is accepted — so a reply that lands on or after the deadline is
     ignored even if it beats the timer, and the command returns at the budget rather than at the
     RPC's own timeout. If the destination is never confirmed, **that fork inherits nothing** —
