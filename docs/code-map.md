@@ -927,7 +927,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/adoption.mjs`
 
 - **purpose** — The one adoption predicate — the handoff store's location, whether a repository root has been adopted, and which `directory_unadopted` reports are printable.
-- **inputs** — a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions, the dismissal marker), and NANA_TEST_TEMP_ROOTS (path-delimited test override; empty disables skipping)
+- **inputs** — a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions, the dismissal marker), and the declared NANA_TEST_TEMP_ROOTS test seam (path-delimited; empty disables skipping)
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total

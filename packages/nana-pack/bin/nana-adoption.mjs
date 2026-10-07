@@ -37,6 +37,9 @@ try {
 	const { adoptionSettings, isAdopted, recentReports, repoRootOf, rootState, tailLines } = await import("../lib/adoption.mjs");
 	const { codeSpan } = await import("../lib/display.mjs");
 	const { journal, objectiveFile } = adoptionSettings();
+	if (process.env.NANA_TEST_TEMP_ROOTS !== undefined) {
+		process.stderr.write(`${TAG} warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses ${process.env.NANA_TEST_TEMP_ROOTS}\n`);
+	}
 	let lines = [];
 	let unavailable = null;
 	if (journal) {

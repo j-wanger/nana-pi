@@ -333,12 +333,22 @@ const TIME_LIMIT_MS = 5000;
  for (const order of orders) {
   const foreignFirst = { kept: "first" };
   const foreignLast = { kept: "last" };
-  const event = { systemPromptOptions: { sections: { "foreign-first": foreignFirst, "foreign-last": foreignLast } } };
+  const objectiveSection = "preexisting objective section";
+  const event = { systemPromptOptions: { sections: { "z-foreign": foreignFirst, "a-foreign": foreignLast, "nana-objective": objectiveSection } } };
   const results = [];
-  for (const i of order) results.push(await handlers[i][0](event, handlers[i][1]));
+  let objectiveValue;
+  for (const i of order) {
+   results.push(await handlers[i][0](event, handlers[i][1]));
+   if (i === 0) objectiveValue = event.systemPromptOptions.sections["nana-objective"];
+  }
   const sections = event.systemPromptOptions.sections;
-  allStable &&= JSON.stringify(Object.keys(sections)) === JSON.stringify(["foreign-first", "foreign-last", "nana-objective", "nana-handoff", "nana-writing"])
-   && sections["foreign-first"] === foreignFirst && sections["foreign-last"] === foreignLast && results.every((result) => result === undefined)
+  allStable &&= JSON.stringify(Object.keys(sections)) === JSON.stringify(["z-foreign", "a-foreign", "nana-objective", "nana-handoff", "nana-writing"])
+   && sections["z-foreign"] === foreignFirst && sections["a-foreign"] === foreignLast
+   && sections["nana-objective"] === objectiveValue && sections["nana-objective"] !== objectiveSection && sections["nana-objective"].includes("ship the writing trial.")
+   && sections["nana-objective"].includes("close astra r2.")
+   && sections["nana-handoff"].includes("composition handoff fixture")
+   && sections["nana-writing"].includes("## Writing for Jake (nana)") && sections["nana-writing"].includes("Compose fixture text.")
+   && results.every((result) => result === undefined)
    && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions);
  }
  // req: R-641 R-751

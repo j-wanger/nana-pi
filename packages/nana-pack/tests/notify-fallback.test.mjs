@@ -129,13 +129,15 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 	try {
 		const approval = setup();
 		await withFakePlatform("linux", async () => { await approval.prompt(); });
-		// req: R-642
+		// req: R-642 R-643
 		check("prompt: ui_prompt_start emits one fixed-body notification", output === "\u001b]777;notify;pi;Approval needed in pi\u0007" && !output.includes("unsafe command title"));
 		output = "";
 		const rpc = setup({ ctx: { mode: "rpc", hasUI: true } });
-		await withFakePlatform("linux", async () => { await rpc.fire(); });
+		const json = setup({ ctx: { mode: "json", hasUI: true } });
+		const print = setup({ ctx: { mode: "print", hasUI: true } });
+		for (const mode of [rpc, json, print]) await withFakePlatform("linux", async () => { await mode.fire(); });
 		// req: R-643
-		check("prompt: RPC with hasUI writes no OSC stdout", output === "");
+		check("prompt: RPC, JSON and print modes write no OSC stdout", output === "");
 		output = "";
 		const disabled = setup();
 		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: path.join(disabled.td, "journal.jsonl") }, notify: { enabled: false, headless: true } }));
@@ -145,6 +147,12 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 		await withFakePlatform("linux", async () => { await headless.prompt(); });
 		// req: R-642
 		check("prompt: disabled and headless without opt-in emit nothing", output === "");
+		output = "";
+		const optedIn = setup({ ctx: { hasUI: false } });
+		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: path.join(optedIn.td, "journal.jsonl") }, notify: { enabled: true, headless: true } }));
+		await withFakePlatform("linux", async () => { await optedIn.prompt(); });
+		// req: R-642
+		check("prompt: headless opt-in attempts the fixed-body notification", output === "\u001b]777;notify;pi;Approval needed in pi\u0007" && !output.includes("unsafe command title"));
 	} finally { process.stdout.write = original; }
 }
 

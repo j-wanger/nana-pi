@@ -34,6 +34,7 @@ const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "
 const reports = () =>
 	(fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "").split("\n").filter((l) => l.includes('"directory_unadopted"')).map((l) => JSON.parse(l));
 const reportsFor = (root) => reports().filter((r) => r.cwd === root);
+const overrideJournal = () => (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "").split("\n").filter((l) => l.includes('"adoption_test_temp_roots_override"')).map((l) => JSON.parse(l));
 
 function session(m, cwd) {
 	const handlers = {};
@@ -88,6 +89,8 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	// req: R-146
 	check("a: NOT written by a second session the same day (root or subdir)", reportsFor(r).length === 1);
 	check("a: the subdirectory is never the reported path", reportsFor(path.join(r, "src")).length === 0);
+	// req: R-647
+	check("a: test seam override is journaled once with its value", overrideJournal().length === 1 && overrideJournal()[0].value === "");
 }
 // a subdirectory of an UNadopted repo reports the repo root
 {

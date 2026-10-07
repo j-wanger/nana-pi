@@ -104,7 +104,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 {
 	const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
 	// req: R-645
-	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root"].every((part) => readme.includes(part)));
+	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once"].every((part) => readme.includes(part)));
 }
 // Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
 {
@@ -140,6 +140,8 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const temporary = run(process.execPath, [BIN, "--cwd", base], { ...env, NANA_TEST_TEMP_ROOTS: path.dirname(handoffOnly) });
 	// req: R-640
 	check("reader: injected temporary parent skips candidate", temporary.stdout === "");
+	// req: R-646
+	check("reader: test seam emits the declared warning", temporary.stderr.trim() === `[nana:adoption] warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses ${path.dirname(handoffOnly)}`);
 }
 // adopting via a store entry drops it too; a symlinked spelling is one entry
 {
@@ -183,8 +185,8 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 	// Changed in sol r1 MUST 4: this used to assert empty stdout — silence for a journal the reader
 	// could not read, i.e. "I could not look" dressed as "nothing open". Only ABSENT is silent now.
-	// req: R-154 R-812
-	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "", JSON.stringify(d));
+	// req: R-154 R-812 R-646
+	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "[nana:adoption] warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses \n", JSON.stringify(d));
 	// req: R-157
 	check("fail: malformed nana-pack.json → the default journal, exit 0", m.status === 0 && m.stdout.includes(`- \`${roots[6]}\` —`), JSON.stringify(m));
 }
