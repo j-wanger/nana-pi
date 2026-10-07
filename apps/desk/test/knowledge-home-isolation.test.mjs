@@ -47,4 +47,7 @@ check("real-pi launchers isolate the knowledge home", launchers.length > 0 && la
       /NANA_KNOWLEDGE_HOME\s*:\s*knowledgeHome/.test(source));
 }));
 
+// req: R-899
+check("acceptance driver removes its temporary knowledge home in child-close cleanup", /finally\s*\{[\s\S]*?fs\.rmSync\(knowledgeHome,\s*\{\s*recursive:\s*true,\s*force:\s*true\s*\}\)/.test(fs.readFileSync(path.join(repoRoot, "docs/reviews/pi-1.0-2026-10-04/acceptance-driver.mjs"), "utf8")));
+
 process.exit(failures ? 1 : 0);

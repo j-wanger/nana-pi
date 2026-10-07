@@ -127,8 +127,10 @@ async function runPi(w, cwd, isProjectTrusted = () => false) {
 }
 
 /** The one comparison: hook stdout minus its tag line === pi's injected block. */
-async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
+async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refreshLock) {
+	await refreshLock?.("hook");
 	const hook = runHook(w, cwd, hookOpts);
+	await refreshLock?.("pi");
 	const pi = await runPi(w, cwd, isProjectTrusted);
 	check(`${label}: hook exits 0`, hook.status === 0, hook.out);
 	let hookText = null;
@@ -1056,8 +1058,10 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
 			const lock = `${store(w)}.lock`; make(lock);
 			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
-			make(lock); // the first runtime may have crossed pi's 10 s stale threshold
-			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+			let refreshed = 0;
+			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {}, undefined, undefined, () => { make(lock); refreshed++; });
+			// req: R-760
+			check(`T17 ${k}: lock is refreshed before each runtime`, refreshed === 2);
 			// req: R-760
 			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
 			if (piMod) {

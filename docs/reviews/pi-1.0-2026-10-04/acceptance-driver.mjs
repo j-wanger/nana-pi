@@ -15,6 +15,10 @@ const ts = () => ((Date.now() - t0) / 1000).toFixed(1).padStart(6) + "s";
 const knowledgeHome = fs.mkdtempSync(path.join(os.tmpdir(), "acceptance-knowledge-"));
 const pi = spawn("pi", ["--mode", "rpc"], { cwd, env: { ...process.env, NANA_KNOWLEDGE_HOME: knowledgeHome }, stdio: ["pipe", "pipe", "pipe"] });
 pi.stderr.on("data", (d) => log.write(JSON.stringify({ t: Date.now() - t0, stderr: String(d) }) + "\n"));
+let piExited = false;
+pi.once("close", () => { piExited = true; });
+pi.on("error", () => {});
+try {
 const send = (o) => pi.stdin.write(JSON.stringify(o) + "\n");
 
 let settledCount = 0;
@@ -74,4 +78,13 @@ await wait((e) => e.type === "response" && e.id === "state", 10000);
 const st = seen.map((l) => { try { return JSON.parse(l); } catch { return {}; } }).find((e) => e.type === "response" && e.id === "state");
 console.log(ts(), "sessionFile:", st?.data?.sessionFile, "pid:", pi.pid);
 pi.kill("SIGTERM");
-setTimeout(() => process.exit(0), 1500);
+} finally {
+  if (!piExited) {
+    pi.kill("SIGTERM");
+    await new Promise((resolve) => {
+      if (piExited) resolve();
+      else pi.once("close", resolve);
+    });
+  }
+  fs.rmSync(knowledgeHome, { recursive: true, force: true });
+}

@@ -105,13 +105,18 @@ function cleanup() {
 	scratch = null;
 }
 process.on("exit", cleanup);
-for (const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143]]) {
-	process.on(sig, () => {
-		console.log(`\n[runner] ${sig}: killing the active test's process tree, removing scratch`);
-		cleanup();
-		process.exit(code);
-	});
+function terminate(sig) {
+	const code = sig === "SIGINT" ? 130 : 143;
+	console.log(`\n[runner] ${sig}: killing the active test's process tree, removing scratch`);
+	cleanup();
+	process.exit(code);
 }
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => terminate(sig));
+// IPC lets the cross-platform runner test exercise this handler on Windows, where child.kill(signal)
+// forcibly terminates the process instead of delivering a catchable POSIX signal.
+process.on("message", (message) => {
+	if (message?.type === "runner-terminate" && ["SIGINT", "SIGTERM"].includes(message.signal)) terminate(message.signal);
+});
 
 // ── discovery ────────────────────────────────────────────────────────────────────────────────
 /** Direct children of `dir` named *.test.mjs — no shell globs, no recursion. */

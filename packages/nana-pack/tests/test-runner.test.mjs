@@ -294,6 +294,26 @@ const MD = run(rootDirty);
 // req: R-918
 check("tracked mutation is detected when the file was already dirty before the run", MD.code === 1 && MD.out.includes("tracked repository files changed by tests") && MD.out.includes("tracked.txt"));
 
+const rootIndex = mkRoot("mutation-index", {
+	"packages/probe/tests/stage.test.mjs": [
+		'import { spawnSync } from "node:child_process";',
+		'import * as fs from "node:fs";',
+		'const before = fs.readFileSync(new URL("../../../tracked.txt", import.meta.url), "utf8");',
+		'const staged = spawnSync("git", ["add", "-p", "../../tracked.txt"], { cwd: process.cwd(), input: "y\\nn\\n" });',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/index-observation.json", JSON.stringify({ before, after: fs.readFileSync(new URL("../../../tracked.txt", import.meta.url), "utf8"), code: staged.status }));',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootIndex });
+fs.writeFileSync(path.join(rootIndex, "tracked.txt"), "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootIndex });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootIndex });
+fs.writeFileSync(path.join(rootIndex, "tracked.txt"), "changed 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nchanged 10\n");
+const MI = run(rootIndex);
+const indexObservation = readJson(MI.out_dir, "index-observation.json");
+// req: R-918
+check("staging an already-dirty tracked file is detected without a working-tree change", MI.code === 1 && MI.out.includes("tracked repository files changed by tests") && MI.out.includes("tracked.txt") && indexObservation?.before === indexObservation?.after && indexObservation?.code === 0);
+
 // ── case F: a descendant that escaped the tree cannot hang the run ───────────────────────────
 const rootE = mkRoot("E", {
 	"packages/probe/tests/holder.test.mjs": [
@@ -334,7 +354,7 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 	const signalRunner = spawn(process.execPath, [path.join(rootSignal, "scripts", "test.mjs")], {
 		cwd: rootSignal,
 		env: { ...process.env, TMPDIR: signalTmp, TEMP: signalTmp, TMP: signalTmp, PROBE_OUT: signalOut, NANA_TEST_TIMEOUT_MS: "60000" },
-		stdio: ["ignore", "pipe", "pipe"],
+		stdio: ["ignore", "pipe", "pipe", "ipc"],
 	});
 	let signalOutput = "";
 	signalRunner.stdout.on("data", (chunk) => { signalOutput += chunk; });
@@ -346,7 +366,8 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 		try { grandchildPid = Number(fs.readFileSync(path.join(signalOut, "grandchild.pid"), "utf8")); } catch {}
 		if (!fileTmp || !grandchildPid) await wait(50);
 	}
-	signalRunner.kill(sig);
+	if (posix) signalRunner.kill(sig);
+	else signalRunner.send({ type: "runner-terminate", signal: sig });
 	const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
 	const treeGone = grandchildPid > 0 && gone(grandchildPid);
 	if (grandchildPid > 0 && !treeGone) { try { process.kill(grandchildPid, "SIGKILL"); } catch {} }
@@ -354,7 +375,7 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 		&& emptyDir(signalTmp) && signalExit.code === expectedCode && signalOutput.includes(sig));
 }
 // req: R-915 R-917
-check("SIGINT and SIGTERM kill the active process tree and remove runner temp roots", signalResults.every(Boolean));
+check("termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)", signalResults.every(Boolean));
 
 // ── case H: the runner's own self-test ───────────────────────────────────────────────────────
 const rootF = mkRoot("F", {});
