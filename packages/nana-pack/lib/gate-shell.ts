@@ -244,11 +244,9 @@ export function segmentDanger(seg: Segment): Danger | null {
 		for (let i = 0; i < t.length; i++) {
 			const alias = /^(?:-c)?alias\.[^=]+=!(.*)$/i.exec(t[i]);
 			const body = alias?.[1] ? [alias[1], ...t.slice(i + 1)] : [];
-			for (let j = 0; j < body.length; j++) {
-				if (base(body[j]) === "rm") {
-					const d = rmDanger(body.slice(j + 1));
-					if (d) return d;
-				}
+			for (const aliasSegment of detectionSegments(body.join(" "))) {
+				const d = segmentDanger(aliasSegment);
+				if (d) return d;
 			}
 			if (base(t[i]) === "rm" && !(i > 0 && SUBCOMMAND_HOSTS.has(base(t[i - 1])))) {
 				const d = rmDanger(t.slice(i + 1));

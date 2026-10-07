@@ -87,6 +87,8 @@ const ALLOW = [
 	check("interpreter command without deletion code remains allowed", (await run("python3 -m pytest -k syntax")) === "ALLOW");
 	// req: R-630
 	check("template config source is allowed for git diff and cat", (await run("git diff -- templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await run("cat templates/typescript/template/.pi/nana-pack.json.jinja")) === "ALLOW");
+	// req: R-039
+	check("Git shell aliases use the full destructive-command scanner", (await run("git -c alias.x='!wipefs /dev/x' x")) === "BLOCK" && (await run(`git -c alias.x='!node -e "require(\"fs\").rmSync(\"/x\")"' x`)) === "BLOCK");
 	// req: R-040
 	check("rm-text scanner still blocks an executing nested substitution", (await run('echo "$(rm -rf ~)"')) === "BLOCK");
 	// req: R-040

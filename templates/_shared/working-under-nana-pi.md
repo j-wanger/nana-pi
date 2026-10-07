@@ -66,9 +66,9 @@ setup. What that means while you work here:
   `edit`/`write` (every path form for the user, default and project-scope files) and through targets a command names *literally*, plus one
   variable spelling: `$PI_CODING_AGENT_DIR` / `${PI_CODING_AGENT_DIR}` / `%PI_CODING_AGENT_DIR%` /
   `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json` (balanced forms
-  only; case-insensitive on purpose, as cmd/pwsh names are). rm-text scanning skips structurally
-  non-executing words such as `echo`, `grep` and selected Git read/message commands, but an
-  `echo "rm -rf ~" > x.sh && bash x.sh` can still run dangerous script text in the next segment.
+  only; case-insensitive on purpose, as cmd/pwsh names are). rm-text checks scan every command
+  segment, including quoted arguments and text-only mentions. Interpreter deletion scans inspect
+  the complete interpreter command string.
   Any other path the shell computes (relative after `cd` — `cd <dir> && … > nana-pack.json` included —
   other variables and general variable expansion, globs, escapes, a symlink made in the same
   command, script files, interpreter string-building) is NOT caught — gate loosening
