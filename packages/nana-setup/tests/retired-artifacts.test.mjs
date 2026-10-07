@@ -11,6 +11,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
@@ -23,7 +24,7 @@ const check = (name, ok, detail = "") => {
 	if (!ok) failures++;
 };
 function home() {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-retired-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-retired-"));
 	dirs.push(dir);
 	fs.mkdirSync(path.join(dir, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(dir, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
@@ -176,7 +177,7 @@ try {
 	}
 	{
 		const h = home();
-		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-source-target-"));
+		const external = tmpDir(path.join(os.tmpdir(), "nana-source-target-"));
 		dirs.push(external);
 		copyTree(path.join(fixture, "spec"), path.join(external, "spec"));
 		fs.mkdirSync(path.join(external, "py-lint"), { recursive: true });
@@ -192,7 +193,7 @@ try {
 	}
 	{
 		const h = home();
-		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-hook-target-"));
+		const external = tmpDir(path.join(os.tmpdir(), "nana-hook-target-"));
 		dirs.push(external);
 		const hook = path.join(external, "context-size-check.sh");
 		fs.writeFileSync(hook, "keep hook\n");
@@ -204,7 +205,7 @@ try {
 	}
 	{
 		const h = home();
-		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-backup-target-"));
+		const external = tmpDir(path.join(os.tmpdir(), "nana-backup-target-"));
 		dirs.push(external);
 		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
 		fs.writeFileSync(path.join(h, ".claude", "enforce"), "");
@@ -267,7 +268,7 @@ try {
 	}
 	{
 		const h = home();
-		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-foreign-skill-"));
+		const external = tmpDir(path.join(os.tmpdir(), "nana-foreign-skill-"));
 		dirs.push(external);
 		fs.writeFileSync(path.join(external, "SKILL.md"), "owner's separate skill\n");
 		const skills = path.join(h, ".claude", "skills");

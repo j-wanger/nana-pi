@@ -292,6 +292,7 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` â
 Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
 
 On Windows, installer copies and skipped shell hooks are implementation details, not a claim of supported parity.
+On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there.
 
 ## Usage and options
 
