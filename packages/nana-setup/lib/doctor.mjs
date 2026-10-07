@@ -42,7 +42,7 @@ function linkOk(target, source) {
 	try {
 		const st = fs.lstatSync(target);
 		if (st.isSymbolicLink()) {
-			return path.resolve(path.dirname(target), fs.readlinkSync(target)) === path.resolve(source);
+			return fs.realpathSync(target) === fs.realpathSync(source);
 		}
 		return platform() === "win32" && st.isFile() && fs.readFileSync(target).equals(fs.readFileSync(source));
 	} catch {
@@ -60,12 +60,10 @@ export function skillLinkState(target, source) {
 	if (!st) return { ok: false, detail: `missing — run \`nana-setup install\`` };
 	if (st.isSymbolicLink()) {
 		let current = null;
-		try {
-			current = path.resolve(path.dirname(target), fs.readlinkSync(target));
-		} catch {
-			/* unreadable link */
-		}
-		return current === path.resolve(source) ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
+		try { current = fs.realpathSync(target); } catch { /* dangling link */ }
+		let canonicalSource = path.resolve(source);
+		try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+		return current === canonicalSource ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
 	}
 	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
 	// win32: a copy of every file the source ships, byte for byte
@@ -213,6 +211,10 @@ export function diagnose(layout, opts = {}) {
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
 		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
 	}
+	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.base, ".claude", name)));
+	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
+	const legacyScaffolders = ["py-init", "ts-init", "nana-init"].filter((name) => lstatSafe(path.join(layout.skillsDir, name)));
+	add(legacyScaffolders.length ? WARN : OK, "legacy scaffolders", legacyScaffolders.length ? `${legacyScaffolders.join(", ")} present — run nana-setup install to back up recognized nana-dev-kit copies` : "none present");
 
 	let settings = null;
 	let parseError = null;

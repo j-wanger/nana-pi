@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/lib/settings.mjs
- * @purpose Merge the nana hook entries into Claude Code settings while preserving foreign hooks and repairing recognized stale knowledge targets.
+ * @purpose Migrate the exact retired context hook and merge active nana hooks while preserving foreign entries.
  * @inputs a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot };
  *  the command strings already in settings.hooks
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean;
@@ -119,7 +119,7 @@ export function commandInvokes(command, { interpreters, script, args = [] }) {
 	return args.every((a, n) => argv[i + 2 + n] === a);
 }
 
-/** The five hook entries the nana experience needs, in the order they are added. */
+/** The four active hook entries the nana experience needs, in the order they are added. */
 export function desiredHooks({ hooksDir, repoRoot }) {
 	const sh = (name) => ({
 		command: `bash ${shq(`${hooksDir}/${name}`)}`,
@@ -128,7 +128,6 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 	const objective = sh("nana-objective.sh");
 	const adoption = sh("nana-adoption.sh");
 	const shared = sh("nana-shared-memory.sh");
-	const context = sh("context-size-check.sh");
 	const knowledgeCli = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
 	return [
 		{
@@ -153,13 +152,6 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 			marker: "nana-shared-memory.sh",
 			spec: shared.spec,
 			entry: { type: "command", command: shared.command, timeout: 5, statusMessage: "nana: shared memory index" },
-		},
-		{
-			event: "UserPromptSubmit",
-			label: "UserPromptSubmit context-size",
-			marker: "context-size-check.sh",
-			spec: context.spec,
-			entry: { type: "command", command: context.command },
 		},
 		{
 			event: "UserPromptSubmit",
@@ -200,6 +192,25 @@ export function hasHook(settings, event, spec) {
 	const groups = settings?.hooks?.[event];
 	if (!Array.isArray(groups)) return false;
 	return groups.some((g) => Array.isArray(g?.hooks) && g.hooks.some((h) => commandInvokes(h?.command, spec)));
+}
+
+/** Remove only the two exact legacy command spellings emitted by nana-setup. */
+export function removeRetiredContextHook(settings, { hooksDir }) {
+	const groups = settings?.hooks?.UserPromptSubmit;
+	if (!Array.isArray(groups)) return false;
+	const exactTargets = new Set([path.resolve(hooksDir, "context-size-check.sh"), "~/.claude/hooks/context-size-check.sh"]);
+	let changed = false;
+	for (const group of groups) {
+		if (!Array.isArray(group?.hooks)) continue;
+		const kept = group.hooks.filter((hook) => {
+			const argv = tokenize(hook?.command);
+			const isRetired = argv?.length === 2 && argv[0] === "bash" && exactTargets.has(argv[1]);
+			if (isRetired) changed = true;
+			return !isRetired;
+		});
+		group.hooks = kept;
+	}
+	return changed;
 }
 
 /**

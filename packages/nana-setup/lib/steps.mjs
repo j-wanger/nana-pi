@@ -1,7 +1,6 @@
 /**
  * @module packages/nana-setup/lib/steps.mjs
- * @purpose The install steps and the `install` sequencer: each step links, seeds, merges or
- *  registers one piece of the experience and reports { label, status, detail }.
+ * @purpose The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
  * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
@@ -35,11 +34,12 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, mergeKnowledgeHook, serialize, validateShape } from "./settings.mjs";
+import { desiredHooks, mergeHooks, mergeKnowledgeHook, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "context-size-check.sh"];
+export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
 export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
@@ -52,7 +52,7 @@ export function ruleSource(rule) {
 	return rule === "nana-writing.md" ? path.join(PACK_RULES_DIR, rule) : path.join(pkgRoot, "claude", "rules", rule);
 }
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
-export const CLAUDE_SKILLS = ["requirements"];
+export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "py-test"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
@@ -222,11 +222,55 @@ export function linkSkill(target, source, o = {}) {
 	return { status: CREATED, detail: null };
 }
 
+export function stepRetiredArtifacts(layout, o) {
+	const out = [];
+	const date = new Date().toISOString().slice(0, 10);
+	for (const entry of retiredArtifacts(layout.base)) {
+		const source = path.join(layout.base, entry.relative);
+		const st = lstatSafe(source);
+		if (!st) continue;
+		if (!matchesRetiredArtifact(entry, st, source)) {
+			out.push({ label: `retired ${entry.relative}`, status: SKIPPED, detail: `unrecognized kind or provenance at ${source} — left untouched` });
+			continue;
+		}
+		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
+		const relativeTail = entry.relative.slice(root.length + 1);
+		const destination = path.join(layout.base, root, "backups", `${date}-retired`, relativeTail);
+		if (lstatSafe(destination)) {
+			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `backup already exists at ${destination}; source left untouched` });
+			continue;
+		}
+		if (!o.dryRun) {
+			fs.mkdirSync(path.dirname(destination), { recursive: true });
+			fs.renameSync(source, destination);
+		}
+		out.push({ label: `retired ${entry.relative}`, status: UPDATED, detail: `${o.dryRun ? "would move" : "moved"} to ${destination}` });
+	}
+	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
+	const hookStat = lstatSafe(legacyHook);
+	if (hookStat?.isSymbolicLink()) {
+		let target = null;
+		try { target = fs.realpathSync(legacyHook); } catch { /* dangling */ }
+		const root = fs.realpathSync(repoRoot);
+		if (target && (target === root || target.startsWith(root + path.sep))) {
+			if (!o.dryRun) fs.unlinkSync(legacyHook);
+			out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+		}
+	}
+	out.push({ label: "repository context-warning markers", status: UNCHANGED, detail: "if present, delete .claude/.context-warned files manually; repositories were not scanned" });
+	return out;
+}
+
 export function stepSkills(layout, o) {
-	return CLAUDE_SKILLS.map((name) => ({
-		label: `skill ${name}`,
-		...linkSkill(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name), o),
-	}));
+	return CLAUDE_SKILLS.map((name) => {
+		const target = path.join(layout.skillsDir, name);
+		const source = path.join(PACK_SKILLS_DIR, name);
+		const legacy = retiredArtifacts(layout.base).find((entry) => entry.relative === `.claude/skills/${name}`);
+		const st = lstatSafe(target);
+		if (o.dryRun && legacy && matchesRetiredArtifact(legacy, st, target))
+			return { label: `skill ${name}`, status: UPDATED, detail: "would link after the provenance-confirmed backup" };
+		return { label: `skill ${name}`, ...linkSkill(target, source, o) };
+	});
 }
 
 /* -------------------------------------------------------------------- claude settings.json */
@@ -376,13 +420,16 @@ export function stepSettings(layout, o, state) {
 				.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
 		: wanted;
 	const live = new Set(applicable.map((w) => w.label));
-	const report = (added) =>
-		wanted.map((w) => ({
+	const report = (added) => [
+		...wanted.map((w) => ({
 			label: `settings ${w.label}`,
 			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
 			detail: !live.has(w.label) ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
-		}));
+		})),
+		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
+	];
 	const merge = (settings) => {
+		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
 		const other = applicable.filter((w) => w !== knowledge);
 		const migration = mergeKnowledgeHook(settings, {
@@ -391,6 +438,7 @@ export function stepSettings(layout, o, state) {
 		});
 		const result = mergeHooks(settings, migration.added ? applicable : other);
 		if (migration.replaced) result.added.push(knowledge.label);
+		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
 		return result;
 	};
 	if (o.dryRun) return report(merge(structuredClone(state.settings)).added);
@@ -816,6 +864,7 @@ export function install(layout, opts = {}) {
 	// Pre-flight: the one thing that can abort. Parse before any write.
 	const settingsState = readClaudeSettings(layout);
 	const results = [];
+	results.push(...stepRetiredArtifacts(layout, o));
 	results.push(...stepHooks(layout, o));
 	results.push(...stepRules(layout, o));
 	results.push(...stepSkills(layout, o));

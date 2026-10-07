@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 173 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 175 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1514,9 +1514,19 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`
 - **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
 
+### `packages/nana-setup/lib/retired.mjs`
+
+- **purpose** — Describe only legacy artifacts whose nana provenance permits safe retirement.
+- **inputs** — home path and filesystem entries inspected with lstat.
+- **outputs** — a list of relative paths, expected kinds, and provenance predicates.
+- **effects** — disk (reads artifact contents; callers perform moves).
+- **errors** — unreadable or mismatched artifacts are returned as unrecognized, never followed.
+- **callers** — `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`
+- **callees** — —
+
 ### `packages/nana-setup/lib/settings.mjs`
 
-- **purpose** — Merge the nana hook entries into Claude Code settings while preserving foreign hooks and repairing recognized stale knowledge targets.
+- **purpose** — Migrate the exact retired context hook and merge active nana hooks while preserving foreign entries.
 - **inputs** — a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot }; the command strings already in settings.hooks
 - **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
 - **effects** — disk (reads only)
@@ -1526,13 +1536,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/steps.mjs`
 
-- **purpose** — The install steps and the `install` sequencer: each step links, seeds, merges or registers one piece of the experience and reports { label, status, detail }.
+- **purpose** — The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
 - **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json, pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and packages/nana-pack/rules (the writing rule); the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
 - **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and rules (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES, PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI, DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
 - **effects** — disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`, `pi --version` / `pi install`, `git rev-parse`)
 - **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md, or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed per-package `pi install` or launchctl bootstrap/kickstart
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
-- **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`
+- **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `packages/nana-setup/tests/agent-dir-consumers.test.mjs`
 
@@ -1643,6 +1653,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — —
+
+### `packages/nana-setup/tests/retired-artifacts.test.mjs`
+
+- **purpose** — Verifies safe retirement, provenance preservation, context-hook deregistration, and doctor visibility using isolated home trees.
+- **inputs** — nana-setup CLI, retirement manifest and throwaway home fixtures.
+- **outputs** — PASS/FAIL checks on stdout and a nonzero exit when an assertion fails.
+- **effects** — disk (temporary homes, backups, settings and symlinks), process (installer/doctor subprocesses).
+- **errors** — unexpected process or filesystem errors fail the test; assertion failures are counted.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/retired.mjs`
 
 ### `packages/nana-setup/tests/settings-merge.test.mjs`
 

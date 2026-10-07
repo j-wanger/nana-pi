@@ -30,7 +30,7 @@ const check = (n, ok, extra) => {
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("five hook entries are wanted", wanted.length === 5);
+check("four active hook entries are wanted", wanted.length === 4);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -112,7 +112,7 @@ check("five hook entries are wanted", wanted.length === 5);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all five added", r.added.length === 5);
+	check("empty settings: all four active entries added", r.added.length === 4);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -126,14 +126,13 @@ check("five hook entries are wanted", wanted.length === 5);
 			SessionStart: [{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/session-start.sh" }] }],
 			UserPromptSubmit: [
 				{ matcher: "Bash", hooks: [{ type: "command", command: "bash ~/.claude/hooks/block-dangerous-bash.sh" }] },
-				{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" }] },
+				{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/owner-prompt.sh" }] },
 			],
 			Stop: [{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/session-stop.sh" }] }],
 		},
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("an existing unquoted `~` context-size hook is recognised, not re-added", !r.added.includes("UserPromptSubmit context-size"));
 	check("the other four are added", r.added.length === 4);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
@@ -141,13 +140,12 @@ check("five hook entries are wanted", wanted.length === 5);
 	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 4 && s.hooks.SessionStart.length === 1);
 	// req: R-316
 	check("a matcher-scoped group is left alone", s.hooks.UserPromptSubmit[0].matcher === "Bash" && s.hooks.UserPromptSubmit[0].hooks.length === 1);
-	check("the knowledge hook went into the un-matched group", s.hooks.UserPromptSubmit[1].hooks.length === 2);
+	check("the knowledge hook appends without replacing the foreign prompt entry", s.hooks.UserPromptSubmit[1].hooks.length === 2 && s.hooks.UserPromptSubmit[1].hooks[0].command.endsWith("owner-prompt.sh"));
 	// req: R-316
 	check("unrelated events untouched", JSON.stringify(s.hooks.Stop) === before);
 	// req: R-316
 	check("unrelated top-level keys untouched", s.permissions.defaultMode === "auto");
 	const all = JSON.stringify(s);
-	check("no duplicate context-size entry", all.split("context-size-check.sh").length - 1 === 1);
 	check("second merge is a no-op", mergeHooks(s, wanted).added.length === 0 && JSON.stringify(s) === all);
 }
 
@@ -199,7 +197,10 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const original = {
 		model: "fable",
 		hooks: {
-			UserPromptSubmit: [{ hooks: [{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" }] }],
+			UserPromptSubmit: [{ hooks: [
+			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" },
+			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh --custom" },
+		] }],
 			PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "bash ~/.claude/hooks/block-dangerous-bash.sh" }] }],
 		},
 	};
@@ -209,8 +210,11 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	check("model key survives", after.model === "fable");
 	check("PreToolUse survives untouched", JSON.stringify(after.hooks.PreToolUse) === JSON.stringify(original.hooks.PreToolUse));
-	check("the hand-written context-size hook is kept as-is", after.hooks.UserPromptSubmit[0].hooks[0].command === "bash ~/.claude/hooks/context-size-check.sh");
-	check("no second context-size hook", JSON.stringify(after).split("context-size-check.sh").length - 1 === 1);
+	// req: R-660
+	check("exact nana context invocation is removed", !JSON.stringify(after).includes('"command": "bash ~/.claude/hooks/context-size-check.sh"'), JSON.stringify(after));
+	// req: R-660
+	check("owner command variant with arguments is preserved", after.hooks.UserPromptSubmit[0].hooks.some((h) => h.command === "bash ~/.claude/hooks/context-size-check.sh --custom"));
+	check("retirement reports that the hook was removed", /UserPromptSubmit context-size retirement/.test(r.stdout), r.stdout);
 	check("the knowledge hook was added", JSON.stringify(after).includes("nana-knowledge.ts"));
 	// req: R-321
 	check("file mode is preserved across the atomic write", (fs.statSync(path.join(home, ".claude", "settings.json")).mode & 0o777) === 0o600);

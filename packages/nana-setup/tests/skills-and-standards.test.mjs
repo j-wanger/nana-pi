@@ -109,7 +109,7 @@ try {
 		check("occupied skill dir: ✗ with what was found and the fix", /✗ skill requirements/.test(r.stdout) && /a directory is already at .* — left untouched; move or remove it, then re-run/.test(r.stdout), r.stdout);
 		check("occupied skill dir: the summary never says everything is in place", !/everything was already in place/.test(r.stdout), r.stdout);
 		check("occupied skill dir: the owner's file is untouched", fs.readFileSync(path.join(target, "SKILL.md"), "utf8") === "---\nname: requirements\n---\n# MINE\n");
-		check("occupied skill dir: nothing was backed up into ~/.claude/skills (a .bak dir would be a SECOND skill of the same name)", fs.readdirSync(path.join(occupied, ".claude", "skills")).join(",") === "requirements");
+		check("occupied skill dir: no backup directory was created inside the active skills root", !fs.readdirSync(path.join(occupied, ".claude", "skills")).some((name) => name.includes(".bak-")));
 		check("occupied skill dir: --dry-run exits 1 too", run(["install", "--home", occupied, "--dry-run"]).status === 1);
 		const d = run(["doctor", "--home", occupied]);
 		check("occupied skill dir: doctor reads ✗ naming the directory", /✗ skill requirements\s+a directory is there instead of a symlink to/.test(d.stdout), d.stdout);
@@ -163,7 +163,7 @@ try {
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
-		check("win32: the backup is a FILE inside the skill dir, never a sibling skill directory", fs.readdirSync(path.join(w, ".claude", "skills")).join(",") === "requirements");
+		check("win32: the backup is a FILE inside the skill dir, never a sibling skill directory", fs.readdirSync(path.join(w, ".claude", "skills")).length === 5 && !fs.readdirSync(path.join(w, ".claude", "skills")).some((name) => name.includes(".bak-")));
 		check("win32: doctor is green again", run(["doctor", "--home", w], env).status === 0);
 	}
 

@@ -26,8 +26,8 @@
 //   node packages/nana-setup/bin/nana-setup.mjs doctor
 //   node packages/nana-setup/bin/nana-setup.mjs project [dir]
 //
-// Run it as often as you like: it only ever ADDS, it backs up anything it replaces, and a
-// second run reports "nothing to do".
+// Run it as often as you like: it adds missing pieces and retires only recognized legacy artifacts,
+// backing them up first; a second unchanged run reports "nothing to do".
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
