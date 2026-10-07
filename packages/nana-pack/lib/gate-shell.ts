@@ -239,13 +239,17 @@ export function segmentDanger(seg: Segment): Danger | null {
 	try {
 		const t = tokens(seg.text);
 		if (!t.length) return null;
-		const initial = base(t[commandIndex(t)] ?? "");
-		const words = t.slice(commandIndex(t) + 1).map(base);
-		const gitRead = initial === "git" && ["log", "show", "diff", "grep"].includes(words[0] ?? "");
-		const gitMessage = initial === "git" && words[0] === "commit" && words.some((w) => w === "-m" || w === "-F" || w === "--message" || w === "--file");
-		const mentionOnly = new Set(["echo", "printf", "grep", "rg"]).has(initial) || gitRead || gitMessage;
-		// Scan executable command segments for rm tokens; text-only mentions are excluded by their own command word.
-		for (let i = 0; !mentionOnly && i < t.length; i++) {
+		// Preserve whole-segment scanning from the original gate. Git shell aliases execute their
+		// value as a shell body, so inspect that body even though tokenization joins it to alias.x=.
+		for (let i = 0; i < t.length; i++) {
+			const alias = /^(?:-c)?alias\.[^=]+=!(.*)$/i.exec(t[i]);
+			const body = alias?.[1] ? [alias[1], ...t.slice(i + 1)] : [];
+			for (let j = 0; j < body.length; j++) {
+				if (base(body[j]) === "rm") {
+					const d = rmDanger(body.slice(j + 1));
+					if (d) return d;
+				}
+			}
 			if (base(t[i]) === "rm" && !(i > 0 && SUBCOMMAND_HOSTS.has(base(t[i - 1])))) {
 				const d = rmDanger(t.slice(i + 1));
 				if (d) return d;
@@ -310,11 +314,7 @@ export function segmentDanger(seg: Segment): Danger | null {
 		if ((cmd === "rd" || cmd === "rmdir") && args.some((a) => /^\/s$/i.test(a))) return hit(`${cmd} /s`);
 		if ((cmd === "del" || cmd === "erase") && args.some((a) => /^\/[fsq]$/i.test(a))) return hit(`${cmd} /f /s /q`);
 		if (cmd === "mv" && args.at(-1) === "/dev/null") return hit("mv to /dev/null");
-		if (INTERPRETERS.test(cmd)) {
-			const inline = new Set(["-c", "-e", "--eval"]);
-			const code = args.findIndex((a) => inline.has(a));
-			if (code >= 0 && INTERP_DELETE.test(args.slice(code + 1).join(" "))) return hit(`${cmd} deleting files`);
-		}
+		if (INTERPRETERS.test(cmd) && INTERP_DELETE.test(dequote(seg.text))) return hit(`${cmd} deleting files`);
 		return null;
 	} catch {
 		return { reason: "unparseable segment", floor: false };

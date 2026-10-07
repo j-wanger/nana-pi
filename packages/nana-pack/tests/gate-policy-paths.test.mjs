@@ -60,7 +60,8 @@ for (const p of ALLOW) for (const t of ["write", "edit"]) check(`${t} ${p} is no
 // req: R-631 R-058
 check("active and default pi code-loading resources are policy floor", BLOCK.includes(`${NANA_HOME}/.pi/agent/extensions/subagent/config.json`) && BLOCK.includes(".pi/extensions/evil.ts") && (await decide("write", `${NANA_HOME}/.pi/agent/extensions/subagent/config.json`)) === "BLOCK" && (await decide("edit", ".pi/extensions/evil.ts")) === "BLOCK");
 // req: R-639
-check("extension symlink walk cap is sealed at 2048 entries", gatePaths.EXTENSION_WALK_ENTRY_CAP === 2048);
+// req: R-639
+check("extension walk cap is sealed at 2048 entries", gatePaths.EXTENSION_WALK_ENTRY_CAP === 2048);
 // req: R-631
 check("project policy matches require a real .pi path segment", (await decide("edit", "/tmp/proj/project.foo.pi/extensions/x.ts")) === "ALLOW" && (await decide("edit", "/tmp/proj/project.foo.pi/settings.json")) === "ALLOW");
 {
@@ -88,6 +89,21 @@ const RELOCATED = path.join(NANA_HOME, "relocated-agent");
 process.env.PI_CODING_AGENT_DIR = RELOCATED;
 // req: R-631 R-058
 check("relocated agent resources and default-dir resources remain on the floor", (await decide("write", path.join(RELOCATED, "extensions", "subagent", "config.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "auth.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "settings.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "mcp.json"))) === "BLOCK" && (await decide("write", path.join(NANA_HOME, ".pi", "agent", "auth.json"))) === "BLOCK");
+const externalRoot = path.join(NANA_HOME, "external-extension-root");
+fs.mkdirSync(externalRoot, { recursive: true });
+fs.writeFileSync(path.join(externalRoot, "loaded.ts"), "export {};");
+fs.mkdirSync(RELOCATED, { recursive: true });
+fs.symlinkSync(externalRoot, path.join(RELOCATED, "extensions"), "dir");
+// req: R-631
+check("symlinked extension root floors its direct target", (await decide("edit", path.join(externalRoot, "loaded.ts"))) === "BLOCK");
+fs.unlinkSync(path.join(RELOCATED, "extensions"));
+fs.mkdirSync(path.join(RELOCATED, "extensions"));
+for (let i = 0; i < gatePaths.EXTENSION_WALK_ENTRY_CAP - 1; i++) fs.writeFileSync(path.join(RELOCATED, "extensions", `entry-${String(i).padStart(4, "0")}`), "x");
+const beyondTarget = path.join(NANA_HOME, "target-beyond-cap.ts");
+fs.writeFileSync(beyondTarget, "export {};");
+fs.symlinkSync(beyondTarget, path.join(RELOCATED, "extensions", "zz-link"));
+// req: R-639
+check("extension symlink walk floors resolved root and fails closed at the cap", (await decide("edit", beyondTarget)) === "BLOCK" && (await decide("edit", path.join(NANA_HOME, "unrelated-after-cap.ts"))) === "BLOCK");
 delete process.env.PI_CODING_AGENT_DIR;
 // A path that only LOOKS like a policy file after resolution must still be allowed.
 for (const p of ["/tmp/proj/notes/.pi-nana-pack.json", "/tmp/proj/.pineapple/nana-pack.json.md"])

@@ -436,10 +436,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   PowerShell `Remove-Item`/`ri`/`rm`/`del` with `-Recurse`/`-Force` or fed by a pipe,
   cmd `rd /s`, `del /f|/s|/q`, `format X:`; plus protected paths (`auth.json`,
   `settings.json`, `.ssh`, `.env*`, `.aws/credentials`, `.netrc`, `.config/gh/hosts.yml`)
-  checked in commands AND edit/write targets. rm-text checks skip non-executing `echo`, `printf`,
-  `grep`, `rg`, and git message/read commands, but still inspect executable tokens in nested
-  substitutions. Interpreter deletion scans apply to inline code operands such as `-c`, `-e`,
-  and `--eval`.
+  checked in commands AND edit/write targets. rm-text checks scan every command segment,
+  including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
+  complete interpreter command string.
 - **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
   `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
   `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,
@@ -469,9 +468,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
   container layer. The agent edits policy files only through you:
   `nana-setup`, the desk settings window, or "Allow once". The handoff store
-  `~/.pi/agent/handoffs/**` is not a policy file. The rm-text allowance opens one known gap:
-  a segmentable command such as echo "rm -rf ~" > x.sh && bash x.sh can save dangerous text
-  in a script and run it in the next segment; script files are not inspected, so sandboxing
+  `~/.pi/agent/handoffs/**` is not a policy file. Script files are not inspected, so sandboxing
   remains the enforcement boundary.
 - **Headless blocks name the category and a recovery step:** inspect the named command or path,
   edit it outside the gated call, then retry.

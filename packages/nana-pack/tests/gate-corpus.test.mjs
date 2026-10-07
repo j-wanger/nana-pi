@@ -58,6 +58,8 @@ const L2_BLOCK = [
 	"cd /tmp && rm -rf x", "(rm -rf ~)", "eval \"$(echo rm -rf ~)\"", "bash -c \"rm -rf ~\"", "su -c \"rm x\"",
 	"diskutil eraseDisk JHFS+ x disk2", "Format-Volume -DriveLetter D", "git branch -D main", "git stash drop",
 	"perl -e \"system q(rm -rf ~)\"", "perl -e 'unlink glob q(*)'", "cat ${HOME}/.s's'h/id_rsa",
+	`printf 'rm -rf ~\\n' | xargs`, `node --eval='require("fs").rmSync("/x")'`, `python3 -c'import shutil;shutil.rmtree("/x")'`, `node <<<'require("fs").rmSync("/x")'`,
+	"git -c alias.x='!rm -rf ~' x", "git -calias.x=!rm -rf ~ x", "grep -r \"rm -rf\" docs/",
 ];
 // ---- Must ALLOW (headless, no config)
 const ALLOW = [
@@ -76,15 +78,18 @@ const ALLOW = [
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 	// req: R-038
 	check("powershell tool is gated the same", (await run("ri -r -fo C:\\x", "powershell")) === "BLOCK");
-	// req: R-040 R-632
-	check("benign rm-text mentions pass only for non-executing commands", (await run('grep -r "rm -rf" docs/')) === "ALLOW" && (await run('git diff -- "rm -rf"')) === "ALLOW" && (await run('git log --grep="rm -rf"')) === "ALLOW" && (await run('git show --format="rm -rf ~"')) === "ALLOW" && (await run('echo "rm -rf ~"')) === "ALLOW" && (await run('printf "%s" "rm -rf ~"')) === "ALLOW");
+	// req: R-040
+	check('grep -r "rm -rf" docs/ is gated (pinned: rm matched anywhere in a segment)', (await run('grep -r "rm -rf" docs/')) === "BLOCK");
+	check("ordinary Git configuration remains allowed", (await run("git -c core.editor=vim status")) === "ALLOW");
+	// req: R-039
+	check("attached and here-string interpreter code forms are blocked", (await run(`node --eval='require("fs").rmSync("/x")'`)) === "BLOCK" && (await run(`python3 -c'import shutil;shutil.rmtree("/x")'`)) === "BLOCK" && (await run(`node <<<'require("fs").rmSync("/x")'`)) === "BLOCK");
+	// req: R-764
+	check("interpreter command without deletion code remains allowed", (await run("python3 -m pytest -k syntax")) === "ALLOW");
 	// req: R-630
 	check("template config source is allowed for git diff and cat", (await run("git diff -- templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await run("cat templates/typescript/template/.pi/nana-pack.json.jinja")) === "ALLOW");
-	// req: R-637
-	check("interpreter text outside inline code remains allowed", (await run("python3 -m pytest -k unlink")) === "ALLOW");
-	// req: R-040 R-632
+	// req: R-040
 	check("rm-text scanner still blocks an executing nested substitution", (await run('echo "$(rm -rf ~)"')) === "BLOCK");
-	// req: R-040 R-632
+	// req: R-040
 	check("rm-text scanner still blocks a backtick in a git message", (await run('git commit -m "`rm -rf ~`"')) === "BLOCK");
 	const blockedReason = await (async () => {
 		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));

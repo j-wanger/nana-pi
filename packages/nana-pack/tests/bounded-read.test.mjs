@@ -18,7 +18,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bounded-reader-"));
 const file = path.join(dir, "data");
 fs.writeFileSync(file, "hello");
 // req: R-634 R-635
-check("cap is sealed at one MiB and read is limited to cap plus one", BOUNDED_READ_CAP === 1024 * 1024 && readBounded(file).length === 5 && readBudget(Number.MAX_SAFE_INTEGER, BOUNDED_READ_CAP) === BOUNDED_READ_CAP + 1);
+check("cap is sealed at one MiB and read is limited to cap plus one", BOUNDED_READ_CAP === 1024 * 1024 && readBounded(file).length === 5 && readBounded(file, BOUNDED_READ_CAP, 2).length === 3 && readBudget(Number.MAX_SAFE_INTEGER, BOUNDED_READ_CAP) === BOUNDED_READ_CAP + 1);
 const oversized = path.join(dir, "large");
 fs.writeFileSync(oversized, Buffer.alloc(BOUNDED_READ_CAP + 1));
 let oversizeRejected = false;

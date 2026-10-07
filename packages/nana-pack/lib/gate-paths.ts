@@ -129,6 +129,8 @@ function activeDirPolicyFiles(): string[] {
 
 function extensionSymlinkFloors(dir: string): { prefixes: string[]; overflow: boolean } {
 	const prefixes: string[] = [];
+	const resolvedRoot = realish(dir);
+	if (resolvedRoot) prefixes.push(`${key(resolvedRoot)}/`);
 	let visited = 0;
 	let overflow = false;
 	const walk = (current: string, depth: number) => {
@@ -136,7 +138,7 @@ function extensionSymlinkFloors(dir: string): { prefixes: string[]; overflow: bo
 		let entries: fs.Dirent[];
 		try { entries = fs.readdirSync(current, { withFileTypes: true }); } catch { return; }
 		for (const entry of entries) {
-			if (++visited > EXTENSION_WALK_ENTRY_CAP) { overflow = true; return; }
+			if (++visited >= EXTENSION_WALK_ENTRY_CAP) { overflow = true; return; }
 			const full = path.join(current, entry.name);
 			if (entry.isSymbolicLink()) {
 				try {
@@ -162,16 +164,15 @@ export function policyFileHit(candidates: string[], cwd = process.cwd()): string
 			path.join(cwd, ".pi", "extensions"),
 		])];
 		const extensionFloors: string[] = [];
-		const overflowDirs: string[] = [];
 		for (const dir of dirs) {
 			const scan = extensionSymlinkFloors(dir);
 			extensionFloors.push(...scan.prefixes);
-			if (scan.overflow) overflowDirs.push(`${key(dir)}/`);
+			// Incomplete target coverage must fail closed for every gated path in this call.
+			if (scan.overflow) return `${dir} (extension walk limit reached; gate call coverage incomplete)`;
 		}
-		const alt = [...activeDirPolicyFiles(), ...extensionFloors, ...overflowDirs];
+		const alt = [...activeDirPolicyFiles(), ...extensionFloors];
 		for (const c of candidates) {
 			const candidate = key(c);
-			if (overflowDirs.some((p) => candidate.startsWith(p))) return `${c} (extension walk limit reached; whole directory floored)`;
 			if (alt.some((p) => p.endsWith("/") ? candidate.startsWith(p) : candidate === p || candidate.startsWith(`${p}/`))) return c;
 		}
 		return null;
