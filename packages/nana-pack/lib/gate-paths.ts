@@ -204,31 +204,66 @@ const AGENT_DIR_VAR_RE = /(?:\$PI_CODING_AGENT_DIR|\$\{PI_CODING_AGENT_DIR\}|%PI
  * `$HOME` / `${HOME}` / `$env:USERPROFILE` / `%USERPROFILE%` read as `~`. Cannot follow a
  * `cd` earlier in the command (named residual) — the scope-agnostic regexes still apply.
  */
-// Verbatim copy of main at 1252cc630e40a8cd0d9d2df7fe029b2bfe1a8988; never edit.
-function legacyPathCandidates(command: string): string[] {
-	const text = command
-		.replace(/["']/g, "")
-		.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
-	const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
-	const candidates: string[] = direct ? [String(direct)] : [];
-	for (const w of text.split(/[\s;|&<>()=,`]+/)) {
-		if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
-		candidates.push(w);
+// Verbatim from a3afab2; never edit.
+const legacyCommandPolicyHit = (() => {
+	const POLICY_RES: RegExp[] = [
+		/\.pi[/\\](agent[/\\])?nana-pack\.json/i,
+		/\.pi[/\\]agent[/\\]trust\.json/i,
+		/\.claude[/\\](settings(\.local)?\.json|hooks([/\\]|$))/i,
+	];
+	const AGENT_DIR_VAR_RE = /(?:\$PI_CODING_AGENT_DIR|\$\{PI_CODING_AGENT_DIR\}|%PI_CODING_AGENT_DIR%|\$env:PI_CODING_AGENT_DIR)[/\\]+(?:nana-pack|trust)\.json/i;
+	function activeDirPolicyFiles(): string[] {
+		const out = new Set<string>();
+		for (const d of [piAgentDir(), path.join(os.homedir(), ".pi", "agent")]) {
+			for (const dir of [d, realish(d)]) {
+				if (!dir) continue;
+				for (const f of ["trust.json", "nana-pack.json"]) {
+					const file = path.join(dir, f);
+					out.add(key(file));
+					const target = realish(file);
+					if (target) out.add(key(target));
+					const next = linkTarget(file);
+					if (next) out.add(key(next));
+				}
+			}
+		}
+		return [...out];
 	}
-	return candidates;
-}
+	function policyFileHit(candidates: string[]): string | null {
+		try {
+			for (const c of candidates) if (POLICY_RES.some((re) => re.test(c))) return c;
+			const alt = activeDirPolicyFiles();
+			for (const c of candidates) if (alt.includes(key(c))) return c;
+			return null;
+		} catch {
+			return null;
+		}
+	}
+	function commandPolicyHit(command: string, cwd: string): string | null {
+		try {
+			const text = command
+				.replace(/["']/g, "")
+				.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
+			const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
+			if (direct) return String(direct);
+			for (const w of text.split(/[\s;|&<>()=,`]+/)) {
+				if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
+				const hit = policyFileHit(pathCandidates(w, cwd));
+				if (hit) return hit;
+			}
+			return null;
+		} catch {
+			return null;
+		}
+	}
+	return commandPolicyHit;
+})();
 
-export function commandPolicyHit(command: string, cwd: string): string | null {
+function newCodeLoadingHit(command: string, cwd: string): string | null {
 	try {
 		const text = command.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
-		const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
-		if (direct) return String(direct);
 		const walk = extensionWalk(cwd);
 		if (walk.overflow) return walk.overflow;
-		for (const candidate of legacyPathCandidates(command)) {
-			const hit = policyFileHitWithWalk(pathCandidates(candidate, cwd), walk);
-			if (hit) return hit;
-		}
 		for (const segment of splitCommand(text).segments) {
 			for (const word of [...tokens(segment.text), ...tokens(segment.text, true)]) {
 				const candidates = [word];
@@ -244,4 +279,8 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 	} catch {
 		return null;
 	}
+}
+
+export function commandPolicyHit(command: string, cwd: string): string | null {
+	return legacyCommandPolicyHit(command, cwd) ?? newCodeLoadingHit(command, cwd);
 }

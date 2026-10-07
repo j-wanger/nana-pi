@@ -119,7 +119,10 @@ function journal(cfg: NanaPackConfig, entry: Record<string, unknown>): void {
 
 function commandHit(command: string, gate: Policy, cwd: string): Hit {
 	const policy = commandPolicyHit(command, cwd);
-	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
+	// The immutable legacy matcher is intentionally broader; template source suffixes are not live policy files.
+	const templateSource = /\.pi[/\\](?:agent[/\\])?nana-pack\.json\.jinja(?![\w.])/ig;
+	const templateOnly = templateSource.test(command) && !commandPolicyHit(command.replace(templateSource, ""), cwd);
+	if (policy && !templateOnly) return { label: "policy file", reason: `${policy} (floor)` };
 	const split = splitCommand(command);
 	const segments = split.segments;
 	const segmentable = split.segmentable && command.length <= MAX_SUBJECT;

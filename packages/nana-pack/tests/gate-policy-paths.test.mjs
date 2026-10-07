@@ -171,14 +171,18 @@ delete process.env.PI_CODING_AGENT_DIR;
 {
 	const relocated = "/tmp/relocated";
 	process.env.PI_CODING_AGENT_DIR = relocated;
-	const historicalPath = path.resolve(path.dirname(new URL("../lib/gate-paths.ts", import.meta.url).pathname), `.gate-paths-main-${process.pid}.ts`);
+	const historicalDir = fs.mkdtempSync(path.join(os.tmpdir(), "gate-legacy-reference-"));
+	const historicalPath = path.join(historicalDir, "gate-paths.ts");
 	try {
 		const source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
 		fs.writeFileSync(historicalPath, source);
+		fs.copyFileSync(new URL("../lib/agent-dir.mjs", import.meta.url), path.join(historicalDir, "agent-dir.mjs"));
 		const mainPaths = await import(`${new URL(`file://${historicalPath}`).href}?probe=${process.pid}`);
 		const policy = path.join(relocated, "nana-pack.json");
 		const probes = [
 			`printf x > ${policy}`, `printf x > '${policy}'`, `printf x > "${policy}"`,
+			'printf x > "$PI_CODING_AGENT_DIR"/nana-pack.json', 'printf x > "${PI_CODING_AGENT_DIR}"/nana-pack.json',
+			'printf x > "$PI_CODING_AGENT_DIR"/trust.json', 'printf x > "${PI_CODING_AGENT_DIR}"/trust.json',
 			`echo '${policy}'`, `cat ${policy}`, `tee ${policy}`, `dd of=${policy}`,
 			`bash -c 'printf x > ${policy}'`, `bash -c "printf x > ${policy}"`,
 			`sh -c 'printf x > ${policy}'`, `eval 'printf x > ${policy}'`,
@@ -206,7 +210,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 		// req: R-631
 		check("relocated Python open write to the active policy blocks", (await decideCommand(`python3 -c "open('${policy}','w').write('{}')"`)) === "BLOCK");
 	} finally {
-		try { fs.unlinkSync(historicalPath); } catch { /* absent after setup failure */ }
+		fs.rmSync(historicalDir, { recursive: true, force: true });
 		delete process.env.PI_CODING_AGENT_DIR;
 	}
 }

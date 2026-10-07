@@ -81,6 +81,8 @@ const ALLOW = [
 	const relocatedPolicy = path.join(relocatedAgent, "nana-pack.json");
 	// req: R-631
 	check("quoted inline policy writes block in bash -c and eval bodies", (await run(`bash -c 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK" && (await run(`eval 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK");
+	// req: R-631
+	check("quoted active-agent variable writes block for both policy filenames", (await run('printf x > "$PI_CODING_AGENT_DIR"/nana-pack.json')) === "BLOCK" && (await run('printf x > "${PI_CODING_AGENT_DIR}"/nana-pack.json')) === "BLOCK" && (await run('printf x > "$PI_CODING_AGENT_DIR"/trust.json')) === "BLOCK" && (await run('printf x > "${PI_CODING_AGENT_DIR}"/trust.json')) === "BLOCK");
 	delete process.env.PI_CODING_AGENT_DIR;
 // req: R-764
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");

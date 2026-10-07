@@ -172,7 +172,7 @@ setup. What that means while you work here:
   exempt one command segment, never a compound or the floor; an ordinary valid policy
   change loosens the gate only at the next session start or `/reload` — a malformed-config
   stop is different: it clears live, as soon as the file is repaired. Policy files are caught through
-  `edit`/`write` (every path form for the user, default and project-scope files) and through targets a command names *literally*, plus one
+  `edit`/`write` (every path form for user/default and project-scope files) and through targets a command names *literally*, plus one
   variable spelling: `$PI_CODING_AGENT_DIR` / `${PI_CODING_AGENT_DIR}` / `%PI_CODING_AGENT_DIR%` /
   `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json` (balanced forms
   only; case-insensitive on purpose, as cmd/pwsh names are). rm-text checks scan every command
@@ -187,7 +187,7 @@ setup. What that means while you work here:
   reads, custom tools, and direct extension commands are NOT gated, and a later
   handler can still mutate input the gate already checked. It is **advisory** — a
   load-path convenience, not a security boundary; real enforcement is the sandbox /
-  container layer.
+  container layer. Direct edits to an external target of a project-policy symlink may not reveal that project's policy identity.
 
 ### Requirements-first
 
