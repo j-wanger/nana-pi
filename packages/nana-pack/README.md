@@ -245,7 +245,7 @@ node packages/nana-pack/bin/nana-frontier.mjs --today 2026-10-06 HANDOFF.md
 node packages/nana-pack/bin/nana-frontier.mjs --strict HANDOFF.md
 ```
 
-It prints `file:line: kind: detail` findings and a summary. The default clock uses the current UTC date; `--today` injects a deterministic `YYYY-MM-DD` date. Findings do not change the default exit status; `--strict` exits nonzero when findings exist. Tests: `packages/nana-pack/tests/frontier.test.mjs`.
+It prints `file:line: kind: detail` findings and a summary. The default clock uses the current UTC date; `--today` injects a deterministic `YYYY-MM-DD` date. Findings do not change the default exit status; `--strict` exits nonzero when findings exist. A blank line ends a list entry, so a later indented paragraph is not joined to it. Tests: `packages/nana-pack/tests/frontier.test.mjs`.
 
 ## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
 

@@ -53,11 +53,20 @@ try {
 }
 
 const lines = text.split(/\r\n|\r|\n/);
+const outsideFence = [];
+let fence = null;
+for (let i = 0; i < lines.length; i++) {
+	const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(lines[i]);
+	outsideFence[i] = fence === null;
+	if (marker && (fence === null || (marker[1][0] === fence[0] && marker[1].length >= fence[1]))) {
+		fence = fence === null ? [marker[1][0], marker[1].length] : null;
+	}
+}
 const findings = [];
 const add = (line, kind, detail) => findings.push({ line, kind, detail });
 const headings = [];
 for (let i = 0; i < lines.length; i++) {
-	const match = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(lines[i]);
+	const match = outsideFence[i] && /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(lines[i]);
 	if (match) headings.push({ index: i, level: match[1].length, title: match[2] });
 }
 const headingStackAt = (index) => {
@@ -75,7 +84,7 @@ if (wordCount > HANDOFF_WORD_BUDGET) add(1, "word-budget", `words=${wordCount} b
 const entriesBetween = (start, end) => {
 	const entries = [];
 	for (let i = start; i < end; i++) {
-		if (!isListItem(lines[i])) continue;
+		if (!outsideFence[i] || !isListItem(lines[i])) continue;
 		const entry = { line: i + 1, text: [lines[i]] };
 		for (let j = i + 1; j < end && !/^\s*$/.test(lines[j]) && !isListItem(lines[j]) && !isHeading(lines[j]); j++) entry.text.push(lines[j]);
 		entries.push(entry);
@@ -92,16 +101,24 @@ const nextHeading = headings.find((h) => /^next$/i.test(h.title.trim()));
 const nextEndHeading = nextHeading && headings.find((h) => h.index > nextHeading.index && h.level <= nextHeading.level);
 const nextEnd = nextEndHeading?.index ?? lines.length;
 const nextItems = nextHeading ? entriesBetween(nextHeading.index + 1, nextEnd).flatMap((e) => {
-	const match = /^\s*(\d+)[.)]\s+/.exec(e.text[0]);
+	const match = /^(\d+)[.)]\s+/.exec(e.text[0]);
 	return match ? [Number(match[1])] : [];
 }) : [];
 for (let i = 0; i < lines.length; i++) {
+	if (!outsideFence[i]) continue;
 	for (const ref of lines[i].matchAll(/\bitem\s+(\d+)\s+of\s+Next\b/gi)) {
 		const number = Number(ref[1]);
 		if (!nextItems.includes(number)) add(i + 1, "broken-reference", `item ${number} of Next does not resolve`);
 	}
 	if ((inSection(i, "next") || inSection(i, "open for jake")) && /\bLANDED\b/i.test(lines[i])) {
 		add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for Jake");
+	}
+	if (inSection(i, "next") || inSection(i, "open for jake")) {
+		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
+		for (const due of lines[i].matchAll(dateCue)) {
+			const date = due[2] ?? due[1];
+			if (isDate(date) && date < today) add(i + 1, "overdue-date", `${date} precedes ${today}`);
+		}
 	}
 	if ((inSection(i, "next") || inSection(i, "open for jake")) && isListItem(lines[i])) {
 		const entry = entriesBetween(i, (() => {
@@ -110,11 +127,6 @@ for (let i = 0; i < lines.length; i++) {
 			return end;
 		})())[0];
 		if (!entry) continue;
-		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
-		for (const due of entry.text.join(" ").matchAll(dateCue)) {
-			const date = due[2] ?? due[1];
-			if (isDate(date) && date < today) add(i + 1, "overdue-date", `${date} precedes ${today}`);
-		}
 		if (inSection(i, "open for jake")) {
 			const tag = /\[(?:blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i.exec(entry.text.join(" "));
 			if (!tag || !isDate(tag[1]) || tag[1] > today) add(i + 1, "open-tag", "Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");

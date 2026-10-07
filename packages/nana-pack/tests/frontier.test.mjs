@@ -18,6 +18,7 @@ const CLI = fileURLToPath(new URL("../bin/nana-frontier.mjs", import.meta.url));
 const rewritten = path.join(HERE, "fixtures/frontier/rewritten.md");
 const legacy = path.join(HERE, "fixtures/frontier/legacy.md");
 const frozenRewrite = path.join(HERE, "fixtures/frontier/handoff-2026-10-06.md");
+const preRewrite = path.join(HERE, "fixtures/frontier/handoff-pre-rewrite.md");
 let fails = 0;
 const check = (name, ok, detail = "") => {
 	console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
@@ -56,6 +57,38 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", frozenRewrite], { encoding: "utf8" });
 	// req: R-877
 	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && !r.stdout.includes("overdue-date:"), r.stdout);
+}
+{
+	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", preRewrite], { encoding: "utf8" });
+	// req: R-873 R-875 R-878
+	check("frozen pre-rewrite HANDOFF reports 12 findings and key drift categories", r.stdout.includes("summary words=3761 budget=1200 findings=12") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
+}
+{
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const file = path.join(dir, "prose.md");
+	fs.writeFileSync(file, "## Next\nA status note is due 2026-10-05.\n## Open for Jake\nA decision is due 2026-10-04.\n");
+	const r = run(file);
+	// req: R-877
+	check("due cues in non-list Next and Open for Jake prose are scanned", r.stdout.split("overdue-date:").length - 1 === 2, r.stdout);
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+{
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const file = path.join(dir, "fence.md");
+	fs.writeFileSync(file, "## Where things stand\nExample:\n```md\n## Next\n- LANDED due 2026-10-05\n```\n## Open for Jake\n- Real choice [blocking, since 2026-10-06]\n");
+	const r = run(file);
+	// req: R-874 R-875 R-877
+	check("fenced examples do not create headings or findings", !/(landed-entry|misplaced-landed|overdue-date):/.test(r.stdout), r.stdout);
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+{
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const file = path.join(dir, "nested-number.md");
+	fs.writeFileSync(file, "## Next\n1. First\n2. Second\n   3. Nested only\n## Where things stand\nSee item 3 of Next.\n");
+	const r = run(file);
+	// req: R-876
+	check("nested numbered sub-items cannot resolve item-of-Next references", r.stdout.includes("broken-reference:") && r.stdout.includes("item 3 of Next"), r.stdout);
+	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
@@ -131,14 +164,18 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const strictError = spawnSync(process.execPath, [CLI, "--strict", legacy, legacy], { encoding: "utf8" });
 	// req: R-879
 	check("extra operands follow the strict-aware error policy", reportOnlyError.status === 0 && strictError.status !== 0, `${reportOnlyError.status} / ${strictError.status}`);
-	for (const mode of [[], ["--strict"]]) {
-		const badDate = spawnSync(process.execPath, [CLI, ...mode, "--today", "2026-02-30", legacy], { encoding: "utf8" });
-		const missingFile = path.join(os.tmpdir(), `frontier-missing-${process.pid}.md`);
-		const unreadable = spawnSync(process.execPath, [CLI, ...mode, "--today", "2026-10-06", missingFile], { encoding: "utf8" });
-		// req: R-879
-		check(`malformed date follows ${mode.length ? "strict" : "default"} error policy`, badDate.status === (mode.length ? 1 : 0) && badDate.stderr.includes("invalid --today date"), `${badDate.status}: ${badDate.stderr}`);
-		// req: R-879
-		check(`unreadable input follows ${mode.length ? "strict" : "default"} error policy`, unreadable.status === (mode.length ? 1 : 0) && unreadable.stdout.includes(":0: error:"), `${unreadable.status}: ${unreadable.stdout}`);
-	}
+	const missingFile = path.join(os.tmpdir(), `frontier-missing-${process.pid}.md`);
+	const defaultBadDate = spawnSync(process.execPath, [CLI, "--today", "2026-02-30", legacy], { encoding: "utf8" });
+	const strictBadDate = spawnSync(process.execPath, [CLI, "--strict", "--today", "2026-02-30", legacy], { encoding: "utf8" });
+	const defaultUnreadable = spawnSync(process.execPath, [CLI, "--today", "2026-10-06", missingFile], { encoding: "utf8" });
+	const strictUnreadable = spawnSync(process.execPath, [CLI, "--strict", "--today", "2026-10-06", missingFile], { encoding: "utf8" });
+	// req: R-879
+	check("malformed date follows default error policy", defaultBadDate.status === 0 && defaultBadDate.stderr.includes("invalid --today date"), `${defaultBadDate.status}: ${defaultBadDate.stderr}`);
+	// req: R-879
+	check("malformed date follows strict error policy", strictBadDate.status === 1 && strictBadDate.stderr.includes("invalid --today date"), `${strictBadDate.status}: ${strictBadDate.stderr}`);
+	// req: R-879
+	check("unreadable input follows default error policy", defaultUnreadable.status === 0 && defaultUnreadable.stdout.includes(":0: error:"), `${defaultUnreadable.status}: ${defaultUnreadable.stdout}`);
+	// req: R-879
+	check("unreadable input follows strict error policy", strictUnreadable.status === 1 && strictUnreadable.stdout.includes(":0: error:"), `${strictUnreadable.status}: ${strictUnreadable.stdout}`);
 }
 if (fails) process.exitCode = 1;
