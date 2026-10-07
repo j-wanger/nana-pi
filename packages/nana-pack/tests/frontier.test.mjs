@@ -12,6 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CLI = fileURLToPath(new URL("../bin/nana-frontier.mjs", import.meta.url));
@@ -59,7 +60,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1026 budget=1200 findings=0"), r.stdout);
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "parenthetical-heading.md");
 	fs.writeFileSync(file, [
 		"## Open for Jake (each ask: blocking, optional or parked, and since when)",
@@ -80,7 +81,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	check("frozen pre-rewrite HANDOFF reports 12 findings and key drift categories", r.stdout.includes("summary words=3761 budget=1200 findings=12") && r.stdout.includes("word-budget:") && r.stdout.split("misplaced-landed:").length - 1 === 3 && r.stdout.split("open-tag:").length - 1 === 8, r.stdout);
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "prose.md");
 	fs.writeFileSync(file, "## Next\nA status note is due 2026-10-05.\n## Open for Jake\nA decision is due 2026-10-04.\n");
 	const r = run(file);
@@ -89,7 +90,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "fence.md");
 	fs.writeFileSync(file, "## Where things stand\nExample:\n```md\n## Next\n- LANDED due 2026-10-05\n```\n## Open for Jake\n- Real choice [blocking, since 2026-10-06]\n");
 	const r = run(file);
@@ -98,7 +99,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "nested-number.md");
 	fs.writeFileSync(file, "## Next\n1. First\n2. Second\n   3. Nested only\n## Where things stand\nSee item 3 of Next.\n");
 	const r = run(file);
@@ -107,7 +108,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "nested.md");
 	fs.writeFileSync(file, [
 		"## Next", "### Phase", "- LANDED by 2026-10-06", "- Follow-up due 2026-10-05.", "",
@@ -123,7 +124,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "dates.md");
 	fs.writeFileSync(file, [
 		"## Next", "- Ruling recorded 2026-10-01.", "- Adopted since 2026-10-02.",
@@ -164,7 +165,7 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-"));
 	const file = path.join(dir, "large.md");
 	fs.writeFileSync(file, `${"frontier ".repeat(1201)}\n`);
 	const r = run(file);

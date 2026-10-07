@@ -11,10 +11,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { BOUNDED_READ_CAP, readBounded, readBudget } from "../lib/bounded-read.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
 
 let fails = 0;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) fails++; };
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bounded-reader-"));
+const dir = tmpDir(path.join(os.tmpdir(), "bounded-reader-"));
 const file = path.join(dir, "data");
 fs.writeFileSync(file, "hello");
 // req: R-634 R-635
@@ -38,7 +39,7 @@ if (process.platform !== "win32") {
 }
 fs.rmSync(dir, { recursive: true, force: true });
 if (process.platform !== "win32") {
- const home = fs.mkdtempSync(path.join(os.tmpdir(), "bounded-config-"));
+ const home = tmpDir(path.join(os.tmpdir(), "bounded-config-"));
  process.env.HOME = home; process.env.USERPROFILE = home;
  const config = path.join(home, ".pi", "agent", "nana-pack.json");
  fs.mkdirSync(path.dirname(config), { recursive: true });

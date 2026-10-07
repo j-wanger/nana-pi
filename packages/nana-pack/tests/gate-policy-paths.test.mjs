@@ -68,8 +68,8 @@ check("extension walk cap is sealed at 2048 entries", gatePaths.EXTENSION_WALK_E
 // req: R-631
 check("project policy matches require a real .pi path segment", (await decide("edit", "/tmp/proj/project.foo.pi/extensions/x.ts")) === "ALLOW" && (await decide("edit", "/tmp/proj/project.foo.pi/settings.json")) === "ALLOW");
 {
-	const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-session-"));
-	const externalDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-external-extension-"));
+	const sessionDir = tmpDir(path.join(os.tmpdir(), "nana-session-"));
+	const externalDir = tmpDir(path.join(os.tmpdir(), "nana-external-extension-"));
 	const target = path.join(externalDir, "target.ts");
 	fs.mkdirSync(path.join(sessionDir, ".pi"), { recursive: true });
 	fs.mkdirSync(path.join(sessionDir, ".pi", "extensions"), { recursive: true });
@@ -101,7 +101,7 @@ check("project policy matches require a real .pi path segment", (await decide("e
 // req: R-630
 check("template source edit/write is allowed but a symlink to policy is blocked", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("write", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("read", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
 {
-	const project = fs.mkdtempSync(path.join(os.tmpdir(), "nana-template-policy-link-"));
+	const project = tmpDir(path.join(os.tmpdir(), "nana-template-policy-link-"));
 	const sourceDir = path.join(project, "templates", "python", "template", ".pi");
 	fs.mkdirSync(path.join(project, ".pi"), { recursive: true });
 	fs.mkdirSync(sourceDir, { recursive: true });
@@ -119,9 +119,9 @@ check("template source edit/write is allowed but a symlink to policy is blocked"
 	const active = path.join(NANA_HOME, "active-agent");
 	const activeExtensions = path.join(active, "extensions");
 	const defaultExtensions = path.join(NANA_HOME, ".pi", "agent", "extensions");
-	const project = fs.mkdtempSync(path.join(os.tmpdir(), "nana-basename-project-"));
+	const project = tmpDir(path.join(os.tmpdir(), "nana-basename-project-"));
 	const projectExtensions = path.join(project, ".pi", "extensions");
-	const linkedTarget = fs.mkdtempSync(path.join(os.tmpdir(), "nana-basename-linked-"));
+	const linkedTarget = tmpDir(path.join(os.tmpdir(), "nana-basename-linked-"));
 	fs.mkdirSync(activeExtensions, { recursive: true });
 	fs.mkdirSync(defaultExtensions, { recursive: true });
 	fs.mkdirSync(projectExtensions, { recursive: true });
@@ -187,7 +187,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 {
 	const relocated = "/tmp/relocated";
 	process.env.PI_CODING_AGENT_DIR = relocated;
-	const historicalDir = fs.mkdtempSync(path.join(os.tmpdir(), "gate-legacy-reference-"));
+	const historicalDir = tmpDir(path.join(os.tmpdir(), "gate-legacy-reference-"));
 	const historicalPath = path.join(historicalDir, "gate-paths.ts");
 	try {
 		const source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
