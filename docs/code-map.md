@@ -472,10 +472,10 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/desk/test/knowledge-home-isolation.test.mjs`
 
-- **purpose** — Pin temporary knowledge-home isolation in every real-pi desk E2E harness.
-- **inputs** — The real-pi E2E harness sources in this test directory.
-- **outputs** — PASS/FAIL checks for each harness's child environment.
-- **effects** — disk (reads test source files)
+- **purpose** — Pin temporary knowledge-home isolation in every committed real-pi launcher.
+- **inputs** — Real-process E2E harness and probe source files.
+- **outputs** — PASS/FAIL checks for each launcher's child environment.
+- **effects** — disk (reads committed test and review source files)
 - **errors** — A missing or non-temporary knowledge-home assignment prints FAIL and exits nonzero.
 - **callers** — —
 - **callees** — —

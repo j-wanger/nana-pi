@@ -3,6 +3,8 @@
 // steps: [{prompt:"..."} | {settle:true, timeoutMs} | {waitText:"regex", timeoutMs} | {sleep:ms}]
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import readline from "node:readline";
 
 const [cwd, logPath, stepsPath] = process.argv.slice(2);
@@ -10,7 +12,8 @@ const steps = JSON.parse(fs.readFileSync(stepsPath, "utf8"));
 const log = fs.createWriteStream(logPath);
 const t0 = Date.now();
 const ts = () => ((Date.now() - t0) / 1000).toFixed(1).padStart(6) + "s";
-const pi = spawn("pi", ["--mode", "rpc"], { cwd, stdio: ["pipe", "pipe", "pipe"] });
+const knowledgeHome = fs.mkdtempSync(path.join(os.tmpdir(), "acceptance-knowledge-"));
+const pi = spawn("pi", ["--mode", "rpc"], { cwd, env: { ...process.env, NANA_KNOWLEDGE_HOME: knowledgeHome }, stdio: ["pipe", "pipe", "pipe"] });
 pi.stderr.on("data", (d) => log.write(JSON.stringify({ t: Date.now() - t0, stderr: String(d) }) + "\n"));
 const send = (o) => pi.stdin.write(JSON.stringify(o) + "\n");
 
