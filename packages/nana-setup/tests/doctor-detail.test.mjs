@@ -72,23 +72,45 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 	check("doctor parses ProgramArguments[0] as the service executable", parsed.programArguments[0] === "/node");
 }
 
-if (process.platform === "darwin") {
+{
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
 	tmps.push(home);
 	const original = resolveLayout({ home });
 	const layout = { ...original, isRealHome: true };
 	fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
-	fs.writeFileSync(layout.plistPath, renderPlist({ LABEL: "com.nana.pi-desk", NODE: process.execPath, SERVER: DESK_SERVER, WORKDIR: pkgRoot, PATH: "/bin", LOG: path.join(home, "desk.log") }));
+	const oldNode = path.join(home, "node-old");
+	fs.writeFileSync(oldNode, "#!/bin/sh\necho v22.18.0\n");
+	fs.chmodSync(oldNode, 0o755);
 	const stub = path.join(home, "launchctl");
-	fs.writeFileSync(stub, `#!/bin/sh\nprintf 'state = running\\n'\n`);
+	fs.writeFileSync(stub, `#!/bin/sh\nprintf 'state = %s\\n' "${"$"}{FAKE_DESK_STATE:-running}"\n`);
 	fs.chmodSync(stub, 0o755);
 	const savedPath = process.env.PATH;
+	const savedPlatform = process.env.NANA_SETUP_PLATFORM;
 	process.env.PATH = `${home}:${savedPath}`;
+	process.env.NANA_SETUP_PLATFORM = "darwin";
+	const diagnoseDesk = (node, state = "running") => {
+		fs.writeFileSync(layout.plistPath, renderPlist({ LABEL: "com.nana.pi-desk", NODE: node, SERVER: DESK_SERVER, WORKDIR: pkgRoot, PATH: "/bin", LOG: path.join(home, "desk.log") }));
+		process.env.FAKE_DESK_STATE = state;
+		return diagnose(layout, { projectDir: home }).find((row) => row.label === "desk service");
+	};
 	try {
-		const c = diagnose(layout, { projectDir: home }).find((row) => row.label === "desk service");
+		const healthy = diagnoseDesk(oldNode);
+		// req: R-651
+		check("doctor reads the plist executable rather than the current process", /Node v?22\.18\.0/.test(healthy?.detail ?? "") && healthy?.status === "fail", JSON.stringify(healthy));
+		const running = diagnoseDesk(process.execPath);
 		// req: R-399
-		check("doctor requires running launchctl state and a valid plist Node", c?.status === "ok" && c.detail.includes("Node "), JSON.stringify(c));
-	} finally { process.env.PATH = savedPath; }
+		check("doctor reports healthy only for running service and valid plist Node", running?.status === "ok" && running.detail.includes(`Node ${process.versions.node}`), JSON.stringify(running));
+		const stopped = diagnoseDesk(process.execPath, "waiting");
+		const missing = diagnoseDesk(path.join(home, "absent-node"));
+		const tooOld = diagnoseDesk(oldNode);
+		// req: R-399
+		check("doctor rejects stopped, missing-node and below-floor desk services", stopped?.status === "fail" && /does not report state = running/.test(stopped.detail) && missing?.status === "fail" && /node executable is missing/.test(missing.detail) && tooOld?.status === "fail" && /Node v?22\.18\.0 is older/.test(tooOld.detail), `${JSON.stringify(stopped)} ${JSON.stringify(missing)} ${JSON.stringify(tooOld)}`);
+	} finally {
+		process.env.PATH = savedPath;
+		if (savedPlatform === undefined) delete process.env.NANA_SETUP_PLATFORM;
+		else process.env.NANA_SETUP_PLATFORM = savedPlatform;
+		delete process.env.FAKE_DESK_STATE;
+	}
 }
 
 try {

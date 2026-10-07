@@ -206,7 +206,8 @@ export function mergeKnowledgeHook(settings, { repoRoot, desiredCommand }) {
 			if (!Array.isArray(group?.hooks)) continue;
 			for (let i = 0; i < group.hooks.length; i++) {
 				const hook = group.hooks[i];
-				if (!commandInvokes(hook?.command, { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] })) continue;
+				if (hook?.timeout !== 5 || hook?.statusMessage !== "nana: knowledge pull" ||
+					!commandInvokes(hook?.command, { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] })) continue;
 				const argv = tokenize(hook.command);
 				let offset = 0;
 				while (argv[offset] && ENV_ASSIGN.test(argv[offset])) offset++;

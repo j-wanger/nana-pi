@@ -344,7 +344,7 @@ export function checkProject(dir, layout = {}) {
 	const monthFiles = (() => {
 		try {
 			return fs.readdirSync(path.join(dir, "docs", "sessions"), { withFileTypes: true })
-				.filter((entry) => entry.isFile() && /^\d{4}-\d{2}\.md$/.test(entry.name))
+				.filter((entry) => entry.isFile() && /^\d{4}-(0[1-9]|1[0-2])\.md$/.test(entry.name))
 				.map((entry) => entry.name).sort();
 		} catch { return []; }
 	})();

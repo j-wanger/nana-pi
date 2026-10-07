@@ -111,6 +111,12 @@ function walk(dir) {
 	// req: R-395
 	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 0 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
 	fs.unlinkSync(olderMonth);
+	const impossibleMonth = path.join(dir, "docs", "sessions", "2026-99.md");
+	fs.writeFileSync(impossibleMonth, "# impossible month\n");
+	const invalidMonthCheck = run(["project", dir, "--check", "--home", home]);
+	// req: R-395
+	check("project --check rejects an impossible month filename", invalidMonthCheck.status === 1 && /✗ docs\/sessions\/YYYY-MM\.md/.test(invalidMonthCheck.stdout), invalidMonthCheck.stdout);
+	fs.unlinkSync(impossibleMonth);
 	fs.writeFileSync(currentMonth, "# restored current log\n");
 
 	// second run changes nothing

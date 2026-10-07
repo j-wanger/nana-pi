@@ -202,8 +202,10 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		fs.writeFileSync(callLog, "");
 		const out = withStubFirst(() => stepDesk(layout, {}));
 		const sequence = calls();
+		const bootstrapIndex = sequence.indexOf(`bootstrap gui/${process.getuid()} ${layout.plistPath}`);
+		const kickstartIndex = sequence.indexOf(`kickstart gui/${process.getuid()}/com.nana.pi-desk`);
 		// req: R-356
-		check("first load bootstraps and then kickstarts without -k", sequence.includes(`bootstrap gui/${process.getuid()} ${layout.plistPath}`) && sequence.includes(`kickstart gui/${process.getuid()}/com.nana.pi-desk`) && !sequence.some((call) => call.includes("kickstart -k")), sequence.join(" | "));
+		check("first load bootstraps before plain kickstart, without -k", bootstrapIndex >= 0 && kickstartIndex > bootstrapIndex && !sequence.some((call) => call.includes("kickstart -k")), sequence.join(" | "));
 		// req: R-652
 		check("first-load kickstart is plain", sequence.at(-1) === `kickstart gui/${process.getuid()}/com.nana.pi-desk`, sequence.join(" | "));
 		fs.writeFileSync(callLog, "");
@@ -216,7 +218,28 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		delete process.env.FAIL_ON;
 		delete process.env.FAKE_LOADED;
 		// req: R-398
-		check("bootstrap or kickstart failure is a PROBLEM and makes install exit 1", failed.some((row) => row.status === PROBLEM) && failedKickstart.some((row) => row.status === PROBLEM) && installExitCode(failed) === 1 && installExitCode(failedKickstart) === 1, `${JSON.stringify(failed)} ${JSON.stringify(failedKickstart)}`);
+		check("bootstrap failure is reported as a PROBLEM", failed.some((row) => row.status === PROBLEM), JSON.stringify(failed));
+		check("kickstart failure is reported as a PROBLEM", failedKickstart.some((row) => row.status === PROBLEM), JSON.stringify(failedKickstart));
+
+		const cliFailure = (failureCommand, homeDir) => {
+			const cliStubDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-launchctl-cli-"));
+			tmps.push(cliStubDir);
+			const cliStub = path.join(cliStubDir, "launchctl");
+			fs.writeFileSync(cliStub, `#!/bin/sh\n[ "$1" = print ] && exit 1\n[ "$1" = "${failureCommand}" ] && exit 7\nexit 0\n`);
+			fs.chmodSync(cliStub, 0o755);
+			const piStub = path.join(cliStubDir, "pi");
+			fs.writeFileSync(piStub, "#!/bin/sh\nexit 0\n");
+			fs.chmodSync(piStub, 0o755);
+			return spawnSync(process.execPath, [cli, "install", "--desk"], { encoding: "utf8", env: { ...process.env, HOME: homeDir, PI_CODING_AGENT_DIR: path.join(homeDir, ".pi", "agent"), PATH: `${cliStubDir}:${process.env.PATH}` } });
+		};
+		const bootstrapHome = freshHome();
+		const bootstrapCli = cliFailure("bootstrap", bootstrapHome);
+		// req: R-398
+		check("install CLI exits 1 on bootstrap failure", bootstrapCli.status === 1, `${bootstrapCli.status}: ${bootstrapCli.stderr} ${bootstrapCli.stdout}`);
+		const kickstartHome = freshHome();
+		const kickstartCli = cliFailure("kickstart", kickstartHome);
+		// req: R-398
+		check("install CLI exits 1 on kickstart failure", kickstartCli.status === 1, `${kickstartCli.status}: ${kickstartCli.stderr} ${kickstartCli.stdout}`);
 	}
 
 
