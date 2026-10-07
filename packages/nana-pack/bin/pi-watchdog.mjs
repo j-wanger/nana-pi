@@ -1,13 +1,13 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
- * @purpose Run `pi` under a CPU-liveness watchdog that kills and retries any attempt whose CPU time stays
- *  flat.
+ * @purpose Run `pi` under a CPU-liveness watchdog that kills and retries attempts whose CPU time stays
+ *  flat and cleans up child trees on termination signals.
  * @inputs the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after
- *  it, the child's CPU seconds from `ps -o time=`, and the caller's accept(text) predicate
- * @outputs {ok, text, attempt} with the attempt's captured output, per-poll `cpu=…s flat=n/m`, STALL and
+ *  it, the child's CPU seconds from `ps` or PowerShell, and the caller's accept(text) predicate
+ * @outputs {ok, text, attempt} with captured output, signal-aborted status, per-poll `cpu=…s flat=n/m`, STALL and
  *  attempt lines on stderr, the RETRIES_NOTICE string, or a parse {error}
- * @effects process (spawns `pi` detached per attempt with NANA_HANDOFF=off, SIGKILLs its process group on a
- *  stall, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
+ * @effects process (spawns `pi` detached per attempt with NANA_HANDOFF=off, kills its process tree on a
+ *  stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
  *  stderr)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
  *  --stall-secs/--poll or a non-whole --retries, and a spawn failure or stall returns ok:false with the
@@ -67,6 +67,11 @@ export const RETRIES_NOTICE = (tag, n) =>
 // CPU-time (seconds) of a pid via `ps -o time=` (mm:ss or hh:mm:ss). 0 if gone.
 function cpuSeconds(pid) {
   try {
+    if (process.platform === 'win32') {
+      const raw = execSync(`powershell -NoProfile -Command \"(Get-Process -Id ${pid}).CPU\"`, { encoding: 'utf8' }).trim();
+      const seconds = Number(raw);
+      return Number.isFinite(seconds) ? seconds : 0;
+    }
     const raw = execSync(`ps -o time= -p ${pid}`, { encoding: 'utf8' }).trim();
     if (!raw) return 0;
     const parts = raw.split(':').map(Number);
@@ -81,14 +86,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // SIGKILL the child's whole PROCESS GROUP (not just the pi pid): a stalled pi may hold the
 // bad socket in a grandchild that would otherwise orphan and accumulate across retries —
 // exactly the failure mode this tool exists for. `detached:true` makes pi a group leader.
-function killGroup(child) {
-  try { process.kill(-child.pid, 'SIGKILL'); } catch { /* group already gone */ }
-  try { child.kill('SIGKILL'); } catch { /* already dead */ }
+function killGroup(child, signal = 'SIGKILL') {
+  if (process.platform === 'win32') {
+    try { execSync(`taskkill /T /F /PID ${child.pid}`, { stdio: 'ignore' }); } catch { /* tree already gone */ }
+  } else {
+    try { process.kill(-child.pid, signal); } catch { /* group already gone */ }
+    try { child.kill(signal); } catch { /* already dead */ }
+  }
 }
 
 const nonEmpty = () => true;
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt) {
+async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt, onChild, interrupted, signalWait) {
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
@@ -98,14 +107,20 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, 
   const child = spawn('pi', args, { stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off' } });
 
   let spawnErr = null;
+  onChild(child);
   child.on('error', (e) => { spawnErr = e; }); // e.g. ENOENT if pi not on PATH — no uncaught throw
 
   const readOut = () => (closeSync(fd), existsSync(tmp) ? readFileSync(tmp, 'utf8') : '');
   let lastCpu = -1, flatPolls = 0;
   const maxFlat = Math.max(1, Math.ceil(stallSecs / pollSecs));
   while (true) {
-    await sleep(pollSecs * 1000);
+    await Promise.race([sleep(pollSecs * 1000), signalWait]);
     if (spawnErr) { closeSync(fd); return { ok: false, text: `pi spawn failed: ${spawnErr.message}` }; }
+    if (interrupted()) {
+      killGroup(child, 'SIGKILL');
+      await new Promise((r) => (child.exitCode !== null || child.signalCode !== null ? r() : child.once('close', r)));
+      return { ok: false, text: readOut(), signal: interrupted() };
+    }
     if (child.exitCode !== null || child.signalCode !== null) break; // exited
     const cpu = cpuSeconds(child.pid);
     if (cpu === lastCpu) flatPolls++; else flatPolls = 0;
@@ -128,13 +143,29 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, 
  *  success predicate beyond exit 0 + non-empty output. Returns {ok, text, attempt} (text = last). */
 export async function runWatchdog(tag, opts) {
   const attempts = opts.retries + 1;
-  let last = '';
-  for (let a = 1; a <= attempts; a++) {
-    process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
-    const { ok, text } = await runOnce(tag, opts, a);
-    last = text;
-    if (ok) return { ok: true, text, attempt: a };
-    process.stderr.write(`[${tag}] attempt ${a} did not succeed${a < attempts ? ' — retrying' : ''}\n`);
+  let last = '', signal = null, active = null, notifySignal;
+  const signalWait = new Promise((resolve) => { notifySignal = resolve; });
+  const stop = (name) => {
+    if (signal) return;
+    signal = name;
+    if (active) killGroup(active, 'SIGKILL');
+    notifySignal();
+  };
+  const handlers = new Map([['SIGINT', () => stop('SIGINT')], ['SIGTERM', () => stop('SIGTERM')], ['SIGHUP', () => stop('SIGHUP')]]);
+  for (const [name, handler] of handlers) process.on(name, handler);
+  try {
+    for (let a = 1; a <= attempts; a++) {
+      if (signal) break;
+      process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
+      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait);
+      active = null;
+      last = result.text;
+      if (result.signal || signal) return { ok: false, text: last, attempt: a, signal: signal ?? result.signal };
+      if (result.ok) return { ok: true, text: last, attempt: a };
+      process.stderr.write(`[${tag}] attempt ${a} did not succeed${a < attempts ? ' — retrying' : ''}\n`);
+    }
+    return { ok: false, text: last, attempt: attempts, signal };
+  } finally {
+    for (const [name, handler] of handlers) process.removeListener(name, handler);
   }
-  return { ok: false, text: last, attempt: attempts };
 }

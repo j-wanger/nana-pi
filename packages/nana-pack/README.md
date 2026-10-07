@@ -77,8 +77,8 @@ An independent review is run by a `pi` (Codex) call, and that endpoint intermitt
 `pi` has no request timeout, so it hangs with 0 CPU forever. `pi-review` runs the call under a
 liveness watchdog: it polls the child's CPU time and, if that stays flat for `--stall-secs`, kills
 the whole process group and retries with a fresh session (`--retries N` = re-attempts after the
-first; default 2). A review is "produced" only when the child exits 0 *and* the output file is
-non-empty *and* review-shaped (`VERDICT`/`LAND`/`FAIL`/`finding`/`BLOCKING` — the predicate lives
+first; default 2). SIGINT, SIGTERM and SIGHUP kill and reap the child tree and release a review reservation (exit 130, 143 and 129 respectively). A review is "produced" only when the child exits 0 *and* the output file is
+non-empty *and* contains a case-sensitive line-start `VERDICT` word (the predicate lives
 in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
 exit 0 means the review is in `--out`, exit 1 means every attempt failed.
 
@@ -89,11 +89,11 @@ counted in a user-scope ledger — never from the output file name, and the same
   loudly. The slug is canonicalized — NFKC, trimmed, lowercased (JavaScript `toLowerCase`, not Unicode case folding), internal whitespace collapsed
   (`" Scope  ONE "` ≡ `"scope one"`) — and refused if it contains `/`, `\`, `..` or a control
   character, or exceeds **128 characters**. The repository is the realpath of the git **common
-  dir**, so every worktree of one repository shares an item, while the same slug in an unrelated
+  dir** of the reviewed tree, so every worktree of one repository shares an item, while the same slug in an unrelated
   repository is a different item. (Chosen over the remote URL: it exists for every repository,
   needs no URL normalization, and cannot be changed by `git remote set-url`. Cost: a fresh clone
-  at a new path is a new scope.) Outside git the scope is `path:<realpath of cwd>`.
-- **A round is a revision.** Revision = the reviewed tree's (cwd's) git `HEAD`, as a full sha.
+  at a new path is a new scope.) `--tree <path>` selects the reviewed tree and defaults to the launcher cwd; outside git admission is refused. A scratch launcher must pass `--tree <path inside the reviewed repository>`.
+- **A round is a revision.** Revision = the reviewed tree's git `HEAD`, as a full sha.
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
   commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
@@ -105,11 +105,9 @@ counted in a user-scope ledger — never from the output file name, and the same
   submodule's own revision, recursively). It never renders a diff, so diff/color/prefix config,
   EOL normalization, clean filters and `core.fileMode` cannot merge two states, and staging does
   not change it: staged and unstaged of one content are **one** revision (so `git add` alone earns
-  no round), while a new untracked, non-ignored file is a new state. The review's own `--out`
-  file is left out of the snapshot. Reverting to an already-reviewed state earns no round. Ledger
+  no round), while a new untracked, non-ignored file is a new state. Reverting to an already-reviewed state earns no round. Ledger
   lines carry both parts as `head` and `snapshot` (`snapshot: null` when clean). **Any git
-  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only the fallback when there is no HEAD (outside git); inside
-  git it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
+  failure refuses admission** with git's error — it is never read as "clean". `--revision` is only a fallback when the reviewed git tree has no HEAD; otherwise it must resolve to HEAD's commit or it is refused. `--role` is audit metadata only.
 - **A completed verdict earns the round — with one exception.** A stall, an infrastructure failure
   or a timeout returns the reservation. The exception is below: a completion whose tree changed
   during the review still consumes the round, as *unverified*. A completion must own a live reservation: an expired, pruned or
@@ -125,8 +123,8 @@ counted in a user-scope ledger — never from the output file name, and the same
   timestamp at admission — also when that review then fails.
 - **Ledger** (`~/.pi/agent/` — always; `PI_CODING_AGENT_DIR` does not move it, so a shell variable cannot reset the tally):
   - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: one line per round
-    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"diff":…,"role":…,"launcher":…}`.
-    The cap reads only this and the live reservations. A malformed line **refuses** admission
+    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"snapshot":…,"role":…,"launcher":…}`.
+    Optional fields include `override` (the admission reason), `unverified` (tree drift at completion), `completedAs` (the observed later revision), and `completedError` (why that revision could not be derived). Legacy `path:` repository keys remain readable but new admissions require a git tree. The cap reads only this and the live reservations. A malformed line **refuses** admission
     with `file:line` — a corrupted record never grants a free review.
   - `review-ledger.jsonl` — the verbose audit log (every verdict and override). Before **every**
     append (a verdict, or an override at admission — including one whose review then fails), a log
@@ -147,18 +145,19 @@ counted in a user-scope ledger — never from the output file name, and the same
   unwritable ledger directory, fails at once with a message.
 
 ```bash
-pi-review --item <slug> --role sol --out docs/reviews/<item>/sol-r1.md -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
+scratch=$(mktemp -d)
+pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
 ```
 
-**Any other launcher** (e.g. a hand-rolled `claude -p … > out.md`) prefixes the same check —
-`bin/review-ledger.mjs run` reserves the round, runs the command (cwd = the reviewed tree) with
-stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output:
+**Any other launcher** (e.g. a hand-rolled `claude -p … > "$scratch/out.md"`) prefixes the same check —
+`bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
 
 ```bash
-node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out out.md -- claude -p --model <model> "$(cat brief.md)"
+scratch=$(mktemp -d)
+node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out "$scratch/out.md" -- claude -p --model <model> "$(cat brief.md)"
 ```
 
-`review-ledger check --item <slug>` answers "would a review of this tree's revision be admitted?"
+`review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
 (exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
 
 ### Workers: `bin/pi-worker.mjs`
@@ -176,7 +175,8 @@ re-attempt does it all again on top. Opt in with `--retries N` only for an idemp
 launcher prints a warning when you do.
 
 ```bash
-pi-worker --out wp-a-out.md --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
+scratch=$(mktemp -d)
+pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
 ### Trust model
@@ -223,16 +223,14 @@ an external caller that does should subtract one — and a **worker** caller sho
 (see Migration above). `pi-review` and `pi-worker` print a one-line
 notice whenever `--retries` is passed explicitly.
 
-**`--out` inside the reviewed tree (sol r3).** A review's own output is excluded from its
-snapshot, so `--out` on a **tracked** path (HEAD or index) is **refused** before the review runs —
-the exclusion would hide the review overwriting a tracked file. The check resolves the **full**
-path, a final symlink included (an `--out` link outside the tree aimed at a tracked file is
-refused; a dangling link is followed to where the write would land), and tests in-tree by path
-segment (a tracked `..notes.md` is in the tree). Any other in-tree, non-ignored `--out` is admitted
-with a **warning**: a leftover output there changes the next revision and can spend a round slot.
-Write outputs outside the reviewed tree (this repo's practice: another working tree) or to an
-ignored path. `complete()` re-derives the revision **under the ledger lock**, so an edit made
-while a completion waits on the lock is recorded unverified.
+**Keep review logs outside the reviewed tree.** At admission, `pi-review` and `review-ledger`
+inspect stdout and stderr file identities. If either regular file is the same device and inode as
+a non-ignored path in the reviewed tree, admission refuses with the path named. This covers tracked
+and untracked files; closed descriptors and platforms without device/inode identities degrade to
+no check. Save `--out` and shell redirects under a scratch directory outside the reviewed tree, as
+in the examples above. `complete()` still re-derives the revision **under the ledger lock**, so a
+concurrent edit remains loud and is recorded unverified. Redirect checks do not traverse initialized
+submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).

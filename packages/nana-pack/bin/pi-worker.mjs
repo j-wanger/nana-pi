@@ -44,6 +44,10 @@ if (w.retries > 0) {
 }
 const r = await runWatchdog('pi-worker', w); // no accept predicate: exit 0 + non-empty output
 if (r.text.trim()) writeFileSync(w.outPath, r.text);
+if (r.signal) {
+  process.stderr.write(`[pi-worker] aborted by ${r.signal}\n`);
+  process.exit({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1);
+}
 process.stderr.write(r.ok
   ? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
   : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);

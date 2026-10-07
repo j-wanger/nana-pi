@@ -3,8 +3,8 @@
  * @module packages/nana-pack/bin/review-ledger.mjs
  * @purpose The review round cap as a hook for any launcher — `run` reserves a round around a command and
  *  records its verdict, `check` asks whether one would be admitted.
- * @inputs argv (`run --item <slug> --out <file> [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
- *  `check --item <slug> [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
+ * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or
+ *  `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
  * @outputs the child's stdout written to --out, a recorded round, the projection note on stdout for
  *  `check`, and the admission note, warnings and refusals on stderr
  * @effects process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the
@@ -16,11 +16,11 @@
 // review-ledger.mjs — the review round cap for ANY launcher (T2b). Same ledger and rules as
 // pi-review (see review-round.mjs); this is the hook a hand-rolled launcher calls.
 //
-//   review-ledger run   --item <slug> --out <file> [--role R] [--revision R] [--over-cap WHY] -- <cmd...>
+//   review-ledger run   --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>
 //       reserve the round, run <cmd> (cwd = the reviewed tree) with stdout → <file>, record the
 //       verdict iff it exits 0 with a review-shaped output; otherwise return the reservation.
 //       Exit = 1 if refused / no verdict / not recorded, else 0.
-//   review-ledger check --item <slug> [--revision R]
+//   review-ledger check --item <slug> [--tree <path>] [--revision R]
 //       would a review of this tree's revision be admitted? exit 0 yes / 1 no. Takes the lock,
 //       writes nothing (no reservation, no pruning).
 
@@ -55,7 +55,7 @@ const out = adm.res.out;
 const stopHeartbeat = startHeartbeat(adm.res);
 const r = await new Promise((done) => {
   const chunks = [];
-  const k = spawn(child[0], child.slice(1), { stdio: ['inherit', 'pipe', 'inherit'] });
+  const k = spawn(child[0], child.slice(1), { cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'] });
   k.stdout.on('data', (c) => chunks.push(c));
   k.on('error', (error) => done({ status: null, error, stdout: Buffer.concat(chunks).toString('utf8') }));
   k.on('close', (status, signal) => done({ status, signal, stdout: Buffer.concat(chunks).toString('utf8') }));

@@ -797,7 +797,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/pi-review.mjs`
 
 - **purpose** — Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict only when a review was produced.
-- **inputs** — argv (--out, --item, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, and the reviewed tree's git revision
+- **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, and the reviewed tree's git revision
 - **outputs** — the review text written to --out, a round recorded in the ledger, and the admission note, warnings and a SUCCESS / FAILED line on stderr
 - **effects** — disk (writes --out plus the ledger's reservation, tally and audit files), process (the watchdog's `pi` child, the reservation heartbeat, the exit code)
 - **errors** — exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args), when every attempt stalled or failed, or when the round could not be recorded; exit 0 otherwise
@@ -806,10 +806,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/bin/pi-watchdog.mjs`
 
-- **purpose** — Run `pi` under a CPU-liveness watchdog that kills and retries any attempt whose CPU time stays flat.
-- **inputs** — the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after it, the child's CPU seconds from `ps -o time=`, and the caller's accept(text) predicate
-- **outputs** — {ok, text, attempt} with the attempt's captured output, per-poll `cpu=…s flat=n/m`, STALL and attempt lines on stderr, the RETRIES_NOTICE string, or a parse {error}
-- **effects** — process (spawns `pi` detached per attempt with NANA_HANDOFF=off, SIGKILLs its process group on a stall, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr)
+- **purpose** — Run `pi` under a CPU-liveness watchdog that kills and retries attempts whose CPU time stays flat and cleans up child trees on termination signals.
+- **inputs** — the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after it, the child's CPU seconds from `ps` or PowerShell, and the caller's accept(text) predicate
+- **outputs** — {ok, text, attempt} with captured output, signal-aborted status, per-poll `cpu=…s flat=n/m`, STALL and attempt lines on stderr, the RETRIES_NOTICE string, or a parse {error}
+- **effects** — process (spawns `pi` detached per attempt with NANA_HANDOFF=off, kills its process tree on a stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr)
 - **errors** — never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive --stall-secs/--poll or a non-whole --retries, and a spawn failure or stall returns ok:false with the partial text
 - **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`
 - **callees** — —
@@ -827,7 +827,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-ledger.mjs`
 
 - **purpose** — The review round cap as a hook for any launcher — `run` reserves a round around a command and records its verdict, `check` asks whether one would be admitted.
-- **inputs** — argv (`run --item <slug> --out <file> [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
+- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
 - **outputs** — the child's stdout written to --out, a recorded round, the projection note on stdout for `check`, and the admission note, warnings and refusals on stderr
 - **effects** — process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files)
 - **errors** — exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused admission, an unwritable --out, or a non-zero / non-review-shaped result (the reservation is returned and no round consumed); exit 0 otherwise
@@ -837,10 +837,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-round.mjs`
 
 - **purpose** — The review round ledger — admit, project, complete and release one per-item review round under a user-scope lock.
-- **inputs** — a launcher's own argv (--item, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content), env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
+- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and the ledger files under ~/.pi/agent
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
 - **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally and the rotated audit log), process (spawns git through spawnSync, runs a renewing heartbeat interval)
-- **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
+- **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
 - **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`
 
@@ -848,7 +848,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Decide whether produced output is review-shaped.
 - **inputs** — the candidate review text
-- **outputs** — true when the text carries a VERDICT, LAND, FAIL, finding or BLOCKING token
+- **outputs** — true when a physical line begins with optional non-word characters followed by case-sensitive VERDICT
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-round.mjs`

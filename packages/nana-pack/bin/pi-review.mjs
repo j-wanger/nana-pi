@@ -3,7 +3,7 @@
  * @module packages/nana-pack/bin/pi-review.mjs
  * @purpose Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict
  *  only when a review was produced.
- * @inputs argv (--out, --item, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
+ * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
  *  and the pi args), the user-scope review ledger, and the reviewed tree's git revision
  * @outputs the review text written to --out, a round recorded in the ledger, and the admission note,
  *  warnings and a SUCCESS / FAILED line on stderr
@@ -17,7 +17,7 @@
 // no opt-out flag (--worker was removed — a worker launch uses pi-worker, which records nothing).
 //
 // Usage:
-//   node pi-review.mjs --out <file> --item <slug> [--role sol] [--revision <id>]
+//   node pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role sol] [--revision <id>]
 //                      [--stall-secs 75] [--retries 2] [--poll 15] [--over-cap <why>] -- <pi args...>
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.
@@ -27,7 +27,7 @@ import { admit, complete, release, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
-const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
+const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv);
 if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
@@ -47,8 +47,18 @@ process.stderr.write(`pi-review: ${adm.note}\n`);
 if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
 const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
-const r = await runWatchdog('pi-review', { ...w, accept: reviewShaped });
-stopHeartbeat();
+let r;
+try { r = await runWatchdog('pi-review', { ...w, accept: reviewShaped }); }
+finally {
+  stopHeartbeat();
+  if (!r?.ok) release(adm.id);
+}
+if (r.signal) {
+  release(adm.id);
+  const code = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1;
+  process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
+  process.exit(code);
+}
 if (r.ok) {
   writeFileSync(w.outPath, r.text);
   const c = complete(adm.res, w.outPath); // a completed verdict: the ONLY thing that earns a round
