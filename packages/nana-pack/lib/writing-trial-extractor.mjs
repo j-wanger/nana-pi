@@ -9,7 +9,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { checkText } from "./writing-check.mjs";
+import { checkText, splitSentences } from "./writing-check.mjs";
 
 const RULE_TITLE = "# Nana — Writing for Jake";
 const RULE_ANCHOR = "Put the verdict in the first sentence. Use one of:";
@@ -71,22 +71,25 @@ function collect(root, from, to, mode = "baseline") {
 		if (!dateInRange(startDay, from, to)) continue;
 		const sessionId = entries.find((entry) => entry.sessionId)?.sessionId ?? path.basename(file, ".jsonl");
 		let ruleLoaded = false;
+		let treatedAt = null;
 		const messages = [];
-		let checked = 0;
+		const checks = [];
 		for (const entry of entries) {
-			if (isRuleAttachment(entry)) ruleLoaded = true;
+			if (isRuleAttachment(entry)) { ruleLoaded = true; treatedAt = entry.timestamp ?? entry.message?.timestamp; }
 			const timestamp = entry.timestamp ?? entry.message?.timestamp;
 			const day = edtDay(timestamp);
 			const body = assistantText(entry).replace(/\r\n?/gu, "\n").trim();
 			if (entry.isSidechain === false && body && WORDS(body) >= 80) messages.push({ body, timestamp, day, treated: ruleLoaded });
-			const command = textFrom(entry.message?.content ?? entry.content ?? "");
-			if (entry.type === "assistant" && command.includes("nana-writing.mjs") && command.includes("--report")) checked++;
+			const parts = entry.message?.content ?? entry.content;
+			const calls = Array.isArray(parts) ? parts.filter((part) => part?.type === "tool_use" && part.name === "Bash" && /(?:^|\/)nana-writing\.mjs\b/u.test(String(part.input?.command ?? part.input?.cmd ?? "")) && /--report\b/u.test(String(part.input?.command ?? part.input?.cmd ?? ""))) : [];
+			if (ruleLoaded && calls.length && dateInRange(day, from, to)) checks.push({ day, timestamp, count: calls.length });
 		}
 		if (mode === "baseline") {
-			if (messages.length) sessions.push({ project, sessionId, checked, last: messages.at(-1) });
+			if (messages.length) sessions.push({ project, sessionId, checked: checks.reduce((sum, row) => sum + row.count, 0), checks, last: messages.at(-1) });
 		} else {
-			const reports = messages.filter((message) => message.treated);
-			if (reports.length) sessions.push({ project, sessionId, checked, reports });
+			const reports = messages.filter((message) => message.treated && dateInRange(message.day, from, to));
+			const eligibleChecks = checks.filter((row) => !treatedAt || new Date(row.timestamp) >= new Date(treatedAt));
+			if (reports.length || eligibleChecks.length) sessions.push({ project, sessionId, checked: eligibleChecks.reduce((sum, row) => sum + row.count, 0), checks: eligibleChecks, reports });
 		}
 	}
 	return sessions;
@@ -98,21 +101,35 @@ function score(sessions, mode) {
 		const row = days.get(report.day) ?? { day: report.day, reports: 0, strictPasses: 0, lenientPasses: 0 };
 		row.reports++;
 		row.strictPasses += Number(checkText("-", report.body, { report: true }).stats.verdict);
-		row.lenientPasses += Number(LENIENT.test(report.body));
+		row.lenientPasses += Number(LENIENT.test(splitSentences(report.body)[0]?.text ?? ""));
 		days.set(report.day, row);
 	}
 	const strictPasses = reports.filter((report) => checkText("-", report.body, { report: true }).stats.verdict).length;
-	const lenientPasses = reports.filter((report) => LENIENT.test(report.body)).length;
+	const lenientPasses = reports.filter((report) => LENIENT.test(splitSentences(report.body)[0]?.text ?? "")).length;
 	const sentences = reports.reduce((sum, report) => sum + checkText("-", report.body).stats.sentences, 0);
 	const over = reports.reduce((sum, report) => sum + checkText("-", report.body).stats.over, 0);
 	return { reports: reports.length, sentences, over25: over, over25Percent: sentences ? Math.round(over / sentences * 100) : 0, strictPasses, lenientPasses, days: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)), reportsDetail: reports.map(({ sessionId, timestamp, day, body }) => ({ sessionId, timestamp, day, body })) };
 }
+function checksByDay(sessions) {
+	const days = new Map();
+	for (const session of sessions) for (const row of session.checks ?? []) days.set(row.day, (days.get(row.day) ?? 0) + row.count);
+	return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([day, count]) => ({ day, count }));
+}
+
 function scoreDecisions(reports) {
 	const rules = [/\b(?:tested|test|checked|ran|measured)\b/iu, /\b\d+(?:\.\d+)?%?\b/u, /\b(?:trade|trade-off|risk|cost|but|while|versus|vs\.?)\b/iu, /\b(?:recommend|recommendation|should|choose|prefer|propose)\b/iu, /\b(?:your call|Jake|you decide|your decision)\b/iu];
-	return reports.flatMap((report) => report.body.split(/\n\s*\n/u).filter((block) => /\bYOUR CALL\b/iu.test(block)).map((block, index) => {
-		const parts = rules.map((rule) => rule.test(block));
-		return { sessionId: report.sessionId, timestamp: report.timestamp, decision: index + 1, parts, score: parts.filter(Boolean).length };
-	}));
+	return reports.flatMap((report) => {
+		const decisions = [];
+		for (const block of report.body.split(/\n\s*\n/u)) {
+			if (/^\s*(?:#{1,6}\s*)?(?:decision\s+\d+\s*[:.)-]\s*)?YOUR CALL\b/iu.test(block)) decisions.push([block]);
+			else if (decisions.length && /^\s*(?:[1-5][.)]|(?:what|result|trade|recommendation|why)\b)/iu.test(block)) decisions.at(-1).push(block);
+		}
+		return decisions.map((blocks, index) => {
+			const partBlocks = blocks.slice(1, 6);
+			const orderedParts = rules.map((rule, part) => Boolean(partBlocks[part] && rule.test(partBlocks[part])));
+			return { sessionId: report.sessionId, timestamp: report.timestamp, decision: index + 1, orderedParts, parts: orderedParts, score: orderedParts.filter(Boolean).length };
+		});
+	});
 }
 function preserve(sessions, output) {
 	const destination = path.resolve(output);
@@ -121,27 +138,41 @@ function preserve(sessions, output) {
 	for (const session of sessions) {
 		const normalized = `${session.last.body}\n`;
 		const filename = `${String(session.sessionId).replace(/[^a-zA-Z0-9_-]/gu, "_")}.txt`;
-		fs.writeFileSync(path.join(destination, filename), normalized, { mode: 0o600 });
+		const target = path.join(destination, filename);
+		const fd = fs.openSync(target, "wx", 0o600);
+		try { fs.writeFileSync(fd, normalized); } finally { fs.closeSync(fd); }
 		manifest.push({ sessionId: session.sessionId, timestamp: session.last.timestamp, sha256: crypto.createHash("sha256").update(normalized).digest("hex") });
 	}
 	return manifest;
 }
+function loadPrivateCorpus(manifestPath, corpusDirectory = path.dirname(path.resolve(manifestPath))) {
+	const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+	const directory = path.resolve(corpusDirectory);
+	return manifest.map(({ sessionId, timestamp, sha256 }) => {
+		const filename = `${String(sessionId).replace(/[^a-zA-Z0-9_-]/gu, "_")}.txt`;
+		const target = path.join(directory, filename);
+		const body = fs.readFileSync(target, "utf8");
+		if (crypto.createHash("sha256").update(body).digest("hex") !== sha256) throw new Error(`private corpus hash mismatch: ${filename}`);
+		return { project: "private-manifest", sessionId, checked: 0, checks: [], last: { body: body.trim(), timestamp, day: edtDay(timestamp) } };
+	});
+}
+
 function argumentsFrom(argv) {
 	const args = Object.fromEntries(argv.slice(2).map((arg, index, all) => arg.startsWith("--") ? [arg.slice(2), all[index + 1]?.startsWith("--") ? "" : all[index + 1]] : null).filter(Boolean));
-	if (!args.from || !args.to || !["baseline", "after"].includes(args.mode ?? "baseline")) throw new Error("usage: node extract.mjs --from YYYY-MM-DD --to YYYY-MM-DD [--mode baseline|after] [--root DIR] [--preserve DIR]");
+	if ((!args.manifest && (!args.from || !args.to)) || !["baseline", "after"].includes(args.mode ?? "baseline")) throw new Error("usage: node extract.mjs --from YYYY-MM-DD --to YYYY-MM-DD [--mode baseline|after] [--root DIR] [--manifest FILE --corpus-dir DIR] [--preserve DIR]");
 	return args;
 }
 function runExtractor(argv) {
 	const args = argumentsFrom(argv);
 	const mode = args.mode ?? "baseline";
-	const sessions = collect(args.root || DEFAULT_ROOT, args.from, args.to, mode);
+	const sessions = args.manifest ? loadPrivateCorpus(args.manifest, args["corpus-dir"]) : collect(args.root || DEFAULT_ROOT, args.from, args.to, mode);
 	const result = score(sessions, mode);
 	if (args.preserve) {
 		if (mode !== "baseline") throw new Error("private preservation is baseline-only");
 		const manifest = preserve(sessions, args.preserve);
 		process.stdout.write(`${JSON.stringify({ preserved: manifest.length, manifest }, null, 2)}\n`);
 	} else {
-		process.stdout.write(`${JSON.stringify({ mode, sessionCount: sessions.length, checkedReports: sessions.reduce((sum, session) => sum + session.checked, 0), summary: Object.fromEntries(Object.entries(result).filter(([key]) => key !== "days" && key !== "reportsDetail")), days: result.days, rubric: { parts: ["tested", "numeric result", "trade", "recommendation", "why Jake decides"], decisions: scoreDecisions(result.reportsDetail) }, ...(mode === "after" ? { reportIds: result.reportsDetail.map(({ sessionId, timestamp, day }) => ({ sessionId, timestamp, day })) } : {}) }, null, 2)}\n`);
+		process.stdout.write(`${JSON.stringify({ mode, sessionCount: sessions.length, checkedReports: sessions.reduce((sum, session) => sum + session.checked, 0), checkedByDay: checksByDay(sessions), summary: Object.fromEntries(Object.entries(result).filter(([key]) => key !== "days" && key !== "reportsDetail")), days: result.days, rubric: { parts: ["tested", "numeric result", "trade", "recommendation", "why Jake decides"], decisions: scoreDecisions(result.reportsDetail) }, ...(mode === "after" ? { reportIds: result.reportsDetail.map(({ sessionId, timestamp, day }) => ({ sessionId, timestamp, day })) } : {}) }, null, 2)}\n`);
 	}
 }
-export { collect, preserve, runExtractor, score, scoreDecisions, transcriptFiles };
+export { checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles };

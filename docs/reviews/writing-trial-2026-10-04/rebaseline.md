@@ -1,12 +1,17 @@
 # Re-baseline, 2026-10-07
 
-The seat ruling fixes the baseline window by **session start date**, EDT: 2026-09-20 through 2026-10-03 inclusive. The unit is the last assistant main-thread message of at least 80 words in each eligible seat session. Worktree project directories are excluded.
+The baseline window is by session start date, EDT: 2026-09-20 through 2026-10-03 inclusive. The unit is the last assistant main-thread message of at least 80 words in each eligible seat session. Worktree project directories are excluded.
 
-| Row | Reports | Sentences | Over 25 words | Share | Verdict-first (published/lenient) | Verdict-first (strict) |
+| Row | Reports | Sentences | Over 25 words | Share | Former lenient verdict-first | Strict verdict-first |
 |---|---:|---:|---:|---:|---:|---:|
 | Published baseline.md | 35 | 1,178 | 370 | 31% | 6/35 | not recorded |
-| Reproduced, 2026-10-07 | 32 | 1,169 | 368 | 31% | 21/32 | 0/32 |
+| Reproduced from verified private snapshot | 32 | 1,166 | 365 | 31% | 3/32 | 0/32 |
 
-The 3-report difference is the window edge: this reproduction applies the ruled 2026-09-20 to 2026-10-03 session-start window, yielding 32 eligible reports. The 31% over-cap share and sentence count match the published corpus shape closely enough to validate scope. The published 6/35 verdict-first result came from an unrecorded hand method and is declared not reproducible. The committed lenient check finds any listed verdict word, case-insensitively, anywhere in the message; the strict check applies the committed R-747 first-token uppercase rule. Therefore the re-measured baseline verdicts are 21/32 lenient and 0/32 strict.
+The three-report difference is the window edge: the ruled 2026-09-20 to 2026-10-03 session-start window yields 32 eligible units. The published 6/35 lenient verdict-first figure is reproducible within that window gap: the former checker logic yields 3/32 here. It is not a match of identical populations, but the earlier claim that the verdict figure was not reproducible was wrong.
 
-Source command: `node docs/reviews/writing-trial-2026-10-04/extract.mjs --from 2026-09-20 --to 2026-10-03 --mode baseline` against the seat projects under `~/.claude/projects/`. The 32 normalized texts remain private under `~/.local/share/nana/writing-trial-2026-10-04/baseline/`; `baseline-manifest.json` records only session IDs, timestamps and SHA-256 hashes.
+The former checker is the case-insensitive listed-verdict regex applied only to the first prose sentence. The strict check applies the committed R-747 uppercase first-token rule. The original table's 1,169 sentences and 368 over-cap count were inaccurate; scoring the exact preserved corpus yields 1,166 and 365. The committed extractor now reads the private text files named by the committed manifest, verifies every SHA-256, and recomputes this table without needing transcripts.
+
+Recompute from the preserved private files with:
+`node docs/reviews/writing-trial-2026-10-04/extract.mjs --manifest docs/reviews/writing-trial-2026-10-04/baseline-manifest.json --corpus-dir ~/.local/share/nana/writing-trial-2026-10-04/baseline`
+
+The manifest commits only session IDs, timestamps and SHA-256 hashes. Message text remains outside the repository.
