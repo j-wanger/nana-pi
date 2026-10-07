@@ -450,7 +450,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
   backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
   one **literally**, including quote-preserved shell words with spaces or delimiters and
   `name=value` operands such as `dd of=...` (`>`, `tee`, `sed -i`, `cp`, `install`, `Set-Content`,
-  `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
+  `Out-File`, even `cat`) — except for a literal path inside interpreter code operands such as
+  `python3 -c "open('/private/tmp/agent/settings.json','w').write('{}')"`: paths inside these
+  operands are not extracted for the newly floored pi settings/auth/mcp/extensions files. This is
+  a declared gap, not a promise that the command is safe. The legacy nana-pack/trust floor still
+  covers its own files. Also accepted is exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
   `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
   followed by `/nana-pack.json` or `/trust.json` (either slash), balanced forms only, matched
   case-insensitively on purpose (cmd/pwsh names are). When `nana-pack.json` or

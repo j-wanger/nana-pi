@@ -224,6 +224,10 @@ delete process.env.PI_CODING_AGENT_DIR;
 		check("legacy extraction parity covers the gate probe corpus", probes.length >= 40 && subset);
 		// req: R-631
 		check("relocated Python open write to the active policy blocks", (await decideCommand(`python3 -c "open('${policy}','w').write('{}')"`)) === "BLOCK");
+		const relocatedSettings = path.join(relocated, "settings.json");
+		const settingsOperand = `python3 -c "open('${relocatedSettings}','w').write('{}')"`;
+		// req: R-631
+		check("declared gap: Python open literal inside -c does not hit relocated settings policy", !gatePaths.commandPolicyHit(settingsOperand, "/tmp/proj") && (await decideCommand(settingsOperand)) === "ALLOW");
 	} finally {
 		fs.rmSync(historicalDir, { recursive: true, force: true });
 		delete process.env.PI_CODING_AGENT_DIR;
