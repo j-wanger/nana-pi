@@ -204,6 +204,20 @@ const AGENT_DIR_VAR_RE = /(?:\$PI_CODING_AGENT_DIR|\$\{PI_CODING_AGENT_DIR\}|%PI
  * `$HOME` / `${HOME}` / `$env:USERPROFILE` / `%USERPROFILE%` read as `~`. Cannot follow a
  * `cd` earlier in the command (named residual) — the scope-agnostic regexes still apply.
  */
+// Verbatim copy of main at 1252cc630e40a8cd0d9d2df7fe029b2bfe1a8988; never edit.
+function legacyPathCandidates(command: string): string[] {
+	const text = command
+		.replace(/["']/g, "")
+		.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
+	const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
+	const candidates: string[] = direct ? [String(direct)] : [];
+	for (const w of text.split(/[\s;|&<>()=,`]+/)) {
+		if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
+		candidates.push(w);
+	}
+	return candidates;
+}
+
 export function commandPolicyHit(command: string, cwd: string): string | null {
 	try {
 		const text = command.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
@@ -211,9 +225,11 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 		if (direct) return String(direct);
 		const walk = extensionWalk(cwd);
 		if (walk.overflow) return walk.overflow;
+		for (const candidate of legacyPathCandidates(command)) {
+			const hit = policyFileHitWithWalk(pathCandidates(candidate, cwd), walk);
+			if (hit) return hit;
+		}
 		for (const segment of splitCommand(text).segments) {
-			// Keep the original quote-strip-then-split scan as a floor; quote-preserving
-			// extraction adds spaced candidates but must never hide paths inside shell bodies.
 			for (const word of [...tokens(segment.text), ...tokens(segment.text, true)]) {
 				const candidates = [word];
 				const assignment = word.indexOf("=");

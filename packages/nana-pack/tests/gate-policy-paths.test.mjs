@@ -14,6 +14,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
@@ -167,6 +168,48 @@ fs.symlinkSync(beyondTarget, path.join(RELOCATED, "extensions", "zz-link"));
 // req: R-639
 check("extension symlink walk floors resolved root and fails closed at the cap", (await decide("edit", beyondTarget)) === "BLOCK" && (await decide("edit", path.join(NANA_HOME, "unrelated-after-cap.ts"))) === "BLOCK" && (await decideCommand("printf x > target.ts")) === "BLOCK");
 delete process.env.PI_CODING_AGENT_DIR;
+{
+	const relocated = "/tmp/relocated";
+	process.env.PI_CODING_AGENT_DIR = relocated;
+	const historicalPath = path.resolve(path.dirname(new URL("../lib/gate-paths.ts", import.meta.url).pathname), `.gate-paths-main-${process.pid}.ts`);
+	try {
+		const source = execFileSync("git", ["show", "main:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
+		fs.writeFileSync(historicalPath, source);
+		const mainPaths = await import(`${new URL(`file://${historicalPath}`).href}?probe=${process.pid}`);
+		const policy = path.join(relocated, "nana-pack.json");
+		const probes = [
+			`printf x > ${policy}`, `printf x > '${policy}'`, `printf x > "${policy}"`,
+			`echo '${policy}'`, `cat ${policy}`, `tee ${policy}`, `dd of=${policy}`,
+			`bash -c 'printf x > ${policy}'`, `bash -c "printf x > ${policy}"`,
+			`sh -c 'printf x > ${policy}'`, `eval 'printf x > ${policy}'`,
+			`python3 -c "open('${policy}','w').write('{}')"`,
+			...[
+				`python3 -c "open('${policy}','w')"`, `python -c 'open("${policy}","w")'`,
+				`node -e "write('${policy}')"`, `node --eval="write('${policy}')"`,
+				`printf x,${policy}`, `printf x, ${policy}`, `echo ${policy},x`,
+				`x=${policy}`, `x='${policy}'`, `x="${policy}"`, `X=${policy} printf x`,
+				`printf x >${policy}`, `printf x >>${policy}`, `printf x < ${policy}`,
+				`printf x | tee ${policy}`, `printf x; cat ${policy}`, `printf x && cat ${policy}`,
+				`printf x || cat ${policy}`, `(cat ${policy})`, `cat (${policy})`,
+				`python3 -c 'open("${policy}","w").write("x")'`,
+				`python3 -c "open('${policy}','w').write('x')"`,
+				`ruby -e 'File.write("${policy}", "x")'`, `perl -e 'open(F,">${policy}")'`,
+				`printf '%s' '${policy}'`, `printf "%s" "${policy}"`,
+				`cmd /c echo x^>${policy}`, `pwsh -c 'echo x > ${policy}'`,
+				`printf x > ${policy} 2>&1`, `printf x 2>${policy}`,
+				`printf x > ${policy} & cat ${policy}`, `cd /tmp && cat ${policy}`,
+			],
+		];
+		const subset = probes.every((command) => !mainPaths.commandPolicyHit(command, "/tmp/proj") || gatePaths.commandPolicyHit(command, "/tmp/proj"));
+		// req: R-631
+		check("legacy extraction parity covers the gate probe corpus", probes.length >= 40 && subset);
+		// req: R-631
+		check("relocated Python open write to the active policy blocks", (await decideCommand(`python3 -c "open('${policy}','w').write('{}')"`)) === "BLOCK");
+	} finally {
+		try { fs.unlinkSync(historicalPath); } catch { /* absent after setup failure */ }
+		delete process.env.PI_CODING_AGENT_DIR;
+	}
+}
 // A path that only LOOKS like a policy file after resolution must still be allowed.
 for (const p of ["/tmp/proj/notes/.pi-nana-pack.json", "/tmp/proj/.pineapple/nana-pack.json.md"])
 	check(`write ${p} is not gated`, (await decide("write", p)) === "ALLOW");
