@@ -69,9 +69,9 @@ fs.mkdirSync(plain);
 
 let n = 0;
 const out = () => path.join(outs, `o${++n}.md`);
-const piReview = (args, { stub = "verdict", cwd = A.d, extra = "" } = {}) =>
+const piReview = (args, { stub = "verdict", cwd = A.d, extra = "", extraEnv = {} } = {}) =>
 	spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--retries", "0", ...args, "--", "-p", "x"],
-		{ cwd, env: env({ STUB: stub, STUB_TEXT: extra }), encoding: "utf8", timeout: 30000 });
+		{ cwd, env: env({ STUB: stub, STUB_TEXT: extra, ...extraEnv }), encoding: "utf8", timeout: 30000 });
 const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND')"];
 const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
 	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
@@ -96,6 +96,17 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("pi-worker runs a worker under the watchdog (exit 0, output written)", wk.status === 0 && /VERDICT/.test(fs.readFileSync(path.join(outs, "wp.md"), "utf8")), wk.stderr);
 	// req: R-732
 	check("pi-worker touched no ledger file", !fs.existsSync(agent), fs.existsSync(agent) ? fs.readdirSync(agent).join(",") : "");
+	const captureRoot = path.join(tmp, "watchdog-captures");
+	fs.mkdirSync(captureRoot);
+	const captureEnv = { TMPDIR: captureRoot, TEMP: captureRoot, TMP: captureRoot };
+	freshHome("captures");
+	const captureRuns = [
+		piReview(["--item", "capture-success", "--out", out()], { extraEnv: captureEnv }),
+		piReview(["--item", "capture-failure", "--out", out()], { stub: "fail", extraEnv: captureEnv }),
+		piReview(["--item", "capture-stall", "--out", out()], { stub: "stall", extraEnv: captureEnv }),
+	];
+	// req: R-919
+	check("pi-watchdog removes capture directories after success, child failure and stall", captureRuns[0].status === 0 && captureRuns[1].status === 1 && captureRuns[2].status === 1 && fs.readdirSync(captureRoot).length === 0, JSON.stringify(captureRuns.map((r) => ({ status: r.status, stderr: r.stderr }))));
 	const wki = spawnSync(process.execPath, [PI_WORKER, "--item", "x", "--out", out(), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8" });
 	// req: R-733
 	check("pi-worker refuses review options (--item)", wki.status === 1 && /records nothing/.test(wki.stderr), wki.stderr);

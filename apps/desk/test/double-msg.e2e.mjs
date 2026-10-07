@@ -21,7 +21,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 const CWD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-e2e-"));
 
 const server = spawn("node", [SERVER], {
-  env: { ...process.env, DESK_PORT: String(PORT) },
+  env: { ...process.env, DESK_PORT: String(PORT), NANA_KNOWLEDGE_HOME: path.join(CWD, "knowledge") },
   stdio: ["ignore", "pipe", "pipe"],
 });
 const die = (code) => { server.kill(); process.exit(code); };

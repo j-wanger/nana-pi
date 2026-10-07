@@ -120,7 +120,10 @@ if (canLink) {
 	const script = path.join(HOME, "gone-child.mjs");
 	fs.writeFileSync(script, `
 import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path";
+const bulk = fs.mkdtempSync(path.join(os.tmpdir(), "u2-bulk-"));
+for (let i = 0; i < 50000; i++) fs.mkdirSync(path.join(bulk, "empty-" + i));
 const d = fs.mkdtempSync(path.join(os.tmpdir(), "u2-gone-")); process.chdir(d); process.env.PI_CODING_AGENT_DIR = "agent"; fs.rmdirSync(d);
+const began = Date.now();
 const out = {};
 const gp = await import(${JSON.stringify(PATHS)});
 for (const [n, f] of [["piAgentDir", () => gp.piAgentDir()], ["piAgentDirIsCwdRelative", () => gp.piAgentDirIsCwdRelative()], ["piTrustStorePath", () => gp.piTrustStorePath()], ["commandPolicyHit", () => gp.commandPolicyHit("echo x > agent/nana-pack.json", ".")]])
@@ -129,9 +132,14 @@ const { loadConfig } = await import(${JSON.stringify(CONFIG)});
 try { out.loadConfig = { ok: loadConfig({ cwd: ".", hasUI: false }).gate.stopReason }; } catch (e) { out.loadConfig = { threw: String(e) }; }
 const ext = (await import(${JSON.stringify(GATE)})).default; let h; ext({ on: (e, f) => { if (e === "tool_call") h = f; } });
 try { out.tool_call = { ok: await h({ toolName: "bash", input: { command: "echo safe" } }, { cwd: ".", hasUI: false, isProjectTrusted: () => false }) }; } catch (e) { out.tool_call = { threw: String(e) }; }
+out.elapsedMs = Date.now() - began;
+process.chdir(${JSON.stringify(HOME)});
+fs.rmSync(bulk, { recursive: true, force: true });
 console.log(JSON.stringify(out));
 `);
-	const res = JSON.parse(execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", script], { env: { ...process.env, HOME, USERPROFILE: HOME }, encoding: "utf-8" }).trim().split("\n").at(-1));
+	const res = JSON.parse(execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", script], { env: { ...process.env, HOME, USERPROFILE: HOME }, encoding: "utf-8", timeout: 30000 }).trim().split("\n").at(-1));
+	// req: R-826
+	check("C: deleted-cwd handlers return promptly with 50,000 temporary siblings", res.elapsedMs < 10000, `${res.elapsedMs}ms`);
 	for (const n of ["piAgentDir", "piAgentDirIsCwdRelative", "piTrustStorePath", "commandPolicyHit", "loadConfig", "tool_call"])
 		// req: R-826
 		check(`C: ${n} returns under a deleted cwd`, res[n] && !("threw" in res[n]), JSON.stringify(res[n]));

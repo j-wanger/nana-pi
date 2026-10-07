@@ -130,17 +130,26 @@ const rootA = mkRoot("A", {
 		"",
 	].join("\n"),
 	"packages/probe/tests/c-pass.test.mjs": 'console.log("probe-marker only --verbose shows this");\nconsole.log("PASS pass fixture ran");\n',
-	"packages/probe/tests/d-red.test.mjs": 'console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
+	"packages/probe/tests/d-red.test.mjs": 'import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path"; const leaked=fs.mkdtempSync(path.join(os.tmpdir(),"failing-leak-")); fs.writeFileSync(process.env.PROBE_OUT+"/failed-tmpdir.txt",os.tmpdir()); console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
 	"packages/probe/tests/e-warn.test.mjs": 'console.log("FAIL is a bare token here, not a failed check");\nconsole.log("PASS exit 0 is the verdict");\n',
 	"packages/probe/tests/f-allskip.test.mjs": 'console.log("SKIP a declared precondition is missing");\nconsole.log("SKIP and another");\n',
 	"packages/probe/tests/g-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
+	"packages/probe/tests/i-temp-leak.test.mjs": [
+		'import * as fs from "node:fs";',
+		'import * as os from "node:os";',
+		'import * as path from "node:path";',
+		'const leaked = fs.mkdtempSync(path.join(os.tmpdir(), "fixture-leak-"));',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/file-tmp.json", JSON.stringify({ tmp: process.env.TMPDIR, leaked }));',
+		'console.log("PASS temporary leak fixture ran");',
+		"",
+	].join("\n"),
 	"packages/probe/tests/h-env.test.mjs": [
 		'import * as fs from "node:fs";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/env.json", JSON.stringify({',
 		"\thandoff: String(process.env.NANA_HANDOFF), knowledge: String(process.env.NANA_KNOWLEDGE_HOME),",
 		"\tstage: String(process.env.NANA_STAGE_KEY), knob: String(process.env.NANA_TEST_TIMEOUT_MS),",
 		"\tagent_dir: String(process.env.PI_CODING_AGENT_DIR), pi_bin: String(process.env.PI_BIN),",
-		"\tprobe_out: String(!!process.env.PROBE_OUT),",
+		"\tprobe_out: String(!!process.env.PROBE_OUT), tmpdir: process.env.TMPDIR,",
 		"}));",
 		'console.log("PASS env fixture ran");',
 		"",
@@ -168,9 +177,10 @@ const cwdJson = readJson(A.out_dir, "cwd.json");
 const home1 = readJson(A.out_dir, "home1.json");
 const home2 = readJson(A.out_dir, "home2.json");
 const envJson = readJson(A.out_dir, "env.json");
+const fileTmpJson = readJson(A.out_dir, "file-tmp.json");
 
 // req: R-600
-check("collects every test file directly under a package tests dir", tA?.files === 10 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
+check("collects every test file directly under a package tests dir", tA?.files === 11 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env", "i-temp-leak"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
 // req: R-600
 check("collection does not recurse and takes only .test.mjs files", !A.out.includes("deep.test.mjs") && !A.out.includes("helper.mjs"));
 // req: R-602
@@ -181,6 +191,8 @@ check("each file runs with --experimental-strip-types from its package dir", cwd
 check("each file gets a fresh temp HOME and USERPROFILE, not the real one", !!home1 && home1.env_home === home1.userprofile && home1.home !== home1.outer && home1.dotfile === true && home1.outer_touched === false);
 // req: R-604
 check("the temp HOME is per file, not shared between files", !!home2 && home2.home !== home1?.home);
+// req: R-917
+check("a failing file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(A.out_dir, "failed-tmpdir.txt"), "utf8")));
 // req: R-910
 check("a file that exits non-zero is FAIL and the run exits 1", labelFor(A.out, "d-red.test.mjs") === "FAIL" && lineFor(A.out, "d-red.test.mjs").includes("exit 1") && A.code === 1);
 check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
@@ -192,7 +204,9 @@ check("without --verbose a passing file's output is hidden and a failing file's 
 // req: R-916
 check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
-check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 10 && tA.pass === 6 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 7 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 11 && tA.pass === 7 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 8 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+// req: R-917
+check("each test gets a unique TMPDIR and the runner removes leaked temp contents", !!fileTmpJson?.tmp && fileTmpJson.tmp !== envJson?.tmpdir && path.basename(fileTmpJson.tmp).startsWith("nana-test-") && fileTmpJson.leaked.startsWith(fileTmpJson.tmp) && !fs.existsSync(fileTmpJson.tmp));
 // req: R-618
 check("ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept", envJson?.handoff === "undefined" && envJson.knowledge === "undefined" && envJson.stage === "undefined" && envJson.knob === "60000" && envJson.probe_out === "true");
 // req: R-618
@@ -223,6 +237,9 @@ const rootD = mkRoot("D", {
 	"packages/probe/tests/hang.test.mjs": [
 		'import { spawn } from "node:child_process";',
 		'import * as fs from "node:fs";',
+		'import * as path from "node:path";',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/timeout-tmpdir.txt", process.env.TMPDIR);',
+		'fs.mkdirSync(path.join(process.env.TMPDIR, "timeout-leak"));',
 		'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},120000)"], { stdio: "ignore" });',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(g.pid));',
 		'console.log("PASS spawned a grandchild inside the tree");',
@@ -238,8 +255,28 @@ check("NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FA
 check("the timeout kill takes the child's whole process tree with it", gone(gpid));
 // req: R-912
 check("the scratch dir is removed after the run", emptyDir(D.tmp));
+// req: R-917
+check("a timed-out file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(D.out_dir, "timeout-tmpdir.txt"), "utf8")));
 
-// ── case E: a descendant that escaped the tree cannot hang the run ───────────────────────────
+// ── case E: tracked repo mutation fails, while untracked files are ignored ────────────────────
+const rootMutation = mkRoot("mutation", {
+	"packages/probe/tests/change.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "changed");',
+		'fs.writeFileSync(new URL("../../../untracked.txt", import.meta.url), "new");',
+		'console.log("PASS mutation fixture ran");',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootMutation });
+fs.writeFileSync(path.join(rootMutation, "tracked.txt"), "original");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootMutation });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootMutation });
+const M = run(rootMutation);
+// req: R-918
+check("tracked mutation fails naming the tracked file while untracked files do not appear", M.code === 1 && M.out.includes("tracked repository files changed by tests") && M.out.includes("tracked.txt") && !M.out.includes("untracked.txt"));
+
+// ── case F: a descendant that escaped the tree cannot hang the run ───────────────────────────
 const rootE = mkRoot("E", {
 	"packages/probe/tests/holder.test.mjs": [
 		'import { spawn } from "node:child_process";',

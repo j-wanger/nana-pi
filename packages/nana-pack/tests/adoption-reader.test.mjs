@@ -137,7 +137,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-640
 	check("reader: production temporary root is skipped without override", temporary.stdout === "");
 	if (process.platform !== "win32") {
-		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-reader-alias-")));
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-reader-alias-")));
 		const aliasRepo = path.join(aliasBase, "repo");
 		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
 		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));

@@ -265,7 +265,13 @@ const BASE_ENV = (() => {
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
 const files = collect();
-scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-test-runner-"));
+scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
+const trackedStatus = () => {
+	const r = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=no"], { cwd: root, encoding: "buffer" });
+	if (r.error || r.status !== 0) return null;
+	return r.stdout.toString("utf8");
+};
+const beforeStatus = trackedStatus();
 const fixtureOf = new Map();
 if (selfTest) {
 	for (const fx of FIXTURES) {
@@ -299,8 +305,10 @@ try {
 			continue;
 		}
 		const fx = fixtureOf.get(file);
+		const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
-		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home };
+		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
+		if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
 		// run from the package dir (the dir holding tests/ or test/), the way every file was written
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
 		const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
@@ -335,11 +343,18 @@ try {
 		}
 		if (fx) reapPipeHolder();
 		fs.rmSync(home, { recursive: true, force: true });
+		fs.rmSync(fileTmp, { recursive: true, force: true });
 	}
 } finally {
 	cleanup();
 }
 
+const afterStatus = trackedStatus();
+if (beforeStatus !== null && afterStatus !== null && beforeStatus !== afterStatus) {
+	const changed = [...new Set([...beforeStatus, ...afterStatus].join("").split("\0").filter(Boolean).map((entry) => entry.slice(3)))].sort();
+	console.log(`FAIL tracked repository files changed by tests: ${changed.join(", ")}`);
+	tally.FAIL++;
+}
 console.log(
 	`\n${files.length} files: ${tally.PASS} PASS, ${tally.FAIL} FAIL, ${tally.SKIP} SKIP, ${warns.length} WARN · checks: ${checks.pass} pass, ${checks.fail} fail, ${checks.skip} skip · ${((Date.now() - started) / 1000).toFixed(1)}s`,
 );

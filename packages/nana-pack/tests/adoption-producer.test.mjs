@@ -161,7 +161,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	// req: R-640
 	check("adoption: production temporary root is skipped without override", reportsFor(r).length === 0);
 	if (process.platform !== "win32") {
-		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-producer-alias-")));
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-alias-")));
 		const alias = path.join(aliasBase, "repo");
 		fs.mkdirSync(path.join(alias, ".git"), { recursive: true });
 		await prompt(alias);
