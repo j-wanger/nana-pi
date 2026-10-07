@@ -1190,7 +1190,7 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims` |
+| G-012 | The README shall state what the project is and is for, how to install it, how to run it and how to test it. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::every README this repo ships holds its claims`; `packages/nana-pack/tests/frontier.test.mjs::CLI inventory names nana-frontier without stale ordinals` |
 | G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 | R-655 | The README checker configuration shall declare each install-produced path it checks as external with its reason. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::install-produced README paths are declared external with reasons` |
