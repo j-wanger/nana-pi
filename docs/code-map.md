@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 173 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 175 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1021,7 +1021,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — per input, {label, findings, stats}; one aggregate summary line string over every input checked
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-writing.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-writing.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
 - **callees** — `packages/nana-pack/lib/writing-config.mjs`
 
 ### `packages/nana-pack/lib/writing-config.mjs`
@@ -1033,6 +1033,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — none
 - **callers** — `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
 - **callees** — —
+
+### `packages/nana-pack/lib/writing-trial-extractor.mjs`
+
+- **purpose** — Recomputes baseline seat-session units and rule-attached after reports from Claude Code transcripts.
+- **inputs** — Transcript JSONL files, a date window, mode, and optionally a private output directory.
+- **outputs** — Corpus summaries, per-day verdict counts, optional private text corpus and hash manifest.
+- **effects** — disk (reads transcripts and writes only to the explicitly selected output directory)
+- **errors** — Invalid transcript lines are skipped; invalid arguments or output failures exit nonzero.
+- **callers** — `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+- **callees** — `packages/nana-pack/lib/writing-check.mjs`
 
 ### `packages/nana-pack/tests/adoption-producer.test.mjs`
 
@@ -1453,6 +1463,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`
+
+### `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+
+- **purpose** — Pins the writing-trial extractor's scope, units, rule treatment, scoring, and private manifest.
+- **inputs** — Synthetic transcript directories and extractor pure functions.
+- **outputs** — PASS/FAIL checks for each extractor contract.
+- **effects** — disk (temporary transcript fixtures only)
+- **errors** — Failed checks are counted and make the test process exit nonzero.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/writing-trial-extractor.mjs`
 
 ### `packages/nana-setup/bin/nana-setup.mjs`
 

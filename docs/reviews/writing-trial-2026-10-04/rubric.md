@@ -1,6 +1,6 @@
 # Post-hoc YOUR CALL rubric
 
-`extract.mjs` applies this fixed binary rubric to every paragraph containing `YOUR CALL` in each extracted baseline unit. A part scores 1 when its signal appears in that same paragraph, otherwise 0. This is a mechanical post-hoc proxy, not a claim of semantic completeness.
+`extract.mjs` applies this fixed binary rubric to every paragraph containing `YOUR CALL` in the extracted corpus for the selected mode (baseline or treated after). A part scores 1 when its signal appears in that same paragraph, otherwise 0. This is a mechanical post-hoc proxy, not a claim of semantic completeness.
 
 | Ordered part | Signal scored |
 |---|---|
@@ -10,4 +10,4 @@
 | Recommendation | `recommend`, `recommendation`, `should`, `choose`, `prefer`, or `propose` |
 | Why Jake decides | `your call`, `Jake`, `you decide`, or `your decision` |
 
-Current extract run (`2026-10-04` through `2026-10-18`): three detected decision paragraphs. `extract.mjs` prints the session ID, message timestamp, five booleans, and total for each; no message text is included. Re-run it against the same transcript snapshot to reproduce the scores. This scan is incomplete as a trial result because its report corpus does not yet match the audited corpus (10-05: four extracted units versus 14 expected report-sized finals).
+Current after extract (`2026-10-04` through `2026-10-07`) scores every detected decision paragraph in the 25 extracted messages. The script prints session ID, message timestamp, five booleans and total without message text. Re-run against the same transcript snapshot to reproduce the scores.

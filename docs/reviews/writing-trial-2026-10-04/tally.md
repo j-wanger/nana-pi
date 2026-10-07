@@ -31,7 +31,7 @@ Reviewer-harm trigger record: the “reviewers drop paths” trigger was checked
 
 The pi half has no corpus yet: the journal does not distinguish Jake-facing UI output from worker or reviewer sessions.
 
-The reproducible extractor is `extract.mjs`; its current scan sees seven treated report units (four on 2026-10-05), so it does not yet reproduce the audit's 14 report-sized finals for that day. Transcript evidence for the historical baseline window was unavailable in this scan; no strict or lenient baseline re-measurement is claimed. Because the baseline was originally measured with the lenient verdict check, baseline and after must be re-measured together before comparing strict results.
+The reproducible extractor is `extract.mjs`; the treated corpus and same-method baseline remeasurement are recorded in [after.md](after.md) and [rebaseline.md](rebaseline.md). The 2026-10-05 after count is 14 reports. The baseline uses the ruled session-start window and yields 32 units; the hand-published verdict count remains non-reproducible.
 
 Targets (design-ruling.md §3, re-based on the Markdown-aware splitter), one set per corpus:
 over-cap at or under a quarter of the baseline share `baseline.md` measures on landing day,
