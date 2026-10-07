@@ -125,6 +125,9 @@ fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cw
 fs.writeFileSync(path.join(appsDir, "Bad Name.json"), JSON.stringify(manifest(P_BADNAME, cwdA)));
 fs.writeFileSync(path.join(appsDir, "badcwd.json"), JSON.stringify(manifest(P_BADCWD, "/no/such/dir")));
 fs.writeFileSync(path.join(appsDir, "notools.json"), JSON.stringify(manifest(P_NOTOOLS, cwdA, { tools: [] })));
+for (const [name, port] of [["lowport", 80], ["nullport", null], ["falseport", false], ["emptyport", ""], ["arrayport", []], ["stringzeroport", "0"]]) {
+	fs.writeFileSync(path.join(appsDir, `${name}.json`), JSON.stringify(manifest(port, cwdA, { port })));
+}
 // Fixtures for R-943/R-944: a builtin: entry mixed with real file extensions, and two
 // near-misses that must NOT be treated as a builtin ref (still need an existing file).
 fs.writeFileSync(path.join(appsDir, "zeta.json"), JSON.stringify(manifest(PZ, cwdA, { extensions: [extA, "builtin:mcp", extStage] })));
@@ -166,9 +169,9 @@ try {
 		if (i === 39) throw new Error("app listeners never came up: " + serverLog);
 	}
 	// req: R-447
-	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
+	check("invalid manifests rejected at load (bad name, cwd, EMPTY tools and invalid ports)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog) && ["lowport", "nullport", "falseport", "emptyport", "arrayport", "stringzeroport"].every((name) => new RegExp(`${name}\\.json: port:`).test(serverLog)), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
 	// req: R-948
-	check("app-listener fixture requests port zero and reads distinct bound ports", DESK_REQUESTED_PORT === 0 && fs.readdirSync(appsDir).filter((name) => name.endsWith(".json")).every((name) => JSON.parse(fs.readFileSync(path.join(appsDir, name), "utf-8")).port === 0) && reportedApps.length === 5 && reportedApps.every(({ port }) => Number.isInteger(port) && port > 0) && new Set([DESK, ...reportedApps.map(({ port }) => port)]).size === 6, JSON.stringify({ desk: DESK, apps: reportedApps }));
+	check("app-listener fixture requests port zero and reads distinct bound ports", DESK_REQUESTED_PORT === 0 && fs.readdirSync(appsDir).filter((name) => name.endsWith(".json") && !/^(lowport|nullport|falseport|emptyport|arrayport|stringzeroport)\.json$/.test(name)).every((name) => JSON.parse(fs.readFileSync(path.join(appsDir, name), "utf-8")).port === 0) && reportedApps.length === 5 && reportedApps.every(({ port }) => Number.isInteger(port) && port > 0) && new Set([DESK, ...reportedApps.map(({ port }) => port)]).size === 6, JSON.stringify({ desk: DESK, apps: reportedApps }));
 	// req: R-447
 	check("empty-tools app has no listener", !reportedApps.some(({ name }) => name === "notools"));
 	// req: R-943

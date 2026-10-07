@@ -129,7 +129,7 @@ export function loadManifests(dir) {
 export function normalizeManifest(name, file, raw) {
 	if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return { error: "name must be [a-z0-9-]" };
 	const port = Number(raw.port);
-	if (!Number.isInteger(port) || port < 0 || port > 65535) return { error: "port: integer 0-65535" };
+	if (!Number.isInteger(port) || (raw.port !== 0 && (port < 1024 || port > 65535))) return { error: "port: integer 0 or 1024-65535" };
 	const cwd = isStr(raw.cwd) ? raw.cwd.replace(/^~(?=$|\/)/, process.env.HOME || "") : "";
 	if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) return { error: `cwd: no such directory ${raw.cwd}` };
 	const extensions = strList(raw.extensions);
