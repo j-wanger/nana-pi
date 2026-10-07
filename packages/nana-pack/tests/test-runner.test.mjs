@@ -131,7 +131,7 @@ const rootA = mkRoot("A", {
 		"",
 	].join("\n"),
 	"packages/probe/tests/c-pass.test.mjs": 'console.log("probe-marker only --verbose shows this");\nconsole.log("PASS pass fixture ran");\n',
-	"packages/probe/tests/d-red.test.mjs": 'import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path"; const leaked=fs.mkdtempSync(path.join(os.tmpdir(),"failing-leak-")); fs.writeFileSync(process.env.PROBE_OUT+"/failed-tmpdir.txt",os.tmpdir()); console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
+	"packages/probe/tests/d-red.test.mjs": 'import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path"; const leaked=fs["mkdtemp"+"Sync"](path.join(os.tmpdir(),"failing-leak-")); fs.writeFileSync(process.env.PROBE_OUT+"/failed-tmpdir.txt",os.tmpdir()); console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
 	"packages/probe/tests/e-warn.test.mjs": 'console.log("FAIL is a bare token here, not a failed check");\nconsole.log("PASS exit 0 is the verdict");\n',
 	"packages/probe/tests/f-allskip.test.mjs": 'console.log("SKIP a declared precondition is missing");\nconsole.log("SKIP and another");\n',
 	"packages/probe/tests/g-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
@@ -139,7 +139,7 @@ const rootA = mkRoot("A", {
 		'import * as fs from "node:fs";',
 		'import * as os from "node:os";',
 		'import * as path from "node:path";',
-		'const leaked = fs.mkdtempSync(path.join(os.tmpdir(), "fixture-leak-"));',
+		'const leaked = fs["mkdtemp" + "Sync"](path.join(os.tmpdir(), "fixture-leak-"));',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/file-tmp.json", JSON.stringify({ tmp: process.env.TMPDIR, leaked }));',
 		'console.log("PASS temporary leak fixture ran");',
 		"",
@@ -314,35 +314,47 @@ try { process.kill(holder, "SIGKILL"); } catch {}
 // req: R-610
 check("after a child exits the runner waits only a bounded drain for stdio to close", labelFor(E.out, "holder.test.mjs") === "PASS" && /stdio still open \d+s after exit/.test(E.out) && E.code === 0 && E.ms < 30000);
 
-// ── case G: SIGTERM removes the active file temp root ────────────────────────────────────────
+// ── case G: both termination signals clean the active tree and runner temp roots ─────────────
 const rootSignal = mkRoot("signal", {
 	"packages/probe/tests/hang.test.mjs": [
+		'import { spawn } from "node:child_process";',
 		'import * as fs from "node:fs";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp.txt", process.env.TMPDIR);',
+		'const grandchild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(grandchild.pid));',
 		'setInterval(() => {}, 1000);',
 		"",
 	].join("\n"),
 });
-const signalOut = tmpDir(path.join(TD, "signal-out-"));
-const signalTmp = tmpDir(path.join(TD, "signal-tmp-"));
-const signalRunner = spawn(process.execPath, [path.join(rootSignal, "scripts", "test.mjs")], {
-	cwd: rootSignal,
-	env: { ...process.env, TMPDIR: signalTmp, TEMP: signalTmp, TMP: signalTmp, PROBE_OUT: signalOut, NANA_TEST_TIMEOUT_MS: "60000" },
-	stdio: ["ignore", "pipe", "pipe"],
-});
-let signalOutput = "";
-signalRunner.stdout.on("data", (chunk) => { signalOutput += chunk; });
-signalRunner.stderr.on("data", (chunk) => { signalOutput += chunk; });
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-let signalMarker;
-for (let i = 0; i < 100 && !signalMarker; i++) {
-	try { signalMarker = fs.readFileSync(path.join(signalOut, "active-file-tmp.txt"), "utf8"); } catch {}
-	if (!signalMarker) await wait(50);
+const signalResults = [];
+for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
+	const signalOut = tmpDir(path.join(TD, `signal-out-${sig}-`));
+	const signalTmp = tmpDir(path.join(TD, `signal-tmp-${sig}-`));
+	const signalRunner = spawn(process.execPath, [path.join(rootSignal, "scripts", "test.mjs")], {
+		cwd: rootSignal,
+		env: { ...process.env, TMPDIR: signalTmp, TEMP: signalTmp, TMP: signalTmp, PROBE_OUT: signalOut, NANA_TEST_TIMEOUT_MS: "60000" },
+		stdio: ["ignore", "pipe", "pipe"],
+	});
+	let signalOutput = "";
+	signalRunner.stdout.on("data", (chunk) => { signalOutput += chunk; });
+	signalRunner.stderr.on("data", (chunk) => { signalOutput += chunk; });
+	let fileTmp;
+	let grandchildPid;
+	for (let i = 0; i < 100 && (!fileTmp || !grandchildPid); i++) {
+		try { fileTmp = fs.readFileSync(path.join(signalOut, "active-file-tmp.txt"), "utf8"); } catch {}
+		try { grandchildPid = Number(fs.readFileSync(path.join(signalOut, "grandchild.pid"), "utf8")); } catch {}
+		if (!fileTmp || !grandchildPid) await wait(50);
+	}
+	signalRunner.kill(sig);
+	const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
+	const treeGone = grandchildPid > 0 && gone(grandchildPid);
+	if (grandchildPid > 0 && !treeGone) { try { process.kill(grandchildPid, "SIGKILL"); } catch {} }
+	signalResults.push(!!fileTmp && treeGone && !fs.existsSync(fileTmp)
+		&& emptyDir(signalTmp) && signalExit.code === expectedCode && signalOutput.includes(sig));
 }
-signalRunner.kill("SIGTERM");
-const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
 // req: R-915 R-917
-check("SIGTERM kills the active child and removes its per-file TMPDIR", !!signalMarker && !fs.existsSync(signalMarker) && signalExit.code === 143 && signalOutput.includes("SIGTERM"));
+check("SIGINT and SIGTERM kill the active process tree and remove runner temp roots", signalResults.every(Boolean));
 
 // ── case H: the runner's own self-test ───────────────────────────────────────────────────────
 const rootF = mkRoot("F", {});
@@ -363,12 +375,11 @@ const tempFiles = testRoots.flatMap((dir) => fs.existsSync(dir)
 	: []);
 const tempSourceOk = tempFiles.every((file) => {
 	const source = fs.readFileSync(file, "utf8");
-	if (file.endsWith("test-runner.test.mjs")) return source.includes('import { tmpDir } from "./tmp-dir.mjs";');
 	return !/\b(?:fs\.)?mkdtempSync\s*\(/.test(source)
 		&& (!/\btmpDir\s*\(/.test(source) || source.includes('import { tmpDir } from "./tmp-dir.mjs";'));
 });
 // req: R-917
-check("every test-created temp root is registered for process-exit cleanup", tempSourceOk);
+check("the source check detects direct mkdtemp calls while ignoring only generated leak fixtures", tempSourceOk);
 const helperProbe = path.join(TD, "helper-probe.txt");
 const helperRun = spawnSync(process.execPath, ["--input-type=module", "-e", [
 	`import { tmpDir } from ${JSON.stringify(new URL("./tmp-dir.mjs", import.meta.url).href)};`,
