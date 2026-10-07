@@ -170,9 +170,13 @@ async function runProject(opts) {
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
 		for (const c of checks) console.log(`  ${c.ok ? "✓" : c.label === "post-edit commands" || c.label === "project trust" ? "!" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
-		const bad = checks.filter((c) => !c.ok);
-		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
-		return bad.length ? 1 : 0;
+		const warnings = checks.filter((c) => !c.ok && (c.label === "post-edit commands" || c.label === "project trust"));
+		const missing = checks.filter((c) => !c.ok && !warnings.includes(c));
+		const summary = [];
+		if (missing.length) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);
+		if (warnings.length) summary.push(`effective-state warnings:\n${warnings.map((c) => `    ${c.label}: ${c.detail}`).join("\n")}`);
+		console.log(summary.length ? `\n  ${summary.join("\n  ")}` : "\n  all good.");
+		return missing.length || warnings.length ? 1 : 0;
 	}
 	if (opts.notAProject) {
 		const r = dismissProject(dir, opts);
@@ -224,6 +228,11 @@ async function runTrust(opts) {
 	const dir = path.resolve(dirArg);
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this trust decision");
+	if (opts.home) {
+		const relativeAgent = path.relative(layout.base, layout.piHome);
+		if (relativeAgent === ".." || relativeAgent.startsWith(`..${path.sep}`) || path.isAbsolute(relativeAgent))
+			throw new SetupError("--pi-home must be inside --home for trust; refusing to write outside the test home");
+	}
 	const npmEnv = { ...process.env };
 	delete npmEnv.HOME;
 	delete npmEnv.USERPROFILE;

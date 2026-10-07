@@ -298,6 +298,23 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		check("desk unload timeout reports a problem without bootstrapping", out.some((row) => row.status === PROBLEM) && !calls().some((call) => call.startsWith("bootstrap ")), JSON.stringify(out));
 	}
 
+	/* A single hung print probe must not escape the sealed unload deadline. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-hung-print-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const count = path.join(dir, "print-count");
+		fs.writeFileSync(stubPath, `#!/usr/bin/env node\nconst fs=require("node:fs");\nfs.appendFileSync(${JSON.stringify(callLog)},process.argv.slice(2).join(" ")+"\\n");\nif(process.argv[2]==="print"){const n=(fs.existsSync(${JSON.stringify(count)})?Number(fs.readFileSync(${JSON.stringify(count)},"utf8")):0)+1;fs.writeFileSync(${JSON.stringify(count)},String(n));if(n>1)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10000);process.exit(0)}\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const started = Date.now();
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		const elapsed = Date.now() - started;
+		// req: R-677
+		check("hung launchctl print is killed at the unload deadline without bootstrap", elapsed < DESK_UNLOAD_TIMEOUT_MS + 500 && out.some((row) => row.status === PROBLEM) && !calls().some((call) => call.startsWith("bootstrap ")), `${elapsed}ms ${JSON.stringify(out)} ${calls().join(" | ")}`);
+	}
+
 	/* R-380's scope boundary (astra r2 MUST 2): under --dry-run the early `if (o.dryRun) return
 	   out;` fires before the SKIPPED-write check even runs, so a dangling plist under dry-run
 	   returns just the one "desk plist" entry — no second "desk launchctl" entry at all. That

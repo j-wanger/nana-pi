@@ -572,12 +572,15 @@ function curatedDeskPath(nodeExecutable, home) {
 
 function waitForJobAbsent(service) {
 	const end = Date.now() + DESK_UNLOAD_TIMEOUT_MS;
-	do {
-		const state = spawnSync("launchctl", ["print", service], { encoding: "utf8" });
+	while (Date.now() < end) {
+		const remaining = end - Date.now();
+		const state = spawnSync("launchctl", ["print", service], { encoding: "utf8", timeout: remaining });
+		if (state.error?.code === "ETIMEDOUT") return false;
 		if (state.status !== 0) return true;
-		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, DESK_UNLOAD_POLL_MS);
-	} while (Date.now() < end);
-	return spawnSync("launchctl", ["print", service], { encoding: "utf8" }).status !== 0;
+		const pause = Math.min(DESK_UNLOAD_POLL_MS, Math.max(0, end - Date.now()));
+		if (pause) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pause);
+	}
+	return false;
 }
 
 // `PI_CODING_AGENT_DIR` (optional): the agent dir the installer chose, when it is not the

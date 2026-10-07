@@ -235,8 +235,8 @@ instructions from the ones pi reads.
   owes the same guarantee: it backs up too, and it never writes *through* a symlink — the link is
   removed first, so whatever it pointed at is untouched.
 - Install and project setup never prompt. `trust` requires `--yes` or an interactive owner confirmation.
-- **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`. That is
-  what makes the tests safe.
+- **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`, and `trust`
+  refuses an explicit `--pi-home` outside the supplied `--home`. That is what makes the tests safe.
 
 **Known residuals (astra review lane r1 and r2, 2026-10-04) — recorded, not blocking:**
 

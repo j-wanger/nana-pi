@@ -5,7 +5,8 @@
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
- *  nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json,
+ *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
+ *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
@@ -277,6 +278,15 @@ export function diagnose(layout, opts = {}) {
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+	const projectDir = path.resolve(opts.projectDir || process.cwd());
+	if (fs.existsSync(path.join(projectDir, ".pi", "nana-pack.json"))) {
+		let vouched = false;
+		try {
+			const { trustRecord } = require(path.join(repoRoot, "packages", "nana-pack", "lib", "objective.ts"));
+			vouched = trustRecord(projectDir, layout.piHome).vouched;
+		} catch { /* an unreadable trust store is not affirmative */ }
+		add(vouched ? OK : WARN, "project trust", vouched ? `affirmative trust for ${projectDir}` : `project config has no affirmative trust — run nana-setup trust ${projectDir}`);
+	}
 
 	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
 	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:

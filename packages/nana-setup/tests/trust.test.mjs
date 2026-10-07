@@ -33,12 +33,13 @@ const yes = run(["trust", dir, "--yes", "--home", home]);
 check("affirmative trust is saved by pi's ProjectTrustStore", yes.status === 0 && store.get(dir) === true, `${yes.status} ${yes.stderr} ${yes.stdout}`);
 // req: R-670
 check("command prints pi trust store path", yes.stdout.includes(path.join(agentDir, "trust.json")), yes.stdout);
-const before = fs.readFileSync(path.join(agentDir, "trust.json"), "utf8");
-const deniedDir = path.join(root, "unconfirmed-project");
+const deniedDir = path.join(root, "fresh-untrusted-project");
 fs.mkdirSync(deniedDir);
+const beforeRefusal = fs.readFileSync(path.join(agentDir, "trust.json"), "utf8");
+const before = beforeRefusal;
 const denied = run(["trust", deniedDir], { CI: "1" });
 // req: R-671
-check("noninteractive command refuses without --yes", denied.status !== 0 && store.get(deniedDir) === null && fs.readFileSync(path.join(agentDir, "trust.json"), "utf8") === before, `${denied.status} ${denied.stderr}`);
+check("noninteractive command refuses without --yes and leaves a fresh decision absent", denied.status !== 0 && store.get(deniedDir) === null && fs.readFileSync(path.join(agentDir, "trust.json"), "utf8") === beforeRefusal, `${denied.status} ${denied.stderr}`);
 const dryDir = path.join(root, "dry-project");
 fs.mkdirSync(dryDir);
 const dry = run(["trust", dryDir, "--yes", "--dry-run"]);
@@ -49,6 +50,10 @@ const accepted = await decideTrust({ yes: false, dryRun: false, confirm: async (
 const declined = await decideTrust({ yes: false, dryRun: false, confirm: async () => false, write: () => writes++ });
 // req: R-671
 check("interactive confirmation accepts or declines without unintended writes", accepted.recorded && !declined.recorded && writes === 1);
+const externalAgent = path.join(root, "outside-test-home-agent");
+const unsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", externalAgent]);
+// req: R-670
+check("--home refuses an external agent directory without writing", unsafe.status !== 0 && /inside --home/.test(unsafe.stderr) && !fs.existsSync(path.join(externalAgent, "trust.json")), `${unsafe.status} ${unsafe.stderr}`);
 const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.relative(process.cwd(), agentDir) });
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);

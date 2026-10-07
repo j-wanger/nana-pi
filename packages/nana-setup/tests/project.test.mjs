@@ -104,6 +104,8 @@ function walk(dir) {
 	// The seeded empty checker set and undecided trust are explicit warnings.
 	const seededCheck = run(["project", dir, "--check", "--home", home]);
 	check("project --check warns on an empty checker set and undecided trust", seededCheck.status === 1 && /! post-edit commands.*empty/.test(seededCheck.stdout) && /! project trust.*nana-setup trust/.test(seededCheck.stdout), seededCheck.stdout);
+	// req: R-673
+	check("--check summarizes effective warnings with actionable repairs", /effective-state warnings:[\s\S]*post-edit commands:.*configure real postEdit\.commands[\s\S]*project trust:.*nana-setup trust/.test(seededCheck.stdout) && !/missing — run: nana-setup project/.test(seededCheck.stdout), seededCheck.stdout);
 	const currentMonth = path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`);
 	fs.unlinkSync(currentMonth);
 	const olderMonth = path.join(dir, "docs", "sessions", "2001-01.md");
