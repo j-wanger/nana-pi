@@ -29,6 +29,7 @@ cfg();
 
 const mod = await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href);
 const lib = await import(new URL("../lib/adoption.mjs", import.meta.url).href);
+const HANDOFF_SOURCE = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
 let fails = 0;
 const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
 const reports = () =>
@@ -60,6 +61,9 @@ const repo = (name, files = []) => {
 	return r;
 };
 const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-")));
+
+// req: R-640
+check("adoption: design comment names complete Nana structure and temporary-root exclusion", HANDOFF_SOURCE.includes("a regular HANDOFF.md together with AGENTS.md and docs/sessions/") && HANDOFF_SOURCE.includes("real OS temporary directories (including canonical /tmp on POSIX) are skipped"));
 
 // ONE store resolver (sol r1 MUST 3): the extension re-exports lib/adoption.mjs's functions — the
 // same objects, not an agreeing copy — and its source no longer hashes a store key of its own.
