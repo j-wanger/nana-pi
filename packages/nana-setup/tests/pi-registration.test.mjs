@@ -126,9 +126,12 @@ function piHomeWith(packages) {
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
 }
 {
-	// Inside the checkout on purpose: the root-entry identity check needs the fixture root to share
-	// the checkout's git identity. tmpDir registers its removal at exit (R-917).
-	const fixtureRoot = tmpDir(path.join(repo, ".nana-manifest-root-"));
+	// Under the runner's temp root (R-917), sharing the checkout's git identity through a one-line
+	// `.git` pointer to its common git dir: the root-entry identity check compares common dirs, and
+	// the fixture is only ever probed read-only.
+	const fixtureRoot = tmpDir(path.join(os.tmpdir(), "nana-manifest-root-"));
+	const commonDir = spawnSync("git", ["-C", repo, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" }).stdout.trim();
+	fs.writeFileSync(path.join(fixtureRoot, ".git"), `gitdir: ${commonDir}\n`);
 	tmps.push(fixtureRoot);
 	const packRoot = path.join(fixtureRoot, "packages", "nana-pack");
 	const knowledgeRoot = path.join(fixtureRoot, "packages", "nana-knowledge");
