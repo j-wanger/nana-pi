@@ -186,8 +186,8 @@ async function runProject(opts) {
 		const checks = await checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
-		for (const c of checks) console.log(`  ${c.ok ? "✓" : c.label === "post-edit commands" || c.label === "project trust" ? "!" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
-		const warnings = checks.filter((c) => !c.ok && (c.label === "post-edit commands" || c.label === "project trust"));
+		for (const c of checks) console.log(`  ${c.ok ? "✓" : c.note || c.label === "post-edit commands" || c.label === "project trust" ? "!" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
+		const warnings = checks.filter((c) => !c.ok && (c.note || c.label === "post-edit commands" || c.label === "project trust"));
 		const missing = checks.filter((c) => !c.ok && !warnings.includes(c));
 		const summary = [];
 		if (missing.length) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);

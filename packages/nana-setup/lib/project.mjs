@@ -1,7 +1,6 @@
 /**
  * @module packages/nana-setup/lib/project.mjs
- * @purpose Make one folder a nana project — and check one — by seeding, idempotently and without
- *  overwriting, the per-project files the machine-level mechanisms read.
+ * @purpose Seed and check per-project nana files while refreshing only the explicitly marked shared instructions region.
  * @inputs the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the
  *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader;
@@ -110,6 +109,9 @@ export function stepSeeds(dir, o, { name, date }) {
 
 /* -------------------------------------------------------------------------- AGENTS.md */
 
+export const WORKING_BEGIN = "<!-- nana:working-under-nana-pi begin -->";
+export const WORKING_END = "<!-- nana:working-under-nana-pi end -->";
+
 export function agentsStub(name) {
 	return (
 		`# ${name}\n\n` +
@@ -118,8 +120,49 @@ export function agentsStub(name) {
 		"<!-- one line per major folder, each pointing at its own AGENTS.md where one exists -->\n\n" +
 		"## Rules that don't move\n\n" +
 		"<!-- the few rules a session here must not break; add them as real failures show the need -->\n\n" +
-		readShared("working-under-nana-pi.md")
+		`${WORKING_BEGIN}\n${readShared("working-under-nana-pi.md")}${WORKING_END}\n`
 	);
+}
+
+function markerLines(text) {
+	const lines = [];
+	let fence = null;
+	let offset = 0;
+	for (const line of text.matchAll(/[^\n]*(?:\n|$)/g)) {
+		if (!line[0] && offset >= text.length) break;
+		const raw = line[0];
+		const body = raw.replace(/\r?\n$/, "");
+		const fenceMatch = /^\s*(```+|~~~+)/.exec(body);
+		if (fenceMatch) {
+			if (fence === null) fence = fenceMatch[1][0];
+			else if (fenceMatch[1][0] === fence) fence = null;
+		} else if (fence === null && (body === WORKING_BEGIN || body === WORKING_END)) {
+			lines.push({ marker: body, start: offset, end: offset + raw.length });
+		}
+		offset += raw.length;
+	}
+	return lines;
+}
+
+export function refreshWorkingRegion(dir, { dryRun = false } = {}) {
+	const target = path.join(dir, "AGENTS.md");
+	const st = lstat(target);
+	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
+	const original = fs.readFileSync(target, "utf8");
+	const markers = markerLines(original);
+	const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
+	const ends = markers.filter((m) => m.marker === WORKING_END);
+	if (begins.length !== 1 || ends.length !== 1 || begins[0].start >= ends[0].start)
+		return { label: "AGENTS.md working region", status: SKIPPED, detail: "marker pair absent or malformed — wrap the section once with the nana working-region markers" };
+	const begin = begins[0];
+	const end = ends[0];
+	const nl = original.includes("\r\n") ? "\r\n" : "\n";
+	const canonical = readShared("working-under-nana-pi.md").replace(/\r?\n/g, nl);
+	const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
+	if (replacement === original) return { label: "AGENTS.md working region", status: UNCHANGED, detail: "unchanged" };
+	if (dryRun) return { label: "AGENTS.md working region", status: CREATED, detail: "would refresh marker-owned region" };
+	fs.writeFileSync(target, replacement);
+	return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
 }
 
 /**
@@ -301,6 +344,7 @@ export async function setupProject(dir, layout, opts = {}) {
 	const results = [stepGit(dir, o)];
 	results.push(...stepSeeds(dir, o, { name, date }));
 	results.push(...stepAgents(dir, o, { name }));
+	results.push(refreshWorkingRegion(dir, o));
 	results.push(stepPackConfig(dir, o, layout));
 	results.push(await stepKnowledgeRefresh(layout, o));
 	return results;
@@ -363,6 +407,24 @@ export async function checkProject(dir, layout = {}) {
 		seed("docs/sessions/README.md", "the narrative's rules"),
 		{ label: "docs/sessions/YYYY-MM.md", ok: monthFiles.length > 0, detail: monthFiles.length ? monthFiles.join(", ") : "no docs/sessions/YYYY-MM.md file" },
 	);
+
+	const agentPath = path.join(dir, "AGENTS.md");
+	const agentState = lstat(agentPath);
+	if (agentState?.isFile() && !agentState.isSymbolicLink()) {
+		const body = fs.readFileSync(agentPath, "utf8");
+		const markers = markerLines(body);
+		const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
+		const ends = markers.filter((m) => m.marker === WORKING_END);
+		if (begins.length !== 1 || ends.length !== 1 || begins[0].start >= ends[0].start) {
+			checks.push({ label: "AGENTS.md working region", ok: false, note: true, detail: "markers absent or malformed — wrap the section once with the nana markers" });
+		} else {
+			const actual = body.slice(begins[0].end, ends[0].start).replace(/\r\n/g, "\n");
+			const expected = readShared("working-under-nana-pi.md").replace(/\r\n/g, "\n");
+			checks.push({ label: "AGENTS.md working region", ok: actual === expected, detail: actual === expected ? "matches shared section" : `differs — fix: nana-setup project ${dir}` });
+		}
+	} else if (agentState?.isSymbolicLink()) {
+		checks.push({ label: "AGENTS.md working region", ok: false, detail: "AGENTS.md is a symlink — left alone" });
+	}
 
 	// The navigation file: AGENTS.md as a regular file, or — for a project that already had one
 	// — CLAUDE.md as a regular file of its own.

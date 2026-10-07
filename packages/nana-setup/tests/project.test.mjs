@@ -76,7 +76,9 @@ function walk(dir) {
 	// req: R-329
 	check("CLAUDE.md is a RELATIVE symlink to AGENTS.md", fs.readlinkSync(path.join(dir, "CLAUDE.md")) === "AGENTS.md");
 	// req: R-329
-	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).endsWith(read(path.join(shared, "working-under-nana-pi.md"))));
+	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).includes(read(path.join(shared, "working-under-nana-pi.md"))));
+	// req: R-988
+	check("project-created AGENTS stub wraps the section in both markers", /<!-- nana:working-under-nana-pi begin -->[\s\S]*<!-- nana:working-under-nana-pi end -->/.test(read(path.join(dir, "AGENTS.md"))));
 	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
 	// req: R-330
 	check("pack starter is an empty postEdit list", JSON.parse(read(path.join(dir, ".pi", "nana-pack.json"))).postEdit.commands.length === 0);
