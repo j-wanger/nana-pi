@@ -128,15 +128,14 @@ repository root and nothing else — commit it, so every clone inherits the deci
 reason. `project` on a folder holding the marker **refuses** (exit 2), naming the marker: delete it
 to adopt. A recorded decision is never silently overwritten.
 
-`dir` defaults to the current directory, the name to its basename. Every step is idempotent and
-**nothing existing is ever overwritten** — a second run prints `nothing to do`.
+`dir` defaults to the current directory, the name to its basename. Seed steps are idempotent and never overwrite existing files. The exception is the explicitly marked working section in a regular `AGENTS.md`: `project` refreshes only the bytes between exactly one ordered pair of `<!-- nana:working-under-nana-pi begin -->` / `<!-- nana:working-under-nana-pi end -->` markers. It never guesses the bounds of an unmarked copy. Add the two markers around that section once; malformed pairs and symlinked `AGENTS.md` files are reported and left alone. `--dry-run` reports the refresh without writing. A second run with a current section reports `unchanged`.
 
 | Step | What | When it is skipped |
 |---|---|---|
 | `git init` | only when the folder is not already a repo | a folder INSIDE another repo is left alone — a nested repo hides every file from the outer one |
 | `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md` | copied from `templates/_shared/`, with `<date>` filled with today and `<name>` with the project name | any one of them that already exists |
 | `docs/sessions/<YYYY-MM>.md` | this month's log, header only | it already exists |
-| `AGENTS.md` + a relative `CLAUDE.md` symlink (win32: a copy) | a lean stub — name, empty `Layout` and `Rules that don't move`, then the canonical `Working under nana-pi` section verbatim | when **either** `AGENTS.md` or `CLAUDE.md` is already there: that project has made its choice |
+| `AGENTS.md` + a relative `CLAUDE.md` symlink (win32: a copy) | a lean stub — name, empty `Layout` and `Rules that don't move`, then the canonical `Working under nana-pi` section inside the exact nana markers | a new stub is created only when neither navigation file exists; an existing regular `AGENTS.md` has only its valid marked region refreshed. Unmarked, malformed, or symlinked files are left alone and reported |
 | `.pi/nana-pack.json` | `{"postEdit":{"commands":[]}}` — an empty on-ramp, so nothing runs until you fill it in | when it exists, **and** when you have user-scope `postEdit.commands`: project config replaces user config per key group, so an empty project block would shadow your global checks in this repo |
 | `nana-knowledge build` | refreshes the index so the new repo's docs are findable at prompt time | when there is no index yet — run `install` first; when another build **holds the lock** (that CLI exits 0 on a held lock so the prompt hook never fails, so the lock message on stderr is the only evidence — reported `skipped (build lock held)`, never "rebuilt"); and on the **60 s deadline** |
 
@@ -184,6 +183,10 @@ is the healthy state is `CLAUDE.md`, which `project` writes as a relative link t
 project's own `AGENTS.md`: a dangling link, `-> missing/AGENTS.md` or a link to another
 project's file reads ✗ naming the target, because Claude Code would then be reading different
 instructions from the ones pi reads.
+
+`project --check` compares only the marker-owned section; text outside it does not affect that row. A differing section names `nana-setup project <dir>` as its fix, and absent or malformed markers read `!`.
+
+Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and the current project's tier (`~/.claude/projects/<key>/memory`). It resolves `[[name]]` by each target's frontmatter `name:` rather than filename. Shared memories may link only to shared names; project memories may link to shared or same-project names. Dangling, ambiguous, and shared-to-project links read `!`; doctor never edits memory. The row prints at most 30 named issues, followed by a count when more remain.
 
 ## What it never does
 
