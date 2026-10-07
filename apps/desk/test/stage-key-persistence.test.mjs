@@ -48,16 +48,27 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import net from "node:net";
 import { signBlock } from "../../../packages/nana-stage/lib/sign.mjs";
 import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 import { StageKeyStore } from "../stage-keys.mjs";
 
-// The desk port is DYNAMIC (DESK_PORT=0, read back from the startup line) so it can
-// never collide with another test's. App ports come from a manifest and must be
-// fixed before the server starts: 4452/4453, the first free pair — nothing else
-// under apps/desk/test uses 445x (in use elsewhere: 4381-4383, 4391, 4401-4413,
-// 4421-4423, 4431-4432, 4441-4443).
-const PA = 4452, PB = 4453;
+// The desk and app ports are dynamically allocated so parallel worktrees do not collide.
+async function freePort() {
+	for (;;) {
+		const probe = net.createServer();
+		try {
+			await new Promise((resolve, reject) => probe.once("error", reject).listen(0, "127.0.0.1", resolve));
+			const port = probe.address().port;
+			await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
+			return port;
+		} catch (error) {
+			probe.close(() => {});
+			if (error.code !== "EADDRINUSE") throw error;
+		}
+	}
+}
+const [PA, PB] = await Promise.all([freePort(), freePort()]);
 let DESK = 0;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // stub `pi` first on PATH → name the real package explicitly, or the desk refuses
@@ -329,6 +340,8 @@ const spawns = (run, cwd) => fs.readFileSync(OUT, "utf-8").trim().split("\n").ma
 	.filter((r) => r.run === run && (!cwd || r.cwd === fs.realpathSync(cwd)));
 
 try {
+	// req: R-949
+	check("stage-key fixture allocates distinct dynamic app ports", Number.isInteger(PA) && Number.isInteger(PB) && PA !== PB && PA > 0 && PB > 0 && ![4452, 4453].includes(PA) && ![4452, 4453].includes(PB));
 	// ── run 1: two fresh sessions (A for alpha, B for beta), one signed block each ──
 	await startServer("1", [A, B]);
 	let s = await post(A, "/api/session", {}).then((r) => r.json());
