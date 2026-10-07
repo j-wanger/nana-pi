@@ -52,12 +52,7 @@ import { signBlock } from "../../../packages/nana-stage/lib/sign.mjs";
 import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
 import { StageKeyStore } from "../stage-keys.mjs";
 
-// The desk port is DYNAMIC (DESK_PORT=0, read back from the startup line) so it can
-// never collide with another test's. App ports come from a manifest and must be
-// fixed before the server starts: 4452/4453, the first free pair — nothing else
-// under apps/desk/test uses 445x (in use elsewhere: 4381-4383, 4391, 4401-4413,
-// 4421-4423, 4431-4432, 4441-4443).
-const PA = 4452, PB = 4453;
+// Port zero asks the OS to bind each fixture listener atomically.
 let DESK = 0;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // stub `pi` first on PATH → name the real package explicitly, or the desk refuses
@@ -78,6 +73,7 @@ const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub 
 const AFTER_FORK = path.join(TD, "after-fork.flag"); // "fail" | "hold:<ms>" for the state read after a fork
 const HOLD_FORK = path.join(TD, "hold-fork.flag"); // ms to delay the fork RESPONSE itself
 const TRACE = path.join(TD, "trace.jsonl"); // every command the stub received, with its arrival time
+const TRACE_RESPONSES = path.join(TD, "trace-responses.jsonl");
 const HOLDING = path.join(TD, "holding.flag"); // written by the stub while it is holding a response
 const RELEASE = path.join(TD, "release.flag"); // the test creates it to let a held response go
 const FAIL_FORK = path.join(TD, "fail-fork.flag"); // answer the next fork unsuccessfully
@@ -117,6 +113,7 @@ function hold(cmd, data) {
 		if (!fs.existsSync(process.env.STUB_RELEASE)) return;
 		clearInterval(tick);
 		try { fs.unlinkSync(process.env.STUB_HOLDING); } catch {}
+		try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "held-response", command: cmd.type, t: Date.now() }) + "\\n"); } catch {}
 		say({ type: "response", id: cmd.id, command: cmd.type, success: true, data: data() });
 	}, 15);
 }
@@ -135,7 +132,10 @@ const BLOCK = (id) => ({ id, type: "card", title: "X", scope: "s", fields: [{ la
 let signBlock = null;
 const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
 const sign = (b, k) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(k, b) } });
-const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+const say = (o) => {
+	try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "response", command: o.command, t: Date.now() }) + "\\n"); } catch {}
+	process.stdout.write(JSON.stringify(o) + "\\n");
+};
 setTimeout(() => say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }), 120);
 let buf = "";
 process.stdin.on("data", (c) => {
@@ -239,13 +239,13 @@ process.stdin.on("end", () => process.exit(0));
 `;
 fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
 
-const manifest = (port, cwd) => ({ port, cwd, tools: ["read"], extensions: [extStage], trust: "no-approve", title: "T" });
-fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(PA, cwdA)));
-fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(PB, cwdB)));
+const manifest = (cwd) => ({ port: 0, cwd, tools: ["read"], extensions: [extStage], trust: "no-approve", title: "T" });
+fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(cwdA)));
+fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(cwdB)));
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const A = `http://127.0.0.1:${PA}`, B = `http://127.0.0.1:${PB}`;
+let PA = 0, PB = 0, A = "", B = "";
 const D = () => `http://127.0.0.1:${DESK}`;
 const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
 const get = (base, p) => fetch(base + p).then((r) => r.json());
@@ -267,18 +267,29 @@ const setManifestSession = (n, file) => fs.writeFileSync(path.join(appsDir, `${n
 
 let server = null;
 let log = "";
-async function startServer(run, ports) {
+let firstRunPorts = [];
+const concurrentResult = path.join(TD, "concurrent-ports.json");
+const isConcurrentChild = process.argv.includes("--concurrent-fixture-child");
+const concurrentChild = isConcurrentChild ? null : spawn(process.execPath, [new URL(import.meta.url).pathname, "--concurrent-fixture-child"], {
+	env: { ...process.env, DESK_STAGEKEY_CONCURRENT_RESULT: concurrentResult },
+	stdio: "ignore",
+});
+const concurrentExit = concurrentChild ? new Promise((resolve) => concurrentChild.once("exit", resolve)) : null;
+async function startServer(run, confirmBudget = null) {
 	log = "";
 	DESK = 0; // never match the PREVIOUS run's startup line
+	const { DESK_TEST_CONFIRM_BUDGET_MS: _ambientConfirmBudget, ...parentEnv } = process.env;
 	server = spawn("node", [SERVER], {
 		env: {
-			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
+			...parentEnv, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
 			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
 			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM, STUB_LATE: LATE,
+			STUB_TRACE_RESPONSES: TRACE_RESPONSES,
 			// explicit: an outer DESK_STAGE_KEYS would beat the temporary HOME and send
 			// this test's records into the operator's own store
 			DESK_STAGE_KEYS: STORE,
+			...(confirmBudget ? { DESK_TEST_CONFIRM_BUDGET_MS: String(confirmBudget) } : {}),
 			PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
@@ -286,10 +297,23 @@ async function startServer(run, ports) {
 	server.stdout.on("data", (c) => (log += c));
 	server.stderr.on("data", (c) => (log += c));
 	for (let i = 0; i < 60; i++) {
-		// the desk prints the port it actually bound; the app listeners come up after it
+		// the desk prints its actual port and reports each app's actual bound port
 		const m = log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
 		if (m) DESK = Number(m[1]);
-		try { if (DESK) { for (const p of ports) await fetch(p + "/api/manifest"); return; } } catch { /* not up yet */ }
+		try {
+			if (DESK) {
+				const apps = await fetch(D() + "/api/apps").then((r) => r.json());
+				const byName = Object.fromEntries(apps.map(({ name, port }) => [name, port]));
+				if (Number.isInteger(byName.alpha) && Number.isInteger(byName.beta) && byName.alpha > 0 && byName.beta > 0) {
+					PA = byName.alpha; PB = byName.beta; A = `http://127.0.0.1:${PA}`; B = `http://127.0.0.1:${PB}`;
+					if (run === "1") {
+						if (process.env.DESK_STAGEKEY_CONCURRENT_RESULT) fs.writeFileSync(process.env.DESK_STAGEKEY_CONCURRENT_RESULT, JSON.stringify({ ports: [PA, PB], requested: ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port) }));
+						else firstRunPorts = [PA, PB];
+					}
+					return;
+				}
+			}
+		} catch { /* listeners are still starting */ }
 		await sleep(250);
 	}
 	throw new Error(`run ${run}: app listeners never came up: ${log}`);
@@ -322,7 +346,7 @@ const spawns = (run, cwd) => fs.readFileSync(OUT, "utf-8").trim().split("\n").ma
 
 try {
 	// ── run 1: two fresh sessions (A for alpha, B for beta), one signed block each ──
-	await startServer("1", [A, B]);
+	await startServer("1");
 	let s = await post(A, "/api/session", {}).then((r) => r.json());
 	check("run 1: alpha child spawned", s.state === "running" && s.tools === "ready", JSON.stringify(s));
 	await post(B, "/api/session", {}).then((r) => r.json());
@@ -364,7 +388,7 @@ try {
 	fs.appendFileSync(fileA, JSON.stringify({ id: "hand2", parentId: "hand1", type: "custom", customType: "nana-block", data: foreign }) + "\n");
 
 	// ── run 2: RESTART, resume A. THE REGRESSION. ──
-	await startServer("2", [A, B]);
+	await startServer("2");
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	check("run 2: alpha resumed", s.state === "running", JSON.stringify(s));
 	const run2 = spawns("2", cwdA);
@@ -385,7 +409,7 @@ try {
 	const fileA2 = path.join(path.dirname(fileA), `renamed-${path.basename(fileA)}`);
 	fs.renameSync(fileA, fileA2);
 	setManifestSession("alpha", fileA2);
-	await startServer("3", [A, B]);
+	await startServer("3");
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	// req: R-438
@@ -471,24 +495,35 @@ try {
 		blockEntries(ent.entries).every((e) => e.customType === "nana-block") && blockEntries(ent.entries).length === 1,
 		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
+	// Give the held confirmation its own generous-budget server process so incidental
+	// test and machine load cannot consume the production-sized confirmation window.
+	setManifestSession("alpha", fileZ);
+	fs.writeFileSync(TRACE_RESPONSES, "");
+	await stopServer();
+	await startServer("3-overlap", 10000);
+	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// AN OVERLAPPING LEDGER READ MUST NOT DEFEAT THE FORK. Hold the state read the
 	// desk makes right after the fork, and slip a ledger read into that window: it
 	// observes the brand-new session, and if it files it under the live child's key
-	// alone the inheritance is stranded for good. No timers: the stub says when the
-	// hold is in effect, the competing read is awaited to completion inside it, and
-	// only then is the held response released.
+	// alone the inheritance is stranded for good. The stub says when the hold is in
+	// effect, the competing read completes inside it, and only then is it released.
 	fs.rmSync(RELEASE, { force: true });
 	fs.writeFileSync(AFTER_FORK, "hold");
 	const forking = rpc(s.id, { type: "fork", entryId: "x" });
 	await until(() => fs.existsSync(HOLDING), "the fork's confirmation to be held");
 	ent = await get(A, "/api/entries"); // ← observes the new session mid-transition, and completes
+	await sleep(1100); // deliberately exceed the production default to prove this server uses the test override
 	fs.writeFileSync(RELEASE, "");
 	await forking;
 	fs.rmSync(RELEASE, { force: true });
 	const idF = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: a ledger read that lands mid-fork does not strand the inheritance",
-		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1),
-		`${JSON.stringify(keysOf(idF).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
+	const overlapTrace = fs.readFileSync(TRACE_RESPONSES, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
+	const forkResponse = overlapTrace.findIndex((e) => e.type === "response" && e.command === "fork");
+	const confirmResponse = overlapTrace.find((e, i) => i > forkResponse && e.type === "held-response" && e.command === "get_state");
+	// req: R-945
+	check("run 3: a ledger read lands mid-fork under the generous test budget and inheritance survives",
+		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1) && forkResponse >= 0 && confirmResponse?.t - overlapTrace[forkResponse].t >= 1000 && confirmResponse?.t - overlapTrace[forkResponse].t < 10000,
+		`${JSON.stringify(keysOf(idF).map((k) => k.slice(0, 8)))} confirmation=${confirmResponse?.t - overlapTrace[forkResponse]?.t}ms`);
 	ent = await get(A, "/api/entries");
 	check("run 3: ...and its inherited block verifies afterwards",
 		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block",
@@ -562,6 +597,14 @@ try {
 		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
 		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
 
+	// Restart with the production default for the delayed-answer and boundary cases,
+	// even when this test process itself carries an ambient test-only override.
+	const beforeDefaultRestart = await rpc(s.id, { type: "get_state" });
+	setManifestSession("alpha", beforeDefaultRestart?.data?.sessionFile);
+	await stopServer();
+	process.env.DESK_TEST_CONFIRM_BUDGET_MS = "10000";
+	await startServer("3-default");
+	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
 	// child does NOT sign with: if the late answer were accepted, the destination would
 	// be confirmed and seeded, and keyZ would appear in its record. The child answers
@@ -569,15 +612,13 @@ try {
 	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
 	fs.rmSync(LATE, { force: true });
 	fs.writeFileSync(AFTER_FORK, "slow:3000");
-	const t0 = Date.now();
 	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	const forkMs = Date.now() - t0;
-	check("run 3: a confirmation answered after the budget does not extend the command", r?.success === true && forkMs < 2000, `${forkMs} ms`);
 	// stay alive for the late answer, and give the desk a moment to mishandle it
 	await until(() => fs.existsSync(LATE), "the stub's late answer to go out", 8000);
 	await sleep(250);
 	const idSlow = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: ...and a late answer confirms nothing — the destination is not recorded at all",
+	// req: R-947
+	check("run 3: a late answer confirms nothing — the destination is not recorded at all",
 		recordOf(idSlow) === null, `${JSON.stringify(keysOf(idSlow).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
 
 	// the BOUNDARY: an answer timed to land exactly on the deadline. Whether the timer
@@ -591,14 +632,14 @@ try {
 	await until(() => fs.existsSync(LATE), "the boundary answer to go out", 8000);
 	await sleep(250);
 	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	// req: R-441
-	check("run 3: an answer landing ON the deadline confirms nothing either",
+	// req: R-441 R-946
+	check("run 3: a confirmation response delayed 1000 ms after request receipt confirms nothing",
 		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
 	await stopServer();
 
 	// ── run 4: RESTART, resume B — two different keys, both recorded ──
 	setManifestSession("alpha", fileB);
-	await startServer("4", [A, B]);
+	await startServer("4");
 	await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
@@ -609,7 +650,7 @@ try {
 
 	// ── run 5: resume the fork nobody ever read the ledger of ──
 	setManifestSession("alpha", fileD);
-	await startServer("5", [A, B]);
+	await startServer("5");
 	await post(A, "/api/session", {}).then((r) => r.json());
 	ent = await get(A, "/api/entries");
 	be = blockEntries(ent.entries);
@@ -790,6 +831,13 @@ try {
 	fails++;
 } finally {
 	await stopServer();
+	if (concurrentChild) {
+		const childCode = await concurrentExit;
+		const childReport = fs.existsSync(concurrentResult) ? JSON.parse(fs.readFileSync(concurrentResult, "utf-8")) : { ports: [], requested: [] };
+		const requested = ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port);
+		// req: R-949
+		check("concurrent fixture instances request port zero, bind distinct OS-assigned app ports and pass", fails === 0 && childCode === 0 && requested.every((port) => port === 0) && childReport.requested.every((port) => port === 0) && firstRunPorts.length === 2 && childReport.ports.length === 2 && new Set([...firstRunPorts, ...childReport.ports]).size === 4 && firstRunPorts.every((port) => Number.isInteger(port) && port > 0) && childReport.ports.every((port) => Number.isInteger(port) && port > 0), JSON.stringify({ childCode, parent: firstRunPorts, child: childReport }));
+	}
 	fs.rmSync(TD, { recursive: true, force: true });
 }
 console.log(fails ? `${fails} FAILED` : "all PASS");

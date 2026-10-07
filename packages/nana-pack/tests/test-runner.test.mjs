@@ -130,7 +130,7 @@ const rootA = mkRoot("A", {
 		"",
 	].join("\n"),
 	"packages/probe/tests/c-pass.test.mjs": 'console.log("probe-marker only --verbose shows this");\nconsole.log("PASS pass fixture ran");\n',
-	"packages/probe/tests/d-red.test.mjs": 'console.log("PASS the red fixture got this far");\nconsole.log("FAIL the red fixture\'s own failing check");\nprocess.exit(1);\n',
+	"packages/probe/tests/d-red.test.mjs": 'console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
 	"packages/probe/tests/e-warn.test.mjs": 'console.log("FAIL is a bare token here, not a failed check");\nconsole.log("PASS exit 0 is the verdict");\n',
 	"packages/probe/tests/f-allskip.test.mjs": 'console.log("SKIP a declared precondition is missing");\nconsole.log("SKIP and another");\n',
 	"packages/probe/tests/g-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
@@ -188,9 +188,11 @@ check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g
 check("a FAIL line from an exit-0 file is a WARN and does not flip the verdict", labelFor(A.out, "e-warn.test.mjs") === "PASS" && A.out.includes("WARN packages/probe/tests/e-warn.test.mjs: FAIL line with exit 0") && tA?.warn === 1);
 // req: R-608
 check("an exit-0 file that printed only SKIP lines is a file-level SKIP", labelFor(A.out, "f-allskip.test.mjs") === "SKIP");
-check("without --verbose a passing file's output is hidden and a failing file's FAIL tail is shown", !A.out.includes("probe-marker") && A.out.includes("| FAIL the red fixture's own failing check"));
+check("without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown", !A.out.includes("probe-marker") && A.out.includes("| FAIL diagnostic check 1"));
+// req: R-916
+check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
-check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 10 && tA.pass === 6 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 7 && tA.checks.fail === 2 && tA.checks.skip === 2 && A.code === 1);
+check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 10 && tA.pass === 6 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 7 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
 // req: R-618
 check("ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept", envJson?.handoff === "undefined" && envJson.knowledge === "undefined" && envJson.stage === "undefined" && envJson.knob === "60000" && envJson.probe_out === "true");
 // req: R-618

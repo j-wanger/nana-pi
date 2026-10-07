@@ -27,6 +27,7 @@
  * imports for session parsing (see pi-session.mjs). Node >= 22.19 (pi's floor).
  *
  * Surfaces:
+ *   GET  /api/apps                  app listener names and actual bound ports
  *   GET  /api/sessions              historical sessions from <agent dir>/sessions
  *   GET  /api/transcript?file=      parsed read-only transcript (path must resolve inside sessions dir)
  *   POST /api/pick-dir              open the NATIVE OS folder picker (Finder/Explorer/zenity); → {id}
@@ -222,6 +223,7 @@ const RPC_TIMEOUTS = {
 
 // ── RPC children ──
 const children = new Map(); // id → child record
+let appListeners = [];
 let nextId = 1;
 
 // The desk's record of which stage signing keys it issued for which pi session
@@ -784,7 +786,9 @@ const CONFIRM_WAIT_MS = 120;
 // checked before every dispatch and raced against every response. A late answer is
 // ignored and counts as unconfirmed — the RPC keeps its own timer, we just stop
 // waiting for it.
-const CONFIRM_BUDGET_MS = 1000;
+// Contract default (R-492): 1000 ms; DESK_TEST_CONFIRM_BUDGET_MS is a test-only override for overlap fixtures.
+const testConfirmBudget = Number(process.env.DESK_TEST_CONFIRM_BUDGET_MS);
+const CONFIRM_BUDGET_MS = Number.isFinite(testConfirmBudget) && testConfirmBudget > 0 ? testConfirmBudget : 1000;
 
 function withinBudget(p, deadline) {
 	let timer = null;
@@ -2102,6 +2106,7 @@ const server = http.createServer(async (req, res) => {
 			if (bad) return json(res, 403, { error: bad });
 		}
 		if (req.method === "GET" && !p.startsWith("/api/") && serveStatic(res, p)) return;
+		if (p === "/api/apps" && req.method === "GET") return json(res, 200, appListeners.map(({ app, server: listener }) => ({ name: app.manifest.name, port: listener.address()?.port ?? null })));
 		if (p === "/api/sessions" && req.method === "GET") return json(res, 200, listSessions());
 		if (p === "/api/transcript" && req.method === "GET") {
 			const real = assertInsideSessions(url.searchParams.get("file") || "");
@@ -2456,7 +2461,7 @@ server.listen(PORT, "127.0.0.1", () => {
 // ── app listeners: one origin per app manifest (apps.mjs) ──
 const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "agent", "apps");
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-startAppListeners({
+appListeners = startAppListeners({
 	manifests: loadManifests(APPS_DIR),
 	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession, killTree },
 	dirs: {
