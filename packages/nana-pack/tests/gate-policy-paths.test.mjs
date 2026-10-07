@@ -28,6 +28,7 @@ let fails = 0;
 const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name, extra); if (!ok) fails++; };
 const decide = async (toolName, p) => (await handler({ toolName, input: { path: p } }, ctx))?.block ? "BLOCK" : "ALLOW";
 const decideCommand = async (command) => (await handler({ toolName: "bash", input: { command } }, ctx))?.block ? "BLOCK" : "ALLOW";
+const decideAt = async (toolName, input, cwd) => (await handler({ toolName, input }, { ...ctx, cwd }))?.block ? "BLOCK" : "ALLOW";
 
 // Traversal and normalization forms: the gate must check the RESOLVED path, because
 // every one of these opens a policy file (sol L1 r3 found them ALLOW on raw-string regexes).
@@ -64,6 +65,20 @@ check("active and default pi code-loading resources are policy floor", BLOCK.inc
 check("extension walk cap is sealed at 2048 entries", gatePaths.EXTENSION_WALK_ENTRY_CAP === 2048);
 // req: R-631
 check("project policy matches require a real .pi path segment", (await decide("edit", "/tmp/proj/project.foo.pi/extensions/x.ts")) === "ALLOW" && (await decide("edit", "/tmp/proj/project.foo.pi/settings.json")) === "ALLOW");
+{
+	const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-session-"));
+	const externalDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-external-extension-"));
+	const target = path.join(externalDir, "target.ts");
+	fs.mkdirSync(path.join(sessionDir, ".pi"), { recursive: true });
+	fs.mkdirSync(path.join(sessionDir, ".pi", "extensions"), { recursive: true });
+	fs.writeFileSync(target, "export {};");
+	fs.rmSync(path.join(sessionDir, ".pi", "extensions"), { recursive: true });
+	fs.symlinkSync(externalDir, path.join(sessionDir, ".pi", "extensions"), "dir");
+	// req: R-631
+	check("project extension symlink target blocks edit, write, and shell with a distinct session cwd", (await decideAt("edit", { path: target }, sessionDir)) === "BLOCK" && (await decideAt("write", { path: target }, sessionDir)) === "BLOCK" && (await decideAt("bash", { command: `printf x > ${target}` }, sessionDir)) === "BLOCK");
+	fs.rmSync(sessionDir, { recursive: true, force: true });
+	fs.rmSync(externalDir, { recursive: true, force: true });
+}
 {
 	const agentExtensions = path.join(NANA_HOME, ".pi", "agent", "extensions");
 	const targetDir = path.join(NANA_HOME, "external-extension-target");
@@ -103,7 +118,7 @@ const beyondTarget = path.join(NANA_HOME, "target-beyond-cap.ts");
 fs.writeFileSync(beyondTarget, "export {};");
 fs.symlinkSync(beyondTarget, path.join(RELOCATED, "extensions", "zz-link"));
 // req: R-639
-check("extension symlink walk floors resolved root and fails closed at the cap", (await decide("edit", beyondTarget)) === "BLOCK" && (await decide("edit", path.join(NANA_HOME, "unrelated-after-cap.ts"))) === "BLOCK");
+check("extension symlink walk floors resolved root and fails closed at the cap", (await decide("edit", beyondTarget)) === "BLOCK" && (await decide("edit", path.join(NANA_HOME, "unrelated-after-cap.ts"))) === "BLOCK" && (await decideCommand("printf x > target.ts")) === "BLOCK");
 delete process.env.PI_CODING_AGENT_DIR;
 // A path that only LOOKS like a policy file after resolution must still be allowed.
 for (const p of ["/tmp/proj/notes/.pi-nana-pack.json", "/tmp/proj/.pineapple/nana-pack.json.md"])

@@ -154,28 +154,38 @@ function extensionSymlinkFloors(dir: string): { prefixes: string[]; overflow: bo
 	return { prefixes, overflow };
 }
 
+type ExtensionWalk = { floors: string[]; overflow: string | null };
+
+function extensionWalk(cwd: string): ExtensionWalk {
+	const dirs = [...new Set([
+		path.join(piAgentDir(), "extensions"),
+		path.join(os.homedir(), ".pi", "agent", "extensions"),
+		path.join(cwd, ".pi", "extensions"),
+	])];
+	const floors: string[] = [];
+	for (const dir of dirs) {
+		const scan = extensionSymlinkFloors(dir);
+		floors.push(...scan.prefixes);
+		if (scan.overflow) return { floors, overflow: `${dir} (extension walk limit reached; gate call coverage incomplete)` };
+	}
+	return { floors, overflow: null };
+}
+
+function policyFileHitWithWalk(candidates: string[], walk: ExtensionWalk): string | null {
+	for (const c of candidates) if (POLICY_RES.some((re) => re.test(c))) return c;
+	if (walk.overflow) return walk.overflow;
+	const alt = [...activeDirPolicyFiles(), ...walk.floors];
+	for (const c of candidates) {
+		const candidate = key(c);
+		if (alt.some((p) => p.endsWith("/") ? candidate.startsWith(p) : candidate === p || candidate.startsWith(`${p}/`))) return c;
+	}
+	return null;
+}
+
 /** The policy file a set of path candidates lands on, or null. */
 export function policyFileHit(candidates: string[], cwd = process.cwd()): string | null {
 	try {
-		for (const c of candidates) if (POLICY_RES.some((re) => re.test(c))) return c;
-		const dirs = [...new Set([
-			path.join(piAgentDir(), "extensions"),
-			path.join(os.homedir(), ".pi", "agent", "extensions"),
-			path.join(cwd, ".pi", "extensions"),
-		])];
-		const extensionFloors: string[] = [];
-		for (const dir of dirs) {
-			const scan = extensionSymlinkFloors(dir);
-			extensionFloors.push(...scan.prefixes);
-			// Incomplete target coverage must fail closed for every gated path in this call.
-			if (scan.overflow) return `${dir} (extension walk limit reached; gate call coverage incomplete)`;
-		}
-		const alt = [...activeDirPolicyFiles(), ...extensionFloors];
-		for (const c of candidates) {
-			const candidate = key(c);
-			if (alt.some((p) => p.endsWith("/") ? candidate.startsWith(p) : candidate === p || candidate.startsWith(`${p}/`))) return c;
-		}
-		return null;
+		return policyFileHitWithWalk(candidates, extensionWalk(cwd));
 	} catch {
 		return null;
 	}
@@ -200,9 +210,11 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 			.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
 		const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
 		if (direct) return String(direct);
+		const walk = extensionWalk(cwd);
+		if (walk.overflow) return walk.overflow;
 		for (const w of text.split(/[\s;|&<>()=,`]+/)) {
 			if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
-			const hit = policyFileHit(pathCandidates(w, cwd));
+			const hit = policyFileHitWithWalk(pathCandidates(w, cwd), walk);
 			if (hit) return hit;
 		}
 		return null;
