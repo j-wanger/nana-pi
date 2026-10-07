@@ -27,7 +27,7 @@ import { admit, complete, release, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
-const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
+const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv);
 if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
@@ -47,8 +47,18 @@ process.stderr.write(`pi-review: ${adm.note}\n`);
 if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
 const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
-const r = await runWatchdog('pi-review', { ...w, accept: reviewShaped });
-stopHeartbeat();
+let r;
+try { r = await runWatchdog('pi-review', { ...w, accept: reviewShaped }); }
+finally {
+  stopHeartbeat();
+  if (!r?.ok) release(adm.id);
+}
+if (r.signal) {
+  release(adm.id);
+  const code = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1;
+  process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
+  process.exit(code);
+}
 if (r.ok) {
   writeFileSync(w.outPath, r.text);
   const c = complete(adm.res, w.outPath); // a completed verdict: the ONLY thing that earns a round

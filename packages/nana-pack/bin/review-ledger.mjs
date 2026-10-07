@@ -55,7 +55,7 @@ const out = adm.res.out;
 const stopHeartbeat = startHeartbeat(adm.res);
 const r = await new Promise((done) => {
   const chunks = [];
-  const k = spawn(child[0], child.slice(1), { stdio: ['inherit', 'pipe', 'inherit'] });
+  const k = spawn(child[0], child.slice(1), { cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'] });
   k.stdout.on('data', (c) => chunks.push(c));
   k.on('error', (error) => done({ status: null, error, stdout: Buffer.concat(chunks).toString('utf8') }));
   k.on('close', (status, signal) => done({ status, signal, stdout: Buffer.concat(chunks).toString('utf8') }));

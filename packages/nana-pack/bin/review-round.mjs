@@ -2,15 +2,15 @@
  * @module packages/nana-pack/bin/review-round.mjs
  * @purpose The review round ledger — admit, project, complete and release one per-item review round under a
  *  user-scope lock.
- * @inputs a launcher's own argv (--item, --revision, --role, --out, --over-cap), the reviewed tree's git
- *  state (common dir, HEAD, tracked and non-ignored untracked content), env NANA_REVIEW_RES_STALE_MS, and
+ * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git
+ *  state (common dir, HEAD, tracked and non-ignored untracked content), stdout/stderr file identities, env NANA_REVIEW_RES_STALE_MS, and
  *  the ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
  *  tally, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, and the projected round number
  * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the never-rotated tally
  *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
- *  character; admit / project / complete return {ok:false, message} for a missing --item, an over-cap
+ *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap
  *  revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
  *  a lost reservation
  */
@@ -30,8 +30,8 @@
 //
 // Rules:
 //  - ITEM = {repo, slug}. The slug is canonicalized (canonicalItem); repo = realpath of the git
-//    COMMON dir, so every worktree of one repository shares an item and the same slug in an
-//    unrelated repository does not. Outside git, repo = "path:" + realpath(cwd).
+//    COMMON dir of --tree (default: launcher cwd), so every worktree of one repository shares an item.
+//    A non-git reviewed tree is refused; legacy path: ledger records remain readable.
 //  - A ROUND is a distinct REVISION reviewed for the item. Revision = the reviewed tree's git HEAD
 //    (full sha) when the working tree's CONTENT equals HEAD's; otherwise
 //    "<sha>+snap:<full sha256 of the working-state snapshot>" (T2b fix r3, sol r2 #11 — see
@@ -151,15 +151,16 @@ function gitOut(cwd, args, { okStatus = [0] } = {}) {
  *  absolute paths left out of the snapshot (the review's own --out file). Throws on a git failure
  *  other than "not a git repository". */
 export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
-  const r = gitOut(cwd, ['rev-parse', '--git-common-dir', '--show-toplevel'], { okStatus: [0, 128] });
+  const tree = resolve(cwd);
+  const r = gitOut(tree, ['rev-parse', '--git-common-dir', '--show-toplevel'], { okStatus: [0, 128] });
   if (r.status !== 0) {
-    if (/not a git repository/i.test(r.stderr)) return { repo: `path:${realpathSync(cwd)}`, inGit: false, head: null, snapshot: null };
-    throw new Error(`git rev-parse failed in ${cwd}: ${r.stderr.trim().split('\n')[0]} — admission refused`);
+    if (/not a git repository/i.test(r.stderr)) throw new Error('run from the reviewed tree or pass --tree <path inside it>');
+    throw new Error(`git rev-parse failed in ${tree}: ${r.stderr.trim().split('\n')[0]} — admission refused`);
   }
   const [common, top] = r.stdout.trim().split('\n');
   const root = realpathSync(top);
   const { head, snapshot } = workingState(root, exclude);
-  return { repo: `git:${realpathSync(resolve(cwd, common))}`, inGit: true, root, head, snapshot };
+  return { repo: `git:${realpathSync(resolve(tree, common))}`, inGit: true, root, head, snapshot };
 }
 
 function headOf(root) {
@@ -421,6 +422,8 @@ function parseReview(args, cwd) {
       '(same watchdog, records nothing, see README)');
   }
   const rawItem = optValue(args, '--item');
+  const treeArg = optValue(args, '--tree');
+  const tree = resolve(cwd, treeArg ?? '.');
   const revArg = optValue(args, '--revision');
   const role = optValue(args, '--role') ?? 'reviewer';
   const overCap = optValue(args, '--over-cap');
@@ -429,13 +432,36 @@ function parseReview(args, cwd) {
   const item = canonicalItem(rawItem);
   const outAbs = out ? resolve(cwd, out) : null;
   const exclude = out ? [realOut(outAbs)] : []; // the review's own output (where the write LANDS) is not the reviewed work
-  const revision = deriveRevision(revArg, cwd, exclude);
+  const revision = deriveRevision(revArg, tree, exclude);
   const warning = out ? outInTree(revision.root, outAbs) : null; // throws on a tracked --out, symlinked or not
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: resolve(cwd), revArg, exclude, warning };
+  const redirect = inTreeRedirect(revision.root);
+  if (redirect) throw new Error(`redirect the review log outside the reviewed tree (${redirect})`);
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: revision.root, revArg, exclude, warning };
 }
-function deriveRevision(revArg, cwd, exclude) {
-  const scope = treeScope(cwd, { exclude });
-  return { repo: scope.repo, root: scope.root, id: resolveRevision(revArg, scope, cwd) };
+function deriveRevision(revArg, tree, exclude) {
+  const scope = treeScope(tree, { exclude });
+  return { repo: scope.repo, root: scope.root, id: resolveRevision(revArg, scope, scope.root) };
+}
+
+/** Refuse stdout/stderr regular files that alias non-ignored paths in the reviewed tree. */
+export function inTreeRedirect(root, fds = [1, 2]) {
+  const identities = [];
+  for (const fd of fds) {
+    try {
+      const st = fstatSync(fd);
+      if (st.isFile() && Number.isFinite(st.dev) && Number.isFinite(st.ino)) identities.push({ dev: st.dev, ino: st.ino });
+    } catch { /* a closed descriptor is a no-op */ }
+  }
+  if (!identities.length) return null;
+  const listed = nulList(gitOut(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']).stdout);
+  for (const relPath of listed) {
+    const full = join(root, relPath);
+    let st;
+    try { st = lstatSync(full); } catch { continue; }
+    if (!st.isFile() || !Number.isFinite(st.dev) || !Number.isFinite(st.ino)) continue;
+    if (identities.some((id) => id.dev === st.dev && id.ino === st.ino)) return relPath;
+  }
+  return null;
 }
 
 /** --out inside the reviewed tree (sol r3 ruling). The output is excluded from the snapshot, so:

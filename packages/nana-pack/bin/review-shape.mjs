@@ -2,7 +2,7 @@
  * @module packages/nana-pack/bin/review-shape.mjs
  * @purpose Decide whether produced output is review-shaped.
  * @inputs the candidate review text
- * @outputs true when the text carries a VERDICT, LAND, FAIL, finding or BLOCKING token
+ * @outputs true when a physical line begins with optional non-word characters followed by case-sensitive VERDICT
  * @effects none
  * @errors none
  */
@@ -12,5 +12,5 @@
 
 /** A review-shaped token in the output. */
 export function reviewShaped(text) {
-  return /\b(VERDICT|LAND|FAIL|finding|BLOCKING)\b/i.test(text);
+  return /^[^\w\r\n]*VERDICT\b/m.test(text);
 }

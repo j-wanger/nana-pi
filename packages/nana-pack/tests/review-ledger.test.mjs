@@ -28,7 +28,7 @@ for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
 // the stub `pi`: STUB=verdict prints a verdict; fail = infra failure; stall = 0-CPU hang;
 // plain = an ordinary worker reply with NO review token, counting its invocations in $COUNT
 fs.writeFileSync(path.join(stubs, "pi"),
-	'#!/bin/sh\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; *) echo "VERDICT: LAND";; esac\n');
+	'#!/bin/sh\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; sleeper) echo $$ > "$CHILD_PID"; exec sleep 30;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; plain-review) printf "%s" "$STUB_TEXT";; *) echo "VERDICT: LAND";; esac\n');
 fs.chmodSync(path.join(stubs, "pi"), 0o755);
 
 let home, agent, tallyFile, auditFile, resDir;
@@ -69,9 +69,9 @@ fs.mkdirSync(plain);
 
 let n = 0;
 const out = () => path.join(outs, `o${++n}.md`);
-const piReview = (args, { stub = "verdict", cwd = A.d } = {}) =>
+const piReview = (args, { stub = "verdict", cwd = A.d, extra = "" } = {}) =>
 	spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--retries", "0", ...args, "--", "-p", "x"],
-		{ cwd, env: env({ STUB: stub }), encoding: "utf8", timeout: 30000 });
+		{ cwd, env: env({ STUB: stub, STUB_TEXT: extra }), encoding: "utf8", timeout: 30000 });
 const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND')"];
 const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
 	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
@@ -90,7 +90,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		w.every((x) => x.status === 1 && /--worker was removed/.test(x.stderr) && !/attempt 1/.test(x.stderr)), w[0].stderr);
 	const nr = piReview(["--item", "no-rev", "--out", out()], { cwd: plain });
 	// req: R-712
-	check("no git HEAD and no --revision → refused", nr.status === 1 && /pass --revision/.test(nr.stderr), nr.stderr);
+	check("outside git without --tree → refused", nr.status === 1 && /run from the reviewed tree or pass --tree/.test(nr.stderr), nr.stderr);
 	const wk = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--retries", "1", "--out", path.join(outs, "wp.md"), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8", timeout: 30000 });
 	// req: R-732
 	check("pi-worker runs a worker under the watchdog (exit 0, output written)", wk.status === 0 && /VERDICT/.test(fs.readFileSync(path.join(outs, "wp.md"), "utf8")), wk.stderr);
@@ -178,12 +178,64 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const w4 = ledgerRun(["--item", "wt"], { cwd: W });
 	// req: R-705
 	check("worktree W2 at a 4th revision: refused (the item is shared)", w4.status === 1 && /over the cap/.test(w4.stderr), w4.stderr);
-	// outside git: --revision is the fallback, scoped to the directory
-	check("outside git, --revision abc accepted", ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 0);
-	check("outside git, the tally scope is path:<dir>", roundsOf("plain")[0]?.repo === `path:${plain}`);
+	// req: R-624 R-712
+	check("outside git refuses admission unless --tree names a reviewed repository",
+		ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 1 &&
+		/run from the reviewed tree or pass --tree/.test(ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).stderr));
+	const scratch = path.join(tmp, "scratch"); fs.mkdirSync(scratch);
+	const viaTreeOut = out();
+	const viaTree = ledgerRun(["--item", "tree-scope", "--tree", A.d], { cwd: scratch,
+		cmd: [process.execPath, "-e", "console.log('VERDICT: '+process.cwd())"], outFile: viaTreeOut });
+	// req: R-621 R-705
+	check("scratch launcher cwd with --tree uses the reviewed repository scope",
+		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
+		fs.readFileSync(viaTreeOut, "utf8").trim() === `VERDICT: ${A.d}`, viaTree.stderr);
+	const legacy = { v: 1, kind: "round", repo: "path:/legacy/scratch", item: "legacy", revision: "old-revision" };
+	fs.mkdirSync(agent, { recursive: true }); fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
+	// req: R-622
+	check("legacy path-keyed tally rows remain readable", ledgerCheck(["--item", "legacy"], A.d).status === 0 &&
+		jsonl(tallyFile).some((r) => r.repo === legacy.repo && r.item === legacy.item && r.revision === legacy.revision));
 }
 
-// 4. stalls and infra failures consume nothing
+// 4. regular stdout/stderr redirection into either tracked or untracked reviewed files refuses admission
+{
+	freshHome("redirect");
+	let redirectsRefused = true;
+	for (const [kind, target, stdioSlot] of [["tracked stdout", path.join(A.d, "f"), 1], ["untracked stderr", path.join(A.d, "redirect.log"), 2]]) {
+		if (kind.includes("untracked")) fs.writeFileSync(target, "untouched");
+		const before = fs.readFileSync(target);
+		const fd = fs.openSync(target, "r+");
+		const stdio = ["ignore", "pipe", "pipe"]; stdio[stdioSlot] = fd;
+		const r = spawnSync(process.execPath, [PI_REVIEW, "--item", `redirect-${kind}`, "--out", out(), "--", "-p", "x"],
+			{ cwd: A.d, env: env({ STUB: "verdict" }), encoding: "utf8", stdio });
+		fs.closeSync(fd);
+		const msg = stdioSlot === 2 ? fs.readFileSync(target, "utf8") : (r.stderr || "");
+		redirectsRefused &&= r.status === 1 && msg.includes(`redirect the review log outside the reviewed tree (${path.basename(target)})`) &&
+			(stdioSlot === 2 || fs.readFileSync(target).equals(before));
+	}
+	// req: R-620
+	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused", redirectsRefused);
+}
+
+// 5. reject incomplete review-shaped outputs through both launch paths
+{
+	freshHome("shape");
+	const probes = ["I am still finding the relevant files; will continue.", "Context limit reached before I could land on a verdict."];
+	let piRejected = true, ledgerRejected = true;
+	for (const [i, text] of probes.entries()) {
+		const pi = piReview(["--item", `shape-pi-${i}`, "--out", out()], { stub: "plain-review", cwd: A.d, extra: text });
+		piRejected &&= pi.status === 1 && /FAILED/.test(pi.stderr);
+		const via = ledgerRun(["--item", `shape-ledger-${i}`], { cwd: A.d,
+			cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
+		ledgerRejected &&= via.status === 1 && /no verdict/.test(via.stderr);
+	}
+	// req: R-701
+	check("pi-review rejects incomplete output without a line-start verdict", piRejected);
+	// req: R-701
+	check("review-ledger rejects incomplete output without a line-start verdict", ledgerRejected);
+}
+
+// 6. stalls and infra failures consume nothing
 {
 	freshHome("4");
 	A.at(0);
@@ -245,7 +297,30 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("the crashed attempt consumed no round (3 rounds)", roundsOf("crash").length === 3);
 }
 
-// 7. reservation ownership (sol r1 #6): an expired-then-replaced reservation is not completable
+// 7. termination signals kill and reap both wrapper children; reviews release reservations
+if (process.platform !== "win32") {
+	let signalsCleaned = true;
+	for (const [launcher, sig, expected] of [["review", "SIGINT", 130], ["review", "SIGTERM", 143], ["review", "SIGHUP", 129], ["worker", "SIGINT", 130], ["worker", "SIGTERM", 143], ["worker", "SIGHUP", 129]]) {
+		freshHome(`signal-${launcher}-${sig}`);
+		const childPidFile = path.join(tmp, `signal-${launcher}-${sig}.pid`);
+		const script = launcher === "review" ? PI_REVIEW : PI_WORKER;
+		const args = launcher === "review" ? ["--item", "signal", "--out", out()] : ["--out", out()];
+		const k = spawn(process.execPath, [script, ...args, "--poll", "1", "--stall-secs", "20", "--retries", "0", "--", "-p", "x"],
+			{ cwd: A.d, env: env({ STUB: "sleeper", CHILD_PID: childPidFile }), stdio: ["ignore", "ignore", "pipe"] });
+		let stderr = ""; k.stderr.on("data", (d) => { stderr += d; });
+		for (let i = 0; i < 200 && !fs.existsSync(childPidFile); i++) await new Promise((r) => setTimeout(r, 25));
+		const childPid = Number(fs.readFileSync(childPidFile, "utf8").trim());
+		process.kill(k.pid, sig);
+		const code = await new Promise((r) => k.once("exit", r));
+		let alive = true; try { process.kill(childPid, 0); } catch { alive = false; }
+		const reservationReleased = launcher !== "review" || fs.readdirSync(resDir).length === 0;
+		signalsCleaned &&= code === expected && !alive && reservationReleased;
+	}
+	// req: R-623
+	check("watchdog signals reap children, release review reservations and preserve signal exit codes", signalsCleaned);
+}
+
+// 8. reservation ownership (sol r1 #6): an expired-then-replaced reservation is not completable
 {
 	freshHome("7");
 	for (const i of [0, 1]) reviewAt("exp", i);
