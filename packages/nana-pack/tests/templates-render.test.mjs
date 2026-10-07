@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 //     command `--check` is green.
 // Needs `uvx copier`; without it every row SKIPs. Temp HOME.
 // Run: node --experimental-strip-types <this file>
+const { desiredHooks } = await import(new URL("../../nana-setup/lib/settings.mjs", import.meta.url).href);
 const NANA_HOME = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-")));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
@@ -203,6 +204,35 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 }
 checkAgentsMdMirrorsWorkingUnderNanaPi();
 
+const RUNTIME_INVENTORY_TEXT = {
+	"nana-objective.sh": "nana-objective.sh",
+	"nana-adoption.sh": "nana-adoption.sh",
+	"nana-shared-memory.sh": "nana-shared-memory.sh",
+	"context-size-check.sh": "context-size-check.sh",
+	"nana-knowledge.ts hook": "nana-knowledge.ts hook",
+	"nana-objective": "`nana-objective`",
+	"nana-writing": "`nana-writing`",
+	"nana-notify": "`nana-notify`",
+	"nana-lifecycle": "`nana-lifecycle`",
+	"nana-gate": "`nana-gate`",
+	"nana-post-edit": "`nana-post-edit`",
+	"nana-handoff": "`nana-handoff`",
+	"nana-knowledge": "`nana-knowledge`",
+};
+
+function runtimeInventory() {
+	const hooks = desiredHooks({ hooksDir: "/hooks", repoRoot: REPO }).map(({ marker }) => marker);
+	const extensions = ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"]
+		.flatMap((directory) => fs.readdirSync(path.join(REPO, directory), { withFileTypes: true })
+			.filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+			.map((entry) => path.basename(entry.name, ".ts")));
+	return [...hooks, ...extensions];
+}
+
+function runtimeInventoryDocumented(inventory, matrix) {
+	return inventory.every((item) => RUNTIME_INVENTORY_TEXT[item] && matrix.includes(RUNTIME_INVENTORY_TEXT[item]));
+}
+
 function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
@@ -210,26 +240,33 @@ function checkInstructionContracts() {
 	const support = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8").match(/^Support:.*$/m)?.[0]);
 	// req: R-680
-	check("shared runtime matrix declares four runtime surfaces and all nine capabilities",
+	check("shared runtime matrix declares four runtime surfaces, nine capabilities, and the discovered source inventory",
+		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart hook | Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit knowledge hook | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
-			"| pi TUI or desk session | nana-objective extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | nana-writing extension | nana-knowledge `before_agent_start` extension | nana-pack gate | Configured checks, if any | nana-handoff extension on compaction | nana-notify extension |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | nana-objective extension | No shared auto-memory | Neither rule | nana-writing extension | nana-knowledge extension | nana-pack gate | Configured checks, if any | Disabled by `NANA_HANDOFF=off` | nana-notify extension |",
+			"| Claude Code seat | SessionStart `nana-objective.sh` and `nana-adoption.sh` hooks | `nana-shared-memory.sh` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `context-size-check.sh` and `nana-knowledge.ts hook` | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
+			"| pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | `nana-knowledge` extension | `nana-gate` extension | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
 		].every((v) => shared.includes(v)));
 
+	const startup = "At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.";
+	const rootStartup = "Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
 	// req: R-681
-	check("startup guidance is lean and points to row lookup", /At startup, read `HANDOFF\.md`, look up affected `REQUIREMENTS\.md` rows by ID/.test(shared) && /landscape doc only for pi API questions/.test(shared) && /landscape document only for pi API questions/.test(fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8")));
+	check("startup guidance is exact and rejects whole-requirements startup instructions", shared.includes(startup) && fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8").includes(rootStartup) && !/startup[^\n]*(?:read|open)[^\n]*(?:whole|entire) `?REQUIREMENTS\.md`?/i.test(`${shared}\n${fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8")}`));
 	// req: R-682
 	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to Jake on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
 	// req: R-683
-	check("shared working pattern names defaults and local overrides", ["~/nana-pi-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "Local overrides"].every((v) => shared.includes(v)));
+	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "Local overrides"].every((v) => shared.includes(v)));
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? ""));
 	// req: R-685
-	check("desk README distinguishes spawn surfaces and gives terminal trust steps", ["Default desk spawn", "Narrowed desk spawn", "App child", "TUI-only", "run `/trust`"].every((v) => desk.includes(v)));
+	check("desk matrix states nana resources for every spawn class and the terminal trust step",
+		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&
+		desk.includes("Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify) is available only if its extension is in the checked set.") &&
+		desk.includes("Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, or notify unless a manifest explicitly lists the relevant extension.") &&
+		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 }
 checkInstructionContracts();
 

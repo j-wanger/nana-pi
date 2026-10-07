@@ -124,9 +124,9 @@ ports, so they are run by hand, one at a time (`node apps/desk/test/<name>.e2e.m
 
 | Surface | Resources and behavior | Trust step |
 |---|---|---|
-| Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. | Project trust follows pi's saved decision or the spawn approval choice.
-| Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. | The one-run trust box is not a saved decision.
-| App child | Only manifest-listed skills and extensions are loaded; app children do not inherit nana-pack unless the manifest names its extensions. | `/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session.
+| Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded. | Project trust follows pi's saved decision or the spawn approval choice.
+| Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify) is available only if its extension is in the checked set. | The one-run trust box is not a saved decision.
+| App child | Only manifest-listed skills and extensions are loaded. Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, or notify unless a manifest explicitly lists the relevant extension. | `/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session.
 
 ## What it does (TUI parity map)
 

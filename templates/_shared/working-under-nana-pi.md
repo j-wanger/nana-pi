@@ -4,9 +4,9 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
 
 | Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule | Knowledge pull | Gate | Post-edit | Compaction summary | Notify |
 |---|---|---|---|---|---|---|---|---|---|
-| Claude Code seat | SessionStart hook | Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit knowledge hook | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |
-| pi TUI or desk session | nana-objective extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | nana-writing extension | nana-knowledge `before_agent_start` extension | nana-pack gate | Configured checks, if any | nana-handoff extension on compaction | nana-notify extension |
-| pi reviewer/worker child (`NANA_HANDOFF=off`) | nana-objective extension | No shared auto-memory | Neither rule | nana-writing extension | nana-knowledge extension | nana-pack gate | Configured checks, if any | Disabled by `NANA_HANDOFF=off` | nana-notify extension |
+| Claude Code seat | SessionStart `nana-objective.sh` and `nana-adoption.sh` hooks | `nana-shared-memory.sh` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `context-size-check.sh` and `nana-knowledge.ts hook` | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |
+| pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension |
+| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | `nana-knowledge` extension | `nana-gate` extension | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension |
 | Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |
 
 pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code has its own knowledge hook.
@@ -21,7 +21,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 
 ### Working pattern
 
-- Default worktree root: `~/nana-pi-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
+- Default worktree root: `~/<repo>-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
 - Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker`; reviewer launcher: `pi-review`.
 - Review ladder: package reviewer, then land reviewer when blast radius warrants both. Maximum three rounds per item; a different model lineage reviews the work.
 - Land checklist: resolve review findings or record residuals at point of use; run map, README, and locked full-suite checks; commit explicit paths and report evidence.
