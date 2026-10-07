@@ -8,13 +8,14 @@
  */
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
+import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite");
 const { diagnose, knowledgeIndexState } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
-const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-db-"));
+const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-db-"));
 const layout = resolveLayout({ home });
 fs.mkdirSync(layout.knowledgeHome, { recursive: true });
 const dbPath = path.join(layout.knowledgeHome, "index.db");

@@ -8,6 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -15,7 +16,7 @@ const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { decideTrust } = await import("../lib/trust-decision.mjs");
 const { spawnNpmRoot } = await import("../lib/npm-root.mjs");
-const root = fs.mkdtempSync(path.join(os.tmpdir(), "nana-trust-test-"));
+const root = tmpDir(path.join(os.tmpdir(), "nana-trust-test-"));
 const home = path.join(root, "home");
 const dir = path.join(root, "project");
 fs.mkdirSync(dir, { recursive: true });

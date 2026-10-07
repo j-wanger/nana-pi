@@ -7,12 +7,13 @@
  * @errors a failed assertion prints FAIL and exits nonzero.
  */
 import * as fs from "node:fs";
+import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-trust-"));
+const root = tmpDir(path.join(os.tmpdir(), "nana-doctor-trust-"));
 const projectDir = path.join(root, "project");
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(projectDir, ".pi"), { recursive: true });

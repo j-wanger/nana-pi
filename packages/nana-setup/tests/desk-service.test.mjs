@@ -77,7 +77,7 @@ const plist = path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist
 run(["install", "--home", home]);
 check("no --desk: no plist is written", !fs.existsSync(plist));
 
-const nodeLinkDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-node-link-"));
+const nodeLinkDir = tmpDir(path.join(os.tmpdir(), "nana-desk-node-link-"));
 tmps.push(nodeLinkDir);
 const visibleNode = path.join(nodeLinkDir, "node");
 fs.symlinkSync(process.execPath, visibleNode);
@@ -257,7 +257,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* unload race and error-5 retry: fake launchctl stays loaded for N print probes. */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-unload-race-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-unload-race-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -280,7 +280,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* Error 5 is classified by status even when launchctl emits no text. */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-status-only-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-status-only-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -295,7 +295,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* A job that never becomes absent is bounded and not bootstrapped. */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-unload-timeout-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-unload-timeout-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -309,7 +309,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* A single hung print probe must not escape the sealed unload deadline. */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-hung-print-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-hung-print-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });

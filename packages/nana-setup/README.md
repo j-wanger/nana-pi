@@ -159,8 +159,8 @@ seeded `OBJECTIVE.md` (fill the date; the DRAFT lines are yours), then run
 installer WRITES is `lstat`, not `existsSync`: a **dangling** symlink reads as absent to
 `existsSync`, and seeding "the missing file" would write straight through the link to whatever it
 names. (The two steps that only ask whether something OTHER than a seed exists — the knowledge
-index and the desk server file — and `doctor`'s presence rows for the memory index, the objective
-file and the knowledge index, use `existsSync`: nothing is written through those paths.) A symlink of any kind, or a
+index and the desk server file — and `doctor`'s presence rows for the memory index and the objective
+file use `existsSync`; doctor's knowledge row opens the index read-only: nothing is written through those paths.) A symlink of any kind, or a
 directory, at a seed path is reported `skipped` naming what was found, and nothing is written
 through it.
 

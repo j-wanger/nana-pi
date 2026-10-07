@@ -8,6 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 const repo = path.resolve(new URL("../../..", import.meta.url).pathname);
@@ -34,7 +35,7 @@ check("scaffold-ts completion list entries 1 and 2 are ratification and trust", 
 check("adopt-py completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-py"), "First two steps:")));
 // req: R-676
 check("adopt-ts completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-ts"), "First two steps:")));
-const root = fs.mkdtempSync(path.join(os.tmpdir(), "nana-guidance-"));
+const root = tmpDir(path.join(os.tmpdir(), "nana-guidance-"));
 const dir = path.join(root, "project");
 fs.mkdirSync(dir);
 const cli = path.join(repo, "packages/nana-setup/bin/nana-setup.mjs");
