@@ -1,12 +1,11 @@
 # nana-setup
 
-One command that makes this repo own the **whole** nana experience, not just the pi half.
+One command that installs nana setup surfaces outside pi.
 
 `pi install` brings the pi extensions, skills and templates. Everything else used to be
 hand-maintained dotfiles on one Mac: the Claude Code hooks and rules, the settings wiring, the
 two-tier auto-memory, the user-scope pi config, the `pi-review` entry on PATH, and the desk
-service. `nana-setup` installs all of that from the repo, and `nana-setup doctor` says, line by
-line, whether a machine actually has it.
+service. `nana-setup` installs the supported surfaces from the repo, and `nana-setup doctor` reports their state.
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs install      # install / repair everything
@@ -290,15 +289,9 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` �
 
 ## Platforms
 
-macOS and Linux install everything except the desk service (launchd is macOS-only). On **win32**
-every posix-only step reports `skipped (win32)` instead of failing: the three bash hooks and
-their settings entries, the `~/.local/bin` symlink and the desk service. The rules are installed
-as copies there (no usable symlink — with the same backup guarantee as everywhere else), the skill is
-mirrored in file by file through that same copy path (a hand-written `../nana-pack/skills/requirements/SKILL.md` copy is backed up beside
-itself as a `.bak-<date>` FILE, never a second skill directory; files you added are left alone, and
-`doctor` reads ✗ naming any file whose copy has gone stale), and the knowledge hook is wired without the
-`NODE_NO_WARNINGS=1` prefix, which `cmd.exe` cannot run. `doctor` marks those lines `·` and does
-not fail on them.
+Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
+
+On Windows, installer copies and skipped shell hooks are implementation details, not a claim of supported parity.
 
 ## Usage and options
 

@@ -181,37 +181,57 @@ function checkNanaPiPartGMirrorsTheSharedFile() {
 }
 checkNanaPiPartGMirrorsTheSharedFile();
 
-/**
- * R-859: AGENTS.md's Layout bullet calls `templates/_shared/working-under-nana-pi.md`
- * "the canonical section below" — true only if AGENTS.md's own "Working under nana-pi"
- * section (CLAUDE.md is a symlink to AGENTS.md, so this covers both) reads byte-identical
- * to that shared file, which every template's AGENTS.md.jinja also {% include %}s.
- */
+/** Extracts the exact bytes owned by the shared-section markers. */
+function markerBlock(text) {
+	const begin = "<!-- nana:working-under-nana-pi begin -->\n";
+	const end = "\n<!-- nana:working-under-nana-pi end -->";
+	const start = text.indexOf(begin);
+	const stop = text.indexOf(end, start + begin.length);
+	return start < 0 || stop < 0 ? null : text.slice(start + begin.length, stop + 1);
+}
+
 function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	const agents = fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8");
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
+	const block = markerBlock(agents);
 	// req: R-859
-	check("AGENTS.md's Working under nana-pi section is byte-identical to the shared file", agents.endsWith(shared));
-	const prefix = agents.slice(0, -shared.length);
+	check("AGENTS.md marker-owned section is byte-identical to the shared file", block === shared);
+	const prefix = agents.slice(0, agents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
 	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
 	// req: R-859
-	check("AGENTS.md keeps the complete preamble before the shared section", prefix.endsWith("\n\n") && /[.!?]$/.test(paragraph));
-
-	// Mutation, in a scratch copy only (the real AGENTS.md is never touched): dropping the
-	// final byte must flip the SAME predicate from true to false, proving the check is live
-	// rather than vacuously true.
-	const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-agents-mutation-"));
-	try {
-		const mutatedPath = path.join(scratch, "AGENTS.md");
-		fs.writeFileSync(mutatedPath, agents.slice(0, -1));
-		const stillMatches = fs.readFileSync(mutatedPath, "utf-8").endsWith(shared);
-		// req: R-859
-		check("…and a one-byte drift is caught, not silently passed (mutation)", !stillMatches);
-	} finally {
-		fs.rmSync(scratch, { recursive: true, force: true });
-	}
+	check("AGENTS.md shared section follows a complete paragraph", prefix.endsWith("\n\n") && /[.!?]$/.test(paragraph));
 }
 checkAgentsMdMirrorsWorkingUnderNanaPi();
+
+function checkInstructionContracts() {
+	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
+	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
+	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
+	const support = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
+		fs.readFileSync(path.join(REPO, file), "utf-8").match(/^Support:.*$/m)?.[0]);
+	// req: R-680
+	check("shared runtime matrix declares four runtime surfaces and all nine capabilities",
+		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
+		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
+		[
+			"| Claude Code seat | SessionStart hook | Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit knowledge hook | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
+			"| pi TUI or desk session | nana-objective extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | nana-writing extension | nana-knowledge `before_agent_start` extension | nana-pack gate | Configured checks, if any | nana-handoff extension on compaction | nana-notify extension |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | nana-objective extension | No shared auto-memory | Neither rule | nana-writing extension | nana-knowledge extension | nana-pack gate | Configured checks, if any | Disabled by `NANA_HANDOFF=off` | nana-notify extension |",
+			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
+		].every((v) => shared.includes(v)));
+
+	// req: R-681
+	check("startup guidance is lean and points to row lookup", /At startup, read `HANDOFF\.md`, look up affected `REQUIREMENTS\.md` rows by ID/.test(shared) && /landscape doc only for pi API questions/.test(shared) && /landscape document only for pi API questions/.test(fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8")));
+	// req: R-682
+	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to Jake on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
+	// req: R-683
+	check("shared working pattern names defaults and local overrides", ["~/nana-pi-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "Local overrides"].every((v) => shared.includes(v)));
+	// req: R-684
+	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? ""));
+	// req: R-685
+	check("desk README distinguishes spawn surfaces and gives terminal trust steps", ["Default desk spawn", "Narrowed desk spawn", "App child", "TUI-only", "run `/trust`"].every((v) => desk.includes(v)));
+}
+checkInstructionContracts();
 
 const version = copierAvailable();
 if (!version) {
@@ -226,6 +246,14 @@ if (!version) {
 			// req: R-737
 			check(`${language}: copier renders the template`, ok, log.slice(-800));
 			if (!ok) continue;
+
+			const renderedAgents = fs.readFileSync(path.join(dest, "AGENTS.md"), "utf-8");
+			const renderedPrefix = renderedAgents.slice(0, renderedAgents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
+			const renderedParagraph = renderedPrefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
+			// req: R-859
+			check(`${language}: rendered AGENTS.md marker region matches shared bytes and follows a paragraph`,
+				markerBlock(renderedAgents) === fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf-8") &&
+				renderedPrefix.endsWith("\n\n") && /[.!?]$/.test(renderedParagraph));
 
 			const want = [...spec.files, ...RAIL[language], ...spec.scaffoldOnly];
 			const missing = want.filter((f) => !fs.existsSync(path.join(dest, f)));

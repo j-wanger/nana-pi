@@ -34,7 +34,7 @@ Allocate effort — thinking and process — proportional to cost-of-error and b
 - Auto-memory is two-tier (2026-09-18): SHARED (user · feedback · reference) at `~/.claude/nana-memory/shared`, index printed at session start and symlinked as `shared/` in every project's memory dir; PROJECT facts in the repo's own memory dir. Write to the right tier.
 - Before recommendations, check memory for prior decisions and corrections. A documented past decision beats a fresh derivation.
 - When the user corrects you or makes a decision, store it immediately — don't re-derive it next session.
-- At compaction boundaries, ensure key decisions and task framing survive in visible summaries.
+- Before an OPEN, YOUR CALL, or BLOCKED final report, and before `/clear` or ending a session, put every unresolved item and every open question to Jake on one HANDOFF line each (Next or Open for Jake). The closing report introduces no unrecorded carry.
 
 ## Work habits
 

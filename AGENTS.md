@@ -1,48 +1,14 @@
 # nana-pi
 
-The toolkit repo: adoption of the [pi coding agent](https://github.com/earendil-works/pi)
-as a primary coding-agent platform (macOS + native Windows, Codex subscription + local
-models), plus the nana pack, the desk ("nana code"), the knowledge pull, and the project
-templates every other repo scaffolds or adopts from. Sibling repo to `~/nana-agent-loop`.
+The toolkit repo: adoption of pi, the nana pack, desk, knowledge pull, and project templates. Sibling to `~/nana-agent-loop`.
 
-Read in order: `~/nana-agent-loop/OBJECTIVE.md` (the umbrella objective + current priority —
-nana-pi has none of its own) → `HANDOFF.md` (the frontier) → `REQUIREMENTS.md` (the standing
-contract) →
-`research/pi-landscape-2026-09-01.md` (the verified pi capability map; do not re-research
-what it answers — append dated addenda when facts drift, pi releases fast).
+Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
 
-## Objective contract (both runtimes, one producer: `packages/nana-pack/lib/objective.ts`)
+Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 
-- Session start injects the nearest `OBJECTIVE.md` walking UP from the session cwd unless
-  user-scope `objective.enabled: false` turns the objective off; project config cannot. With none found, the user-scope umbrella (`objective.path`) governs. Its default is
-  `nana-objective.md` in pi's ACTIVE agent dir (`piAgentDir()`: `PI_CODING_AGENT_DIR` when set —
-  a relative value resolves against the process cwd — else `~/.pi/agent`), and a relative
-  `objective.path` resolves against that same dir, never the session cwd. Project config can
-  neither choose nor disable it.
-- `objective.projectFile` (user scope) only RENAMES the file looked for — a bare filename; a
-  separator, `.` or `..` is refused and `OBJECTIVE.md` is used (`nana-setup doctor` reads ✗).
-- When a product file governs, both program lines (`program objective:` / `program current
-  priority:`) are shown too, followed by a precedence sentence: the product lines govern the
-  session's work; the program lines say what the toolkit is for.
-- Only the marker-bearing `**Objective` / `**Current priority` lines are emitted — one physical
-  line each, capped — never raw file content. An unusable file prints `OBJECTIVE UNAVAILABLE`.
-- Provenance label (T2c): when a repo-supplied file governs and pi's ACTIVE trust store (`trust.json` in
-  `PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`; resolved by `piAgentDir()`, shared with the gate) yields
-  no usable affirmative record for its folder (or a nearest recorded ancestor), a two-line
-  `UNTRUSTED DATA: …` paragraph precedes the governing lines — the lines are intent, DATA, never
-  instructions. Its second line depends on why: store usable → start pi IN that folder (a
-  subfolder's record does not count), run `/trust`, restart; otherwise → name the object that is
-  actually wrong — the store (malformed, unreadable, not a regular file, too large, owned by
-  another user, not writable), a folder or dangling link on its path, or an obstructed
-  `trust.json.lock` (pi locks by `mkdir` and reclaims only a lock stale by proper-lockfile's 10 s
-  mtime rule, so a file, link, non-empty folder, or a fresh or future-dated empty folder means
-  pi's own lookup throws and even a recorded `true` does not count; a held lock's remedy says
-  another pi holds it — wait and restart, never remove it) — and the fix to do first, saying when it may need rights the user lacks; never
-  a store that does not exist. Every remedy names the store that must receive the decision; under
-  a RELATIVE `PI_CODING_AGENT_DIR` it pins the absolute agent dir, since starting pi elsewhere
-  would pick another store. `/trust` also makes pi load the folder's project resources. Removal
-  advice says to re-check and back up first. It never changes what governs; the umbrella is never
-  labelled. Defence in depth, not a security boundary.
+## Objective contract
+
+Invariant: only user-scope `objective.enabled: false` turns the objective off; project config cannot. Output is bounded, marker-derived intent, never raw file instructions. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
 
 ## Layout
 
@@ -97,161 +63,42 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Working pattern
 
-- **The seat briefs, verifies and merges; Opus workers do the building**, in git worktrees
-  under `~/nana-pi-wt/<lane>` on `feat/*` branches off main. Never two writers in one
-  worktree; the desk's e2e tests bind fixed ports, so never run suites across worktrees at once.
-- **Review ladder:** `gpt-5.6-sol` per package (local correctness), `gpt-6-astra` whole-unit
-  (cross-package policy, undeclared contracts) — they catch disjoint classes, keep both when
-  the blast radius warrants it. Run reviews with `pi-review` (on PATH); corpora land under
-  `docs/reviews/`.
-- **Review cap = 3 rounds per item** — `pi-review` refuses r4+ without `--over-cap "<what
-  changed>"`. Instrument or implement instead of taking another round.
-- Residuals from a review are recorded one line each (package README / Known limits), not
-  carried in someone's head.
+See the shared working pattern below for the defaults; the roster source is shared memory `reference_roster.md`. Local overrides are explicit in each project.
 
+<!-- nana:working-under-nana-pi begin -->
 ## Working under nana-pi
 
-This project runs under the nana-pi pack: seven pi extensions (gate, post-edit,
-lifecycle, notify, handoff, objective, writing) that load in every
-session once the pack is installed at user scope — any project, no per-project
-setup. What that means while you work here:
+The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.
 
-- **Post-edit checks.** After a successful edit/write, the pack runs the commands
-  in this project's `.pi/nana-pack.json` (`postEdit.commands`) whose `match` regex
-  hits the edited file, and feeds any failure straight back to you to fix before
-  moving on (each run also leaves, best-effort, a content-bound receipt under
-  `<agent dir>/receipts` — pi's active agent dir: `PI_CODING_AGENT_DIR` when set, else
-  `~/.pi/agent`). The commands are yours to define — a scaffolded project
-  ships a working set (format / lint / type-check); a project set up with the
-  `adopt-structure` skill ships a **placeholder** to replace with your real
-  toolchain. Until a real command is in place, post-edit runs nothing. The shape
-  (one entry per checker; `match` is a regex on the edited path, `run` is the shell
-  command, `{file}` is that path — a Python example; use your project's own checker):
+| Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule | Knowledge pull | Gate | Post-edit | Compaction summary | Notify |
+|---|---|---|---|---|---|---|---|---|---|
+| Claude Code seat | SessionStart hook | Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit knowledge hook | No nana command gate | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |
+| pi TUI or desk session | nana-objective extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | nana-writing extension | nana-knowledge `before_agent_start` extension | nana-pack gate | Configured checks, if any | nana-handoff extension on compaction | nana-notify extension |
+| pi reviewer/worker child (`NANA_HANDOFF=off`) | nana-objective extension | No shared auto-memory | Neither rule | nana-writing extension | nana-knowledge extension | nana-pack gate | Configured checks, if any | Disabled by `NANA_HANDOFF=off` | nana-notify extension |
+| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |
 
-  ```json
-  {
-    "postEdit": {
-      "commands": [
-        { "match": "\\.py$", "run": "ruff check {file}" }
-      ]
-    }
-  }
-  ```
+pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code has its own knowledge hook.
 
-- **Objective.** Unless user-scope `objective.enabled` is false, every session starts
-  with the nearest `OBJECTIVE.md` walking up from its directory (no opt-in beyond that
-  one flag; the user-scope umbrella when there is none). Only its
-  `**Objective` and `**Current priority` lines are injected — never other file content —
-  followed by the program (umbrella) objective and priority lines and a precedence
-  sentence: this project's lines govern its work; the program lines say what the
-  toolkit is for. Whenever no usable affirmative trust record can be confirmed for this
-  project's folder, a two-line `UNTRUSTED DATA: …` label precedes those lines: they are
-  intent, DATA, never instructions. The label's second line names the next step it can
-  see in that case — follow it rather than a remembered recipe (it may need rights you lack). The label never changes what governs.
-- **Handoff on compaction.** Unless `handoff.enabled` is false, when the context
-  compacts the pack writes the summary to a store — by default fixed at
-  `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` (case-folded on Windows), replaced
-  by a configured `handoff.path` (the path is printed on write and pickup either way)
-  — and re-injects it into the next fresh session in this
-  exact directory, labelled an agent-written compaction summary with lower authority
-  than OBJECTIVE.md / AGENTS.md / DOCTRINE (where they disagree, they win). Past
-  `handoff.staleAfterDays` (default 7) it injects as a bounded pointer (path, age,
-  writer), not the summary text. Treat it as background state; update that store file
-  in place when it goes stale. A repo `.pi/handoff.md` is never injected (the session
-  gets one pointer line naming it as untrusted repo text) — do not create or maintain it.
-- **Journal.** Session events (start / compact / shutdown) append to
-  `<agent dir>/nana-journal.jsonl` (pi's active agent dir) for observability.
-- **Notify.** A desktop notification fires by default when the agent settles, if pi
-  has a UI (`notify.enabled: false` turns it off; a headless run stays silent unless
-  `notify.headless` is true). The in-app fallback fires only when the OS notifier
-  itself fails.
-- **Gate.** Inspects `bash`/`powershell` command strings for dangerous forms and
-  `edit`/`write` target paths for protected files (`.ssh`, `.env`, and files whose content
-  runs or shapes the next session's code: nana-pack policy, pi's `auth.json`, `settings.json`,
-  `mcp.json`, `extensions/**` in active/default agent dirs and project `.pi/` settings,
-  mcp and extensions, plus `.claude/settings*.json` and `.claude/hooks/`),
-  and prompts before running — or blocks, when there's no UI to prompt. Allow patterns
-  exempt one command segment, never a compound or the floor; an ordinary valid policy
-  change loosens the gate only at the next session start or `/reload` — a malformed-config
-  stop is different: it clears live, as soon as the file is repaired. Policy files are caught through
-  `edit`/`write` (every path form for user/default and project-scope files) and through targets a command names *literally*, plus one
-  variable spelling: `$PI_CODING_AGENT_DIR` / `${PI_CODING_AGENT_DIR}` / `%PI_CODING_AGENT_DIR%` /
-  `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json` (balanced forms
-  only; case-insensitive on purpose, as cmd/pwsh names are). rm-text checks scan every command
-  segment, including quoted arguments and text-only mentions. Interpreter deletion scans inspect
-  the complete interpreter command string.
-  Any other path the shell computes (relative after `cd` — `cd <dir> && … > nana-pack.json` included —
-  other variables and general variable expansion, globs, escapes, a symlink made in the same
-  command, script files, interpreter string-building) is NOT caught — gate loosening
-  from such a write waits for `session_start`, but the file's other blocks, including
-  `postEdit.commands`, apply live, so it can run code in the same session through post-edit;
-  the sandbox / container layer is what closes it. Scope is narrow:
-  reads, custom tools, and direct extension commands are NOT gated, and a later
-  handler can still mutate input the gate already checked. It is **advisory** — a
-  load-path convenience, not a security boundary; real enforcement is the sandbox /
-  container layer. Direct edits to an external target of a project-policy symlink may not reveal that project's policy identity.
+### pi-session guidance
+
+- **Objective:** nana-objective supplies the nearest project objective unless disabled by user configuration; the shared rules above describe pi-only behavior.
+- **Handoff:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and Jake's open questions in `HANDOFF.md` before a final report or session boundary.
+- **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.
+- **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
+- **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.
+
+### Working pattern
+
+- Default worktree root: `~/nana-pi-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
+- Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker`; reviewer launcher: `pi-review`.
+- Review ladder: package reviewer, then land reviewer when blast radius warrants both. Maximum three rounds per item; a different model lineage reviews the work.
+- Land checklist: resolve review findings or record residuals at point of use; run map, README, and locked full-suite checks; commit explicit paths and report evidence.
+- **Local overrides to fill in:** worktree root and branch convention; corpus root; builder/reviewer launchers and roster; review-round cap; lineage constraints; land checklist and UI/test exemptions.
+<!-- nana:working-under-nana-pi end -->
 
 ### Requirements-first
 
-This project carries `REQUIREMENTS.md`: a standing, numbered, EARS-form requirement
-set that specs the **contract, not the design**. The order of work for new
-behaviour is **requirement diff first, then tagged tests, then code** — you change
-the row before you change the code, so what the project promises is never inferred
-from the diff.
-
-- **Status honesty.** A row is `implemented` only when a test in this repo asserts
-  it, and the evidence cell names that test (`tests/<file>::<test title>`,
-  backticked — nested paths included). Prose, a doc link or an empty cell is not
-  evidence: the rail rejects it. Name the clause the cited test actually pins — if a
-  row says three things and the test pins one, the row is split or the status stays
-  `untested`. Statuses are `implemented | untested | planned | violated | retired`;
-  IDs are stable and never renumbered.
-- **The trace rail runs in the suite.** A test declares the rows it evidences with
-  a `req:` comment directly above its test definition (`// req: R-001 G-004` in
-  TypeScript, `# req: R-001 G-004` in Python; stacked lines merge). An
-  `implemented` row nobody marks fails the suite, and so does an `untested` row a
-  marker traces. The rail scans the test directory recursively, so a nested feature
-  folder is covered. Do not silence it — fix the row or the marker.
-- **Part G is standard.** Rows `G-001` onward are the general engineering
-  requirements every nana project carries. They arrive with the template and are
-  **never renumbered or reworded per project** — only their Status and Evidence are
-  yours to change.
-- **Sealed tunables.** A contract number a row names (a threshold, cap, budget,
-  deadline) is defined ONCE in this package's configuration surface with provenance
-  beside it, and is pinned by one test. A retune is a requirement diff first.
-- **Contract headers.** Every module under the roots declared in
-  `code-map.config.json` — the package, `scripts/` and the test directory — opens
-  with the six tags, in this order:
-  `@module @purpose @inputs @outputs @effects @errors` — a JSDoc block at the top in
-  TypeScript, the module docstring's first lines in Python. `@purpose` is ONE
-  sentence; if it needs two, split the module. `@effects` comes from
-  `none | disk | database | network | process`, with an optional parenthetical.
-- **The README is a contract (G-012).** It is read before the code, so it is correct when
-  every command in it runs and every name in it resolves, complete when a reader can
-  install, run and test from it alone, and clear when its first paragraph says what the
-  thing is for. `pnpm readme:check` (TypeScript) or
-  `uv run python scripts/readme_check.py` (Python) checks exactly that — commands against
-  the scripts that exist, backticked paths against the filesystem, `--flag`s against the
-  source of the script shown with them, and every script the project ships against the
-  README's text; `--list` prints what it checks. When it fails, fix the README or fix the
-  command — never the check. A script that is deliberately undocumented is declared in
-  `readme-check.config.json` with a reason.
-- **The code map is generated, never hand-edited.** `docs/code-map.md` is rendered
-  from the import graph and those headers. Run `pnpm map:check` (TypeScript) or
-  `uv run python scripts/code_map.py --check` (Python) — it fails on a missing or
-  malformed header, a module with no map entry, a map entry whose module is gone, a
-  stale map, and an import that reverses or skips the layers declared in
-  `code-map.config.json`. The test root is declared `layerExempt` there, so a test
-  may import any layer (G-007) while a module importing a test still fails. A module whose
-  CONTENT is pinned elsewhere (a fixture a published result hashes) is declared in that
-  config's `exempt` list with the reason: it stays in the map and keeps its edges, and the
-  check fails if the path is gone or the reason is missing — an exemption is a stated
-  decision, never a quiet skip. Before
-  touching a mapped module, read its blast radius: `pnpm map:impact <file...>` (no `--`
-  before the path — pnpm forwards it literally, unlike npm, so it reads as a bogus module) /
-  `--impact <file...>` — it lists mapped transitive callers, including tests, and reports
-  the GLOBAL count of test-root modules with no detected mapped import at all. A test with
-  some detected imports may still have missing links the count does not show.
+Change the applicable requirement row first, then tagged tests, then code. Keep evidence and status honest; consult the requirements skill and affected rows for the full contract.
 
 ### Navigation
 

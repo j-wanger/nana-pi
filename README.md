@@ -1,7 +1,8 @@
 # nana-pi
 
-Adoption of the [pi coding agent](https://github.com/earendil-works/pi) as a primary
-coding-agent platform (macOS + native Windows, Codex subscription + local models).
+Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
+
+Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
