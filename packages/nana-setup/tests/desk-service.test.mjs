@@ -269,6 +269,21 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		check("desk unload timeout and poll cadence are sealed", DESK_UNLOAD_TIMEOUT_MS === 2000 && DESK_UNLOAD_POLL_MS === 50, `${DESK_UNLOAD_TIMEOUT_MS}/${DESK_UNLOAD_POLL_MS}`);
 	}
 
+	/* Error 5 is classified by status even when launchctl emits no text. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-status-only-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const boots = path.join(dir, "boots");
+		fs.writeFileSync(stubPath, `#!/bin/sh\necho "$*" >> "${callLog}"\ncase "$1" in print) exit 1;; bootstrap) n=$(($(cat "${boots}" 2>/dev/null || echo 0)+1)); echo $n > "${boots}"; [ "$n" -eq 1 ] && exit 5; exit 0;; *) exit 0;; esac\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		// req: R-677
+		check("status-only error 5 retries bootstrap once", out.every((row) => row.status !== PROBLEM) && Number(fs.readFileSync(boots, "utf8")) === 2, `${JSON.stringify(out)} ${calls().join(" | ")}`);
+	}
+
 	/* A job that never becomes absent is bounded and not bootstrapped. */
 	{
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-unload-timeout-"));

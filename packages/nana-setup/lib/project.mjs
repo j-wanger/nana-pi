@@ -32,7 +32,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { platform, repoRoot } from "./paths.mjs";
@@ -433,18 +432,22 @@ export async function checkProject(dir, layout = {}) {
 	if (pack.ok) {
 		try { projectConfig = JSON.parse(fs.readFileSync(path.join(dir, ".pi", "nana-pack.json"), "utf8")); } catch { /* the file-presence row reports existence; diagnostics fail closed */ }
 	}
-	const commands = pack.ok ? projectConfig?.postEdit?.commands : user?.postEdit?.commands;
-	const starter = !Array.isArray(commands) || commands.length === 0 || commands.every((entry) => entry?.match === "(?!)");
+	let commands = user?.postEdit?.commands;
+	try {
+		const config = await import(pathToFileURL(path.join(repoRoot, "packages", "nana-pack", "lib", "config.ts")).href);
+		const normalize = config.normalizePostEditCommands;
+		const normalizeFile = (raw) => normalize(raw?.postEdit?.commands);
+		commands = pack.ok ? normalizeFile(projectConfig) : normalizeFile(user);
+		if (pack.ok && !Array.isArray(projectConfig?.postEdit?.commands)) commands = normalizeFile(user);
+	} catch { commands = []; /* if the pack parser cannot be loaded, report no effective checks */ }
+	const starter = commands.length === 0 || commands.every((entry) => entry.match === "(?!)");
 	checks.push({ label: "post-edit commands", ok: !starter, detail: starter ? "effective checker set is empty or still the starter placeholder — configure real postEdit.commands" : `${commands.length} effective checker command(s)` });
 	if (pack.ok) {
 		let vouched = false;
-		const prior = process.env.PI_CODING_AGENT_DIR;
 		try {
-			process.env.PI_CODING_AGENT_DIR = path.resolve(layout.piHome || path.join(os.homedir(), ".pi", "agent"));
 			const mod = await import(pathToFileURL(path.join(repoRoot, "packages", "nana-pack", "lib", "objective.ts")).href);
-			vouched = mod.trustRecord(dir).vouched;
+			vouched = mod.trustRecord(dir, layout.piHome).vouched;
 		} catch { /* no usable affirmative pack trust record */ }
-		finally { if (prior === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = prior; }
 		checks.push({ label: "project trust", ok: vouched, detail: vouched ? "affirmative project trust recorded" : `no affirmative trust record covers this folder — run nana-setup trust <dir>` });
 	}
 	return checks;

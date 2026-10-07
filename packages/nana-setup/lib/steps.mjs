@@ -645,7 +645,7 @@ export function stepDesk(layout, o) {
 	}
 	let bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
 	const isIoError = (r) => /(?:error\s*5|input\/output error)/i.test(`${r.stderr || ""} ${r.stdout || ""}`);
-	if (bootstrap.status !== 0 && isIoError(bootstrap) && waitForJobAbsent(service)) {
+	if (bootstrap.status !== 0 && (bootstrap.status === 5 || isIoError(bootstrap)) && waitForJobAbsent(service)) {
 		bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
 	}
 	if (bootstrap.status !== 0) {

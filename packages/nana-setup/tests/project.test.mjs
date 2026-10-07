@@ -207,9 +207,18 @@ function walk(dir) {
 	check("--check warns when effective post-edit commands are empty", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	// req: R-674
 	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	const npmRoot = spawnSync("npm", ["root", "-g"], { encoding: "utf8" }).stdout.trim();
+	const { ProjectTrustStore } = await import(path.join(npmRoot, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+	new ProjectTrustStore(path.join(home, ".pi", "agent")).set(dir, true);
+	const trustCheck = spawnSync(process.execPath, [cli, "project", dir, "--check", "--home", home], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: path.join(home, "different-agent") } });
+	// req: R-674
+	check("--check reads trust from its explicit layout without rewriting process environment", /✓ project trust.*affirmative/.test(trustCheck.stdout), trustCheck.stdout);
 	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "(?!)", run: "your-formatter {file}" }] } }));
 	// req: R-673
 	check("--check warns when post-edit commands are still the starter placeholder", /! post-edit commands.*starter placeholder/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{}, { match: "[", run: "bad" }, { match: ".*" }] } }));
+	// req: R-673
+	check("--check warns when all malformed post-edit commands are dropped", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
 
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).

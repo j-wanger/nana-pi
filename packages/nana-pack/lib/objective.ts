@@ -410,8 +410,8 @@ export interface TrustRecord {
  * pi treats the project as untrusted.
  * Opened non-blocking so a FIFO can never stall a hook.
  */
-export function trustRecord(dir: string): TrustRecord {
-	const store = piTrustStorePath();
+export function trustRecord(dir: string, agentDir?: string): TrustRecord {
+	const store = agentDir ? path.join(path.resolve(agentDir), "trust.json") : piTrustStorePath();
 	let exists = true;
 	const result = (vouched: boolean, readProblem: TrustStoreProblem | null): TrustRecord => {
 		const w = writeProblem(store, exists);

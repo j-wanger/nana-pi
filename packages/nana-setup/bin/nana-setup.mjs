@@ -37,6 +37,7 @@ import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { SetupError, install, installExitCode } from "../lib/steps.mjs";
+import { decideTrust } from "../lib/trust-decision.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
@@ -223,19 +224,27 @@ async function runTrust(opts) {
 	const dir = path.resolve(dirArg);
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this trust decision");
-	if (!opts.yes) {
-		if (!process.stdin.isTTY || !process.stdout.isTTY) throw new SetupError("trust needs --yes when no interactive confirmation is available");
-		const prompt = createInterface({ input: process.stdin, output: process.stdout });
-		let answer;
-		try { answer = await prompt.question(`Record affirmative pi trust for ${dir}? [y/N] `); } finally { prompt.close(); }
-		if (!/^y(es)?$/i.test(answer.trim())) throw new SetupError("trust decision not recorded (confirmation declined)");
-	}
-	const root = spawnSync("npm", ["root", "-g"], { encoding: "utf8" });
+	const npmEnv = { ...process.env };
+	delete npmEnv.HOME;
+	delete npmEnv.USERPROFILE;
+	const root = spawnSync("npm", ["root", "-g"], { encoding: "utf8", env: npmEnv });
 	if (root.status !== 0 || !root.stdout.trim()) throw new SetupError("cannot locate the globally installed pi package");
 	const trustModule = await import(pathToFileURL(path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 	const store = new trustModule.ProjectTrustStore(layout.piHome);
-	store.set(dir, true);
-	console.log(`Recorded affirmative pi project trust for ${dir}`);
+	const result = await decideTrust({
+		yes: opts.yes,
+		dryRun: opts.dryRun,
+		confirm: async () => {
+			if (!process.stdin.isTTY || !process.stdout.isTTY) throw new SetupError("trust needs --yes when no interactive confirmation is available");
+			const prompt = createInterface({ input: process.stdin, output: process.stdout });
+			let answer;
+			try { answer = await prompt.question(`Record affirmative pi trust for ${dir}? [y/N] `); } finally { prompt.close(); }
+			return /^y(es)?$/i.test(answer.trim());
+		},
+		write: () => store.set(dir, true),
+	});
+	if (result.decision === "declined") throw new SetupError("trust decision not recorded (confirmation declined)");
+	console.log(`${opts.dryRun ? "Would record" : "Recorded"} affirmative pi project trust for ${dir}`);
 	console.log(`Trust store: ${store.trustPath}`);
 }
 
