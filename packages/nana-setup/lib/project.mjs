@@ -341,7 +341,13 @@ export function checkProject(dir, layout = {}) {
 		const s = fileState(rel);
 		return { label, ok: s.ok, detail: s.found ? `${s.found} is there — not a readable ${rel}` : meaning };
 	};
-	const month = today().slice(0, 7);
+	const monthFiles = (() => {
+		try {
+			return fs.readdirSync(path.join(dir, "docs", "sessions"), { withFileTypes: true })
+				.filter((entry) => entry.isFile() && /^\d{4}-(0[1-9]|1[0-2])\.md$/.test(entry.name))
+				.map((entry) => entry.name).sort();
+		} catch { return []; }
+	})();
 	const checks = [];
 
 	if (has(".git")) checks.push({ label: "git repo", ok: true, detail: ".git" });
@@ -355,7 +361,7 @@ export function checkProject(dir, layout = {}) {
 		seed("OBJECTIVE.md", "the two lines the session-start hook prints (labelled UNTRUSTED DATA while no usable affirmative trust record is confirmed for this folder; the label names the next step it can see)"),
 		seed("HANDOFF.md", "the frontier"),
 		seed("docs/sessions/README.md", "the narrative's rules"),
-		seed(`docs/sessions/${month}.md`, "this month's log"),
+		{ label: "docs/sessions/YYYY-MM.md", ok: monthFiles.length > 0, detail: monthFiles.length ? monthFiles.join(", ") : "no docs/sessions/YYYY-MM.md file" },
 	);
 
 	// The navigation file: AGENTS.md as a regular file, or — for a project that already had one

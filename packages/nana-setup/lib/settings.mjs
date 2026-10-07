@@ -1,18 +1,18 @@
 /**
  * @module packages/nana-setup/lib/settings.mjs
- * @purpose Pure merge of the nana hook entries into a parsed Claude Code settings.json object,
- *  adding only the entries an argv-accurate match says are absent.
+ * @purpose Merge the nana hook entries into Claude Code settings while preserving foreign hooks and repairing recognized stale knowledge targets.
  * @inputs a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot };
  *  the command strings already in settings.hooks
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean;
- *  desiredHooks() — the SessionStart objective / adoption / shared-memory entries and the
- *  UserPromptSubmit context-size and knowledge-pull entries, each with event, label, marker, spec,
- *  entry; validateShape() reason string or null; hasHook() boolean; mergeHooks() { settings
- *  (mutated in place), added labels, changed }; serialize() pretty JSON text with a trailing newline
- * @effects none (no file is opened here)
+ *  desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook();
+ *  mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
+ * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
  */
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 // The Claude Code settings.json merge. Pure functions: the file is read and written by the
 // caller, so the merge itself is trivially testable and can never half-write.
 //
@@ -87,6 +87,14 @@ export function tokenize(command) {
 
 const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const base = (p) => p.split("/").pop();
+
+function installerKnowledgeTarget(command) {
+	const argv = tokenize(command);
+	if (!argv || argv.length !== 4 || argv[0] !== "NODE_NO_WARNINGS=1" || argv[1] !== "node" || argv[3] !== "hook") return null;
+	const target = argv[2];
+	if (!path.isAbsolute(target) || !target.endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts")) return null;
+	return command === `NODE_NO_WARNINGS=1 node ${shq(target)} hook` ? target : null;
+}
 
 /**
  * Does `command` actually EXECUTE `script` through one of `interpreters`?
@@ -198,6 +206,59 @@ export function hasHook(settings, event, spec) {
  * Add exactly the missing entries. Returns { settings, added: [label], changed }.
  * `settings` is mutated in place (the caller owns a freshly parsed object).
  */
+export function mergeKnowledgeHook(settings, { repoRoot, desiredCommand }) {
+	const groups = settings?.hooks?.UserPromptSubmit;
+	const found = [];
+	if (Array.isArray(groups)) {
+		for (const group of groups) {
+			if (!Array.isArray(group?.hooks)) continue;
+			for (let i = 0; i < group.hooks.length; i++) {
+				const hook = group.hooks[i];
+				if (hook?.timeout !== 5 || hook?.statusMessage !== "nana: knowledge pull") continue;
+				const target = installerKnowledgeTarget(hook?.command);
+				if (!target) continue;
+				let healthy = false;
+				try {
+					const real = fs.realpathSync(target);
+					const root = fs.realpathSync(repoRoot);
+					healthy = path.isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
+				} catch { /* missing target */ }
+				found.push({ group, index: i, hook, healthy });
+			}
+		}
+	}
+	const stale = found.filter((item) => !item.healthy);
+	if (stale.length) {
+		for (const item of stale) item.group.hooks[item.index] = { ...item.hook, command: desiredCommand };
+		return { added: false, replaced: true, staleValid: false };
+	}
+	if (found.length) return { added: false, replaced: false, staleValid: true };
+	return { added: true, replaced: false, staleValid: false };
+}
+
+export function knowledgeHookHealthy(settings, repoRoot) {
+	const groups = settings?.hooks?.UserPromptSubmit;
+	if (!Array.isArray(groups)) return false;
+	let found = false;
+	for (const group of groups) {
+		if (!Array.isArray(group?.hooks)) continue;
+		for (const hook of group.hooks) {
+			if (!commandInvokes(hook?.command, { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] })) continue;
+			found = true;
+			const argv = tokenize(hook.command);
+			let offset = 0;
+			while (argv[offset] && ENV_ASSIGN.test(argv[offset])) offset++;
+			const target = argv[offset + 1];
+			try {
+				const real = fs.realpathSync(target);
+				const root = fs.realpathSync(repoRoot);
+				if (!path.isAbsolute(target) || !(real === root || real.startsWith(root + path.sep))) return false;
+			} catch { return false; }
+		}
+	}
+	return found;
+}
+
 export function mergeHooks(settings, wanted) {
 	const added = [];
 	for (const w of wanted) {

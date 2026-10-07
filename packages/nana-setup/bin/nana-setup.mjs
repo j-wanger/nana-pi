@@ -33,7 +33,7 @@ import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
-import { SetupError, install } from "../lib/steps.mjs";
+import { SetupError, install, installExitCode } from "../lib/steps.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
@@ -128,7 +128,7 @@ function runInstall(opts) {
 	if (!opts.dryRun) console.log("  next: nana-setup doctor");
 	// A ✗ row is a machine that is NOT set up. Exiting 0 there tells automation the install
 	// succeeded (sol r3) — the dry run included, since it reports the same ✗.
-	return problems ? 1 : 0;
+	return installExitCode(results);
 }
 
 function runDoctor(opts) {

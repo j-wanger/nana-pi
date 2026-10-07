@@ -14,9 +14,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const { diagnose, PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { diagnose, PI_SUBAGENTS_FLOOR, DESK_NODE_FLOOR, parsePlistValues } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
-const { REVIEWER_MARKER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { REVIEWER_MARKER, renderPlist, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -42,6 +42,82 @@ function layoutWith(shape) {
 	return layout;
 }
 const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
+
+{
+	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-hook-target-"));
+	tmps.push(home);
+	const layout = resolveLayout({ home });
+	fs.mkdirSync(layout.claudeHome, { recursive: true });
+	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "NODE_NO_WARNINGS=1 node /missing-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook" }] }] } }));
+	const c = diagnose(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	const outside = path.join(home, "outside", "nana-knowledge.ts");
+	fs.mkdirSync(path.dirname(outside), { recursive: true });
+	fs.writeFileSync(outside, "// test target\n");
+	const validTarget = path.resolve(pkgRoot, "..", "nana-knowledge", "bin", "nana-knowledge.ts");
+	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
+		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${validTarget}' hook` },
+		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${outside}' hook` },
+	] }] } }));
+	const outsideCheck = diagnose(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	// req: R-393
+	check("doctor rejects missing and out-of-repo absolute knowledge-hook targets", c?.status === "fail" && /target is missing/.test(c.detail) && outsideCheck?.status === "fail" && /does not resolve inside/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
+}
+
+{
+	// req: R-650
+	check("desk Node floor is pinned at 22.19", DESK_NODE_FLOOR === "22.19");
+	const sample = '<key>ProgramArguments</key><array><string>/node</string><string>/desk/server.mjs</string></array><key>PATH</key><string>/bin</string>';
+	const parsed = parsePlistValues(sample);
+	// req: R-399
+	check("doctor parses ProgramArguments[0] as the service executable", parsed.programArguments[0] === "/node");
+}
+
+{
+	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
+	tmps.push(home);
+	const original = resolveLayout({ home });
+	const layout = { ...original, isRealHome: true };
+	fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+	const oldNode = path.join(home, "node-old");
+	fs.writeFileSync(oldNode, "#!/bin/sh\necho v22.18.0\n");
+	fs.chmodSync(oldNode, 0o755);
+	const stub = path.join(home, "launchctl");
+	fs.writeFileSync(stub, `#!/bin/sh\nprintf 'state = %s\\n' "${"$"}{FAKE_DESK_STATE:-running}"\n`);
+	fs.chmodSync(stub, 0o755);
+	const savedPath = process.env.PATH;
+	const savedPlatform = process.env.NANA_SETUP_PLATFORM;
+	process.env.PATH = `${home}:${savedPath}`;
+	process.env.NANA_SETUP_PLATFORM = "darwin";
+	const diagnoseDesk = (node, state = "running") => {
+		fs.writeFileSync(layout.plistPath, renderPlist({ LABEL: "com.nana.pi-desk", NODE: node, SERVER: DESK_SERVER, WORKDIR: pkgRoot, PATH: "/bin", LOG: path.join(home, "desk.log") }));
+		process.env.FAKE_DESK_STATE = state;
+		return diagnose(layout, { projectDir: home }).find((row) => row.label === "desk service");
+	};
+	try {
+		const healthy = diagnoseDesk(oldNode);
+		// req: R-399
+		check("doctor reads the plist executable rather than the current process", /Node v?22\.18\.0/.test(healthy?.detail ?? "") && healthy?.status === "fail", JSON.stringify(healthy));
+		const running = diagnoseDesk(process.execPath);
+		// req: R-399
+		check("doctor reports healthy only for running service and valid plist Node", running?.status === "ok" && running.detail.includes(`Node ${process.versions.node}`), JSON.stringify(running));
+		const floorNode = path.join(home, "node-floor");
+		fs.writeFileSync(floorNode, "#!/bin/sh\necho v22.19.0\n");
+		fs.chmodSync(floorNode, 0o755);
+		const exactFloor = diagnoseDesk(floorNode);
+		// req: R-399
+		check("doctor accepts exact desk Node floor 22.19.0", exactFloor?.status === "ok" && exactFloor.detail.includes("Node v22.19.0"), JSON.stringify(exactFloor));
+		const stopped = diagnoseDesk(process.execPath, "waiting");
+		const missing = diagnoseDesk(path.join(home, "absent-node"));
+		const tooOld = diagnoseDesk(oldNode);
+		// req: R-399
+		check("doctor rejects stopped, missing-node and below-floor desk services", stopped?.status === "fail" && /does not report state = running/.test(stopped.detail) && missing?.status === "fail" && /node executable is missing/.test(missing.detail) && tooOld?.status === "fail" && /Node v?22\.18\.0 is older/.test(tooOld.detail), `${JSON.stringify(stopped)} ${JSON.stringify(missing)} ${JSON.stringify(tooOld)}`);
+	} finally {
+		process.env.PATH = savedPath;
+		if (savedPlatform === undefined) delete process.env.NANA_SETUP_PLATFORM;
+		else process.env.NANA_SETUP_PLATFORM = savedPlatform;
+		delete process.env.FAKE_DESK_STATE;
+	}
+}
 
 try {
 	{

@@ -19,7 +19,8 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { entryMatches, registrationState, remoteMatches } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
+const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -97,14 +98,15 @@ function piHomeWith(packages) {
 	// the entry has to resolve to THIS worktree, so build it relative to the temp pi home
 	const home = piHomeWith(null);
 	const agent = path.join(home, ".pi", "agent");
-	const rel = path.relative(agent, path.join(repo, "packages", "nana-pack"));
+	const rel = path.relative(agent, repo);
 	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents", rel] }, null, 2));
 	const state = registrationState(resolveLayout({ home }));
+	// req: R-323 R-392
 	check("registered by relative path is detected as present", state.present, JSON.stringify(state));
 	check("the matching entry is reported", state.match === rel);
 	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
 	// req: R-323
-	check("install reports it as already registered", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
+	check("install reports all extension directories registered", /pi packages\s+unchanged\s+all extension directories registered/.test(r.stdout), r.stdout);
 	// req: R-323
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
 	const doc = spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" });
@@ -121,6 +123,49 @@ function piHomeWith(packages) {
 	const home = piHomeWith(null);
 	// req: R-326
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
+}
+{
+	const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nana-manifest-root-"));
+	tmps.push(fixtureRoot);
+	const packRoot = path.join(fixtureRoot, "packages", "nana-pack");
+	const knowledgeRoot = path.join(fixtureRoot, "packages", "nana-knowledge");
+	fs.mkdirSync(packRoot, { recursive: true });
+	fs.mkdirSync(knowledgeRoot, { recursive: true });
+	fs.writeFileSync(path.join(fixtureRoot, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions-alt"] } }));
+	fs.writeFileSync(path.join(knowledgeRoot, "package.json"), JSON.stringify({ pi: { extensions: [] } }));
+	const home = piHomeWith(null);
+	const agent = path.join(home, ".pi", "agent");
+	const knowledge = path.relative(agent, knowledgeRoot);
+	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [knowledge] }));
+	const coverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
+	// req: R-392
+	check("diverging fixture root manifest extension directory remains uncovered", coverage.missing.includes(path.join(knowledgeRoot, "extensions-alt")), JSON.stringify(coverage));
+}
+{
+	const home = piHomeWith(null);
+	const agent = path.join(home, ".pi", "agent");
+	const knowledge = path.relative(agent, path.join(repo, "packages", "nana-knowledge"));
+	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [knowledge] }));
+	const coverage = packageCoverage(resolveLayout({ home }));
+	// req: R-392
+	check("knowledge-only registration leaves nana-pack's manifest extension directory uncovered", coverage.missing.some((p) => p.endsWith(path.join("packages", "nana-pack", "extensions"))), JSON.stringify(coverage));
+	const r = spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" });
+	// req: R-654
+	check("doctor names nana-pack's uncovered extensions directory", /✗ pi packages.*packages.nana-pack.extensions/s.test(r.stdout), r.stdout);
+	const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-pi-"));
+	tmps.push(fakeBin);
+	const log = path.join(fakeBin, "calls");
+	fs.writeFileSync(path.join(fakeBin, "pi"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\nexit 0\n`);
+	fs.chmodSync(path.join(fakeBin, "pi"), 0o755);
+	const savedPath = process.env.PATH;
+	process.env.PATH = `${fakeBin}:${savedPath}`;
+	try {
+		const fakeReal = { ...resolveLayout({ home }), isRealHome: true };
+		const installed = stepPiRegister(fakeReal, {});
+		const calls = fs.readFileSync(log, "utf8").trim().split("\n");
+		// req: R-323
+		check("install adds only the missing per-package entry, never a root entry", calls.length === 2 && calls[1] === `install ${path.join(repo, "packages", "nana-pack")}` && !calls.some((line) => line === `install ${repo}`), `${JSON.stringify(calls)} ${JSON.stringify(installed)}`);
+	} finally { process.env.PATH = savedPath; }
 }
 
 /* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
@@ -150,19 +195,21 @@ function piHomeWith(packages) {
 				const home = piHomeWith(null);
 				const agent = path.join(home, ".pi", "agent");
 				const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
-				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel] }, null, 2));
+				const knowledgeRel = path.relative(agent, path.join(mainCheckout, "packages", "nana-knowledge"));
+				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel, knowledgeRel] }, null, 2));
 				const state = wtSteps.registrationState(wtPaths.resolveLayout({ home }));
 				check("the MAIN clone's relative entry marks the WORKTREE as registered", state.present, JSON.stringify(state));
 				const r = spawnSync(process.execPath, [wtCli, "install", "--home", home], { encoding: "utf8" });
-				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+registered as/.test(r.stdout), r.stdout);
-				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 1);
+				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+(?:all extension directories registered|registered as)/.test(r.stdout), r.stdout);
+				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
 
 				// the `~/...` spelling of the same clone
 				const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;
 				if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
 				else {
-					fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm] }, null, 2));
-					check(`a \`~\` entry (${tildeForm}) is expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+					const knowledgeTilde = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-knowledge")) : null;
+					fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm, knowledgeTilde] }, null, 2));
+					check(`\`~\` per-package entries are expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
 				}
 
 				// an unrelated repo still is not us
@@ -199,5 +246,7 @@ function piHomeWith(packages) {
 	}
 }
 
+// req: R-392
+check("repository manifests remain byte-identical after fixture coverage checks", [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].every((file, index) => fs.readFileSync(file).equals(repoManifestBytes[index])));
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);

@@ -22,8 +22,8 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { renderPlist, stepDesk, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { SKIPPED, UPDATED, CREATED } = await import(new URL("../lib/fsops.mjs", import.meta.url).href);
+const { renderPlist, stepDesk, DESK_SERVER, installExitCode } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { SKIPPED, UPDATED, CREATED, PROBLEM } = await import(new URL("../lib/fsops.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -80,18 +80,21 @@ const r = run(["install", "--home", home, "--desk"]);
 check("--desk exits 0", r.status === 0, r.stderr);
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
+// req: R-651
 check("plist uses the resolved node", body.includes(`<string>${process.execPath}</string>`));
 check("plist points at this install's desk server", body.includes(path.join(repo, "apps", "desk", "server.mjs")));
 check("plist WorkingDirectory is the install root", body.includes(`<key>WorkingDirectory</key><string>${repo}</string>`));
 check("plist logs into the pi home", body.includes(path.join(home, ".pi", "agent", "desk.log")));
 check("plist carries a PATH", /<key>PATH<\/key><string>[^<]+<\/string>/.test(body));
+const launchPath = /<key>PATH<\/key><string>([^<]+)<\/string>/.exec(body)?.[1] ?? "";
+// req: R-396
+check("plist PATH is curated and excludes the installing shell snapshot", launchPath === [path.dirname(process.execPath), path.join(home, ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].join(":"), launchPath);
 // req: R-314
 check("launchctl is NOT called under --home", r.stdout.includes("not loaded (--home override in play)"));
 
 const again = run(["install", "--home", home, "--desk"]);
 check("--desk is idempotent", again.stdout.includes("nothing to do"));
-check("doctor sees the service", run(["doctor", "--home", home]).stdout.includes(plist));
-check("doctor still exits 0", run(["doctor", "--home", home]).status === 0);
+check("doctor marks a sandbox desk service as not live-loaded", /· desk service/.test(run(["doctor", "--home", home]).stdout));
 
 /* --- caller-level: a SKIPPED plist write must make zero launchctl calls (MUST 1, astra r1) --- */
 {
@@ -182,8 +185,64 @@ check("doctor still exits 0", run(["doctor", "--home", home]).status === 0);
 		const out = withStubFirst(() => stepDesk(layout, {}));
 		check("regular file: desk plist is CREATED, not SKIPPED", out[0]?.status === CREATED, JSON.stringify(out));
 		check("regular file: desk launchctl proceeded (not SKIPPED)", out[1]?.status !== SKIPPED, JSON.stringify(out));
-		check("regular file: launchctl WAS called (print, then bootstrap)", calls().length >= 2, calls().join(" | "));
+		check("regular file: launchctl WAS called (print, then restart)", calls().length >= 2, calls().join(" | "));
+		fs.writeFileSync(callLog, "");
+		withStubFirst(() => stepDesk(layout, {})); // unchanged plist: explicit repair branch
+		// req: R-397
+		check("explicit repair restarts an unchanged loaded service with kickstart -k", calls().some((call) => call === `kickstart -k gui/${process.getuid()}/com.nana.pi-desk`), calls().join(" | "));
 	}
+
+	/* first-load sequence and fatal lifecycle failures */
+	{
+		fs.writeFileSync(stubPath, '#!/bin/sh\necho "$@" >> "' + callLog + '"\n[ "$1" = print ] && exit "${FAKE_LOADED:-1}"\n[ "$FAIL_ON" = "$1" ] && exit 7\nexit 0\n');
+		fs.chmodSync(stubPath, 0o755);
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-first-load-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		const sequence = calls();
+		const bootstrapIndex = sequence.indexOf(`bootstrap gui/${process.getuid()} ${layout.plistPath}`);
+		const kickstartIndex = sequence.indexOf(`kickstart gui/${process.getuid()}/com.nana.pi-desk`);
+		// req: R-356
+		check("first load bootstraps before plain kickstart, without -k", bootstrapIndex >= 0 && kickstartIndex > bootstrapIndex && !sequence.some((call) => call.includes("kickstart -k")), sequence.join(" | "));
+		// req: R-652
+		check("first-load kickstart is plain", sequence.at(-1) === `kickstart gui/${process.getuid()}/com.nana.pi-desk`, sequence.join(" | "));
+		fs.writeFileSync(callLog, "");
+		process.env.FAIL_ON = "bootstrap";
+		const failed = withStubFirst(() => stepDesk(baseLayout(fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-bootstrap-fail-"))), {}));
+		delete process.env.FAIL_ON;
+		process.env.FAKE_LOADED = "0";
+		process.env.FAIL_ON = "kickstart";
+		const failedKickstart = withStubFirst(() => stepDesk(baseLayout(dir), {}));
+		delete process.env.FAIL_ON;
+		delete process.env.FAKE_LOADED;
+		// req: R-398
+		check("bootstrap failure is reported as a PROBLEM", failed.some((row) => row.status === PROBLEM), JSON.stringify(failed));
+		check("kickstart failure is reported as a PROBLEM", failedKickstart.some((row) => row.status === PROBLEM), JSON.stringify(failedKickstart));
+
+		const cliFailure = (failureCommand, homeDir) => {
+			const cliStubDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-launchctl-cli-"));
+			tmps.push(cliStubDir);
+			const cliStub = path.join(cliStubDir, "launchctl");
+			fs.writeFileSync(cliStub, `#!/bin/sh\n[ "$1" = print ] && exit 1\n[ "$1" = "${failureCommand}" ] && exit 7\nexit 0\n`);
+			fs.chmodSync(cliStub, 0o755);
+			const piStub = path.join(cliStubDir, "pi");
+			fs.writeFileSync(piStub, "#!/bin/sh\nexit 0\n");
+			fs.chmodSync(piStub, 0o755);
+			return spawnSync(process.execPath, [cli, "install", "--desk"], { encoding: "utf8", env: { ...process.env, HOME: homeDir, PI_CODING_AGENT_DIR: path.join(homeDir, ".pi", "agent"), PATH: `${cliStubDir}:${process.env.PATH}` } });
+		};
+		const bootstrapHome = freshHome();
+		const bootstrapCli = cliFailure("bootstrap", bootstrapHome);
+		// req: R-398
+		check("install CLI exits 1 on bootstrap failure", bootstrapCli.status === 1, `${bootstrapCli.status}: ${bootstrapCli.stderr} ${bootstrapCli.stdout}`);
+		const kickstartHome = freshHome();
+		const kickstartCli = cliFailure("kickstart", kickstartHome);
+		// req: R-398
+		check("install CLI exits 1 on kickstart failure", kickstartCli.status === 1, `${kickstartCli.status}: ${kickstartCli.stderr} ${kickstartCli.stdout}`);
+	}
+
 
 	/* R-380's scope boundary (astra r2 MUST 2): under --dry-run the early `if (o.dryRun) return
 	   out;` fires before the SKIPPED-write check even runs, so a dangling plist under dry-run

@@ -23,8 +23,7 @@ CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's buil
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
 the packages, and only when they are not registered yet — and it probes `pi --version` first, so a
 machine without pi on PATH reports `skipped` with the install command instead of failing), to `node` (to build the knowledge
-index) and to `launchctl` (only with `--desk`, only on macOS, only against the real home) — each
-of those is optional and reports "skipped" with the reason when it is missing.
+index) and to `launchctl` (only with `--desk`, only on macOS, only against the real home). A missing `pi` is reported as skipped; a failed launchctl bootstrap or kickstart is a problem and makes install exit 1.
 
 ## What it installs
 
@@ -37,7 +36,7 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | `packages/nana-pack/rules/nana-writing.md` (writing for Jake — trial, 2026-10-04) | `~/.claude/rules/nana-writing.md` | **symlink** — sourced from `packages/nana-pack/rules/`, not this package's own `claude/rules/`, because the `nana-writing` pack extension reads the SAME file for pi (one source, two runtimes — design-ruling.md Amendment 1, 2026-10-04, §A1) |
 | the `requirements` skill | `~/.claude/skills/requirements` | **symlink** to `packages/nana-pack/skills/requirements` — the directory pi already reads, so Claude Code and pi get ONE source and a `git pull` updates both. A regular directory already sitting there is someone else's skill: it is reported ✗ and **left untouched** (a `requirements.bak-<date>` directory inside `~/.claude/skills/` would be loaded as a second skill claiming the same name), so install exits 1 until you move it. A symlink pointing elsewhere is relinked |
 | `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
-| SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged in: only the missing entries are added, nothing is removed or reordered |
+| SessionStart + UserPromptSubmit hooks | `~/.claude/settings.json` | merged without removing or reordering entries; missing entries are added. The knowledge hook is migrated in place only when its timeout and status metadata match and its command is exactly the installer form `NODE_NO_WARNINGS=1 node '<absolute checkout>/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, allowing only the checkout path to differ. Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries. |
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
@@ -46,8 +45,12 @@ of those is optional and reports "skipped" with the reason when it is missing.
 | `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply. `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
 | knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
-| desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, loaded with `launchctl bootstrap gui/$UID`. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute) and the service desk opens the dir the pack was installed into. macOS only — there is no service definition on other platforms |
-| pi packages | `settings.json` in the pi agent dir | `pi install <install root>` — **only when nana-pi is not already registered**. Registration is matched by identity, not by string: `~` expands, relative entries resolve against the pi home (pi's own rule), both sides are realpath'd, and an entry in *another checkout of this repository* counts, because a git worktree and its main clone share one `--git-common-dir`. Remote entries must be pi's own spellings of this exact repo — `git:github.com/j-wanger/nana-pi`, `github:j-wanger/nana-pi`, `https://github.com/j-wanger/nana-pi`, `git@github.com:…`, `ssh://…`, `git://…`, `git+ssh://…`, with an optional `.git` and an optional pinned ref — host, path **and** scheme anchored (`file://` and `http://` are not accepted), so `https://evil.example/archive/j-wanger/nana-pi` is not us |
+| desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
+| pi packages | `settings.json` in the pi agent dir | Registration is complete only when every extension directory in the root `package.json` manifest is loaded. A root entry covers both manifests; per-package entries cover their own manifest. Install adds only missing per-package entries, never a root entry atop existing package entries. Paths use pi's matching rules (`~`, settings-relative paths, real paths and linked-worktree identity); exact remote entries are also recognized. |
+
+## Updating the checkout with the desk
+
+Before updating this checkout, quiesce desk activity and close or pause sessions that depend on it. Update the checkout only after the desk is quiescent. Then explicitly repair and restart the desk with `node packages/nana-setup/bin/nana-setup.mjs install --desk`, and verify the result with `node packages/nana-setup/bin/nana-setup.mjs doctor`. Doctor must report the desk running and its plist-selected Node version healthy.
 
 ## The nana-owned reviewer agent — why `agents/reviewer.md` shadows the builtin
 
@@ -114,7 +117,7 @@ from Claude Code had no path to them at all. That gap is what `project` closes:
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs project [dir] [--name <n>] [--dry-run]
-node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # one ✓ or ✗ per file; exits 1 on any ✗
+node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # accepts any existing month log
 node packages/nana-setup/bin/nana-setup.mjs project <dir> --not-a-project   # dismiss a repo root once
 ```
 
