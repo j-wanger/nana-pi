@@ -96,7 +96,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-151
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
 	// req: R-151
-	check("c: action wording distinguishes no HANDOFF.md from no saved handoff", r.stdout.includes("no HANDOFF.md or saved handoff"));
+	check("c: action wording distinguishes no HANDOFF.md from no saved compaction summary", r.stdout.includes("no HANDOFF.md or saved compaction summary"));
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
 }

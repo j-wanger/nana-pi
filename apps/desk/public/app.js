@@ -2172,7 +2172,7 @@ async function tabNana(body) {
 		field("enabled", notifyEn), field("also when headless", notifyHeadless),
 		el("div", "sec-head", "Lifecycle journal"),
 		field("enabled", journalEn), field("path", journalPath),
-		el("div", "sec-head", "Handoff"),
+		el("div", "sec-head", "Compaction summary"),
 		field("enabled", handoffEn), field("path", handoffPath),
 	);
 

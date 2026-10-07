@@ -46,7 +46,7 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Layout
 
-- `packages/nana-pack/` — the pi extension pack: gate, post-edit checks + receipts,
+- `packages/nana-pack/` — the pi extension pack: gate, post-edit checks,
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
   adopt-ts, adopt-structure, dev workflow); `bin/` — nine CLIs: the `pi-review` runner (canonical home since
   2026-09-18, on PATH via `~/.local/bin/pi-review`) with `review-round`, `review-shape`,

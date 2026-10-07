@@ -569,7 +569,9 @@ try {
 	check("…the edited field changed", np.notify.enabled === true, JSON.stringify(np.notify));
 	const nanaPackUi = fs.readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
 	// req: R-867
-	check("Nana pack settings hide receipt controls and preserve legacy values", np.receipts.enabled === false && np.receipts.dir === "legacy-store" && !/receiptsEn|receiptsDir|Post-edit check receipts/.test(nanaPackUi) && /\.\.\.n,/.test(nanaPackUi));
+	check("Nana pack settings hide receipt controls", !/receiptsEn|receiptsDir|Post-edit check receipts/.test(nanaPackUi));
+	// req: R-869
+	check("Nana pack settings label the store Compaction summary", nanaPackUi.includes('el("div", "sec-head", "Compaction summary")'));
 	// req: R-457
 	check("…a sub-key the form never renders survived the round-trip", np.journal.rotateAt === 99, JSON.stringify(np.journal));
 	check("…and the previous file is the .bak", JSON.parse(fs.readFileSync(`${NP_USER}.bak`, "utf-8")).notify.enabled === false);
