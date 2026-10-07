@@ -78,6 +78,7 @@ const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub 
 const AFTER_FORK = path.join(TD, "after-fork.flag"); // "fail" | "hold:<ms>" for the state read after a fork
 const HOLD_FORK = path.join(TD, "hold-fork.flag"); // ms to delay the fork RESPONSE itself
 const TRACE = path.join(TD, "trace.jsonl"); // every command the stub received, with its arrival time
+const TRACE_RESPONSES = path.join(TD, "trace-responses.jsonl");
 const HOLDING = path.join(TD, "holding.flag"); // written by the stub while it is holding a response
 const RELEASE = path.join(TD, "release.flag"); // the test creates it to let a held response go
 const FAIL_FORK = path.join(TD, "fail-fork.flag"); // answer the next fork unsuccessfully
@@ -117,6 +118,7 @@ function hold(cmd, data) {
 		if (!fs.existsSync(process.env.STUB_RELEASE)) return;
 		clearInterval(tick);
 		try { fs.unlinkSync(process.env.STUB_HOLDING); } catch {}
+		try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "held-response", command: cmd.type, t: Date.now() }) + "\\n"); } catch {}
 		say({ type: "response", id: cmd.id, command: cmd.type, success: true, data: data() });
 	}, 15);
 }
@@ -135,7 +137,10 @@ const BLOCK = (id) => ({ id, type: "card", title: "X", scope: "s", fields: [{ la
 let signBlock = null;
 const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
 const sign = (b, k) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(k, b) } });
-const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+const say = (o) => {
+	try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "response", command: o.command, t: Date.now() }) + "\\n"); } catch {}
+	process.stdout.write(JSON.stringify(o) + "\\n");
+};
 setTimeout(() => say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }), 120);
 let buf = "";
 process.stdin.on("data", (c) => {
@@ -267,7 +272,7 @@ const setManifestSession = (n, file) => fs.writeFileSync(path.join(appsDir, `${n
 
 let server = null;
 let log = "";
-async function startServer(run, ports) {
+async function startServer(run, ports, confirmBudget = null) {
 	log = "";
 	DESK = 0; // never match the PREVIOUS run's startup line
 	server = spawn("node", [SERVER], {
@@ -276,9 +281,11 @@ async function startServer(run, ports) {
 			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
 			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM, STUB_LATE: LATE,
+			STUB_TRACE_RESPONSES: TRACE_RESPONSES,
 			// explicit: an outer DESK_STAGE_KEYS would beat the temporary HOME and send
 			// this test's records into the operator's own store
 			DESK_STAGE_KEYS: STORE,
+			...(confirmBudget ? { DESK_TEST_CONFIRM_BUDGET_MS: String(confirmBudget) } : {}),
 			PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
@@ -471,24 +478,35 @@ try {
 		blockEntries(ent.entries).every((e) => e.customType === "nana-block") && blockEntries(ent.entries).length === 1,
 		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
 
+	// Give the held confirmation its own generous-budget server process so incidental
+	// test and machine load cannot consume the production-sized confirmation window.
+	setManifestSession("alpha", fileZ);
+	fs.writeFileSync(TRACE_RESPONSES, "");
+	await stopServer();
+	await startServer("3-overlap", [A, B], 10000);
+	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// AN OVERLAPPING LEDGER READ MUST NOT DEFEAT THE FORK. Hold the state read the
 	// desk makes right after the fork, and slip a ledger read into that window: it
 	// observes the brand-new session, and if it files it under the live child's key
-	// alone the inheritance is stranded for good. No timers: the stub says when the
-	// hold is in effect, the competing read is awaited to completion inside it, and
-	// only then is the held response released.
+	// alone the inheritance is stranded for good. The stub says when the hold is in
+	// effect, the competing read completes inside it, and only then is it released.
 	fs.rmSync(RELEASE, { force: true });
 	fs.writeFileSync(AFTER_FORK, "hold");
 	const forking = rpc(s.id, { type: "fork", entryId: "x" });
 	await until(() => fs.existsSync(HOLDING), "the fork's confirmation to be held");
 	ent = await get(A, "/api/entries"); // ← observes the new session mid-transition, and completes
+	await sleep(1100); // deliberately exceed the production default to prove this server uses the test override
 	fs.writeFileSync(RELEASE, "");
 	await forking;
 	fs.rmSync(RELEASE, { force: true });
 	const idF = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: a ledger read that lands mid-fork does not strand the inheritance",
-		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1),
-		`${JSON.stringify(keysOf(idF).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
+	const overlapTrace = fs.readFileSync(TRACE_RESPONSES, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
+	const forkResponse = overlapTrace.findIndex((e) => e.type === "response" && e.command === "fork");
+	const confirmResponse = overlapTrace.find((e, i) => i > forkResponse && e.type === "held-response" && e.command === "get_state");
+	// req: R-945
+	check("run 3: a ledger read lands mid-fork under the generous test budget and inheritance survives",
+		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1) && forkResponse >= 0 && confirmResponse?.t - overlapTrace[forkResponse].t >= 1000 && confirmResponse?.t - overlapTrace[forkResponse].t < 10000,
+		`${JSON.stringify(keysOf(idF).map((k) => k.slice(0, 8)))} confirmation=${confirmResponse?.t - overlapTrace[forkResponse]?.t}ms`);
 	ent = await get(A, "/api/entries");
 	check("run 3: ...and its inherited block verifies afterwards",
 		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block",
@@ -562,6 +580,12 @@ try {
 		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
 		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
 
+	// Restart with the production default for the late-answer and exact-boundary cases.
+	const beforeDefaultRestart = await rpc(s.id, { type: "get_state" });
+	setManifestSession("alpha", beforeDefaultRestart?.data?.sessionFile);
+	await stopServer();
+	await startServer("3-default", [A, B]);
+	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
 	// child does NOT sign with: if the late answer were accepted, the destination would
 	// be confirmed and seeded, and keyZ would appear in its record. The child answers
@@ -591,7 +615,7 @@ try {
 	await until(() => fs.existsSync(LATE), "the boundary answer to go out", 8000);
 	await sleep(250);
 	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	// req: R-441
+	// req: R-441 R-946
 	check("run 3: an answer landing ON the deadline confirms nothing either",
 		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
 	await stopServer();

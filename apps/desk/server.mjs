@@ -784,7 +784,9 @@ const CONFIRM_WAIT_MS = 120;
 // checked before every dispatch and raced against every response. A late answer is
 // ignored and counts as unconfirmed — the RPC keeps its own timer, we just stop
 // waiting for it.
-const CONFIRM_BUDGET_MS = 1000;
+// Contract default (R-492): 1000 ms; DESK_TEST_CONFIRM_BUDGET_MS is a test-only override for overlap fixtures.
+const testConfirmBudget = Number(process.env.DESK_TEST_CONFIRM_BUDGET_MS);
+const CONFIRM_BUDGET_MS = Number.isFinite(testConfirmBudget) && testConfirmBudget > 0 ? testConfirmBudget : 1000;
 
 function withinBudget(p, deadline) {
 	let timer = null;

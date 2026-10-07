@@ -329,8 +329,8 @@ try {
 			failed.push(name);
 			if (!verbose) {
 				const tail = r.out.trimEnd().split(/\r?\n/);
-				const shown = tail.filter((l) => /^\s*FAIL\b/.test(l));
-				for (const l of (shown.length ? shown : tail).slice(-30)) console.log(`      | ${l}`);
+				const shown = tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
+				for (const l of (shown.length ? shown : tail).slice(0, 20)) console.log(`      | ${l}`);
 			}
 		}
 		if (fx) reapPipeHolder();
