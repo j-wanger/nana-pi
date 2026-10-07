@@ -119,6 +119,24 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	// req: R-143
 	check("adoption: HANDOFF.md-only root remains unadopted", reportsFor(handoffOnly).length === 1);
 }
+// Production defaults skip real OS temporary roots; the override must be absent.
+{
+	delete process.env.NANA_TEST_TEMP_ROOTS;
+	const r = repo("production-temporary-root");
+	await prompt(r);
+	// req: R-640
+	check("adoption: production temporary root is skipped without override", reportsFor(r).length === 0);
+	if (process.platform !== "win32") {
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-producer-alias-")));
+		const alias = path.join(aliasBase, "repo");
+		fs.mkdirSync(path.join(alias, ".git"), { recursive: true });
+		await prompt(alias);
+		// req: R-640
+		check("adoption: canonical /tmp alias is skipped without override", reportsFor(alias).length === 0);
+		fs.rmSync(aliasBase, { recursive: true, force: true });
+	}
+	process.env.NANA_TEST_TEMP_ROOTS = "";
+}
 // Test-only injected temp roots: production defaults skip OS temp roots, ordinary fixtures opt out.
 {
 	const r = repo("injected-temporary-root");

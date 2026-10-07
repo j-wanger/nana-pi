@@ -51,6 +51,7 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { WRITING_INJECT_CAP } from "../lib/writing-config.mjs";
+import { orderNanaSections } from "../lib/prompt-sections.mjs";
 
 /** The shipped rule file — the default when no path is injected. */
 export const RULE_PATH = fileURLToPath(new URL("../rules/nana-writing.md", import.meta.url));
@@ -206,6 +207,7 @@ export default function (pi: ExtensionAPI, opts: { rulePath?: string } = {}) {
 	pi.on("before_agent_start", async (event, _ctx) => {
 		if (!block) return undefined;
 		(event as any).systemPromptOptions.sections["nana-writing"] = block;
+		orderNanaSections(event as any);
 		return undefined;
 	});
 }

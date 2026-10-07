@@ -100,14 +100,39 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
 }
+// README contract: all adoption evidence and the production temp-root exclusion are explicit.
+{
+	const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
+	// req: R-645
+	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root"].every((part) => readme.includes(part)));
+}
 // Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
 {
 	fs.writeFileSync(JOURNAL, line(completeNana, 1) + line(handoffOnly, 2));
 	const r = run();
 	// req: R-152
 	check("reader: complete Nana structure root is dropped", !r.stdout.includes(completeNana));
-	// req: R-151
+	// req: R-152
 	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly));
+}
+// Production defaults skip real OS temporary roots; the override must be absent.
+{
+	fs.writeFileSync(JOURNAL, line(handoffOnly, 1));
+	const productionEnv = { ...env };
+	delete productionEnv.NANA_TEST_TEMP_ROOTS;
+	const temporary = run(process.execPath, [BIN, "--cwd", base], productionEnv);
+	// req: R-640
+	check("reader: production temporary root is skipped without override", temporary.stdout === "");
+	if (process.platform !== "win32") {
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-reader-alias-")));
+		const aliasRepo = path.join(aliasBase, "repo");
+		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
+		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));
+		const alias = run(process.execPath, [BIN, "--cwd", base], productionEnv);
+		// req: R-640
+		check("reader: canonical /tmp alias is skipped without override", alias.stdout === "");
+		fs.rmSync(aliasBase, { recursive: true, force: true });
+	}
 }
 // Injected temp roots let the reader predicate be tested without hiding ordinary temp fixtures.
 {

@@ -72,6 +72,7 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { EVENT as UNADOPTED, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, storePathFor, tailLines } from "../lib/adoption.mjs";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { orderNanaSections } from "../lib/prompt-sections.mjs";
 import { fileField, locator, promptPath, promptText, uiPath, uiText } from "../lib/display.mjs";
 
 // The store resolver lives in lib/adoption.mjs (one implementation, shared with the seat's reader).
@@ -430,6 +431,7 @@ export default function (pi: ExtensionAPI) {
 			return undefined;
 		}
 		(event as any).systemPromptOptions.sections["nana-handoff"] = block;
+		orderNanaSections(event as any);
 		return undefined;
 	});
 

@@ -309,16 +309,9 @@ const TIME_LIMIT_MS = 5000;
 	fs.rmSync(bigPath, { force: true });
 }
 
-/* ======================================================================================
- * astra r2 MUST 3(d) / astra r3 MUST 2 — composition: a DISTINCTIVE base prompt seeded
- * alongside a REAL objective, and base + objective + writing each asserted EXACTLY ONCE,
- * IN ORDER (base, then objective, then writing — registration order). astra r3's own
- * mutation (an extension that discards the incoming systemPrompt and substitutes the
- * literal "BASE") must turn this red: a loose `startsWith("BASE")` check cannot catch that,
- * since the mutated text ALSO starts with "BASE" — the sentinel below is distinctive
- * enough that only the REAL incoming prompt, untouched, can produce it.
- * ====================================================================================== */
-const BASE_SENTINEL = `BASE-SENTINEL-${Date.now()}-do-not-discard`;
+/* The real extension handlers share one fake event; exercise every invocation order while
+ * retaining a foreign section so neither package discovery order nor key rebuilding defines it.
+ */
 {
  const rulePath = path.join(tempDir(), "rule.md");
  fs.writeFileSync(rulePath, "Compose fixture text.\n");
@@ -330,14 +323,26 @@ const BASE_SENTINEL = `BASE-SENTINEL-${Date.now()}-do-not-discard`;
  await handoffSession.handlers.session_start({ reason: "startup" }, handoffSession.ctx);
  const writingSession = session(writingExt, { rulePath });
  await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
- const event = { systemPromptOptions: { sections: {} } };
- const results = [];
- results.push(await objSession.handlers.before_agent_start(event, objSession.ctx));
- results.push(await handoffSession.handlers.before_agent_start(event, handoffSession.ctx));
- results.push(await writingSession.handlers.before_agent_start(event, writingSession.ctx));
- const keys = Object.keys(event.systemPromptOptions.sections);
+ const handlers = [
+  [objSession.handlers.before_agent_start, objSession.ctx],
+  [handoffSession.handlers.before_agent_start, handoffSession.ctx],
+  [writingSession.handlers.before_agent_start, writingSession.ctx],
+ ];
+ const orders = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+ let allStable = true;
+ for (const order of orders) {
+  const foreignFirst = { kept: "first" };
+  const foreignLast = { kept: "last" };
+  const event = { systemPromptOptions: { sections: { "foreign-first": foreignFirst, "foreign-last": foreignLast } } };
+  const results = [];
+  for (const i of order) results.push(await handlers[i][0](event, handlers[i][1]));
+  const sections = event.systemPromptOptions.sections;
+  allStable &&= JSON.stringify(Object.keys(sections)) === JSON.stringify(["foreign-first", "foreign-last", "nana-objective", "nana-handoff", "nana-writing"])
+   && sections["foreign-first"] === foreignFirst && sections["foreign-last"] === foreignLast && results.every((result) => result === undefined)
+   && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions);
+ }
  // req: R-641 R-751
- check("compose: objective, handoff and writing sections are present in stable order", JSON.stringify(keys) === JSON.stringify(["nana-objective", "nana-handoff", "nana-writing"]) && results.every((result) => result === undefined) && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions), keys.join(","));
+ check("compose: injector orders always produce canonical nana sections and preserve foreign sections", allStable);
 }
 
 for (const td of tmps) fs.rmSync(td, { recursive: true, force: true });

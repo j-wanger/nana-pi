@@ -311,6 +311,9 @@ if (POSIX) {
 // The malformed file URL uses the same total shared resolver as the gate.
 {
 	const { resolveToolPath } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
+	const source = fs.readFileSync(new URL("../extensions/nana-post-edit.ts", import.meta.url), "utf8");
+	// req: R-644
+	check("path: post-edit imports the shared resolver and defines no local resolver", /import\s*\{\s*resolveToolPath\s*\}\s*from\s*["']\.\.\/lib\/gate-paths\.ts["']/.test(source) && !/(?:function|const|let)\s+(?:resolveToolPath|resolveToCwd|normalizePath|normalizeWindowsShellPath)\b|UNICODE_SPACES/.test(source));
 	const malformed = "file:///%%";
 	const { td, cfg, fire } = setup([{ match: ".*", run: "node -e \\\"process.exit(0)\\\" {file}" }]);
 	const expected = resolveToolPath(malformed, td);

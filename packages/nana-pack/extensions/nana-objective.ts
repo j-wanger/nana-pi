@@ -56,6 +56,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { produceObjective } from "../lib/objective.ts";
+import { orderNanaSections } from "../lib/prompt-sections.mjs";
 
 export default function (pi: ExtensionAPI) {
 	// The whole block (heading first) exactly as lib/objective.ts rendered it. null only when off.
@@ -83,6 +84,7 @@ export default function (pi: ExtensionAPI) {
 		if (!block) return undefined;
 		if (!loadConfig(ctx).objective.enabled) return undefined;
 		(event as any).systemPromptOptions.sections["nana-objective"] = block;
+		orderNanaSections(event as any);
 		return undefined;
 	});
 }
