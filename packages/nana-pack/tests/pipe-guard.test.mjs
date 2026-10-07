@@ -27,6 +27,10 @@ const cases = [
 	["quoted command substitution remains executable", "echo \"$(git log | head)\"; git commit -m ok", true],
 	["pipe inside subshell", "(git log | head); git commit -m ok", true],
 	["pipefail enabled", "set -o pipefail; npm test | tail; git commit -m ok", false],
+	["pipefail only in subshell is inactive", "(echo start; set -o pipefail); npm test | tail; git commit -m ok", true],
+	["PowerShell Bash syntax does not enable pipefail", "set -o pipefail; npm test | tail; git commit -m ok", true, "powershell"],
+	["double-quoted backtick substitution pipeline", 'echo "`npm test | tail`"; git commit -m ok', true],
+	["double-quoted backtick substitution commit", 'echo "`git log | head; git commit -m ok`"', true],
 	["combined pipefail enabled", "set -euo pipefail; npm test | tail && git commit -m ok", false],
 	["pipefail disabled later", "set -o pipefail; set +o pipefail; npm test | tail; git commit -m ok", true],
 	["set eo pipefail", "set -eo pipefail; npm test | tail; git commit -m ok", false],
@@ -38,9 +42,9 @@ const cases = [
 	["here-doc text is not executed", "cat <<'END'\nnpm test | tail && git commit\nEND\ngit commit -m ok", false],
 	["PowerShell pipeline", "npm test | Select-Object -First 1; git commit -m ok", true],
 ];
-for (const [name, command, expected] of cases) {
+for (const [name, command, expected, dialect] of cases) {
 	// req: R-982
-	check(`predicate table: ${name}`, Boolean(verifierPipeReason(command)) === expected);
+	check(`predicate table: ${name}`, Boolean(verifierPipeReason(command, dialect)) === expected);
 }
 
 let handler;
@@ -55,6 +59,9 @@ const interactiveCtx = { ...ctx, hasUI: true, ui: { setStatus() {}, theme: { fg:
 const interactive = await handler({ toolName: "bash", input: { command: risky } }, interactiveCtx);
 // req: R-983
 check("pi interactive gate prompts with verifier-pipe reason", interactive?.block === true && dialogPrompts.some((prompt) => /pipefail/.test(prompt)));
+const powershell = await handler({ toolName: "powershell", input: { command: "set -o pipefail; npm test | tail; git commit -m done" } }, ctx);
+// req: R-983
+check("pi PowerShell gate does not treat Bash pipefail syntax as active", powershell?.block === true && /pipefail/.test(powershell.reason));
 const ordinary = await handler({ toolName: "bash", input: { command: "git commit -m done" } }, ctx);
 // req: R-983
 check("pi gate allows a bare commit", ordinary === undefined);

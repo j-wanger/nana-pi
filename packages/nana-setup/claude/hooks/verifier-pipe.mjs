@@ -11,16 +11,19 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { decideHook } from "../../lib/verifier-hook.mjs";
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/** Run the installed hook protocol with injectable predicate and streams for executable tests. */
+export function runHook(rawInput, { predicate, stdout = process.stdout, stderr = process.stderr } = {}) {
 	let input;
 	try {
-		input = JSON.parse(readFileSync(0, "utf8"));
+		input = JSON.parse(rawInput);
 	} catch (error) {
-		process.stderr.write(`nana verifier-pipe: ${String(error)}; allowing\n`);
-		process.stdout.write(`${JSON.stringify(decideHook(null).response)}\n`);
-		process.exit(0);
+		stderr.write(`nana verifier-pipe: ${String(error)}; allowing\n`);
+		stdout.write(`${JSON.stringify(decideHook(null).response)}\n`);
+		return;
 	}
-	const { response, diagnostic } = decideHook(input);
-	if (diagnostic) process.stderr.write(`nana verifier-pipe: ${diagnostic}\n`);
-	process.stdout.write(`${JSON.stringify(response)}\n`);
+	const { response, diagnostic } = decideHook(input, predicate);
+	if (diagnostic) stderr.write(`nana verifier-pipe: ${diagnostic}\n`);
+	stdout.write(`${JSON.stringify(response)}\n`);
 }
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) runHook(readFileSync(0, "utf8"));

@@ -284,7 +284,7 @@ export default function (pi: ExtensionAPI) {
 			hit = { label: "unanalysable call", reason: "gate analysis failed" };
 		}
 		if (!hit && isCommand) {
-			const reason = verifierPipeReason(subject);
+			const reason = verifierPipeReason(subject, event.toolName === "powershell" ? "powershell" : "bash");
 			if (reason) hit = { label: "verifier pipe", reason };
 		}
 		if (hit) gated += 1;

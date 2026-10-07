@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 196 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 197 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1584,6 +1584,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/trust-decision.mjs`
 
+### `packages/nana-setup/claude/hooks/verifier-pipe.mjs`
+
+- **purpose** — Ask before a Claude Code Bash command masks a verifier failure before commit.
+- **inputs** — Claude Code PreToolUse JSON on stdin.
+- **outputs** — a PreToolUse permission decision on stdout; diagnostics on stderr.
+- **effects** — process (reads stdin and writes stdout/stderr).
+- **errors** — malformed input and internal errors allow the tool and emit a stderr diagnostic.
+- **callers** — `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callees** — `packages/nana-setup/lib/verifier-hook.mjs`
+
 ### `packages/nana-setup/lib/doctor.mjs`
 
 - **purpose** — Judge one machine and return an ordered check list covering the Node floors, Claude Code, auto-memory, pi resource registration and user config, the knowledge index, PATH and desk service.
@@ -1691,7 +1701,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a hook response object and an optional diagnostic.
 - **effects** — none
 - **errors** — predicate failures become allow responses with diagnostic text.
-- **callers** — `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callers** — `packages/nana-setup/claude/hooks/verifier-pipe.mjs`
 - **callees** — `packages/nana-pack/lib/pipe-guard.mjs`
 
 ### `packages/nana-setup/tests/agent-dir-consumers.test.mjs`
@@ -1912,7 +1922,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home), process (runs the hook with fixture stdin).
 - **errors** — an assertion failure exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/verifier-hook.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/claude/hooks/verifier-pipe.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/win32-degrade.test.mjs`
 

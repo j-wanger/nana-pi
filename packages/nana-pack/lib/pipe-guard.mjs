@@ -30,6 +30,16 @@ function liveText(command) {
 			continue;
 		}
 		if (quote) {
+			if (quote === '"' && ch === '`') {
+				let end = i + 1;
+				while (end < source.length && (source[end] !== '`' || source[end - 1] === "\\")) end++;
+				if (end < source.length) {
+					text += ` (${liveText(source.slice(i + 1, end))}) `;
+					line += " ";
+					i = end;
+					continue;
+				}
+			}
 			if (quote === '"' && ch === "$" && source[i + 1] === "(") {
 				let depth = 1, nestedQuote = "", end = i + 2;
 				for (; end < source.length && depth > 0; end++) {
@@ -43,7 +53,7 @@ function liveText(command) {
 					else if (nestedChar === ")") depth--;
 				}
 				if (depth === 0) {
-					text += ` ${liveText(source.slice(i + 2, end - 1))} `;
+					text += ` (${liveText(source.slice(i + 2, end - 1))}) `;
 					line += " ";
 					i = end - 1;
 					continue;
@@ -72,7 +82,7 @@ function liveText(command) {
 }
 
 /** Return a reason if an unprotected pipeline occurs before a commit command. */
-export function verifierPipeReason(command) {
+export function verifierPipeReason(command, dialect = "bash") {
 	const live = liveText(command);
 	const commits = [...live.matchAll(/\bgit\s+(?:(?:-[\w-]+)(?:\s+[^\s;&|()]+)?\s+)*commit\b/gi)].map((m) => m.index ?? 0);
 	if (commits.length === 0) return null;
@@ -80,10 +90,23 @@ export function verifierPipeReason(command) {
 	for (let i = 0; i < live.length; i++) {
 		if (live[i] === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") events.push({ at: i, kind: "pipe" });
 	}
-	for (const m of live.matchAll(/(?:^|[;&|\n(])\s*set\s+(-[^\s;&|]+)\s+pipefail\b/gi)) {
-		if (!m[1].startsWith("+")) events.push({ at: m.index ?? 0, kind: "enable" });
+	if (dialect !== "powershell") {
+		const topLevel = new Uint8Array(live.length + 1);
+		let depth = 0;
+		for (let i = 0; i < live.length; i++) {
+			topLevel[i] = depth === 0 ? 1 : 0;
+			if (live[i] === "(" || live[i] === "{") depth++;
+			else if ((live[i] === ")" || live[i] === "}") && depth > 0) depth--;
+		}
+		for (const m of live.matchAll(/(?:^|[;&|\n])\s*set\s+(-[^\s;&|]+)\s+pipefail\b/gi)) {
+			const at = m.index ?? 0;
+			if (topLevel[at] && !m[1].startsWith("+")) events.push({ at, kind: "enable" });
+		}
+		for (const m of live.matchAll(/(?:^|[;&|\n])\s*set\s+\+[^\s;&|]*o\s+pipefail\b/gi)) {
+			const at = m.index ?? 0;
+			if (topLevel[at]) events.push({ at, kind: "disable" });
+		}
 	}
-	for (const m of live.matchAll(/(?:^|[;&|\n(])\s*set\s+\+[^\s;&|]*o\s+pipefail\b/gi)) events.push({ at: m.index ?? 0, kind: "disable" });
 	events.sort((a, b) => a.at - b.at);
 	for (const commit of commits) {
 		let enabled = false;
