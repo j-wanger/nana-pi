@@ -36,7 +36,6 @@ fs.writeFileSync(path.join(DEFAULT_DIR, "nana-pack.json"), JSON.stringify({ gate
 const ext = (await import(new URL("../extensions/nana-gate.ts", import.meta.url).href)).default;
 const { policyFileHit, commandPolicyHit, pathCandidates, piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
 const { journalFile, loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
-const { receiptsDir } = await import(new URL("../lib/receipts.ts", import.meta.url).href);
 const { ledgerPaths } = await import(new URL("../bin/review-round.mjs", import.meta.url).href);
 let handler;
 ext({ on: (ev, fn) => { if (ev === "tool_call") handler = fn; } });
@@ -92,8 +91,6 @@ for (const f of FORMS) {
 	const jl = (fs.existsSync(jf) ? fs.readFileSync(jf, "utf-8") : "").split("\n").filter((l) => l.includes('"config_agent_dir_mismatch"'));
 	// req: R-194
 	check(`${T} (c) exactly one config_agent_dir_mismatch journal line`, jl.length === 1, `${jl.length}`);
-	// req: R-101 R-191
-	check(`${T} receipts default is in the active dir`, receiptsDir(loadConfig(s1)) === path.join(f.link, "receipts"));
 
 	// ---- (a) the ACTIVE dir's config is enforced (and the mismatch note stops)
 	fs.writeFileSync(path.join(real, "nana-pack.json"), JSON.stringify({ gate: { extraPatterns: ["\\bfrobnicate\\b"], protectedPaths: ["secret-vault"] } }));

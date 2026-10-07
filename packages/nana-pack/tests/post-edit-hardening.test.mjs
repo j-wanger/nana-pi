@@ -3,7 +3,7 @@
  * @purpose Pins that the post-edit checker is bounded — a SIGTERM-ignoring checker and a descendant holding the pipe both end in a recorded timeout with the process really gone
  * @inputs extensions/nana-post-edit.ts and stub checkers that ignore signals or leak descendants, under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, stub checker scripts, receipts), process (sets HOME, spawns and kills the stub checkers and their descendants)
+ * @effects disk (temp HOME, stub checker scripts), process (sets HOME, spawns and kills the stub checkers and their descendants)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -33,7 +33,7 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 //      what is holding it open — pinned with a descendant that re-parents into
 //      its own process group, the platform-native equivalent of win32 `taskkill`
 //      being absent or denied.
-//  (g,h,i) `{file}` and the receipt digest use pi's OWN path normalization
+//  (g,h,i) `{file}` uses pi's OWN path normalization
 //      (resolveToCwd: `~`, a leading `@`, Unicode spaces), so the checker and the
 //      binding target the file pi actually edited.
 //  (d) that resolution is against the workspace cwd, and (e) survives a filename
@@ -48,7 +48,6 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // Run: node --experimental-strip-types <this file>
 const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
 const { loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
-const { readLatestReceipt } = await import(new URL("../lib/receipts.ts", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
@@ -56,7 +55,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const JOURNAL = path.join(tmpDir(path.join(os.tmpdir(), "postedit-journal-")), "journal.jsonl");
 
-// Fresh workspace + registered handler + config (same shape as receipt-binding).
+// Fresh workspace + registered handler + config.
 function setup(commands, opts = {}) {
 	const td = tmpDir(path.join(os.tmpdir(), "postedit-"));
 	fs.mkdirSync(path.join(td, ".pi"));
@@ -120,9 +119,6 @@ function reap(list) {
 	check("a: SIGTERM-ignoring checker does not hang the handler", !hung);
 // req: R-787
 	check(`a: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
-	const r = readLatestReceipt(cfg, td, cmd);
-	// req: R-095
-	check("a: recorded timeout, never checks_passed", r?.status === "timeout");
 	check("a: timeout fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	await sleep(200);
@@ -157,8 +153,6 @@ if (POSIX) {
 	// req: R-094
 	check("b: descendant holding the pipe does not hang the handler", !hung);
 	check(`b: resolved within deadline + kill grace (${ms}ms)`, !hung && ms < 6000);
-	const r = readLatestReceipt(cfg, td, cmd);
-	check("b: recorded timeout", r?.status === "timeout");
 	await sleep(200);
 	const left = survivors(marker);
 	check("b: no orphaned grandchild survives the kill", left === "");
@@ -181,9 +175,6 @@ if (POSIX) {
 	const { hung, ms } = await settle(p);
 	check("c: abort does not hang a SIGTERM-ignoring checker", !hung);
 	check(`c: aborted run resolved within the kill grace (${ms}ms)`, !hung && ms < 6000);
-	const r = readLatestReceipt(cfg, td, cmd);
-	// req: R-096
-	check("c: aborted check recorded not_run (never passed)", r?.status === "not_run");
 	await sleep(300);
 	const left = survivors(marker);
 	// req: R-096
@@ -222,8 +213,6 @@ if (POSIX) {
 	check("f: unkillable pipe-holder does not hang the handler", !hung);
 	// req: R-094
 	check(`f: settled within deadline + kill grace even though the kill failed (${ms}ms)`, !hung && ms < 6000);
-	const r = readLatestReceipt(cfg, td, cmd);
-	check("f: forced settlement is recorded timeout, never checks_passed", r?.status === "timeout");
 	check("f: forced settlement is fed back to the model",
 		typeof ret?.content?.at(-1)?.text === "string" && ret.content.at(-1).text.includes("check(s) failed"));
 	reap(survivors(marker)); // known residual: out of reach of the group kill
@@ -231,22 +220,17 @@ if (POSIX) {
 }
 
 // (d) a RELATIVE tool path is resolved against ctx.cwd for BOTH the digest and the
-// shell substitution: the receipt's `command` names the absolute file it checked.
+// shell substitution: the checker sees the absolute file it should check.
 // Pre-fix the raw relative path went to the shell while the digest used the joined one.
 {
 	const { td, cfg, fire } = setup([{ match: "\\.txt$", run: EXISTS_CHECK }]);
 	fs.mkdirSync(path.join(td, "sub"));
 	const abs = path.join(td, "sub", "rel.txt");
 	fs.writeFileSync(abs, "one\n");
-	await fire(path.join("sub", "rel.txt")); // relative, as a model may emit it
+	const result = await fire(path.join("sub", "rel.txt")); // relative, as a model may emit it
 
-	const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-// req: R-783
-	check("d: relative path check passed (the checker saw the file)", r?.status === "checks_passed");
-	// req: R-089
-	check("d: recorded command carries the cwd-resolved absolute path", (r?.command ?? "").includes(abs));
-// req: R-783
-	check("d: receipt input still bound repo-relative", r?.inputs?.[0]?.path === path.join("sub", "rel.txt"));
+	// req: R-089 R-783
+	check("d: relative path checker received the cwd-resolved file", result === undefined);
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -257,23 +241,16 @@ if (POSIX) {
 	const name = "a$&b.txt";
 	const abs = path.join(td, name);
 	fs.writeFileSync(abs, "one\n");
-	await fire(abs);
+	const result = await fire(abs);
 
-	const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-	check("e: `$&` filename check passed (substitution kept the real name)", r?.status === "checks_passed");
-	// posix quoting escapes the `$` for the shell, so the recorded command carries
-	// `a\$&b.txt` — the `&` and the name itself survive, which is the point.
-	const quoted = process.platform === "win32" ? "%NANA_PI_FILE%" : "a\\$&b.txt";
 	// req: R-088
-	check("e: recorded command contains the shell-quoted filename", (r?.command ?? "").includes(quoted));
-	// req: R-088
-	check("e: no {file} token leaked into the substituted command", !(r?.command ?? "").includes("{file}"));
+	check("e: dollar ampersand filename survives shell substitution", result === undefined);
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
 // (g,h,i) pi's edit/write tools resolve the model's `path` with resolveToCwd,
 // which expands `~`, strips a leading `@`, and folds Unicode spaces. A plain
-// path.resolve() misses all three, so the checker and the receipt would bind a
+// path.resolve() misses all three, so the checker would receive a
 // DIFFERENT file than the one pi edited. Each case names the file the way a model
 // may, and the checker passes only if it received the real path.
 {
@@ -291,20 +268,18 @@ if (POSIX) {
 		fs.writeFileSync(abs, "one\n");
 		fs.mkdirSync(path.join(td, ".pi", "agent"), { recursive: true }); // L1: HOME→td below reads user config from td
 		fs.copyFileSync(USER_CFG, path.join(td, ".pi", "agent", "nana-pack.json"));
+		let result;
 		try {
 			// os.homedir() reads HOME (posix) / USERPROFILE (win32), so `~` lands in the workspace
 			process.env.HOME = td;
 			process.env.USERPROFILE = td;
-			await fire(asModelWrites);
+			result = await fire(asModelWrites);
 		} finally {
 			if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;
 			if (origUserProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = origUserProfile;
 		}
-		const r = readLatestReceipt(cfg, td, EXISTS_CHECK);
-		// req: R-092 R-103 R-794
-		check(`${tag}: ${label} — checker received the real file`, r?.status === "checks_passed");
-// req: R-792 R-794
-		check(`${tag}: ${label} — receipt binds the real file`, r?.inputs?.[0]?.path === real);
+		// req: R-092 R-103
+		check(`${tag}: ${label} — checker received the real file`, result === undefined);
 		fs.rmSync(td, { recursive: true, force: true });
 	}
 }
@@ -316,12 +291,12 @@ if (POSIX) {
 	// req: R-644
 	check("path: post-edit imports the shared resolver and defines no local resolver", /import\s*\{\s*resolveToolPath\s*\}\s*from\s*["']\.\.\/lib\/gate-paths\.ts["']/.test(source) && !/(?:function|const|let)\s+(?:resolveToolPath|resolveToCwd|normalizePath|normalizeWindowsShellPath)\b|UNICODE_SPACES/.test(source));
 	const malformed = "file:///%%";
-	const { td, cfg, fire } = setup([{ match: ".*", run: "node -e \\\"process.exit(0)\\\" {file}" }]);
+	const { td, cfg, fire } = setup([{ match: ".*", run: 'node -e "require(\'fs\').writeFileSync(\'observed-path.txt\', process.argv[1])" {file}' }]);
 	const expected = resolveToolPath(malformed, td);
 	await fire(malformed);
-	const receipt = readLatestReceipt(cfg, td, "node -e \\\"process.exit(0)\\\" {file}");
+	const observed = fs.readFileSync(path.join(td, "observed-path.txt"), "utf8");
 	// req: R-644
-	check("path: malformed file URL post-edit path matches shared resolver", receipt?.command?.includes(expected));
+	check("path: malformed file URL checker receives the shared resolver result", observed === expected);
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

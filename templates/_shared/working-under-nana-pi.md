@@ -14,7 +14,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 ### pi-session guidance
 
 - **Objective:** nana-objective supplies the nearest project objective unless disabled by user configuration; the shared rules above describe pi-only behavior.
-- **Handoff:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and Jake's open questions in `HANDOFF.md` before a final report or session boundary.
+- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist unresolved work and Jake's open questions in `HANDOFF.md` before a final report or session boundary.
 - **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.
 - **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
 - **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.

@@ -97,7 +97,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-151
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
 	// req: R-151
-	check("c: action wording distinguishes no HANDOFF.md from no saved handoff", r.stdout.includes("no HANDOFF.md or saved handoff"));
+	check("c: action wording names the missing complete Nana structure", r.stdout.includes("no complete Nana structure (a regular root HANDOFF.md, root AGENTS.md, and docs/sessions/)"));
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
 }
@@ -105,7 +105,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 {
 	const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
 	// req: R-645
-	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once"].every((part) => readme.includes(part)));
+	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved compaction summary", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once", "listed repositories lack the complete Nana structure"].every((part) => readme.includes(part)));
 }
 // Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
 {
@@ -113,8 +113,8 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const r = run();
 	// req: R-152
 	check("reader: complete Nana structure root is dropped", !r.stdout.includes(completeNana));
-	// req: R-152
-	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly));
+	// req: R-151 R-152
+	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly) && r.stdout.includes(`- \`${handoffOnly}\` — has: HANDOFF.md`) && r.stdout.includes("no complete Nana structure (a regular root HANDOFF.md, root AGENTS.md, and docs/sessions/)") && !r.stdout.includes("no HANDOFF.md"));
 }
 // A symlinked root HANDOFF.md is not the regular file required for complete-structure adoption.
 {
