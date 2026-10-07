@@ -239,9 +239,13 @@ export function segmentDanger(seg: Segment): Danger | null {
 	try {
 		const t = tokens(seg.text);
 		if (!t.length) return null;
-		// rm is matched anywhere in the segment (xargs rm, find -exec rm, perl -e "…rm -rf…"):
-		// a string argument that reads as `rm -rf` is gated too (see the corpus: grep "rm -rf").
-		for (let i = 0; i < t.length; i++) {
+		const initial = base(t[commandIndex(t)] ?? "");
+		const words = t.slice(commandIndex(t) + 1).map(base);
+		const gitRead = initial === "git" && ["log", "show", "diff", "grep"].includes(words[0] ?? "");
+		const gitMessage = initial === "git" && words[0] === "commit" && words.some((w) => w === "-m" || w === "-F" || w === "--message" || w === "--file");
+		const mentionOnly = new Set(["echo", "printf", "grep", "rg"]).has(initial) || gitRead || gitMessage;
+		// Scan executable command segments for rm tokens; text-only mentions are excluded by their own command word.
+		for (let i = 0; !mentionOnly && i < t.length; i++) {
 			if (base(t[i]) === "rm" && !(i > 0 && SUBCOMMAND_HOSTS.has(base(t[i - 1])))) {
 				const d = rmDanger(t.slice(i + 1));
 				if (d) return d;
@@ -306,7 +310,11 @@ export function segmentDanger(seg: Segment): Danger | null {
 		if ((cmd === "rd" || cmd === "rmdir") && args.some((a) => /^\/s$/i.test(a))) return hit(`${cmd} /s`);
 		if ((cmd === "del" || cmd === "erase") && args.some((a) => /^\/[fsq]$/i.test(a))) return hit(`${cmd} /f /s /q`);
 		if (cmd === "mv" && args.at(-1) === "/dev/null") return hit("mv to /dev/null");
-		if (INTERPRETERS.test(cmd) && INTERP_DELETE.test(dequote(seg.text))) return hit(`${cmd} deleting files`);
+		if (INTERPRETERS.test(cmd)) {
+			const inline = new Set(["-c", "-e", "--eval"]);
+			const code = args.findIndex((a) => inline.has(a));
+			if (code >= 0 && INTERP_DELETE.test(args.slice(code + 1).join(" "))) return hit(`${cmd} deleting files`);
+		}
 		return null;
 	} catch {
 		return { reason: "unparseable segment", floor: false };

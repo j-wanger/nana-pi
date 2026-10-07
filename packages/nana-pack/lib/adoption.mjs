@@ -25,6 +25,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir } from "./agent-dir.mjs";
 import { codeSpanSafe } from "./display.mjs";
+import { readBounded } from "./bounded-read.mjs";
 
 export const EVENT = "directory_unadopted";
 /** Committed at the repository root by `nana-setup project <dir> --not-a-project`. */
@@ -83,7 +84,7 @@ export function adoptionSettings() {
 	const agent = piAgentDir();
 	let u = {};
 	try {
-		u = JSON.parse(fs.readFileSync(path.join(agent, "nana-pack.json"), "utf8")) ?? {};
+		u = JSON.parse(readBounded(path.join(agent, "nana-pack.json")).toString("utf8")) ?? {};
 	} catch {
 		/* absent / unreadable / malformed: the defaults */
 	}

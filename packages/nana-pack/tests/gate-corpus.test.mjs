@@ -76,11 +76,25 @@ const ALLOW = [
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 	// req: R-038
 	check("powershell tool is gated the same", (await run("ri -r -fo C:\\x", "powershell")) === "BLOCK");
-	// DECIDED + PINNED: a string that reads as `rm -rf` is gated even as a grep argument — rm is
-	// matched anywhere in a segment, because a command-position rule for rm would miss
-	// `xargs rm -rf`, `find -exec rm`, `perl -e "…rm -rf…"`. Interactive users answer the dialog.
-	// req: R-040
-	check("grep -r \"rm -rf\" docs/ is gated (pinned: rm matched anywhere in a segment)", (await run('grep -r "rm -rf" docs/')) === "BLOCK");
+	// req: R-040 R-632
+	check("benign rm-text mentions pass only for non-executing commands", (await run('grep -r "rm -rf" docs/')) === "ALLOW" && (await run('git diff -- "rm -rf"')) === "ALLOW" && (await run('git log --grep="rm -rf"')) === "ALLOW" && (await run('git show --format="rm -rf ~"')) === "ALLOW" && (await run('echo "rm -rf ~"')) === "ALLOW" && (await run('printf "%s" "rm -rf ~"')) === "ALLOW");
+	// req: R-630
+	check("template config source is allowed for git diff and cat", (await run("git diff -- templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await run("cat templates/typescript/template/.pi/nana-pack.json.jinja")) === "ALLOW");
+	// req: R-637
+	check("interpreter text outside inline code remains allowed", (await run("python3 -m pytest -k unlink")) === "ALLOW");
+	// req: R-040 R-632
+	check("rm-text scanner still blocks an executing nested substitution", (await run('echo "$(rm -rf ~)"')) === "BLOCK");
+	// req: R-040 R-632
+	check("rm-text scanner still blocks a backtick in a git message", (await run('git commit -m "`rm -rf ~`"')) === "BLOCK");
+	const blockedReason = await (async () => {
+		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+		const h = {}; ext({ on: (name, fn) => { h[name] = fn; } });
+		const ctx = { cwd: CWD, hasUI: false, isProjectTrusted: () => false };
+		await h.session_start({ type: "session_start", reason: "startup" }, ctx);
+		return h.tool_call({ toolName: "bash", input: { command: "rm -rf build" } }, ctx);
+	})();
+	// req: R-633
+	check("headless block names category and recovery", blockedReason?.reason?.includes("dangerous command") && blockedReason.reason.includes("instead"));
 	// `.` at the repo root is dangerous but NOT floor (next block shows `^rm` exempts it)
 // req: R-767
 	check("rm -rf . is gated", (await run("rm -rf .")) === "BLOCK");

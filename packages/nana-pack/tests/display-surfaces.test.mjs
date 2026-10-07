@@ -333,7 +333,9 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 		const hl = await gate("headless");
 		const rh = await hl.call(tool, input);
 		// req: R-184
-		check(`gate decision ${kind}: headless fail-closed reason unchanged (raw subject decided it)`, rh?.block === true && rh.reason.startsWith(`nana-gate: ${label} blocked (headless fail-closed): `) && (reason === null || rh.reason.endsWith(reason)), j(rh));
+		check(`gate decision ${kind}: headless fail-closed reason unchanged (raw subject decided it)`, rh?.block === true && rh.reason.startsWith(`nana-gate: ${label} blocked (headless fail-closed): `) && (reason === null || rh.reason.includes(reason)), j(rh));
+		// req: R-633
+		check(`gate decision ${kind}: headless block names a recovery action`, rh?.reason.includes(". Recovery:") && rh.reason.includes("then retry."), j(rh));
 	}
 	const long = `rm -rf ${"a".repeat(500)}`;
 	const lg = await gate("Block");

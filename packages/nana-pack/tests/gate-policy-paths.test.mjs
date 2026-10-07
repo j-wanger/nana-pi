@@ -41,17 +41,31 @@ const TRAVERSAL = [
 ];
 
 const BLOCK = [
+	`${NANA_HOME}/.pi/agent/auth.json`, `${NANA_HOME}/.pi/agent/settings.json`, `${NANA_HOME}/.pi/agent/mcp.json`,
+	`${NANA_HOME}/.pi/agent/extensions/subagent/config.json`,
+	".pi/settings.json", ".pi/mcp.json", ".pi/extensions/evil.ts",
 	`${NANA_HOME}/.pi/agent/trust.json`, "~/.pi/agent/trust.json", ".pi/agent/trust.json",
 	`${NANA_HOME}/.pi/agent/nana-pack.json`, "~/.pi/agent/nana-pack.json",
 	".pi/nana-pack.json", "/tmp/proj/.pi/nana-pack.json", "@.pi/nana-pack.json",
 	"C:\\Users\\x\\.pi\\agent\\trust.json", ".PI\\NANA-PACK.JSON",
 ];
-const ALLOW = ["src/nana-pack-notes.md", "docs/trust.md", ".pi/handoff.md", "/tmp/proj/README.md", "nana-pack.json.example"];
+const ALLOW = ["src/nana-pack-notes.md", "docs/trust.md", ".pi/handoff.md", "/tmp/proj/README.md", "nana-pack.json.example", "packages/nana-pack/extensions/nana-gate.ts", "apps/bench/.ext/pi-web-access/x.ts", "templates/python/template/.pi/nana-pack.json.jinja", "templates/typescript/template/.pi/nana-pack.json.jinja"];
 // req: R-035 R-038 R-051
 for (const p of BLOCK) for (const t of ["write", "edit"]) check(`${t} ${p} is gated`, (await decide(t, p)) === "BLOCK");
 // req: R-051
 for (const p of TRAVERSAL) for (const t of ["write", "edit"]) check(`${t} ${p} is gated after resolution`, (await decide(t, p)) === "BLOCK");
 for (const p of ALLOW) for (const t of ["write", "edit"]) check(`${t} ${p} is not gated`, (await decide(t, p)) === "ALLOW");
+// req: R-631 R-058
+check("active and default pi code-loading resources are policy floor", BLOCK.includes(`${NANA_HOME}/.pi/agent/extensions/subagent/config.json`) && BLOCK.includes(".pi/extensions/evil.ts") && (await decide("write", `${NANA_HOME}/.pi/agent/extensions/subagent/config.json`)) === "BLOCK" && (await decide("edit", ".pi/extensions/evil.ts")) === "BLOCK");
+// req: R-630
+check("template source suffix and normal package extension sources stay editable", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
+// req: R-638
+check("prompt-only pi resources remain editable", (await decide("edit", ".pi/SYSTEM.md")) === "ALLOW" && (await decide("edit", ".pi/APPEND_SYSTEM.md")) === "ALLOW" && (await decide("edit", ".pi/skills/example/SKILL.md")) === "ALLOW" && (await decide("edit", ".pi/prompts/example.md")) === "ALLOW");
+const RELOCATED = path.join(NANA_HOME, "relocated-agent");
+process.env.PI_CODING_AGENT_DIR = RELOCATED;
+// req: R-631 R-058
+check("relocated agent resources and default-dir resources remain on the floor", (await decide("write", path.join(RELOCATED, "extensions", "subagent", "config.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "auth.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "settings.json"))) === "BLOCK" && (await decide("write", path.join(RELOCATED, "mcp.json"))) === "BLOCK" && (await decide("write", path.join(NANA_HOME, ".pi", "agent", "auth.json"))) === "BLOCK");
+delete process.env.PI_CODING_AGENT_DIR;
 // A path that only LOOKS like a policy file after resolution must still be allowed.
 for (const p of ["/tmp/proj/notes/.pi-nana-pack.json", "/tmp/proj/.pineapple/nana-pack.json.md"])
 	check(`write ${p} is not gated`, (await decide("write", p)) === "ALLOW");
