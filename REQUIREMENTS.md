@@ -692,7 +692,7 @@ cover).
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-973 | WHEN NANA_ROLE is reviewer, the nana-knowledge hook and pi extension shall suppress knowledge output and pull-log writes. | implemented | `packages/nana-knowledge/tests/hook.test.mjs::reviewer role skips output and pull-log writes` |
+| R-973 | WHEN NANA_ROLE is reviewer, the nana-knowledge hook shall suppress knowledge output and pull-log writes. | implemented | `packages/nana-knowledge/tests/hook.test.mjs::reviewer role skips output and pull-log writes` |
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-233 | WHEN pi starts an agent, exactly one before_agent_start handler shall spawn the same hook CLI and inject its output as one displayed nana-knowledge session message, mutating no system prompt and never loading node:sqlite in pi's process. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::registers exactly one before_agent_start handler`, `packages/nana-knowledge/tests/extension.test.mjs::1: no systemPrompt mutation`, `packages/nana-knowledge/tests/extension.test.mjs::9: ...and node:sqlite never loaded in the extension's process`, `packages/nana-knowledge/tests/extension.test.mjs::1: customType is nana-knowledge`, `packages/nana-knowledge/tests/extension.test.mjs::1: display is true (the owner sees what the agent sees)`, `packages/nana-knowledge/tests/extension.test.mjs::1: content is the untrusted-pointers block` |
