@@ -31,6 +31,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
+import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { platform, repoRoot } from "./paths.mjs";
@@ -144,7 +145,7 @@ function markerLines(text) {
 	return lines;
 }
 
-export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {} } = {}) {
+export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {}, writeTemp = (fd, content) => fs.writeFileSync(fd, content, "utf8") } = {}) {
 	const target = path.join(dir, "AGENTS.md");
 	const st = lstat(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
@@ -176,9 +177,29 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
 		if (replacement === original) return { label: "AGENTS.md working region", status: UNCHANGED, detail: "unchanged" };
 		if (dryRun) return { label: "AGENTS.md working region", status: CREATED, detail: "would refresh marker-owned region" };
-		fs.ftruncateSync(fd, 0);
-		fs.writeSync(fd, replacement, 0, "utf8");
-		return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
+		const temp = path.join(dir, `.AGENTS.md.nana-${randomUUID()}.tmp`);
+		let tempCreated = false;
+		try {
+			const tempFd = fs.openSync(temp, "wx", 0o600);
+			tempCreated = true;
+			try {
+				writeTemp(tempFd, replacement);
+				fs.fsyncSync(tempFd);
+			} finally {
+				fs.closeSync(tempFd);
+			}
+			fs.chmodSync(temp, opened.mode & 0o7777);
+			const current = lstat(target);
+			if (!current?.isFile() || current.isSymbolicLink() || current.dev !== opened.dev || current.ino !== opened.ino)
+				throw new Error("AGENTS.md changed before replacement");
+			fs.renameSync(temp, target);
+			return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
+		} catch {
+			if (tempCreated) {
+				try { fs.unlinkSync(temp); } catch {}
+			}
+			return { label: "AGENTS.md working region", status: SKIPPED, detail: "could not safely replace AGENTS.md — original left alone" };
+		}
 	} finally {
 		fs.closeSync(fd);
 	}

@@ -66,6 +66,40 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 }
 
 {
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const original = fs.readFileSync(target);
+	fs.symlinkSync("AGENTS.md", path.join(dir, "CLAUDE.md"));
+	const result = refreshWorkingRegion(dir, { writeTemp: () => { throw new Error("injected write failure"); } });
+	const leftovers = fs.readdirSync(dir).filter((name) => name.startsWith(".AGENTS.md.nana-") && name.endsWith(".tmp"));
+	// req: R-986
+	check("failed staged write preserves original bytes and leaves no temp file", result.status === "skipped" && fs.readFileSync(target).equals(original) && leftovers.length === 0);
+}
+
+{
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const replacementByOwner = "owner replaced this file while staging\n";
+	const result = refreshWorkingRegion(dir, { writeTemp: (fd, content) => {
+		fs.writeFileSync(fd, content, "utf8");
+		fs.unlinkSync(target);
+		fs.writeFileSync(target, replacementByOwner);
+	} });
+	// req: R-986
+	check("target identity change during staging is refused", result.status === "skipped" && fs.readFileSync(target, "utf8") === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")));
+}
+
+{
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const originalMode = fs.statSync(target).mode & 0o7777;
+	fs.symlinkSync("AGENTS.md", path.join(dir, "CLAUDE.md"));
+	const result = refreshWorkingRegion(dir);
+	// req: R-986
+	check("atomic refresh preserves mode and keeps CLAUDE link resolving to refreshed content", result.status === "created" && (fs.statSync(target).mode & 0o7777) === originalMode && fs.readFileSync(path.join(dir, "CLAUDE.md"), "utf8").includes(shared));
+}
+
+{
 	const malformedCases = [];
 	for (const [title, body] of [
 		["no markers", "unmarked old instructions\n"],
