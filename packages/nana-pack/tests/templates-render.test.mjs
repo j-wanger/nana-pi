@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, rendered projects), process (spawns the render and check commands in the rendered projects)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -25,7 +26,7 @@ import { fileURLToPath } from "node:url";
 //     command `--check` is green.
 // Needs `uvx copier`; without it every row SKIPs. Temp HOME.
 // Run: node --experimental-strip-types <this file>
-const NANA_HOME = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-")));
+const NANA_HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-home-")));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 
@@ -47,7 +48,7 @@ function copierAvailable() {
 
 /** Render one template from THIS checkout into a temp dir. */
 function render(language, answers) {
-	const dest = fs.mkdtempSync(path.join(os.tmpdir(), `nana-tpl-${language}-`));
+	const dest = tmpDir(path.join(os.tmpdir(), `nana-tpl-${language}-`));
 	const args = ["copier", "copy", "--trust", "--vcs-ref", "HEAD", "--defaults", "-d", `language=${language}`];
 	for (const [k, v] of Object.entries(answers)) args.push("-d", `${k}=${v}`);
 	args.push(REPO, dest);
@@ -200,7 +201,7 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	// Mutation, in a scratch copy only (the real AGENTS.md is never touched): dropping the
 	// final byte must flip the SAME predicate from true to false, proving the check is live
 	// rather than vacuously true.
-	const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-agents-mutation-"));
+	const scratch = tmpDir(path.join(os.tmpdir(), "nana-agents-mutation-"));
 	try {
 		const mutatedPath = path.join(scratch, "AGENTS.md");
 		fs.writeFileSync(mutatedPath, agents.slice(0, -1));

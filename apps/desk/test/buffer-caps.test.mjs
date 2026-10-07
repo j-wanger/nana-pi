@@ -30,6 +30,7 @@
 //      timeout kills on time, never on size
 //
 // Run: node apps/desk/test/buffer-caps.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -67,7 +68,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // The desk imports pi's session parser from the install tied to the `pi` it SPAWNS —
 // and this test deliberately puts a stub `pi` first on PATH, which no package contains.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-buffers-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-buffers-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
 const plainCwd = path.join(TD, "repo-plain");

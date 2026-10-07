@@ -10,6 +10,7 @@
 // — pi-review / pi-worker with a stub `pi` on PATH, and review-ledger run/check — against real git
 // repositories and worktrees, under a temp HOME. Each sol r1 bypass is pinned as a refusal here.
 // Run: node packages/nana-pack/tests/review-ledger.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -21,7 +22,7 @@ const PI_REVIEW = path.join(bin, "pi-review.mjs");
 const PI_WORKER = path.join(bin, "pi-worker.mjs");
 const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
 const mod = await import(path.join(bin, "review-round.mjs"));
-const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "review-ledger-test-")));
+const tmp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-ledger-test-")));
 const stubs = path.join(tmp, "stubs");
 const outs = path.join(tmp, "outs");
 for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
@@ -69,9 +70,9 @@ fs.mkdirSync(plain);
 
 let n = 0;
 const out = () => path.join(outs, `o${++n}.md`);
-const piReview = (args, { stub = "verdict", cwd = A.d, extra = "" } = {}) =>
+const piReview = (args, { stub = "verdict", cwd = A.d, extra = "", extraEnv = {} } = {}) =>
 	spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--retries", "0", ...args, "--", "-p", "x"],
-		{ cwd, env: env({ STUB: stub, STUB_TEXT: extra }), encoding: "utf8", timeout: 30000 });
+		{ cwd, env: env({ STUB: stub, STUB_TEXT: extra, ...extraEnv }), encoding: "utf8", timeout: 30000 });
 const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND')"];
 const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
 	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
@@ -96,6 +97,17 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("pi-worker runs a worker under the watchdog (exit 0, output written)", wk.status === 0 && /VERDICT/.test(fs.readFileSync(path.join(outs, "wp.md"), "utf8")), wk.stderr);
 	// req: R-732
 	check("pi-worker touched no ledger file", !fs.existsSync(agent), fs.existsSync(agent) ? fs.readdirSync(agent).join(",") : "");
+	const captureRoot = path.join(tmp, "watchdog-captures");
+	fs.mkdirSync(captureRoot);
+	const captureEnv = { TMPDIR: captureRoot, TEMP: captureRoot, TMP: captureRoot };
+	freshHome("captures");
+	const captureRuns = [
+		piReview(["--item", "capture-success", "--out", out()], { extraEnv: captureEnv }),
+		piReview(["--item", "capture-failure", "--out", out()], { stub: "fail", extraEnv: captureEnv }),
+		piReview(["--item", "capture-stall", "--out", out()], { stub: "stall", extraEnv: captureEnv }),
+	];
+	// req: R-919
+	check("pi-watchdog removes capture directories after success, child failure and stall", captureRuns[0].status === 0 && captureRuns[1].status === 1 && captureRuns[2].status === 1 && fs.readdirSync(captureRoot).length === 0, JSON.stringify(captureRuns.map((r) => ({ status: r.status, stderr: r.stderr }))));
 	const wki = spawnSync(process.execPath, [PI_WORKER, "--item", "x", "--out", out(), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8" });
 	// req: R-733
 	check("pi-worker refuses review options (--item)", wki.status === 1 && /records nothing/.test(wki.stderr), wki.stderr);

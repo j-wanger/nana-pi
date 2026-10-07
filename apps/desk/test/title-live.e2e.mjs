@@ -14,6 +14,7 @@
 //
 // Not part of any suite — run manually: node apps/desk/test/title-live.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -28,7 +29,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-title-e2e-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-title-e2e-"));
 const DERIVED = "Stub Derived Title";
 
 // isolated sessions dir (server resolves it from HOME at startup)

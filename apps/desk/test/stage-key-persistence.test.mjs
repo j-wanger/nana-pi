@@ -43,6 +43,7 @@
 // (which never acts on an empty enumeration).
 //
 // Run: node apps/desk/test/stage-key-persistence.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -59,7 +60,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // to start rather than guess which install to parse sessions with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-stagekey-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-stagekey-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
 const cwdA = path.join(TD, "repo-a");
@@ -661,7 +662,7 @@ try {
 	// ── the store's own properties (direct, deterministic) ──
 	// One file per session, so these are per-file properties: there is no shared
 	// document to merge, lock or lose.
-	const td2 = fs.mkdtempSync(path.join(os.tmpdir(), "stagekey-unit-"));
+	const td2 = tmpDir(path.join(os.tmpdir(), "stagekey-unit-"));
 	const d2 = path.join(td2, "nested", "stage-keys");
 	const rec2 = (id) => path.join(d2, `${id}.json`);
 	const ls2 = () => (fs.existsSync(d2) ? fs.readdirSync(d2) : []);

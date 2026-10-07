@@ -10,6 +10,7 @@
 // cross-platform or degrade gracefully — an installer that throws on win32 is the failure mode.
 // NANA_SETUP_PLATFORM is the seam (lib/paths.mjs); process.platform is never monkey-patched, so
 // sibling packages and the node runtime behave normally.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -27,7 +28,7 @@ const check = (n, ok, extra) => {
 
 const tmps = [];
 function freshHome() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-win-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-win-"));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));

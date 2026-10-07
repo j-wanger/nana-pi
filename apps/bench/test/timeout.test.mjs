@@ -12,6 +12,7 @@
 // it resolved the promise on a second timer and left the tree running.
 // No pi and no model here.
 // Run: node apps/bench/test/timeout.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -36,7 +37,7 @@ const waitGone = async (pid, ms = 10000) => {
 	return !alive(pid);
 };
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-timeout-"));
+const dir = tmpDir(path.join(os.tmpdir(), "bench-timeout-"));
 // A SIGTERM-resistant child with a SIGTERM-resistant grandchild.
 fs.writeFileSync(
 	path.join(dir, "stubborn.mjs"),

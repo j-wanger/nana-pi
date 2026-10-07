@@ -11,6 +11,7 @@
 // MUST 4 (one seal per exported value, nothing else re-literals it), MUST 5 (CLI-level
 // assertions so astra's four mutations each turn a named test red), SHOULD 1 (passive
 // candidates, whole-word exceptions, an unpinned labelled precision/recall fixture).
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -60,7 +61,7 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 // astra r1 MUST 5 mutation: force every CLI finding's line number to 1. Two files, each
 // with a banned word on a DIFFERENT, non-1 line, so that mutation cannot pass silently.
 {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-writing-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-writing-"));
 	const f1 = path.join(td, "a.md");
 	const f2 = path.join(td, "b.md");
 	fs.writeFileSync(f1, "plain line one\ndogfood here\nplain line three\n");

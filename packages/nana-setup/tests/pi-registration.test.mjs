@@ -11,6 +11,7 @@
 // extension would load twice. Matching follows pi's own rules (docs/packages.md, pi 0.84.4):
 // relative local paths resolve against the settings file's directory; identity is the resolved
 // absolute path; git entries are the repo URL without a ref.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -86,7 +87,7 @@ check("a non-string entry is not us", !entryMatches(42, piHome, root));
 /* --- registrationState against a settings file ------------------------------------------ */
 const tmps = [];
 function piHomeWith(packages) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-reg-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-reg-"));
 	tmps.push(td);
 	const agent = path.join(td, ".pi", "agent");
 	fs.mkdirSync(path.join(agent, "nana-knowledge"), { recursive: true });
@@ -125,7 +126,7 @@ function piHomeWith(packages) {
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
 }
 {
-	const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nana-manifest-root-"));
+	const fixtureRoot = tmpDir(path.join(os.tmpdir(), "nana-manifest-root-"));
 	tmps.push(fixtureRoot);
 	const packRoot = path.join(fixtureRoot, "packages", "nana-pack");
 	const knowledgeRoot = path.join(fixtureRoot, "packages", "nana-knowledge");
@@ -152,7 +153,7 @@ function piHomeWith(packages) {
 	const r = spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" });
 	// req: R-654
 	check("doctor names nana-pack's uncovered extensions directory", /✗ pi packages.*packages.nana-pack.extensions/s.test(r.stdout), r.stdout);
-	const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-pi-"));
+	const fakeBin = tmpDir(path.join(os.tmpdir(), "nana-fake-pi-"));
 	tmps.push(fakeBin);
 	const log = path.join(fakeBin, "calls");
 	fs.writeFileSync(path.join(fakeBin, "pi"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\nexit 0\n`);
@@ -181,7 +182,7 @@ function piHomeWith(packages) {
 		console.log("SKIP this checkout is not a git repo");
 	} else {
 		const mainCheckout = path.dirname(common.stdout.trim()); // <main clone>/.git -> <main clone>
-		const wt = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-wt-"));
+		const wt = tmpDir(path.join(os.tmpdir(), "nana-setup-wt-"));
 		const added = spawnSync("git", ["-C", repo, "worktree", "add", "--detach", "-q", wt, "HEAD"], { encoding: "utf8" });
 		if (added.status !== 0) {
 			console.log("SKIP could not create a throwaway worktree: " + added.stderr.trim());
@@ -213,7 +214,7 @@ function piHomeWith(packages) {
 				}
 
 				// an unrelated repo still is not us
-				const other = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
+				const other = tmpDir(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
 				tmps.push(other);
 				spawnSync("git", ["-C", other, "init", "-q"], { encoding: "utf8" });
 				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [other] }, null, 2));

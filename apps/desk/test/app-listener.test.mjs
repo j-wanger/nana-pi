@@ -10,6 +10,7 @@
 // Drives the REAL desk server with two app manifests against a STUB `pi`
 // that records its argv + cwd and speaks just enough RPC. Zero-dep.
 // Run: node apps/desk/test/app-listener.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -25,7 +26,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "desk-apps-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "desk-apps-"));
 const binDir = path.join(tmp, "bin");
 const appsDir = path.join(tmp, "apps");
 const cwdA = path.join(tmp, "repo-a");

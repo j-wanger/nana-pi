@@ -6,6 +6,7 @@
  * @effects disk (temp HOMEs and config files), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -36,7 +37,7 @@ const LEAVES = {
 	gate: { extraPatterns: ["regex", ["\\bterraform\\s+destroy\\b"]], allowPatterns: ["regex", ["^ls\\b"]], protectedPaths: ["regex", ["secrets\\.txt"]] },
 	postEdit: { commands: ["commands", [{ match: "\\.ts$", run: "true" }]] },
 	notify: { enabled: ["bool", false], headless: ["bool", true] },
-	journal: { enabled: ["bool", false], path: ["path", path.join(fs.mkdtempSync(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
+	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"], staleAfterDays: ["days", 3] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
@@ -78,13 +79,13 @@ function isTyped(c) {
 
 /** fresh HOME (+ optional user config), fresh project dir (+ optional trusted project config) */
 function env({ user, project, userText, projectText } = {}) {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
+	const home = tmpDir(path.join(os.tmpdir(), "norm-home-"));
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	const u = userText ?? (user === undefined ? undefined : JSON.stringify(user));
 	if (u !== undefined) fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), u);
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "norm-proj-"));
+	const cwd = tmpDir(path.join(os.tmpdir(), "norm-proj-"));
 	fs.mkdirSync(path.join(cwd, ".pi"));
 	fs.writeFileSync(path.join(cwd, ".pi", "settings.json"), "{}");
 	const p = projectText ?? (project === undefined ? undefined : JSON.stringify(project));

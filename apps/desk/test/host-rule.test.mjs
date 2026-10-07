@@ -16,6 +16,7 @@
 // Raw sockets, not fetch(): `host` is a forbidden header for fetch, and the attack is
 // exactly "a browser sends its own Host". No pi child is ever spawned.
 // Run: node apps/desk/test/host-rule.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -34,7 +35,7 @@ const freePort = () =>
 const PORT = Number(process.env.DESK_TEST_PORT) || (await freePort());
 const APP_PORT = await freePort();
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-host-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-host-"));
 const appsDir = path.join(TD, "apps");
 const appCwd = path.join(TD, "repo");
 fs.mkdirSync(appsDir, { recursive: true });

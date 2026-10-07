@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, objective fixtures, a symlinked hook), process (sets HOME, runs the bash hook with node on PATH)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
@@ -25,7 +26,7 @@ const check = (n, ok, extra) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.sh");
-const scratch = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "objective-golden-")));
+const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "objective-golden-")));
 const origHome = process.env.HOME;
 // pi's agent-dir override is never inherited from the machine; a world with agentDir sets it for BOTH runtimes.
 delete process.env.PI_CODING_AGENT_DIR;
@@ -126,8 +127,10 @@ async function runPi(w, cwd, isProjectTrusted = () => false) {
 }
 
 /** The one comparison: hook stdout minus its tag line === pi's injected block. */
-async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted) {
+async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refreshLock) {
+	await refreshLock?.("hook");
 	const hook = runHook(w, cwd, hookOpts);
+	await refreshLock?.("pi");
 	const pi = await runPi(w, cwd, isProjectTrusted);
 	check(`${label}: hook exits 0`, hook.status === 0, hook.out);
 	let hookText = null;
@@ -1055,7 +1058,10 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 			const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
 			const lock = `${store(w)}.lock`; make(lock);
 			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
-			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+			let refreshed = 0;
+			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {}, undefined, undefined, () => { make(lock); refreshed++; });
+			// req: R-760
+			check(`T17 ${k}: lock is refreshed before each runtime`, refreshed === 2);
 			// req: R-760
 			check(`T17 ${k}: remedy never tells the owner to delete or move the lock`, !/move it aside|delete|remove (it|the lock|\S+\.lock) first/.test(t.split("\n").find((l) => l.startsWith("To clear this label: ")) ?? "") && t.includes("do not remove it yourself"), t);
 			if (piMod) {

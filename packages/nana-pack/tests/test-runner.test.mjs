@@ -20,7 +20,8 @@
 // Each case gets its own TMPDIR so "the scratch dir is removed" can be asserted without racing
 // other work on the machine.
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
-import { spawnSync } from "node:child_process";
+import { tmpDir } from "./tmp-dir.mjs";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -28,7 +29,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
-const TD = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "runner-test-")));
+const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
 const NANA_HOME = path.join(TD, "home");
@@ -58,8 +59,8 @@ function mkRoot(name, files) {
 
 /** Run the copied runner in `root`; returns {code, out, ms, out_dir, tmp}. */
 function run(root, args = [], extraEnv = {}) {
-	const tmp = fs.mkdtempSync(path.join(TD, "tmpdir-"));
-	const out_dir = fs.mkdtempSync(path.join(TD, "probeout-"));
+	const tmp = tmpDir(path.join(TD, "tmpdir-"));
+	const out_dir = tmpDir(path.join(TD, "probeout-"));
 	const env = {
 		...process.env,
 		TMPDIR: tmp, TEMP: tmp, TMP: tmp,
@@ -98,7 +99,7 @@ const TRAP = (what) => `console.log("FAIL ${what}");\nprocess.exit(1);\n`;
 // ── case A: the mixed run — collection, verdicts, labels, tallies, the child env ──────────────
 // PATH is pointed at an empty dir so the runner's declared skip for post-edit-hardening
 // ("needs `pgrep` on POSIX") fires: that is the only SKIPS entry, and it keys off `pgrep` on PATH.
-const noPath = fs.mkdtempSync(path.join(TD, "nopath-"));
+const noPath = tmpDir(path.join(TD, "nopath-"));
 const rootA = mkRoot("A", {
 	"packages/probe/ts-probe.ts": "export const bump = (n: number): number => n + 1;\n",
 	"packages/probe/tests/a-cwd.test.mjs": [
@@ -130,17 +131,26 @@ const rootA = mkRoot("A", {
 		"",
 	].join("\n"),
 	"packages/probe/tests/c-pass.test.mjs": 'console.log("probe-marker only --verbose shows this");\nconsole.log("PASS pass fixture ran");\n',
-	"packages/probe/tests/d-red.test.mjs": 'console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
+	"packages/probe/tests/d-red.test.mjs": 'import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path"; const leaked=fs["mkdtemp"+"Sync"](path.join(os.tmpdir(),"failing-leak-")); fs.writeFileSync(process.env.PROBE_OUT+"/failed-tmpdir.txt",os.tmpdir()); console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
 	"packages/probe/tests/e-warn.test.mjs": 'console.log("FAIL is a bare token here, not a failed check");\nconsole.log("PASS exit 0 is the verdict");\n',
 	"packages/probe/tests/f-allskip.test.mjs": 'console.log("SKIP a declared precondition is missing");\nconsole.log("SKIP and another");\n',
 	"packages/probe/tests/g-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
+	"packages/probe/tests/i-temp-leak.test.mjs": [
+		'import * as fs from "node:fs";',
+		'import * as os from "node:os";',
+		'import * as path from "node:path";',
+		'const leaked = fs["mkdtemp" + "Sync"](path.join(os.tmpdir(), "fixture-leak-"));',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/file-tmp.json", JSON.stringify({ tmp: process.env.TMPDIR, leaked }));',
+		'console.log("PASS temporary leak fixture ran");',
+		"",
+	].join("\n"),
 	"packages/probe/tests/h-env.test.mjs": [
 		'import * as fs from "node:fs";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/env.json", JSON.stringify({',
 		"\thandoff: String(process.env.NANA_HANDOFF), knowledge: String(process.env.NANA_KNOWLEDGE_HOME),",
 		"\tstage: String(process.env.NANA_STAGE_KEY), knob: String(process.env.NANA_TEST_TIMEOUT_MS),",
 		"\tagent_dir: String(process.env.PI_CODING_AGENT_DIR), pi_bin: String(process.env.PI_BIN),",
-		"\tprobe_out: String(!!process.env.PROBE_OUT),",
+		"\tprobe_out: String(!!process.env.PROBE_OUT), tmpdir: process.env.TMPDIR,",
 		"}));",
 		'console.log("PASS env fixture ran");',
 		"",
@@ -168,9 +178,10 @@ const cwdJson = readJson(A.out_dir, "cwd.json");
 const home1 = readJson(A.out_dir, "home1.json");
 const home2 = readJson(A.out_dir, "home2.json");
 const envJson = readJson(A.out_dir, "env.json");
+const fileTmpJson = readJson(A.out_dir, "file-tmp.json");
 
 // req: R-600
-check("collects every test file directly under a package tests dir", tA?.files === 10 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
+check("collects every test file directly under a package tests dir", tA?.files === 11 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env", "i-temp-leak"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
 // req: R-600
 check("collection does not recurse and takes only .test.mjs files", !A.out.includes("deep.test.mjs") && !A.out.includes("helper.mjs"));
 // req: R-602
@@ -181,6 +192,8 @@ check("each file runs with --experimental-strip-types from its package dir", cwd
 check("each file gets a fresh temp HOME and USERPROFILE, not the real one", !!home1 && home1.env_home === home1.userprofile && home1.home !== home1.outer && home1.dotfile === true && home1.outer_touched === false);
 // req: R-604
 check("the temp HOME is per file, not shared between files", !!home2 && home2.home !== home1?.home);
+// req: R-917
+check("a failing file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(A.out_dir, "failed-tmpdir.txt"), "utf8")));
 // req: R-910
 check("a file that exits non-zero is FAIL and the run exits 1", labelFor(A.out, "d-red.test.mjs") === "FAIL" && lineFor(A.out, "d-red.test.mjs").includes("exit 1") && A.code === 1);
 check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
@@ -192,7 +205,9 @@ check("without --verbose a passing file's output is hidden and a failing file's 
 // req: R-916
 check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
-check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 10 && tA.pass === 6 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 7 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 11 && tA.pass === 7 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 8 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+// req: R-917
+check("each test gets a unique TMPDIR and the runner removes leaked temp contents", !!fileTmpJson?.tmp && fileTmpJson.tmp !== envJson?.tmpdir && path.basename(fileTmpJson.tmp).startsWith("nana-test-") && fileTmpJson.leaked.startsWith(fileTmpJson.tmp) && !fs.existsSync(fileTmpJson.tmp));
 // req: R-618
 check("ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept", envJson?.handoff === "undefined" && envJson.knowledge === "undefined" && envJson.stage === "undefined" && envJson.knob === "60000" && envJson.probe_out === "true");
 // req: R-618
@@ -223,6 +238,9 @@ const rootD = mkRoot("D", {
 	"packages/probe/tests/hang.test.mjs": [
 		'import { spawn } from "node:child_process";',
 		'import * as fs from "node:fs";',
+		'import * as path from "node:path";',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/timeout-tmpdir.txt", process.env.TMPDIR);',
+		'fs.mkdirSync(path.join(process.env.TMPDIR, "timeout-leak"));',
 		'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},120000)"], { stdio: "ignore" });',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(g.pid));',
 		'console.log("PASS spawned a grandchild inside the tree");',
@@ -238,8 +256,65 @@ check("NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FA
 check("the timeout kill takes the child's whole process tree with it", gone(gpid));
 // req: R-912
 check("the scratch dir is removed after the run", emptyDir(D.tmp));
+// req: R-917
+check("a timed-out file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(D.out_dir, "timeout-tmpdir.txt"), "utf8")));
 
-// ── case E: a descendant that escaped the tree cannot hang the run ───────────────────────────
+// ── case E: tracked repo mutation fails, while untracked files are ignored ────────────────────
+const rootMutation = mkRoot("mutation", {
+	"packages/probe/tests/change.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "changed");',
+		'fs.writeFileSync(new URL("../../../untracked.txt", import.meta.url), "new");',
+		'console.log("PASS mutation fixture ran");',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootMutation });
+fs.writeFileSync(path.join(rootMutation, "tracked.txt"), "original");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootMutation });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootMutation });
+const M = run(rootMutation);
+// req: R-918
+check("tracked mutation fails naming the tracked file while untracked files do not appear", M.code === 1 && M.out.includes("tracked repository files changed by tests") && M.out.includes("tracked.txt") && !M.out.includes("untracked.txt"));
+
+const rootDirty = mkRoot("mutation-dirty", {
+	"packages/probe/tests/change.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "dirty after");',
+		'console.log("PASS dirty mutation fixture ran");',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootDirty });
+fs.writeFileSync(path.join(rootDirty, "tracked.txt"), "original");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootDirty });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootDirty });
+fs.writeFileSync(path.join(rootDirty, "tracked.txt"), "dirty before");
+const MD = run(rootDirty);
+// req: R-918
+check("tracked mutation is detected when the file was already dirty before the run", MD.code === 1 && MD.out.includes("tracked repository files changed by tests") && MD.out.includes("tracked.txt"));
+
+const rootIndex = mkRoot("mutation-index", {
+	"packages/probe/tests/stage.test.mjs": [
+		'import { spawnSync } from "node:child_process";',
+		'import * as fs from "node:fs";',
+		'const before = fs.readFileSync(new URL("../../../tracked.txt", import.meta.url), "utf8");',
+		'const staged = spawnSync("git", ["add", "-p", "../../tracked.txt"], { cwd: process.cwd(), input: "y\\nn\\n" });',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/index-observation.json", JSON.stringify({ before, after: fs.readFileSync(new URL("../../../tracked.txt", import.meta.url), "utf8"), code: staged.status }));',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootIndex });
+fs.writeFileSync(path.join(rootIndex, "tracked.txt"), "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootIndex });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootIndex });
+fs.writeFileSync(path.join(rootIndex, "tracked.txt"), "changed 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nchanged 10\n");
+const MI = run(rootIndex);
+const indexObservation = readJson(MI.out_dir, "index-observation.json");
+// req: R-918
+check("staging an already-dirty tracked file is detected without a working-tree change", MI.code === 1 && MI.out.includes("tracked repository files changed by tests") && MI.out.includes("tracked.txt") && indexObservation?.before === indexObservation?.after && indexObservation?.code === 0);
+
+// ── case F: a descendant that escaped the tree cannot hang the run ───────────────────────────
 const rootE = mkRoot("E", {
 	"packages/probe/tests/holder.test.mjs": [
 		'import { spawn } from "node:child_process";',
@@ -259,12 +334,84 @@ try { process.kill(holder, "SIGKILL"); } catch {}
 // req: R-610
 check("after a child exits the runner waits only a bounded drain for stdio to close", labelFor(E.out, "holder.test.mjs") === "PASS" && /stdio still open \d+s after exit/.test(E.out) && E.code === 0 && E.ms < 30000);
 
-// ── case F: the runner's own self-test ───────────────────────────────────────────────────────
+// ── case G: both termination signals clean the active tree and runner temp roots ─────────────
+const rootSignal = mkRoot("signal", {
+	"packages/probe/tests/hang.test.mjs": [
+		'import { spawn } from "node:child_process";',
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp.txt", process.env.TMPDIR);',
+		'const grandchild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(grandchild.pid));',
+		'setInterval(() => {}, 1000);',
+		"",
+	].join("\n"),
+});
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const signalResults = [];
+for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
+	const signalOut = tmpDir(path.join(TD, `signal-out-${sig}-`));
+	const signalTmp = tmpDir(path.join(TD, `signal-tmp-${sig}-`));
+	const signalRunner = spawn(process.execPath, [path.join(rootSignal, "scripts", "test.mjs")], {
+		cwd: rootSignal,
+		env: { ...process.env, TMPDIR: signalTmp, TEMP: signalTmp, TMP: signalTmp, PROBE_OUT: signalOut, NANA_TEST_TIMEOUT_MS: "60000" },
+		stdio: ["ignore", "pipe", "pipe", "ipc"],
+	});
+	let signalOutput = "";
+	signalRunner.stdout.on("data", (chunk) => { signalOutput += chunk; });
+	signalRunner.stderr.on("data", (chunk) => { signalOutput += chunk; });
+	let fileTmp;
+	let grandchildPid;
+	for (let i = 0; i < 100 && (!fileTmp || !grandchildPid); i++) {
+		try { fileTmp = fs.readFileSync(path.join(signalOut, "active-file-tmp.txt"), "utf8"); } catch {}
+		try { grandchildPid = Number(fs.readFileSync(path.join(signalOut, "grandchild.pid"), "utf8")); } catch {}
+		if (!fileTmp || !grandchildPid) await wait(50);
+	}
+	if (posix) signalRunner.kill(sig);
+	else signalRunner.send({ type: "runner-terminate", signal: sig });
+	const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
+	const treeGone = grandchildPid > 0 && gone(grandchildPid);
+	if (grandchildPid > 0 && !treeGone) { try { process.kill(grandchildPid, "SIGKILL"); } catch {} }
+	signalResults.push(!!fileTmp && treeGone && !fs.existsSync(fileTmp)
+		&& emptyDir(signalTmp) && signalExit.code === expectedCode && signalOutput.includes(sig));
+}
+// req: R-915 R-917
+check("termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)", signalResults.every(Boolean));
+
+// ── case H: the runner's own self-test ───────────────────────────────────────────────────────
 const rootF = mkRoot("F", {});
 const F = run(rootF, ["--self-test"]);
 check("--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero", F.out.includes("self-test: every fixture got its expected verdict") && totals(F.out)?.files === 3 && F.code === 1);
 const F2 = run(rootF, [], { NANA_TEST_SELFTEST: "1" });
 check("NANA_TEST_SELFTEST=1 is the same as --self-test", F2.out.includes("self-test: every fixture got its expected verdict") && totals(F2.out)?.files === 3 && F2.code === 1);
+
+const testRoots = [
+	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => path.join(REPO, "packages", entry.name, "tests")),
+	path.join(REPO, "apps", "desk", "test"),
+	path.join(REPO, "apps", "bench", "test"),
+];
+const tempFiles = testRoots.flatMap((dir) => fs.existsSync(dir)
+	? fs.readdirSync(dir).filter((name) => name.endsWith(".mjs") && name !== "tmp-dir.mjs").map((name) => path.join(dir, name))
+	: []);
+const tempSourceOk = tempFiles.every((file) => {
+	const source = fs.readFileSync(file, "utf8");
+	return !/\b(?:fs\.)?mkdtempSync\s*\(/.test(source)
+		&& (!/\btmpDir\s*\(/.test(source) || source.includes('import { tmpDir } from "./tmp-dir.mjs";'));
+});
+// req: R-917
+check("the source check detects direct mkdtemp calls while ignoring only generated leak fixtures", tempSourceOk);
+const helperProbe = path.join(TD, "helper-probe.txt");
+const helperRun = spawnSync(process.execPath, ["--input-type=module", "-e", [
+	`import { tmpDir } from ${JSON.stringify(new URL("./tmp-dir.mjs", import.meta.url).href)};`,
+	'import * as fs from "node:fs";',
+	'import * as os from "node:os";',
+	'import * as path from "node:path";',
+	`const root = tmpDir(path.join(os.tmpdir(), "tmp-helper-probe-")); fs.writeFileSync(${JSON.stringify(helperProbe)}, root);`,
+].join(" ")], { encoding: "utf8" });
+const helperRoot = fs.readFileSync(helperProbe, "utf8");
+// req: R-917
+check("the shared temp helper removes its registered root when the process exits", helperRun.status === 0 && !fs.existsSync(helperRoot));
 
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");

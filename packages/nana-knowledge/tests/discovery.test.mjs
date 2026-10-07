@@ -10,12 +10,13 @@
 // editing sources.json — and the things that are not knowledge (a non-repo, an excluded
 // name, a repo without the subdir) stay out.
 // Run: node packages/nana-knowledge/tests/discovery.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import * as cp from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-discover-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-discover-"));
 const parent = path.join(td, "parent");
 const mk = (...p) => { fs.mkdirSync(path.join(parent, ...p), { recursive: true }); return path.join(parent, ...p); };
 const md = (p, body) => fs.writeFileSync(p, body);

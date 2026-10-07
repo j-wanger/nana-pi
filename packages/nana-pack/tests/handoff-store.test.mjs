@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, store files, repository fixtures), process (sets HOME, spawns a child session)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -15,7 +16,7 @@ import * as path from "node:path";
 // canonical directory (no cross-project pickup, nested dirs / worktrees never silently
 // borrow an ancestor's); resume/fork/reload skip pickup. Temp HOME.
 // Run: node --experimental-strip-types <this file>
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -43,7 +44,7 @@ function session(cwd, extra = {}) {
 	};
 }
 const mk = (p) => (fs.mkdirSync(p, { recursive: true }), p);
-const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-store-")));
+const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-store-")));
 
 // (b) compaction writes the store, not <cwd>/.pi/handoff.md — and the path is printed
 {

@@ -12,11 +12,12 @@
 // forms the old optional-brace regex also caught are no longer required to block. The active dir
 // is placed where no literal-path rule can see it, so only the variable rule can produce a hit.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-var-spellings.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const TD = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-u2v-")));
+const TD = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2v-")));
 process.env.PI_CODING_AGENT_DIR = path.join(TD, "active");
 const gp = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
 

@@ -6,6 +6,7 @@
  * @effects disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -43,7 +44,7 @@ const VARIANTS = [
 ];
 
 for (const [label, text, expectLines] of VARIANTS) {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "hm-home-"));
+	const home = tmpDir(path.join(os.tmpdir(), "hm-home-"));
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
 	const agent = path.join(home, ".pi", "agent");
@@ -51,7 +52,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	const userCfg = path.join(agent, "nana-pack.json");
 	fs.writeFileSync(userCfg, text);
 	fs.writeFileSync(path.join(agent, "nana-objective.md"), "OBJ: ship the thing\n");
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "hm-ws-"));
+	const cwd = tmpDir(path.join(os.tmpdir(), "hm-ws-"));
 	fs.writeFileSync(path.join(cwd, "a.ts"), "x\n");
 
 	const h = {};
@@ -92,7 +93,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 
 // One UI warning per (file, problem) per session, however many handlers load config.
 {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "hm-ui-"));
+	const home = tmpDir(path.join(os.tmpdir(), "hm-ui-"));
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
@@ -102,7 +103,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	for (const n of EXT) exts[n]({ on: (ev, fn) => (h[ev] ??= []).push(fn), registerCommand() {} });
 	const warnings = [];
 	const mk = (sid) => ({
-		cwd: fs.mkdtempSync(path.join(os.tmpdir(), "hm-uiws-")),
+		cwd: tmpDir(path.join(os.tmpdir(), "hm-uiws-")),
 		hasUI: true,
 		isProjectTrusted: () => false,
 		sessionManager: { getSessionId: () => sid },

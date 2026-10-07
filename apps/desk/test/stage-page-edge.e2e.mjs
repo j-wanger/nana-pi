@@ -3,6 +3,7 @@
 // mutating tool's tool_execution_end → stage.js dispatches agent:changed → app.js re-fetches
 // the shelf and the DOM changes; the chart block renders (SVG path + legend + table view).
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/stage-page-edge.e2e.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -29,7 +30,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
 const pageDir = process.env.EDGE_PAGE || path.join(os.homedir(), "edge-screener", "desk");
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-page-edge-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "stage-page-edge-"));
 const binDir = path.join(tmp, "bin"), appsDir = path.join(tmp, "apps"), cwd = path.join(tmp, "repo");
 for (const d of [binDir, appsDir, cwd]) fs.mkdirSync(d, { recursive: true });
 const COUNTER = path.join(tmp, "shelf-calls");

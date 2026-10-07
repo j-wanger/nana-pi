@@ -9,6 +9,7 @@
 // L5 (d): `nana-setup project <dir> --not-a-project` writes `.nana-not-a-project` at a git
 // repository root; the seat's adoption reader then ignores that root; `project` on a marked dir
 // refuses, naming the marker and the remedy; a non-root refuses with the reason. Throwaway dirs only.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -20,7 +21,7 @@ const reader = path.resolve(pkg, "..", "nana-pack", "bin", "nana-adoption.mjs");
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra); if (!ok) fails++; };
 
-const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nana-dismiss-")));
+const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-dismiss-")));
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 const env = { ...process.env, HOME: home, USERPROFILE: home, NANA_TEST_TEMP_ROOTS: "" };

@@ -10,6 +10,7 @@
 // study's success metric, so a checker that passes when it should fail silently invents a result,
 // and an oracle outage recorded as a wrong answer silently invents a different one.
 // Run: node apps/bench/test/checkers.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -20,8 +21,8 @@ const check = (n, ok, extra = "") => {
 	console.log(ok ? "PASS" : "FAIL", n, extra);
 	if (!ok) fails++;
 };
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-checkers-"));
-const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "bench-checkers-fx-"));
+const dir = tmpDir(path.join(os.tmpdir(), "bench-checkers-"));
+const fixture = tmpDir(path.join(os.tmpdir(), "bench-checkers-fx-"));
 fs.writeFileSync(path.join(dir, "hello.txt"), "alpha beta\n");
 fs.writeFileSync(path.join(dir, "ok.mjs"), "process.exit(0);\n");
 fs.writeFileSync(path.join(dir, "bad.mjs"), "console.error('boom'); process.exit(3);\n");

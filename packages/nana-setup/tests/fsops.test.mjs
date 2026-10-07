@@ -22,6 +22,7 @@
 // node:module to re-sync the ESM binding every other module (including fsops.mjs) reads through.
 // That lets this test install a real spy on the ACTUAL fs.readFileSync for the duration of one
 // call and assert nothing in the production code path reads the link or its destination.
+import { tmpDir } from "./tmp-dir.mjs";
 import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
 import * as fs from "node:fs";
@@ -91,7 +92,7 @@ function recordingReads(fn) {
 	syncBuiltinESMExports(); // the hostile getter is gone now — this call is expected to succeed
 }
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fsops-writeifchanged-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "nana-fsops-writeifchanged-"));
 
 /* --- a live symlink pointing at a file OUTSIDE the target path: writing must not touch it ---- */
 {

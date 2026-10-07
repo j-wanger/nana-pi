@@ -16,11 +16,12 @@
 //      per session (journal + UI), the default file is NOT read, and the gate runs on defaults;
 //  (d) the review round-cap ledger stays in ~/.pi/agent.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-config.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-u2-")));
+const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 delete process.env.PI_CODING_AGENT_DIR;

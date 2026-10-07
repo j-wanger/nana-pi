@@ -18,8 +18,9 @@
 // allowance on data this repo does not own, independent of today's real off-form count, and
 // the CLI spawn below, which runs the real shipped entry point once.
 // Run: node --experimental-strip-types <this file>
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -85,7 +86,7 @@ const EARS_FIXTURE = [
 	"",
 ].join("\n");
 
-const earsDir = mkdtempSync(join(tmpdir(), "nana-ears-"));
+const earsDir = tmpDir(join(tmpdir(), "nana-ears-"));
 writeFileSync(join(earsDir, "REQUIREMENTS.md"), EARS_FIXTURE);
 mkdirSync(join(earsDir, "tests"));
 const { earsOffForm: fixtureOffForm } = checkEars(earsDir, { testRoots: ["tests"] });
@@ -98,7 +99,7 @@ rmSync(earsDir, { recursive: true, force: true });
 
 // TWO off-form rows (astra r1 MUST 2): a fixture with only one cannot tell "names EACH
 // off-form row" apart from "names the first offending row, done".
-const allowDir = mkdtempSync(join(tmpdir(), "nana-ears-allow-"));
+const allowDir = tmpDir(join(tmpdir(), "nana-ears-allow-"));
 writeFileSync(
 	join(allowDir, "REQUIREMENTS.md"),
 	[

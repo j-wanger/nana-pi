@@ -15,11 +15,12 @@
 // gate-policy-paths.test.mjs; this file adds the Claude files, symlinks, the alt agent dir,
 // the command forms and the floor.
 // Run: node --experimental-strip-types <this file>
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "gate-self-home-"));
+const HOME = tmpDir(path.join(os.tmpdir(), "gate-self-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 const ALT = path.join(HOME, "alt-agent");
@@ -33,7 +34,7 @@ fs.mkdirSync(ALT, { recursive: true });
 let canLink = true;
 try { fs.symlinkSync(path.join(HOME, ".claude"), path.join(HOME, "cl-alias"), "dir"); } catch { canLink = false; console.log("SKIP symlink rows: cannot create a symlink here"); }
 const linked = (rows) => rows.filter((r) => canLink || !String(r).includes("cl-alias"));
-const CWD = fs.mkdtempSync(path.join(os.tmpdir(), "gate-self-cwd-"));
+const CWD = tmpDir(path.join(os.tmpdir(), "gate-self-cwd-"));
 const ext = (await import(new URL("../extensions/nana-gate.ts", import.meta.url).href)).default;
 
 let fails = 0;

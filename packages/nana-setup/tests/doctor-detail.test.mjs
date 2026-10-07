@@ -10,6 +10,7 @@
  */
 // Gate: `doctor`'s detail text for rules/nana-personal.md agrees with its ✓/✗.
 // Four layouts, each in a throwaway --home; nothing touches the real machine.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -27,7 +28,7 @@ const check = (n, ok, extra) => {
 const tmps = [];
 /** A temp home whose rules dir holds nana-personal.md in the given shape (or not at all). */
 function layoutWith(shape) {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 	tmps.push(home);
 	const layout = resolveLayout({ home });
 	fs.mkdirSync(layout.rulesDir, { recursive: true });
@@ -44,7 +45,7 @@ function layoutWith(shape) {
 const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
 
 {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-hook-target-"));
+	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-hook-target-"));
 	tmps.push(home);
 	const layout = resolveLayout({ home });
 	fs.mkdirSync(layout.claudeHome, { recursive: true });
@@ -73,7 +74,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 }
 
 {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
+	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
 	tmps.push(home);
 	const original = resolveLayout({ home });
 	const layout = { ...original, isRealHome: true };
@@ -218,7 +219,7 @@ try {
 		check("subagent seed: exactly the three keys and values", exactlyTheThreeKeys, JSON.stringify(seed));
 	}
 	const subagentCheck = (contentOrAbsent) => {
-		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
 		const layout = resolveLayout({ home });
 		if (contentOrAbsent !== undefined) {
@@ -286,7 +287,7 @@ try {
 	// and a non-object SERVER ENTRY (astra r2 SHOULD 3: pi's own validateMcpServerConfig rejects
 	// one outright, so doctor must fail it too, named, before it ever reaches the exposure check).
 	const mcpShapeCheck = (content) => {
-		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
 		const layout = resolveLayout({ home });
 		fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
@@ -311,7 +312,7 @@ try {
 	// promise (R-363) and the full-byte/independent-frontmatter pins live in install.test.mjs,
 	// which checks the INSTALLED artifact; these check doctor's reaction to arbitrary content.
 	const reviewerCheck = (body) => {
-		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
 		const layout = resolveLayout({ home });
 		if (body !== undefined) {
@@ -350,7 +351,7 @@ try {
 
 	// pi-subagents version floor (R-364)
 	const subagentsVersionCheck = (version) => {
-		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
 		const layout = resolveLayout({ home });
 		if (version !== undefined) {
@@ -375,7 +376,7 @@ try {
 
 	// mcp.json: codemode-default exposure (R-365)
 	const mcpCheck = (content) => {
-		const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-doctor-detail-"));
+		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
 		tmps.push(home);
 		const layout = resolveLayout({ home });
 		if (content !== undefined) {

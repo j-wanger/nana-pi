@@ -14,6 +14,7 @@
 // true) and a FAKE `launchctl` placed first on PATH for the duration of the call, restored
 // immediately after — this is the only way to exercise the isRealHome branch (where launchctl
 // IS called) without ever touching the real machine's real launchctl.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -57,7 +58,7 @@ const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.
 
 const tmps = [];
 function freshHome() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-desk-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-desk-"));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
@@ -100,7 +101,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 {
 	// A fake launchctl that logs every invocation and reports success for everything, so if
 	// stepDesk DID call it we would see the call land in the log, not infer silence from a crash.
-	const stubDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-launchctl-"));
+	const stubDir = tmpDir(path.join(os.tmpdir(), "nana-fake-launchctl-"));
 	tmps.push(stubDir);
 	const callLog = path.join(stubDir, "calls.log");
 	fs.writeFileSync(callLog, "");
@@ -133,7 +134,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* a LIVE symlinked plist pointing outside the install's own tree */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-live-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-skip-live-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -155,7 +156,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* a DANGLING symlinked plist */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-dangling-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-skip-dangling-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -176,7 +177,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 
 	/* regression: a REGULAR plist still proceeds to launchctl as before */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-regular-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-skip-regular-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -196,7 +197,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 	{
 		fs.writeFileSync(stubPath, '#!/bin/sh\necho "$@" >> "' + callLog + '"\n[ "$1" = print ] && exit "${FAKE_LOADED:-1}"\n[ "$FAIL_ON" = "$1" ] && exit 7\nexit 0\n');
 		fs.chmodSync(stubPath, 0o755);
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-first-load-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-first-load-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
@@ -211,7 +212,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		check("first-load kickstart is plain", sequence.at(-1) === `kickstart gui/${process.getuid()}/com.nana.pi-desk`, sequence.join(" | "));
 		fs.writeFileSync(callLog, "");
 		process.env.FAIL_ON = "bootstrap";
-		const failed = withStubFirst(() => stepDesk(baseLayout(fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-bootstrap-fail-"))), {}));
+		const failed = withStubFirst(() => stepDesk(baseLayout(tmpDir(path.join(os.tmpdir(), "nana-desk-bootstrap-fail-"))), {}));
 		delete process.env.FAIL_ON;
 		process.env.FAKE_LOADED = "0";
 		process.env.FAIL_ON = "kickstart";
@@ -223,7 +224,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		check("kickstart failure is reported as a PROBLEM", failedKickstart.some((row) => row.status === PROBLEM), JSON.stringify(failedKickstart));
 
 		const cliFailure = (failureCommand, homeDir) => {
-			const cliStubDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-fake-launchctl-cli-"));
+			const cliStubDir = tmpDir(path.join(os.tmpdir(), "nana-fake-launchctl-cli-"));
 			tmps.push(cliStubDir);
 			const cliStub = path.join(cliStubDir, "launchctl");
 			fs.writeFileSync(cliStub, `#!/bin/sh\n[ "$1" = print ] && exit 1\n[ "$1" = "${failureCommand}" ] && exit 7\nexit 0\n`);
@@ -251,7 +252,7 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 	   qualified to "outside a dry run" rather than widened to cover this case too, which would
 	   change dry-run's existing single-entry output. */
 	{
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-skip-dryrun-"));
+		const dir = tmpDir(path.join(os.tmpdir(), "nana-desk-skip-dryrun-"));
 		tmps.push(dir);
 		const layout = baseLayout(dir);
 		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });

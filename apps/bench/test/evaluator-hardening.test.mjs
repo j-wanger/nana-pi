@@ -17,6 +17,7 @@
 // touch nothing but values it captured beforehand. Each patch below is applied by the module under
 // test, in its own process, exactly as a model could write it inside the lines the task allows.
 // Run: node apps/bench/test/evaluator-hardening.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { createHmac } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -29,7 +30,7 @@ const check = (n, ok, extra = "") => {
 	if (!ok) fails++;
 };
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-evalhard-"));
+const dir = tmpDir(path.join(os.tmpdir(), "bench-evalhard-"));
 const at = () => ({ finalText: "", dir });
 const write = (name, src) => {
 	fs.writeFileSync(path.join(dir, name), src);

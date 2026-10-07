@@ -6,6 +6,7 @@
  * @effects disk (temp HOME and written surfaces), process (sets HOME, spawns the surfaces that run as child processes)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -18,7 +19,7 @@ import { fileURLToPath } from "node:url";
 // closed code span in the seat's Markdown, no extra field in the file we write).
 // Run: node --experimental-strip-types <this file>
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOME = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "display-surfaces-")));
+const HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "display-surfaces-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 delete process.env.PI_CODING_AGENT_DIR;

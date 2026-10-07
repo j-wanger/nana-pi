@@ -24,6 +24,7 @@
 //
 // Zero-dep. Needs the real pi ≥ 0.87 installed. Own port (DESK_PORT=0), own HOME.
 // Run: node apps/desk/test/pi-087-entries.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -35,7 +36,7 @@ let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
 
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-pi087-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-pi087-"));
 const repo = path.join(TD, "repo");
 const SESS = path.join(TD, ".pi", "agent", "sessions", "--pi087--");
 for (const d of [repo, SESS]) fs.mkdirSync(d, { recursive: true });

@@ -12,6 +12,7 @@
 //      a javascript: link in an assistant message render as text, not as elements
 //   5. no page errors anywhere in the run
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/stage-render-edge.e2e.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -47,7 +48,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-render-edge-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "stage-render-edge-"));
 const binDir = path.join(tmp, "bin"), appsDir = path.join(tmp, "apps"), cwd = path.join(tmp, "repo");
 for (const d of [binDir, appsDir, cwd]) fs.mkdirSync(d, { recursive: true });
 

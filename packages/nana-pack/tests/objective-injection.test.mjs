@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, objective fixtures, config files), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -26,7 +27,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 // Fake home BEFORE the extension (and lib/config.ts) is imported: loadConfig
 // reads ~/.pi/agent/nana-pack.json, and os.homedir() honors $HOME on POSIX /
 // %USERPROFILE% on win32.
-const home = fs.mkdtempSync(path.join(os.tmpdir(), "objective-home-"));
+const home = tmpDir(path.join(os.tmpdir(), "objective-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
@@ -42,7 +43,7 @@ const writeUserCfg = (objective) =>
 	fs.writeFileSync(userCfg, JSON.stringify({ journal: { enabled: true, path: journal }, objective }));
 
 function session() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "objective-cwd-"));
+	const td = tmpDir(path.join(os.tmpdir(), "objective-cwd-"));
 	const handlers = {};
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };

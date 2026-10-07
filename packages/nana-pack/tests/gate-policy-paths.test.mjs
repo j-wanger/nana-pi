@@ -11,12 +11,13 @@
 // plant `~/.pi/agent/trust.json` for its cwd makes a repo-supplied `.pi/nana-pack.json` honored
 // on the next process, widening the gate. Path forms only here; L2 owns the bash/PowerShell
 // redirection forms (`echo … > …`, `sed -i`, `Set-Content`) and segment-scoped exceptions.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { execFileSync } from "node:child_process";
 
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const gatePaths = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);

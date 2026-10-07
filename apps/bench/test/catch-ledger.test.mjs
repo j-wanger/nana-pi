@@ -10,6 +10,7 @@
 // structural stages, ledger uniqueness, and the judge's fail-closed contract. Zero model calls:
 // the judge is exercised only through stub executables that FAIL (or succeed with a fixed shape).
 // Run: node apps/bench/test/catch-ledger.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -227,7 +228,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 
 // ── judge: fail-closed, no mock ─────────────────────────────────────────────────────────────
 {
-	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "catch-judge-"));
+	const tmp = tmpDir(path.join(os.tmpdir(), "catch-judge-"));
 	const stub = (name, body) => {
 		const f = path.join(tmp, name);
 		fs.writeFileSync(f, `#!/usr/bin/env node\n${body}\n`, { mode: 0o755 });
@@ -263,7 +264,7 @@ check("row ids unique", new Set(c1.rows.map((r) => r.id)).size === c1.rows.lengt
 }
 {
 	const cli = path.resolve(here, "../catch-ledger.mjs");
-	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "catch-cli-"));
+	const tmp = tmpDir(path.join(os.tmpdir(), "catch-cli-"));
 	const r = spawnSync(process.execPath, [cli, "label", "a", "l4"], { env: { ...process.env, CATCH_JUDGE_BIN: path.join(tmp, "absent"), CATCH_OUT: tmp }, encoding: "utf8" });
 	// req: R-537
 	check("CLI: judge unavailable → exit non-zero, nothing labelled", r.status === 1 && /unavailable/.test(r.stderr) && !fs.existsSync(path.join(tmp, "labels-a.jsonl")));

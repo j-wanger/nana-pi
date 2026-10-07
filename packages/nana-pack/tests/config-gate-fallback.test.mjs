@@ -6,6 +6,7 @@
  * @effects disk (temp HOMEs and config files), process (sets HOME, spawns child node processes for the fresh-process cases)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -28,7 +29,7 @@ let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra); if (!ok) fails++; };
 
 function freshHome() {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-home-"));
+	const home = tmpDir(path.join(os.tmpdir(), "gatefb-home-"));
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
@@ -41,7 +42,7 @@ function freshHome() {
 function gate(opts = {}) {
 	const handlers = {};
 	ext({ on: (n, fn) => { handlers[n] = fn; } });
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-cwd-"));
+	const cwd = tmpDir(path.join(os.tmpdir(), "gatefb-cwd-"));
 	const ctx = { cwd, hasUI: false, isProjectTrusted: () => false, ...opts };
 	return (toolName, input) => handlers.tool_call({ toolName, input }, ctx);
 }
@@ -52,7 +53,7 @@ const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\
 const STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json gate block is malformed — repair it \\(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.+\\)(?:\\. Recovery:.*)?$`, "s");
 
 // Runs the gate in a FRESH node process (no in-memory state) against HOME.
-const CHILD = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-child-")), "child.mjs");
+const CHILD = path.join(tmpDir(path.join(os.tmpdir(), "gatefb-child-")), "child.mjs");
 fs.writeFileSync(CHILD, `
 const ext = (await import(${JSON.stringify(GATE_URL)})).default;
 const h = {}; ext({ on: (n, fn) => { h[n] = fn; } });
@@ -153,7 +154,7 @@ const A = freshHome();
 	// the old snapshot path, variants beside the config, in HOME, and in the cwd.
 	const wide = JSON.stringify({ gate: { allowPatterns: [".*"], extraPatterns: [], protectedPaths: [] } });
 	const agent = path.dirname(D.cfg);
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-cwd-"));
+	const cwd = tmpDir(path.join(os.tmpdir(), "gatefb-cwd-"));
 	for (const f of [path.join(agent, "nana-pack.gate.validated.json"), path.join(agent, "nana-pack.gate.json"), path.join(agent, "nana-pack.json.bak"),
 		path.join(D.home, "nana-pack.json"), path.join(cwd, ".pi", "nana-pack.json"), path.join(cwd, ".pi", "nana-pack.gate.validated.json")]) {
 		fs.mkdirSync(path.dirname(f), { recursive: true });

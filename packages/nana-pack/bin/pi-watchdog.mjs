@@ -30,9 +30,9 @@
 // (pi-review 2 → 3 attempts, unchanged; pi-worker 0 — a retried worker repeats its mutations).
 
 import { spawn, execSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdtempSync, openSync, closeSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, openSync, closeSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /** Parse the launcher's argv. Wrapper options are read ONLY from the slice before `--` (sol
  *  review 2026-09-16, F): a pi arg must never be mistaken for --out or any watchdog knob.
@@ -110,12 +110,23 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, 
   onChild(child);
   child.on('error', (e) => { spawnErr = e; }); // e.g. ENOENT if pi not on PATH — no uncaught throw
 
-  const readOut = () => (closeSync(fd), existsSync(tmp) ? readFileSync(tmp, 'utf8') : '');
+  const cleanupCapture = () => {
+    try { rmSync(dirname(tmp), { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
+  };
+  const readOut = () => {
+    try { closeSync(fd); } catch { /* already closed */ }
+    try { return existsSync(tmp) ? readFileSync(tmp, 'utf8') : ''; }
+    finally { cleanupCapture(); }
+  };
   let lastCpu = -1, flatPolls = 0;
   const maxFlat = Math.max(1, Math.ceil(stallSecs / pollSecs));
   while (true) {
     await Promise.race([sleep(pollSecs * 1000), signalWait]);
-    if (spawnErr) { closeSync(fd); return { ok: false, text: `pi spawn failed: ${spawnErr.message}` }; }
+    if (spawnErr) {
+      try { closeSync(fd); } catch { /* already closed */ }
+      cleanupCapture();
+      return { ok: false, text: `pi spawn failed: ${spawnErr.message}` };
+    }
     if (interrupted()) {
       killGroup(child, 'SIGKILL');
       await new Promise((r) => (child.exitCode !== null || child.signalCode !== null ? r() : child.once('close', r)));

@@ -9,11 +9,12 @@
 // Gate (lane S2): every knowledge pointer reaches the prompt through nana-pack's ONE renderer.
 // Titles, snippets and paths come from third-party wikis and other people's repositories; the
 // block they land in is model-visible in both runtimes. Every assertion is on RENDERED output.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-render-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-render-"));
 const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });

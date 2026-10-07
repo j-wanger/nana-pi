@@ -60,6 +60,7 @@
 //
 // Run: PW_ROOT=<dir with playwright> node apps/desk/test/session-races.e2e.mjs
 // Exit 0 = pass, 1 = assertion failed, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -84,7 +85,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // The desk parses sessions with the pi install tied to the `pi` it SPAWNS, and
 // this harness puts a stub `pi` first on PATH. Name the real package explicitly.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "desk-races-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "desk-races-"));
 const binDir = path.join(tmp, "bin");
 const cwdA = path.join(tmp, "alpha");
 const cwdB = path.join(tmp, "bravo");

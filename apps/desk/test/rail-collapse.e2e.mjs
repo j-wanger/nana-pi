@@ -13,6 +13,7 @@
 //
 // Run: node apps/desk/test/rail-collapse.e2e.mjs   (PW_ROOT if playwright is elsewhere)
 // Exit 0 = all PASS, 1 = assertion failed, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -41,7 +42,7 @@ const freePort = () =>
 const PORT = Number(process.env.DESK_TEST_PORT) || (await freePort());
 const BASE = `http://127.0.0.1:${PORT}`;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-rail-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-rail-"));
 fs.mkdirSync(path.join(TD, ".pi", "agent", "sessions"), { recursive: true });
 
 const server = spawn("node", [SERVER], {

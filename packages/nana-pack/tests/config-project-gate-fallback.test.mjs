@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, temp git projects, trust store), process (sets HOME, runs git and child node processes)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync, execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -45,7 +46,7 @@ if (!piIndex) {
 }
 const pi = await import(pathToFileURL(piIndex).href);
 
-const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "pgatefb-home-"));
+const HOME = tmpDir(path.join(os.tmpdir(), "pgatefb-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 const AGENT = path.join(HOME, ".pi", "agent");
@@ -60,7 +61,7 @@ const GATE_URL = new URL("../extensions/nana-gate.ts", import.meta.url).href;
 const CONFIG_URL = new URL("../lib/config.ts", import.meta.url).href;
 // A fresh process: install real pi's trust module, then drive the REAL gate handler.
 // argv: [cwd, trusted, [[key, toolName, input], ...], corruptBetween?]
-const CHILD = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "pgatefb-child-")), "child.mjs");
+const CHILD = path.join(tmpDir(path.join(os.tmpdir(), "pgatefb-child-")), "child.mjs");
 fs.writeFileSync(CHILD, `
 import * as fs from "node:fs";
 const cfg = await import(${JSON.stringify(CONFIG_URL)});
@@ -91,7 +92,7 @@ const blocked = (r) => r?.block === true;
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
 
 function project(body, { trust = true } = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "pgatefb-proj-"));
+	const td = tmpDir(path.join(os.tmpdir(), "pgatefb-proj-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	const file = path.join(td, ".pi", "nana-pack.json");
 	if (body !== null) fs.writeFileSync(file, typeof body === "string" ? body : JSON.stringify(body));

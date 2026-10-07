@@ -8,6 +8,7 @@
 // Drives the REAL desk server + a REAL `pi --mode rpc` child (one tiny model
 // call) in headless Chromium. Exit 0 = pass, 1 = duplicate seen, 2 = never
 // settled (provider issue), 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -18,10 +19,10 @@ const PORT = process.env.DESK_TEST_PORT || 4381;
 const BASE = `http://127.0.0.1:${PORT}`;
 const MSG = "Reply with exactly: ok";
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
-const CWD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-e2e-"));
+const CWD = tmpDir(path.join(os.tmpdir(), "desk-e2e-"));
 
 const server = spawn("node", [SERVER], {
-  env: { ...process.env, DESK_PORT: String(PORT) },
+  env: { ...process.env, DESK_PORT: String(PORT), NANA_KNOWLEDGE_HOME: path.join(CWD, "knowledge") },
   stdio: ["ignore", "pipe", "pipe"],
 });
 const die = (code) => { server.kill(); process.exit(code); };

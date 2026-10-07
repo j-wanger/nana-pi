@@ -34,6 +34,7 @@
 //      rather than throwing here, so this one does not fail pre-fix)
 //
 // Run: node apps/desk/test/crash-paths.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -61,7 +62,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-crash-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-crash-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
 const SESS = path.join(TD, ".pi", "agent", "sessions", "--stub--");

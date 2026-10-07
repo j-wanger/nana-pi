@@ -18,6 +18,7 @@
 //
 // Run: node apps/desk/test/spawn-tools.e2e.mjs   (PW_ROOT if playwright is elsewhere)
 // Exit 0 = all PASS, 1 = assertion failed, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -52,7 +53,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-spawn-tools-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-spawn-tools-"));
 const PI_DIR = path.join(TD, ".pi", "agent");
 const repo = path.join(TD, "repo");
 const binDir = path.join(TD, "bin");
