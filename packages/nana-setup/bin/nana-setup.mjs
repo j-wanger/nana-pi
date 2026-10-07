@@ -29,6 +29,7 @@
 // Run it as often as you like: it only ever ADDS, it backs up anything it replaces, and a
 // second run reports "nothing to do".
 import { spawnSync } from "node:child_process";
+import { spawnNpmRoot } from "../lib/npm-root.mjs";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -250,11 +251,19 @@ async function runTrust(opts) {
 		const relativeAgent = path.relative(canonicalHome, canonicalAgent);
 		if (relativeAgent === ".." || relativeAgent.startsWith(`..${path.sep}`) || path.isAbsolute(relativeAgent))
 			throw new SetupError("--pi-home must be inside --home for trust; refusing to write outside the test home");
+		for (const leaf of [path.join(layout.piHome, "trust.json"), path.join(layout.piHome, "trust.json.lock")]) {
+			try { fs.lstatSync(leaf); } catch (err) { if (err.code === "ENOENT") continue; throw err; }
+			let target;
+			try { target = fs.realpathSync(leaf); } catch { throw new SetupError(`cannot resolve trust storage path ${leaf}; refusing to write`); }
+			const relativeTarget = path.relative(canonicalHome, target);
+			if (relativeTarget === ".." || relativeTarget.startsWith(`..${path.sep}`) || path.isAbsolute(relativeTarget))
+				throw new SetupError(`trust storage path resolves outside --home: ${leaf}; refusing to write`);
+		}
 	}
 	const npmEnv = { ...process.env };
 	delete npmEnv.HOME;
 	delete npmEnv.USERPROFILE;
-	const root = spawnSync("npm", ["root", "-g"], { encoding: "utf8", env: npmEnv });
+	const root = spawnNpmRoot({ env: npmEnv });
 	if (root.status !== 0 || !root.stdout.trim()) throw new SetupError("cannot locate the globally installed pi package");
 	const trustModule = await import(pathToFileURL(path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
 	const store = new trustModule.ProjectTrustStore(layout.piHome);

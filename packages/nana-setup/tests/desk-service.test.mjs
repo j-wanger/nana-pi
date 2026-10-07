@@ -76,11 +76,17 @@ const plist = path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist
 run(["install", "--home", home]);
 check("no --desk: no plist is written", !fs.existsSync(plist));
 
-const r = run(["install", "--home", home, "--desk"]);
+const nodeLinkDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-node-link-"));
+tmps.push(nodeLinkDir);
+const visibleNode = path.join(nodeLinkDir, "node");
+fs.symlinkSync(process.execPath, visibleNode);
+const savedPath = process.env.PATH;
+process.env.PATH = `${nodeLinkDir}${path.delimiter}${savedPath || ""}`;
+let r;
+try { r = run(["install", "--home", home, "--desk"]); } finally { process.env.PATH = savedPath; }
 check("--desk exits 0", r.status === 0, r.stderr);
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
-const visibleNode = (process.env.PATH || "").split(path.delimiter).map((dir) => path.join(dir, "node")).find((candidate) => { try { return fs.realpathSync(candidate) === fs.realpathSync(process.execPath); } catch { return false; } }) || process.execPath;
 // req: R-651
 check("plist uses the resolved node", body.includes(`<string>${visibleNode}</string>`) && fs.realpathSync(visibleNode) === fs.realpathSync(process.execPath));
 // req: R-678
@@ -95,7 +101,9 @@ check("plist PATH is curated and excludes the installing shell snapshot", launch
 // req: R-314
 check("launchctl is NOT called under --home", r.stdout.includes("not loaded (--home override in play)"));
 
-const again = run(["install", "--home", home, "--desk"]);
+process.env.PATH = `${nodeLinkDir}${path.delimiter}${savedPath || ""}`;
+let again;
+try { again = run(["install", "--home", home, "--desk"]); } finally { process.env.PATH = savedPath; }
 check("--desk is idempotent", again.stdout.includes("nothing to do"));
 check("doctor marks a sandbox desk service as not live-loaded", /· desk service/.test(run(["doctor", "--home", home]).stdout));
 

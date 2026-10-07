@@ -14,11 +14,12 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { decideTrust } = await import("../lib/trust-decision.mjs");
+const { spawnNpmRoot } = await import("../lib/npm-root.mjs");
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "nana-trust-test-"));
 const home = path.join(root, "home");
 const dir = path.join(root, "project");
 fs.mkdirSync(dir, { recursive: true });
-const nodeModules = spawnSync("npm", ["root", "-g"], { encoding: "utf8" }).stdout.trim();
+const nodeModules = spawnNpmRoot().stdout.trim();
 const { ProjectTrustStore } = await import(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
 const agentDir = path.join(home, ".pi", "agent");
 const store = new ProjectTrustStore(agentDir);
@@ -28,6 +29,8 @@ const check = (name, ok, detail = "") => {
  console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
  if (!ok) fails++;
 };
+const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
+check("README command examples close their code fence", setupReadme.includes("trust ~/my-thing --yes # record pi project trust after confirmation\n```\n\nRuntime dependencies:"));
 const yes = run(["trust", dir, "--yes", "--home", home]);
 // req: R-670
 check("affirmative trust is saved by pi's ProjectTrustStore", yes.status === 0 && store.get(dir) === true, `${yes.status} ${yes.stderr} ${yes.stdout}`);
@@ -61,6 +64,19 @@ fs.symlinkSync(linkedExternal, linkedAgent, process.platform === "win32" ? "junc
 const linkedUnsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", linkedAgent]);
 // req: R-670
 check("--home refuses an in-home symlink to external storage without creating store or lock", linkedUnsafe.status !== 0 && /inside --home/.test(linkedUnsafe.stderr) && !fs.existsSync(path.join(linkedExternal, "trust.json")) && !fs.existsSync(path.join(linkedExternal, "trust.json.lock")), `${linkedUnsafe.status} ${linkedUnsafe.stderr}`);
+let npmInvocation;
+spawnNpmRoot({ platform: "win32", env: {}, spawn: (...args) => { npmInvocation = args; return { status: 0, stdout: "global-root" }; } });
+// req: R-670
+check("Windows npm root uses the command shim with a fixed shell invocation", npmInvocation[0] === "npm.cmd" && npmInvocation[1].join(" ") === "root -g" && npmInvocation[2].shell === true);
+const externalStore = path.join(root, "external-trust-store.json");
+const externalBytes = "{}\n";
+fs.writeFileSync(externalStore, externalBytes);
+const fileLinkAgent = path.join(home, "file-link-agent");
+fs.mkdirSync(fileLinkAgent);
+fs.symlinkSync(externalStore, path.join(fileLinkAgent, "trust.json"));
+const fileLinkUnsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", fileLinkAgent]);
+// req: R-670
+check("--home refuses external trust-store symlink before pi writes or creates a lock", fileLinkUnsafe.status !== 0 && /trust storage path resolves outside --home/.test(fileLinkUnsafe.stderr) && fs.readFileSync(externalStore, "utf8") === externalBytes && !fs.existsSync(externalStore + ".lock") && !fs.existsSync(path.join(fileLinkAgent, "trust.json.lock")), `${fileLinkUnsafe.status} ${fileLinkUnsafe.stderr}`);
 const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.relative(process.cwd(), agentDir) });
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);

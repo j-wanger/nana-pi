@@ -14,6 +14,7 @@ node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓ or ✗ per pi
 node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
 node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi project trust after confirmation
+```
 
 Runtime dependencies: **Node ≥ 22.18** and the globally installed `@earendil-works/pi-coding-agent` package (used for pi's exported project-trust API). The floor is set by the installed
 `claude/hooks/nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
