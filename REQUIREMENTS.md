@@ -350,7 +350,8 @@ New behaviour in this repo: requirement diff, then tagged tests, then code.
 ## 10. pi-review: round cap and stall watchdog
 
 *The nana-pack ID range R-001..R-199 is exhausted above; this area and the two that follow
-continue in an unreserved R-2xx block (see Extraction notes).*
+continue in an unreserved R-2xx block (see Extraction notes). R-919 uses the runner continuation
+allocation because the pack has no IDs left; the lane brief permits R-918 or R-919 here.*
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
