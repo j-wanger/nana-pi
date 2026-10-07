@@ -173,7 +173,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 	process.env.PI_CODING_AGENT_DIR = relocated;
 	const historicalPath = path.resolve(path.dirname(new URL("../lib/gate-paths.ts", import.meta.url).pathname), `.gate-paths-main-${process.pid}.ts`);
 	try {
-		const source = execFileSync("git", ["show", "main:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
+		const source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
 		fs.writeFileSync(historicalPath, source);
 		const mainPaths = await import(`${new URL(`file://${historicalPath}`).href}?probe=${process.pid}`);
 		const policy = path.join(relocated, "nana-pack.json");
