@@ -22,8 +22,11 @@
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.
 
-import { writeFileSync } from 'node:fs';
-import { admit, complete, release, startHeartbeat } from './review-round.mjs';
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
@@ -38,38 +41,127 @@ if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-review', w.retrie
 
 // Round cap — only the argv BEFORE `--` is consulted, so a pi arg can never satisfy or spoof
 // --item/--over-cap.
-const adm = admit(w.ownArgs, { launcher: 'pi-review' });
-if (!adm.ok) {
-  process.stderr.write(`pi-review: ${adm.message}\n`);
-  process.exit(1);
-}
-process.stderr.write(`pi-review: ${adm.note}\n`);
-if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
-
-const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
-let r;
-try { r = await runWatchdog('pi-review', { ...w, childEnv: { NANA_ROLE: 'reviewer' }, accept: reviewShaped }); }
-finally {
-  stopHeartbeat();
-  if (!r?.ok) release(adm.id);
-}
-if (r.signal) {
-  release(adm.id);
-  const code = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1;
-  process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
-  process.exit(code);
-}
-if (r.ok) {
-  writeFileSync(w.outPath, r.text);
-  const c = complete(adm.res, w.outPath); // a completed verdict: the ONLY thing that earns a round
-  if (!c.ok) {
-    process.stderr.write(`pi-review: review written to ${w.outPath}, but ${c.message}\n`);
-    process.exit(1);
+const optionValue = (name, fallback = null) => {
+  const i = w.ownArgs.indexOf(name);
+  return i >= 0 ? w.ownArgs[i + 1] : fallback;
+};
+const sourceTree = resolve(process.cwd(), optionValue('--tree', '.'));
+const outPath = resolve(process.cwd(), w.outPath);
+const sourceScope = treeScope(sourceTree, { exclude: [outPath] });
+const sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
+const sourceRoot = realpathSync(sourceScope.root);
+const sourceRedirect = inTreeRedirect(sourceRoot);
+let tempRoot = null, admittedId = null, setupSignal = null;
+const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
+for (const [signal, handler] of setupSignalHandlers) process.on(signal, handler);
+const git = (cwd, args) => {
+  const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error((r.stderr || `git ${args[0]} failed`).trim());
+  return r.stdout;
+};
+const list = (cwd, args) => git(cwd, args).split('\0').filter(Boolean);
+const removeWorktree = () => {
+  if (!tempRoot) return;
+  spawnSync('git', ['worktree', 'remove', '--force', tempRoot], { cwd: sourceRoot, stdio: 'ignore' });
+  spawnSync('git', ['worktree', 'prune'], { cwd: sourceRoot, stdio: 'ignore' });
+  rmSync(tempRoot, { recursive: true, force: true });
+};
+const copySnapshot = (root, target) => {
+  const index = git(root, ['ls-files', '--stage', '-z']);
+  for (const row of index.split('\0').filter(Boolean)) {
+    const mode = row.slice(0, 6);
+    if (mode === '160000') {
+      const p = row.slice(row.indexOf('\t') + 1);
+      const status = spawnSync('git', ['-C', join(root, p), 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
+      if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
+    }
   }
-  process.stderr.write(`[pi-review] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath}; round ${c.round})\n`);
-  process.exit(0);
+  const files = [...new Set([...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
+  for (const p of files) {
+    const from = join(root, p), to = join(target, p);
+    let st;
+    try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
+    mkdirSync(dirname(to), { recursive: true });
+    rmSync(to, { recursive: true, force: true });
+    if (st.isSymbolicLink()) symlinkSync(readlinkSync(from), to);
+    else if (st.isFile()) { copyFileSync(from, to); chmodSync(to, st.mode & 0o777); }
+    else if (st.isDirectory()) mkdirSync(to, { recursive: true });
+    else throw new Error(`unsupported source entry: ${p}`);
+  }
+};
+try {
+  if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
+  // Reject nested repositories (including untracked non-ignored ones) before creating a reservation.
+  const gitlinks = git(sourceRoot, ['ls-files', '--stage', '-z']).split('\0').filter((x) => x.startsWith('160000 ')).map((x) => x.slice(x.indexOf('\t') + 1));
+  const trackedAndUntracked = [...new Set([...list(sourceRoot, ['ls-files', '-z']), ...list(sourceRoot, ['ls-files', '--others', '--exclude-standard', '-z'])])];
+  for (const p of trackedAndUntracked) {
+    if (gitlinks.some((link) => p === link || p.startsWith(`${link}/`))) continue;
+    const parts = p.split('/');
+    for (let i = 1; i <= parts.length; i++) {
+      const parent = join(sourceRoot, ...parts.slice(0, i));
+      try { lstatSync(join(parent, '.git')); throw new Error(`nested repository cannot be materialized: ${parts.slice(0, i).join('/')}`); }
+      catch (e) { if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e; }
+    }
+  }
+  if (gitlinks.length) {
+    for (const p of gitlinks) {
+      const status = spawnSync('git', ['-C', join(sourceRoot, p), 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
+      if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
+    }
+  }
+  tempRoot = mkdtempSync(join(tmpdir(), 'nana-review-immutable-'));
+  rmSync(tempRoot, { recursive: true, force: true });
+  const add = spawnSync('git', ['worktree', 'add', '--detach', tempRoot, sourceScope.head], { cwd: sourceRoot, encoding: 'utf8' });
+  if (add.status !== 0) throw new Error(`cannot create detached review worktree: ${(add.stderr || '').trim()}`);
+  if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
+  copySnapshot(sourceRoot, tempRoot);
+  const checkoutScope = treeScope(tempRoot, { exclude: [outPath] });
+  const checkoutRevision = resolveRevision(optionValue('--revision'), checkoutScope, checkoutScope.root);
+  if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
+
+  const childArgs = [...w.ownArgs];
+  const treeIndex = childArgs.indexOf('--tree');
+  if (treeIndex >= 0) childArgs[treeIndex + 1] = tempRoot;
+  else childArgs.push('--tree', tempRoot);
+  const outIndex = childArgs.indexOf('--out');
+  childArgs[outIndex + 1] = outPath;
+  w.outPath = outPath;
+  if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
+  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd() });
+  if (!adm.ok) throw new Error(adm.message);
+  admittedId = adm.id;
+  process.stderr.write(`pi-review: ${adm.note}\n`);
+  if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
+
+  const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
+  let r;
+  try {
+    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`], childEnv: { NANA_ROLE: 'reviewer', NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
+  } finally {
+    stopHeartbeat();
+    if (!r?.ok) release(adm.id);
+  }
+  if (r.signal) {
+    release(adm.id);
+    process.exitCode = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1;
+    process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
+  } else if (r.ok) {
+    writeFileSync(w.outPath, r.text);
+    const c = complete(adm.res, w.outPath); // complete derives in the immutable checkout
+    if (!c.ok) throw new Error(`review written to ${w.outPath}, but ${c.message}`);
+    process.stderr.write(`[pi-review] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath}; round ${c.round})\n`);
+    process.exitCode = 0;
+  } else {
+    if (r.text.trim()) writeFileSync(w.outPath, r.text);
+    release(adm.id);
+    process.stderr.write(`[pi-review] FAILED after ${w.retries + 1} attempts (endpoint likely in a bad stretch)\n`);
+    process.exitCode = 1;
+  }
+} catch (e) {
+  if (admittedId) release(admittedId);
+  process.stderr.write(`pi-review: ${e.message}\n`);
+  process.exitCode = 1;
+} finally {
+  try { removeWorktree(); } catch (e) { process.stderr.write(`pi-review: WARNING: worktree cleanup failed: ${e.message}\n`); process.exitCode = 1; }
+  for (const [signal, handler] of setupSignalHandlers) process.removeListener(signal, handler);
 }
-if (r.text.trim()) writeFileSync(w.outPath, r.text); // preserve last partial for inspection
-release(adm.id); // infrastructure failure is not a review: the reservation is returned
-process.stderr.write(`[pi-review] FAILED after ${w.retries + 1} attempts (endpoint likely in a bad stretch)\n`);
-process.exit(1);
