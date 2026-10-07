@@ -98,9 +98,11 @@ layer-skipping import fails the check · one purpose per module.
 The map is generated from the import graph plus those headers, and the check is in the suite:
 
 ```
-map            # regenerate docs/code-map.md
-map:check      # fails on a missing/malformed header, a stale entry, a layer violation
-map:impact -- <changed-files>    # transitive callers and callees: the blast radius
+pnpm map            # regenerate docs/code-map.md
+pnpm map:check      # fails on a missing/malformed header, a stale entry, a layer violation
+pnpm map:impact <files>    # no `--`: pnpm forwards it literally; transitive callers and callees
+npm run map:impact -- <files>    # npm requires `--` to forward arguments
+uv run python scripts/code_map.py --impact <files>
 ```
 
 Spelled with the project's runner: `pnpm map:check` / `npm run map:check` over

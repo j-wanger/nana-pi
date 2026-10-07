@@ -603,8 +603,10 @@ export const PROJECT_ROOT = resolve(
  */
 export function main(argv, root = PROJECT_ROOT) {
 	const mode = argv[0] ?? "--check";
-	if (mode !== "--check" && mode !== "--list")
-		throw new Error(`unknown mode '${mode}' (expected --check or --list)`);
+	if (argv.length > 1 || (mode !== "--check" && mode !== "--list")) {
+		process.stderr.write("Usage: readme-check.mjs [--check | --list]\n");
+		return 2;
+	}
 	const { claims: found, problems, line } = checkProject(root);
 	if (mode === "--list")
 		for (const c of found) process.stdout.write(`${c.kind}: ${c.text}\n`);

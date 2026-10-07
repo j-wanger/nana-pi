@@ -13,8 +13,8 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 ## Objective contract (both runtimes, one producer: `packages/nana-pack/lib/objective.ts`)
 
-- Session start injects the nearest `OBJECTIVE.md` walking UP from the session cwd — always, no
-  opt-in; with none found, the user-scope umbrella (`objective.path`) governs. Its default is
+- Session start injects the nearest `OBJECTIVE.md` walking UP from the session cwd unless
+  user-scope `objective.enabled: false` turns the objective off; project config cannot. With none found, the user-scope umbrella (`objective.path`) governs. Its default is
   `nana-objective.md` in pi's ACTIVE agent dir (`piAgentDir()`: `PI_CODING_AGENT_DIR` when set —
   a relative value resolves against the process cwd — else `~/.pi/agent`), and a relative
   `objective.path` resolves against that same dir, never the session cwd. Project config can
@@ -107,6 +107,8 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 - **Review cap = 3 rounds per item** — `pi-review` refuses r4+ without `--over-cap "<what
   changed>"`. Instrument or implement instead of taking another round.
 - Residuals from a review are recorded one line each (package README / Known limits), not
+  carried in someone's head.
+
 ## Working under nana-pi
 
 This project runs under the nana-pi pack: seven pi extensions (gate, post-edit,

@@ -12,6 +12,18 @@
   "undocumented": [],
   "externalPaths": [
     {
+      "path": "node_modules",
+      "reason": "produced by the install step this README documents; gitignored, never committed; in the knowledge README, a directory name inside a wiki root that the index skips"
+    },
+    {
+      "path": "apps/bench/.ext",
+      "reason": "produced by the install step this README documents; gitignored, never committed"
+    },
+    {
+      "path": "apps/bench/.ext/pi-web-access",
+      "reason": "produced by the install step this README documents; gitignored, never committed"
+    },
+    {
       "path": "auth.json",
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },

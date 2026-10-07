@@ -1,7 +1,7 @@
 {
 	"name": "nana-pi",
 	"version": "0.5.0",
-	"description": "nana-pi bundle: the nana-pack pi extensions (gate, post-edit, lifecycle, notify) + the nana-knowledge prompt-time knowledge pull + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
+	"description": "nana-pi bundle: seven nana-pack pi extensions (gate, post-edit, lifecycle, notify, handoff, objective, writing) + the nana-knowledge prompt-time knowledge pull + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"repository": "github:j-wanger/nana-pi",
@@ -10,7 +10,7 @@
 		"map": "node scripts/code-map.mjs --write",
 		"map:check": "node scripts/code-map.mjs --check",
 		"map:impact": "node scripts/code-map.mjs --impact",
-		"readme:check": "node scripts/readme-check.mjs --check"
+		"readme:check": "node scripts/readme-check.mjs"
 	},
 	"pi": {
 		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],

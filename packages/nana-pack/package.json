@@ -1,7 +1,7 @@
 {
 	"name": "nana-pi-pack",
 	"version": "0.4.0",
-	"description": "Nana's pi extension pack: permission gate, post-edit format/lint triggers, session lifecycle journal, desktop notifications, scaffold/adopt + dev skills",
+	"description": "Nana's seven pi extensions: gate, post-edit, lifecycle, notify, handoff, objective, writing; plus scaffold/adopt and dev skills",
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"bin": {
