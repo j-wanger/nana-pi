@@ -13,10 +13,11 @@
 - 2026-10-05: the edge desk on pi's built-in MCP, the full audit, the code map sees the tests — `docs/sessions/2026-10.md`.
 - 2026-10-06: the hardening plan and audit corpus; main pushed; tag `v0.6.3` — `docs/hardening-plan-2026-10-06.md`.
 - 2026-10-07: hardening tranche 1, six lanes (docs, ledger, flake, setup, session, gate) — `docs/sessions/2026-10.md`.
+- 2026-10-07: hardening tranche 2, seven lanes (frontier, tests, trial, instructions, retire, trust, pack) — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
-- U2: a project-scope policy symlink target is not on the floor. `aml-desk` and `jev-research` AGENTS.md copies name old paths (hardening 2.9 refreshes them).
+- U2: a project-scope policy symlink target is not on the floor. `aml-desk` and `jev-research` AGENTS.md copies name old paths; the marker region exists, the refresh command does not yet (plan 2.9, tranche 3 wave A).
 - E1: nothing in the catch ledger may change review practice, models, roles or spend until a seeded-defect control and a clean-patch control run.
 - L5: a broken hook symlink exits 127 before its fail-open code runs; the adoption hook is not role-gated to the seat; `nana-setup project` seeds a literal `OBJECTIVE.md`.
 - S1/S2: no versioned lossless `Cwd:` encoding; desk path display; duplicated escape-token logic in `display.mjs`; look-alike dashes; `nana-knowledge` depends on `nana-pack`'s layout (a neutral `packages/nana-display` is the follow-up); the 16× pre-cap can erase later prose; no CLI-level rendering test.
@@ -24,6 +25,8 @@
 - Edge desk: nothing bounds the total size of the blocks one tool returns; a narrowed desk spawn drops the MCP servers and pi's other built-ins.
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first); seven tests find pi through `npm root -g` (hardening 6.2).
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
+- Tranche 2: native Windows paths unexecuted; an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
+- `~/nana-agent-loop` still tracks an empty `.claude/.context-warned` from the retired hook (a one-line removal there).
 - Desk residuals live in `apps/desk/README.md` Known limits.
 
 ## Where things stand
@@ -33,23 +36,24 @@
 - **Tool profile: measured, decided** — `apps/bench/studies/tool-profiles-2026-09-08/VERDICT.md`: pi defaults stay; `pi-web-access` is NOT installed. Don't reopen without a failure-capable task set.
 - **pi lineup option (b)** — pi's public data-type exports, NOT `pi-client` RpcClient and NOT `pi-server`. `pi-durable` is parked (Jake, 2026-10-05) until a product needs crash-safe long runs.
 - **UI-centric frontend slices** (nana-stage + the two dashboards) are built and review-landed; slice 1b is deferred by Jake; the AML desk is its own product at `~/aml-desk`.
+- **Trust is recorded** (2026-10-07, decision D3) for aml-desk, the-hive, jev-research, basketball-geek and nana-pi: post-edit runs there and the untrusted label is gone.
 - **Verified pi facts** (don't re-derive): hooks activate from `pi install` at USER scope, every session — install ≠ adoption; project trust only gates project-config OVERRIDES; `loadProjectContextFiles` loads cwd + ANCESTORS only, never descendants.
 
 ## Next
 
-1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranche 1 landed on 2026-10-07: all six lanes, pushed, each live-probed. Tranche 2 runs as seven lanes. Tranches 3 to 6 follow in plan order. Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
-2. **Writing trial verdict, 2026-10-18 or the 20th report.** The seat runs the after-measure. Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend. The tally-hook question returns as one option at that verdict.
+1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranches 1 and 2 are done. Tranche 3 runs in two waves: review and pipe guard with plan items 2.8 and 2.9, then launcher and land helper. Tranches 4 to 6 follow in plan order. Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
+2. **Writing trial verdict, 2026-10-18 or the 20th report.** The seat runs the committed extractor's session-unit after-measure (baseline 0/32 strict). Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend. The tally-hook question returns as one option at that verdict.
 3. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 4. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
-5. **Windows (ruling 6).** The supported claim is macOS and Linux plus pi on Windows. A Windows smoke test is optional evidence, not a gate.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". The seat found one real gap: a subagent started from a prompt template always runs in the foreground. Where did you see it: pi in the terminal, the desk, or Claude Code? Did the agent wait while the subagent ran, or never start one?
-- **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis. Writability and staleness are pre-checks, not proof. The Claude hook resolves a relative override against its own cwd. The `nana-setup trust` command (hardening tranche 2) removes the start-pi-in-that-folder step.
+- **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis. Writability and staleness are pre-checks, not proof. The Claude hook resolves a relative override against its own cwd. Trust is now recorded for your five repos, so the label no longer fires there.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is what is unfelt.** The session-start block, the provenance label and the review ladder's cost are the surfaces you meet every session. Judge them by using them.
 - **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 2, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Six rows read `violated`: R-542 and five desk rows (R-058 closed by t1-gate, 2026-10-07).
+- **[optional, since 2026-10-07] A stray process.** `bench3.mjs` has run for 21 days at about 64% CPU. It is not this program's. Stop it if it is stale.
 - **[parked, since 2026-09-16] Changes-bar baseline.** The files-changed bar is git working tree versus HEAD, not attributed to the conversation. Switching is a design change.
 - **[parked, since 2026-09-16] Raw-only wikis.** `agent-memory` and `agentic-engineering` are scrape-only. The index skips their `raw/` folders. This rides with hardening D2(c).

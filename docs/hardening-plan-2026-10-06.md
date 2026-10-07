@@ -17,6 +17,15 @@
 - **t1-ledger** landed before t1-gate after astra confirmed no in-flight dependency on the old verdict predicate.
 - **New tranche-2 lane t2-tests** (found during tranche 1): per-file temp isolation in the runner, a guard against tests mutating tracked files, watchdog capture cleanup, the T17 timing fix, isolated knowledge logs. Plan item 6.4 (writing-trial measurement) moved into tranche 2 because transcripts roll off.
 
+## Seat rulings during tranche 2 (2026-10-07)
+
+- **Subtract over build on side surfaces:** the pi-1.0 acceptance probe (a docs script) keeps its forced exit and R-899 stays `untested` rather than gaining timer machinery; R-867 shrinks to "receipt controls hidden" (the key is ignored; the desk is frozen); the trial rubric scores only decisions the extractor finds (five more found by hand are a declared residual).
+- **The writing-trial verdict compares like with like:** the after measure uses the baseline's unit (the last 80+ word message per treated session); the all-message count is a labelled audit only.
+- **Keep rules, fix text:** the adoption rule (complete structure, R-152) stays; the hook's sentence now says what the rule checks.
+- **Smallest live change on install:** foreign links on the four newly managed Claude skills are preserved and reported; `requirements` keeps its pre-program behaviour; Windows does not mirror the four new skills.
+- **Not done in tranche 2, carried to tranche 3 wave A:** 2.8 (memory hygiene: doctor link checks; aml-desk facts into its product memory) and 2.9's mechanism (`nana-setup project` refreshes and `--check` compares only the marker region; refresh the product copies once). 2.3 (one roster) was done by the seat on 2026-10-06.
+- **Tranche 3 waves** (Fable consult on the lane specs, 2026-10-07): A = review immutability and the reviewer role (3.3, D7) with the pipe guard (3.5) and the 2.8/2.9 carry; B = the launcher (3.1 as ruled by D1) with the land helper (3.4), branched after A lands, because the land helper reads the verdict field the review lane adds. 3.2 (nana-pi's own post-edit checks) and 3.7 (the canary) are seat acts after B.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).
