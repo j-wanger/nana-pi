@@ -83,7 +83,7 @@ function liveText(command) {
 
 /** Return a reason if an unprotected pipeline occurs before a commit command. */
 export function verifierPipeReason(command, dialect = "bash") {
-	const live = liveText(command).replace(/\b(?:function\s+)?[A-Za-z_]\w*\s*\(\s*\)\s*\{[^{}]*\}/g, (definition) => " ".repeat(definition.length));
+	const live = liveText(command);
 	const commits = [...live.matchAll(/\bgit\s+(?:(?:-[\w-]+(?:=[^\s;&|()]+)?)(?:\s+[^\s;&|()]+)?\s+)*commit\b/gi)].map((m) => m.index ?? 0);
 	if (commits.length === 0) return null;
 	const events = [];

@@ -76,7 +76,7 @@ check("both READMEs declare the user-scope live verifier-pipe change", /user-sco
 // req: R-985
 check("pack README declares the Claude win32 hook limitation", /Claude Code.*unavailable on win32/.test(packDeclaration));
 // req: R-982
-check("both READMEs declare best-effort runtime-command gaps and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /eval/.test(line) && /variables/.test(line) && /aliases/.test(line) && /functions/.test(line) && /scripts/.test(line) && /xargs/.test(line) && /interpreter strings/.test(line) && /sandbox is the boundary/.test(line)));
+check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
 // req: R-985
 check("setup README retains context retirement and knowledge migration guarantees", setupReadme.includes("Install removes only the exact managed `bash ~/.claude/hooks/context-size-check.sh` invocation; variants are preserved.") && setupReadme.includes("The knowledge hook is migrated in place only when its timeout and status metadata match"));
 
