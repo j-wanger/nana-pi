@@ -591,7 +591,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `docs/sessions/` directory; `HANDOFF.md` alone does not count. Repository roots under the real
   operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
   `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
-  The reader action distinguishes “no HANDOFF.md or saved compaction summary.”
+  The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
 - **Compaction summary store** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
   compaction summary to a store — **by default the user-scope store fixed at**
   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
