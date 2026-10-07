@@ -4,7 +4,7 @@
  * @inputs README.md (plus any README named in readme-check.config.json), package.json, the files under scripts/, and the project root
  * @outputs a claim list, a problem list and a summary line on stdout; the exported functions return plain data
  * @effects disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero from the CLI when a claim does not hold)
- * @errors a problem list naming each README line whose claim fails; a thrown Error for a bad config or a bad CLI invocation
+ * @errors a problem list naming each README line whose claim fails; bad CLI arguments print usage to stderr and return status 2; a thrown Error for a bad config
  */
 // The README is read before the code, so a README claim is a requirement with the README
 // as its row. This checks the five things that make one honest: its commands exist, its
@@ -603,8 +603,10 @@ export const PROJECT_ROOT = resolve(
  */
 export function main(argv, root = PROJECT_ROOT) {
 	const mode = argv[0] ?? "--check";
-	if (mode !== "--check" && mode !== "--list")
-		throw new Error(`unknown mode '${mode}' (expected --check or --list)`);
+	if (argv.length > 1 || (mode !== "--check" && mode !== "--list")) {
+		process.stderr.write("Usage: readme-check.mjs [--check | --list]\n");
+		return 2;
+	}
 	const { claims: found, problems, line } = checkProject(root);
 	if (mode === "--list")
 		for (const c of found) process.stdout.write(`${c.kind}: ${c.text}\n`);

@@ -192,6 +192,10 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	// req: R-859
 	check("AGENTS.md's Working under nana-pi section is byte-identical to the shared file", agents.endsWith(shared));
+	const prefix = agents.slice(0, -shared.length);
+	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
+	// req: R-859
+	check("AGENTS.md keeps the complete preamble before the shared section", prefix.endsWith("\n\n") && /[.!?]$/.test(paragraph));
 
 	// Mutation, in a scratch copy only (the real AGENTS.md is never touched): dropping the
 	// final byte must flip the SAME predicate from true to false, proving the check is live

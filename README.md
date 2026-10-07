@@ -7,9 +7,9 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack covering the four hook
-  classes (pre-tool permission gating, post-edit format/lint/test triggers, session lifecycle,
-  notifications/observability) plus scaffold + dev-workflow skills. Installable via
+- `packages/` — our pi packages, chiefly the nana extension pack: seven extensions (gate,
+  post-edit, lifecycle, notify, handoff, objective, writing), plus scaffold + dev-workflow
+  skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
   `nana-stage`'s extension is NOT in that manifest: the desk loads it per app.
@@ -25,8 +25,9 @@ Sibling repo to `~/nana-agent-loop`.
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
-  `UserPromptSubmit` hook and injected as a few pointers at the moment of a live
-  decision. Zero dependencies; read-only on every source. See
+  `UserPromptSubmit` hook and from pi's `before_agent_start` through one shared hook CLI,
+  then injected as a few pointers at the moment of a live decision. Zero dependencies;
+  read-only on every source. See
   `packages/nana-knowledge/README.md`.
 - `packages/nana-setup/` — the one-command bootstrap for everything that is NOT a pi extension:
   the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the

@@ -566,7 +566,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **inputs** — argv (--check | --list), readme-check.config.json at the repo root, the READMEs it names, package.json and the files under scripts/
 - **outputs** — the claim list on --list, the summary line plus problem list on either mode
 - **effects** — disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero when a README claim does not hold)
-- **errors** — exit 1 with the problem list naming each README line whose claim fails; a thrown Error for a bad config or an unknown mode
+- **errors** — exit 1 with the problem list naming each README line whose claim fails; bad CLI arguments print usage to stderr and return status 2; a thrown Error for a bad config
 - **callers** — `packages/nana-pack/tests/readme-check.test.mjs`
 - **callees** — —
 

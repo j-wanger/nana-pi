@@ -48,6 +48,35 @@ const cli = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "readme
 });
 check("scripts/readme-check.mjs --check exits 0", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
 
+const config = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "readme-check.config.json"), "utf-8"));
+const external = new Map(config.externalPaths.map((entry) => [entry.path, entry.reason]));
+// req: R-655
+check("install-produced README paths are declared external with reasons", ["node_modules", "apps/bench/.ext", "apps/bench/.ext/pi-web-access"].every((item) => external.get(item)?.trim().length > 0));
+
+const invalidModes = [["--check", "--list"], ["--bogus"]].map((args) => {
+	const result = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "readme-check.mjs"), ...args], { cwd: REPO_ROOT, encoding: "utf-8" });
+	const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+	return { args, ok: result.status === 2 && output.includes("Usage:") && output.includes("--list"), output };
+});
+// req: R-656
+check("CLI rejects unknown and multiple modes with usage", invalidModes.every((result) => result.ok), invalidModes.map((result) => `${result.args.join(" ")}: ${result.output.slice(-300)}`).join("\n"));
+
+const skill = fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/skills/requirements/SKILL.md"), "utf-8");
+// req: R-657
+check("requirements skill documents runner-specific map commands", skill.includes("pnpm map:impact <files>") && skill.includes("npm run map:impact -- <files>") && skill.includes("uv run python scripts/code_map.py --impact <files>") && !skill.includes("map:impact -- <changed-files>"));
+
+const rootReadme = fs.readFileSync(path.join(REPO_ROOT, "README.md"), "utf-8");
+const rootPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8"));
+const packPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/package.json"), "utf-8"));
+const seven = ["gate", "post-edit", "lifecycle", "notify", "handoff", "objective", "writing"];
+const packageBullet = rootReadme.match(/- `packages\/` —[\s\S]*?(?=\n- )/)?.[0] ?? "";
+// req: R-658
+check("front-door descriptions name both runtimes and all seven extensions", rootReadme.includes("UserPromptSubmit") && rootReadme.includes("before_agent_start") && seven.every((name) => packageBullet.includes(name)) && [rootPackage.description, packPackage.description].every((text) => seven.every((name) => text.includes(name))));
+
+const objective = fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf-8").split("## Working under nana-pi")[0];
+// req: R-659
+check("repo objective contract accurately documents the opt-out", /user-scope `objective\.enabled: false` turns the objective off/.test(objective) && /project config cannot/i.test(objective));
+
 // A command the README names INLINE is a claim too (G-012): `npm test` in a sentence is the
 // same promise as the same line in a fence. The mutation runs through the real CLI in a
 // scratch root — every repo entry symlinked, README.md mutated and scripts/ COPIED so the
