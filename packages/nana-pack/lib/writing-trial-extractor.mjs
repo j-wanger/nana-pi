@@ -96,7 +96,7 @@ function collect(root, from, to, mode = "baseline", until = null) {
 	return sessions;
 }
 function score(sessions, mode) {
-	const reports = mode === "baseline" ? sessions.map((session) => ({ ...session.last, sessionId: session.sessionId })) : sessions.flatMap((session) => session.reports.map((message) => ({ ...message, sessionId: session.sessionId })));
+	const reports = mode === "baseline" ? sessions.map((session) => ({ ...session.last, sessionId: session.sessionId })) : mode === "after-session" ? sessions.flatMap((session) => session.reports.length ? [{ ...session.reports.at(-1), sessionId: session.sessionId }] : []) : sessions.flatMap((session) => session.reports.map((message) => ({ ...message, sessionId: session.sessionId })));
 	const days = new Map();
 	for (const report of reports) {
 		const row = days.get(report.day) ?? { day: report.day, reports: 0, strictPasses: 0, lenientPasses: 0 };
@@ -183,7 +183,8 @@ function runExtractor(argv) {
 		const manifest = preserve(sessions, args.preserve);
 		process.stdout.write(`${JSON.stringify({ preserved: manifest.length, manifest }, null, 2)}\n`);
 	} else {
-		process.stdout.write(`${JSON.stringify({ mode, sessionCount: sessions.length, checkedReports: sessions.reduce((sum, session) => sum + session.checked, 0), checkedByDay: checksByDay(sessions), summary: Object.fromEntries(Object.entries(result).filter(([key]) => key !== "days" && key !== "reportsDetail")), days: result.days, rubric: { parts: ["tested", "numeric result", "trade", "recommendation", "why Jake decides"], decisions: scoreDecisions(result.reportsDetail) }, ...(mode === "after" ? { reportIds: result.reportsDetail.map(({ sessionId, timestamp, day }) => ({ sessionId, timestamp, day })) } : {}) }, null, 2)}\n`);
+		const verdictMeasure = mode === "after" ? score(sessions, "after-session") : result;
+		process.stdout.write(`${JSON.stringify({ mode, sessionCount: sessions.length, checkerCalls: sessions.reduce((sum, session) => sum + session.checked, 0), checkedByDay: checksByDay(sessions), verdictMeasure: Object.fromEntries(Object.entries(verdictMeasure).filter(([key]) => key !== "days" && key !== "reportsDetail")), ...(mode === "after" ? { allMessageAudit: Object.fromEntries(Object.entries(result).filter(([key]) => key !== "days" && key !== "reportsDetail")), days: result.days, rubric: { parts: ["tested", "numeric result", "trade", "recommendation", "why Jake decides"], decisions: scoreDecisions(result.reportsDetail) }, reportIds: result.reportsDetail.map(({ sessionId, timestamp, day }) => ({ sessionId, timestamp, day })) } : { summary: Object.fromEntries(Object.entries(result).filter(([key]) => key !== "days" && key !== "reportsDetail")), days: result.days, rubric: { parts: ["tested", "numeric result", "trade", "recommendation", "why Jake decides"], decisions: scoreDecisions(result.reportsDetail) } }) }, null, 2)}\n`);
 	}
 }
 export { checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles };

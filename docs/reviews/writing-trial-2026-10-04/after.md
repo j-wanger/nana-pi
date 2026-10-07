@@ -1,8 +1,19 @@
 # Treated after corpus, 2026-10-04 through 2026-10-07
 
-The extractor selects only seat sessions whose instructions attachment contains the canonical writing rule, then includes report-sized assistant main-thread messages after the first attachment and within the EDT date range.
+The extractor includes report-sized main-thread assistant messages after the first canonical-rule attachment in treated seat sessions. Its trial verdict measure takes only the last qualifying message per treated seat session. The all-message figures below are a separately labelled audit, not the verdict population.
 
-Snapshot cutoff: inclusive through `2026-10-07T09:47:20.003Z` (UTC). Every after-corpus number below is from this cutoff; it bounds mutable transcripts. Baseline comparison numbers come from the separately preserved manifest. A sampled 2026-10-05 session (eddb9d32-a04d-4940-bf4f-7aa79f40ad8f) has the canonical attachment before its report at 2026-10-05T14:02:53.538Z; this is the observable treatment signal, not a file modification date or transcript mention.
+Snapshot cutoff: inclusive through `2026-10-07T09:47:20.003Z` (UTC). Every after number below uses this cutoff; it bounds mutable transcripts. Baseline messages and measurements come from the separately preserved manifest. A sampled 2026-10-05 session (eddb9d32-a04d-4940-bf4f-7aa79f40ad8f) has the canonical attachment before its report at 2026-10-05T14:02:53.538Z; this is the observable treatment signal, not a file modification date or transcript mention.
+
+## Verdict measure: one message per treated seat session
+
+| Corpus | Unit | Sessions/messages | Strict passes | Lenient passes |
+|---|---|---:|---:|---:|
+| Baseline | Last qualifying message per seat session | 32 | 0/32 | 3/32 |
+| After, at committed cutoff | Last qualifying message per treated seat session | 7 | 6/7 | 6/7 |
+
+This is the like-for-like trial comparison: baseline and after both use the last qualifying message per seat session. Strict uses the committed uppercase verdict-first check. Lenient reproduces the former case-insensitive check against only the first prose sentence.
+
+## All-message audit (not the verdict measure)
 
 | EDT day | Report-sized messages | Strict passes | Lenient passes |
 |---|---:|---:|---:|
@@ -10,10 +21,8 @@ Snapshot cutoff: inclusive through `2026-10-07T09:47:20.003Z` (UTC). Every after
 | 2026-10-05 | 14 | 9 | 10 |
 | 2026-10-06 | 7 | 4 | 4 |
 | 2026-10-07 | 1 | 0 | 0 |
-| **Total** | **25** | **15** | **16** |
+| **Total audit** | **25** | **15** | **16** |
 
-The transcript scan found 21 checker tool calls across these seven treated sessions, by EDT day: 2026-10-04 1, 2026-10-05 13, and 2026-10-06 7. Counts include only Bash tool calls after the first canonical rule attachment and at or before the cutoff; they are separate from the 25 extracted report-sized messages.
+The October 5 audit remains 10/14 on the former lenient check (and 9/14 strict); it is an all-message audit, not the session-unit verdict result. The scan found 21 matching Bash checker calls across the treated sessions by EDT day: October 4: 1, October 5: 13, October 6: 7. Calls are not distinct sent reports: the extractor cannot tell whether an invocation rechecks a draft or is diagnostic, so the seat audits distinct reports at verdict time.
 
-Strict uses the committed R-747 uppercase verdict-first check. Lenient reproduces the former case-insensitive regex against only the first prose sentence. Both baseline and after were measured by the same two checks; only strict-to-strict or lenient-to-lenient comparisons are like-for-like. The after-corpus shares are 15/25 strict and 16/25 lenient; the baseline shares are 0/32 strict and 3/32 lenient. The October 5 row reproduces the audited 10/14 former-check result.
-
-Recompute with `node docs/reviews/writing-trial-2026-10-04/extract.mjs --from 2026-10-04 --to 2026-10-07 --mode after --until 2026-10-07T09:47:20.003Z` against the seat projects under `~/.claude/projects/`.
+Recompute with `node docs/reviews/writing-trial-2026-10-04/extract.mjs --from 2026-10-04 --to 2026-10-07 --mode after --until 2026-10-07T09:47:20.003Z` against the seat projects under `~/.claude/projects/`. JSON `verdictMeasure` is the trial unit; `allMessageAudit` and `days` are audit-only. `checkerCalls` counts tool invocations, not reports sent.

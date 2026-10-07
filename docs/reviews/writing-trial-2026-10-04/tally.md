@@ -16,7 +16,7 @@ condition and blur two different targets.
 
 **Landing date:** 2026-10-04 (merge on main)
 
-**Stop condition:** day 14 after landing, or 20 REPORTS checked (the `HANDOFF.md` corpus does
+**Stop condition:** day 14 after landing, or 20 distinct reports sent and checked (the `HANDOFF.md` corpus does
 not count toward this), whichever comes first. Stop early after two lost-detail complaints —
 Jake saying a report dropped detail he needed.
 
@@ -30,6 +30,8 @@ Jake saying a report dropped detail he needed.
 Reviewer-harm trigger record: the “reviewers drop paths” trigger was checked against the post-landing review corpus and did not fire. Identifier density per 100 words: pre-landing 6.9, 5.7, 4.6, 4.9; post-landing 4.8, 4.9, 2.1, 7.1, 7.6, 7.9, 3.6, 4.0, 6.1. Over-cap findings stayed at 0–1 per file in both periods. These aggregate measures do not prove that no necessary detail was dropped.
 
 The pi half has no corpus yet: the journal does not distinguish Jake-facing UI output from worker or reviewer sessions.
+
+The extractor's `checkerCalls` count is not a count of distinct reports sent: it cannot associate repeated or diagnostic invocations with sent reports, so the seat audits distinct reports against the stop condition at verdict time.
 
 The reproducible extractor is `extract.mjs`; the treated corpus and baseline remeasurement are recorded in [after.md](after.md) and [rebaseline.md](rebaseline.md). The October 5 audit count is reproduced exactly: 14 reports / 10 former-check passes. The published 6/35 baseline was a hand count on 35 messages and is NOT reproduced; the committed old-checker result on the 32-message window is 3/32 lenient and 0/32 strict.
 

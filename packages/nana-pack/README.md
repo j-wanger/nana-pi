@@ -253,7 +253,7 @@ node packages/nana-pack/bin/nana-writing.mjs --report < draft.txt   # stdin, + v
 With no path it reads stdin (named `-` in the output). Four checks run always — sentence
 length, passive-voice CANDIDATES (a heuristic, not a parser — see Known limit), a banned word
 outside a code span, and the closing summary — and two more run only with `--report`: a
-verdict word or phrase in the first prose sentence, and identifiers (a backtick span, or a
+listed uppercase verdict as the first token of the first prose sentence (optional emphasis markers may precede it), and identifiers (a backtick span, or a
 slash-path token — including the banned word's own code span, since a quoted word is a
 mention, not a use). Each finding is one line, `<file>:<line>: <check>: <detail>`; the output
 always ends with one summary line:
@@ -263,7 +263,7 @@ summary sentences=N words=N over=N passive=N banned=N verdict=<k>/<n>|n/a identi
 ```
 
 `verdict` is the cross-file SHARE in `--report` mode — `<k>` inputs whose first prose sentence
-carried a verdict word, out of `<n>` checked — and "n/a" otherwise.
+carried a listed uppercase verdict as its first token, out of `<n>` checked — and "n/a" otherwise.
 
 It exits 0 whatever it finds — this CLI reports, it never blocks.
 

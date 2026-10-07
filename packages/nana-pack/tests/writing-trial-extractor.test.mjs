@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { checksByDay, collect, loadPrivateCorpus, preserve, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
+import { checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
 
 let failures = 0;
 function check(title, run) {
@@ -55,6 +55,8 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 		entry("assistant", "2026-09-20T10:01:00Z", long("OPEN."), { isSidechain: true }),
 		entry("assistant", "2026-09-20T10:02:00Z", long("OPEN.")),
 		entry("assistant", "2026-10-07T10:00:00Z", long("DONE.")),
+		entry("assistant", "2026-10-08T10:00:00Z", long("OPEN."), { isSidechain: true }),
+		entry("assistant", "2026-10-09T10:00:00Z", "too short to qualify"),
 	]);
 	const sessions = collect(f.root, "2026-09-20", "2026-09-20", "baseline");
 	// req: R-692
@@ -81,11 +83,16 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 		const reports = [
 			{ sessionId: "strict", body: long("DONE."), timestamp: "2026-10-05T12:00:00Z", day: "2026-10-05" },
 			{ sessionId: "lenient-only", body: "This is open. A routine report follows.", timestamp: "2026-10-05T13:00:00Z", day: "2026-10-05" },
+			{ sessionId: "later-sentence", body: `${long("A routine report begins.")} DONE.`, timestamp: "2026-10-05T14:00:00Z", day: "2026-10-05" },
 		];
 		const result = score([{ sessionId: "mixed", reports }], "after");
-		assert.equal(result.reports, 2);
+		assert.equal(result.reports, 3);
 		assert.equal(result.strictPasses, 1);
 		assert.equal(result.lenientPasses, 2);
+		const sessionUnit = score([{ sessionId: "same-seat", reports: [reports[0], reports[1]] }], "after-session");
+		assert.equal(sessionUnit.reports, 1);
+		assert.equal(sessionUnit.strictPasses, 0);
+		assert.equal(sessionUnit.lenientPasses, 1);
 	});
 	f.cleanup();
 }
@@ -162,13 +169,26 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	const call = { type: "tool_use", name: "Bash", input: { command: "node /tmp/nana-writing.mjs --report" } };
 	const treatmentAttachment = { ...attachment, timestamp: "2026-10-05T14:00:00Z" };
 	const repeatedAttachment = { ...attachment, timestamp: "2026-10-05T14:02:00Z" };
-	f.add("-Users-seat", "bounded", [entry("user", "2026-10-04T12:00:00Z", "start"), { type: "assistant", timestamp: early, isSidechain: false, message: { role: "assistant", content: [call] } }, treatmentAttachment, { type: "assistant", timestamp: "2026-10-05T14:01:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, repeatedAttachment, { type: "assistant", timestamp: "2026-10-05T14:03:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, { type: "assistant", timestamp: after, isSidechain: false, message: { role: "assistant", content: [call] } }, entry("assistant", after, long("DONE.")), entry("assistant", "2026-10-06T13:00:00Z", long("DONE.")), { type: "assistant", timestamp: "2026-10-06T13:00:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }]);
+	f.add("-Users-seat", "bounded", [entry("user", "2026-10-04T12:00:00Z", "start"), { type: "assistant", timestamp: early, isSidechain: false, message: { role: "assistant", content: [call] } }, treatmentAttachment, { type: "assistant", timestamp: "2026-10-05T14:01:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, repeatedAttachment, { type: "assistant", timestamp: "2026-10-05T14:03:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, { type: "assistant", timestamp: after, isSidechain: false, message: { role: "assistant", content: [call] } }, entry("assistant", after, long("DONE.")), { type: "assistant", timestamp: "2026-10-05T15:01:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, entry("assistant", "2026-10-05T15:01:00Z", long("OPEN.")), entry("assistant", "2026-10-06T13:00:00Z", long("DONE.")), { type: "assistant", timestamp: "2026-10-06T13:00:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }]);
 	const sessions = collect(f.root, "2026-10-04", "2026-10-05", "after");
 	// req: R-697
 	check("after reports obey their own date boundary and repeated attachments retain post-first-attachment calls", () => {
-		assert.equal(sessions[0].reports.length, 1);
-		assert.equal(sessions[0].checked, 3);
-		assert.deepEqual(checksByDay(sessions), [{ day: "2026-10-05", count: 3 }]);
+		assert.equal(sessions[0].reports.length, 2);
+		assert.equal(sessions[0].checked, 4);
+		assert.deepEqual(checksByDay(sessions), [{ day: "2026-10-05", count: 4 }]);
+	});
+	// req: R-694 R-697
+	check("after JSON labels checker invocations and exposes session verdict separately from message audit", () => {
+		let output = "";
+		const write = process.stdout.write;
+		process.stdout.write = (chunk) => { output += chunk; return true; };
+		try { runExtractor(["node", "extract.mjs", "--from", "2026-10-04", "--to", "2026-10-05", "--mode", "after", "--root", f.root]); }
+		finally { process.stdout.write = write; }
+		const result = JSON.parse(output);
+		assert.equal(result.checkerCalls, 4);
+		assert.equal(Object.hasOwn(result, "checkedReports"), false);
+		assert.equal(result.verdictMeasure.reports, 1);
+		assert.equal(result.allMessageAudit.reports, 2);
 	});
 	// req: R-697
 	check("after cutoff is inclusive at the exact message timestamp", () => {
