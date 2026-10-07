@@ -116,8 +116,10 @@ async function runPi(w, cwd, isProjectTrusted = () => false) {
 		ext({ on: (name, fn) => { h[name] = fn; } });
 		const ctx = { cwd, hasUI: false, isProjectTrusted };
 		await h.session_start({ reason: "startup" }, ctx);
-		const r = await h.before_agent_start({ systemPrompt: "BASE" }, ctx);
-		return r === undefined ? null : r.systemPrompt;
+		const event = { systemPromptOptions: { sections: {} } };
+		await h.before_agent_start(event, ctx);
+		const block = event.systemPromptOptions.sections["nana-objective"];
+		return block === undefined ? null : `BASE\n\n${block}`;
 	} finally {
 		leave();
 	}

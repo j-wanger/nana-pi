@@ -3,9 +3,9 @@
  * @purpose Carry a compaction summary across sessions through the user-scope handoff store, injecting it
  *  only into a fresh session in the same directory.
  * @inputs pi `session_start` / `before_agent_start` / `session_compact` events (reason,
- *  compactionEntry.summary, systemPrompt), the handoff config block, env NANA_HANDOFF, and the store file
+ *  compactionEntry.summary, systemPromptOptions.sections), the handoff config block, env NANA_HANDOFF, and the store file
  *  for the canonical cwd (or an ancestor's, or a configured path)
- * @outputs a labelled handoff block appended to the system prompt (≤ INJECT_CAP) or a bounded pointer line
+ * @outputs a labelled handoff block in the nana-handoff system-prompt section (≤ INJECT_CAP) or a bounded pointer line
  *  (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to
  *  the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored,
  *  handoff_legacy_write_refused, directory_unadopted)
@@ -50,10 +50,11 @@
  * ancestor's: if an ancestor has one, the session is told its path, not its text (no
  * ancestor → nothing added).
  *
- * Adoption (L5): a "missing" store entry (never an unreadable one) with no configured
- * handoff.path, in a git repository whose ROOT has no store entry, no objective file
- * (user-scope objective.projectFile, default OBJECTIVE.md) and no `.nana-not-a-project`, journals
- * `directory_unadopted` for that root — at most once a day — to the USER-SCOPE journal only
+ * Adoption (L5): a repository root counts as adopted when it has an objective file, a stored handoff,
+ * a dismissal marker, or a regular HANDOFF.md together with AGENTS.md and docs/sessions/. Roots under
+ * the real OS temporary directories (including canonical /tmp on POSIX) are skipped. A "missing"
+ * store entry (never an unreadable one) with no configured handoff.path in a git repository whose root
+ * lacks all adoption evidence journals `directory_unadopted` at most once a day to the USER-SCOPE journal only
  * (lib/adoption.mjs adoptionSettings(); a project journal.path never captures it). Journal
  * only: nothing reaches the prompt; the seat's bin/nana-adoption.mjs reads it.
  *
@@ -72,7 +73,10 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { EVENT as UNADOPTED, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, storePathFor, tailLines } from "../lib/adoption.mjs";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { orderNanaSections } from "../lib/prompt-sections.mjs";
 import { fileField, locator, promptPath, promptText, uiPath, uiText } from "../lib/display.mjs";
+
+let adoptionOverrideJournaled = false;
 
 // The store resolver lives in lib/adoption.mjs (one implementation, shared with the seat's reader).
 export { canonicalCwd, storeDir, storePathFor } from "../lib/adoption.mjs";
@@ -300,6 +304,17 @@ export default function (pi: ExtensionAPI) {
 		legacyWriteNotified = false;
 		const reason = (event as any).reason;
 		if (reason !== "startup" && reason !== "new") return;
+		if (!adoptionOverrideJournaled && process.env.NANA_TEST_TEMP_ROOTS !== undefined) {
+			try {
+				const { journal } = adoptionSettings();
+				if (journal) {
+					fs.appendFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: "adoption_test_temp_roots_override", value: process.env.NANA_TEST_TEMP_ROOTS })}\n`);
+					adoptionOverrideJournaled = true;
+				}
+			} catch {
+				// best-effort; leave the guard clear so a later session start can retry
+			}
+		}
 		let cfg;
 		try {
 			cfg = loadConfig(ctx);
@@ -429,7 +444,9 @@ export default function (pi: ExtensionAPI) {
 		} catch {
 			return undefined;
 		}
-		return { systemPrompt: (event as any).systemPrompt + block };
+		(event as any).systemPromptOptions.sections["nana-handoff"] = block;
+		orderNanaSections(event as any);
+		return undefined;
 	});
 
 	pi.on("session_compact", async (event, ctx) => {

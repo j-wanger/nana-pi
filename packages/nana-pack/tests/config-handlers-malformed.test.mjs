@@ -70,7 +70,8 @@ for (const [label, text, expectLines] of VARIANTS) {
 	await fire("session_start", { reason: "startup" }); // lifecycle, objective, handoff
 	const gateOut = await fire("tool_call", { toolName: "bash", input: { command: "rm -rf /tmp/x" } });
 	await fire("tool_result", { toolName: "edit", isError: false, input: { path: "a.ts" }, content: [{ type: "text", text: "edited" }] });
-	const bas = await fire("before_agent_start", { systemPrompt: "BASE" });
+	const promptEvent = { systemPromptOptions: { sections: {} } };
+	await fire("before_agent_start", promptEvent);
 	await fire("agent_settled", {});
 	await fire("session_before_compact", {});
 	await fire("session_compact", { compactionEntry: { summary: "state" }, reason: "manual" });
@@ -80,8 +81,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	// req: R-083
 	check(`${label}: no handler throws`, errors.length === 0, errors.join("; "));
 	check(`${label}: gate still blocks rm -rf /tmp/x headless`, gateOut.some((r) => r?.block === true), JSON.stringify(gateOut));
-	// chain the before_agent_start results the way pi does (last systemPrompt wins in this fake)
-	const prompts = bas.filter(Boolean).map((r) => r.systemPrompt).join("\n");
+	const prompts = Object.values(promptEvent.systemPromptOptions.sections).join("\n");
 	check(`${label}: objective text or OBJECTIVE UNAVAILABLE marker injected`, prompts.includes("OBJ: ship the thing") || prompts.includes("OBJECTIVE UNAVAILABLE"));
 	const journal = path.join(agent, "nana-journal.jsonl");
 	const lines = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -109,8 +109,10 @@ for (const [label, text, expectLines] of VARIANTS) {
 		ui: { notify: (m, t) => warnings.push({ m, t }), setStatus() {}, select: async () => "Block", theme: { fg: (_c, t) => t } },
 	});
 	const ctx = mk("s1");
-	for (const ev of ["session_start", "before_agent_start", "session_compact", "session_shutdown"])
-		for (const fn of h[ev] ?? []) await fn(ev === "session_start" ? { reason: "startup" } : { systemPrompt: "B", compactionEntry: { summary: "s" } }, ctx);
+	for (const ev of ["session_start", "before_agent_start", "session_compact", "session_shutdown"]) {
+		const event = ev === "session_start" ? { reason: "startup" } : ev === "before_agent_start" ? { systemPromptOptions: { sections: {} } } : { compactionEntry: { summary: "s" } };
+		for (const fn of h[ev] ?? []) await fn(event, ctx);
+	}
 	const mine = () => warnings.filter((w) => w.m.includes(userCfg) && w.m.includes("postEdit.commands"));
 	// req: R-082
 	check("UI: exactly one warning for the problem in a session", mine().length === 1 && mine()[0].t === "warning", JSON.stringify(warnings));

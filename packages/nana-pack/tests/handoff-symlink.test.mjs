@@ -55,10 +55,11 @@ function workspace() {
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	// req: R-136
 	check("a: symlinked handoff does not throw at session_start", !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx);
+	const r = event.systemPromptOptions.sections["nana-handoff"];
 	// req: R-134
 	check("a: nothing injected from a symlinked handoff", r === undefined);
-	check("a: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
+	check("a: target contents never reach the system prompt", !(r ?? "").includes("SUPERSECRET"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -100,10 +101,11 @@ function workspace() {
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	// req: R-136
 	check("d: symlinked state directory does not throw at session_start", !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx);
+	const r = event.systemPromptOptions.sections["nana-handoff"];
 	check("d: nothing injected through a symlinked state directory", r === undefined);
 	// req: R-806
-	check("d: external contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("EXTERNAL SECRET"));
+	check("d: external contents never reach the system prompt", !(r ?? "").includes("EXTERNAL SECRET"));
 
 	try { await handlers.session_compact({ compactionEntry: { summary: "state of play" }, reason: "manual" }, ctx); } catch { threw = true; }
 	check("e: symlinked state directory does not throw at compaction", !threw);
@@ -131,9 +133,10 @@ function workspace() {
 	// req: R-135
 	check("f: symlinked ANCESTOR does not block the write", fs.readFileSync(path.join(real, "state", "handoff.md"), "utf-8").includes("under a symlinked root"));
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx);
+	const r = event.systemPromptOptions.sections["nana-handoff"];
 	// req: R-135
-	check("f: symlinked ANCESTOR does not block the pickup", (r?.systemPrompt ?? "").includes("under a symlinked root"));
+	check("f: symlinked ANCESTOR does not block the pickup", (r ?? "").includes("under a symlinked root"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

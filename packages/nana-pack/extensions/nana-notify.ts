@@ -2,9 +2,9 @@
  * @module packages/nana-pack/extensions/nana-notify.ts
  * @purpose Notify the owner on the desktop when the agent settles, falling back in-app when the OS notifier
  *  fails.
- * @inputs pi `agent_settled` events, the notify config block (enabled, headless), ctx.hasUI, and
+ * @inputs pi `agent_settled` and `ui_prompt_start` events, the notify config block (enabled, headless), ctx.mode, ctx.hasUI, and
  *  process.platform
- * @outputs an osascript notification, a PowerShell toast or an OSC 777 sequence, an in-app ctx.ui.notify on
+ * @outputs an osascript notification, a PowerShell toast or a TUI-only OSC 777 sequence, an in-app ctx.ui.notify on
  *  failure, and a `notify_fallback` journal line carrying the reason
  * @effects process (spawns osascript or powershell.exe under NOTIFIER_TIMEOUT_MS), disk (appends the
  *  journal)
@@ -14,9 +14,8 @@
 /**
  * nana-notify — desktop notification when the agent settles and waits for input.
  *
- * darwin: osascript notification · win32: PowerShell toast · else: OSC 777
- * (terminal protocol, only written when a UI is attached so piped/RPC stdout
- * is never polluted). Headless runs are silent unless notify.headless is true.
+ * darwin: osascript notification · win32: PowerShell toast · else: OSC 777 in TUI mode only.
+ * RPC stdout is reserved for protocol records. Headless runs are silent unless notify.headless is true.
  *
  * The OS notifier is best-effort and can fail on a machine we never see (no
  * WinRT toast registration, a locked-down PowerShell, osascript denied). It used
@@ -116,12 +115,10 @@ function windowsNotify(title: string, body: string, onFail: OnFail): void {
 }
 
 export default function (pi: ExtensionAPI) {
-	pi.on("agent_settled", async (_event, ctx) => {
+	const notify = async (body: string, ctx: any) => {
 		const cfg = loadConfig(ctx);
 		if (!cfg.notify.enabled) return;
 		if (!ctx.hasUI && !cfg.notify.headless) return;
-
-		const body = "Ready for input";
 		// Runs AFTER this handler has resolved, so it must not throw: an
 		// exception here would surface as an unhandled rejection in the agent.
 		const onFail = (reason: string) => {
@@ -141,6 +138,9 @@ export default function (pi: ExtensionAPI) {
 
 		if (process.platform === "darwin") darwinNotify("pi", body, onFail);
 		else if (process.platform === "win32") windowsNotify("pi", body, onFail);
-		else if (ctx.hasUI) process.stdout.write(`\x1b]777;notify;pi;${body}\x07`);
-	});
+		else if (ctx.mode === "tui") process.stdout.write(`\x1b]777;notify;pi;${body}\x07`);
+	};
+
+	pi.on("agent_settled", async (_event, ctx) => notify("Ready for input", ctx));
+	pi.on("ui_prompt_start", async (_event, ctx) => notify("Approval needed in pi", ctx));
 }

@@ -33,11 +33,10 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
-import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
+import { resolveToolPath } from "../lib/gate-paths.ts";
 import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 import {
 	type CheckStatus,
@@ -100,52 +99,9 @@ function statusLine(outcomes: Outcome[], name: string): { text: string; color: "
 	return { text: `post-edit ✓ ${outcomes.length} check${outcomes.length === 1 ? "" : "s"} · ${name}`, color: "dim" };
 }
 
-// ---------------------------------------------------------------------------
-// Path normalization — MUST match pi's, or we check the wrong file.
-//
-// pi's edit/write tools resolve the model's `path` with `resolveToCwd`
-// (0.84.4 dist/core/tools/path-utils.js:42), which is
-// `resolvePath(input, cwd, { normalizeUnicodeSpaces: true, stripAtPrefix: true })`
-// (dist/utils/paths.js:58-86): Unicode spaces folded to ASCII, a leading `@`
-// stripped, win32 shell paths (/c/…, /mnt/c/…) converted, `~` expanded, file://
-// URLs converted. A plain path.resolve() misses all of that, so an input like
-// `~/x.ts` or `@src/x.ts` would mutate one file while the checker, the receipt
-// digest and the file-queue key targeted another — silently invalidating the
-// receipt and bypassing serialization.
-//
-// pi does not export it: dist/index.js exposes no path helpers and package.json
-// declares no subpath for core/tools. Mirrored here instead, with the two
-// defaults resolveToCwd relies on inlined (`trim` off, `expandTilde` on).
-// ---------------------------------------------------------------------------
-const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
+// Path interpretation is shared with the gate so policy checks and post-edit
+// receipts agree, including malformed file URLs.
 
-function normalizeWindowsShellPath(filePath: string): string {
-	if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
-	const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
-	if (!match) return filePath;
-	const suffix = match[2]?.replaceAll("/", "\\");
-	return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
-}
-
-function normalizePath(input: string, opts: { normalizeUnicodeSpaces?: boolean; stripAtPrefix?: boolean } = {}): string {
-	let normalized = input;
-	if (opts.normalizeUnicodeSpaces) normalized = normalized.replace(UNICODE_SPACES, " ");
-	if (opts.stripAtPrefix && normalized.startsWith("@")) normalized = normalized.slice(1);
-	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
-	const home = os.homedir();
-	if (normalized === "~") return home;
-	if (normalized.startsWith("~/") || (process.platform === "win32" && normalized.startsWith("~\\"))) {
-		return path.join(home, normalized.slice(2));
-	}
-	if (/^file:\/\//.test(normalized)) return fileURLToPath(normalized);
-	return normalized;
-}
-
-function resolveToCwd(filePath: string, cwd: string): string {
-	const normalized = normalizePath(filePath, { normalizeUnicodeSpaces: true, stripAtPrefix: true });
-	const base = normalizePath(cwd);
-	return path.isAbsolute(normalized) ? path.resolve(normalized) : path.resolve(base, normalized);
-}
 
 /**
  * Kill the checker AND everything it spawned.
@@ -365,7 +321,7 @@ export default function (pi: ExtensionAPI) {
 		// ONE resolution for everything downstream, using pi's own normalization:
 		// the bytes we hash, the path we hand the shell, and the file-queue key must
 		// all be the file pi's edit/write tool actually touched.
-		const abs = resolveToCwd(file, ctx.cwd);
+		const abs = resolveToolPath(file, ctx.cwd);
 
 		const queue = await loadFileQueue();
 		if (!queue && !queueAbsenceReported) {

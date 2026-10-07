@@ -22,7 +22,7 @@ const HOME = path.join(base, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
 fs.mkdirSync(AGENT, { recursive: true });
 const JOURNAL = path.join(AGENT, "nana-journal.jsonl");
-const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: "" };
+const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: "", NANA_TEST_TEMP_ROOTS: "" };
 delete env.PI_CODING_AGENT_DIR;
 let fails = 0;
 const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
@@ -55,6 +55,12 @@ const roots = Array.from({ length: 7 }, (_, i) => repo(`r${i}`));
 fs.writeFileSync(path.join(roots[0], "AGENTS.md"), "x");
 fs.mkdirSync(path.join(roots[0], "docs", "sessions"), { recursive: true });
 const adopted = repo("adopted-later");
+const completeNana = repo("complete-nana");
+fs.writeFileSync(path.join(completeNana, "HANDOFF.md"), "x");
+fs.writeFileSync(path.join(completeNana, "AGENTS.md"), "x");
+fs.mkdirSync(path.join(completeNana, "docs", "sessions"), { recursive: true });
+const handoffOnly = repo("handoff-only");
+fs.writeFileSync(path.join(handoffOnly, "HANDOFF.md"), "x");
 const dismissed = repo("dismissed");
 const old = repo("old");
 let seed = "";
@@ -89,8 +95,66 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("c: names what each root has", r.stdout.includes(`- \`${roots[0]}\` — has: AGENTS.md, docs/sessions/`) && r.stdout.includes(`- \`${roots[1]}\` — has: nothing`));
 	// req: R-151
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
+	// req: R-151
+	check("c: action wording distinguishes no HANDOFF.md from no saved handoff", r.stdout.includes("no HANDOFF.md or saved handoff"));
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
+}
+// README contract: all adoption evidence and the production temp-root exclusion are explicit.
+{
+	const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
+	// req: R-645
+	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once"].every((part) => readme.includes(part)));
+}
+// Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
+{
+	fs.writeFileSync(JOURNAL, line(completeNana, 1) + line(handoffOnly, 2));
+	const r = run();
+	// req: R-152
+	check("reader: complete Nana structure root is dropped", !r.stdout.includes(completeNana));
+	// req: R-152
+	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly));
+}
+// A symlinked root HANDOFF.md is not the regular file required for complete-structure adoption.
+{
+	const symlinked = repo("symlink-handoff");
+	fs.writeFileSync(path.join(symlinked, "AGENTS.md"), "x");
+	fs.mkdirSync(path.join(symlinked, "docs", "sessions"), { recursive: true });
+	const target = path.join(base, "handoff-target.md");
+	fs.writeFileSync(target, "x");
+	fs.symlinkSync(target, path.join(symlinked, "HANDOFF.md"));
+	fs.writeFileSync(JOURNAL, line(symlinked, 1));
+	const r = run();
+	// req: R-152
+	check("reader: symlinked HANDOFF.md plus remaining structure remains listed", r.stdout.includes(symlinked));
+}
+// Production defaults skip real OS temporary roots; the override must be absent.
+{
+	fs.writeFileSync(JOURNAL, line(handoffOnly, 1));
+	const productionEnv = { ...env };
+	delete productionEnv.NANA_TEST_TEMP_ROOTS;
+	const temporary = run(process.execPath, [BIN, "--cwd", base], productionEnv);
+	// req: R-640
+	check("reader: production temporary root is skipped without override", temporary.stdout === "");
+	if (process.platform !== "win32") {
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-reader-alias-")));
+		const aliasRepo = path.join(aliasBase, "repo");
+		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
+		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));
+		const alias = run(process.execPath, [BIN, "--cwd", base], productionEnv);
+		// req: R-640
+		check("reader: canonical /tmp alias is skipped without override", alias.stdout === "");
+		fs.rmSync(aliasBase, { recursive: true, force: true });
+	}
+}
+// Injected temp roots let the reader predicate be tested without hiding ordinary temp fixtures.
+{
+	fs.writeFileSync(JOURNAL, line(handoffOnly, 1));
+	const temporary = run(process.execPath, [BIN, "--cwd", base], { ...env, NANA_TEST_TEMP_ROOTS: path.dirname(handoffOnly) });
+	// req: R-640
+	check("reader: injected temporary parent skips candidate", temporary.stdout === "");
+	// req: R-646
+	check("reader: test seam emits the declared warning", temporary.stderr.trim() === `[nana:adoption] warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses ${path.dirname(handoffOnly)}`);
 }
 // adopting via a store entry drops it too; a symlinked spelling is one entry
 {
@@ -105,6 +169,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const entry = storePathFor(s);
 	fs.mkdirSync(path.dirname(entry), { recursive: true });
 	fs.writeFileSync(entry, "x");
+	// req: R-152
 	check("c: a root with a store entry now → nothing", run().stdout === "");
 }
 // a configured user-scope journal.path is where it reads
@@ -133,8 +198,8 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 	// Changed in sol r1 MUST 4: this used to assert empty stdout — silence for a journal the reader
 	// could not read, i.e. "I could not look" dressed as "nothing open". Only ABSENT is silent now.
-	// req: R-154 R-812
-	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "", JSON.stringify(d));
+	// req: R-154 R-812 R-646
+	check("fail: journal.path is a directory → ADOPTION UNAVAILABLE, exit 0", d.status === 0 && d.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: journal unreadable (ENOTFILE).\n" && d.stderr === "[nana:adoption] warning: NANA_TEST_TEMP_ROOTS is set (test seam) — temporary-root filtering uses \n", JSON.stringify(d));
 	// req: R-157
 	check("fail: malformed nana-pack.json → the default journal, exit 0", m.status === 0 && m.stdout.includes(`- \`${roots[6]}\` —`), JSON.stringify(m));
 }

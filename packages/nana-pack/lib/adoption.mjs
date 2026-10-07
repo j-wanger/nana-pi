@@ -4,7 +4,7 @@
  *  adopted, and which `directory_unadopted` reports are printable.
  * @inputs a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of
  *  the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions,
- *  the dismissal marker)
+ *  the dismissal marker), and the declared NANA_TEST_TEMP_ROOTS test seam (path-delimited; empty disables skipping)
  * @outputs the store dir and the per-root store path, the adoption settings (journal path, objective file
  *  name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per
  *  canonical root with a `dropped` count of refused claims
@@ -33,6 +33,13 @@ export const MARKER = ".nana-not-a-project";
 export const TAIL_BYTES = 256 * 1024;
 /** A claimed root longer than this is not printed (and not re-checked). */
 export const MAX_ROOT = 512;
+/** Test seam for fixture visibility; production skips real OS temp roots (chosen to avoid reporting scratch repositories). */
+export function adoptionTempRoots() {
+	if (process.env.NANA_TEST_TEMP_ROOTS !== undefined) {
+		return process.env.NANA_TEST_TEMP_ROOTS === "" ? [] : process.env.NANA_TEST_TEMP_ROOTS.split(path.delimiter).filter(Boolean).map(canonicalCwd);
+	}
+	return [os.tmpdir(), ...(process.platform === "win32" ? [] : ["/tmp"])].map(canonicalCwd);
+}
 
 const present = (p) => {
 	try {
@@ -104,16 +111,28 @@ export function repoRootOf(canon) {
 
 /** What the repository root itself shows — nothing outside it. */
 export function rootState(root, objectiveFile = "OBJECTIVE.md") {
+	const handoffFile = path.join(root, "HANDOFF.md");
+	let regularHandoff = false;
+	try {
+		regularHandoff = fs.lstatSync(handoffFile).isFile();
+	} catch {
+		/* not an adoption marker */
+	}
+	const canonicalRoot = canonicalCwd(root);
+	const tempRoots = adoptionTempRoots();
+	const temporary = tempRoots.some((tmp) => canonicalRoot === tmp || canonicalRoot.startsWith(`${tmp}${path.sep}`));
 	return {
 		handoff: present(storePathFor(root)),
 		objective: present(path.join(root, objectiveFile)),
 		agents: present(path.join(root, "AGENTS.md")),
 		sessions: isDir(path.join(root, "docs", "sessions")),
 		dismissed: present(path.join(root, MARKER)),
+		regularHandoff,
+		temporary,
 	};
 }
 
-export const isAdopted = (s) => s.handoff || s.objective || s.dismissed;
+export const isAdopted = (s) => s.handoff || s.objective || s.dismissed || (s.regularHandoff && s.agents && s.sessions) || s.temporary;
 
 /**
  * The last TAIL_BYTES of `file` as whole lines (a line cut by the window is dropped). An ABSENT

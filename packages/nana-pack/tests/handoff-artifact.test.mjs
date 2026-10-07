@@ -44,10 +44,12 @@ check("handoff written (to the user-scope store)", fs.readFileSync(store, "utf-8
 await handlers.session_compact({ compactionEntry: { summary: "second compaction" }, reason: "auto" }, ctx);
 
 await handlers.session_start({ reason: "startup" }, ctx);
-const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-check("pickup injects handoff", r?.systemPrompt.includes("second compaction"));
+const promptEvent = { systemPromptOptions: { sections: {} } };
+await handlers.before_agent_start(promptEvent, ctx);
+const handoffSection = promptEvent.systemPromptOptions.sections["nana-handoff"] ?? "";
+check("pickup injects handoff", handoffSection.includes("second compaction"));
 // req: R-828
-check("prompt says update in place", r?.systemPrompt.includes(`update ${store} in place`));
+check("prompt says update in place", handoffSection.includes(`update ${store} in place`));
 
 // custom handoff.path: the prompt must name THAT file (pi-review MAJOR
 // 2026-09-03), and no .gitignore appears next to it — its git semantics are
@@ -64,11 +66,13 @@ check("custom path: handoff written", fs.readFileSync(custom, "utf-8").includes(
 // req: R-796
 check("custom path: no .gitignore beside it", !fs.existsSync(path.join(td2, "STATE", ".gitignore")));
 await handlers2.session_start({ reason: "startup" }, ctx2);
-const r2 = await handlers2.before_agent_start({ systemPrompt: "BASE" }, ctx2);
+const event2 = { systemPromptOptions: { sections: {} } };
+await handlers2.before_agent_start(event2, ctx2);
+const handoffSection2 = event2.systemPromptOptions.sections["nana-handoff"] ?? "";
 // req: R-142 R-828
-check("custom path: prompt names the configured file", r2?.systemPrompt.includes(`update ${path.join("STATE", "HANDOFF.md")} in place`));
+check("custom path: prompt names the configured file", handoffSection2.includes(`update ${path.join("STATE", "HANDOFF.md")} in place`));
 // req: R-142
-check("custom path: prompt never says .pi/handoff.md", !r2?.systemPrompt.includes(".pi/handoff.md"));
+check("custom path: prompt never says .pi/handoff.md", !handoffSection2.includes(".pi/handoff.md"));
 
 fs.rmSync(td, { recursive: true, force: true });
 fs.rmSync(td2, { recursive: true, force: true });

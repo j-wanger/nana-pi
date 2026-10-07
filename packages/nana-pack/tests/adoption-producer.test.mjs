@@ -20,6 +20,7 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
 delete process.env.PI_CODING_AGENT_DIR;
+process.env.NANA_TEST_TEMP_ROOTS = "";
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 const JOURNAL = path.join(NANA_HOME, "journal.jsonl");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
@@ -28,11 +29,13 @@ cfg();
 
 const mod = await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href);
 const lib = await import(new URL("../lib/adoption.mjs", import.meta.url).href);
+const HANDOFF_SOURCE = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
 let fails = 0;
 const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
 const reports = () =>
 	(fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "").split("\n").filter((l) => l.includes('"directory_unadopted"')).map((l) => JSON.parse(l));
 const reportsFor = (root) => reports().filter((r) => r.cwd === root);
+const overrideJournal = () => (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8") : "").split("\n").filter((l) => l.includes('"adoption_test_temp_roots_override"')).map((l) => JSON.parse(l));
 
 function session(m, cwd) {
 	const handlers = {};
@@ -42,7 +45,10 @@ function session(m, cwd) {
 		compact: (summary) => handlers.session_compact({ compactionEntry: { summary }, reason: "manual" }, ctx),
 		prompt: async (reason = "startup") => {
 			await handlers.session_start({ reason }, ctx);
-			return (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt ?? "BASE";
+			const event = { systemPrompt: "BASE", systemPromptOptions: { sections: {} } };
+			const result = await handlers.before_agent_start(event, ctx);
+			const section = event.systemPromptOptions.sections["nana-handoff"];
+			return section ? `BASE${section}` : result?.systemPrompt ?? "BASE";
 		},
 	};
 }
@@ -56,6 +62,9 @@ const repo = (name, files = []) => {
 };
 const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-")));
 
+// req: R-640
+check("adoption: design comment names complete Nana structure and temporary-root exclusion", HANDOFF_SOURCE.includes("a regular HANDOFF.md together with AGENTS.md and docs/sessions/") && HANDOFF_SOURCE.includes("real OS temporary directories (including canonical /tmp on POSIX) are skipped"));
+
 // ONE store resolver (sol r1 MUST 3): the extension re-exports lib/adoption.mjs's functions — the
 // same objects, not an agreeing copy — and its source no longer hashes a store key of its own.
 {
@@ -66,6 +75,22 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
 }
 
+// Override journaling is attempted at session start, independent of a stored handoff, and retries after append failure.
+{
+	const r = repo("stored-handoff", []);
+	const stored = lib.storePathFor(r);
+	fs.mkdirSync(path.dirname(stored), { recursive: true });
+	fs.writeFileSync(stored, `Cwd: ${lib.canonicalCwd(r)}\nWriter: test\nWritten: ${new Date().toISOString()}\n---\nstored summary\n`);
+	const blockedJournal = mk(path.join(base, "blocked-journal"));
+	cfg({ journal: { enabled: true, path: blockedJournal } });
+	await prompt(r);
+	// req: R-647
+	check("adoption: failed override append leaves the once guard retryable", overrideJournal().length === 0);
+	cfg();
+	const output = await prompt(r);
+	// req: R-647
+	check("adoption: test seam override is journaled once with its value when a stored handoff exists", output.includes("stored summary") && overrideJournal().length === 1 && overrideJournal()[0].value === "");
+}
 // (a) written once for a repo root with nothing — the line as emitted
 {
 	const r = repo("bare", ["AGENTS.md", "docs/sessions/"]);
@@ -84,6 +109,8 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 	// req: R-146
 	check("a: NOT written by a second session the same day (root or subdir)", reportsFor(r).length === 1);
 	check("a: the subdirectory is never the reported path", reportsFor(path.join(r, "src")).length === 0);
+	// req: R-647
+	check("a: test seam override is journaled once with its value", overrideJournal().length === 1 && overrideJournal()[0].value === "");
 }
 // a subdirectory of an UNadopted repo reports the repo root
 {
@@ -103,6 +130,55 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 		// req: R-147
 		check("a: no .git above → no line", reports().length === before);
 	}
+}
+// A symlinked root HANDOFF.md is not the regular file required for complete-structure adoption.
+{
+	const r = repo("symlink-handoff", ["HANDOFF.md", "AGENTS.md", "docs/sessions/"]);
+	const target = path.join(base, "handoff-target.md");
+	fs.writeFileSync(target, "x\n");
+	fs.unlinkSync(path.join(r, "HANDOFF.md"));
+	fs.symlinkSync(target, path.join(r, "HANDOFF.md"));
+	await prompt(r);
+	// req: R-152
+	check("adoption: symlinked HANDOFF.md plus remaining structure remains unadopted", reportsFor(r).length === 1);
+}
+// The complete Nana structure adopts; HANDOFF.md by itself does not.
+{
+	const complete = repo("complete-nana", ["HANDOFF.md", "AGENTS.md", "docs/sessions/"]);
+	await prompt(complete);
+	// req: R-152
+	check("adoption: complete Nana structure root is adopted", reportsFor(complete).length === 0);
+	const handoffOnly = repo("handoff-only", ["HANDOFF.md"]);
+	await prompt(handoffOnly);
+	// req: R-143
+	check("adoption: HANDOFF.md-only root remains unadopted", reportsFor(handoffOnly).length === 1);
+}
+// Production defaults skip real OS temporary roots; the override must be absent.
+{
+	delete process.env.NANA_TEST_TEMP_ROOTS;
+	const r = repo("production-temporary-root");
+	await prompt(r);
+	// req: R-640
+	check("adoption: production temporary root is skipped without override", reportsFor(r).length === 0);
+	if (process.platform !== "win32") {
+		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join("/tmp", "adoption-producer-alias-")));
+		const alias = path.join(aliasBase, "repo");
+		fs.mkdirSync(path.join(alias, ".git"), { recursive: true });
+		await prompt(alias);
+		// req: R-640
+		check("adoption: canonical /tmp alias is skipped without override", reportsFor(alias).length === 0);
+		fs.rmSync(aliasBase, { recursive: true, force: true });
+	}
+	process.env.NANA_TEST_TEMP_ROOTS = "";
+}
+// Test-only injected temp roots: production defaults skip OS temp roots, ordinary fixtures opt out.
+{
+	const r = repo("injected-temporary-root");
+	process.env.NANA_TEST_TEMP_ROOTS = path.dirname(r);
+	await prompt(r);
+	process.env.NANA_TEST_TEMP_ROOTS = "";
+	// req: R-640
+	check("adoption: injected temporary parent skips producer root", reportsFor(r).length === 0);
 }
 // adopted / dismissed roots
 for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["dismissal marker at the root", [lib.MARKER]]]) {

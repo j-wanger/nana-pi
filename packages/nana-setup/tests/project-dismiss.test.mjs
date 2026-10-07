@@ -23,7 +23,7 @@ const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ?
 const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nana-dismiss-")));
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-const env = { ...process.env, HOME: home, USERPROFILE: home };
+const env = { ...process.env, HOME: home, USERPROFILE: home, NANA_TEST_TEMP_ROOTS: "" };
 delete env.PI_CODING_AGENT_DIR;
 const setup = (...args) => spawnSync(process.execPath, [cli, "project", ...args, "--home", home], { env, encoding: "utf8" });
 const dir = path.join(root, "repo");

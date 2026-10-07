@@ -20,14 +20,9 @@
  * both hide a user's own file AND be hidden by one. An append replaces nothing: no context
  * file, project prompt or override can remove it.
  *
- * Uses the exact call nana-objective.ts uses: read at `session_start` for every reason
- * (R-754 — a reload must pick up an edit to the rule), append
- * `${event.systemPrompt}\n\n${block}` at `before_agent_start`. Verified against the installed
- * pi 1.0.2 (`dist/core/extensions/runner.js` emitBeforeAgentStart): `event.systemPrompt` is a
- * live getter over a SHARED options object, and a handler's `{systemPrompt}` return sets that
- * object's `forceSystemPrompt` — so a later-registered extension's `event.systemPrompt` sees
- * the EARLIER one's already-appended text, and composition holds (both blocks reach the
- * model, each once, in registration order). See writing-injection.test.mjs's pi-1.0.2 harness.
+ * Reads at `session_start` for every reason (R-754 — a reload must pick up an edit to the rule)
+ * and sets its named section in `systemPromptOptions.sections` at `before_agent_start`, preserving
+ * Pi's structured prompt and transcript delta.
  *
  * astra r2 MUST 1: the read must never crash or hang pi, regardless of what sits at the rule
  * path. `buildBlock` therefore (a) `statSync`s first and refuses anything that is not a
@@ -56,6 +51,7 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { WRITING_INJECT_CAP } from "../lib/writing-config.mjs";
+import { orderNanaSections } from "../lib/prompt-sections.mjs";
 
 /** The shipped rule file — the default when no path is injected. */
 export const RULE_PATH = fileURLToPath(new URL("../rules/nana-writing.md", import.meta.url));
@@ -210,6 +206,8 @@ export default function (pi: ExtensionAPI, opts: { rulePath?: string } = {}) {
 
 	pi.on("before_agent_start", async (event, _ctx) => {
 		if (!block) return undefined;
-		return { systemPrompt: `${(event as any).systemPrompt}\n\n${block}` };
+		(event as any).systemPromptOptions.sections["nana-writing"] = block;
+		orderNanaSections(event as any);
+		return undefined;
 	});
 }
