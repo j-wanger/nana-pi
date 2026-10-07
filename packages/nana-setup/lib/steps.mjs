@@ -15,7 +15,7 @@
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, the desk plist
- *  (+ launchctl bootstrap), a pi `packages` registration; also exports HOOKS, CLAUDE_RULES,
+ *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI,
  *  DESK_SERVER, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
@@ -24,8 +24,8 @@
  *  edit; the settings lock already held; settings.json changed on disk during the run; a plist
  *  placeholder with no value. Every other failure is a row: PROBLEM for a non-regular
  *  nana-personal.md, or anything already sitting where the skill symlink
- *  belongs, SKIPPED for win32, a failed knowledge build, a missing pi, a failed `pi install` or
- *  launchctl bootstrap
+ *  belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed
+ *  per-package `pi install` or launchctl bootstrap/kickstart
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
@@ -35,7 +35,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, serialize, validateShape } from "./settings.mjs";
+import { desiredHooks, mergeHooks, mergeKnowledgeHook, serialize, validateShape } from "./settings.mjs";
 
 export class SetupError extends Error {}
 
@@ -382,7 +382,18 @@ export function stepSettings(layout, o, state) {
 			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
 			detail: !live.has(w.label) ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
 		}));
-	if (o.dryRun) return report(mergeHooks(structuredClone(state.settings), applicable).added);
+	const merge = (settings) => {
+		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
+		const other = applicable.filter((w) => w !== knowledge);
+		const migration = mergeKnowledgeHook(settings, {
+			repoRoot,
+			desiredCommand: knowledge.entry.command,
+		});
+		const result = mergeHooks(settings, migration.added ? applicable : other);
+		if (migration.replaced) result.added.push(knowledge.label);
+		return result;
+	};
+	if (o.dryRun) return report(merge(structuredClone(state.settings)).added);
 	return withSettingsLock(layout.claudeSettings, () => {
 		// Re-read INSIDE the lock: the preflight decided this install could run at all, this
 		// decides what is written, and the two must agree or nothing is written.
@@ -393,7 +404,7 @@ export function stepSettings(layout, o, state) {
 					"Nothing was written to it. Re-run when nothing else is writing.",
 			);
 		}
-		const { added } = mergeHooks(fresh.settings, applicable);
+		const { added } = merge(fresh.settings);
 		if (added.length) writeSettingsAtomic(layout.claudeSettings, serialize(fresh.settings), fresh.snapshot, o);
 		return report(added);
 	});
@@ -540,6 +551,12 @@ export function stepPath(layout, o) {
 /* ------------------------------------------------------------------------- desk service */
 
 const xml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// R-396 (2026-10-06): chosen curated launchd search paths because launchd must not inherit the shell snapshot.
+const DESK_PATH_SYSTEM = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+
+function curatedDeskPath(nodeExecutable, home) {
+	return [...new Set([path.dirname(nodeExecutable), path.join(home, ".local", "bin"), ...DESK_PATH_SYSTEM])].join(path.delimiter);
+}
 
 // `PI_CODING_AGENT_DIR` (optional): the agent dir the installer chose, when it is not the
 // default for the layout's base. launchd does not inherit the installing shell's environment,
@@ -562,7 +579,7 @@ export function stepDesk(layout, o) {
 		NODE: process.execPath,
 		SERVER: DESK_SERVER,
 		WORKDIR: repoRoot,
-		PATH: process.env.PATH || "",
+		PATH: curatedDeskPath(process.execPath, layout.base),
 		LOG: layout.deskLog,
 		// always absolute here: install refuses an ambient relative override, flags are resolved
 		PI_CODING_AGENT_DIR: path.resolve(layout.piHome) === path.join(layout.base, ".pi", "agent") ? "" : path.resolve(layout.piHome),
@@ -582,18 +599,32 @@ export function stepDesk(layout, o) {
 		return out;
 	}
 	const uid = process.getuid();
-	const loaded = spawnSync("launchctl", ["print", `gui/${uid}/${DESK_LABEL}`], { encoding: "utf8" }).status === 0;
+	const domain = `gui/${uid}`;
+	const service = `${domain}/${DESK_LABEL}`;
+	const loaded = spawnSync("launchctl", ["print", service], { encoding: "utf8" }).status === 0;
 	if (loaded && w.status === UNCHANGED) {
-		out.push({ label: "desk launchctl", status: UNCHANGED, detail: "already loaded" });
+		const restart = spawnSync("launchctl", ["kickstart", "-k", service], { encoding: "utf8" });
+		out.push(restart.status === 0
+			? { label: "desk launchctl", status: UPDATED, detail: "restarted" }
+			: { label: "desk launchctl", status: PROBLEM, detail: `kickstart failed: ${(restart.stderr || "").trim() || `exit ${restart.status}`}` });
 		return out;
 	}
-	if (loaded) spawnSync("launchctl", ["bootout", `gui/${uid}/${DESK_LABEL}`], { encoding: "utf8" });
-	const r = spawnSync("launchctl", ["bootstrap", `gui/${uid}`, layout.plistPath], { encoding: "utf8" });
-	out.push(
-		r.status === 0
-			? { label: "desk launchctl", status: loaded ? UPDATED : CREATED, detail: loaded ? "reloaded" : "bootstrapped" }
-			: { label: "desk launchctl", status: SKIPPED, detail: `bootstrap failed: ${(r.stderr || "").trim() || `exit ${r.status}`}` },
-	);
+	if (loaded) {
+		const down = spawnSync("launchctl", ["bootout", service], { encoding: "utf8" });
+		if (down.status !== 0) {
+			out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootout failed: ${(down.stderr || "").trim() || `exit ${down.status}`}` });
+			return out;
+		}
+	}
+	const bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
+	if (bootstrap.status !== 0) {
+		out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootstrap failed: ${(bootstrap.stderr || "").trim() || `exit ${bootstrap.status}`}` });
+		return out;
+	}
+	const kickstart = spawnSync("launchctl", ["kickstart", ...(loaded ? ["-k"] : []), service], { encoding: "utf8" });
+	out.push(kickstart.status === 0
+		? { label: "desk launchctl", status: loaded ? UPDATED : CREATED, detail: loaded ? "reloaded and restarted" : "bootstrapped and started" }
+		: { label: "desk launchctl", status: PROBLEM, detail: `kickstart failed: ${(kickstart.stderr || "").trim() || `exit ${kickstart.status}`}` });
 	return out;
 }
 
@@ -703,37 +734,71 @@ export function entryMatches(entry, piHome, root) {
 	return Boolean(mine) && gitCommonDir(fs.statSync(abs).isDirectory() ? abs : path.dirname(abs)) === mine;
 }
 
-export function registrationState(layout) {
-	let settings;
+function manifestExtensions(manifestRoot) {
 	try {
-		settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8"));
-	} catch {
-		return { present: false, entries: [], match: null, note: "no pi settings.json" };
+		const manifest = JSON.parse(fs.readFileSync(path.join(manifestRoot, "package.json"), "utf8"));
+		return Array.isArray(manifest.pi?.extensions) ? manifest.pi.extensions.filter((p) => typeof p === "string").map((p) => path.resolve(manifestRoot, p)) : [];
+	} catch { return []; }
+}
+
+function exactLocalEntry(entry, layout, target) {
+	if (typeof entry !== "string" || entry.startsWith("npm:") || remoteMatches(entry)) return false;
+	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
+	const resolved = realpathSafe(path.resolve(layout.piHome, expanded));
+	const expected = realpathSafe(target);
+	if (resolved === expected) return true;
+	const common = gitCommonDir(expected);
+	if (!common || gitCommonDir(resolved) !== common) return false;
+	let checkoutRoot = resolved;
+	for (;;) {
+		const parent = path.dirname(checkoutRoot);
+		if (parent === checkoutRoot || gitCommonDir(parent) !== common) break;
+		checkoutRoot = parent;
 	}
+	const targetRel = path.relative(repoRoot, target);
+	return path.relative(checkoutRoot, resolved) === targetRel;
+}
+
+export function packageCoverage(layout) {
+	const extensionDirs = manifestExtensions(repoRoot);
+	const packageRoots = [...new Set(extensionDirs.map((dir) => {
+		const rel = path.relative(repoRoot, dir).split(path.sep);
+		return rel[0] === "packages" && rel.length > 2 ? path.join(repoRoot, rel[0], rel[1]) : repoRoot;
+	}))];
+	let settings = {};
+	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
 	const entries = Array.isArray(settings.packages) ? settings.packages.filter((e) => typeof e === "string") : [];
-	const match = entries.find((e) => entryMatches(e, layout.piHome, repoRoot));
-	return { present: Boolean(match), entries, match: match ?? null };
+	const rootEntry = entries.find((entry) => remoteMatches(entry) || exactLocalEntry(entry, layout, repoRoot));
+	const covered = rootEntry ? packageRoots : packageRoots.filter((root) => entries.some((entry) => exactLocalEntry(entry, layout, root)));
+	const missing = packageRoots.filter((root) => !covered.includes(root)).flatMap((root) => manifestExtensions(root));
+	return { present: missing.length === 0, entries, match: rootEntry ?? entries.find((entry) => covered.length && packageRoots.some((root) => exactLocalEntry(entry, layout, root))) ?? null, missing, packageRoots };
+}
+
+export function registrationState(layout) {
+	return packageCoverage(layout);
 }
 
 export function stepPiRegister(layout, o) {
-	const state = registrationState(layout);
-	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `registered as ${state.match}` }];
-	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would run \`pi install ${repoRoot}\`` }];
-	if (!layout.isRealHome) {
-		return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
-	}
+	const state = packageCoverage(layout);
+	if (state.present) return [{ label: "pi packages", status: UNCHANGED, detail: `all extension directories registered${state.match ? ` as ${state.match}` : ""}` }];
+	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would add per-package entries for ${state.missing.join(", ")}` }];
+	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
 	const probe = spawnSync("pi", ["--version"], { encoding: "utf8" });
 	if (probe.error) return [{ label: "pi packages", status: SKIPPED, detail: "pi is not on PATH — `npm i -g @earendil-works/pi-coding-agent`, then re-run" }];
-	// Verified 2026-09-18 against pi 0.84.4: `pi install <path>` is idempotent (a second run
-	// leaves `packages` untouched), so the guard above is about NOT adding a second, broader
-	// entry when the packages are already registered individually.
-	const r = spawnSync("pi", ["install", repoRoot], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: layout.piHome } });
-	return r.status === 0
-		? [{ label: "pi packages", status: CREATED, detail: `pi install ${repoRoot}` }]
-		: [{ label: "pi packages", status: SKIPPED, detail: `pi install failed: ${(r.stderr || "").trim().split("\n").pop() || `exit ${r.status}`}` }];
+	const added = [];
+	for (const dir of state.packageRoots.filter((root) => state.missing.some((ext) => ext.startsWith(root + path.sep)))) {
+		const r = spawnSync("pi", ["install", dir], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: layout.piHome } });
+		if (r.status !== 0) return [{ label: "pi packages", status: PROBLEM, detail: `pi install ${dir} failed: ${(r.stderr || "").trim().split("\n").pop() || `exit ${r.status}`}` }];
+		added.push(dir);
+	}
+	return [{ label: "pi packages", status: CREATED, detail: `added per-package entries: ${added.join(", ")}` }];
 }
 
 /* ------------------------------------------------------------------------------- install */
+
+export function installExitCode(results) {
+	return results.some((result) => result.status === PROBLEM) ? 1 : 0;
+}
 
 export function install(layout, opts = {}) {
 	// `afterTempWrite` is the settings write's test seam; the CLI never produces it.

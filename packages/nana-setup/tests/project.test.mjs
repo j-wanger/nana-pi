@@ -103,6 +103,15 @@ function walk(dir) {
 
 	// --check is green now
 	check("project --check exits 0 on a seeded folder", run(["project", dir, "--check", "--home", home]).status === 0);
+	const currentMonth = path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`);
+	fs.unlinkSync(currentMonth);
+	const olderMonth = path.join(dir, "docs", "sessions", "2001-01.md");
+	fs.writeFileSync(olderMonth, "# historical log\n");
+	const oldLogCheck = run(["project", dir, "--check", "--home", home]);
+	// req: R-395
+	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 0 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
+	fs.unlinkSync(olderMonth);
+	fs.writeFileSync(currentMonth, "# restored current log\n");
 
 	// second run changes nothing
 	const before = walk(dir).filter(([p]) => !p.startsWith(".git" + path.sep));
