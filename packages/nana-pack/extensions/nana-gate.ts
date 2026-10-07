@@ -48,6 +48,7 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { displayPath, displayText } from "../lib/objective.ts";
+import { verifierPipeReason } from "../lib/pipe-guard.mjs";
 import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
@@ -281,6 +282,10 @@ export default function (pi: ExtensionAPI) {
 			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
 		} catch {
 			hit = { label: "unanalysable call", reason: "gate analysis failed" };
+		}
+		if (!hit && isCommand) {
+			const reason = verifierPipeReason(subject);
+			if (reason) hit = { label: "verifier pipe", reason };
 		}
 		if (hit) gated += 1;
 		publishStatus(ctx);

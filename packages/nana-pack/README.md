@@ -33,6 +33,8 @@ Seven extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
+**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
+
 ## Install
 
 ```bash

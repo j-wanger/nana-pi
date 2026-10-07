@@ -86,8 +86,8 @@ const link = (p) => {
 		return null;
 	}
 };
-for (const h of ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"]) {
-	// req: R-301
+for (const h of ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"]) {
+	// req: R-301 R-985
 	check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 }
 // req: R-301

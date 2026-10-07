@@ -39,7 +39,7 @@ import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
 export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];

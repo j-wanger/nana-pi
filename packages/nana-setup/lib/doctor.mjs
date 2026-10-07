@@ -251,7 +251,7 @@ export function diagnose(layout, opts = {}) {
 		else {
 			const healthy = w.label === "UserPromptSubmit knowledge pull"
 				? knowledgeHookHealthy(settings, repoRoot)
-				: hasHook(settings, w.event, w.spec);
+				: hasHook(settings, w.event, w.spec, w.matcher);
 			add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
 				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
 				: w.marker);
