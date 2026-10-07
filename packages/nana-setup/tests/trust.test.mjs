@@ -54,6 +54,13 @@ const externalAgent = path.join(root, "outside-test-home-agent");
 const unsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", externalAgent]);
 // req: R-670
 check("--home refuses an external agent directory without writing", unsafe.status !== 0 && /inside --home/.test(unsafe.stderr) && !fs.existsSync(path.join(externalAgent, "trust.json")), `${unsafe.status} ${unsafe.stderr}`);
+const linkedExternal = path.join(root, "linked-external");
+const linkedAgent = path.join(home, "agent-link");
+fs.mkdirSync(linkedExternal);
+fs.symlinkSync(linkedExternal, linkedAgent, process.platform === "win32" ? "junction" : "dir");
+const linkedUnsafe = run(["trust", dir, "--yes", "--home", home, "--pi-home", linkedAgent]);
+// req: R-670
+check("--home refuses an in-home symlink to external storage without creating store or lock", linkedUnsafe.status !== 0 && /inside --home/.test(linkedUnsafe.stderr) && !fs.existsSync(path.join(linkedExternal, "trust.json")) && !fs.existsSync(path.join(linkedExternal, "trust.json.lock")), `${linkedUnsafe.status} ${linkedUnsafe.stderr}`);
 const rel = run(["trust", dir, "--yes"], { PI_CODING_AGENT_DIR: path.relative(process.cwd(), agentDir) });
 // req: R-672
 check("relative ambient agent dir is refused", rel.status !== 0 && /relative path/.test(rel.stderr), `${rel.status} ${rel.stderr}`);

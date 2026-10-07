@@ -95,6 +95,22 @@ const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", pr
  * sees. Every such command refuses (sol r2/r3); an explicit --pi-home / --home is the user's own
  * decision and never sets the flag. `doctor` warns instead, because its job is to report.
  */
+function realpathThroughExistingAncestor(target) {
+	let ancestor = path.resolve(target);
+	const suffix = [];
+	while (true) {
+		try {
+			return path.join(fs.realpathSync(ancestor), ...suffix.reverse());
+		} catch (err) {
+			if (err.code !== "ENOENT" && err.code !== "ENOTDIR") throw err;
+			const parent = path.dirname(ancestor);
+			if (parent === ancestor) throw err;
+			suffix.push(path.basename(ancestor));
+			ancestor = parent;
+		}
+	}
+}
+
 function refuseCwdRelativePiHome(layout, what) {
 	if (!layout.piHomeCwdRelative) return;
 	throw new SetupError(
@@ -229,7 +245,9 @@ async function runTrust(opts) {
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this trust decision");
 	if (opts.home) {
-		const relativeAgent = path.relative(layout.base, layout.piHome);
+		const canonicalHome = realpathThroughExistingAncestor(layout.base);
+		const canonicalAgent = realpathThroughExistingAncestor(layout.piHome);
+		const relativeAgent = path.relative(canonicalHome, canonicalAgent);
 		if (relativeAgent === ".." || relativeAgent.startsWith(`..${path.sep}`) || path.isAbsolute(relativeAgent))
 			throw new SetupError("--pi-home must be inside --home for trust; refusing to write outside the test home");
 	}

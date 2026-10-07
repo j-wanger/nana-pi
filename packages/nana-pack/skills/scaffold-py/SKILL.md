@@ -37,13 +37,12 @@ wired into the post-edit checks (`uv run python scripts/code_map.py --check` / `
    (One line on purpose — it must work in PowerShell too, where bash's `\`
    continuation breaks.)
 
-4. Then complete the printed next steps: `git init` + first commit, `uv sync`,
-   `uv run pre-commit install`, `uv run pytest` — and confirm the smoke test
-   passes before handing over.
-
-5. **The first two project steps**: ratify the seeded `OBJECTIVE.md` (fill the
-   date; the DRAFT lines are the owner's to ratify), then trust the folder with
-   `nana-setup trust <dir>`.
+4. **The first two project steps**:
+   1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+   2. Trust the folder: `nana-setup trust <dir>`.
+5. Then complete the other printed next steps: `git init` + first commit,
+   `uv sync`, `uv run pre-commit install`, `uv run pytest` — and confirm the
+   smoke test passes before handing over.
 6. **The first real step after scaffolding is writing the project's first
    requirement rows** — `Part G` arrives filled in, the product rows are empty.
    Use the `requirements` skill: one EARS `shall` row per behaviour the project

@@ -80,9 +80,9 @@ the reconciliation surface — nothing is lost because the tree starts clean.
      renaming its marker to `req:` and citing the test in the row.
 
    No README/src/tests starters beyond those three, and no pnpm-workspace.
-The first two project steps are to ratify the seeded `OBJECTIVE.md` (fill the
- date; the DRAFT lines are the owner's to ratify), then trust the folder with
- `nana-setup trust <dir>`.
+First two steps:
+1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+2. Trust the folder: `nana-setup trust <dir>`.
 
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure:
    - `package.json`: restore their fields (name, version, deps, engines, bin,
