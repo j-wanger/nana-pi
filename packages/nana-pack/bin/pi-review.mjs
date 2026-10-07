@@ -3,7 +3,7 @@
  * @module packages/nana-pack/bin/pi-review.mjs
  * @purpose Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict
  *  only when a review was produced.
- * @inputs argv (--out, --item, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
+ * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
  *  and the pi args), the user-scope review ledger, and the reviewed tree's git revision
  * @outputs the review text written to --out, a round recorded in the ledger, and the admission note,
  *  warnings and a SUCCESS / FAILED line on stderr
@@ -17,7 +17,7 @@
 // no opt-out flag (--worker was removed — a worker launch uses pi-worker, which records nothing).
 //
 // Usage:
-//   node pi-review.mjs --out <file> --item <slug> [--role sol] [--revision <id>]
+//   node pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role sol] [--revision <id>]
 //                      [--stall-secs 75] [--retries 2] [--poll 15] [--over-cap <why>] -- <pi args...>
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.

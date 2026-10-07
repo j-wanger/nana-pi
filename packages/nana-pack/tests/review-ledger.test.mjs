@@ -28,7 +28,7 @@ for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
 // the stub `pi`: STUB=verdict prints a verdict; fail = infra failure; stall = 0-CPU hang;
 // plain = an ordinary worker reply with NO review token, counting its invocations in $COUNT
 fs.writeFileSync(path.join(stubs, "pi"),
-	'#!/bin/sh\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; sleeper) echo $$ > "$CHILD_PID"; exec sleep 30;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; plain-review) printf "%s" "$STUB_TEXT";; *) echo "VERDICT: LAND";; esac\n');
+	'#!/bin/sh\n[ -z "$INVOKED" ] || echo invoked >> "$INVOKED"\ncase "$STUB" in fail) echo "503 upstream" ; exit 1;; stall) exec sleep 30;; sleeper) echo $$ > "$CHILD_PID"; exec sleep 30;; ignorer) trap "" INT TERM HUP; sleep 30 & echo $! > "$CHILD_PID"; wait;; plain) echo run >> "$COUNT"; echo "Implemented the change; edited src/a.ts.";; plain-review) printf "%s" "$STUB_TEXT";; *) echo "VERDICT: LAND";; esac\n');
 fs.chmodSync(path.join(stubs, "pi"), 0o755);
 
 let home, agent, tallyFile, auditFile, resDir;
@@ -183,12 +183,14 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 1 &&
 		/run from the reviewed tree or pass --tree/.test(ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).stderr));
 	const scratch = path.join(tmp, "scratch"); fs.mkdirSync(scratch);
+	A.at(0); B.at(5);
 	const viaTreeOut = out();
-	const viaTree = ledgerRun(["--item", "tree-scope", "--tree", A.d], { cwd: scratch,
+	const viaTree = ledgerRun(["--item", "tree-scope", "--tree", A.d], { cwd: B.d,
 		cmd: [process.execPath, "-e", "console.log('VERDICT: '+process.cwd())"], outFile: viaTreeOut });
 	// req: R-621 R-705
 	check("scratch launcher cwd with --tree uses the reviewed repository scope",
 		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
+		roundsOf("tree-scope")[0]?.revision === A.shas[0] && A.shas[0] !== B.shas[5] &&
 		fs.readFileSync(viaTreeOut, "utf8").trim() === `VERDICT: ${A.d}`, viaTree.stderr);
 	const legacy = { v: 1, kind: "round", repo: "path:/legacy/scratch", item: "legacy", revision: "old-revision" };
 	fs.mkdirSync(agent, { recursive: true }); fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
@@ -203,15 +205,16 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	let redirectsRefused = true;
 	for (const [kind, target, stdioSlot] of [["tracked stdout", path.join(A.d, "f"), 1], ["untracked stderr", path.join(A.d, "redirect.log"), 2]]) {
 		if (kind.includes("untracked")) fs.writeFileSync(target, "untouched");
+		const invoked = path.join(tmp, `${kind.replaceAll(" ", "-")}.invoked`);
 		const before = fs.readFileSync(target);
 		const fd = fs.openSync(target, "r+");
 		const stdio = ["ignore", "pipe", "pipe"]; stdio[stdioSlot] = fd;
 		const r = spawnSync(process.execPath, [PI_REVIEW, "--item", `redirect-${kind}`, "--out", out(), "--", "-p", "x"],
-			{ cwd: A.d, env: env({ STUB: "verdict" }), encoding: "utf8", stdio });
+			{ cwd: A.d, env: env({ STUB: "verdict", INVOKED: invoked }), encoding: "utf8", stdio });
 		fs.closeSync(fd);
 		const msg = stdioSlot === 2 ? fs.readFileSync(target, "utf8") : (r.stderr || "");
 		redirectsRefused &&= r.status === 1 && msg.includes(`redirect the review log outside the reviewed tree (${path.basename(target)})`) &&
-			(stdioSlot === 2 || fs.readFileSync(target).equals(before));
+			!fs.existsSync(invoked) && (stdioSlot === 2 || fs.readFileSync(target).equals(before));
 	}
 	// req: R-620
 	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused", redirectsRefused);
@@ -306,15 +309,15 @@ if (process.platform !== "win32") {
 		const script = launcher === "review" ? PI_REVIEW : PI_WORKER;
 		const args = launcher === "review" ? ["--item", "signal", "--out", out()] : ["--out", out()];
 		const k = spawn(process.execPath, [script, ...args, "--poll", "1", "--stall-secs", "20", "--retries", "0", "--", "-p", "x"],
-			{ cwd: A.d, env: env({ STUB: "sleeper", CHILD_PID: childPidFile }), stdio: ["ignore", "ignore", "pipe"] });
+			{ cwd: A.d, env: env({ STUB: "ignorer", CHILD_PID: childPidFile }), stdio: ["ignore", "ignore", "pipe"] });
 		let stderr = ""; k.stderr.on("data", (d) => { stderr += d; });
 		for (let i = 0; i < 200 && !fs.existsSync(childPidFile); i++) await new Promise((r) => setTimeout(r, 25));
-		const childPid = Number(fs.readFileSync(childPidFile, "utf8").trim());
+		const grandchildPid = Number(fs.readFileSync(childPidFile, "utf8").trim());
 		process.kill(k.pid, sig);
 		const code = await new Promise((r) => k.once("exit", r));
-		let alive = true; try { process.kill(childPid, 0); } catch { alive = false; }
+		let grandchildAlive = true; try { process.kill(grandchildPid, 0); } catch { grandchildAlive = false; }
 		const reservationReleased = launcher !== "review" || fs.readdirSync(resDir).length === 0;
-		signalsCleaned &&= code === expected && !alive && reservationReleased;
+		signalsCleaned &&= code === expected && !grandchildAlive && reservationReleased;
 	}
 	// req: R-623
 	check("watchdog signals reap children, release review reservations and preserve signal exit codes", signalsCleaned);

@@ -97,7 +97,7 @@ function killGroup(child, signal = 'SIGKILL') {
 
 const nonEmpty = () => true;
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt, onChild, interrupted) {
+async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt, onChild, interrupted, signalWait) {
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
@@ -114,10 +114,10 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, 
   let lastCpu = -1, flatPolls = 0;
   const maxFlat = Math.max(1, Math.ceil(stallSecs / pollSecs));
   while (true) {
-    await sleep(pollSecs * 1000);
+    await Promise.race([sleep(pollSecs * 1000), signalWait]);
     if (spawnErr) { closeSync(fd); return { ok: false, text: `pi spawn failed: ${spawnErr.message}` }; }
     if (interrupted()) {
-      killGroup(child, interrupted());
+      killGroup(child, 'SIGKILL');
       await new Promise((r) => (child.exitCode !== null || child.signalCode !== null ? r() : child.once('close', r)));
       return { ok: false, text: readOut(), signal: interrupted() };
     }
@@ -143,11 +143,13 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, 
  *  success predicate beyond exit 0 + non-empty output. Returns {ok, text, attempt} (text = last). */
 export async function runWatchdog(tag, opts) {
   const attempts = opts.retries + 1;
-  let last = '', signal = null, active = null;
+  let last = '', signal = null, active = null, notifySignal;
+  const signalWait = new Promise((resolve) => { notifySignal = resolve; });
   const stop = (name) => {
     if (signal) return;
     signal = name;
-    if (active) killGroup(active, name);
+    if (active) killGroup(active, 'SIGKILL');
+    notifySignal();
   };
   const handlers = new Map([['SIGINT', () => stop('SIGINT')], ['SIGTERM', () => stop('SIGTERM')], ['SIGHUP', () => stop('SIGHUP')]]);
   for (const [name, handler] of handlers) process.on(name, handler);
@@ -155,7 +157,7 @@ export async function runWatchdog(tag, opts) {
     for (let a = 1; a <= attempts; a++) {
       if (signal) break;
       process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
-      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal);
+      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait);
       active = null;
       last = result.text;
       if (result.signal || signal) return { ok: false, text: last, attempt: a, signal: signal ?? result.signal };

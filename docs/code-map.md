@@ -797,7 +797,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/pi-review.mjs`
 
 - **purpose** — Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict only when a review was produced.
-- **inputs** — argv (--out, --item, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, and the reviewed tree's git revision
+- **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, and the reviewed tree's git revision
 - **outputs** — the review text written to --out, a round recorded in the ledger, and the admission note, warnings and a SUCCESS / FAILED line on stderr
 - **effects** — disk (writes --out plus the ledger's reservation, tally and audit files), process (the watchdog's `pi` child, the reservation heartbeat, the exit code)
 - **errors** — exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args), when every attempt stalled or failed, or when the round could not be recorded; exit 0 otherwise
@@ -827,7 +827,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-ledger.mjs`
 
 - **purpose** — The review round cap as a hook for any launcher — `run` reserves a round around a command and records its verdict, `check` asks whether one would be admitted.
-- **inputs** — argv (`run --item <slug> --out <file> [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
+- **inputs** — argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>` or `check --item <slug> [--tree <path>] [--revision R]`), the reviewed tree's git state, and the user-scope review ledger
 - **outputs** — the child's stdout written to --out, a recorded round, the projection note on stdout for `check`, and the admission note, warnings and refusals on stderr
 - **effects** — process (spawns the review command with stdout piped, runs the reservation heartbeat, sets the exit code), disk (writes --out and the ledger's lock, reservation, tally and audit files)
 - **errors** — exit 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused admission, an unwritable --out, or a non-zero / non-review-shaped result (the reservation is returned and no round consumed); exit 0 otherwise
