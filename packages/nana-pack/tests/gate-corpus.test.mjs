@@ -74,6 +74,14 @@ const ALLOW = [
 	for (const c of BUILTINS) check(`built-in BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 	// req: R-039
 	for (const c of L2_BLOCK) check(`L2 BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// req: R-631
+	check("all existing main-floor corpus commands stay blocked", (await Promise.all([...BUILTINS, ...L2_BLOCK].map((command) => run(command)))).every((result) => result === "BLOCK"));
+	const relocatedAgent = path.join(HOME, "relocated-agent");
+	process.env.PI_CODING_AGENT_DIR = relocatedAgent;
+	const relocatedPolicy = path.join(relocatedAgent, "nana-pack.json");
+	// req: R-631
+	check("quoted inline policy writes block in bash -c and eval bodies", (await run(`bash -c 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK" && (await run(`eval 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK");
+	delete process.env.PI_CODING_AGENT_DIR;
 // req: R-764
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 	// req: R-038

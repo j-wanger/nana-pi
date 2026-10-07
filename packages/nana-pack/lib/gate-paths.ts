@@ -212,7 +212,9 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 		const walk = extensionWalk(cwd);
 		if (walk.overflow) return walk.overflow;
 		for (const segment of splitCommand(text).segments) {
-			for (const word of tokens(segment.text, true)) {
+			// Keep the original quote-strip-then-split scan as a floor; quote-preserving
+			// extraction adds spaced candidates but must never hide paths inside shell bodies.
+			for (const word of [...tokens(segment.text), ...tokens(segment.text, true)]) {
 				const candidates = [word];
 				const assignment = word.indexOf("=");
 				if (assignment >= 0 && assignment + 1 < word.length) candidates.push(word.slice(assignment + 1));
