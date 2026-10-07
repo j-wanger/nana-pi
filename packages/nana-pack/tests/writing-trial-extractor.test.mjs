@@ -12,6 +12,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
 
 let failures = 0;
 function check(title, run) {
@@ -23,7 +24,7 @@ function entry(type, timestamp, content, extra = {}) {
 	return { type, timestamp, isSidechain: false, sessionId: "session-a", message: { role: type, content }, ...extra };
 }
 function fixture() {
-	const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "writing-trial-")));
+	const root = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "writing-trial-")));
 	const add = (project, id, entries) => {
 		const dir = path.join(root, project);
 		fs.mkdirSync(dir, { recursive: true });
