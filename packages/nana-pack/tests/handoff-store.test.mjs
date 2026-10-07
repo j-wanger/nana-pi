@@ -67,8 +67,8 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "hando
 	// req: R-110
 	check("b: fresh session picks it up", sp.includes("REPO-STATE"));
 	// req: R-795
-	check("b: the pickup notice prints the store path", notes.some((m) => m.startsWith("handoff picked up") && m.includes(file)));
-	console.log(`  pickup: ${notes.find((m) => m.startsWith("handoff picked up"))}`);
+	check("b: the pickup notice prints the store path", notes.some((m) => m.startsWith("compaction summary picked up") && m.includes(file)));
+	console.log(`  pickup: ${notes.find((m) => m.startsWith("compaction summary picked up"))}`);
 	// (f) resume, fork, reload skip pickup
 	// req: R-111
 	for (const reason of ["resume", "fork", "reload"]) check(`f: ${reason} skips pickup`, !(await session(repo).prompt(reason)).includes("REPO-STATE"));
@@ -111,7 +111,7 @@ if (process.platform === "darwin") {
 	// req: R-808
 	check("g: nested cwd does not inject the root's text", !sp.includes("ROOT-STATE"));
 	// req: R-140
-	check("g: nested cwd is told 'no handoff for this directory'", /no handoff for this directory/i.test(sp));
+	check("g: nested cwd is told 'no compaction summary for this directory'", /no compaction summary for this directory/i.test(sp));
 	// req: R-140
 	check("g: …and given the ancestor's store path", sp.includes(mod.storePathFor(root)) && sp.includes(root));
 	// req: R-140

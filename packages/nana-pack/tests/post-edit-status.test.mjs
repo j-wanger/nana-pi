@@ -3,7 +3,7 @@
  * @purpose Pins that post-edit reports EVERY run through ctx.ui.setStatus, so a working hook never looks identical to an absent one
  * @inputs extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, and a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
+ * @effects disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { execSync } from "node:child_process";
@@ -21,7 +21,7 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 import { pathToFileURL } from "node:url";
 // Visibility property: post-edit reports EVERY run through ctx.ui.setStatus, not
 // only the failing ones — a hook that is working must not look identical to a
-// hook that is absent. The status also preserves the receipts' rule that a check
+// hook that is absent. The status also preserves the rule that a check
 // which could not run is never folded into a pass: timeout, turn-abort and lock
 // refusal each get their own text, distinct from ✓.
 // Drives the REAL registered handler with a fake ctx that records UI calls.
@@ -68,7 +68,50 @@ function setup(commands, opts = {}) {
 
 const last = (a) => a.at(-1);
 const PASS_CMD = 'node -e "process.exit(0)"';
+const SLOW_PASS_CMD = 'node -e "setTimeout(()=>process.exit(0),100)"';
 const FAIL_CMD = 'node -e "process.exit(1)"';
+
+// Compatibility: legacy receipt settings parse but no longer produce receipt files or affect post-edit results.
+{
+	const { td, statuses, fire } = setup([{ match: "\\.txt$", run: FAIL_CMD }]);
+	const cfg = JSON.parse(fs.readFileSync(USER_CFG, "utf8"));
+	cfg.receipts = { enabled: true, dir: path.join(td, "legacy-receipts") };
+	fs.writeFileSync(USER_CFG, JSON.stringify(cfg));
+	const file = path.join(td, "legacy.txt");
+	fs.writeFileSync(file, "x\\n");
+	const result = await fire(file);
+	// req: R-865 R-866
+	check("legacy receipts config is accepted and ignored; failure feedback and status remain", result?.content?.at(-1)?.text?.includes("exited 1") && statuses.at(-1)?.text?.includes("✗ 1/1") && !fs.existsSync(path.join(td, "legacy-receipts")));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// An absent abort signal does not prevent a post-edit check.
+{
+	const { td, statuses, fire } = setup([{ match: "\\.txt$", run: PASS_CMD }], { ctx: { signal: undefined } });
+	const file = path.join(td, "no-signal.txt");
+	fs.writeFileSync(file, "x\\n");
+	let result;
+	try { result = await fire(file); } catch {}
+	// req: R-247
+	check("legacy: missing abort signal does not throw", result === undefined && statuses.at(-1)?.text.includes("✓ 1 check"));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// Legacy timeout and malformed-command behavior remain independent of receipt handling.
+{
+	const { td, statuses, fire } = setup([
+		{ match: "[", run: PASS_CMD },
+		{ match: "\\.txt$", run: SLOW_PASS_CMD, timeoutMs: 0 },
+	]);
+	const file = path.join(td, "legacy-valid.txt");
+	fs.writeFileSync(file, "x\\n");
+	await fire(file);
+	// req: R-789
+	check("legacy: timeoutMs zero remains a passing check", statuses.at(-1)?.text === "[dim]post-edit ✓ 1 check · legacy-valid.txt");
+	// req: R-793
+	check("legacy: malformed command is skipped and valid command runs", statuses.length === 1 && statuses.at(-1)?.text.includes("✓ 1 check"));
+	fs.rmSync(td, { recursive: true, force: true });
+}
 
 // (a) all checks pass → a ✓ chip naming the count and the file, under the "dim" color.
 {
@@ -126,11 +169,13 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	]);
 	const file = path.join(td, "slow.txt");
 	fs.writeFileSync(file, "y\n");
-	await fire(file);
+	const result = await fire(file);
 
+	// req: R-095
+	check("c: timed-out check is fed back and classified as not completed", result?.content?.at(-1)?.text?.includes("did not complete (timed out)"));
 	// req: R-099
 	check("c: timeout chip says timeout", last(statuses)?.text === "[warning]post-edit ⏱ timeout · slow.txt");
-	// req: R-098
+	// req: R-098 R-095
 	check("c: timeout is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -145,7 +190,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	fs.writeFileSync(file, "z\n");
 	await fire(file);
 
-// req: R-788
+// req: R-788 R-096
 	check("d: aborted turn chip says skipped (aborted)",
 		last(statuses)?.text === "[warning]post-edit – skipped (aborted) · abort.txt");
 	check("d: aborted run is never shown as ✓", !(last(statuses)?.text ?? "").includes("✓"));

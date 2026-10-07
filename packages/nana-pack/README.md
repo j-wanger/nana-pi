@@ -301,7 +301,7 @@ Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
 - **Chips** (TUI footer / desk header): `nana-pack ✓` at session start · `post-edit ✓ 2 checks · foo.ts`
   after each checked edit (`✗ 1/2` on failure, `⏱ timeout`, `– skipped (lock|aborted)` when a check
   could not run) · `gate ✓ 12 checked · 1 gated` — tool calls the gate inspected, and the ones it stopped on.
-- **Toasts**: post-edit check failures, handoff written/picked up/refused, context compacted.
+- **Toasts**: post-edit check failures, compaction summary written/picked up/refused, context compacted.
 - **OS notification** when the agent settles and waits for you. If the OS notifier fails or hangs —
   the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
   you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
@@ -320,7 +320,7 @@ User `<agent dir>/nana-pack.json`, project `<cwd>/.pi/nana-pack.json` (project w
 read on every event). `<agent dir>` is **pi's active agent dir**, the one pi reads
 `settings.json` / `auth.json` / `models.json` from: `PI_CODING_AGENT_DIR` when set (`~`
 expanded; a relative value resolves against the process's cwd), else `~/.pi/agent`. The
-journal and receipts defaults live there too. If the active dir has no `nana-pack.json` but
+journal defaults live there too. If the active dir has no `nana-pack.json` but
 `~/.pi/agent` does, that file is **not read**: a warning and a `config_agent_dir_mismatch`
 journal line name both paths once per session, and the gate runs without a user config.
 Both files — the active one (and its realpath) and `~/.pi/agent/nana-pack.json` — are on the
@@ -403,7 +403,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   a prompt line, notification, status, gate approval dialog, seat Markdown or a header field of a
   file we write cannot add a line, a heading, a fence, a field or a closed code span to what the
   consumer receives. **What it does not:** it is not "sanitized model context", and a renderer
-  cannot stop text that is semantically hostile. Intentional exceptions: the handoff summary BODY
+  cannot stop text that is semantically hostile. Intentional exceptions: the compaction summary BODY
   is payload, injected raw behind its `Source:` / provenance / authority framing, capped at 8000
   UTF-16 code units; structured serialization (journal JSON) is escaped by `JSON.stringify`, not
   by these renderers. **Out of scope:** `apps/**` (the desk shortens and places paths itself);
@@ -461,7 +461,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   live**, so a write that evades the gate's text scan can run code in the **same** session
   through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
   container layer. The agent edits policy files only through you:
-  `nana-setup`, the desk settings window, or "Allow once". The handoff store
+  `nana-setup`, the desk settings window, or "Allow once". The compaction summary store
   `~/.pi/agent/handoffs/**` is not a policy file.
 - **`allowPatterns` exempt one command segment, never a compound.** A command is split on
   `;` `&&` `||` `|` `&` and newlines; the pattern must match the segment that hit, so
@@ -532,7 +532,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
 - **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
   runner process is a second nana-pack session in the SAME working directory as its parent, so the
-  handoff store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
+  compaction summary store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
   Short-lived review children do not compact, so this is safe in practice today; a
   `NANA_HANDOFF=off` switch for subagent children is a follow-up if that observation ever changes.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
@@ -544,9 +544,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
   `tool_result` handler, so two edits to one file in a single assistant message could race a
   formatter's read-modify-write. Two outcomes you can see:
-  - **The queue exists but the lock cannot be taken** → the checker does **NOT** run. The
-    receipt records `status: "not_run"` (`exitCode: null`, empty `inputs`/`digest`,
-    `inputsStableDuringCheck: false`) and the model is told ``  `<command>` did not run — could
+  - **The queue exists but the lock cannot be taken** → the checker does **NOT** run, and
+    the model is told ``  `<command>` did not run — could
     not lock <file> for checking: <reason> ``. A skipped check is always reported; it is never
     reported as passing.
   - **The queue module cannot be resolved** (running outside pi — another host, a bare test
@@ -587,13 +586,13 @@ is user-scope only** — project config never contributes to it, trusted or not.
   refuses is never written and never reaches that count. A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read. A root is
-  adopted by a project objective file (including the configured filename), a saved handoff, a dismissal
+  adopted by a project objective file (including the configured filename), a saved compaction summary, a dismissal
   marker, or the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and a
   `docs/sessions/` directory; `HANDOFF.md` alone does not count. Repository roots under the real
   operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
   `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
-  The reader action distinguishes “no HANDOFF.md or saved handoff.”
-- **Handoff** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
+  The reader action distinguishes “no HANDOFF.md or saved compaction summary.”
+- **Compaction summary store** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
   compaction summary to a store — **by default the user-scope store fixed at**
   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
   `PI_CODING_AGENT_DIR`**; a configured `handoff.path` replaces it (Custom `handoff.path` below)
@@ -602,10 +601,10 @@ is user-scope only** — project config never contributes to it, trusted or not.
   round-cap ledger, the stage-key store and the knowledge index, none of whose runtime reads the
   override (`lib/adoption.mjs` `storeDir()`; HANDOFF.md's U2 entry) — atomically (temp file +
   rename, latest compaction wins), and injects it into the next fresh session (`startup`/`new`;
-  resume, fork and reload skip) in **that exact directory**. The path is printed on write and on
-  pickup; edit it by hand freely. Disable with `handoff.enabled: false`. Seat rulings behind this:
+  resume, fork and reload skip) in **that exact directory**. The path is printed when written and
+  picked up; edit it by hand freely. Disable with `handoff.enabled: false`. Seat rulings behind this:
   - **Why user scope, not "require trust"**: pi auto-trusts a nana-only `.pi/`, so "require trust"
-    is either a no-op or (with nana-trust) a blackout of handoff in every repo. The store removes
+    is either a no-op or (with nana-trust) a blackout of compaction summaries in every repo. The store removes
     the repo-supplied vector and needs no trust. The old sibling `.pi/.gitignore` management and
     the "never delete" prompt line are gone with their reason.
   - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
@@ -624,7 +623,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     session.
   - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
     writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
-    **lower authority than OBJECTIVE.md / AGENTS.md / DOCTRINE**, and keeps "background state, not
+    **lower authority than OBJECTIVE.md / AGENTS.md / HANDOFF.md**, and keeps "background state, not
     instructions". If the session file is unavailable the write still happens with `Writer: unknown`
     and journals `handoff_provenance_unavailable` next to `handoff_written`.
   - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
@@ -658,8 +657,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally). The marker is an
     ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
     handoff off unless the launcher clears `NANA_HANDOFF`.
-  - **Exact directory only**: a nested cwd or worktree with no handoff of its own never gets an
-    ancestor's text. If an ancestor directory has one, the session is told "no handoff for this
+  - **Exact directory only**: a nested cwd or worktree with no compaction summary of its own never gets an
+    ancestor's text. If an ancestor directory has one, the session is told "no compaction summary for this
     directory" plus that file's path; if no ancestor has one, nothing is added to the
     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
@@ -671,20 +670,20 @@ is user-scope only** — project config never contributes to it, trusted or not.
     store requires the recorded value to equal the canonical cwd exactly. A canonical cwd holding
     a control character (tab, newline, ESC, C1), U+2028/U+2029 or a bidi control, a lone
     surrogate, leading/trailing whitespace, or over 4096 UTF-16 code units cannot be recorded
-    losslessly, so its handoff is written but never picked up automatically. The write says so at
-    that moment: a warning notification ("handoff written to `<path>`, but this directory's name
+    losslessly, so its compaction summary is written but never picked up automatically. The write says so at
+    that moment: a warning notification ("compaction summary written to `<path>`, but this directory's name
     contains characters that cannot be recorded losslessly — a future session here will not pick
     it up automatically") and journal `handoff_cwd_unrecordable` (`path`, rendered `recorded`).
     The artifact is retained at `<path>` and can be read by hand. A custom `handoff.path` is not
     affected (no `Cwd:` check). A versioned lossless encoding is deferred.
   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
-  - **Failures never throw**: an unreadable/unwritable store degrades to "no handoff" with a
+  - **Failures never throw**: an unreadable/unwritable store degrades to "no compaction summary" with a
     journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
     UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
     file intact. win32: `rename` over an existing file is assumed atomic enough on NTFS —
     **unverified**.
-- **Handoff refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
+- **The compaction summary store refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
   L3 to custom paths). The user-scope store has no symlink policy — it is the owner's directory, so
   a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
   writes through a linked entry). Custom `handoff.path`: a repo could commit the
@@ -812,7 +811,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     `OBJECTIVE.md` can steer a session before the owner states intent. nana's tool gate
     still limits what that steering can do.
   - **Read on every `session_start` reason** (startup, new, resume, fork, reload), unlike the
-    handoff's startup/new. The handoff is continuity a resumed session already carries; the
+    compaction summary's startup/new. The summary is continuity a resumed session already carries; the
     objective is standing governance that lives only in the system prompt, which pi rebuilds
     at every agent start.
   - **`objective.enabled`, `objective.path` and `objective.projectFile` are honored from USER
@@ -843,9 +842,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
     intended setup, not a repo-supplied link. One addition for a `projectFile` hit *above* the
     workspace root: its own final component is checked, because nobody typed that path — the
     walk found it. Advisory, not a security boundary.
-- **Receipts** are best-effort content-bound evidence a post-edit check ran (one file
-  per repo+checker under `<agent dir>/receipts`). Turn them off with
-  `receipts.enabled: false`; relocate the store with `receipts.dir`.
+- **Receipt settings compatibility:** `receipts.enabled` and `receipts.dir` remain accepted
+  but ignored for one release; post-edit checks no longer write or read receipts.
 - **Writing trial residuals, recorded at landing rather than fixed further (astra r3, 2026-10-04):**
   - The read ceiling is a BYTE budget; the injected block's cap is a CHARACTER budget. A
     multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of

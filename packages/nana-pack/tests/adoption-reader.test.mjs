@@ -104,7 +104,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 {
 	const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
 	// req: R-645
-	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved handoff", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once"].every((part) => readme.includes(part)));
+	check("README: adoption forms and temporary-root exclusion are documented", ["project objective file", "saved compaction summary", "dismissal", "regular root `HANDOFF.md`", "root `AGENTS.md`", "`docs/sessions/` directory", "HANDOFF.md` alone does not count", "operating-system temporary directory", "canonical `/tmp` root", "`NANA_TEST_TEMP_ROOTS` is a test seam, not configuration", "reader prints a warning", "producer journals the override once"].every((part) => readme.includes(part)));
 }
 // Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
 {

@@ -359,7 +359,7 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check(
 		"e: subdir of a stored root → the exact ancestor block",
 		(await golden(mod, cases[2])) ===
-			`BASE\n\n## Handoff (nana — agent-written compaction summary)\n\nNo handoff for this directory. An ancestor directory (${r2}) has one at ${mod.storePathFor(r2)} — NOT injected; read it only if relevant.\n`,
+			`BASE\n\n## Compaction summary (nana — agent-written compaction summary)\n\nNo compaction summary for this directory. An ancestor directory (${r2}) has one at ${mod.storePathFor(r2)} — NOT injected; read it only if relevant.\n`,
 	);
 	if (old.status !== 0) console.log("SKIP e: A/B vs eca3de4 (git history unavailable)");
 	else {
@@ -369,8 +369,10 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 		const oldMod = await import(new URL(`file://${path.join(tmp, "nana-handoff.ts")}`).href);
 		for (const c of cases) {
 			const [a, b] = [await golden(oldMod, c), await golden(mod, c)];
+			// The only intended prompt delta is the explicit compaction-summary vocabulary.
+			const comparable = a.replaceAll("## Handoff (nana — agent-written compaction summary)", "## Compaction summary (nana — agent-written compaction summary)").replaceAll("No handoff for this directory.", "No compaction summary for this directory.");
 			// req: R-144
-			check(`e: byte-identical to eca3de4 — ${path.relative(base, c)}`, a === b, JSON.stringify({ a, b }));
+			check(`e: unchanged from eca3de4 except compaction-summary wording — ${path.relative(base, c)}`, comparable === b, JSON.stringify({ a: comparable, b }));
 		}
 	}
 }

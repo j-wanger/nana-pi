@@ -5,7 +5,7 @@
  * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
  *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
  *  hasUI, ui, sessionManager)
- * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, receipts) with
+ * @outputs a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
  *  allow/extra/protected regexes, and the user-scope objective block alone
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
@@ -96,7 +96,7 @@ export interface NanaPackConfig {
 	 * user scope; null/false = the default name "OBJECTIVE.md" (never "off").
 	 */
 	objective: { enabled: boolean; path: string | null; projectFile: string | null };
-	/** Content-bound post-edit check receipts (see lib/receipts.ts). `dir` null = <pi's active agent dir>/receipts. */
+	/** Deprecated compatibility keys; accepted and ignored for one release after decision D5, 2026-10-06. */
 	receipts: { enabled: boolean; dir: string | null };
 }
 

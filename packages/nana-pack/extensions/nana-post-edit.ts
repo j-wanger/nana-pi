@@ -2,13 +2,12 @@
  * @module packages/nana-pack/extensions/nana-post-edit.ts
  * @purpose Run the configured format, lint and test checks after a successful edit or write, feeding only
  *  failures back to the model.
- * @inputs pi `tool_result` events for edit/write (input.path, isError), the postEdit.commands and receipts
- *  config, pi's file-mutation queue, and ctx (cwd, signal, hasUI, ui)
+ * @inputs pi `tool_result` events for edit/write (input.path, isError), postEdit.commands config, pi's
+ *  file-mutation queue, and ctx (cwd, signal, hasUI, ui)
  * @outputs one bounded failure line per failing check appended to the tool result, a post-edit UI status
- *  naming the worst outcome, one content-bound receipt per check, and `postedit_file_queue_unavailable`
- *  journal lines
+ *  naming the worst outcome, and `postedit_file_queue_unavailable` journal lines
  * @effects process (spawns each check in a shell under its timeoutMs, then SIGTERM and SIGKILL over its
- *  tree), disk (hashes the declared inputs before and after, writes receipts, appends the journal)
+ *  tree), disk (appends the journal)
  * @errors never throws — each check is classified checks_passed / checks_failed / error / timeout / not_run
  *  plus a `lock` refusal, and a malformed command entry or bad match regex is skipped
  */
@@ -20,11 +19,6 @@
  * model sees them immediately and can fix them; successes stay out of the
  * model's context. Every run leaves a one-line UI status instead, so a working
  * hook is visible rather than indistinguishable from no hook at all.
- *
- * Each check ALSO leaves a content-bound receipt (lib/receipts.ts) — for both
- * pass and fail — recording what ran, over which file bytes, and how it exited.
- * That receipt is best-effort evidence a later /nana-verify reads; writing it
- * never changes the feedback fed back to the model.
  *
  * No-op until commands are configured in nana-pack.json, e.g.:
  *   { "postEdit": { "commands": [
@@ -38,13 +32,6 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { resolveToolPath } from "../lib/gate-paths.ts";
 import { promptPath, promptText, uiPath } from "../lib/display.mjs";
-import {
-	type CheckStatus,
-	computeInputsDigest,
-	isInside,
-	receiptsDir,
-	writeReceipt,
-} from "../lib/receipts.ts";
 
 /** Cap on captured checker output (matches the previous exec maxBuffer). */
 const MAX_OUTPUT = 1024 * 1024;
@@ -88,7 +75,7 @@ type Outcome = CheckStatus | "lock";
  * config looked exactly like no hook at all. This is the happy-path signal.
  * It shares the TUI status line with everything else pi puts there, so it stays
  * short, and it reports the WORST outcome first: a check that could not run is
- * never folded into a pass (same rule the receipts follow).
+ * never folded into a pass.
  */
 function statusLine(outcomes: Outcome[], name: string): { text: string; color: "dim" | "warning" | "error" } {
 	if (outcomes.includes("lock")) return { text: `post-edit – skipped (lock) · ${name}`, color: "warning" };
@@ -100,7 +87,7 @@ function statusLine(outcomes: Outcome[], name: string): { text: string; color: "
 }
 
 // Path interpretation is shared with the gate so policy checks and post-edit
-// receipts agree, including malformed file URLs.
+// path checks agree, including malformed file URLs.
 
 
 /**
@@ -360,40 +347,7 @@ export default function (pi: ExtensionAPI) {
 			const cmd = c.run.replaceAll("{file}", () => replacement);
 			const env = win ? { ...process.env, NANA_PI_FILE: abs } : undefined;
 
-			// Receipt side-work is best-effort observability: skip ALL of it when
-			// receipts are disabled, and isolate the prep so no config shape or IO can
-			// throw into the agent (mirrors appendJournal). The check itself always runs.
-			// Digests are taken INSIDE the file queue with the check, so
-			// `inputsStableDuringCheck` means "the checker changed it", not "someone
-			// else did". A configured timeoutMs of 0 makes this hold unbounded — the
-			// same explicit no-deadline choice, now also applied to the file lock.
-			let declared: string[] = [];
-			let before: ReturnType<typeof computeInputsDigest> = null;
-			let after: ReturnType<typeof computeInputsDigest> = null;
-			const guarded = async (): Promise<RunResult> => {
-				if (cfg.receipts.enabled) {
-					try {
-						// Declared inputs for this checker = the edited file its `match` hit,
-						// bound by CONTENTS. Exclude the receipt store itself from any digest.
-						declared = isInside(abs, receiptsDir(cfg)) ? [] : [abs];
-						// Digest BEFORE the check so we can detect a formatter mutating inputs mid-run.
-						before = declared.length ? computeInputsDigest(declared, ctx.cwd) : null;
-					} catch {
-						declared = []; // best-effort by design — never throw into the agent
-					}
-				}
-				const r = await run(cmd, ctx.cwd, timeoutMs, ctx.signal, env);
-				// Digest AFTER so the binding reflects any in-place formatting. If the
-				// inputs changed during the check, the receipt is inconclusive, not current.
-				if (cfg.receipts.enabled && declared.length) {
-					try {
-						after = computeInputsDigest(declared, ctx.cwd);
-					} catch {
-						after = null;
-					}
-				}
-				return r;
-			};
+			const guarded = async (): Promise<RunResult> => run(cmd, ctx.cwd, timeoutMs, ctx.signal, env);
 
 			let res: RunResult | undefined;
 			let lockError: string | null = null;
@@ -404,7 +358,7 @@ export default function (pi: ExtensionAPI) {
 					// The queue realpath()s the target before admitting anyone. If it
 					// refuses, running anyway would put a MUTATING formatter back outside
 					// pi's serialization — the exact race this closes — so the check does
-					// not run, and both the receipt and the model say so.
+					// not run, and the model is told so.
 					lockError = err instanceof Error ? err.message : String(err);
 				}
 			} else {
@@ -412,20 +366,6 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			if (!res) {
-				writeReceipt(cfg, {
-					v: 1,
-					ts: new Date().toISOString(),
-					repoRoot: ctx.cwd,
-					checker: c.run,
-					command: cmd,
-					cwd: ctx.cwd,
-					status: "not_run",
-					exitCode: null,
-					inputs: [],
-					digest: "",
-					digestBefore: null,
-					inputsStableDuringCheck: false,
-				});
 				failures.push(failureLine(cmd, `did not run — could not lock ${promptPath(abs)} for checking: ${promptText(lockError, 300)}`));
 				outcomes.push("lock");
 				continue;
@@ -433,30 +373,7 @@ export default function (pi: ExtensionAPI) {
 			const { code, exitCode, status, out } = res;
 			outcomes.push(status);
 
-			if (cfg.receipts.enabled && declared.length) {
-				try {
-					const stable = before != null && after != null && before.digest === after.digest;
-					writeReceipt(cfg, {
-						v: 1,
-						ts: new Date().toISOString(),
-						repoRoot: ctx.cwd,
-						checker: c.run,
-						command: cmd,
-						cwd: ctx.cwd,
-						status,
-						exitCode,
-						inputs: after?.inputs ?? [],
-						digest: after?.digest ?? "",
-						digestBefore: before?.digest ?? null,
-						inputsStableDuringCheck: stable,
-					});
-				} catch {
-					// best-effort by design — never throw into the agent
-				}
-			}
-
-			// Feed back to the model when a check did not PASS — the receipt alone is
-			// observability the model never sees. A trapped-timeout can exit 0 yet be
+			// Feed back to the model when a check did not PASS. A trapped-timeout can exit 0 yet be
 			// classified `timeout`, and a checker that could not run is `error`; a
 			// `code !== 0` test alone would leave the model uninformed for those. The
 			// pass path stays silent.

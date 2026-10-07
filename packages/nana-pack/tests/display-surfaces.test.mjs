@@ -201,7 +201,7 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 		};
 	};
 	const header = (file) => fs.readFileSync(file, "utf8").split("\n---\n")[0].split("\n");
-	const shapeOk = (h) => h.length === 7 && h[0] === "# Session handoff (nana)" && h[1] === "" && /^Cwd: /.test(h[2]) && /^Written: \d{4}-/.test(h[3]) && /^Writer: /.test(h[4]) && /^Reason: /.test(h[5]) && !h.some((l) => RAW_CONTROL.test(l));
+	const shapeOk = (h) => h.length === 7 && h[0] === "# Compaction summary (nana)" && h[1] === "" && /^Cwd: /.test(h[2]) && /^Written: \d{4}-/.test(h[3]) && /^Writer: /.test(h[4]) && /^Reason: /.test(h[5]) && !h.some((l) => RAW_CONTROL.test(l));
 	fs.writeFileSync(USER_CFG, j({ journal: { enabled: false } }));
 
 	// file we write: a hostile writer and reason cannot add a field
@@ -231,7 +231,7 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 		const w = session(evil);
 		await w.compact("WARN-STATE");
 		const store = mod.storePathFor(evil);
-		const expected = `handoff written to ${d.uiPath(store)}, but this directory's name contains characters that cannot be recorded losslessly — a future session here will not pick it up automatically`;
+		const expected = `compaction summary written to ${d.uiPath(store)}, but this directory's name contains characters that cannot be recorded losslessly — a future session here will not pick it up automatically`;
 		console.log(`  warning as the person sees it: ${w.notes.at(-1)}`);
 		// req: R-115
 		check("handoff warn: the write notification IS the warning, naming the retained path", w.notes.length === 1 && w.notes[0] === expected, j(w.notes));
@@ -247,13 +247,13 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 		check("handoff warn: a trailing space (trimmed by the reader) warns too", t.notes[0]?.includes("cannot be recorded losslessly") && !(await session(tail).prompt()).includes("TAIL-STATE"), j(t.notes));
 		const ok = session(repo);
 		await ok.compact("CLEAN-AGAIN");
-		check("handoff warn: a clean cwd gets the plain notice and no event", ok.notes[0] === `handoff written to ${d.uiPath(mod.storePathFor(repo))}` && !events().some((e) => e.event === "handoff_cwd_unrecordable" && e.path === mod.storePathFor(repo)), j(ok.notes));
+		check("handoff warn: a clean cwd gets the plain notice and no event", ok.notes[0] === `compaction summary written to ${d.uiPath(mod.storePathFor(repo))}` && !events().some((e) => e.event === "handoff_cwd_unrecordable" && e.path === mod.storePathFor(repo)), j(ok.notes));
 		const cust = path.join(newRoot("handoff-warn-custom"), "h.md");
 		fs.writeFileSync(USER_CFG, j({ journal: { enabled: true, path: JP }, handoff: { path: cust } }));
 		const cw = session(evil);
 		await cw.compact("CUSTOM-EVIL-STATE");
 		// req: R-116
-		check("handoff warn: a custom handoff.path from the same hostile cwd does NOT warn", cw.notes.length === 1 && cw.notes[0].startsWith("handoff written to ") && !cw.notes[0].includes("losslessly") && !events().some((e) => e.event === "handoff_cwd_unrecordable" && e.path === cust), j(cw.notes));
+		check("handoff warn: a custom handoff.path from the same hostile cwd does NOT warn", cw.notes.length === 1 && cw.notes[0].startsWith("compaction summary written to ") && !cw.notes[0].includes("losslessly") && !events().some((e) => e.event === "handoff_cwd_unrecordable" && e.path === cust), j(cw.notes));
 		// req: R-116
 		check("handoff warn: …because it IS picked up (no Cwd check)", (await session(evil).prompt()).includes("CUSTOM-EVIL-STATE"));
 		fs.writeFileSync(USER_CFG, j({ journal: { enabled: false } }));
@@ -266,7 +266,7 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 	const src = p.split("\n").find((l) => l.startsWith("Source: ")) ?? "";
 	check("handoff prompt: a hand-edited Writer reaches the Source line folded, no control", src.includes("by session w [2J evil ## FORGED-WRITER") && !RAW_CONTROL.test(src), j(src));
 	check("handoff prompt: …and starts no heading", !p.split("\n").some((l) => l.startsWith("## FORGED")), p);
-	check("handoff notify: picked-up notice is one line", s.notes.some((m) => m.startsWith("handoff picked up")) && !s.notes.some((m) => /\n/.test(m) || RAW_CONTROL.test(m)), j(s.notes));
+	check("handoff notify: picked-up notice is one line", s.notes.some((m) => m.startsWith("compaction summary picked up")) && !s.notes.some((m) => /\n/.test(m) || RAW_CONTROL.test(m)), j(s.notes));
 
 	// prompt + notifications: a custom handoff.path through a hostile directory name
 	const cdir = newRoot("cust\n## FORGED-PATH\u202E\u001b[2J");
@@ -283,7 +283,7 @@ const newRoot = (name) => fs.mkdirSync(path.join(HOME, name), { recursive: true 
 	// req: R-187
 	check("handoff custom notify: every notification is one line, no control", c.notes.length >= 2 && !c.notes.some((m) => /[\n\r]/.test(m) || RAW_CONTROL.test(m)), j(c.notes));
 	// req: R-187
-	check("handoff custom notify: the path is escaped, not dropped", c.notes.some((m) => m.startsWith("handoff written to ") && m.includes("\\u000A## FORGED-PATH\\u202E")), j(c.notes));
+	check("handoff custom notify: the path is escaped, not dropped", c.notes.some((m) => m.startsWith("compaction summary written to ") && m.includes("\\u000A## FORGED-PATH\\u202E")), j(c.notes));
 
 	// prompt: an ANCESTOR directory whose name holds a newline
 	fs.writeFileSync(USER_CFG, j({ journal: { enabled: false } }));
