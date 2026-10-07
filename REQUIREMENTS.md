@@ -175,6 +175,7 @@ New behaviour in this repo: requirement diff, then tagged tests, then code.
 | R-867 | The desk settings editor shall hide legacy receipt controls. | implemented | `apps/desk/test/spawn-and-persist.test.mjs::Nana pack settings hide receipt controls` |
 | R-868 | The post-edit source shall define all checker outcome statuses used by its type annotations. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::post-edit source defines its checker status union` |
 | R-869 | The desk settings editor shall label the handoff store section Compaction summary. | implemented | `apps/desk/test/spawn-and-persist.test.mjs::Nana pack settings label the store Compaction summary` |
+| R-870 | The root package map shall not describe nana-pack as producing receipts. | implemented | `packages/nana-pack/tests/code-map.test.mjs::AGENTS package map omits receipt production` |
 | R-791 | A throwing setStatus shall not escape the handler. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::g: a throwing setStatus does not throw out of the handler` |
 | R-101 | Each run shall leave a best-effort content-bound receipt under the active agent dir's receipts, one file per repository plus checker, with a sha256 digest of the bound inputs. | retired | decision D5, 2026-10-06 |
 | R-102 | WHEN the bound file's content changes, the prior receipt shall read stale and the new one current. | retired | decision D5, 2026-10-06 |
