@@ -89,7 +89,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
 		w.every((x) => x.status === 1 && /--worker was removed/.test(x.stderr) && !/attempt 1/.test(x.stderr)), w[0].stderr);
 	const nr = piReview(["--item", "no-rev", "--out", out()], { cwd: plain });
-	// req: R-712
+	// req: R-624
 	check("outside git without --tree → refused", nr.status === 1 && /run from the reviewed tree or pass --tree/.test(nr.stderr), nr.stderr);
 	const wk = spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--retries", "1", "--out", path.join(outs, "wp.md"), "--", "-p", "x"], { cwd: A.d, env: env(), encoding: "utf8", timeout: 30000 });
 	// req: R-732
@@ -178,7 +178,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const w4 = ledgerRun(["--item", "wt"], { cwd: W });
 	// req: R-705
 	check("worktree W2 at a 4th revision: refused (the item is shared)", w4.status === 1 && /over the cap/.test(w4.stderr), w4.stderr);
-	// req: R-624 R-712
+	// req: R-624
 	check("outside git refuses admission unless --tree names a reviewed repository",
 		ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 1 &&
 		/run from the reviewed tree or pass --tree/.test(ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).stderr));
@@ -192,6 +192,9 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		viaTree.status === 0 && roundsOf("tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
 		roundsOf("tree-scope")[0]?.revision === A.shas[0] && A.shas[0] !== B.shas[5] &&
 		fs.readFileSync(viaTreeOut, "utf8").trim() === `VERDICT: ${A.d}`, viaTree.stderr);
+	const piTree = piReview(["--item", "pi-tree-scope", "--tree", A.d, "--out", out()], { cwd: scratch });
+	// req: R-621
+	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}`, piTree.stderr);
 	const legacy = { v: 1, kind: "round", repo: "path:/legacy/scratch", item: "legacy", revision: "old-revision" };
 	fs.mkdirSync(agent, { recursive: true }); fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
 	// req: R-622
@@ -207,35 +210,43 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		if (kind.includes("untracked")) fs.writeFileSync(target, "untouched");
 		const invoked = path.join(tmp, `${kind.replaceAll(" ", "-")}.invoked`);
 		const before = fs.readFileSync(target);
-		const fd = fs.openSync(target, "r+");
-		const stdio = ["ignore", "pipe", "pipe"]; stdio[stdioSlot] = fd;
-		const r = spawnSync(process.execPath, [PI_REVIEW, "--item", `redirect-${kind}`, "--out", out(), "--", "-p", "x"],
-			{ cwd: A.d, env: env({ STUB: "verdict", INVOKED: invoked }), encoding: "utf8", stdio });
-		fs.closeSync(fd);
-		const msg = stdioSlot === 2 ? fs.readFileSync(target, "utf8") : (r.stderr || "");
-		redirectsRefused &&= r.status === 1 && msg.includes(`redirect the review log outside the reviewed tree (${path.basename(target)})`) &&
-			!fs.existsSync(invoked) && (stdioSlot === 2 || fs.readFileSync(target).equals(before));
+		for (const [launcher, args] of [["pi-review", [PI_REVIEW, "--item", `redirect-${kind}`]], ["review-ledger", [LEDGER_CLI, "run", "--item", `redirect-ledger-${kind}`]]]) {
+			const fd = fs.openSync(target, "r+");
+			const stdio = ["ignore", "pipe", "pipe"]; stdio[stdioSlot] = fd;
+			const r = spawnSync(process.execPath, [...args, "--out", out(), "--", "-p", "x"],
+				{ cwd: A.d, env: env({ STUB: "verdict", INVOKED: invoked }), encoding: "utf8", stdio });
+			fs.closeSync(fd);
+			const msg = stdioSlot === 2 ? fs.readFileSync(target, "utf8") : (r.stderr || "");
+			redirectsRefused &&= r.status === 1 && msg.includes(`redirect the review log outside the reviewed tree (${path.basename(target)})`) &&
+				!fs.existsSync(invoked) && (stdioSlot === 2 || fs.readFileSync(target).equals(before));
+		}
 	}
 	// req: R-620
-	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused", redirectsRefused);
+	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused through both launchers", redirectsRefused);
 }
 
 // 5. reject incomplete review-shaped outputs through both launch paths
 {
 	freshHome("shape");
-	const probes = ["I am still finding the relevant files; will continue.", "Context limit reached before I could land on a verdict."];
-	let piRejected = true, ledgerRejected = true;
-	for (const [i, text] of probes.entries()) {
+	const rejected = ["I am still finding the relevant files; will continue.", "Context limit reached before I could land on a verdict.", "verdict: LAND", "xVERDICT: LAND"];
+	const accepted = "--- VERDICT: LAND";
+	let piRejects = true, ledgerRejects = true, piAccepts = true, ledgerAccepts = true;
+	for (const [i, text] of rejected.entries()) {
 		const pi = piReview(["--item", `shape-pi-${i}`, "--out", out()], { stub: "plain-review", cwd: A.d, extra: text });
-		piRejected &&= pi.status === 1 && /FAILED/.test(pi.stderr);
+		piRejects &&= pi.status === 1 && /FAILED/.test(pi.stderr);
 		const via = ledgerRun(["--item", `shape-ledger-${i}`], { cwd: A.d,
 			cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		ledgerRejected &&= via.status === 1 && /no verdict/.test(via.stderr);
+		ledgerRejects &&= via.status === 1 && /no verdict/.test(via.stderr);
 	}
+	const piAllowed = piReview(["--item", "shape-pi-allowed", "--out", out()], { stub: "plain-review", cwd: A.d, extra: accepted });
+	piAccepts &&= piAllowed.status === 0;
+	const ledgerAllowed = ledgerRun(["--item", "shape-ledger-allowed"], { cwd: A.d,
+		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(accepted)})`] });
+	ledgerAccepts &&= ledgerAllowed.status === 0;
 	// req: R-701
-	check("pi-review rejects incomplete output without a line-start verdict", piRejected);
+	check("pi-review enforces the case-sensitive verdict line boundary", piRejects && piAccepts);
 	// req: R-701
-	check("review-ledger rejects incomplete output without a line-start verdict", ledgerRejected);
+	check("review-ledger enforces the case-sensitive verdict line boundary", ledgerRejects && ledgerAccepts);
 }
 
 // 6. stalls and infra failures consume nothing
