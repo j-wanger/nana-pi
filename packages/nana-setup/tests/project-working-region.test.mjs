@@ -48,6 +48,24 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 }
 
 {
+	const dir = make(`${WORKING_BEGIN}\nold\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const before = fs.readFileSync(target);
+	const mode = fs.statSync(target).mode;
+	try {
+		fs.chmodSync(target, 0o444);
+		const dry = refreshWorkingRegion(dir, { dryRun: true });
+		// req: R-987
+		check("read-only dry run reports refresh and preserves bytes", dry.status === "created" && dry.detail.includes("would refresh") && fs.readFileSync(target).equals(before));
+		const real = refreshWorkingRegion(dir);
+		// req: R-987
+		check("read-only real run reports a write problem without changing bytes", real.status === "skipped" && real.detail.includes("not writable") && fs.readFileSync(target).equals(before));
+	} finally {
+		fs.chmodSync(target, mode);
+	}
+}
+
+{
 	const malformedCases = [];
 	for (const [title, body] of [
 		["no markers", "unmarked old instructions\n"],

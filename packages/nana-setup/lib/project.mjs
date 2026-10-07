@@ -152,9 +152,11 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 	const noFollow = fs.constants.O_NOFOLLOW ?? 0;
 	let fd;
 	try {
-		fd = fs.openSync(target, fs.constants.O_RDWR | noFollow);
+		const access = dryRun ? fs.constants.O_RDONLY : fs.constants.O_RDWR;
+		fd = fs.openSync(target, access | noFollow);
 	} catch (error) {
 		if (error?.code === "ELOOP") return { label: "AGENTS.md working region", status: SKIPPED, detail: "symlinked AGENTS.md left alone" };
+		if (error?.code === "EACCES" || error?.code === "EPERM") return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md is not writable — left alone" };
 		return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
 	}
 	try {
