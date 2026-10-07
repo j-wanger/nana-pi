@@ -72,6 +72,18 @@ function lstat(p) {
 	}
 }
 
+function readDescriptorBytes(fd) {
+	const size = fs.fstatSync(fd).size;
+	const bytes = Buffer.alloc(size);
+	let offset = 0;
+	while (offset < size) {
+		const count = fs.readSync(fd, bytes, offset, size - offset, offset);
+		if (count === 0) break;
+		offset += count;
+	}
+	return offset === size ? bytes : bytes.subarray(0, offset);
+}
+
 /* --------------------------------------------------------------------------------- git */
 
 export function stepGit(dir, o) {
@@ -164,7 +176,13 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		const opened = fs.fstatSync(fd);
 		if (!opened.isFile() || opened.dev !== st.dev || opened.ino !== st.ino)
 			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
-		const original = fs.readFileSync(fd, "utf8");
+		const originalBytes = fs.readFileSync(fd);
+		let original;
+		try {
+			original = new TextDecoder("utf-8", { fatal: true }).decode(originalBytes);
+		} catch {
+			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md is not valid UTF-8 — left alone" };
+		}
 		const markers = markerLines(original);
 		const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
 		const ends = markers.filter((m) => m.marker === WORKING_END);
@@ -192,6 +210,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 			const current = lstat(target);
 			if (!current?.isFile() || current.isSymbolicLink() || current.dev !== opened.dev || current.ino !== opened.ino)
 				throw new Error("AGENTS.md changed before replacement");
+			if (!readDescriptorBytes(fd).equals(originalBytes)) throw new Error("AGENTS.md contents changed before replacement");
 			fs.renameSync(temp, target);
 			return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
 		} catch {

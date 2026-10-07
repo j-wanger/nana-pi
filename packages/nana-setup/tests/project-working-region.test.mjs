@@ -26,6 +26,7 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const expected = `${prefix}${WORKING_BEGIN}\r\n${shared.replace(/\n/g, "\r\n")}${WORKING_END}\r\n${suffix}`;
 	const refresh = refreshWorkingRegion(dir);
 	const result = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8");
+	// req: R-334
 	// req: R-986
 	check("refresh changes only the marked bytes and retains CRLF surrounding bytes", refresh.status === "created" && result === expected, result);
 	// req: R-989
@@ -68,6 +69,16 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 {
 	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
 	const target = path.join(dir, "AGENTS.md");
+	const invalidBytes = Buffer.concat([Buffer.from([0xff]), Buffer.from(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`)]);
+	fs.writeFileSync(target, invalidBytes);
+	const result = refreshWorkingRegion(dir);
+	// req: R-987
+	check("invalid UTF-8 outside stale region is refused without changing bytes", result.status === "skipped" && result.detail.includes("not valid UTF-8") && fs.readFileSync(target).equals(invalidBytes));
+}
+
+{
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
 	const original = fs.readFileSync(target);
 	fs.symlinkSync("AGENTS.md", path.join(dir, "CLAUDE.md"));
 	const result = refreshWorkingRegion(dir, { writeTemp: () => { throw new Error("injected write failure"); } });
@@ -87,6 +98,18 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	} });
 	// req: R-986
 	check("target identity change during staging is refused", result.status === "skipped" && fs.readFileSync(target, "utf8") === replacementByOwner && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")));
+}
+
+{
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const ownerEdit = `${WORKING_BEGIN}\nowner edit made during staging\n${WORKING_END}\n`;
+	const result = refreshWorkingRegion(dir, { writeTemp: (fd, content) => {
+		fs.writeFileSync(fd, content, "utf8");
+		fs.writeFileSync(target, ownerEdit);
+	} });
+	// req: R-986
+	check("in-place owner edit during staging is refused and temp file removed", result.status === "skipped" && fs.readFileSync(target, "utf8") === ownerEdit && fs.readdirSync(dir).every((name) => !name.startsWith(".AGENTS.md.nana-") || !name.endsWith(".tmp")));
 }
 
 {
