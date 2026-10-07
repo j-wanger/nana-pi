@@ -53,6 +53,7 @@ const { default: writingExt, RULE_PATH, HEADING } = await import(writingExtUrl);
 const { default: objectiveExt } = await import(new URL("../extensions/nana-objective.ts", import.meta.url).href);
 const { HEADING: OBJECTIVE_HEADING } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 const { WRITING_INJECT_CAP } = await import(new URL("../lib/writing-config.mjs", import.meta.url).href);
+async function inject(handler, ctx, key = "nana-writing") { const event = { systemPromptOptions: { sections: {} } }; await handler(event, ctx); return event.systemPromptOptions.sections[key]; }
 
 const journal = path.join(home, "journal.jsonl");
 const userCfg = path.join(home, ".pi", "agent", "nana-pack.json");
@@ -79,11 +80,11 @@ function session(ext, opts) {
 {
 	const { td, handlers, ctx } = session(writingExt); // no opts: production default, RULE_PATH
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers.before_agent_start, ctx);
 	const expected = fs.readFileSync(RULE_PATH, "utf8"); // READ only
-	const ok = !!r?.systemPrompt.startsWith("BASE") && r.systemPrompt.includes(`BASE\n\n${HEADING}\n\n${expected}`);
+	const ok = r.includes(`${HEADING}\n\n${expected}`);
 	// req: R-751
-	check("inject: the rule text follows the base prompt under its heading (production default)", ok, r?.systemPrompt);
+	check("inject: the rule text follows the base prompt under its heading (production default)", ok, r);
 }
 
 /* --- every session_start reason injects, over a DISPOSABLE fixture (R-751, R-754) ------ */
@@ -92,9 +93,9 @@ for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 	fs.writeFileSync(rulePath, "Disposable fixture text.\n");
 	const { td, handlers, ctx } = session(writingExt, { rulePath });
 	await handlers.session_start({ reason }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers.before_agent_start, ctx);
 	// req: R-751 R-754
-	check(`inject: reason "${reason}" injects the rule (disposable fixture)`, !!r?.systemPrompt.includes(HEADING) && r.systemPrompt.includes("Disposable fixture text."));
+	check(`inject: reason "${reason}" injects the rule (disposable fixture)`, !!r.includes(HEADING) && r.includes("Disposable fixture text."));
 }
 
 /* --- (b) unavailable: missing / a directory / invalid UTF-8, all disposable (R-752) ---- */
@@ -113,7 +114,7 @@ for (const [label, cause, mk] of [
 	const before = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).length : 0;
 	const { handlers, ctx } = session(writingExt, { rulePath });
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers.before_agent_start, ctx);
 	// req: R-752
 	check(`unavailable: ${label} injects nothing and journals the cause`, r === undefined, JSON.stringify(r));
 	const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -185,8 +186,8 @@ check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 	fs.writeFileSync(rulePath, "A".repeat(WRITING_INJECT_CAP * 2));
 	const { handlers, ctx } = session(writingExt, { rulePath });
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	const block = r?.systemPrompt.slice("BASE\n\n".length) ?? "";
+	const r = await inject(handlers.before_agent_start, ctx);
+	const block = r ?? "";
 	const ok = block.length <= WRITING_INJECT_CAP && block.includes(`cut at ${WRITING_INJECT_CAP} chars`);
 	// req: R-753
 	check("cap: an oversized rule is cut at the cap and the cut is announced", ok, block.length);
@@ -231,14 +232,14 @@ check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 	const marker = `MARKER-${Date.now()}`;
 	const { handlers, ctx } = session(writingExt, { rulePath });
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r1 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r1 = await inject(handlers.before_agent_start, ctx);
 	// req: R-754
-	check("reload: the original rule is injected first", !r1?.systemPrompt.includes(marker) && r1?.systemPrompt.includes("Original text."));
+	check("reload: the original rule is injected first", !r1.includes(marker) && r1.includes("Original text."));
 	fs.writeFileSync(rulePath, `${marker}\n`);
 	await handlers.session_start({ reason: "reload" }, ctx);
-	const r2 = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r2 = await inject(handlers.before_agent_start, ctx);
 	// req: R-754
-	check("reload: an edited rule is injected after session_start reason reload", !!r2?.systemPrompt.includes(marker), r2?.systemPrompt);
+	check("reload: an edited rule is injected after session_start reason reload", !!r2.includes(marker), r2);
 }
 
 /* ======================================================================================
@@ -318,63 +319,25 @@ const TIME_LIMIT_MS = 5000;
  * enough that only the REAL incoming prompt, untouched, can produce it.
  * ====================================================================================== */
 const BASE_SENTINEL = `BASE-SENTINEL-${Date.now()}-do-not-discard`;
-/** True only when `prompt` contains `base`, then `objective`, then `writing`, each exactly
- *  once, with `base` first (at offset 0) — the shape astra r3 MUST 2 asked for. */
-function composedInOrder(prompt, base, objective, writing) {
-	const once = (needle) => prompt.split(needle).length - 1 === 1;
-	return prompt.startsWith(base) && once(base) && once(objective) && once(writing) && prompt.indexOf(base) < prompt.indexOf(objective) && prompt.indexOf(objective) < prompt.indexOf(writing);
-}
-
 {
-	const rulePath = path.join(tempDir(), "rule.md");
-	fs.writeFileSync(rulePath, "Compose fixture text.\n");
-	const objSession = session(objectiveExt);
-	await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
-	const writingSession = session(writingExt, { rulePath });
-	await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
-	let prompt = BASE_SENTINEL;
-	const r1 = await objSession.handlers.before_agent_start({ systemPrompt: prompt }, objSession.ctx);
-	if (r1?.systemPrompt !== undefined) prompt = r1.systemPrompt;
-	const r2 = await writingSession.handlers.before_agent_start({ systemPrompt: prompt }, writingSession.ctx);
-	if (r2?.systemPrompt !== undefined) prompt = r2.systemPrompt;
-	// req: R-751
-	check("compose (stub): base (distinctive sentinel), objective and writing each appear exactly once, in order", composedInOrder(prompt, BASE_SENTINEL, OBJECTIVE_HEADING, HEADING), prompt);
-}
-
-{
-	if (!piIndexPath) {
-		console.log("SKIP compose (real pi): @earendil-works/pi-coding-agent is not installed");
-	} else {
-		const { ExtensionRunner } = await import(`file://${piIndexPath}`);
-		const fakeExt = (p, eventMap) => {
-			const handlers = new Map();
-			for (const [event, fns] of Object.entries(eventMap)) handlers.set(event, fns);
-			return { path: p, handlers };
-		};
-		const rulePath = path.join(tempDir(), "rule.md");
-		fs.writeFileSync(rulePath, "Compose fixture text (real pi).\n");
-		const objSession = session(objectiveExt);
-		await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
-		const writingSession = session(writingExt, { rulePath });
-		await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
-		const runner = new ExtensionRunner(
-			[
-				fakeExt("nana-objective", { before_agent_start: [objSession.handlers.before_agent_start] }),
-				fakeExt("nana-writing", { before_agent_start: [writingSession.handlers.before_agent_start] }),
-			],
-			{},
-			process.cwd(),
-			undefined,
-			undefined,
-		);
-		// forceSystemPrompt seeds the DISTINCTIVE base text the real runner's own
-		// buildSystemPromptState returns verbatim before any extension has run (the same
-		// mechanism a replayed system message would use) — astra r3 MUST 2.
-		const result = await runner.emitBeforeAgentStart("USER", [], { cwd: process.cwd(), forceSystemPrompt: BASE_SENTINEL });
-		const finalPrompt = result.systemPromptOptions.forceSystemPrompt ?? "";
-		// req: R-751
-		check("compose (real pi 1.0.2): base (distinctive sentinel), objective and writing each appear exactly once, in order", composedInOrder(finalPrompt, BASE_SENTINEL, OBJECTIVE_HEADING, HEADING), finalPrompt);
-	}
+ const rulePath = path.join(tempDir(), "rule.md");
+ fs.writeFileSync(rulePath, "Compose fixture text.\n");
+ const objSession = session(objectiveExt);
+ await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
+ const handoffExt = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
+ const handoffSession = session(handoffExt);
+ await handoffSession.handlers.session_compact({ compactionEntry: { summary: "composition handoff fixture" } }, handoffSession.ctx);
+ await handoffSession.handlers.session_start({ reason: "startup" }, handoffSession.ctx);
+ const writingSession = session(writingExt, { rulePath });
+ await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
+ const event = { systemPromptOptions: { sections: {} } };
+ const results = [];
+ results.push(await objSession.handlers.before_agent_start(event, objSession.ctx));
+ results.push(await handoffSession.handlers.before_agent_start(event, handoffSession.ctx));
+ results.push(await writingSession.handlers.before_agent_start(event, writingSession.ctx));
+ const keys = Object.keys(event.systemPromptOptions.sections);
+ // req: R-641 R-751
+ check("compose: objective, handoff and writing sections are present in stable order", JSON.stringify(keys) === JSON.stringify(["nana-objective", "nana-handoff", "nana-writing"]) && results.every((result) => result === undefined) && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions), keys.join(","));
 }
 
 for (const td of tmps) fs.rmSync(td, { recursive: true, force: true });

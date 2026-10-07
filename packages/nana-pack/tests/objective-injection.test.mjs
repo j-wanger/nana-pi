@@ -33,6 +33,7 @@ fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 check("fake home is in effect (os.homedir honors the env)", os.homedir() === home);
 
 const ext = (await import(new URL("../extensions/nana-objective.ts", import.meta.url).href)).default;
+async function inject(handlers, ctx) { const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx); return event.systemPromptOptions.sections["nana-objective"]; }
 
 const journal = path.join(home, "journal.jsonl");
 const objectiveFile = path.join(home, "OBJECTIVE.md");
@@ -53,14 +54,14 @@ function session() {
 	fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.\n");
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("a: base prompt preserved", r?.systemPrompt.startsWith("BASE"));
+	const r = await inject(handlers, ctx);
+	check("a: objective block is stored in its named section", r.startsWith("## Objective and current priority (nana)"));
 	// req: R-002
-	check("a: section heading injected", r?.systemPrompt.includes("## Objective and current priority (nana)"));
-	check("a: objective text injected", r?.systemPrompt.includes("build products with agents"));
-	check("a: priority text injected", r?.systemPrompt.includes("one coherent experience"));
+	check("a: section heading injected", r.includes("## Objective and current priority (nana)"));
+	check("a: objective text injected", r.includes("build products with agents"));
+	check("a: priority text injected", r.includes("one coherent experience"));
 	// req: R-002
-	check("a: charge line injected", r?.systemPrompt.includes("Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending."));
+	check("a: charge line injected", r.includes("Every session must be able to say which of these lines its spend serves. If it cannot, say so to the user before spending."));
 	const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
 	// req: R-019
 	check("a: objective_pickup journaled with source \"user\"", lines.some((l) => l.event === "objective_pickup" && l.cwd === td && l.source === "user"));
@@ -72,9 +73,9 @@ function session() {
 for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-017
-	check(`b: reason "${reason}" injects the objective`, !!r?.systemPrompt.includes("build products with agents"));
+	check(`b: reason "${reason}" injects the objective`, !!r.includes("build products with agents"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -85,12 +86,12 @@ for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
 	fs.writeFileSync(objectiveFile, `${lead}${"A".repeat(1500 - lead.length)}TAIL${"B".repeat(3000)}\n\n**Current priority:** STILL HERE\n`);
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-012
-	check("c: objective line capped at 1500 chars", r?.systemPrompt.includes("A".repeat(1500 - lead.length)) && !r?.systemPrompt.includes("TAIL"));
+	check("c: objective line capped at 1500 chars", r.includes("A".repeat(1500 - lead.length)) && !r.includes("TAIL"));
 	// req: R-012
-	check("c: truncation is announced", !!r?.systemPrompt.includes("(truncated at 1500 chars)"));
-	check("c: the current priority survives the long objective", !!r?.systemPrompt.includes("**Current priority:** STILL HERE"));
+	check("c: truncation is announced", !!r.includes("(truncated at 1500 chars)"));
+	check("c: the current priority survives the long objective", !!r.includes("**Current priority:** STILL HERE"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -111,11 +112,11 @@ for (const [label, cause, prep] of [
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check(`d: ${label} does not throw`, !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-014
 	check(`d: ${label} injects the UNAVAILABLE marker`,
-		!!r?.systemPrompt.includes(`OBJECTIVE UNAVAILABLE: ${cause} (${objectiveFile}). Tell the user before spending.`));
-	check(`d: ${label} still carries the heading`, !!r?.systemPrompt.includes("## Objective and current priority (nana)"));
+		!!r.includes(`OBJECTIVE UNAVAILABLE: ${cause} (${objectiveFile}). Tell the user before spending.`));
+	check(`d: ${label} still carries the heading`, !!r.includes("## Objective and current priority (nana)"));
 	const lines = fs.readFileSync(journal, "utf-8").trim().split("\n").slice(before - 1).map((l) => JSON.parse(l));
 	// req: R-014
 	check(`d: ${label} journals objective_unavailable with the cause`,
@@ -133,10 +134,10 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	fs.mkdirSync(path.join(td, ".pi"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ objective: { enabled: false, path: planted } }));
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-006
-	check("f: project-scope objective.path ignored", !(r?.systemPrompt ?? "").includes("PWNED"));
-	check("f: the user's objective is what is injected", !!r?.systemPrompt.includes("USER OBJECTIVE"));
+	check("f: project-scope objective.path ignored", !((r) ?? "").includes("PWNED"));
+	check("f: the user's objective is what is injected", !!r.includes("USER OBJECTIVE"));
 	// req: R-006
 	check("f: project-scope objective.enabled:false ignored", r !== undefined);
 	const { loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
@@ -150,7 +151,7 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
 	// req: R-020
-	check("g: user objective.enabled:false injects nothing", (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx)) === undefined);
+	check("g: user objective.enabled:false injects nothing", (await inject(handlers, ctx)) === undefined);
 	writeUserCfg({ path: objectiveFile });
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -168,12 +169,12 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check("h: symlinked in-workspace objective does not throw", !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 // req: R-758
-	check("h: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
+	check("h: target contents never reach the system prompt", !((r) ?? "").includes("SUPERSECRET"));
 	// req: R-014
 	check("h: the refusal is announced, not silent",
-		!!r?.systemPrompt.includes("OBJECTIVE UNAVAILABLE: reached through a symlink inside the workspace"));
+		!!r.includes("OBJECTIVE UNAVAILABLE: reached through a symlink inside the workspace"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -191,11 +192,11 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	try {
 		await handlers.session_start({ reason: "startup" }, ctx);
 	} finally { process.chdir(cwd0); }
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-005
-	check("j: relative path does NOT resolve against cwd", !(r?.systemPrompt ?? "").includes("PWNED"));
+	check("j: relative path does NOT resolve against cwd", !((r) ?? "").includes("PWNED"));
 	// req: R-005
-	check("j: relative path resolves under ~/.pi/agent", !!r?.systemPrompt.includes("USER-SCOPE RELATIVE OBJECTIVE"));
+	check("j: relative path resolves under ~/.pi/agent", !!r.includes("USER-SCOPE RELATIVE OBJECTIVE"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -206,12 +207,12 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
 	check("k: first session picks the objective up",
-		!!(await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt.includes("CACHED OBJECTIVE"));
+		!!(await inject(handlers, ctx))?.includes("CACHED OBJECTIVE"));
 	writeUserCfg({ enabled: false, path: objectiveFile });
 	await handlers.session_start({ reason: "resume" }, ctx);
 	// req: R-017
 	check("k: after a live disable, no stale objective survives",
-		(await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx)) === undefined);
+		(await inject(handlers, ctx)) === undefined);
 	writeUserCfg({ path: objectiveFile });
 	fs.rmSync(td, { recursive: true, force: true });
 }
@@ -225,9 +226,9 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 	writeUserCfg({ path: null }); // default path, which is the link
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-016
-	check("i: user-home symlink followed (default path)", !!r?.systemPrompt.includes("LINKED OBJECTIVE"));
+	check("i: user-home symlink followed (default path)", !!r.includes("LINKED OBJECTIVE"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
@@ -252,14 +253,14 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	fs.writeFileSync(repoFile, REPO_OBJECTIVE);
 	const before = journalLines().length;
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-001
-	check("l: the repo's objective is injected", !!r?.systemPrompt.includes("ship the desk"));
-	check("l: the repo's priority is injected", !!r?.systemPrompt.includes("the feel pass"));
+	check("l: the repo's objective is injected", !!r.includes("ship the desk"));
+	check("l: the repo's priority is injected", !!r.includes("the feel pass"));
 	// Jake's ruling 1 (2026-09-28): the product's lines govern, AND the program's objective
 	// + current priority are shown, labelled, after them, with the precedence stated. (This
 	// replaces an assertion that the umbrella priority was absent — that encoded the defect.)
-	const sp = r?.systemPrompt ?? "";
+	const sp = r ?? "";
 	// req: R-009
 	check("l: the umbrella objective AND current priority are shown, labelled",
 		sp.includes(`${UMBRELLA_LINE}\n${UMBRELLA_PRIORITY_LINE}`));
@@ -268,8 +269,8 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	// req: R-009
 	check("l: the precedence sentence is stated",
 		sp.includes(`Precedence: the lines from ${repoFile} govern this session's work; the program lines (${objectiveFile}) say what the toolkit is for.`));
-	check("l: same heading", !!r?.systemPrompt.includes("## Objective and current priority (nana)"));
-	check("l: charge line still applies", !!r?.systemPrompt.includes("Every session must be able to say which of these lines its spend serves."));
+	check("l: same heading", !!r.includes("## Objective and current priority (nana)"));
+	check("l: charge line still applies", !!r.includes("Every session must be able to say which of these lines its spend serves."));
 	// req: R-019
 	check("l: objective_pickup records source \"project\" and the path",
 		journalLines().slice(before).some((e) => e.event === "objective_pickup" && e.source === "project" && e.path === repoFile));
@@ -287,10 +288,10 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const deepCtx = { ...ctx, cwd: deep };
 	const before = journalLines().length;
 	await handlers.session_start({ reason: "startup" }, deepCtx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, deepCtx);
+	const r = await inject(handlers, deepCtx);
 	// req: R-001
-	check("m: an ancestor's repo objective wins", !!r?.systemPrompt.includes("ship the desk"));
-	check("m: the umbrella line comes with it", !!r?.systemPrompt.includes(UMBRELLA_LINE));
+	check("m: an ancestor's repo objective wins", !!r.includes("ship the desk"));
+	check("m: the umbrella line comes with it", !!r.includes(UMBRELLA_LINE));
 	// req: R-019
 	check("m: the ancestor hit is the journaled path",
 		journalLines().slice(before).some((e) => e.event === "objective_pickup" && e.source === "project" && e.path === repoFile));
@@ -303,14 +304,14 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const { td, handlers, ctx } = session();
 	const before = journalLines().length;
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-003
-	check("n: falls back to the user-scope objective", !!r?.systemPrompt.includes("one coherent experience"));
+	check("n: falls back to the user-scope objective", !!r.includes("one coherent experience"));
 	// req: R-010
 	check("n: no program block when the umbrella IS the source",
-		!(r?.systemPrompt ?? "").includes("program objective:") && !(r?.systemPrompt ?? "").includes("Precedence:"));
+		!((r) ?? "").includes("program objective:") && !((r) ?? "").includes("Precedence:"));
 	// req: R-003
-	check("n: the umbrella is the governing file", !!r?.systemPrompt.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.`));
+	check("n: the umbrella is the governing file", !!r.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.`));
 	// req: R-019
 	check("n: objective_pickup records source \"user\"",
 		journalLines().slice(before).some((e) => e.event === "objective_pickup" && e.source === "user" && e.path === objectiveFile));
@@ -325,10 +326,10 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	fs.mkdirSync(path.join(td, ".pi"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify({ objective: { projectFile: PROJECT_FILE } }));
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
+	const r = await inject(handlers, ctx);
 	// req: R-006
-	check("o: project-scope objective.projectFile ignored", !(r?.systemPrompt ?? "").includes("PWNED"));
-	check("o: the user's objective is what is injected", !!r?.systemPrompt.includes("build products with agents"));
+	check("o: project-scope objective.projectFile ignored", !((r) ?? "").includes("PWNED"));
+	check("o: the user's objective is what is injected", !!r.includes("build products with agents"));
 	const { loadConfig } = await import(new URL("../lib/config.ts", import.meta.url).href);
 	check("o: loadConfig keeps projectFile null for a trusted project", loadConfig(ctx).objective.projectFile === null);
 	fs.rmSync(td, { recursive: true, force: true });
@@ -347,17 +348,17 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check("p: a symlinked repo objective does not throw", !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("p: target contents never reach the system prompt", !(r?.systemPrompt ?? "").includes("SUPERSECRET"));
+	const r = await inject(handlers, ctx);
+	check("p: target contents never reach the system prompt", !((r) ?? "").includes("SUPERSECRET"));
 	// the umbrella GOVERNS (not merely shown as the program line — that text also contains the priority)
 	// req: R-015
 	check("p: falls back to the user-scope objective",
-		!!r?.systemPrompt.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.`));
+		!!r.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.`));
 	// req: R-010
-	check("p: no program block when the fallback won", !(r?.systemPrompt ?? "").includes("program objective:"));
+	check("p: no program block when the fallback won", !((r) ?? "").includes("program objective:"));
 	// req: R-015
 	check("p: the refusal is printed in the block",
-		!!r?.systemPrompt.includes(`(ignored ${link}: reached through a symlink — the program file governs)`));
+		!!r.includes(`(ignored ${link}: reached through a symlink — the program file governs)`));
 	const after = journalLines().slice(before);
 	// req: R-015
 	check("p: the refusal is journaled with the cause",
@@ -374,12 +375,12 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const { td, handlers, ctx } = session();
 	fs.writeFileSync(path.join(td, PROJECT_FILE), REPO_OBJECTIVE);
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	check("q: the repo objective still wins", !!r?.systemPrompt.includes("ship the desk"));
+	const r = await inject(handlers, ctx);
+	check("q: the repo objective still wins", !!r.includes("ship the desk"));
 	check("q: the missing umbrella is named on the program line",
-		!!r?.systemPrompt.includes(`program objective: unavailable (file not found: ${path.join(home, "gone-objective.md")})`));
-	check("q: no program current priority invented for a missing umbrella", !(r?.systemPrompt ?? "").includes("program current priority:"));
-	check("q: and no UNAVAILABLE marker — the repo objective is real text", !(r?.systemPrompt ?? "").includes("OBJECTIVE UNAVAILABLE"));
+		!!r.includes(`program objective: unavailable (file not found: ${path.join(home, "gone-objective.md")})`));
+	check("q: no program current priority invented for a missing umbrella", !((r) ?? "").includes("program current priority:"));
+	check("q: and no UNAVAILABLE marker — the repo objective is real text", !((r) ?? "").includes("OBJECTIVE UNAVAILABLE"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

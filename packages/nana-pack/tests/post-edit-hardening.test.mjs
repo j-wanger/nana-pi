@@ -308,6 +308,19 @@ if (POSIX) {
 	}
 }
 
+// The malformed file URL uses the same total shared resolver as the gate.
+{
+	const { resolveToolPath } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
+	const malformed = "file:///%%";
+	const { td, cfg, fire } = setup([{ match: ".*", run: "node -e \\\"process.exit(0)\\\" {file}" }]);
+	const expected = resolveToolPath(malformed, td);
+	await fire(malformed);
+	const receipt = readLatestReceipt(cfg, td, "node -e \\\"process.exit(0)\\\" {file}");
+	// req: R-644
+	check("path: malformed file URL post-edit path matches shared resolver", receipt?.command?.includes(expected));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
 // (j) running outside pi means no file-mutation queue, so checks are NOT
 // serialized against edits. That has to be visible, and reported once per load
 // rather than once per check.

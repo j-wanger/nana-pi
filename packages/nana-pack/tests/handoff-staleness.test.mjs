@@ -66,7 +66,7 @@ function session(cwd) {
 		compact: (summary) => handlers.session_compact({ compactionEntry: { summary }, reason: "auto" }, ctx),
 		prompt: async () => {
 			await handlers.session_start({ reason: "startup" }, ctx);
-			return (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt ?? "BASE";
+			const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx); return `BASE${event.systemPromptOptions.sections["nana-handoff"] ?? ""}`;
 		},
 	};
 }

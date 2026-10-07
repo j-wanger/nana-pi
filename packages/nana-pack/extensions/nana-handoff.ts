@@ -3,9 +3,9 @@
  * @purpose Carry a compaction summary across sessions through the user-scope handoff store, injecting it
  *  only into a fresh session in the same directory.
  * @inputs pi `session_start` / `before_agent_start` / `session_compact` events (reason,
- *  compactionEntry.summary, systemPrompt), the handoff config block, env NANA_HANDOFF, and the store file
+ *  compactionEntry.summary, systemPromptOptions.sections), the handoff config block, env NANA_HANDOFF, and the store file
  *  for the canonical cwd (or an ancestor's, or a configured path)
- * @outputs a labelled handoff block appended to the system prompt (≤ INJECT_CAP) or a bounded pointer line
+ * @outputs a labelled handoff block in the nana-handoff system-prompt section (≤ INJECT_CAP) or a bounded pointer line
  *  (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to
  *  the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored,
  *  handoff_legacy_write_refused, directory_unadopted)

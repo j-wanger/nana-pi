@@ -4,7 +4,7 @@
  *  prompt.
  * @inputs pi `session_start` (all five reasons) and `before_agent_start` events, the user-scope objective
  *  config block, and ctx (cwd, hasUI, ui)
- * @outputs the objective block appended to the system prompt, one journal line per producer event
+ * @outputs the objective block in the nana-objective system-prompt section, one journal line per producer event
  *  (objective_pickup / objective_unavailable), and a UI warning per notice
  * @effects disk (lib/objective.ts reads the objective files and the trust store; appends the journal)
  * @errors none — the handler swallows everything, and an unusable objective reaches the prompt as an
@@ -25,8 +25,8 @@
  * "startup"/"new": the handoff is *continuity* — a resumed or forked session
  * already carries that context in its own transcript, so re-injecting it is
  * noise. The objective is *standing governance*, and it lives only in the system
- * prompt, which pi reassembles from scratch at every agent start (see
- * before_agent_start's `systemPrompt`). A resumed, forked or reloaded session is
+ * structured prompt sections, which pi reassembles from scratch at every agent start.
+ * A resumed, forked or reloaded session is
  * just as able to spend on the wrong thing as a fresh one, so all five reasons
  * (startup, new, resume, fork, reload) pick it up.
  *

@@ -22,7 +22,7 @@ const HOME = path.join(base, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
 fs.mkdirSync(AGENT, { recursive: true });
 const JOURNAL = path.join(AGENT, "nana-journal.jsonl");
-const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: "" };
+const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: "", NANA_TEST_TEMP_ROOTS: "" };
 delete env.PI_CODING_AGENT_DIR;
 let fails = 0;
 const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
@@ -55,6 +55,12 @@ const roots = Array.from({ length: 7 }, (_, i) => repo(`r${i}`));
 fs.writeFileSync(path.join(roots[0], "AGENTS.md"), "x");
 fs.mkdirSync(path.join(roots[0], "docs", "sessions"), { recursive: true });
 const adopted = repo("adopted-later");
+const completeNana = repo("complete-nana");
+fs.writeFileSync(path.join(completeNana, "HANDOFF.md"), "x");
+fs.writeFileSync(path.join(completeNana, "AGENTS.md"), "x");
+fs.mkdirSync(path.join(completeNana, "docs", "sessions"), { recursive: true });
+const handoffOnly = repo("handoff-only");
+fs.writeFileSync(path.join(handoffOnly, "HANDOFF.md"), "x");
 const dismissed = repo("dismissed");
 const old = repo("old");
 let seed = "";
@@ -89,8 +95,26 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("c: names what each root has", r.stdout.includes(`- \`${roots[0]}\` — has: AGENTS.md, docs/sessions/`) && r.stdout.includes(`- \`${roots[1]}\` — has: nothing`));
 	// req: R-151
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
+	// req: R-151
+	check("c: action wording distinguishes no HANDOFF.md from no saved handoff", r.stdout.includes("no HANDOFF.md or saved handoff"));
 	const h = run("bash", [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
+}
+// Root recheck: complete Nana structure is adoption evidence, HANDOFF.md alone is not.
+{
+	fs.writeFileSync(JOURNAL, line(completeNana, 1) + line(handoffOnly, 2));
+	const r = run();
+	// req: R-152
+	check("reader: complete Nana structure root is dropped", !r.stdout.includes(completeNana));
+	// req: R-151
+	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly));
+}
+// Injected temp roots let the reader predicate be tested without hiding ordinary temp fixtures.
+{
+	fs.writeFileSync(JOURNAL, line(handoffOnly, 1));
+	const temporary = run(process.execPath, [BIN, "--cwd", base], { ...env, NANA_TEST_TEMP_ROOTS: path.dirname(handoffOnly) });
+	// req: R-640
+	check("reader: injected temporary parent skips candidate", temporary.stdout === "");
 }
 // adopting via a store entry drops it too; a symlinked spelling is one entry
 {
@@ -105,6 +129,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const entry = storePathFor(s);
 	fs.mkdirSync(path.dirname(entry), { recursive: true });
 	fs.writeFileSync(entry, "x");
+	// req: R-152
 	check("c: a root with a store entry now → nothing", run().stdout === "");
 }
 // a configured user-scope journal.path is where it reads

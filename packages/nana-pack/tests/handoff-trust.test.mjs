@@ -45,8 +45,9 @@ for (const trusted of [true, false]) {
 	let threw = false;
 	try { await handlers.session_start({ reason: "startup" }, ctx); } catch { threw = true; }
 	check(`${tag}: session_start does not throw`, !threw);
-	const r = await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx);
-	const sp = r?.systemPrompt ?? "BASE";
+	const event = { systemPromptOptions: { sections: {} } }; await handlers.before_agent_start(event, ctx);
+	const r = event.systemPromptOptions.sections["nana-handoff"];
+	const sp = `BASE${r ?? ""}`;
 	// req: R-131
 	check(`${tag}: the committed injection string is ABSENT from the system prompt`, !sp.includes(INJECT));
 	const added = sp.slice("BASE".length);
@@ -89,7 +90,9 @@ for (const scope of ["user", "user-elsewhere", "project"]) {
 	const tag = `custom legacy (${scope})`;
 	check(`${tag}: the configured path IS honored by config (test is not vacuous)`, loadConfig(ctx).handoff.path === target);
 	await handlers.session_start({ reason: "startup" }, ctx);
-	const sp = (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt ?? "BASE";
+	const event = { systemPromptOptions: { sections: {} } };
+	await handlers.before_agent_start(event, ctx);
+	const sp = `BASE${event.systemPromptOptions.sections["nana-handoff"] ?? ""}`;
 	check(`${tag}: the injection string is ABSENT from the system prompt`, !sp.includes(INJECT));
 	const added = sp.slice("BASE".length);
 	const shownRe = /handoff\.path/;

@@ -63,13 +63,14 @@ function setup(opts = {}) {
 	const notifies = [];
 	const ctx = {
 		cwd: td,
+		mode: "tui",
 		hasUI: true,
 		isProjectTrusted: () => true,
 		ui: { notify: (message, type) => notifies.push({ message, type }) },
 		...(opts.ctx ?? {}),
 	};
 	const journal = () => (fs.existsSync(journalPath) ? fs.readFileSync(journalPath, "utf-8") : "");
-	return { td, notifies, journal, fire: () => handlers.agent_settled({}, ctx) };
+	return { td, notifies, journal, fire: () => handlers.agent_settled({}, ctx), prompt: () => handlers.ui_prompt_start({ title: "unsafe command title" }, ctx), handlers, ctx };
 }
 
 // The notifier callback is async — poll for it rather than sleeping blind.
@@ -119,6 +120,33 @@ const POSIX = process.platform !== "win32";
 // A fixture runs with PATH isolated to its own dir, so anything it calls must be
 // absolute — `sleep` is not a shell builtin.
 const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p));
+
+// ui_prompt_start uses a fixed, non-title body and follows the same disabled/headless rules.
+{
+	const original = process.stdout.write;
+	let output = "";
+	process.stdout.write = function (chunk, ...args) { output += String(chunk); return true; };
+	try {
+		const approval = setup();
+		await withFakePlatform("linux", async () => { await approval.prompt(); });
+		// req: R-642
+		check("prompt: ui_prompt_start emits one fixed-body notification", output === "\u001b]777;notify;pi;Approval needed in pi\u0007" && !output.includes("unsafe command title"));
+		output = "";
+		const rpc = setup({ ctx: { mode: "rpc", hasUI: true } });
+		await withFakePlatform("linux", async () => { await rpc.fire(); });
+		// req: R-643
+		check("prompt: RPC with hasUI writes no OSC stdout", output === "");
+		output = "";
+		const disabled = setup();
+		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: path.join(disabled.td, "journal.jsonl") }, notify: { enabled: false, headless: true } }));
+		await withFakePlatform("linux", async () => { await disabled.prompt(); });
+		const headless = setup({ ctx: { hasUI: false } });
+		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: path.join(headless.td, "journal.jsonl") }, notify: { enabled: true, headless: false } }));
+		await withFakePlatform("linux", async () => { await headless.prompt(); });
+		// req: R-642
+		check("prompt: disabled and headless without opt-in emit nothing", output === "");
+	} finally { process.stdout.write = original; }
+}
 
 // (a) the classifier: every shape execFile can report a failure in, and the
 // benign output that must NOT be read as one.

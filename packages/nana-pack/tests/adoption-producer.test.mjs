@@ -20,6 +20,7 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
 delete process.env.PI_CODING_AGENT_DIR;
+process.env.NANA_TEST_TEMP_ROOTS = "";
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 const JOURNAL = path.join(NANA_HOME, "journal.jsonl");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
@@ -42,7 +43,10 @@ function session(m, cwd) {
 		compact: (summary) => handlers.session_compact({ compactionEntry: { summary }, reason: "manual" }, ctx),
 		prompt: async (reason = "startup") => {
 			await handlers.session_start({ reason }, ctx);
-			return (await handlers.before_agent_start({ systemPrompt: "BASE" }, ctx))?.systemPrompt ?? "BASE";
+			const event = { systemPrompt: "BASE", systemPromptOptions: { sections: {} } };
+			const result = await handlers.before_agent_start(event, ctx);
+			const section = event.systemPromptOptions.sections["nana-handoff"];
+			return section ? `BASE${section}` : result?.systemPrompt ?? "BASE";
 		},
 	};
 }
@@ -103,6 +107,26 @@ const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adopt
 		// req: R-147
 		check("a: no .git above → no line", reports().length === before);
 	}
+}
+// The complete Nana structure adopts; HANDOFF.md by itself does not.
+{
+	const complete = repo("complete-nana", ["HANDOFF.md", "AGENTS.md", "docs/sessions/"]);
+	await prompt(complete);
+	// req: R-152
+	check("adoption: complete Nana structure root is adopted", reportsFor(complete).length === 0);
+	const handoffOnly = repo("handoff-only", ["HANDOFF.md"]);
+	await prompt(handoffOnly);
+	// req: R-143
+	check("adoption: HANDOFF.md-only root remains unadopted", reportsFor(handoffOnly).length === 1);
+}
+// Test-only injected temp roots: production defaults skip OS temp roots, ordinary fixtures opt out.
+{
+	const r = repo("injected-temporary-root");
+	process.env.NANA_TEST_TEMP_ROOTS = path.dirname(r);
+	await prompt(r);
+	process.env.NANA_TEST_TEMP_ROOTS = "";
+	// req: R-640
+	check("adoption: injected temporary parent skips producer root", reportsFor(r).length === 0);
 }
 // adopted / dismissed roots
 for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["dismissal marker at the root", [lib.MARKER]]]) {

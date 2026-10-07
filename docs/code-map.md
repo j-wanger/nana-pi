@@ -867,11 +867,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/extensions/nana-handoff.ts`
 
 - **purpose** — Carry a compaction summary across sessions through the user-scope handoff store, injecting it only into a fresh session in the same directory.
-- **inputs** — pi `session_start` / `before_agent_start` / `session_compact` events (reason, compactionEntry.summary, systemPrompt), the handoff config block, env NANA_HANDOFF, and the store file for the canonical cwd (or an ancestor's, or a configured path)
-- **outputs** — a labelled handoff block appended to the system prompt (≤ INJECT_CAP) or a bounded pointer line (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored, handoff_legacy_write_refused, directory_unadopted)
+- **inputs** — pi `session_start` / `before_agent_start` / `session_compact` events (reason, compactionEntry.summary, systemPromptOptions.sections), the handoff config block, env NANA_HANDOFF, and the store file for the canonical cwd (or an ancestor's, or a configured path)
+- **outputs** — a labelled handoff block in the nana-handoff system-prompt section (≤ INJECT_CAP) or a bounded pointer line (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored, handoff_legacy_write_refused, directory_unadopted)
 - **effects** — disk (reads the store, writes it temp-file-plus-rename, lstats the configured path and the repo root, appends the journal)
 - **errors** — never throws — every pickup or write failure, invalid UTF-8 included, degrades to no handoff plus one journal line
-- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`
+- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
 - **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-pack/extensions/nana-lifecycle.ts`
@@ -898,7 +898,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Inject the owner's standing objective and current priority into every pi session's system prompt.
 - **inputs** — pi `session_start` (all five reasons) and `before_agent_start` events, the user-scope objective config block, and ctx (cwd, hasUI, ui)
-- **outputs** — the objective block appended to the system prompt, one journal line per producer event (objective_pickup / objective_unavailable), and a UI warning per notice
+- **outputs** — the objective block in the nana-objective system-prompt section, one journal line per producer event (objective_pickup / objective_unavailable), and a UI warning per notice
 - **effects** — disk (lib/objective.ts reads the objective files and the trust store; appends the journal)
 - **errors** — none — the handler swallows everything, and an unusable objective reaches the prompt as an `OBJECTIVE UNAVAILABLE` marker rather than silence
 - **callers** — `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
@@ -927,7 +927,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/adoption.mjs`
 
 - **purpose** — The one adoption predicate — the handoff store's location, whether a repository root has been adopted, and which `directory_unadopted` reports are printable.
-- **inputs** — a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions, the dismissal marker)
+- **inputs** — a directory path, user-scope nana-pack.json in pi's active agent dir, os.homedir(), the tail of the adoption journal, and each root's own entries (`.git`, the objective file, AGENTS.md, docs/sessions, the dismissal marker), and NANA_TEST_TEMP_ROOTS (path-delimited test override; empty disables skipping)
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
@@ -971,7 +971,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pi's resolution of an edit/write path, every candidate form of it, the policy file a candidate set or a command word lands on (or null), and pi's active trust store path
 - **effects** — disk (realpath / readlink / lstat of candidate paths, the agent dirs and their nana-pack.json and trust.json)
 - **errors** — none — every function is total and degrades to the raw input or to null
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`
 
 ### `packages/nana-pack/lib/gate-shell.ts`
@@ -1342,7 +1342,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, stub checker scripts, receipts), process (sets HOME, spawns and kills the stub checkers and their descendants)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`
 
 ### `packages/nana-pack/tests/post-edit-status.test.mjs`
 
@@ -1442,7 +1442,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`
 
 ### `packages/nana-setup/bin/nana-setup.mjs`
 
