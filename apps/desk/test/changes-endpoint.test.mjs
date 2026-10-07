@@ -22,6 +22,7 @@
 // own git config cannot change the outcome.
 //
 // Run: node apps/desk/test/changes-endpoint.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -34,7 +35,7 @@ const check = (n, ok, extra = "") => {
 	console.log(ok ? "PASS" : "FAIL", n, extra);
 	if (!ok) fails++;
 };
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-changes-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-changes-"));
 const git = (cwd, ...args) =>
 	execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] });
 const write = (p, s) => {

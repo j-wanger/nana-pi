@@ -9,6 +9,7 @@
 // Gate: a line-oriented ledger indexes as one row per ENTRY, not one row per file and
 // not one row per physical line. Fixture mirrors loops/DOCTRINE.md exactly: a fenced
 // contract block full of template lines, 3-physical-line entries, prose between sections.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -47,7 +48,7 @@ const FIXTURE = `# Doctrine ledger — propositions this program has proven
 1. [uses:9] (meta) A numbered entry line. src: \`run-ghi\`
 `;
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-ledger-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-ledger-"));
 const f = path.join(td, "DOCTRINE.md");
 fs.writeFileSync(f, FIXTURE);
 

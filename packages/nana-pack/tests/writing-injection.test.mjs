@@ -17,6 +17,7 @@
 //   MUST 3(d) — the composition regression now seeds a REAL objective and asserts the base
 //   prompt, the objective block and the writing block each appear exactly once, IN ORDER,
 //   through both a hand-rolled stub chain and the installed pi 1.0.2 ExtensionRunner.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -43,7 +44,7 @@ function findPiIndex() {
 }
 const piIndexPath = findPiIndex();
 
-const home = fs.mkdtempSync(path.join(os.tmpdir(), "writing-inject-home-"));
+const home = tmpDir(path.join(os.tmpdir(), "writing-inject-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
@@ -63,7 +64,7 @@ fs.writeFileSync(objectiveFile, "**Objective:** ship the writing trial.\n\n**Cur
 
 const tmps = [];
 function tempDir() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "writing-inject-cwd-"));
+	const td = tmpDir(path.join(os.tmpdir(), "writing-inject-cwd-"));
 	tmps.push(td);
 	return td;
 }

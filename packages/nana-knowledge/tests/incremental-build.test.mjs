@@ -8,11 +8,12 @@
  */
 // Gate: the build is incremental on CONTENT HASH, not on mtime. Rebuilding 19k files
 // every prompt-triggered background build would be the thing that makes this unusable.
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-build-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-build-"));
 const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });

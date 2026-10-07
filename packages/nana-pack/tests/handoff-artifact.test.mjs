@@ -6,13 +6,14 @@
  * @effects disk (temp HOME, config file, handoff store), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -32,7 +33,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 const handlers = {};
 ext({ on: (name, fn) => { handlers[name] = fn; } });
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-"));
+const td = tmpDir(path.join(os.tmpdir(), "handoff-"));
 fs.mkdirSync(path.join(td, ".pi"));
 fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 const ctx = { cwd: td, hasUI: false, isProjectTrusted: () => true };
@@ -56,7 +57,7 @@ check("prompt says update in place", handoffSection.includes(`update ${store} in
 // the owner's (custom paths are honored from user scope; L3 invariant b)
 const handlers2 = {};
 ext({ on: (name, fn) => { handlers2[name] = fn; } });
-const td2 = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-custom-"));
+const td2 = tmpDir(path.join(os.tmpdir(), "handoff-custom-"));
 const custom = path.join(td2, "STATE", "HANDOFF.md");
 fs.mkdirSync(path.join(td2, ".pi"));
 fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff: { path: custom } }));

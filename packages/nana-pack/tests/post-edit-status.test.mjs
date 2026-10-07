@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -13,7 +14,7 @@ import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -34,7 +35,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 // Fresh workspace + registered handler + a ctx whose ui records instead of rendering.
 // opts.ctx merges into the ctx (e.g. { hasUI: false }); opts.signal overrides ctx.signal.
 function setup(commands, opts = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-status-"));
+	const td = tmpDir(path.join(os.tmpdir(), "postedit-status-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: false },
@@ -223,7 +224,7 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 		});
 		const lockExt = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
 
-		const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-lock-"));
+		const td = tmpDir(path.join(os.tmpdir(), "postedit-lock-"));
 		fs.mkdirSync(path.join(td, ".pi"));
 		fs.writeFileSync(USER_CFG, JSON.stringify({
 			journal: { enabled: false },

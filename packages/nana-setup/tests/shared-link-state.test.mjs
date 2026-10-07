@@ -26,6 +26,7 @@
 // ignores a 4th call argument and reads the real, healthy link, so running this test's injected
 // scenario against ae15067 returns "linked", not a throw. The TRUE reproduction below is the one
 // that actually discriminates base from branch.
+import { tmpDir } from "./tmp-dir.mjs";
 import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
 import * as fs from "node:fs";
@@ -103,7 +104,7 @@ function withLinkDeletedRightAfterLstat(targetPath, fn) {
 	syncBuiltinESMExports(); // the hostile getter is gone now — this call is expected to succeed
 }
 
-const home = fs.mkdtempSync(path.join(os.tmpdir(), "nana-shared-link-state-"));
+const home = tmpDir(path.join(os.tmpdir(), "nana-shared-link-state-"));
 const projectsDir = path.join(home, ".claude", "projects");
 const sharedMemoryDir = path.join(home, ".claude", "nana-memory", "shared");
 fs.mkdirSync(sharedMemoryDir, { recursive: true });

@@ -6,13 +6,14 @@
  * @effects disk (temp HOME, stub notifier scripts), process (sets HOME, spawns and kills the stub notifiers)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -50,7 +51,7 @@ const NOTIFIER_TIMEOUT_MS = 8000;
 
 // Fresh workspace + registered handler + a ctx whose ui records instead of rendering.
 function setup(opts = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "notify-fallback-"));
+	const td = tmpDir(path.join(os.tmpdir(), "notify-fallback-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	const journalPath = path.join(td, "journal.jsonl");
 	fs.writeFileSync(USER_CFG, JSON.stringify({
@@ -109,7 +110,7 @@ async function withPath(dir, fn) {
 
 /** A stand-in for the OS notifier, under the exact name the extension invokes. POSIX only. */
 function fixtureNotifier(body) {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notify-bin-"));
+	const dir = tmpDir(path.join(os.tmpdir(), "notify-bin-"));
 	const bin = path.join(dir, NOTIFIER_BIN);
 	fs.writeFileSync(bin, `#!/bin/sh\n${body}\n`);
 	fs.chmodSync(bin, 0o755);
@@ -194,7 +195,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 // any host rather than assumed from the platform name.
 {
 	const { td, notifies, journal, fire } = setup();
-	const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notify-nopath-"));
+	const emptyDir = tmpDir(path.join(os.tmpdir(), "notify-nopath-"));
 	await withFakePlatform(MISSING_NOTIFIER_PLATFORM, () => withPath(emptyDir, async () => {
 		await fire();
 		await waitFor(() => notifies.length > 0);
@@ -218,7 +219,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 // (already resolved) handler into an unhandled rejection.
 {
 	const { td, journal, fire } = setup({ ctx: { hasUI: false, ui: undefined } });
-	const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notify-nopath-"));
+	const emptyDir = tmpDir(path.join(os.tmpdir(), "notify-nopath-"));
 	let unhandled = null;
 	const onUnhandled = (err) => { unhandled = err; };
 	process.on("unhandledRejection", onUnhandled);
@@ -241,7 +242,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 // (d) notify disabled: no notifier is attempted, so there is nothing to fall back
 // from — the fallback must not invent a notification of its own.
 {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "notify-off-"));
+	const td = tmpDir(path.join(os.tmpdir(), "notify-off-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	const journalPath = path.join(td, "journal.jsonl");
 	fs.writeFileSync(USER_CFG, JSON.stringify({
@@ -252,7 +253,7 @@ const SLEEP_BIN = ["/bin/sleep", "/usr/bin/sleep"].find((p) => fs.existsSync(p))
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	const notifies = [];
 	const ctx = { cwd: td, hasUI: true, isProjectTrusted: () => true, ui: { notify: (m, t) => notifies.push({ m, t }) } };
-	const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notify-nopath-"));
+	const emptyDir = tmpDir(path.join(os.tmpdir(), "notify-nopath-"));
 	await withFakePlatform(MISSING_NOTIFIER_PLATFORM, () => withPath(emptyDir, async () => {
 		await handlers.agent_settled({}, ctx);
 		await sleep(300);

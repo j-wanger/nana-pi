@@ -10,6 +10,7 @@
 // — pi-review / pi-worker with a stub `pi` on PATH, and review-ledger run/check — against real git
 // repositories and worktrees, under a temp HOME. Each sol r1 bypass is pinned as a refusal here.
 // Run: node packages/nana-pack/tests/review-ledger.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -21,7 +22,7 @@ const PI_REVIEW = path.join(bin, "pi-review.mjs");
 const PI_WORKER = path.join(bin, "pi-worker.mjs");
 const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
 const mod = await import(path.join(bin, "review-round.mjs"));
-const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "review-ledger-test-")));
+const tmp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-ledger-test-")));
 const stubs = path.join(tmp, "stubs");
 const outs = path.join(tmp, "outs");
 for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });

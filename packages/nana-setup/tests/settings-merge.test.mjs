@@ -10,6 +10,7 @@
 // keys, and someone else's ordering all survive; a file we cannot parse OR cannot understand
 // stops the installer before anything on disk has moved; the write is atomic and refuses to
 // clobber a concurrent edit; and a hook counts as installed only when it really is one.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -184,7 +185,7 @@ check("five hook entries are wanted", wanted.length === 5);
 
 const tmps = [];
 function freshHome(prefix = "nana-setup-settings-") {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+	const td = tmpDir(path.join(os.tmpdir(), prefix));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));

@@ -6,6 +6,7 @@
  * @effects disk (reads this checkout; writes a scratch copy of one test module for the mutation check), process (runs the map CLI and a syntax check as child processes)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -244,7 +245,7 @@ check("the config the CLI reads is this repo's", config.mapPath === "docs/code-m
 // itself a module) so the claim is about the shipped CLI and not about a hand-built graph. Asserted
 // as a DIFF against the scratch baseline, so a problem that already exists cannot pass for the one
 // the mutation introduced.
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "code-map-mutation-"));
+const scratch = tmpDir(path.join(os.tmpdir(), "code-map-mutation-"));
 try {
 	const gen = path.join(scratch, ".map", "code-map.mjs");
 	fs.mkdirSync(path.dirname(gen), { recursive: true });

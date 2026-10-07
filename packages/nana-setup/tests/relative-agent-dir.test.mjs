@@ -13,6 +13,7 @@
 // U2 fix round 3 (sol r3 HIGH): `project` and `project --check` read the user-scope config too, so
 // they refuse on the same terms.
 // Nothing here touches the real machine: HOME is a temp dir, and the refusal writes nothing.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -27,7 +28,7 @@ const check = (n, ok, extra) => {
 	if (!ok) fails++;
 };
 
-const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-rel-")));
+const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-setup-rel-")));
 const CWD = path.join(HOME, "somewhere");
 fs.mkdirSync(CWD);
 const REL = "rel-agent";

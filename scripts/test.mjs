@@ -43,6 +43,7 @@
 //   NANA_TEST_SELFTEST=1 npm test   same as --self-test
 //   npm test -- <substring>...   only files whose path contains one of the substrings
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -70,6 +71,7 @@ const isDir = (p) => {
 // ── cleanup: the active child's tree and the scratch dir, on EVERY exit path ────────────────
 let scratch = null;
 let active = null; // the running child, if any
+let activeFileTmp = null;
 
 /** Kill a child's whole tree. POSIX: it leads its own process group. win32: taskkill /T. */
 function killTree(child) {
@@ -91,6 +93,10 @@ function reapPipeHolder() {
 function cleanup() {
 	killTree(active);
 	active = null;
+	if (activeFileTmp) {
+		try { fs.rmSync(activeFileTmp, { recursive: true, force: true }); } catch {}
+		activeFileTmp = null;
+	}
 	if (!scratch) return;
 	reapPipeHolder();
 	try {
@@ -266,12 +272,39 @@ const BASE_ENV = (() => {
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
 const files = collect();
 scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
-const trackedStatus = () => {
-	const r = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=no"], { cwd: root, encoding: "buffer" });
-	if (r.error || r.status !== 0) return null;
-	return r.stdout.toString("utf8");
+const trackedSnapshot = () => {
+	const listed = spawnSync("git", ["ls-files", "-s", "-z"], { cwd: root, encoding: "buffer" });
+	if (listed.error || listed.status !== 0) return null;
+	const dirty = spawnSync("git", ["diff", "--name-only", "--no-renames", "-z"], { cwd: root, encoding: "buffer" });
+	if (dirty.error || dirty.status !== 0) return null;
+	const dirtyNames = dirty.stdout.toString("utf8").split("\0").filter(Boolean);
+	const entries = listed.stdout.toString("utf8").split("\0").filter(Boolean);
+	const snapshot = new Map();
+	for (const entry of entries) {
+		const tab = entry.indexOf("\t");
+		const indexState = entry.slice(0, tab);
+		const name = entry.slice(tab + 1);
+		const target = path.join(root, name);
+		let content;
+		try {
+			const stat = fs.lstatSync(target);
+			const bytes = stat.isSymbolicLink() ? Buffer.from(fs.readlinkSync(target)) : fs.readFileSync(target);
+			content = createHash("sha256").update(bytes).digest("hex");
+		} catch {
+			content = "<missing>";
+		}
+		const previous = snapshot.get(name) ?? [];
+		previous.push(`${indexState}\0${content}`);
+		snapshot.set(name, previous);
+	}
+	for (const name of dirtyNames) {
+		const previous = snapshot.get(name) ?? [];
+		previous.push("worktree-diff");
+		snapshot.set(name, previous);
+	}
+	return snapshot;
 };
-const beforeStatus = trackedStatus();
+const beforeSnapshot = trackedSnapshot();
 const fixtureOf = new Map();
 if (selfTest) {
 	for (const fx of FIXTURES) {
@@ -306,6 +339,7 @@ try {
 		}
 		const fx = fixtureOf.get(file);
 		const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
+		activeFileTmp = fileTmp;
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
 		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
 		if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
@@ -344,16 +378,20 @@ try {
 		if (fx) reapPipeHolder();
 		fs.rmSync(home, { recursive: true, force: true });
 		fs.rmSync(fileTmp, { recursive: true, force: true });
+		activeFileTmp = null;
 	}
 } finally {
 	cleanup();
 }
 
-const afterStatus = trackedStatus();
-if (beforeStatus !== null && afterStatus !== null && beforeStatus !== afterStatus) {
-	const changed = [...new Set([...beforeStatus, ...afterStatus].join("").split("\0").filter(Boolean).map((entry) => entry.slice(3)))].sort();
-	console.log(`FAIL tracked repository files changed by tests: ${changed.join(", ")}`);
-	tally.FAIL++;
+const afterSnapshot = trackedSnapshot();
+if (beforeSnapshot !== null && afterSnapshot !== null) {
+	const names = new Set([...beforeSnapshot.keys(), ...afterSnapshot.keys()]);
+	const changed = [...names].filter((name) => JSON.stringify(beforeSnapshot.get(name) ?? []) !== JSON.stringify(afterSnapshot.get(name) ?? [])).sort();
+	if (changed.length) {
+		console.log(`FAIL tracked repository files changed by tests: ${changed.join(", ")}`);
+		tally.FAIL++;
+	}
 }
 console.log(
 	`\n${files.length} files: ${tally.PASS} PASS, ${tally.FAIL} FAIL, ${tally.SKIP} SKIP, ${warns.length} WARN · checks: ${checks.pass} pass, ${checks.fail} fail, ${checks.skip} skip · ${((Date.now() - started) / 1000).toFixed(1)}s`,

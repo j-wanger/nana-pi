@@ -6,13 +6,14 @@
  * @effects disk (temp HOME and config file), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -34,7 +35,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 // the registration closure, so every scenario starts from zero).
 // opts.select overrides the dialog answer; opts.ui merges into the fake ui.
 function setup(gate, opts = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "gate-status-"));
+	const td = tmpDir(path.join(os.tmpdir(), "gate-status-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: false },
@@ -140,7 +141,7 @@ const last = (a) => a.at(-1);
 // (e) headless (print/JSON mode): no ctx.ui at all. The gate must stay silent and
 // keep its fail-closed block.
 {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "gate-status-headless-"));
+	const td = tmpDir(path.join(os.tmpdir(), "gate-status-headless-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
 	const handlers = {};

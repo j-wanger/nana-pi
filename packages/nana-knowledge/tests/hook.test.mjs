@@ -8,12 +8,13 @@
  */
 // Gate: the hook is fail-open, bounded, and never repeats a pointer inside a session.
 // It runs on EVERY prompt the owner types; a throw here is a broken prompt.
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-hook-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-hook-"));
 const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });

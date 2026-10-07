@@ -15,6 +15,7 @@
 //            does not inherit the installing shell's environment; the default dir renders nothing.
 // Run with --experimental-strip-types (the runtime paths module is TypeScript). Nothing here calls
 // launchctl: every install passes --claude-home, so the layout is never the real home.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -31,7 +32,7 @@ const check = (n, ok, extra) => {
 	if (!ok) fails++;
 };
 
-const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-adc-")));
+const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-setup-adc-")));
 const CUSTOM = path.join(HOME, "custom-agent"); // absolute override
 const baseEnv = { ...process.env, HOME, USERPROFILE: HOME };
 delete baseEnv.NANA_KNOWLEDGE_HOME;

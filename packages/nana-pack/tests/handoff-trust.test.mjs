@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, temp project, journal), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,7 +17,7 @@ import * as path from "node:path";
 // The session instead gets ONE bounded pointer naming the file as repo-writable and not
 // injected, and the journal records `handoff_legacy_ignored`.
 // Run: node --experimental-strip-types <this file>
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -33,7 +34,7 @@ const journal = () => (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8"
 
 for (const trusted of [true, false]) {
 	fs.rmSync(JOURNAL, { force: true });
-	const repo = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-trust-"));
+	const repo = tmpDir(path.join(os.tmpdir(), "handoff-trust-"));
 	fs.mkdirSync(path.join(repo, ".pi"));
 	const committed = `# Session handoff\n\nWritten ${new Date().toISOString()} by nana-handoff at compaction (manual).\n\n${INJECT}\n`;
 	fs.writeFileSync(path.join(repo, ".pi", "handoff.md"), committed);
@@ -72,13 +73,13 @@ usePiTrustModule({ hasTrustRequiringProjectResources: () => true, ProjectTrustSt
 const userCfg = (extra) => fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: JOURNAL }, ...extra }));
 for (const scope of ["user", "user-elsewhere", "project"]) {
 	fs.rmSync(JOURNAL, { force: true });
-	const repo = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-shape-")));
+	const repo = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-shape-")));
 	fs.mkdirSync(path.join(repo, ".pi"));
 	const target = path.join(repo, ".pi", "handoff.md");
 	const committed = `# Session handoff (nana)\n\nCwd: ${repo}\nWritten: ${new Date().toISOString()}\nWriter: w\n---\n${INJECT}\n`;
 	fs.writeFileSync(target, committed);
 	const before = fs.readFileSync(target);
-	const cwd = scope === "user-elsewhere" ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-elsewhere-"))) : repo;
+	const cwd = scope === "user-elsewhere" ? fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-elsewhere-"))) : repo;
 	if (scope === "project") {
 		userCfg({});
 		fs.writeFileSync(path.join(repo, ".pi", "nana-pack.json"), JSON.stringify({ handoff: { path: target } }));

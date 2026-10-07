@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, store files), process (sets HOME and NANA_HANDOFF, spawns pi-review with the stub pi on PATH)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -16,7 +17,7 @@ import { fileURLToPath } from "node:url";
 // is never inferred from the tool list or hasUI. pi-review sets the marker in every
 // child's spawn env; that is tested against a stub `pi` on PATH, not a live pi.
 // Run: node --experimental-strip-types <this file>
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -42,7 +43,7 @@ function session(cwd, hasUI = false) {
 		},
 	};
 }
-const repo = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-role-")));
+const repo = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-role-")));
 fs.mkdirSync(path.join(repo, ".pi"));
 fs.writeFileSync(path.join(repo, ".pi", "handoff.md"), "LEGACY\n"); // even the legacy pointer is suppressed
 const file = mod.storePathFor(repo);
@@ -71,7 +72,7 @@ check("no marker: normal behaviour (picks up)", (await session(repo).prompt()).i
 // pi-review's child spawn env carries the marker (stub `pi` prints its env; zero model calls)
 if (process.platform === "win32") console.log("SKIP pi-review spawn env: POSIX shell stub");
 else {
-	const bin = fs.mkdtempSync(path.join(os.tmpdir(), "stub-pi-"));
+	const bin = tmpDir(path.join(os.tmpdir(), "stub-pi-"));
 	fs.writeFileSync(path.join(bin, "pi"), '#!/bin/sh\necho "VERDICT: stub NANA_HANDOFF=${NANA_HANDOFF:-unset}"\n', { mode: 0o755 });
 	const out = path.join(bin, "review.md");
 	const piReview = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));

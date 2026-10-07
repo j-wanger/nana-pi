@@ -10,12 +10,13 @@
 // child failure, never a reject out of before_agent_start, and no node:sqlite inside
 // pi's own process. It runs on every prompt the owner types; a throw here is a dead turn.
 // Run: node --experimental-strip-types <this file>
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const td = fs.mkdtempSync(path.join(os.tmpdir(), "nk-ext-"));
+const td = tmpDir(path.join(os.tmpdir(), "nk-ext-"));
 const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });

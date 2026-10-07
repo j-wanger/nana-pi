@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, stub checker scripts, receipts), process (sets HOME, spawns and kills the stub checkers and their descendants)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -13,7 +14,7 @@ import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -53,11 +54,11 @@ let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const JOURNAL = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "postedit-journal-")), "journal.jsonl");
+const JOURNAL = path.join(tmpDir(path.join(os.tmpdir(), "postedit-journal-")), "journal.jsonl");
 
 // Fresh workspace + registered handler + config (same shape as receipt-binding).
 function setup(commands, opts = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "postedit-"));
+	const td = tmpDir(path.join(os.tmpdir(), "postedit-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	fs.writeFileSync(USER_CFG, JSON.stringify({
 		journal: { enabled: true, path: JOURNAL },

@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 173 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 179 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -208,7 +208,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp dirs, ledger files, reads the review corpus), process (spawns the stub judge executables)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/lib/catch-extract.mjs`, `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/catch-stats.mjs`
+- **callees** — `apps/bench/lib/catch-extract.mjs`, `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`
 
 ### `apps/bench/test/checkers.test.mjs`
 
@@ -218,7 +218,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp workspaces and fixture trees), process (spawns the commands a checker runs)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/lib/checkers.mjs`
+- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/test/tmp-dir.mjs`
 
 ### `apps/bench/test/evaluator-hardening.test.mjs`
 
@@ -228,7 +228,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp dirs, module sources and verdict files), process (spawns the evaluator and the untrusted module in their own processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/lib/checkers.mjs`
+- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/test/tmp-dir.mjs`
 
 ### `apps/bench/test/integration.test.mjs`
 
@@ -298,7 +298,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp dirs and stub scripts), process (spawns the stub tree and signals it)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/run.mjs`
+- **callees** — `apps/bench/run.mjs`, `apps/bench/test/tmp-dir.mjs`
+
+### `apps/bench/test/tmp-dir.mjs`
+
+- **purpose** — Create test temporary roots and remove them when the test process exits.
+- **inputs** — A mkdtemp prefix.
+- **outputs** — The created temporary directory path.
+- **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`
+- **callees** — —
 
 ### `apps/bench/test/usage.test.mjs`
 
@@ -418,7 +428,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `packages/nana-stage/lib/blocks.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`
 
 ### `apps/desk/test/buffer-caps.test.mjs`
 
@@ -428,7 +438,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/changes-endpoint.test.mjs`
 
@@ -438,7 +448,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, git repositories and work trees), network (HTTP to the desk it binds), process (spawns the desk, the stub pi and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/changes.mjs`, `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/changes.mjs`, `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/crash-paths.test.mjs`
 
@@ -448,7 +458,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/host-rule.test.mjs`
 
@@ -457,6 +467,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (a temp HOME and apps dir), network (raw loopback sockets to the desk it binds), process (spawns the desk; no pi child is ever spawned)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **callers** — —
+- **callees** — `apps/desk/test/tmp-dir.mjs`
+
+### `apps/desk/test/knowledge-home-isolation.test.mjs`
+
+- **purpose** — Pin temporary knowledge-home isolation in every real-pi desk E2E harness.
+- **inputs** — The real-pi E2E harness sources in this test directory.
+- **outputs** — PASS/FAIL checks for each harness's child environment.
+- **effects** — disk (reads test source files)
+- **errors** — A missing or non-temporary knowledge-home assignment prints FAIL and exits nonzero.
 - **callers** — —
 - **callees** — —
 
@@ -488,7 +508,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (a temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/pi-resolution.test.mjs`
 
@@ -498,7 +518,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, synthetic install trees and symlinks), process (sets HOME and DESK_PI_ROOT; nothing here starts a server)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/pi-session-parity.test.mjs`
 
@@ -508,7 +528,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/prompt-detach.test.mjs`
 
@@ -518,7 +538,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/spawn-and-persist.test.mjs`
 
@@ -528,7 +548,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, settings and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/stage-key-persistence.test.mjs`
 
@@ -538,7 +558,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, key store and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/stage-keys.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/stage-keys.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/sign.mjs`
 
 ### `apps/desk/test/teardown-invariants.test.mjs`
 
@@ -548,7 +568,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME and apps dir), network (HTTP to the desk it binds), process (spawns the desk and unkillable stub children, and signals them)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
+
+### `apps/desk/test/tmp-dir.mjs`
+
+- **purpose** — Create test temporary roots and remove them when the test process exits.
+- **inputs** — A mkdtemp prefix.
+- **outputs** — The created temporary directory path.
+- **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`
+- **callees** — —
 
 ### `scripts/code-map.mjs`
 
@@ -702,7 +732,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp directories and markdown fixtures), process (spawns the build CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/extension.test.mjs`
 
@@ -712,7 +742,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/tokenize.ts`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/hook.test.mjs`
 
@@ -722,7 +752,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/incremental-build.test.mjs`
 
@@ -732,7 +762,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp source tree), database (the temp sqlite index it builds), process (sets NANA_KNOWLEDGE_HOME)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/ledger-parse.test.mjs`
 
@@ -742,7 +772,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a temp fixture file)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/parse.ts`
+- **callees** — `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/render.test.mjs`
 
@@ -752,7 +782,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp source tree and index under a temp home), process (sets NANA_KNOWLEDGE_HOME)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+
+### `packages/nana-knowledge/tests/tmp-dir.mjs`
+
+- **purpose** — Create test temporary roots and remove them when the test process exits.
+- **inputs** — A mkdtemp prefix.
+- **outputs** — The created temporary directory path.
+- **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **callers** — `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **callees** — —
 
 ### `packages/nana-knowledge/tests/tokenize.test.mjs`
 
@@ -1042,7 +1082,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, journal and repository fixtures under the OS temp dir), process (sets HOME and USERPROFILE, spawns git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/adoption-reader.test.mjs`
 
@@ -1052,7 +1092,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, journal, symlinked repository fixtures), process (sets HOME, spawns the reader CLI and the bash hook)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/adoption.mjs`
+- **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-config.test.mjs`
 
@@ -1062,7 +1102,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and symlinked agent dirs), process (sets HOME and PI_CODING_AGENT_DIR, changes the process cwd)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-hostile.test.mjs`
 
@@ -1072,7 +1112,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, symlinks, a deleted cwd), process (sets HOME and PI_CODING_AGENT_DIR, runs a shell through execFileSync)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-parity.test.mjs`
 
@@ -1082,7 +1122,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-setup/lib/paths.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`
 
@@ -1092,7 +1132,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a temp dir), process (sets PI_CODING_AGENT_DIR)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/gate-paths.ts`
+- **callees** — `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/code-map.test.mjs`
 
@@ -1102,7 +1142,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads this checkout; writes a scratch copy of one test module for the mutation check), process (runs the map CLI and a syntax check as child processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `scripts/code-map.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`
 
 ### `packages/nana-pack/tests/config-display-text.test.mjs`
 
@@ -1112,7 +1152,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and hostile config files), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-gate-fallback.test.mjs`
 
@@ -1122,7 +1162,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOMEs and config files), process (sets HOME, spawns child node processes for the fresh-process cases)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-handlers-malformed.test.mjs`
 
@@ -1132,7 +1172,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-normalize.test.mjs`
 
@@ -1142,7 +1182,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOMEs and config files), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`
 
@@ -1152,7 +1192,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, temp git projects, trust store), process (sets HOME, runs git and child node processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-trust.test.mjs`
 
@@ -1162,7 +1202,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, temp projects, pi settings fixtures), process (sets HOME, runs npm and git through execSync)
 - **errors** — a failed check prints FAIL and the run exits 1; the pi-dependent cases report a skip rather than a pass when no pi install is found
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/display-surfaces.test.mjs`
 
@@ -1172,7 +1212,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and written surfaces), process (sets HOME, spawns the surfaces that run as child processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/objective.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-config-robustness.test.mjs`
 
@@ -1182,7 +1222,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and config files), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-corpus.test.mjs`
 
@@ -1192,7 +1232,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, config files and cwd), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-policy-paths.test.mjs`
 
@@ -1202,7 +1242,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a temp HOME), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-self-protection.test.mjs`
 
@@ -1212,7 +1252,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, symlinks, policy fixtures), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-paths.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-status.test.mjs`
 
@@ -1222,7 +1262,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and config file), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/gate-survives-mutation.test.mjs`
 
@@ -1232,7 +1272,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, config files, temp project), process (sets HOME, spawns fresh node processes for the restart cases)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-artifact.test.mjs`
 
@@ -1242,7 +1282,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, config file, handoff store), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-staleness.test.mjs`
 
@@ -1252,7 +1292,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and handoff files), process (sets HOME, runs execSync to locate pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-store.test.mjs`
 
@@ -1262,7 +1302,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, store files, repository fixtures), process (sets HOME, spawns a child session)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-symlink.test.mjs`
 
@@ -1272,7 +1312,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, symlinks and their targets), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-trust.test.mjs`
 
@@ -1282,7 +1322,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, temp project, journal), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/config.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-writer-role.test.mjs`
 
@@ -1292,7 +1332,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, store files), process (sets HOME and NANA_HANDOFF, spawns pi-review with the stub pi on PATH)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/lifecycle-reload.test.mjs`
 
@@ -1302,7 +1342,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and config file), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-lifecycle.ts`
+- **callees** — `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/notify-fallback.test.mjs`
 
@@ -1312,7 +1352,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, stub notifier scripts), process (sets HOME, spawns and kills the stub notifiers)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-notify.ts`
+- **callees** — `packages/nana-pack/extensions/nana-notify.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/objective-golden.test.mjs`
 
@@ -1322,7 +1362,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, objective fixtures, a symlinked hook), process (sets HOME, runs the bash hook with node on PATH)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`
+- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/objective-injection.test.mjs`
 
@@ -1332,7 +1372,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, objective fixtures, config files), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/config.ts`
+- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/post-edit-file-queue.test.mjs`
 
@@ -1342,7 +1382,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/post-edit-hardening.test.mjs`
 
@@ -1352,7 +1392,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, stub checker scripts, receipts), process (sets HOME, spawns and kills the stub checkers and their descendants)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/post-edit-status.test.mjs`
 
@@ -1362,7 +1402,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, workspace files, receipts), process (sets HOME, runs the configured checker commands)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/readme-check.test.mjs`
 
@@ -1372,7 +1412,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads this checkout, writes throwaway fixtures under a temp dir), process (runs the readme-check CLI)
 - **errors** — a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `scripts/readme-check.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/readme-check.mjs`
 
 ### `packages/nana-pack/tests/receipt-binding.test.mjs`
 
@@ -1382,7 +1422,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, workspace files, receipt files), process (sets HOME and USERPROFILE)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 
@@ -1392,7 +1432,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads this checkout; writes and removes scratch dirs under the OS temp dir for the EARS fixtures), process (spawns the real CLI once)
 - **errors** — a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `scripts/requirements-trace.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`
 
 ### `packages/nana-pack/tests/review-ledger.test.mjs`
 
@@ -1402,7 +1442,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/review-round.test.mjs`
 
@@ -1422,7 +1462,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, rendered projects), process (spawns the render and check commands in the rendered projects)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/test-runner.test.mjs`
 
@@ -1432,6 +1472,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/tmp-dir.mjs`
+
+- **purpose** — Create test temporary roots and remove them when the test process exits.
+- **inputs** — A mkdtemp prefix.
+- **outputs** — The created temporary directory path.
+- **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/notify-fallback.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/receipt-binding.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/writing-check.test.mjs`
@@ -1442,7 +1492,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a throwaway temp dir for the multi-file cases), process (spawns the CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-config.mjs`
+- **callees** — `packages/nana-pack/lib/writing-check.mjs`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/writing-injection.test.mjs`
 
@@ -1452,7 +1502,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, journal, disposable rule-file fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE; spawns bounded Node subprocesses for the FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/bin/nana-setup.mjs`
 
@@ -1542,7 +1592,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and rendered plists), process (spawns the installer CLI; launchctl is never called)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/desk-service.test.mjs`
 
@@ -1552,7 +1602,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, rendered plists and a stub launchctl script), process (spawns the installer CLI, and — only via the PATH-stubbed fake — `launchctl`; the REAL launchctl is never called)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-detail.test.mjs`
 
@@ -1562,7 +1612,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, regular files, symlinks and directories)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/objective.ts`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-pack/lib/objective.ts`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/fsops.test.mjs`
 
@@ -1572,7 +1622,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a throwaway scratch dir, files and symlinks, removed on exit); process-global (readFileSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/fsops.mjs`
+- **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/install.test.mjs`
 
@@ -1582,7 +1632,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/paths.test.mjs`
 
@@ -1602,7 +1652,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and settings fixtures), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/project-dismiss.test.mjs`
 
@@ -1612,7 +1662,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway repositories, markers and a throwaway home), process (spawns the setup CLI, the reader and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/project-key.test.mjs`
 
@@ -1632,7 +1682,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway project dirs, seeds, symlinks, a throwaway home), process (spawns the setup CLI and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/relative-agent-dir.test.mjs`
 
@@ -1642,7 +1692,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home and project dirs), process (sets PI_CODING_AGENT_DIR, spawns the setup CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/settings-merge.test.mjs`
 
@@ -1652,7 +1702,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, settings files and lock files), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`
+- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/shared-link-state.test.mjs`
 
@@ -1662,7 +1712,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (a throwaway home, real project memory dirs and real symlinks, removed on exit); process-global (lstatSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/project-key.mjs`
+- **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/shared-memory-hook.test.mjs`
 
@@ -1672,7 +1722,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, memory dirs and symlinks), process (runs the bash hook)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/project-key.mjs`
+- **callees** — `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/skills-and-standards.test.mjs`
 
@@ -1682,7 +1732,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and symlinks), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+
+### `packages/nana-setup/tests/tmp-dir.mjs`
+
+- **purpose** — Create test temporary roots and remove them when the test process exits.
+- **inputs** — A mkdtemp prefix.
+- **outputs** — The created temporary directory path.
+- **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callees** — —
 
 ### `packages/nana-setup/tests/win32-degrade.test.mjs`
 
@@ -1692,7 +1752,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 

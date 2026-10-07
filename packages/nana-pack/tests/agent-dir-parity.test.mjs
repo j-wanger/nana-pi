@@ -15,6 +15,7 @@
 // as a split. The desk pins its resolved absolute dir into every child; absolute/tilde/unset pass
 // through untouched. The spawned "pi" is a stub that records the dir it resolves with pi's rule.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-parity.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -25,7 +26,7 @@ import { fileURLToPath } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const SERVER = path.join(REPO, "apps", "desk", "server.mjs");
 const SETUP_BIN = path.join(REPO, "packages", "nana-setup", "bin", "nana-setup.mjs");
-const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-u2p-")));
+const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2p-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 process.chdir(HOME); // the relative case resolves against the process cwd; every child starts here too

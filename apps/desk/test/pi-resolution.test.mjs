@@ -22,6 +22,7 @@
 // Synthetic versions are 9.9.x so the machine's real pi can never satisfy a case.
 //
 // Run: node apps/desk/test/pi-resolution.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -29,7 +30,7 @@ import { compareSemver, loadPiSession, PI_MIN_VERSION, PI_PACKAGE, parseSemver, 
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-pi-res-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-pi-res-"));
 const HOME0 = process.env.HOME;
 const ROOT0 = process.env.DESK_PI_ROOT;
 

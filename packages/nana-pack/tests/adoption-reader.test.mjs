@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, journal, symlinked repository fixtures), process (sets HOME, spawns the reader CLI and the bash hook)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -17,7 +18,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.join(here, "..", "bin", "nana-adoption.mjs");
 const HOOK = path.join(here, "..", "..", "nana-setup", "claude", "hooks", "nana-adoption.sh");
-const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-reader-")));
+const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-reader-")));
 const HOME = path.join(base, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
 fs.mkdirSync(AGENT, { recursive: true });
@@ -137,7 +138,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-640
 	check("reader: production temporary root is skipped without override", temporary.stdout === "");
 	if (process.platform !== "win32") {
-		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-reader-alias-")));
+		const aliasBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-reader-alias-")));
 		const aliasRepo = path.join(aliasBase, "repo");
 		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
 		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));

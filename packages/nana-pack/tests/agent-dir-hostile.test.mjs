@@ -14,12 +14,13 @@
 //  (C) a relative PI_CODING_AGENT_DIR under a DELETED cwd: piAgentDir(), piTrustStorePath(),
 //      loadConfig() and the tool handler all return (none throws).
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-hostile.test.mjs
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nana-u2h-")));
+const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2h-")));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 delete process.env.PI_CODING_AGENT_DIR;
@@ -120,9 +121,10 @@ if (canLink) {
 	const script = path.join(HOME, "gone-child.mjs");
 	fs.writeFileSync(script, `
 import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path";
-const bulk = fs.mkdtempSync(path.join(os.tmpdir(), "u2-bulk-"));
-for (let i = 0; i < 50000; i++) fs.mkdirSync(path.join(bulk, "empty-" + i));
-const d = fs.mkdtempSync(path.join(os.tmpdir(), "u2-gone-")); process.chdir(d); process.env.PI_CODING_AGENT_DIR = "agent"; fs.rmdirSync(d);
+import { tmpDir } from ${JSON.stringify(new URL("./tmp-dir.mjs", import.meta.url).href)};
+const tmpRoot = tmpDir(path.join(os.tmpdir(), "u2-bulk-"));
+for (let i = 0; i < 50000; i++) fs.mkdirSync(path.join(tmpRoot, "empty-" + i));
+const d = tmpDir(path.join(tmpRoot, "u2-gone-")); process.chdir(d); process.env.PI_CODING_AGENT_DIR = "agent"; fs.rmdirSync(d);
 const began = Date.now();
 const out = {};
 const gp = await import(${JSON.stringify(PATHS)});
@@ -133,13 +135,16 @@ try { out.loadConfig = { ok: loadConfig({ cwd: ".", hasUI: false }).gate.stopRea
 const ext = (await import(${JSON.stringify(GATE)})).default; let h; ext({ on: (e, f) => { if (e === "tool_call") h = f; } });
 try { out.tool_call = { ok: await h({ toolName: "bash", input: { command: "echo safe" } }, { cwd: ".", hasUI: false, isProjectTrusted: () => false }) }; } catch (e) { out.tool_call = { threw: String(e) }; }
 out.elapsedMs = Date.now() - began;
+out.siblingCount = fs.readdirSync(tmpRoot).length;
 process.chdir(${JSON.stringify(HOME)});
-fs.rmSync(bulk, { recursive: true, force: true });
+fs.rmSync(tmpRoot, { recursive: true, force: true });
 console.log(JSON.stringify(out));
 `);
 	const res = JSON.parse(execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", script], { env: { ...process.env, HOME, USERPROFILE: HOME }, encoding: "utf-8", timeout: 30000 }).trim().split("\n").at(-1));
 	// req: R-826
 	check("C: deleted-cwd handlers return promptly with 50,000 temporary siblings", res.elapsedMs < 10000, `${res.elapsedMs}ms`);
+	// req: R-826
+	check("C: the deleted cwd shares the isolated temp root with 50,000 direct sibling directories", res.siblingCount === 50000, String(res.siblingCount));
 	for (const n of ["piAgentDir", "piAgentDirIsCwdRelative", "piTrustStorePath", "commandPolicyHit", "loadConfig", "tool_call"])
 		// req: R-826
 		check(`C: ${n} returns under a deleted cwd`, res[n] && !("threw" in res[n]), JSON.stringify(res[n]));

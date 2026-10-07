@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, journal and repository fixtures under the OS temp dir), process (sets HOME and USERPROFILE, spawns git)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -15,7 +16,7 @@ import { fileURLToPath } from "node:url";
 // "missing" store entry with no configured handoff.path, in a git repo whose ROOT has no store
 // entry / OBJECTIVE.md / .nana-not-a-project — and nothing reaches the prompt. Temp HOME.
 // Run: node --experimental-strip-types <this file>
-const NANA_HOME = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-")));
+const NANA_HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-home-")));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -60,7 +61,7 @@ const repo = (name, files = []) => {
 	for (const f of files) f.endsWith("/") ? mk(path.join(r, f)) : fs.writeFileSync(path.join(r, f), "x\n");
 	return r;
 };
-const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-")));
+const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-producer-")));
 
 // req: R-640
 check("adoption: design comment names complete Nana structure and temporary-root exclusion", HANDOFF_SOURCE.includes("a regular HANDOFF.md together with AGENTS.md and docs/sessions/") && HANDOFF_SOURCE.includes("real OS temporary directories (including canonical /tmp on POSIX) are skipped"));
@@ -161,7 +162,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	// req: R-640
 	check("adoption: production temporary root is skipped without override", reportsFor(r).length === 0);
 	if (process.platform !== "win32") {
-		const aliasBase = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "adoption-producer-alias-")));
+		const aliasBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-producer-alias-")));
 		const alias = path.join(aliasBase, "repo");
 		fs.mkdirSync(path.join(alias, ".git"), { recursive: true });
 		await prompt(alias);

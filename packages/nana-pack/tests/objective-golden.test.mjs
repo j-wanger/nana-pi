@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, objective fixtures, a symlinked hook), process (sets HOME, runs the bash hook with node on PATH)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
@@ -25,7 +26,7 @@ const check = (n, ok, extra) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.sh");
-const scratch = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "objective-golden-")));
+const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "objective-golden-")));
 const origHome = process.env.HOME;
 // pi's agent-dir override is never inherited from the machine; a world with agentDir sets it for BOTH runtimes.
 delete process.env.PI_CODING_AGENT_DIR;

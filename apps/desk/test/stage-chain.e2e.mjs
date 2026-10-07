@@ -7,6 +7,7 @@
 //
 // Run: node apps/desk/test/stage-chain.e2e.mjs     (needs ~/basketball-geek + uv)
 // Exit 0 = pass, 1 = assertion failed, 2 = never settled, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,7 +18,7 @@ const DESK = Number(process.env.DESK_TEST_PORT || 4411);
 const APP = 4412;
 const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 const HERE = path.dirname(new URL(import.meta.url).pathname);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-chain-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "stage-chain-"));
 const appsDir = path.join(tmp, "apps");
 fs.mkdirSync(appsDir);
 const repo = process.env.BG_REPO || path.join(os.homedir(), "basketball-geek");

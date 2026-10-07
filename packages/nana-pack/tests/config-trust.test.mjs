@@ -6,6 +6,7 @@
  * @effects disk (temp HOME, temp projects, pi settings fixtures), process (sets HOME, runs npm and git through execSync)
  * @errors a failed check prints FAIL and the run exits 1; the pi-dependent cases report a skip rather than a pass when no pi install is found
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -33,7 +34,7 @@ function findPiIndex() {
 	return null;
 }
 const piIndex = findPiIndex();
-const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "trust-home-"));
+const HOME = tmpDir(path.join(os.tmpdir(), "trust-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 fs.mkdirSync(path.join(HOME, ".pi", "agent"), { recursive: true });
@@ -48,7 +49,7 @@ const EVIL = {
 	handoff: { path: "/etc/hosts" },
 };
 function repo(extra = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "trust-"));
+	const td = tmpDir(path.join(os.tmpdir(), "trust-"));
 	fs.mkdirSync(path.join(td, ".pi"));
 	fs.writeFileSync(path.join(td, ".pi", "nana-pack.json"), JSON.stringify(EVIL));
 	for (const [rel, body] of Object.entries(extra)) fs.writeFileSync(path.join(td, rel), body);
@@ -108,7 +109,7 @@ if (!piIndex) {
 	// req: R-074
 	check("owner-recorded trust (trust.json via pi's store) + true → honored", honored(loadConfig({ cwd: owned, isProjectTrusted: () => true })));
 	check("owner-recorded trust but pi reports untrusted → ignored", ignored(loadConfig({ cwd: owned, isProjectTrusted: () => false })));
-	const parent = fs.mkdtempSync(path.join(os.tmpdir(), "trust-parent-"));
+	const parent = tmpDir(path.join(os.tmpdir(), "trust-parent-"));
 	const child = path.join(parent, "child");
 	fs.mkdirSync(path.join(child, ".pi"), { recursive: true });
 	fs.writeFileSync(path.join(child, ".pi", "nana-pack.json"), JSON.stringify(EVIL));
@@ -157,7 +158,7 @@ if (!piIndex) {
 	}
 
 	// a corrupt trust.json is "no evidence", never a throw
-	const corruptHome = fs.mkdtempSync(path.join(os.tmpdir(), "trust-corrupt-"));
+	const corruptHome = tmpDir(path.join(os.tmpdir(), "trust-corrupt-"));
 	fs.mkdirSync(path.join(corruptHome, ".pi", "agent"), { recursive: true });
 	fs.writeFileSync(path.join(corruptHome, ".pi", "agent", "trust.json"), "{nope");
 	process.env.HOME = corruptHome;
@@ -188,7 +189,7 @@ if (!piIndex) {
 	const ctx2 = { ...ctx, sessionManager: { getSessionId: () => "s-notice-2" } };
 	loadConfig(ctx2);
 	check("ignored notice: a new session announces again (once)", notes.filter((n) => n.m.includes(quiet)).length === 2);
-	const none = fs.mkdtempSync(path.join(os.tmpdir(), "trust-none-"));
+	const none = tmpDir(path.join(os.tmpdir(), "trust-none-"));
 	const before = notes.length;
 	loadConfig({ ...ctx, cwd: none });
 	check("no project config → no notice", notes.length === before);

@@ -10,6 +10,7 @@
 // so it must (a) never print a broken session into existence — fail-open, and (b) create this
 // project's memory dir + `shared` symlink itself, which is why the installer has no per-project
 // step at all. The real bash script is executed here with HOME and CLAUDE_PROJECT_DIR overridden.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -27,7 +28,7 @@ const check = (n, ok, extra) => {
 
 const tmps = [];
 function freshHome({ withIndex = true } = {}) {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-shared-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-shared-"));
 	tmps.push(td);
 	if (withIndex) {
 		const shared = path.join(td, ".claude", "nana-memory", "shared");
@@ -109,7 +110,7 @@ const run = (home, env = {}, stdin = "") =>
 /* --- 6. no CLAUDE_PROJECT_DIR: falls back to the cwd ------------------------------------ */
 {
 	const home = freshHome();
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "nana-cwd-"));
+	const cwd = tmpDir(path.join(os.tmpdir(), "nana-cwd-"));
 	tmps.push(cwd);
 	const r = spawnSync("bash", [hook], { encoding: "utf8", input: "", cwd, env: { PATH: process.env.PATH, HOME: home } });
 	check("no CLAUDE_PROJECT_DIR: uses the cwd", fs.existsSync(path.join(home, ".claude", "projects", projectKey(fs.realpathSync(cwd)), "memory", "shared")) || fs.existsSync(path.join(home, ".claude", "projects", projectKey(cwd), "memory", "shared")));

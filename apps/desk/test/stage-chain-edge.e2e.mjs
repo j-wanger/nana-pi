@@ -15,6 +15,7 @@
 //
 // Run: node apps/desk/test/stage-chain-edge.e2e.mjs     (needs ~/edge-screener + uv + pi 1.0.2+)
 // Exit 0 = pass, 1 = assertion failed, 2 = never settled, 3 = harness error.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -28,7 +29,7 @@ const HERE = path.dirname(new URL(import.meta.url).pathname);
 const repo = process.env.EDGE_REPO || path.join(os.homedir(), "edge-screener");
 const edgeMcpExt = path.join(repo, ".pi/extensions/edge-mcp.ts");
 const stage = path.resolve(HERE, "../../../packages/nana-stage/extensions/nana-stage.ts");
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "stage-chain-edge-"));
+const tmp = tmpDir(path.join(os.tmpdir(), "stage-chain-edge-"));
 const appsDir = path.join(tmp, "apps");
 fs.mkdirSync(appsDir);
 const TOOLS = ["screen_panel", "screen_detail", "construction_table", "stop_table", "direction_board", "explore_screen"].map((t) => `mcp__edge__${t}`);

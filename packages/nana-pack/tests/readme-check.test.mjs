@@ -6,6 +6,7 @@
  * @effects disk (reads this checkout, writes throwaway fixtures under a temp dir), process (runs the readme-check CLI)
  * @errors a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -81,7 +82,7 @@ check("repo objective contract accurately documents the opt-out", /user-scope `o
 // same promise as the same line in a fence. The mutation runs through the real CLI in a
 // scratch root — every repo entry symlinked, README.md mutated and scripts/ COPIED so the
 // shim resolves its root to the scratch instead of back here through the symlink.
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "nana-readme-inline-"));
+const scratch = tmpDir(path.join(os.tmpdir(), "nana-readme-inline-"));
 try {
 	for (const entry of fs.readdirSync(REPO_ROOT)) {
 		if (entry === "README.md" || entry === "scripts" || entry === ".git") continue;

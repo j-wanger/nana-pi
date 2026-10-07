@@ -9,6 +9,7 @@
 // Gate: Claude Code gets the `requirements` skill and the `nana-standards.md` rule from the
 // SAME source pi reads — a symlink into the repo, never a copy that stops tracking a `git pull`.
 // Every run goes into a throwaway --home; nothing touches the real machine.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -32,7 +33,7 @@ const check = (n, ok, extra) => {
 
 const tmps = [];
 function freshHome() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-skills-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-skills-"));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(td, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));

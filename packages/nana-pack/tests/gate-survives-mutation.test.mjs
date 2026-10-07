@@ -21,19 +21,20 @@
 //   (7) the status tally stays correct throughout
 //   (+) STOP → repair → resume inside ONE process (astra residual)
 // Run: node --experimental-strip-types <this file>
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "gate-mut-home-"));
+const HOME = tmpDir(path.join(os.tmpdir(), "gate-mut-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 const AGENT = path.join(HOME, ".pi", "agent");
 fs.mkdirSync(AGENT, { recursive: true });
 const USER_CFG = path.join(AGENT, "nana-pack.json");
 const JOURNAL = path.join(AGENT, "nana-journal.jsonl");
-const PROJ = fs.mkdtempSync(path.join(os.tmpdir(), "gate-mut-proj-"));
+const PROJ = tmpDir(path.join(os.tmpdir(), "gate-mut-proj-"));
 fs.mkdirSync(path.join(PROJ, ".pi"));
 const PROJ_CFG = path.join(PROJ, ".pi", "nana-pack.json");
 
@@ -151,13 +152,13 @@ check("7: tally correct", g.tally(), g.statuses.at(-1));
 
 // (+) STOP → repair → resume inside ONE process. A fresh HOME means no last-good for that file.
 {
-	const HOME2 = fs.mkdtempSync(path.join(os.tmpdir(), "gate-mut-home2-"));
+	const HOME2 = tmpDir(path.join(os.tmpdir(), "gate-mut-home2-"));
 	process.env.HOME = HOME2;
 	process.env.USERPROFILE = HOME2;
 	const cfg2 = path.join(HOME2, ".pi", "agent", "nana-pack.json");
 	fs.mkdirSync(path.dirname(cfg2), { recursive: true });
 	fs.writeFileSync(cfg2, '{ "gate": { "allowPatterns": ["^rm -rf build$"], }, }');
-	const cwd2 = fs.mkdtempSync(path.join(os.tmpdir(), "gate-mut-cwd2-"));
+	const cwd2 = tmpDir(path.join(os.tmpdir(), "gate-mut-cwd2-"));
 	const s = register(cwd2);
 	await s.start("startup");
 	check("+: malformed at start → ls blocked (stop)", (await s.bash("ls")) === "BLOCK");
@@ -178,7 +179,7 @@ check("7: tally correct", g.tally(), g.statuses.at(-1));
 
 // (4b) a FRESH process with a malformed user gate block: conservative stop, not defaults
 {
-	const HOME3 = fs.mkdtempSync(path.join(os.tmpdir(), "gate-mut-home3-"));
+	const HOME3 = tmpDir(path.join(os.tmpdir(), "gate-mut-home3-"));
 	const a3 = path.join(HOME3, ".pi", "agent");
 	fs.mkdirSync(a3, { recursive: true });
 	fs.writeFileSync(path.join(a3, "nana-pack.json"), '{ "gate": { "allowPatterns": [".*"], }, }');

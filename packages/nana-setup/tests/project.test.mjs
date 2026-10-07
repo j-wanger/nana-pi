@@ -9,6 +9,7 @@
 // Gate: `nana-setup project` turns a blank folder into a nana project, never overwrites what a
 // folder already has, and emits exactly the same three seeds the copier templates render.
 // Every run is in a throwaway dir with a throwaway --home; nothing touches the real machine.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -35,7 +36,7 @@ const skip = (n, why) => {
 
 const tmps = [];
 function tmp(prefix) {
-	const d = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+	const d = tmpDir(path.join(os.tmpdir(), prefix));
 	tmps.push(d);
 	return d;
 }
@@ -415,7 +416,7 @@ function walk(dir) {
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 /* --- a missing leaf folder is created; a missing parent is not ---------------------------- */
 {
-	const parent = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-leaf-"));
+	const parent = tmpDir(path.join(os.tmpdir(), "nana-setup-leaf-"));
 	tmps.push(parent);
 	const leaf = path.join(parent, "new-thing");
 	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });

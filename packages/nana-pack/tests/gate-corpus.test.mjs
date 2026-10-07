@@ -11,16 +11,17 @@
 // scope under an isolated HOME; each scenario registers a fresh gate and fires session_start,
 // so the policy under test is the session baseline (lib: gate-shell.ts, gate-paths.ts).
 // Run: node --experimental-strip-types <this file>
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "gate-corpus-home-"));
+const HOME = tmpDir(path.join(os.tmpdir(), "gate-corpus-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 const USER_CFG = path.join(HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-const CWD = fs.mkdtempSync(path.join(os.tmpdir(), "gate-corpus-cwd-"));
+const CWD = tmpDir(path.join(os.tmpdir(), "gate-corpus-cwd-"));
 const ext = (await import(new URL("../extensions/nana-gate.ts", import.meta.url).href)).default;
 
 let fails = 0;
@@ -210,7 +211,7 @@ for (const [key, list, needle] of [
 	["protectedPaths", ["(unclosed"], 'gate.protectedPaths[0] "(unclosed": invalid regex'],
 	["extraPatterns", Array.from({ length: 201 }, (_, i) => `^zz${i}$`), "gate.extraPatterns: 201 entries exceed the cap of 200 — entries 201–201"],
 ]) {
-	const home = fs.mkdtempSync(path.join(os.tmpdir(), "gate-corpus-stop-"));
+	const home = tmpDir(path.join(os.tmpdir(), "gate-corpus-stop-"));
 	process.env.HOME = home;
 	const cfgFile = path.join(home, ".pi", "agent", "nana-pack.json");
 	fs.mkdirSync(path.dirname(cfgFile), { recursive: true });

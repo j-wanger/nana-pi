@@ -6,13 +6,14 @@
  * @effects disk (temp HOME, symlinks and their targets), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
@@ -35,7 +36,7 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 
 const useCustom = (file) => fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false }, handoff: { path: file } }));
 function workspace() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-link-"));
+	const td = tmpDir(path.join(os.tmpdir(), "handoff-link-"));
 	fs.mkdirSync(path.join(td, "state"));
 	useCustom(path.join(td, "state", "handoff.md"));
 	const handlers = {};
@@ -85,7 +86,7 @@ function workspace() {
 // directory. Every component is a regular file, so a final-component-only check
 // waves this through — read and write must both refuse.
 {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-dirlink-"));
+	const td = tmpDir(path.join(os.tmpdir(), "handoff-dirlink-"));
 	const ws = path.join(td, "ws");
 	const outside = path.join(td, "outside");
 	fs.mkdirSync(ws);
@@ -119,7 +120,7 @@ function workspace() {
 // legitimately living under a symlinked path (macOS /tmp → /private/tmp, or a
 // symlinked checkout root) must keep working — read and write both.
 {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-linkroot-"));
+	const td = tmpDir(path.join(os.tmpdir(), "handoff-linkroot-"));
 	const real = path.join(td, "real");
 	const link = path.join(td, "link"); // the workspace root itself is reached via a link
 	fs.mkdirSync(path.join(real, "state"), { recursive: true });

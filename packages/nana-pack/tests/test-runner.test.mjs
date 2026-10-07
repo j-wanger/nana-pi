@@ -20,7 +20,8 @@
 // Each case gets its own TMPDIR so "the scratch dir is removed" can be asserted without racing
 // other work on the machine.
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
-import { spawnSync } from "node:child_process";
+import { tmpDir } from "./tmp-dir.mjs";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -28,7 +29,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
-const TD = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "runner-test-")));
+const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
 const NANA_HOME = path.join(TD, "home");
@@ -58,8 +59,8 @@ function mkRoot(name, files) {
 
 /** Run the copied runner in `root`; returns {code, out, ms, out_dir, tmp}. */
 function run(root, args = [], extraEnv = {}) {
-	const tmp = fs.mkdtempSync(path.join(TD, "tmpdir-"));
-	const out_dir = fs.mkdtempSync(path.join(TD, "probeout-"));
+	const tmp = tmpDir(path.join(TD, "tmpdir-"));
+	const out_dir = tmpDir(path.join(TD, "probeout-"));
 	const env = {
 		...process.env,
 		TMPDIR: tmp, TEMP: tmp, TMP: tmp,
@@ -98,7 +99,7 @@ const TRAP = (what) => `console.log("FAIL ${what}");\nprocess.exit(1);\n`;
 // ── case A: the mixed run — collection, verdicts, labels, tallies, the child env ──────────────
 // PATH is pointed at an empty dir so the runner's declared skip for post-edit-hardening
 // ("needs `pgrep` on POSIX") fires: that is the only SKIPS entry, and it keys off `pgrep` on PATH.
-const noPath = fs.mkdtempSync(path.join(TD, "nopath-"));
+const noPath = tmpDir(path.join(TD, "nopath-"));
 const rootA = mkRoot("A", {
 	"packages/probe/ts-probe.ts": "export const bump = (n: number): number => n + 1;\n",
 	"packages/probe/tests/a-cwd.test.mjs": [
@@ -276,6 +277,23 @@ const M = run(rootMutation);
 // req: R-918
 check("tracked mutation fails naming the tracked file while untracked files do not appear", M.code === 1 && M.out.includes("tracked repository files changed by tests") && M.out.includes("tracked.txt") && !M.out.includes("untracked.txt"));
 
+const rootDirty = mkRoot("mutation-dirty", {
+	"packages/probe/tests/change.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "dirty after");',
+		'console.log("PASS dirty mutation fixture ran");',
+		"",
+	].join("\n"),
+});
+spawnSync("git", ["init", "-q"], { cwd: rootDirty });
+fs.writeFileSync(path.join(rootDirty, "tracked.txt"), "original");
+spawnSync("git", ["add", "tracked.txt"], { cwd: rootDirty });
+spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: rootDirty });
+fs.writeFileSync(path.join(rootDirty, "tracked.txt"), "dirty before");
+const MD = run(rootDirty);
+// req: R-918
+check("tracked mutation is detected when the file was already dirty before the run", MD.code === 1 && MD.out.includes("tracked repository files changed by tests") && MD.out.includes("tracked.txt"));
+
 // ── case F: a descendant that escaped the tree cannot hang the run ───────────────────────────
 const rootE = mkRoot("E", {
 	"packages/probe/tests/holder.test.mjs": [
@@ -296,12 +314,72 @@ try { process.kill(holder, "SIGKILL"); } catch {}
 // req: R-610
 check("after a child exits the runner waits only a bounded drain for stdio to close", labelFor(E.out, "holder.test.mjs") === "PASS" && /stdio still open \d+s after exit/.test(E.out) && E.code === 0 && E.ms < 30000);
 
-// ── case F: the runner's own self-test ───────────────────────────────────────────────────────
+// ── case G: SIGTERM removes the active file temp root ────────────────────────────────────────
+const rootSignal = mkRoot("signal", {
+	"packages/probe/tests/hang.test.mjs": [
+		'import * as fs from "node:fs";',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp.txt", process.env.TMPDIR);',
+		'setInterval(() => {}, 1000);',
+		"",
+	].join("\n"),
+});
+const signalOut = tmpDir(path.join(TD, "signal-out-"));
+const signalTmp = tmpDir(path.join(TD, "signal-tmp-"));
+const signalRunner = spawn(process.execPath, [path.join(rootSignal, "scripts", "test.mjs")], {
+	cwd: rootSignal,
+	env: { ...process.env, TMPDIR: signalTmp, TEMP: signalTmp, TMP: signalTmp, PROBE_OUT: signalOut, NANA_TEST_TIMEOUT_MS: "60000" },
+	stdio: ["ignore", "pipe", "pipe"],
+});
+let signalOutput = "";
+signalRunner.stdout.on("data", (chunk) => { signalOutput += chunk; });
+signalRunner.stderr.on("data", (chunk) => { signalOutput += chunk; });
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let signalMarker;
+for (let i = 0; i < 100 && !signalMarker; i++) {
+	try { signalMarker = fs.readFileSync(path.join(signalOut, "active-file-tmp.txt"), "utf8"); } catch {}
+	if (!signalMarker) await wait(50);
+}
+signalRunner.kill("SIGTERM");
+const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
+// req: R-915 R-917
+check("SIGTERM kills the active child and removes its per-file TMPDIR", !!signalMarker && !fs.existsSync(signalMarker) && signalExit.code === 143 && signalOutput.includes("SIGTERM"));
+
+// ── case H: the runner's own self-test ───────────────────────────────────────────────────────
 const rootF = mkRoot("F", {});
 const F = run(rootF, ["--self-test"]);
 check("--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero", F.out.includes("self-test: every fixture got its expected verdict") && totals(F.out)?.files === 3 && F.code === 1);
 const F2 = run(rootF, [], { NANA_TEST_SELFTEST: "1" });
 check("NANA_TEST_SELFTEST=1 is the same as --self-test", F2.out.includes("self-test: every fixture got its expected verdict") && totals(F2.out)?.files === 3 && F2.code === 1);
+
+const testRoots = [
+	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => path.join(REPO, "packages", entry.name, "tests")),
+	path.join(REPO, "apps", "desk", "test"),
+	path.join(REPO, "apps", "bench", "test"),
+];
+const tempFiles = testRoots.flatMap((dir) => fs.existsSync(dir)
+	? fs.readdirSync(dir).filter((name) => name.endsWith(".mjs") && name !== "tmp-dir.mjs").map((name) => path.join(dir, name))
+	: []);
+const tempSourceOk = tempFiles.every((file) => {
+	const source = fs.readFileSync(file, "utf8");
+	if (file.endsWith("test-runner.test.mjs")) return source.includes('import { tmpDir } from "./tmp-dir.mjs";');
+	return !/\b(?:fs\.)?mkdtempSync\s*\(/.test(source)
+		&& (!/\btmpDir\s*\(/.test(source) || source.includes('import { tmpDir } from "./tmp-dir.mjs";'));
+});
+// req: R-917
+check("every test-created temp root is registered for process-exit cleanup", tempSourceOk);
+const helperProbe = path.join(TD, "helper-probe.txt");
+const helperRun = spawnSync(process.execPath, ["--input-type=module", "-e", [
+	`import { tmpDir } from ${JSON.stringify(new URL("./tmp-dir.mjs", import.meta.url).href)};`,
+	'import * as fs from "node:fs";',
+	'import * as os from "node:os";',
+	'import * as path from "node:path";',
+	`const root = tmpDir(path.join(os.tmpdir(), "tmp-helper-probe-")); fs.writeFileSync(${JSON.stringify(helperProbe)}, root);`,
+].join(" ")], { encoding: "utf8" });
+const helperRoot = fs.readFileSync(helperProbe, "utf8");
+// req: R-917
+check("the shared temp helper removes its registered root when the process exits", helperRun.status === 0 && !fs.existsSync(helperRoot));
 
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");

@@ -43,6 +43,7 @@
 //      renders.
 //
 // Run: node apps/desk/test/spawn-and-persist.test.mjs   (exit 0 = all PASS)
+import { tmpDir } from "./tmp-dir.mjs";
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -67,7 +68,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
 const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
-const TD = fs.mkdtempSync(path.join(os.tmpdir(), "desk-spawn-"));
+const TD = tmpDir(path.join(os.tmpdir(), "desk-spawn-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
 const repo = path.join(TD, "repo");
@@ -456,7 +457,7 @@ try {
 	// outside $HOME there is no root to walk from, so only an already-canonical path
 	// is accepted: on macOS /var/folders/... is reached through the /var link, and
 	// its /private/var/... spelling is the same directory written honestly
-	const outsideHome = fs.mkdtempSync(path.join(os.tmpdir(), "desk-outside-"));
+	const outsideHome = tmpDir(path.join(os.tmpdir(), "desk-outside-"));
 	const outsideCanon = fs.realpathSync(outsideHome);
 	if (outsideCanon !== outsideHome) {
 		r = await post("/api/context-file", { dir: outsideHome, name: "AGENTS.md", content: "x" });

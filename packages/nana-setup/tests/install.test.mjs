@@ -8,6 +8,7 @@
  */
 // Gate: `install` is idempotent, additive, and never destroys what the owner wrote by hand.
 // Every run here goes into a throwaway --home; nothing touches the real machine.
+import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -58,7 +59,7 @@ function seedPiSubagents(td, version = PI_SUBAGENTS_FLOOR) {
 
 /** A temp home with a tiny knowledge source, so the real build runs but indexes 1 file. */
 function freshHome() {
-	const td = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-"));
+	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-"));
 	tmps.push(td);
 	fs.mkdirSync(path.join(td, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.mkdirSync(path.join(td, "src"), { recursive: true });
@@ -221,7 +222,7 @@ run(["install", "--home", home]);
 check("doctor exits 0 again after a repair install", run(["doctor", "--home", home]).status === 0);
 
 /* --- 7. --dry-run writes nothing ------------------------------------------------------ */
-const dry = fs.mkdtempSync(path.join(os.tmpdir(), "nana-setup-dry-"));
+const dry = tmpDir(path.join(os.tmpdir(), "nana-setup-dry-"));
 tmps.push(dry);
 const dryRun = run(["install", "--home", dry, "--dry-run"]);
 check("dry run exits 0", dryRun.status === 0, dryRun.stderr);
@@ -232,7 +233,7 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 
 /* --- 8. a home with a SPACE in it: the generated commands must actually run ------------- */
 {
-	const spaced = fs.mkdtempSync(path.join(os.tmpdir(), "Jane Doe "));
+	const spaced = tmpDir(path.join(os.tmpdir(), "Jane Doe "));
 	tmps.push(spaced);
 	fs.mkdirSync(path.join(spaced, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(spaced, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));

@@ -6,6 +6,7 @@
  * @effects disk (temp HOME and handoff files), process (sets HOME, runs execSync to locate pi)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -44,7 +45,7 @@ async function findPiResolve() {
 }
 const PI = await findPiResolve();
 console.log(`  resolver: ${PI.how}`);
-const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 delete process.env.NANA_HANDOFF;
@@ -70,7 +71,7 @@ function session(cwd) {
 		},
 	};
 }
-const repo = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "handoff-stale-")));
+const repo = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-stale-")));
 const file = mod.storePathFor(repo);
 const SUMMARY = "Do not modify gameplay code yet.";
 const backdate = (days) => {
@@ -156,7 +157,7 @@ const resolvesTo = (shown, cwd, file) => {
 // shown as ~/.pi/agent/handoffs/<hash>.md) and a long custom handoff.path (tail kept, basename intact)
 {
 	const expand = (p) => (p.startsWith("~/") ? path.join(os.homedir(), p.slice(2)) : p);
-	let longHome = fs.mkdtempSync(path.join(os.tmpdir(), "h-"));
+	let longHome = tmpDir(path.join(os.tmpdir(), "h-"));
 	while (longHome.length < 290) longHome = path.join(longHome, "h".repeat(Math.min(100, 290 - longHome.length - 1) || 1));
 	fs.mkdirSync(longHome, { recursive: true });
 	const savedHome = process.env.HOME;
@@ -200,7 +201,7 @@ const resolvesTo = (shown, cwd, file) => {
 
 	// long custom path outside HOME and the repo: absolute IN FULL (no …/ form) — the path alone
 	// exceeds the cap, so the pointer does too (a long true path beats a short false one)
-	const outside = path.join(fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "far-"))), ...Array(4).fill("d".repeat(90)), "far-handoff.md");
+	const outside = path.join(fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "far-"))), ...Array(4).fill("d".repeat(90)), "far-handoff.md");
 	fs.writeFileSync(path.join(longHome, ".pi", "agent", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, handoff: { path: outside } }));
 	await session(repo).compact(SUMMARY);
 	fs.writeFileSync(outside, fs.readFileSync(outside, "utf-8").replace(/^Written: .*$/m, `Written: ${new Date(Date.now() - 30 * 86_400_000).toISOString()}`).replace(/^Writer: .*$/m, `Writer: ${LONG_WRITER}`));
@@ -251,7 +252,7 @@ const resolvesTo = (shown, cwd, file) => {
 	};
 	// a legal 255-char basename (written directly: the writer's temp suffix cannot fit NAME_MAX)
 	{
-		const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "nm-")));
+		const dir = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nm-")));
 		const f = path.join(dir, `${"n".repeat(252)}.md`);
 		stale(f);
 		const { p, s } = await run("255-char basename", f);
@@ -274,7 +275,7 @@ const resolvesTo = (shown, cwd, file) => {
 	}
 	// an out-of-home custom path (outside the repo too): absolute
 	{
-		const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "oh-")));
+		const dir = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "oh-")));
 		const f = path.join(dir, "handoff.md");
 		stale(f);
 		const { p, s } = await run("out-of-home custom", f);
@@ -308,7 +309,7 @@ const resolvesTo = (shown, cwd, file) => {
 	// ASCII-space DECOY sibling — it is JSON-escaped, marked, and not claimed readable
 	const JSTR = /: ("(?:[^"\\]|\\.)*") /;
 	for (const [label, ch] of [["NBSP", " "], ["narrow NBSP", " "], ["tab", "\t"], ["CR", "\r"], ["LF", "\n"]]) {
-		const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "uc-")));
+		const dir = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "uc-")));
 		const f = path.join(dir, `hand${ch}off.md`);
 		const decoy = path.join(dir, "hand off.md");
 		stale(f);
@@ -339,7 +340,7 @@ const resolvesTo = (shown, cwd, file) => {
 	// PINNED (sol r3 CARRY): a RELATIVE custom handoff.path resolves against the PROCESS cwd,
 	// not the session cwd; the pointer shows the file actually read, never the session-cwd twin
 	{
-		const proc = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "pcwd-")));
+		const proc = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "pcwd-")));
 		const saved = process.cwd();
 		process.chdir(proc);
 		const real = path.join(proc, "rel-h", "handoff.md");
