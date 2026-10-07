@@ -17,6 +17,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CLI = fileURLToPath(new URL("../bin/nana-frontier.mjs", import.meta.url));
 const rewritten = path.join(HERE, "fixtures/frontier/rewritten.md");
 const legacy = path.join(HERE, "fixtures/frontier/legacy.md");
+const frozenRewrite = path.join(HERE, "fixtures/frontier/handoff-2026-10-06.md");
 let fails = 0;
 const check = (name, ok, detail = "") => {
 	console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
@@ -30,7 +31,6 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 {
 	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
 	const packReadme = fs.readFileSync(path.resolve(HERE, "../README.md"), "utf8");
-	// req: G-012
 	check("CLI inventory names nana-frontier without stale ordinals", rootLayout.includes("nana-frontier") && packReadme.includes("nana-frontier") && !packReadme.includes("The ninth CLI"));
 }
 
@@ -53,10 +53,9 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	check("each bullet or numbered Open for Jake entry without a tag is reported", r.stdout.split("open-tag:").length - 1 === 2, r.stdout);
 }
 {
-	const liveHandoff = path.resolve(HERE, "../../../HANDOFF.md");
-	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", liveHandoff], { encoding: "utf8" });
+	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", frozenRewrite], { encoding: "utf8" });
 	// req: R-877
-	check("live rewritten HANDOFF passes on 2026-10-07", r.status === 0 && !r.stdout.includes("overdue-date:"), r.stdout);
+	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && !r.stdout.includes("overdue-date:"), r.stdout);
 }
 {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
@@ -84,6 +83,30 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const r = run(file);
 	// req: R-877
 	check("due dates use range ends and ignore ruling, since, and range-start dates", r.stdout.split("overdue-date:").length - 1 === 1 && r.stdout.includes("2026-10-05"), r.stdout);
+	const cues = ["due", "deadline", "by", "until", "verdict on", "review on"];
+	for (const cue of cues) {
+		const cueFile = path.join(dir, `${cue.replaceAll(" ", "-")}.md`);
+		fs.writeFileSync(cueFile, `## Next\n- Review ${cue} 2026-10-05.\n`);
+		const cueResult = run(cueFile);
+		// req: R-877
+		check(`overdue date cue is recognized: ${cue}`, cueResult.stdout.includes("overdue-date:") && cueResult.stdout.includes("2026-10-05"), cueResult.stdout);
+	}
+	const lazy = path.join(dir, "lazy.md");
+	fs.writeFileSync(lazy, "## Landed\n- first line\nlazy continuation\n");
+	const lazyResult = run(lazy);
+	// req: R-874
+	check("Landed entries include lazy continuation lines", lazyResult.stdout.includes("landed-entry:"), lazyResult.stdout);
+	const multilineTag = path.join(dir, "tag.md");
+	fs.writeFileSync(multilineTag, "## Open for Jake\n- decision\n[optional, since 2026-10-06]\n");
+	const tagResult = run(multilineTag);
+	// req: R-878
+	check("Open tags on continuation lines count", !tagResult.stdout.includes("open-tag:"), tagResult.stdout);
+	for (const badSince of ["2026-99-99", "2026-10-07"]) {
+		fs.writeFileSync(multilineTag, `## Open for Jake\n- decision\n[optional, since ${badSince}]\n`);
+		const badTagResult = run(multilineTag);
+		// req: R-878
+		check(`Open tag rejects invalid or future since date ${badSince}`, badTagResult.stdout.includes("open-tag:"), badTagResult.stdout);
+	}
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
@@ -108,5 +131,14 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const strictError = spawnSync(process.execPath, [CLI, "--strict", legacy, legacy], { encoding: "utf8" });
 	// req: R-879
 	check("extra operands follow the strict-aware error policy", reportOnlyError.status === 0 && strictError.status !== 0, `${reportOnlyError.status} / ${strictError.status}`);
+	for (const mode of [[], ["--strict"]]) {
+		const badDate = spawnSync(process.execPath, [CLI, ...mode, "--today", "2026-02-30", legacy], { encoding: "utf8" });
+		const missingFile = path.join(os.tmpdir(), `frontier-missing-${process.pid}.md`);
+		const unreadable = spawnSync(process.execPath, [CLI, ...mode, "--today", "2026-10-06", missingFile], { encoding: "utf8" });
+		// req: R-879
+		check(`malformed date follows ${mode.length ? "strict" : "default"} error policy`, badDate.status === (mode.length ? 1 : 0) && badDate.stderr.includes("invalid --today date"), `${badDate.status}: ${badDate.stderr}`);
+		// req: R-879
+		check(`unreadable input follows ${mode.length ? "strict" : "default"} error policy`, unreadable.status === (mode.length ? 1 : 0) && unreadable.stdout.includes(":0: error:"), `${unreadable.status}: ${unreadable.stdout}`);
+	}
 }
 if (fails) process.exitCode = 1;
