@@ -147,9 +147,8 @@ function gitOut(cwd, args, { okStatus = [0] } = {}) {
 }
 
 /** Repository identity + the reviewed tree's revision parts. repo = realpath of the git common dir
- *  (shared by all worktrees of one repository), or "path:<realpath cwd>" outside git. `exclude` =
- *  absolute paths left out of the snapshot (the review's own --out file). Throws on a git failure
- *  other than "not a git repository". */
+ *  (shared by all worktrees of one repository). Non-Git admission throws; legacy `path:` keys are
+ *  readable only in existing tallies. `exclude` = absolute paths left out of the snapshot. */
 export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
   const tree = resolve(cwd);
   const r = gitOut(tree, ['rev-parse', '--git-common-dir', '--show-toplevel'], { okStatus: [0, 128] });
@@ -436,7 +435,7 @@ function parseReview(args, cwd) {
   const warning = out ? outInTree(revision.root, outAbs) : null; // throws on a tracked --out, symlinked or not
   const redirect = inTreeRedirect(revision.root);
   if (redirect) throw new Error(`redirect the review log outside the reviewed tree (${redirect})`);
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: revision.root, revArg, exclude, warning };
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: tree, revArg, exclude, warning };
 }
 function deriveRevision(revArg, tree, exclude) {
   const scope = treeScope(tree, { exclude });

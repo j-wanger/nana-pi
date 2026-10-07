@@ -144,7 +144,6 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	// req: R-713
 	check("--revision naming a different commit than HEAD is refused (revision derives from HEAD)", other.status === 1 && /derived from HEAD/.test(other.stderr), other.stderr);
 	const unres = ledgerRun(["--item", "rev2", "--revision", "no-such-rev"]);
-	// req: R-712
 	check("unresolvable --revision inside git refused", unres.status === 1 && /not a commit/.test(unres.stderr), unres.stderr);
 }
 
@@ -195,6 +194,19 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const piTree = piReview(["--item", "pi-tree-scope", "--tree", A.d, "--out", out()], { cwd: scratch });
 	// req: R-621
 	check("pi-review --tree succeeds from a non-git scratch cwd", piTree.status === 0 && roundsOf("pi-tree-scope")[0]?.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}`, piTree.stderr);
+	const nestedLauncher = path.join(A.d, "nested-launcher"), nestedTree = path.join(A.d, "nested-tree");
+	fs.mkdirSync(nestedLauncher); fs.mkdirSync(nestedTree);
+	const marker = path.join(tmp, "child-cwd-marker");
+	const cwdCommand = [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(marker)}, process.cwd()); console.log('VERDICT: '+process.cwd())`];
+	const nestedOut = out(), selectedOut = out();
+	const fromNestedLauncher = ledgerRun(["--item", "cwd-default"], { cwd: nestedLauncher, cmd: cwdCommand, outFile: nestedOut });
+	const fromSelectedTree = ledgerRun(["--item", "cwd-tree", "--tree", nestedTree], { cwd: nestedLauncher, cmd: cwdCommand, outFile: selectedOut });
+	// req: R-729
+	check("review-ledger child executes from selected directory, not repository root",
+		fromNestedLauncher.status === 0 && fromSelectedTree.status === 0 &&
+		fs.readFileSync(nestedOut, "utf8").trim() === `VERDICT: ${nestedLauncher}` &&
+		fs.readFileSync(selectedOut, "utf8").trim() === `VERDICT: ${nestedTree}` &&
+		fs.readFileSync(marker, "utf8") === nestedTree, `${fromNestedLauncher.stderr}\n${fromSelectedTree.stderr}`);
 	const legacy = { v: 1, kind: "round", repo: "path:/legacy/scratch", item: "legacy", revision: "old-revision" };
 	fs.mkdirSync(agent, { recursive: true }); fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
 	// req: R-622
@@ -213,7 +225,10 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		for (const [launcher, args] of [["pi-review", [PI_REVIEW, "--item", `redirect-${kind}`]], ["review-ledger", [LEDGER_CLI, "run", "--item", `redirect-ledger-${kind}`]]]) {
 			const fd = fs.openSync(target, "r+");
 			const stdio = ["ignore", "pipe", "pipe"]; stdio[stdioSlot] = fd;
-			const r = spawnSync(process.execPath, [...args, "--out", out(), "--", "-p", "x"],
+			const childCommand = launcher === "review-ledger"
+				? [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(invoked)}, 'started'); console.log('VERDICT: LAND')`]
+				: ["-p", "x"];
+			const r = spawnSync(process.execPath, [...args, "--out", out(), "--", ...childCommand],
 				{ cwd: A.d, env: env({ STUB: "verdict", INVOKED: invoked }), encoding: "utf8", stdio });
 			fs.closeSync(fd);
 			const msg = stdioSlot === 2 ? fs.readFileSync(target, "utf8") : (r.stderr || "");

@@ -229,7 +229,8 @@ a non-ignored path in the reviewed tree, admission refuses with the path named. 
 and untracked files; closed descriptors and platforms without device/inode identities degrade to
 no check. Save `--out` and shell redirects under a scratch directory outside the reviewed tree, as
 in the examples above. `complete()` still re-derives the revision **under the ledger lock**, so a
-concurrent edit remains loud and is recorded unverified.
+concurrent edit remains loud and is recorded unverified. Redirect checks do not traverse initialized
+submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
