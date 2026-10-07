@@ -213,7 +213,6 @@ export function commandPolicyHit(command: string, cwd: string): string | null {
 		const walk = extensionWalk(cwd);
 		if (walk.overflow) return walk.overflow;
 		for (const w of text.split(/[\s;|&<>()=,`]+/)) {
-			if (!/[/\\]/.test(w)) continue; // a path word: resolve it (symlinked alias, alt agent dir)
 			const hit = policyFileHitWithWalk(pathCandidates(w, cwd), walk);
 			if (hit) return hit;
 		}

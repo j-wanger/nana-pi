@@ -98,6 +98,25 @@ check("project policy matches require a real .pi path segment", (await decide("e
 }
 // req: R-630
 check("template source suffix and normal package extension sources stay editable", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
+{
+	const active = path.join(NANA_HOME, "active-agent");
+	const activeExtensions = path.join(active, "extensions");
+	const defaultExtensions = path.join(NANA_HOME, ".pi", "agent", "extensions");
+	const project = fs.mkdtempSync(path.join(os.tmpdir(), "nana-basename-project-"));
+	const projectExtensions = path.join(project, ".pi", "extensions");
+	const linkedTarget = fs.mkdtempSync(path.join(os.tmpdir(), "nana-basename-linked-"));
+	fs.mkdirSync(activeExtensions, { recursive: true });
+	fs.mkdirSync(defaultExtensions, { recursive: true });
+	fs.mkdirSync(projectExtensions, { recursive: true });
+	fs.writeFileSync(path.join(linkedTarget, "loaded.ts"), "export {};");
+	fs.symlinkSync(linkedTarget, path.join(activeExtensions, "linked"), "dir");
+	process.env.PI_CODING_AGENT_DIR = active;
+	// req: R-631
+	check("basename shell writes block inside active, default, project, and discovered symlink extension dirs but allow ordinary cwd", (await decideAt("bash", { command: "printf x > target.ts" }, activeExtensions)) === "BLOCK" && (await decideAt("bash", { command: "printf x > target.ts" }, defaultExtensions)) === "BLOCK" && (await decideAt("bash", { command: "printf x > target.ts" }, projectExtensions)) === "BLOCK" && (await decideAt("bash", { command: "printf x > target.ts" }, linkedTarget)) === "BLOCK" && (await decideAt("bash", { command: "printf x > target.ts" }, project)) === "ALLOW");
+	delete process.env.PI_CODING_AGENT_DIR;
+	fs.rmSync(project, { recursive: true, force: true });
+	fs.rmSync(linkedTarget, { recursive: true, force: true });
+}
 // req: R-638
 check("prompt-only pi resources remain editable", (await decide("edit", ".pi/SYSTEM.md")) === "ALLOW" && (await decide("edit", ".pi/APPEND_SYSTEM.md")) === "ALLOW" && (await decide("edit", ".pi/skills/example/SKILL.md")) === "ALLOW" && (await decide("edit", ".pi/prompts/example.md")) === "ALLOW");
 const RELOCATED = path.join(NANA_HOME, "relocated-agent");

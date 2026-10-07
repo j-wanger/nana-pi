@@ -456,8 +456,9 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `trust.json` in the active or default agent dir is a symlink, its target is a policy file
   too. What is **not** caught — a path the shell computes at run time, general variable
   expansion included:
-  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
-  and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
+  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after shell `cd`, also for `trust.json`
+  and `cd .pi`; basename tokens resolve against the supplied session cwd, so starting inside a floored
+  directory correctly blocks), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
   variable other than the one spelling above, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
   directory symlink created and written through in the same command, `cd … | xargs tee
   nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
