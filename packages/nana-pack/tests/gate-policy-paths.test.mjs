@@ -98,7 +98,22 @@ check("project policy matches require a real .pi path segment", (await decide("e
 	check("symlink loop terminates while resolving extension targets", (await decide("edit", target)) === "BLOCK");
 }
 // req: R-630
-check("template source suffix and normal package extension sources stay editable", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
+check("template source edit/write is allowed but a symlink to policy is blocked", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("write", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("read", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
+{
+	const project = fs.mkdtempSync(path.join(os.tmpdir(), "nana-template-policy-link-"));
+	const sourceDir = path.join(project, "templates", "python", "template", ".pi");
+	fs.mkdirSync(path.join(project, ".pi"), { recursive: true });
+	fs.mkdirSync(sourceDir, { recursive: true });
+	fs.writeFileSync(path.join(project, ".pi", "nana-pack.json"), "{}");
+	fs.symlinkSync(path.join(project, ".pi", "nana-pack.json"), path.join(sourceDir, "nana-pack.json.jinja"));
+	// req: R-630
+	check("template-shaped symlink to policy blocks through edit path resolution", (await decideAt("edit", { path: "templates/python/template/.pi/nana-pack.json.jinja" }, project)) === "BLOCK");
+	// req: R-630
+	check("template-shaped cwd does not suppress policy protection", (await decideAt("bash", { command: "cat .pi/nana-pack.json" }, path.join(project, "templates", "python", "template"))) === "BLOCK");
+	// req: R-630
+	check("bash source alias resolving to policy stays blocked", (await decideAt("bash", { command: "cat templates/python/template/.pi/nana-pack.json.jinja" }, project)) === "BLOCK");
+	fs.rmSync(project, { recursive: true, force: true });
+}
 {
 	const active = path.join(NANA_HOME, "active-agent");
 	const activeExtensions = path.join(active, "extensions");
