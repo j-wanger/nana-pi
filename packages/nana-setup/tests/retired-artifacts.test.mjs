@@ -10,7 +10,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
-import { retiredArtifacts } from "../lib/retired.mjs";
+import { matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
+import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -35,9 +36,31 @@ const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "u
 const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
 const date = new Date().toISOString().slice(0, 10);
 const backup = (h, root, rel) => path.join(h, root, "backups", `${date}-retired`, rel);
+const fixture = path.join(pkg, "tests", "fixtures", "retired");
+function copyTree(from, to) {
+	const stat = fs.lstatSync(from);
+	if (stat.isDirectory()) {
+		fs.mkdirSync(to, { recursive: true });
+		for (const name of fs.readdirSync(from)) copyTree(path.join(from, name), path.join(to, name));
+	} else fs.copyFileSync(from, to);
+}
 
 try {
 	{
+		const realLegacy = path.join(fixture, "dev-check");
+		const copied = path.join(home(), ".agents", "skills", "dev-check");
+		copyTree(realLegacy, copied);
+		// req: R-668 R-669
+		check("copied real legacy skill matches its test-only exact manifest", matchesFingerprintArtifact(copied, "dev-check", testFingerprints));
+		fs.appendFileSync(path.join(copied, "SKILL.md"), "owner edit\n");
+		// req: R-669
+		check("edited real legacy skill no longer matches its fingerprint", !matchesFingerprintArtifact(copied, "dev-check", testFingerprints));
+		const addedHome = home();
+		const added = path.join(addedHome, ".agents", "skills", "dev-check");
+		copyTree(realLegacy, added);
+		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
+		// req: R-669
+		check("added owner file invalidates real legacy artifact fingerprint", !matchesFingerprintArtifact(added, "dev-check", testFingerprints));
 		const names = retiredArtifacts("/home/example").map((entry) => entry.relative);
 		// req: R-668
 		check("manifest names all 22 requested legacy Agent Skills", ["dev-check", "dev-debrief", "dev-init", "dev-plan", "dev-scan", "dev-wiki", "knowledge-wiki", "memory-consolidate", "nana", "nana-init", "py-init", "ts-init", "wiki-absorb", "wiki-add", "wiki-bootstrap", "wiki-consolidate", "wiki-health", "wiki-index", "wiki-init", "wiki-query", "wiki-registry", "wiki-reorg"].every((name) => names.includes(`.agents/skills/${name}`)));
@@ -49,11 +72,9 @@ try {
 	{
 		const h = home();
 		const oldSkill = path.join(h, ".claude", "skills", "spec");
-		fs.mkdirSync(oldSkill, { recursive: true });
-		fs.writeFileSync(path.join(oldSkill, "SKILL.md"), "nana-dev-kit legacy spec copy\n");
+		copyTree(path.join(fixture, "spec"), oldSkill);
 		const codex = path.join(h, ".agents", "skills", "dev-check");
-		fs.mkdirSync(codex, { recursive: true });
-		fs.writeFileSync(path.join(codex, "SKILL.md"), "Imported paths use ~/.Codex/skills and .Codex/rules\n");
+		copyTree(path.join(fixture, "dev-check"), codex);
 		const emptyFlag = path.join(h, ".claude", "enforce");
 		fs.mkdirSync(path.dirname(emptyFlag), { recursive: true });
 		fs.writeFileSync(emptyFlag, "");
@@ -61,12 +82,12 @@ try {
 		const hookLink = path.join(h, ".claude", "hooks", "context-size-check.sh");
 		fs.mkdirSync(path.dirname(hookLink), { recursive: true });
 		fs.symlinkSync(hookSource, hookLink);
-		const oldHookBackup = path.join(h, ".claude", "hooks", "nana-old.sh.bak-20260918");
-		fs.writeFileSync(oldHookBackup, "# nana legacy hook backup\n");
+		const oldHookBackup = path.join(h, ".claude", "hooks", "nana-objective.sh.bak-20260918");
+		fs.copyFileSync(path.join(fixture, "hook-backup"), oldHookBackup);
 		const juneHook = path.join(h, ".claude", "hooks", "nana-june.sh.bak-20260622");
 		fs.writeFileSync(juneHook, "# nana June copy retained\n");
 		const foreignBackup = path.join(h, ".claude", "hooks", "foreign.sh.bak-20260918");
-		fs.writeFileSync(foreignBackup, "foreign backup without ownership evidence\n");
+		fs.writeFileSync(foreignBackup, "owner backup mentions nana but is not in the captured manifest\n");
 		fs.writeFileSync(path.join(h, ".claude", "settings.json"), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
 			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" },
 			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh --owner-variant" },
@@ -93,11 +114,11 @@ try {
 		// req: R-663
 		check("manifest symlink is not followed or moved", fs.lstatSync(linkedImport, { throwIfNoEntry: false })?.isSymbolicLink() && fs.readlinkSync(linkedImport) === foreign && fs.readFileSync(path.join(foreign, "SKILL.md"), "utf8").includes("must not be followed"), result.stdout);
 		// req: R-668
-		check("nana-owned 2026-09-18 hook backup is retired", fs.existsSync(backup(h, ".claude", "hooks/nana-old.sh.bak-20260918")), result.stdout);
+		check("nana-owned 2026-09-18 hook backup is retired", fs.existsSync(backup(h, ".claude", "hooks/nana-objective.sh.bak-20260918")), result.stdout);
 		// req: R-668
 		check("June hook copies remain in place", fs.existsSync(juneHook));
 		// req: R-668
-		check("dated hook backups without nana provenance remain in place", fs.existsSync(foreignBackup));
+		check("unrelated dated backup mentioning nana remains in place", fs.existsSync(foreignBackup));
 		// req: R-661
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
@@ -117,8 +138,7 @@ try {
 		check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
 		const interrupted = home();
 		const pending = path.join(interrupted, ".claude", "skills", "nana");
-		fs.mkdirSync(pending, { recursive: true });
-		fs.writeFileSync(path.join(pending, "SKILL.md"), "nana-dev-kit legacy capability skill\n");
+		copyTree(path.join(fixture, "nana"), pending);
 		fs.mkdirSync(path.dirname(backup(interrupted, ".claude", "skills/nana")), { recursive: true });
 		const recovered = install(interrupted);
 		// req: R-669
@@ -130,8 +150,7 @@ try {
 		fs.mkdirSync(ownerSkill, { recursive: true });
 		fs.writeFileSync(path.join(ownerSkill, "SKILL.md"), "owner-authored spec\n");
 		const legacyDir = path.join(h, ".claude", "skills", "py-init");
-		fs.mkdirSync(legacyDir, { recursive: true });
-		fs.writeFileSync(path.join(legacyDir, "SKILL.md"), "nana-dev-kit 5-layer harness\n");
+		copyTree(path.join(fixture, "py-init"), legacyDir);
 		fs.writeFileSync(path.join(h, ".claude", "enforce-memory"), "");
 		const before = run(["doctor", "--home", h]);
 		// req: R-667
@@ -144,6 +163,18 @@ try {
 		check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
 		// req: R-667
 		check("doctor reports absent legacy wiring as healthy", doc.stdout.includes("✓ legacy enforcement flags") && doc.stdout.includes("✓ legacy scaffolders"), doc.stdout);
+	}
+	{
+		const h = home();
+		const edited = path.join(h, ".claude", "skills", "spec");
+		copyTree(path.join(fixture, "spec"), edited);
+		fs.appendFileSync(path.join(edited, "SKILL.md"), "owner edit\n");
+		const added = path.join(h, ".agents", "skills", "dev-check");
+		copyTree(path.join(fixture, "dev-check"), added);
+		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
+		const result = install(h);
+		// req: R-669
+		check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
 	}
 	{
 		const h = home();

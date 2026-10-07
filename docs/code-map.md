@@ -1516,11 +1516,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/retired.mjs`
 
-- **purpose** — Describe only legacy artifacts whose nana provenance permits safe retirement.
+- **purpose** — Describe only legacy artifacts whose exact captured file fingerprints permit safe retirement.
 - **inputs** — home path and filesystem entries inspected with lstat.
-- **outputs** — a list of relative paths, expected kinds, and provenance predicates.
+- **outputs** — a list of relative paths, expected kinds, and exact provenance predicates.
 - **effects** — disk (reads artifact contents; callers perform moves).
-- **errors** — unreadable or mismatched artifacts are returned as unrecognized, never followed.
+- **errors** — unreadable, linked, or mismatched artifacts are returned as unrecognized, never followed.
 - **callers** — `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`
 - **callees** — —
 
@@ -1528,7 +1528,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Migrate the exact retired context hook and merge active nana hooks while preserving foreign entries.
 - **inputs** — a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot }; the command strings already in settings.hooks
-- **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
+- **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook(); serialize() JSON text
 - **effects** — disk (reads only)
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
 - **callers** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`
@@ -1666,7 +1666,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/settings-merge.test.mjs`
 
-- **purpose** — Pins that the settings.json merge ADDS and nothing else — other people's hooks, keys and ordering survive, an unparsable or unrecognised file stops the installer before anything moves, and the write is atomic
+- **purpose** — Pins that the settings.json merge adds active hooks and removes only the exact retired hook — other people's hooks, keys and ordering survive, an unparsable or unrecognised file stops the installer before anything moves, and the write is atomic
 - **inputs** — lib/settings.mjs, lib/steps.mjs, bin/nana-setup.mjs, and settings fixtures under a throwaway --home
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts, settings files and lock files), process (spawns the installer CLI)

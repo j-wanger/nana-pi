@@ -1,13 +1,13 @@
 /**
  * @module packages/nana-setup/tests/settings-merge.test.mjs
- * @purpose Pins that the settings.json merge ADDS and nothing else — other people's hooks, keys and ordering survive, an unparsable or unrecognised file stops the installer before anything moves, and the write is atomic
+ * @purpose Pins that the settings.json merge adds active hooks and removes only the exact retired hook — other people's hooks, keys and ordering survive, an unparsable or unrecognised file stops the installer before anything moves, and the write is atomic
  * @inputs lib/settings.mjs, lib/steps.mjs, bin/nana-setup.mjs, and settings fixtures under a throwaway --home
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts, settings files and lock files), process (spawns the installer CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: the settings.json merge ADDS and nothing else. Someone else's hooks, someone else's
-// keys, and someone else's ordering all survive; a file we cannot parse OR cannot understand
+// Gate: the settings.json merge adds active hooks and removes only the exact retired hook.
+// Someone else's hooks, keys, and ordering all survive; a file we cannot parse OR cannot understand
 // stops the installer before anything on disk has moved; the write is atomic and refuses to
 // clobber a concurrent edit; and a hook counts as installed only when it really is one.
 import { spawnSync } from "node:child_process";

@@ -5,7 +5,7 @@
  *  the command strings already in settings.hooks
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean;
  *  desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook();
- *  mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
+ *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook(); serialize() JSON text
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
