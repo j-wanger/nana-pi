@@ -560,13 +560,16 @@ try {
 
 	// ── F. nana-pack config: two scopes, known top-level keys only, guarded write ──
 	const NP_USER = path.join(PI_DIR, "nana-pack.json");
-	fs.writeFileSync(NP_USER, JSON.stringify({ journal: { enabled: true, path: null, rotateAt: 99 }, notify: { enabled: false, headless: true } }, null, 2));
+	fs.writeFileSync(NP_USER, JSON.stringify({ journal: { enabled: true, path: null, rotateAt: 99 }, notify: { enabled: false, headless: true }, receipts: { enabled: false, dir: "legacy-store" } }, null, 2));
 	let g = await fetch(`${BASE}/api/nana-pack`).then((x) => x.json());
 	check("GET with no dir reads the USER file", g.scope === "user" && g.path === NP_USER && g.exists === true && g.config.notify.headless === true, JSON.stringify(g));
 	r = await post("/api/nana-pack", { config: { ...g.config, notify: { ...g.config.notify, enabled: true } } });
 	check("a user-scope write lands", r.status === 200 && (await r.json()).scope === "user", String(r.status));
 	let np = JSON.parse(fs.readFileSync(NP_USER, "utf-8"));
 	check("…the edited field changed", np.notify.enabled === true, JSON.stringify(np.notify));
+	const nanaPackUi = fs.readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+	// req: R-867
+	check("Nana pack settings hide receipt controls and preserve legacy values", np.receipts.enabled === false && np.receipts.dir === "legacy-store" && !/receiptsEn|receiptsDir|Post-edit check receipts/.test(nanaPackUi) && /\.\.\.n,/.test(nanaPackUi));
 	// req: R-457
 	check("…a sub-key the form never renders survived the round-trip", np.journal.rotateAt === 99, JSON.stringify(np.journal));
 	check("…and the previous file is the .bak", JSON.parse(fs.readFileSync(`${NP_USER}.bak`, "utf-8")).notify.enabled === false);

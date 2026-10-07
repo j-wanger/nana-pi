@@ -259,7 +259,7 @@ ports, so they are run by hand, one at a time (`node apps/desk/test/<name>.e2e.m
 - **Settings → Nana pack** — a form over the whole nana-pack schema
   (`packages/nana-pack/lib/config.ts`): gate pattern lists, post-edit commands as
   match/run/timeoutMs rows (with a raw-JSON escape hatch), notify, journal,
-  handoff, receipts. A scope switch edits either `<agent dir>/nana-pack.json` or a
+  handoff. A scope switch edits either `<agent dir>/nana-pack.json` or a
   project's `<dir>/.pi/nana-pack.json` (project overrides user per section, and the
   project file is only read when the project is trusted). The write is a whole-file
   replace, so unknown top-level keys are refused *by name* rather than persisted;

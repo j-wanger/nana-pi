@@ -8,9 +8,7 @@ setup. What that means while you work here:
 - **Post-edit checks.** After a successful edit/write, the pack runs the commands
   in this project's `.pi/nana-pack.json` (`postEdit.commands`) whose `match` regex
   hits the edited file, and feeds any failure straight back to you to fix before
-  moving on (each run also leaves, best-effort, a content-bound receipt under
-  `<agent dir>/receipts` — pi's active agent dir: `PI_CODING_AGENT_DIR` when set, else
-  `~/.pi/agent`). The commands are yours to define — a scaffolded project
+  moving on. The commands are yours to define — a scaffolded project
   ships a working set (format / lint / type-check); a project set up with the
   `adopt-structure` skill ships a **placeholder** to replace with your real
   toolchain. Until a real command is in place, post-edit runs nothing. The shape

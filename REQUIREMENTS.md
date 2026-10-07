@@ -172,15 +172,17 @@ New behaviour in this repo: requirement diff, then tagged tests, then code.
 | R-100 | A headless run shall not throw. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::f: headless run does not throw (no ctx.ui to call)` |
 | R-865 | During the compatibility release, the config loader shall accept receipts.enabled and receipts.dir without acting on them. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::legacy receipts config is accepted and ignored; failure feedback and status remain` |
 | R-866 | Post-edit checks shall report their feedback and status independently of receipt configuration. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::legacy receipts config is accepted and ignored; failure feedback and status remain` |
+| R-867 | The desk settings editor shall hide legacy receipt controls while preserving unedited legacy receipt values on save. | implemented | `apps/desk/test/spawn-and-persist.test.mjs::Nana pack settings hide receipt controls and preserve legacy values` |
+| R-868 | The post-edit source shall define all checker outcome statuses used by its type annotations. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::post-edit source defines its checker status union` |
 | R-791 | A throwing setStatus shall not escape the handler. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::g: a throwing setStatus does not throw out of the handler` |
 | R-101 | Each run shall leave a best-effort content-bound receipt under the active agent dir's receipts, one file per repository plus checker, with a sha256 digest of the bound inputs. | retired | decision D5, 2026-10-06 |
 | R-102 | WHEN the bound file's content changes, the prior receipt shall read stale and the new one current. | retired | decision D5, 2026-10-06 |
 | R-103 | The checker shall receive the real file, even under hostile path shapes. | implemented | `packages/nana-pack/tests/post-edit-hardening.test.mjs::${tag}: ${label} — checker received the real file` |
 | R-792 | The receipt shall bind the real file, even under hostile path shapes. | retired | decision D5, 2026-10-06 |
 | R-104 | Receipt handling shall never throw on a non-string receipts.dir. | retired | decision D5, 2026-10-06 |
-| R-793 | A malformed post-edit command entry shall be skipped without skipping valid entries. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::legacy: malformed command is skipped and valid command runs` |
+| R-793 | A malformed post-edit command entry shall be skipped without skipping valid entries. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::legacy: malformed command shapes are skipped and valid command runs` |
 | R-247 | A post-edit check shall not throw when its abort signal is undefined. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::legacy: missing abort signal does not throw` |
-| R-105 | A missing executable shall be classified error, never passed. | untested | receipt-binding tests removed with decision D5; no remaining check pins missing-executable classification |
+| R-105 | A missing executable shall be classified error, never passed. | implemented | `packages/nana-pack/tests/post-edit-status.test.mjs::missing executable is reported as an error, never passed` |
 | R-106 | WHERE receipts.enabled is false, no receipt shall be written. | retired | decision D5, 2026-10-06 |
 | R-794 | receipts.dir shall relocate the store. | retired | decision D5, 2026-10-06 |
 | R-107 | The win32 tree-kill branch shall kill a checker's whole tree. | untested | — |

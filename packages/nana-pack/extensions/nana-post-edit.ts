@@ -66,6 +66,7 @@ function failureLine(cmd: string, what: string, out?: string): string {
 }
 
 /** Per-check outcome for the status line: pi's own statuses plus the lock refusal. */
+type CheckStatus = "checks_passed" | "checks_failed" | "error" | "timeout" | "not_run";
 type Outcome = CheckStatus | "lock";
 
 /**

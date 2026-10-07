@@ -2167,8 +2167,6 @@ async function tabNana(body) {
 	const journalPath = txtInput(n.journal?.path ?? "", "blank = <pi agent dir>/nana-journal.jsonl");
 	const handoffEn = checkbox(n.handoff?.enabled !== false);
 	const handoffPath = txtInput(n.handoff?.path ?? "", "blank = the pack's default");
-	const receiptsEn = checkbox(n.receipts?.enabled !== false);
-	const receiptsDir = txtInput(n.receipts?.dir ?? "", "blank = <pi agent dir>/receipts");
 	body.append(
 		el("div", "sec-head", "Notifications"),
 		field("enabled", notifyEn), field("also when headless", notifyHeadless),
@@ -2176,8 +2174,6 @@ async function tabNana(body) {
 		field("enabled", journalEn), field("path", journalPath),
 		el("div", "sec-head", "Handoff"),
 		field("enabled", handoffEn), field("path", handoffPath),
-		el("div", "sec-head", "Post-edit check receipts"),
-		field("enabled", receiptsEn), field("dir", receiptsDir),
 	);
 
 	const orNull = (i) => (i.value.trim() ? i.value.trim() : null);
@@ -2193,7 +2189,6 @@ async function tabNana(body) {
 				notify: { ...n.notify, enabled: notifyEn.checked, headless: notifyHeadless.checked },
 				journal: { ...n.journal, enabled: journalEn.checked, path: orNull(journalPath) },
 				handoff: { ...n.handoff, enabled: handoffEn.checked, path: orNull(handoffPath) },
-				receipts: { ...n.receipts, enabled: receiptsEn.checked, dir: orNull(receiptsDir) },
 			};
 			const payload = mode === "project" ? { config, dir } : { config };
 			const r = await fetch("/api/nana-pack", { method: "POST", headers: JH, body: JSON.stringify(payload) }).then((r) => r.json());

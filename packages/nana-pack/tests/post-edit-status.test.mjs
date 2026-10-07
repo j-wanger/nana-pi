@@ -30,6 +30,10 @@ const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+const postEditSource = fs.readFileSync(new URL("../extensions/nana-post-edit.ts", import.meta.url), "utf8");
+const statusUnion = postEditSource.match(/type CheckStatus = ([^;]+);/)?.[1] ?? "";
+// req: R-868
+check("post-edit source defines its checker status union", ["checks_passed", "checks_failed", "error", "timeout", "not_run"].every((status) => statusUnion.includes(`\"${status}\"`)) && /type Outcome = CheckStatus \| \"lock\";/.test(postEditSource));
 
 // Fresh workspace + registered handler + a ctx whose ui records instead of rendering.
 // opts.ctx merges into the ctx (e.g. { hasUI: false }); opts.signal overrides ctx.signal.
@@ -101,15 +105,31 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 {
 	const { td, statuses, fire } = setup([
 		{ match: "[", run: PASS_CMD },
+		{ match: "\\.txt$", timeoutMs: 10 },
+		{ match: "\\.txt$", run: PASS_CMD, timeoutMs: -1 },
+		{ match: "\\.txt$", run: PASS_CMD, timeoutMs: 1.5 },
+		null,
 		{ match: "\\.txt$", run: SLOW_PASS_CMD, timeoutMs: 0 },
+		{ match: "\\.txt$", run: PASS_CMD },
 	]);
 	const file = path.join(td, "legacy-valid.txt");
 	fs.writeFileSync(file, "x\\n");
 	await fire(file);
 	// req: R-789
-	check("legacy: timeoutMs zero remains a passing check", statuses.at(-1)?.text === "[dim]post-edit ✓ 1 check · legacy-valid.txt");
+	check("legacy: timeoutMs zero remains a passing check", statuses.at(-1)?.text === "[dim]post-edit ✓ 2 checks · legacy-valid.txt");
 	// req: R-793
-	check("legacy: malformed command is skipped and valid command runs", statuses.length === 1 && statuses.at(-1)?.text.includes("✓ 1 check"));
+	check("legacy: malformed command shapes are skipped and both valid commands run", statuses.length === 1 && statuses.at(-1)?.text.includes("✓ 2 checks"));
+	fs.rmSync(td, { recursive: true, force: true });
+}
+
+// A shell's missing-command result is an execution error, not a successful checker verdict.
+{
+	const { td, statuses, fire } = setup([{ match: "\\.txt$", run: "nana-post-edit-executable-that-does-not-exist" }]);
+	const file = path.join(td, "missing-executable.txt");
+	fs.writeFileSync(file, "x\\n");
+	const result = await fire(file);
+	// req: R-105
+	check("missing executable is reported as an error, never passed", result?.content?.at(-1)?.text?.includes("could not run") && statuses.at(-1)?.text === "[error]post-edit ✗ 1/1 · missing-executable.txt");
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

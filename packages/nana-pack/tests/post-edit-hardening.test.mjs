@@ -290,11 +290,12 @@ if (POSIX) {
 	// req: R-644
 	check("path: post-edit imports the shared resolver and defines no local resolver", /import\s*\{\s*resolveToolPath\s*\}\s*from\s*["']\.\.\/lib\/gate-paths\.ts["']/.test(source) && !/(?:function|const|let)\s+(?:resolveToolPath|resolveToCwd|normalizePath|normalizeWindowsShellPath)\b|UNICODE_SPACES/.test(source));
 	const malformed = "file:///%%";
-	const { td, cfg, fire } = setup([{ match: ".*", run: "node -e \\\"process.exit(0)\\\" {file}" }]);
+	const { td, cfg, fire } = setup([{ match: ".*", run: 'node -e "require(\'fs\').writeFileSync(\'observed-path.txt\', process.argv[1])" {file}' }]);
 	const expected = resolveToolPath(malformed, td);
 	await fire(malformed);
+	const observed = fs.readFileSync(path.join(td, "observed-path.txt"), "utf8");
 	// req: R-644
-	check("path: malformed file URL post-edit path matches shared resolver", source.includes("resolveToolPath"));
+	check("path: malformed file URL checker receives the shared resolver result", observed === expected);
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
