@@ -25,7 +25,13 @@ Jake saying a report dropped detail he needed.
 | 2026-10-04 | 0 | 0/0 | 0 | 0 | 0 | 0 | 0 |
 | 2026-10-05 | 6 | 6/6 | 176 | 0 | 60 | 0 | 0 |
 
-2026-10-05 note: the seat checked its three end-of-task reports and its `HANDOFF.md` edits (its own sentences only; renumbered old lines excluded). It sent about fifteen short status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates. A later session checked a fourth and fifth report (pi durable agent and Karpathy's other formats, 50 sentences; the code-map comparison, 28 sentences; three passives fixed before sending) and 7 new HANDOFF sentences; then a sixth report (the map-test-links land, 28 sentences) and 19 more HANDOFF sentences after fixing one over-cap and two passives. Its short status updates went unchecked too.
+2026-10-05 note: the original hand tally covers the reports it checked, not every report-sized final. Status updates remain style-scoped but are not individually checker-scoped; the report-only command is not a status-update habit metric.
+
+Reviewer-harm trigger record: the “reviewers drop paths” trigger was checked against the post-landing review corpus and did not fire. Identifier density per 100 words: pre-landing 6.9, 5.7, 4.6, 4.9; post-landing 4.8, 4.9, 2.1, 7.1, 7.6, 7.9, 3.6, 4.0, 6.1. Over-cap findings stayed at 0–1 per file in both periods. These aggregate measures do not prove that no necessary detail was dropped.
+
+The pi half has no corpus yet: the journal does not distinguish Jake-facing UI output from worker or reviewer sessions.
+
+The reproducible extractor is `extract.mjs`; its current scan sees seven treated report units (four on 2026-10-05), so it does not yet reproduce the audit's 14 report-sized finals for that day. Transcript evidence for the historical baseline window was unavailable in this scan; no strict or lenient baseline re-measurement is claimed. Because the baseline was originally measured with the lenient verdict check, baseline and after must be re-measured together before comparing strict results.
 
 Targets (design-ruling.md §3, re-based on the Markdown-aware splitter), one set per corpus:
 over-cap at or under a quarter of the baseline share `baseline.md` measures on landing day,

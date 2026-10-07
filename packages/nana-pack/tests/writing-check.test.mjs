@@ -140,10 +140,21 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 	check('report: "LANDED." passes, "The work went well." is reported', r1.stats.verdict === true && r2.stats.verdict === false, JSON.stringify([r1.stats.verdict, r2.stats.verdict]));
 }
 {
+	const cases = ["The lane is still open.", "I am done reading the file.", "Here is the open question."];
+	const results = cases.map((text) => checkText("-", text, { report: true }).stats.verdict);
+	// req: R-747
+	check("verdict: lowercase or later verdict words do not satisfy the first-token rule", results.every((result) => result === false), JSON.stringify(results));
+}
+{
+	const bold = checkText("-", "**DONE.** All merged.", { report: true });
+	// req: R-747
+	check("verdict: bold uppercase first-token verdict passes", bold.stats.verdict === true, JSON.stringify(bold.stats));
+}
+{
 	// astra r1 MUST 2, four cases, through the pure function AND the CLI below.
 	// req: R-747
 	check('verdict: "I reopened the case." does NOT pass (OPEN is a substring, not a whole word)', verdictFinding("I reopened the case.") !== null);
-	// req: R-747
+	// req: R-690
 	check("verdict: empty input does NOT pass", verdictFinding("") !== null && verdictFinding(null) !== null);
 	// req: R-747
 	check('verdict: "DONE." (list marker stripped) passes', verdictFinding(splitSentences("1. DONE. I checked the file.")[0]?.text) === null);
@@ -158,7 +169,7 @@ check("seal: MIN_SENTENCE_WORDS is 3", MIN_SENTENCE_WORDS === 3);
 }
 {
 	const r = run(["--report"], "");
-	// req: R-747
+	// req: R-690
 	check("verdict (CLI): empty input --report does not read as passing", !r.stdout.includes("verdict=1/1") && r.stdout.includes("verdict="), r.stdout);
 }
 {
