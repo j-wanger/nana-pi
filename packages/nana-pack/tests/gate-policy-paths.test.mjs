@@ -18,6 +18,7 @@ import * as path from "node:path";
 const NANA_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
+const gatePaths = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
 const ext = (await import(new URL("../extensions/nana-gate.ts", import.meta.url).href)).default;
 let handler;
 ext({ on: (ev, fn) => { if (ev === "tool_call") handler = fn; } });
@@ -26,6 +27,7 @@ const ctx = { cwd: "/tmp/proj", hasUI: false, isProjectTrusted: () => false };
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name, extra); if (!ok) fails++; };
 const decide = async (toolName, p) => (await handler({ toolName, input: { path: p } }, ctx))?.block ? "BLOCK" : "ALLOW";
+const decideCommand = async (command) => (await handler({ toolName: "bash", input: { command } }, ctx))?.block ? "BLOCK" : "ALLOW";
 
 // Traversal and normalization forms: the gate must check the RESOLVED path, because
 // every one of these opens a policy file (sol L1 r3 found them ALLOW on raw-string regexes).
@@ -49,7 +51,7 @@ const BLOCK = [
 	".pi/nana-pack.json", "/tmp/proj/.pi/nana-pack.json", "@.pi/nana-pack.json",
 	"C:\\Users\\x\\.pi\\agent\\trust.json", ".PI\\NANA-PACK.JSON",
 ];
-const ALLOW = ["src/nana-pack-notes.md", "docs/trust.md", ".pi/handoff.md", "/tmp/proj/README.md", "nana-pack.json.example", "packages/nana-pack/extensions/nana-gate.ts", "apps/bench/.ext/pi-web-access/x.ts", "templates/python/template/.pi/nana-pack.json.jinja", "templates/typescript/template/.pi/nana-pack.json.jinja"];
+const ALLOW = ["src/nana-pack-notes.md", "docs/trust.md", ".pi/handoff.md", "/tmp/proj/README.md", "nana-pack.json.example", "packages/nana-pack/extensions/nana-gate.ts", "apps/bench/.ext/pi-web-access/x.ts", "templates/python/template/.pi/nana-pack.json.jinja", "templates/typescript/template/.pi/nana-pack.json.jinja", "/tmp/proj/project.foo.pi/extensions/x.ts", "/tmp/proj/project.foo.pi/settings.json"];
 // req: R-035 R-038 R-051
 for (const p of BLOCK) for (const t of ["write", "edit"]) check(`${t} ${p} is gated`, (await decide(t, p)) === "BLOCK");
 // req: R-051
@@ -57,6 +59,27 @@ for (const p of TRAVERSAL) for (const t of ["write", "edit"]) check(`${t} ${p} i
 for (const p of ALLOW) for (const t of ["write", "edit"]) check(`${t} ${p} is not gated`, (await decide(t, p)) === "ALLOW");
 // req: R-631 R-058
 check("active and default pi code-loading resources are policy floor", BLOCK.includes(`${NANA_HOME}/.pi/agent/extensions/subagent/config.json`) && BLOCK.includes(".pi/extensions/evil.ts") && (await decide("write", `${NANA_HOME}/.pi/agent/extensions/subagent/config.json`)) === "BLOCK" && (await decide("edit", ".pi/extensions/evil.ts")) === "BLOCK");
+// req: R-639
+check("extension symlink walk cap is sealed at 2048 entries", gatePaths.EXTENSION_WALK_ENTRY_CAP === 2048);
+// req: R-631
+check("project policy matches require a real .pi path segment", (await decide("edit", "/tmp/proj/project.foo.pi/extensions/x.ts")) === "ALLOW" && (await decide("edit", "/tmp/proj/project.foo.pi/settings.json")) === "ALLOW");
+{
+	const agentExtensions = path.join(NANA_HOME, ".pi", "agent", "extensions");
+	const targetDir = path.join(NANA_HOME, "external-extension-target");
+	const sibling = path.join(NANA_HOME, "external-sibling", "free.ts");
+	fs.mkdirSync(agentExtensions, { recursive: true });
+	fs.mkdirSync(targetDir, { recursive: true });
+	fs.mkdirSync(path.dirname(sibling), { recursive: true });
+	fs.writeFileSync(path.join(targetDir, "loaded.ts"), "export {};");
+	fs.writeFileSync(sibling, "export {};");
+	fs.symlinkSync(targetDir, path.join(agentExtensions, "linked"), "dir");
+	const target = path.join(targetDir, "loaded.ts");
+	// req: R-631
+	check("symlinked extension targets are floored without flooring unrelated siblings", (await decide("edit", target)) === "BLOCK" && (await decide("write", target)) === "BLOCK" && (await decideCommand(`printf x > ${target}`)) === "BLOCK" && (await decide("edit", sibling)) === "ALLOW");
+	fs.symlinkSync(path.join(targetDir, "loop"), path.join(agentExtensions, "loop"), "dir");
+	// req: R-631
+	check("symlink loop terminates while resolving extension targets", (await decide("edit", target)) === "BLOCK");
+}
 // req: R-630
 check("template source suffix and normal package extension sources stay editable", (await decide("edit", "templates/python/template/.pi/nana-pack.json.jinja")) === "ALLOW" && (await decide("edit", "packages/nana-pack/extensions/nana-gate.ts")) === "ALLOW");
 // req: R-638

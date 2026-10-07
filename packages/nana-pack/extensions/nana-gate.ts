@@ -153,7 +153,7 @@ function commandHit(command: string, gate: Policy, cwd: string): Hit {
 
 function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	const cands = pathCandidates(subject, cwd);
-	const policy = policyFileHit(cands);
+	const policy = policyFileHit(cands, cwd);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
 	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
 	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));

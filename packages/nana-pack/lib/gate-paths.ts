@@ -73,6 +73,9 @@ function linkTarget(p: string): string | null {
 
 const key = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 
+// Chosen 2026-10-06: a bounded scan prevents extension-tree enumeration from becoming unbounded.
+export const EXTENSION_WALK_ENTRY_CAP = 2048;
+
 /** Every form of a tool path worth checking: raw, resolved, slash-normalised, realpath. */
 export function pathCandidates(raw: string, cwd: string): string[] {
 	const out = new Set<string>([raw]);
@@ -87,12 +90,12 @@ export function pathCandidates(raw: string, cwd: string): string[] {
 
 // Policy files are files whose content runs or shapes the next session's code. Prompt-only resources
 // are intentionally outside this floor. Project pi resources are anchored to a `.pi/` segment.
-export const NANA_PACK_POLICY_RE = /\.pi[/\\](agent[/\\])?nana-pack\.json(?![\w.])/i;
+export const NANA_PACK_POLICY_RE = /(?:^|[/\\])\.pi[/\\](agent[/\\])?nana-pack\.json(?![\w.])/i;
 const POLICY_RES: RegExp[] = [
 	NANA_PACK_POLICY_RE,
-	/\.pi[/\\](settings|mcp)\.json(?![\w.])/i,
-	/\.pi[/\\]extensions[/\\]/i,
-	/\.pi[/\\]agent[/\\](trust|auth|settings|mcp)\.json(?![\w.])/i,
+	/(?:^|[/\\])\.pi[/\\](settings|mcp)\.json(?![\w.])/i,
+	/(?:^|[/\\])\.pi[/\\]extensions[/\\]/i,
+	/(?:^|[/\\])\.pi[/\\]agent[/\\](trust|auth|settings|mcp)\.json(?![\w.])/i,
 	/\.claude[/\\](settings(\.local)?\.json|hooks([/\\]|$))/i,
 ];
 
@@ -124,14 +127,52 @@ function activeDirPolicyFiles(): string[] {
 	return [...out];
 }
 
+function extensionSymlinkFloors(dir: string): { prefixes: string[]; overflow: boolean } {
+	const prefixes: string[] = [];
+	let visited = 0;
+	let overflow = false;
+	const walk = (current: string, depth: number) => {
+		if (depth > 2 || overflow) return;
+		let entries: fs.Dirent[];
+		try { entries = fs.readdirSync(current, { withFileTypes: true }); } catch { return; }
+		for (const entry of entries) {
+			if (++visited > EXTENSION_WALK_ENTRY_CAP) { overflow = true; return; }
+			const full = path.join(current, entry.name);
+			if (entry.isSymbolicLink()) {
+				try {
+					const target = fs.realpathSync(full);
+					const isDirectory = fs.statSync(target).isDirectory();
+					prefixes.push(`${key(target)}${isDirectory ? "/" : ""}`);
+				} catch { /* dangling links and loops cannot resolve to a loadable target */ }
+			} else if (entry.isDirectory() && depth < 2) walk(full, depth + 1);
+			if (overflow) return;
+		}
+	};
+	walk(dir, 1);
+	return { prefixes, overflow };
+}
+
 /** The policy file a set of path candidates lands on, or null. */
-export function policyFileHit(candidates: string[]): string | null {
+export function policyFileHit(candidates: string[], cwd = process.cwd()): string | null {
 	try {
 		for (const c of candidates) if (POLICY_RES.some((re) => re.test(c))) return c;
-		const alt = activeDirPolicyFiles();
+		const dirs = [...new Set([
+			path.join(piAgentDir(), "extensions"),
+			path.join(os.homedir(), ".pi", "agent", "extensions"),
+			path.join(cwd, ".pi", "extensions"),
+		])];
+		const extensionFloors: string[] = [];
+		const overflowDirs: string[] = [];
+		for (const dir of dirs) {
+			const scan = extensionSymlinkFloors(dir);
+			extensionFloors.push(...scan.prefixes);
+			if (scan.overflow) overflowDirs.push(`${key(dir)}/`);
+		}
+		const alt = [...activeDirPolicyFiles(), ...extensionFloors, ...overflowDirs];
 		for (const c of candidates) {
 			const candidate = key(c);
-			if (alt.some((p) => p.endsWith("/") ? candidate.startsWith(p) : candidate === p)) return c;
+			if (overflowDirs.some((p) => candidate.startsWith(p))) return `${c} (extension walk limit reached; whole directory floored)`;
+			if (alt.some((p) => p.endsWith("/") ? candidate.startsWith(p) : candidate === p || candidate.startsWith(`${p}/`))) return c;
 		}
 		return null;
 	} catch {
