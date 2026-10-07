@@ -37,11 +37,13 @@ wired into the post-edit checks (`pnpm map:check` / `pnpm map:impact`).
    (One line on purpose — it must work in PowerShell too, where bash's `\`
    continuation breaks.)
 
-4. Then complete the printed next steps: `git init` + first commit,
+4. **The first two project steps**:
+   1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+   2. Trust the folder: `nana-setup trust <dir>`.
+5. Then complete the other printed next steps: `git init` + first commit,
    `pnpm install`, `pnpm check` (typecheck + lint + test), commit the lockfile —
    and confirm `pnpm check` is green before handing over.
-
-5. **The first real step after scaffolding is writing the project's first
+6. **The first real step after scaffolding is writing the project's first
    requirement rows** — `Part G` arrives filled in, the product rows are empty.
    Use the `requirements` skill: one EARS `shall` row per behaviour the project
    promises, each `planned` until a test with a `req:` marker pins it. Do this

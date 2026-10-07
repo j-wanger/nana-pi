@@ -23,7 +23,7 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { renderPlist, stepDesk, DESK_SERVER, installExitCode } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { renderPlist, stepDesk, DESK_SERVER, DESK_UNLOAD_TIMEOUT_MS, DESK_UNLOAD_POLL_MS, installExitCode } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { SKIPPED, UPDATED, CREATED, PROBLEM } = await import(new URL("../lib/fsops.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -77,23 +77,34 @@ const plist = path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist
 run(["install", "--home", home]);
 check("no --desk: no plist is written", !fs.existsSync(plist));
 
-const r = run(["install", "--home", home, "--desk"]);
+const nodeLinkDir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-node-link-"));
+tmps.push(nodeLinkDir);
+const visibleNode = path.join(nodeLinkDir, "node");
+fs.symlinkSync(process.execPath, visibleNode);
+const savedPath = process.env.PATH;
+process.env.PATH = `${nodeLinkDir}${path.delimiter}${savedPath || ""}`;
+let r;
+try { r = run(["install", "--home", home, "--desk"]); } finally { process.env.PATH = savedPath; }
 check("--desk exits 0", r.status === 0, r.stderr);
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
 // req: R-651
-check("plist uses the resolved node", body.includes(`<string>${process.execPath}</string>`));
+check("plist uses the resolved node", body.includes(`<string>${visibleNode}</string>`) && fs.realpathSync(visibleNode) === fs.realpathSync(process.execPath));
+// req: R-678
+check("plist uses the PATH-visible link when it resolves to the selected node", body.includes(`<string>${visibleNode}</string>`));
 check("plist points at this install's desk server", body.includes(path.join(repo, "apps", "desk", "server.mjs")));
 check("plist WorkingDirectory is the install root", body.includes(`<key>WorkingDirectory</key><string>${repo}</string>`));
 check("plist logs into the pi home", body.includes(path.join(home, ".pi", "agent", "desk.log")));
 check("plist carries a PATH", /<key>PATH<\/key><string>[^<]+<\/string>/.test(body));
 const launchPath = /<key>PATH<\/key><string>([^<]+)<\/string>/.exec(body)?.[1] ?? "";
 // req: R-396
-check("plist PATH is curated and excludes the installing shell snapshot", launchPath === [path.dirname(process.execPath), path.join(home, ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].join(":"), launchPath);
+check("plist PATH is curated and excludes the installing shell snapshot", launchPath === [path.dirname(visibleNode), path.join(home, ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].join(":"), launchPath);
 // req: R-314
 check("launchctl is NOT called under --home", r.stdout.includes("not loaded (--home override in play)"));
 
-const again = run(["install", "--home", home, "--desk"]);
+process.env.PATH = `${nodeLinkDir}${path.delimiter}${savedPath || ""}`;
+let again;
+try { again = run(["install", "--home", home, "--desk"]); } finally { process.env.PATH = savedPath; }
 check("--desk is idempotent", again.stdout.includes("nothing to do"));
 check("doctor marks a sandbox desk service as not live-loaded", /· desk service/.test(run(["doctor", "--home", home]).stdout));
 
@@ -244,6 +255,74 @@ check("doctor marks a sandbox desk service as not live-loaded", /· desk service
 		check("install CLI exits 1 on kickstart failure", kickstartCli.status === 1, `${kickstartCli.status}: ${kickstartCli.stderr} ${kickstartCli.stdout}`);
 	}
 
+	/* unload race and error-5 retry: fake launchctl stays loaded for N print probes. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-unload-race-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const state = path.join(dir, "state");
+		const count = path.join(dir, "prints");
+		const boots = path.join(dir, "boots");
+		fs.writeFileSync(state, "loaded");
+		fs.writeFileSync(stubPath, `#!/bin/sh\necho "$*" >> "${callLog}"\ncase "$1" in\n print) n=$(($(cat "${count}" 2>/dev/null || echo 0)+1)); echo $n > "${count}"; if [ "$(cat "${state}")" = loaded ] && [ "$n" -le 2 ]; then echo 'state = running'; exit 0; fi; exit 1;;\n bootout) echo loaded > "${state}"; echo 0 > "${count}"; exit 0;;\n bootstrap) n=$(($(cat "${boots}" 2>/dev/null || echo 0)+1)); echo $n > "${boots}"; if [ "$n" -eq 1 ]; then echo 'Input/output error' >&2; echo 0 > "${count}"; exit 5; fi; exit 0;;\n *) exit 0;;\nesac\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		const sequence = calls();
+		const unload = sequence.indexOf(`bootout gui/${process.getuid()}/com.nana.pi-desk`);
+		const bootstrap = sequence.indexOf(`bootstrap gui/${process.getuid()} ${layout.plistPath}`);
+		// req: R-677
+		check("desk waits for unload and retries bootstrap once after error 5", out.every((row) => row.status !== PROBLEM) && Number(fs.readFileSync(boots, "utf8")) === 2 && unload >= 0 && bootstrap > unload && sequence.slice(unload + 1, bootstrap).filter((call) => call.startsWith("print ")).length >= 3, `${DESK_UNLOAD_TIMEOUT_MS}/${DESK_UNLOAD_POLL_MS} ${JSON.stringify(out)} ${sequence.join(" | ")}`);
+		// req: R-677
+		check("desk unload timeout and poll cadence are sealed", DESK_UNLOAD_TIMEOUT_MS === 2000 && DESK_UNLOAD_POLL_MS === 50, `${DESK_UNLOAD_TIMEOUT_MS}/${DESK_UNLOAD_POLL_MS}`);
+	}
+
+	/* Error 5 is classified by status even when launchctl emits no text. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-status-only-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const boots = path.join(dir, "boots");
+		fs.writeFileSync(stubPath, `#!/bin/sh\necho "$*" >> "${callLog}"\ncase "$1" in print) exit 1;; bootstrap) n=$(($(cat "${boots}" 2>/dev/null || echo 0)+1)); echo $n > "${boots}"; [ "$n" -eq 1 ] && exit 5; exit 0;; *) exit 0;; esac\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		// req: R-677
+		check("status-only error 5 retries bootstrap once", out.every((row) => row.status !== PROBLEM) && Number(fs.readFileSync(boots, "utf8")) === 2, `${JSON.stringify(out)} ${calls().join(" | ")}`);
+	}
+
+	/* A job that never becomes absent is bounded and not bootstrapped. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-unload-timeout-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		fs.writeFileSync(stubPath, `#!/bin/sh\necho "$*" >> "${callLog}"\ncase "$1" in print) echo 'state = running'; exit 0;; bootout) exit 0;; *) exit 0;; esac\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		// req: R-677
+		check("desk unload timeout reports a problem without bootstrapping", out.some((row) => row.status === PROBLEM) && !calls().some((call) => call.startsWith("bootstrap ")), JSON.stringify(out));
+	}
+
+	/* A single hung print probe must not escape the sealed unload deadline. */
+	{
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-desk-hung-print-"));
+		tmps.push(dir);
+		const layout = baseLayout(dir);
+		fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+		fs.writeFileSync(callLog, "");
+		const count = path.join(dir, "print-count");
+		fs.writeFileSync(stubPath, `#!/usr/bin/env node\nconst fs=require("node:fs");\nfs.appendFileSync(${JSON.stringify(callLog)},process.argv.slice(2).join(" ")+"\\n");\nif(process.argv[2]==="print"){const n=(fs.existsSync(${JSON.stringify(count)})?Number(fs.readFileSync(${JSON.stringify(count)},"utf8")):0)+1;fs.writeFileSync(${JSON.stringify(count)},String(n));if(n>1)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10000);process.exit(0)}\n`);
+		fs.chmodSync(stubPath, 0o755);
+		const started = Date.now();
+		const out = withStubFirst(() => stepDesk(layout, {}));
+		const elapsed = Date.now() - started;
+		// req: R-677
+		check("hung launchctl print is killed at the unload deadline without bootstrap", elapsed < DESK_UNLOAD_TIMEOUT_MS + 500 && out.some((row) => row.status === PROBLEM) && !calls().some((call) => call.startsWith("bootstrap ")), `${elapsed}ms ${JSON.stringify(out)} ${calls().join(" | ")}`);
+	}
 
 	/* R-380's scope boundary (astra r2 MUST 2): under --dry-run the early `if (o.dryRun) return
 	   out;` fires before the SKIPPED-write check even runs, so a dangling plist under dry-run

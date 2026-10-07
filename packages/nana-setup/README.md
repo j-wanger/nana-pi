@@ -12,9 +12,10 @@ node packages/nana-setup/bin/nana-setup.mjs install      # install / repair ever
 node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓ or ✗ per piece; exits 1 on any ✗ or !
 node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
+node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi project trust after confirmation
 ```
 
-Runtime dependencies: **Node ≥ 22.18** and nothing else. The floor is set by the installed
+Runtime dependencies: **Node ≥ 22.18** and the globally installed `@earendil-works/pi-coding-agent` package (used for pi's exported project-trust API). The floor is set by the installed
 `claude/hooks/nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
 CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
 22.18). On an older Node the hook prints `OBJECTIVE UNAVAILABLE: Node <v> is older than 22.18 …`
@@ -42,9 +43,9 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 | `nana-objective.md` | the pi agent dir | seeded only when `nana-pack.json` was seeded by this run, or its `objective.path` resolves to this file — pointing the objective at a real repo's `OBJECTIVE.md` means no starter file is created |
 | `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces an ORDINARY, model-driven top-level `subagent` tool launch into the background (the gated runner process) regardless of what the model asks for (see `packages/nana-pack/README.md` Behavior notes for the exceptions it does not reach); `maxSubagentDepth` caps nested fan-out at one level. `doctor` reads ✗ naming the key and its required value when either is wrong, or when the file is missing or invalid — and never rewrites a file you already have |
 | `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply. `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
-| knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it). The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
+| knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it); doctor opens read-only and counts rows from the expected `docs` table, so a corrupt or wrong-schema database reads ✗. The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
 | `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
-| desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
+| desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. After bootout it waits for launchd to report the job absent before bootstrap; an error-5 bootstrap gets one retry after the same wait. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | Registration is complete only when every extension directory in the root `package.json` manifest is loaded. A root entry covers both manifests; per-package entries cover their own manifest. Install adds only missing per-package entries, never a root entry atop existing package entries. Paths use pi's matching rules (`~`, settings-relative paths, real paths and linked-worktree identity); exact remote entries are also recognized. |
 
 ## Updating the checkout with the desk
@@ -66,7 +67,7 @@ subagent config seed above caps `maxSubagentDepth` at 1 — inside pi-subagents'
 runner process, where nana-gate (`packages/nana-pack`'s own `tool_call` hook) loads as an ambient
 extension and inspects every command and edit target before it runs, the same as any other
 background subagent. nana-gate is advisory by doctrine — a load-path convenience, not a security
-boundary; real enforcement is the sandbox/container layer, exactly as everywhere else in this
+boundary; real enforcement is the sandbox or container boundary, exactly as everywhere else in this
 repo. That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Behavior
 notes for the two documented cases where a child does NOT load nana-gate even under this seeded
 config.
@@ -118,6 +119,7 @@ from Claude Code had no path to them at all. That gap is what `project` closes:
 node packages/nana-setup/bin/nana-setup.mjs project [dir] [--name <n>] [--dry-run]
 node packages/nana-setup/bin/nana-setup.mjs project [dir] --check    # accepts any existing month log
 node packages/nana-setup/bin/nana-setup.mjs project <dir> --not-a-project   # dismiss a repo root once
+node packages/nana-setup/bin/nana-setup.mjs trust <dir> [--yes]             # record pi's trust decision
 ```
 
 `--not-a-project` writes `.nana-not-a-project` (one line: what it means and the date) at a git
@@ -144,14 +146,14 @@ overwriting a real one) and the `adopt-structure` skill. So a scaffolded, an ado
 hand-made project read identically. `<date>` is left literal in the rendered template on
 purpose — copier has no date variable — and is filled by this command or by the skill.
 
-**Trust is yours to decide, too.** The seeded `.pi/nana-pack.json` is ignored until you decide
-this folder's trust: run **`/trust`** in pi inside the folder, then restart pi (the command
-prints this). `pi -a` / `--approve` — and the desk's "Trust project config" box, which sends
-`-a` — trusts **one run** only; it is not a recorded decision, so a folder whose `.pi/` holds
-only nana files stays ignored under it. Existing projects need the same one-time `/trust`.
+**Trust is yours to decide, too.** The seeded `.pi/nana-pack.json` is ignored until you decide this folder's trust. Run
+`nana-setup trust <dir>` and confirm interactively, or pass `--yes` in a script. The command
+records through pi's own `ProjectTrustStore` and prints the store path. `pi -a` / `--approve`
+(and the desk's trust box, which sends `-a`) trusts one run only; it is not a recorded decision.
 
-What it will not do is decide your objective. The two `(DRAFT — ratify by editing this line)`
-lines are the owner's, and the command says so when it finishes.
+`project` and every scaffold and adopt completion message name the first two steps: ratify the
+seeded `OBJECTIVE.md` (fill the date; the DRAFT lines are yours), then run
+`nana-setup trust <dir>`. What the tool will not do is decide your objective.
 
 **Present means present, not readable.** Every "is it already there?" decision about a file this
 installer WRITES is `lstat`, not `existsSync`: a **dangling** symlink reads as absent to
@@ -168,11 +170,11 @@ through it.
 stuck in an uninterruptible syscall (a hung network or FUSE knowledge root) would hang the
 whole command.
 
-**`--check` mirrors the setup decisions.** It never fails a state setup deliberately produced:
-a folder inside an existing repo reads ✓ `inside <root> — no nested repo, by design`, and a
-`.pi/nana-pack.json` omitted because you have user-scope `postEdit.commands` reads ✓ with that
-reason. A check that failed those would send you round a loop re-running a command that
-correctly does nothing.
+**`--check` mirrors file-presence decisions and reports effective state separately.** A folder
+inside an existing repo reads ✓ `inside <root> — no nested repo, by design`, and a deliberately
+omitted `.pi/nana-pack.json` reads ✓ with its reason. Separate `!` rows flag an empty or starter
+checker set and missing affirmative trust when project configuration exists; these rows make
+`--check` exit nonzero without replacing the file-presence row.
 
 **…but a seed must be a REGULAR file to read ✓.** A symlink or a directory sitting at
 `OBJECTIVE.md` is exactly what setup refused to write through, and the objective still cannot
@@ -232,11 +234,11 @@ instructions from the ones pi reads.
   `<name>.bak-<YYYYMMDD>` first, and the backup is named in the output. The Windows copy path
   owes the same guarantee: it backs up too, and it never writes *through* a symlink — the link is
   removed first, so whatever it pointed at is untouched.
-- **Never prompts.** `--yes` is accepted for scripts and does nothing.
-- **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`. That is
-  what makes the tests safe.
+- Install and project setup never prompt. `trust` requires `--yes` or an interactive owner confirmation.
+- **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`, and `trust`
+  refuses an explicit `--pi-home` outside the supplied `--home`. That is what makes the tests safe.
 
-**Known residuals (astra r1/r2 review lane, 2026-10-04) — recorded, not blocking:**
+**Known residuals (astra review lane r1 and r2, 2026-10-04) — recorded, not blocking:**
 
 - The symlink guard (`writeIfChanged`, `linkFile`, `seedFile`) is a pre-check, not race-proof
   filesystem enforcement; concurrent path replacement and symlinked ancestors are outside it.
@@ -342,4 +344,4 @@ loudly and counted, never silent.
 | `tests/win32-degrade.test.mjs` | every posix-only step reporting `skipped (win32)`, and the copy path backing up / never writing through a symlink |
 | `tests/desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
 | `tests/skills-and-standards.test.mjs` | the `requirements` skill and the `claude/rules/nana-standards.md` rule: the frontmatter name and every trigger phrase the description must carry, a fresh machine getting both as symlinks into the repo, idempotence, doctor ✓ or ✗ with the fix named, a **regular directory** already at `~/.claude/skills/requirements` reported with install **exit 1** and the owner's file untouched and nothing backed up into the skills dir, a symlink pointing elsewhere relinked, and the forced win32 branch (a real directory of byte-equal copies, a stale copy caught by doctor and refreshed, a hand-written file backed up beside itself) |
-| `tests/project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing OBJECTIVE/AGENTS/sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md alias reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |
+| `tests/project.test.mjs` | `project` on a blank folder (every file, `git init`, the relative `CLAUDE.md` link, the canonical section verbatim), the second run changing no bytes, `<date>`/`<name>` filled while the DRAFT placeholders survive, an existing objective, navigation, or sessions README left untouched, a CLAUDE.md-only folder getting no AGENTS.md, the user-scope postEdit shadow guard, `--dry-run` writing nothing, `--check` exit codes — plus the copier renders: both languages emit the three seeds byte-equal to `templates/_shared` (after `<name>`), and adopt mode does not overwrite a pre-existing `OBJECTIVE.md`. the win32 branch putting a COPY where the symlink would be; a **dangling symlink** and a **directory** at a seed path reported as skipped with nothing written through them **and then read ✗ by `--check`**; a project `--name` full of shell and regex metacharacters (`$(…)`, backticks, `$&`) landing LITERALLY in the files with nothing executed; the `adopt-structure` fallback commands taking the name from an env var rather than command text; the CLAUDE.md alias reading ✓ only when it RESOLVES to this project's AGENTS.md (dangling, `-> missing/AGENTS.md` and a link to another project all ✗, with exit 1); `--check` mirroring setup (inside-a-repo ✓, a deliberately omitted pack config ✓); a **held build lock** reported as such and never as a rebuild (a live lock in a temp knowledge home); and the refresh **deadline** against a stub CLI that traps SIGTERM. The copier half SKIPs loudly (or FAILs under `NANA_SETUP_REQUIRE_COPIER=1`) when `uvx` is not installed |

@@ -28,18 +28,24 @@
 //
 // Run it as often as you like: it adds missing pieces and retires only recognized legacy artifacts,
 // backing them up first; a second unchanged run reports "nothing to do".
+import { spawnSync } from "node:child_process";
+import { spawnNpmRoot } from "../lib/npm-root.mjs";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { SetupError, install, installExitCode } from "../lib/steps.mjs";
+import { decideTrust } from "../lib/trust-decision.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
   nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
+  nana-setup trust <dir> [--yes]      record pi project trust after confirmation
 
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
@@ -90,6 +96,22 @@ const SYMBOL = { created: "+", updated: "+", unchanged: "·", skipped: "–", pr
  * sees. Every such command refuses (sol r2/r3); an explicit --pi-home / --home is the user's own
  * decision and never sets the flag. `doctor` warns instead, because its job is to report.
  */
+function realpathThroughExistingAncestor(target) {
+	let ancestor = path.resolve(target);
+	const suffix = [];
+	while (true) {
+		try {
+			return path.join(fs.realpathSync(ancestor), ...suffix.reverse());
+		} catch (err) {
+			if (err.code !== "ENOENT" && err.code !== "ENOTDIR") throw err;
+			const parent = path.dirname(ancestor);
+			if (parent === ancestor) throw err;
+			suffix.push(path.basename(ancestor));
+			ancestor = parent;
+		}
+	}
+}
+
 function refuseCwdRelativePiHome(layout, what) {
 	if (!layout.piHomeCwdRelative) return;
 	throw new SetupError(
@@ -161,13 +183,17 @@ async function runProject(opts) {
 		// same refusal as `install` (sol r3).
 		const checkLayout = resolveLayout(opts);
 		refuseCwdRelativePiHome(checkLayout, "this check");
-		const checks = checkProject(dir, checkLayout);
+		const checks = await checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
-		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
-		const bad = checks.filter((c) => !c.ok);
-		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
-		return bad.length ? 1 : 0;
+		for (const c of checks) console.log(`  ${c.ok ? "✓" : c.label === "post-edit commands" || c.label === "project trust" ? "!" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
+		const warnings = checks.filter((c) => !c.ok && (c.label === "post-edit commands" || c.label === "project trust"));
+		const missing = checks.filter((c) => !c.ok && !warnings.includes(c));
+		const summary = [];
+		if (missing.length) summary.push(`${missing.length} missing — run: nana-setup project ${dir}`);
+		if (warnings.length) summary.push(`effective-state warnings:\n${warnings.map((c) => `    ${c.label}: ${c.detail}`).join("\n")}`);
+		console.log(summary.length ? `\n  ${summary.join("\n  ")}` : "\n  all good.");
+		return missing.length || warnings.length ? 1 : 0;
 	}
 	if (opts.notAProject) {
 		const r = dismissProject(dir, opts);
@@ -206,17 +232,56 @@ async function runProject(opts) {
 				? "\n  nothing to do — everything was already in place."
 				: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
 	);
-	if (!opts.dryRun && changed) {
-		console.log("  next: open a session here and ratify the two DRAFT lines in OBJECTIVE.md — they are yours, not a default.");
-	}
-	if (!opts.dryRun && fs.existsSync(path.join(dir, ".pi", "nana-pack.json"))) {
-		console.log(
-			"  trust: .pi/nana-pack.json is IGNORED until you decide this folder's trust — run /trust in pi here, then restart pi.\n" +
-				"         `pi -a` / `--approve` (the desk's trust box) trusts one run only; it is not a recorded decision.",
-		);
+	if (!opts.dryRun) {
+		console.log(`  next: 1. ratify the seeded OBJECTIVE.md: fill the date; the DRAFT lines are yours to ratify.\n        2. trust this folder: nana-setup trust <dir>`);
 	}
 	// Same rule as `install`: a ✗ row means this is not a set-up project (sol r3).
 	return problems ? 1 : 0;
+}
+
+async function runTrust(opts) {
+	const dirArg = opts._[1];
+	if (!dirArg) throw new SetupError("trust needs a directory");
+	const dir = path.resolve(dirArg);
+	const layout = resolveLayout(opts);
+	refuseCwdRelativePiHome(layout, "this trust decision");
+	if (opts.home) {
+		const canonicalHome = realpathThroughExistingAncestor(layout.base);
+		const canonicalAgent = realpathThroughExistingAncestor(layout.piHome);
+		const relativeAgent = path.relative(canonicalHome, canonicalAgent);
+		if (relativeAgent === ".." || relativeAgent.startsWith(`..${path.sep}`) || path.isAbsolute(relativeAgent))
+			throw new SetupError("--pi-home must be inside --home for trust; refusing to write outside the test home");
+		for (const leaf of [path.join(layout.piHome, "trust.json"), path.join(layout.piHome, "trust.json.lock")]) {
+			try { fs.lstatSync(leaf); } catch (err) { if (err.code === "ENOENT") continue; throw err; }
+			let target;
+			try { target = fs.realpathSync(leaf); } catch { throw new SetupError(`cannot resolve trust storage path ${leaf}; refusing to write`); }
+			const relativeTarget = path.relative(canonicalHome, target);
+			if (relativeTarget === ".." || relativeTarget.startsWith(`..${path.sep}`) || path.isAbsolute(relativeTarget))
+				throw new SetupError(`trust storage path resolves outside --home: ${leaf}; refusing to write`);
+		}
+	}
+	const npmEnv = { ...process.env };
+	delete npmEnv.HOME;
+	delete npmEnv.USERPROFILE;
+	const root = spawnNpmRoot({ env: npmEnv });
+	if (root.status !== 0 || !root.stdout.trim()) throw new SetupError("cannot locate the globally installed pi package");
+	const trustModule = await import(pathToFileURL(path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
+	const store = new trustModule.ProjectTrustStore(layout.piHome);
+	const result = await decideTrust({
+		yes: opts.yes,
+		dryRun: opts.dryRun,
+		confirm: async () => {
+			if (!process.stdin.isTTY || !process.stdout.isTTY) throw new SetupError("trust needs --yes when no interactive confirmation is available");
+			const prompt = createInterface({ input: process.stdin, output: process.stdout });
+			let answer;
+			try { answer = await prompt.question(`Record affirmative pi trust for ${dir}? [y/N] `); } finally { prompt.close(); }
+			return /^y(es)?$/i.test(answer.trim());
+		},
+		write: () => store.set(dir, true),
+	});
+	if (result.decision === "declined") throw new SetupError("trust decision not recorded (confirmation declined)");
+	console.log(`${opts.dryRun ? "Would record" : "Recorded"} affirmative pi project trust for ${dir}`);
+	console.log(`Trust store: ${store.trustPath}`);
 }
 
 async function main(argv) {
@@ -236,6 +301,7 @@ async function main(argv) {
 		if (cmd === "install") return runInstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
 		if (cmd === "project") return await runProject(opts);
+		if (cmd === "trust") { await runTrust(opts); return 0; }
 	} catch (err) {
 		if (err instanceof SetupError) {
 			console.error(`\nnana-setup: ${err.message}`);

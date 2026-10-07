@@ -5,11 +5,12 @@
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory/shared, <piHome>/settings.json and
- *  nana-pack.json and the objective file it names, <piHome>/extensions/subagent/config.json,
+ *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
+ *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR
+ * @outputs an array of { status, label, detail } rows; knowledgeIndexState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }
  * @effects disk (reads only), process (spawns node and launchctl to probe)
@@ -21,6 +22,7 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
@@ -31,6 +33,18 @@ const OK = "ok";
 const FAIL = "fail";
 const NOTE = "note";
 const WARN = "warn";
+const require = createRequire(import.meta.url);
+
+export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite").DatabaseSync) {
+	let db;
+	try {
+		db = new DatabaseSync(dbPath, { readOnly: true });
+		const row = db.prepare("SELECT COUNT(*) AS n FROM docs").get();
+		return { ok: Number.isInteger(row?.n), detail: `read-only docs count: ${row?.n}` };
+	} catch (error) {
+		return { ok: false, detail: `cannot open/query expected docs schema (${error.message})` };
+	} finally { try { db?.close(); } catch { /* already closed */ } }
+}
 
 /**
  * ✓ means "this file is the repo's file". On posix that is a symlink and nothing else — a
@@ -270,6 +284,15 @@ export function diagnose(layout, opts = {}) {
 	add(pf.status, "pi objective.projectFile", pf.detail);
 	const objective = objectiveTarget(layout, cfg);
 	add(fs.existsSync(objective) ? OK : FAIL, "pi objective file", objective);
+	const projectDir = path.resolve(opts.projectDir || process.cwd());
+	if (fs.existsSync(path.join(projectDir, ".pi", "nana-pack.json"))) {
+		let vouched = false;
+		try {
+			const { trustRecord } = require(path.join(repoRoot, "packages", "nana-pack", "lib", "objective.ts"));
+			vouched = trustRecord(projectDir, layout.piHome).vouched;
+		} catch { /* an unreadable trust store is not affirmative */ }
+		add(vouched ? OK : WARN, "project trust", vouched ? `affirmative trust for ${projectDir}` : `project config has no affirmative trust — run nana-setup trust ${projectDir}`);
+	}
 
 	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
 	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:
@@ -411,7 +434,8 @@ export function diagnose(layout, opts = {}) {
 
 	// --- knowledge pull ---
 	const db = path.join(layout.knowledgeHome, "index.db");
-	add(fs.existsSync(db) ? OK : FAIL, "knowledge index", db);
+	const index = knowledgeIndexState(db);
+	add(index.ok ? OK : FAIL, "knowledge index", `${db} — ${index.detail}`);
 
 	// --- PATH ---
 	if (win) add(NOTE, "PATH pi-review", "skipped (win32)");

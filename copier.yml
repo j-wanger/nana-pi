@@ -55,11 +55,19 @@ _message_after_copy: |
   {% if adopt -%}
   {{ project_name }}: nana stack overlaid (adopt mode — configs only, source tree untouched).
 
+  First two steps:
+    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    2. Trust this folder: `nana-setup trust <dir>`.
+
   Now reconcile from `git diff` per the adopt-{{ 'py' if language == 'python' else 'ts' }} skill:
   merge your project metadata/deps back into the pinned configs, stage the
   strictness, then commit including .copier-answers.yml.
   {%- elif language == 'python' -%}
   {{ project_name }} scaffolded.
+
+  First two steps:
+    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    2. Trust this folder: `nana-setup trust <dir>`.
 
   Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
     cd into the project, then:
@@ -71,6 +79,10 @@ _message_after_copy: |
       uv run pytest
   {%- else -%}
   {{ project_name }} scaffolded.
+
+  First two steps:
+    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    2. Trust this folder: `nana-setup trust <dir>`.
 
   Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
     cd into the project, then:

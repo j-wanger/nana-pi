@@ -639,9 +639,34 @@ export function stepPath(layout, o) {
 const xml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 // R-396 (2026-10-06): chosen curated launchd search paths because launchd must not inherit the shell snapshot.
 const DESK_PATH_SYSTEM = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+/** chosen: wait at most 2s for launchd unload to settle, polling every 50ms to avoid a busy loop. */
+export const DESK_UNLOAD_TIMEOUT_MS = 2_000;
+export const DESK_UNLOAD_POLL_MS = 50;
+
+function pathVisibleNode(nodeExecutable) {
+	const expected = realpathSafe(nodeExecutable);
+	for (const dir of (process.env.PATH || "").split(path.delimiter).filter(Boolean)) {
+		const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
+		try { if (fs.realpathSync(candidate) === expected) return candidate; } catch { /* next PATH entry */ }
+	}
+	return nodeExecutable;
+}
 
 function curatedDeskPath(nodeExecutable, home) {
 	return [...new Set([path.dirname(nodeExecutable), path.join(home, ".local", "bin"), ...DESK_PATH_SYSTEM])].join(path.delimiter);
+}
+
+function waitForJobAbsent(service) {
+	const end = Date.now() + DESK_UNLOAD_TIMEOUT_MS;
+	while (Date.now() < end) {
+		const remaining = end - Date.now();
+		const state = spawnSync("launchctl", ["print", service], { encoding: "utf8", timeout: remaining });
+		if (state.error?.code === "ETIMEDOUT") return false;
+		if (state.status !== 0) return true;
+		const pause = Math.min(DESK_UNLOAD_POLL_MS, Math.max(0, end - Date.now()));
+		if (pause) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pause);
+	}
+	return false;
 }
 
 // `PI_CODING_AGENT_DIR` (optional): the agent dir the installer chose, when it is not the
@@ -660,12 +685,13 @@ export function renderPlist({ PI_CODING_AGENT_DIR, ...vars }) {
 export function stepDesk(layout, o) {
 	if (platform() !== "darwin") return [{ label: "desk service", status: SKIPPED, detail: `skipped (${platform()}: launchd is macOS-only)` }];
 	if (!fs.existsSync(DESK_SERVER)) return [{ label: "desk service", status: SKIPPED, detail: `no ${DESK_SERVER}` }];
+	const nodeExecutable = pathVisibleNode(process.execPath);
 	const contents = renderPlist({
 		LABEL: DESK_LABEL,
-		NODE: process.execPath,
+		NODE: nodeExecutable,
 		SERVER: DESK_SERVER,
 		WORKDIR: repoRoot,
-		PATH: curatedDeskPath(process.execPath, layout.base),
+		PATH: curatedDeskPath(nodeExecutable, layout.base),
 		LOG: layout.deskLog,
 		// always absolute here: install refuses an ambient relative override, flags are resolved
 		PI_CODING_AGENT_DIR: path.resolve(layout.piHome) === path.join(layout.base, ".pi", "agent") ? "" : path.resolve(layout.piHome),
@@ -701,8 +727,16 @@ export function stepDesk(layout, o) {
 			out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootout failed: ${(down.stderr || "").trim() || `exit ${down.status}`}` });
 			return out;
 		}
+		if (!waitForJobAbsent(service)) {
+			out.push({ label: "desk launchctl", status: PROBLEM, detail: `launchd job remained loaded after ${DESK_UNLOAD_TIMEOUT_MS}ms` });
+			return out;
+		}
 	}
-	const bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
+	let bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
+	const isIoError = (r) => /(?:error\s*5|input\/output error)/i.test(`${r.stderr || ""} ${r.stdout || ""}`);
+	if (bootstrap.status !== 0 && (bootstrap.status === 5 || isIoError(bootstrap)) && waitForJobAbsent(service)) {
+		bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
+	}
 	if (bootstrap.status !== 0) {
 		out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootstrap failed: ${(bootstrap.stderr || "").trim() || `exit ${bootstrap.status}`}` });
 		return out;
@@ -827,7 +861,7 @@ function manifestExtensions(manifestRoot) {
 	} catch { return []; }
 }
 
-function exactLocalEntry(entry, layout, target) {
+function exactLocalEntry(entry, layout, target, manifestRoot = repoRoot) {
 	if (typeof entry !== "string" || entry.startsWith("npm:") || remoteMatches(entry)) return false;
 	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
 	const resolved = realpathSafe(path.resolve(layout.piHome, expanded));
@@ -841,7 +875,7 @@ function exactLocalEntry(entry, layout, target) {
 		if (parent === checkoutRoot || gitCommonDir(parent) !== common) break;
 		checkoutRoot = parent;
 	}
-	const targetRel = path.relative(repoRoot, target);
+	const targetRel = path.relative(manifestRoot, target);
 	return path.relative(checkoutRoot, resolved) === targetRel;
 }
 
@@ -854,13 +888,13 @@ export function packageCoverage(layout, manifestRoot = repoRoot) {
 	let settings = {};
 	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
 	const entries = Array.isArray(settings.packages) ? settings.packages.filter((e) => typeof e === "string") : [];
-	const rootEntry = entries.find((entry) => remoteMatches(entry) || exactLocalEntry(entry, layout, repoRoot));
+	const rootEntry = entries.find((entry) => remoteMatches(entry) || exactLocalEntry(entry, layout, manifestRoot, manifestRoot));
 	const loaded = new Set(rootEntry ? extensionDirs : []);
 	let match = rootEntry ?? null;
 	if (!rootEntry) {
 		for (const root of packageRoots) {
 			if (root === manifestRoot) continue;
-			const entry = entries.find((candidate) => exactLocalEntry(candidate, layout, root));
+			const entry = entries.find((candidate) => exactLocalEntry(candidate, layout, root, manifestRoot));
 			if (!entry) continue;
 			for (const dir of manifestExtensions(root)) loaded.add(dir);
 			match ??= entry;

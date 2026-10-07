@@ -126,7 +126,9 @@ function piHomeWith(packages) {
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
 }
 {
-	const fixtureRoot = tmpDir(path.join(os.tmpdir(), "nana-manifest-root-"));
+	// Inside the checkout on purpose: the root-entry identity check needs the fixture root to share
+	// the checkout's git identity. tmpDir registers its removal at exit (R-917).
+	const fixtureRoot = tmpDir(path.join(repo, ".nana-manifest-root-"));
 	tmps.push(fixtureRoot);
 	const packRoot = path.join(fixtureRoot, "packages", "nana-pack");
 	const knowledgeRoot = path.join(fixtureRoot, "packages", "nana-knowledge");
@@ -141,6 +143,10 @@ function piHomeWith(packages) {
 	const coverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
 	// req: R-392
 	check("diverging fixture root manifest extension directory remains uncovered", coverage.missing.includes(path.join(knowledgeRoot, "extensions-alt")), JSON.stringify(coverage));
+	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [path.relative(agent, repo)] }));
+	const rootCoverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
+	// req: R-679
+	check("fixture manifest root checkout identity covers its extension directories", rootCoverage.present && rootCoverage.match === path.relative(agent, repo), JSON.stringify(rootCoverage));
 }
 {
 	const home = piHomeWith(null);

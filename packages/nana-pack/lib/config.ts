@@ -228,6 +228,12 @@ const commandList: Leaf = (v, where, problems) => {
 	return { ok: true, value: out };
 };
 
+/** Normalize one post-edit list exactly as the config loader does; malformed entries are dropped. */
+export function normalizePostEditCommands(value: unknown): PostEditCommand[] {
+	const { blocks } = normalizeRaw({ postEdit: { commands: value } });
+	return (blocks.postEdit as { commands?: PostEditCommand[] } | undefined)?.commands ?? [];
+}
+
 /** The config-file schema: block → leaf → validator. `gate.stopReason` is deliberately absent. */
 const SCHEMA: Record<string, Record<string, Leaf>> = {
 	gate: { extraPatterns: regexList("i"), allowPatterns: regexList("i"), protectedPaths: regexList("i") },
