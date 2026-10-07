@@ -88,6 +88,14 @@ export function tokenize(command) {
 const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const base = (p) => p.split("/").pop();
 
+function installerKnowledgeTarget(command) {
+	const argv = tokenize(command);
+	if (!argv || argv.length !== 4 || argv[0] !== "NODE_NO_WARNINGS=1" || argv[1] !== "node" || argv[3] !== "hook") return null;
+	const target = argv[2];
+	if (!path.isAbsolute(target) || !target.endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts")) return null;
+	return command === `NODE_NO_WARNINGS=1 node ${shq(target)} hook` ? target : null;
+}
+
 /**
  * Does `command` actually EXECUTE `script` through one of `interpreters`?
  *
@@ -206,12 +214,9 @@ export function mergeKnowledgeHook(settings, { repoRoot, desiredCommand }) {
 			if (!Array.isArray(group?.hooks)) continue;
 			for (let i = 0; i < group.hooks.length; i++) {
 				const hook = group.hooks[i];
-				if (hook?.timeout !== 5 || hook?.statusMessage !== "nana: knowledge pull" ||
-					!commandInvokes(hook?.command, { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] })) continue;
-				const argv = tokenize(hook.command);
-				let offset = 0;
-				while (argv[offset] && ENV_ASSIGN.test(argv[offset])) offset++;
-				const target = argv[offset + 1];
+				if (hook?.timeout !== 5 || hook?.statusMessage !== "nana: knowledge pull") continue;
+				const target = installerKnowledgeTarget(hook?.command);
+				if (!target) continue;
 				let healthy = false;
 				try {
 					const real = fs.realpathSync(target);

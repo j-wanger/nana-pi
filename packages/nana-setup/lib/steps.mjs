@@ -759,11 +759,11 @@ function exactLocalEntry(entry, layout, target) {
 	return path.relative(checkoutRoot, resolved) === targetRel;
 }
 
-export function packageCoverage(layout) {
-	const extensionDirs = manifestExtensions(repoRoot);
+export function packageCoverage(layout, manifestRoot = repoRoot) {
+	const extensionDirs = manifestExtensions(manifestRoot);
 	const packageRoots = [...new Set(extensionDirs.map((dir) => {
-		const rel = path.relative(repoRoot, dir).split(path.sep);
-		return rel[0] === "packages" && rel.length > 2 ? path.join(repoRoot, rel[0], rel[1]) : repoRoot;
+		const rel = path.relative(manifestRoot, dir).split(path.sep);
+		return rel[0] === "packages" && rel.length > 2 ? path.join(manifestRoot, rel[0], rel[1]) : manifestRoot;
 	}))];
 	let settings = {};
 	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
@@ -773,7 +773,7 @@ export function packageCoverage(layout) {
 	let match = rootEntry ?? null;
 	if (!rootEntry) {
 		for (const root of packageRoots) {
-			if (root === repoRoot) continue;
+			if (root === manifestRoot) continue;
 			const entry = entries.find((candidate) => exactLocalEntry(candidate, layout, root));
 			if (!entry) continue;
 			for (const dir of manifestExtensions(root)) loaded.add(dir);

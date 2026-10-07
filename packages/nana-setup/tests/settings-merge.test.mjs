@@ -154,18 +154,22 @@ check("five hook entries are wanted", wanted.length === 5);
 /* --- a recognized stale knowledge hook is atomically migrated, unknown entries survive -- */
 {
 	const desired = "NODE_NO_WARNINGS=1 node '/repo/packages/nana-knowledge/bin/nana-knowledge.ts' hook";
+	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
 	const original = { hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: "NODE_NO_WARNINGS=1 node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" },
+		{ type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" },
 		{ type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" },
+		customized,
 		{ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" },
 	] }] } };
 	const result = mergeKnowledgeHook(original, { repoRoot: "/repo", desiredCommand: desired });
 	// req: R-394
-	check("recognized stale absolute knowledge command is replaced in place with no duplicate", result.replaced && !result.added && original.hooks.UserPromptSubmit[0].hooks[0].command === desired && original.hooks.UserPromptSubmit[0].hooks.length === 3);
+	check("recognized stale absolute knowledge command is replaced in place with no duplicate", result.replaced && !result.added && original.hooks.UserPromptSubmit[0].hooks[0].command === desired && original.hooks.UserPromptSubmit[0].hooks.length === 4);
 	// req: R-653
 	check("unrecognized hand-written node hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify({ type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" }));
 	// req: R-653
-	check("unrecognized echo entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify({ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" }));
+	check("unrecognized customized knowledge hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
+	// req: R-653
+	check("unrecognized echo entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[3]) === JSON.stringify({ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" }));
 	check("absolute knowledge hook target outside repository is not accepted as healthy", !result.staleValid);
 }
 
@@ -249,10 +253,12 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const home = freshHome();
 	const file = path.join(home, ".claude", "settings.json");
 	const unknown = { type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" };
-	const stale = "NODE_NO_WARNINGS=1 node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook";
+	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
+	const stale = "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook";
 	fs.writeFileSync(file, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
 		{ type: "command", command: stale, timeout: 5, statusMessage: "nana: knowledge pull" },
 		unknown,
+		customized,
 	] }] } }, null, 2) + "\n", { mode: 0o600 });
 	const r = run(["install"], home);
 	const text = fs.readFileSync(file, "utf8");
@@ -261,7 +267,7 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	// req: R-394
 	check("install replaces its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && commands.filter((command) => command.includes(path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")) && command.includes(" hook")).length === 1 && commands[0].includes(path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")), JSON.stringify(commands));
 	// req: R-653
-	check("install preserves the complete unrecognized hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify(unknown));
+	check("install preserves customized knowledge hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
 }
 
 /* --- the atomic write refuses to clobber a concurrent edit ---------------------------- */
@@ -479,7 +485,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const home = freshHome();
 	const file = path.join(home, ".claude", "settings.json");
 	fs.writeFileSync(file, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: "NODE_NO_WARNINGS=1 node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" },
+		{ type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" },
 	] }] } }, null, 2) + "\n");
 	const concurrent = JSON.stringify({ model: "concurrent writer" }, null, 2) + "\n";
 	let err = null;

@@ -19,6 +19,7 @@ import * as path from "node:path";
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
+const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
 const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -124,28 +125,21 @@ function piHomeWith(packages) {
 	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
 }
 {
-	const rootManifestPath = path.join(repo, "package.json");
-	const packageManifestPath = path.join(repo, "packages", "nana-knowledge", "package.json");
-	const originalRootManifest = fs.readFileSync(rootManifestPath, "utf8");
-	const originalPackageManifest = fs.readFileSync(packageManifestPath, "utf8");
-	try {
-		const rootManifest = JSON.parse(originalRootManifest);
-		rootManifest.pi.extensions[1] = "packages/nana-knowledge/extensions-alt";
-		fs.writeFileSync(rootManifestPath, JSON.stringify(rootManifest, null, 2));
-		const packageManifest = JSON.parse(originalPackageManifest);
-		packageManifest.pi.extensions = [];
-		fs.writeFileSync(packageManifestPath, JSON.stringify(packageManifest, null, 2));
-		const home = piHomeWith(null);
-		const agent = path.join(home, ".pi", "agent");
-		const knowledge = path.relative(agent, path.join(repo, "packages", "nana-knowledge"));
-		fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [knowledge] }));
-		const coverage = packageCoverage(resolveLayout({ home }));
-		// req: R-392
-		check("diverging root manifest extension directory remains uncovered", coverage.missing.includes(path.join(repo, "packages", "nana-knowledge", "extensions-alt")), JSON.stringify(coverage));
-	} finally {
-		fs.writeFileSync(rootManifestPath, originalRootManifest);
-		fs.writeFileSync(packageManifestPath, originalPackageManifest);
-	}
+	const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nana-manifest-root-"));
+	tmps.push(fixtureRoot);
+	const packRoot = path.join(fixtureRoot, "packages", "nana-pack");
+	const knowledgeRoot = path.join(fixtureRoot, "packages", "nana-knowledge");
+	fs.mkdirSync(packRoot, { recursive: true });
+	fs.mkdirSync(knowledgeRoot, { recursive: true });
+	fs.writeFileSync(path.join(fixtureRoot, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions-alt"] } }));
+	fs.writeFileSync(path.join(knowledgeRoot, "package.json"), JSON.stringify({ pi: { extensions: [] } }));
+	const home = piHomeWith(null);
+	const agent = path.join(home, ".pi", "agent");
+	const knowledge = path.relative(agent, knowledgeRoot);
+	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [knowledge] }));
+	const coverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
+	// req: R-392
+	check("diverging fixture root manifest extension directory remains uncovered", coverage.missing.includes(path.join(knowledgeRoot, "extensions-alt")), JSON.stringify(coverage));
 }
 {
 	const home = piHomeWith(null);
@@ -252,5 +246,7 @@ function piHomeWith(packages) {
 	}
 }
 
+// req: R-392
+check("repository manifests remain byte-identical after fixture coverage checks", [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].every((file, index) => fs.readFileSync(file).equals(repoManifestBytes[index])));
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);
