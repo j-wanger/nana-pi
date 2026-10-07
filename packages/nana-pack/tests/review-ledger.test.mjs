@@ -140,6 +140,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("ten verdicts under ten roles on one revision all admitted", ten.every((s) => s === 0), JSON.stringify(ten));
 	// req: R-729
 	check("…and they are ONE round (1 tally line, 10 audit verdicts)", roundsOf("rev").length === 1 && verdictsOf("rev").length === 10);
+	const tallyBeforeRead = fs.readFileSync(tallyFile, "utf8");
+	// req: R-969
+	check("completed round records verdict and readRounds filters without mutation", roundsOf("rev")[0]?.verdict === "LAND" &&
+		mod.readRounds(home, { item: "rev", repo: roundsOf("rev")[0]?.repo }).length === 1 && mod.readRounds(home, { item: "missing" }).length === 0 &&
+		fs.readFileSync(tallyFile, "utf8") === tallyBeforeRead, JSON.stringify({ row: roundsOf("rev")[0], read: mod.readRounds(home, { item: "rev" }) }));
 	A.at(1);
 	const two = [ledgerRun(["--item", "rev", "--role", "sol"]).status, ledgerRun(["--item", "rev", "--role", "sol"]).status];
 	check("two sol reviews of one revision (sol r1: consumed 2) = one round", JSON.stringify(two) === "[0,0]" && roundsOf("rev").length === 2);

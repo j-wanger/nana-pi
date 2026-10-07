@@ -395,6 +395,19 @@ function liveReservations(p, prune) {
 }
 
 const shortRev = (r) => r.replace(/^([0-9a-f]{12})[0-9a-f]*/, '$1');
+
+/** Read recorded rounds without changing ledger state; optional filters use the stored repo key and item. */
+export function readRounds(home = homedir(), { repo, item } = {}) {
+  const rows = readTally(ledgerPaths(home));
+  return rows.filter((r) => (repo === undefined || r.repo === repo) && (item === undefined || r.item === item));
+}
+
+/** Return the first token following VERDICT: on its first matching line. */
+function verdictWord(out) {
+  let text = String(out ?? '');
+  try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
+  return text.match(/^VERDICT:\s*(\S+)/m)?.[1] ?? null;
+}
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
 /** The cap decision for {repo, item, revision}. Call under the lock. Every ledger path is
@@ -586,10 +599,10 @@ export function complete(r, out, { home = homedir() } = {}) {
       let idx = rounds.findIndex((x) => x.revision === held.revision);
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
       if (idx < 0) {
-        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, ...drift });
+        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, verdict: verdictWord(out), ...drift });
         idx = rounds.length;
       }
-      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, ...drift });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, verdict: verdictWord(out), ...drift });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round: idx + 1, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
