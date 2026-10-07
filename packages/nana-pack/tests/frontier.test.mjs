@@ -56,7 +56,23 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", frozenRewrite], { encoding: "utf8" });
 	// req: R-877
-	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && !r.stdout.includes("overdue-date:"), r.stdout);
+	check("frozen 2026-10-06 rewrite passes on 2026-10-07", r.status === 0 && r.stdout.includes("summary words=1026 budget=1200 findings=0"), r.stdout);
+}
+{
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-frontier-"));
+	const file = path.join(dir, "parenthetical-heading.md");
+	fs.writeFileSync(file, [
+		"## Open for Jake (each ask: blocking, optional or parked, and since when)",
+		"- LANDED without a tag; deadline 2026-10-05.",
+	].join("\n"));
+	const r = run(file);
+	// req: R-875
+	check("LANDED is detected under the real parenthetical Open for Jake heading", r.stdout.includes("misplaced-landed:"), r.stdout);
+	// req: R-877
+	check("overdue dates are detected under the real parenthetical Open for Jake heading", r.stdout.includes("overdue-date:") && r.stdout.includes("2026-10-05"), r.stdout);
+	// req: R-878
+	check("missing tags are detected under the real parenthetical Open for Jake heading", r.stdout.includes("open-tag:"), r.stdout);
+	fs.rmSync(dir, { recursive: true, force: true });
 }
 {
 	const r = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", preRewrite], { encoding: "utf8" });
@@ -116,6 +132,11 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const r = run(file);
 	// req: R-877
 	check("due dates use range ends and ignore ruling, since, and range-start dates", r.stdout.split("overdue-date:").length - 1 === 1 && r.stdout.includes("2026-10-05"), r.stdout);
+	const mixed = path.join(dir, "mixed-history-future.md");
+	fs.writeFileSync(mixed, "## Next\n- Written by Jake (adopted 2026-10-06); review on 2026-10-20.\n");
+	const mixedResult = spawnSync(process.execPath, [CLI, "--today", "2026-10-07", mixed], { encoding: "utf8" });
+	// req: R-877
+	check("historical parenthetical date before a future due cue is not overdue", !mixedResult.stdout.includes("overdue-date:"), mixedResult.stdout);
 	const cues = ["due", "deadline", "by", "until", "verdict on", "review on"];
 	for (const cue of cues) {
 		const cueFile = path.join(dir, `${cue.replaceAll(" ", "-")}.md`);

@@ -78,7 +78,10 @@ const headingStackAt = (index) => {
 	}
 	return stack;
 };
-const inSection = (index, title) => headingStackAt(index).some((heading) => heading.title.trim().toLowerCase() === title);
+const inSection = (index, title) => headingStackAt(index).some((heading) => {
+	const actual = heading.title.trim().toLowerCase();
+	return actual === title || new RegExp(`^${title}(?:\\s|\\(|—)`).test(actual);
+});
 const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
 if (wordCount > HANDOFF_WORD_BUDGET) add(1, "word-budget", `words=${wordCount} budget=${HANDOFF_WORD_BUDGET}`);
 const entriesBetween = (start, end) => {
@@ -97,7 +100,7 @@ for (const heading of headings.filter((h) => /landed/i.test(h.title))) {
 		if (entry.text.length > 1) add(entry.line, "landed-entry", `entry spans ${entry.text.length} lines`);
 	}
 }
-const nextHeading = headings.find((h) => /^next$/i.test(h.title.trim()));
+const nextHeading = headings.find((h) => inSection(h.index, "next"));
 const nextEndHeading = nextHeading && headings.find((h) => h.index > nextHeading.index && h.level <= nextHeading.level);
 const nextEnd = nextEndHeading?.index ?? lines.length;
 const nextItems = nextHeading ? entriesBetween(nextHeading.index + 1, nextEnd).flatMap((e) => {
@@ -114,7 +117,7 @@ for (let i = 0; i < lines.length; i++) {
 		add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for Jake");
 	}
 	if (inSection(i, "next") || inSection(i, "open for jake")) {
-		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
+		const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^;().\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
 		for (const due of lines[i].matchAll(dateCue)) {
 			const date = due[2] ?? due[1];
 			if (isDate(date) && date < today) add(i + 1, "overdue-date", `${date} precedes ${today}`);
