@@ -23,7 +23,7 @@ function entry(type, timestamp, content, extra = {}) {
 	return { type, timestamp, isSidechain: false, sessionId: "session-a", message: { role: type, content }, ...extra };
 }
 function fixture() {
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), "writing-trial-"));
+	const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "writing-trial-")));
 	const add = (project, id, entries) => {
 		const dir = path.join(root, project);
 		fs.mkdirSync(dir, { recursive: true });
@@ -68,19 +68,23 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	const f = fixture();
 	f.add("-Users-seat", "treated", [entry("user", "2026-10-04T12:00:00Z", "start"), attachment, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
 	f.add("-Users-seat", "untreated", [entry("user", "2026-10-04T12:00:00Z", "start"), entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
+	f.add("-Users-seat", "pre-window", [entry("user", "2026-10-03T12:00:00Z", "start"), { ...attachment, timestamp: "2026-10-04T14:00:00Z" }, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
 	const sessions = collect(f.root, "2026-10-04", "2026-10-05", "after");
 	// req: R-693
-	check("after includes only report-sized messages after canonical rule attachment", () => {
-		assert.equal(sessions.length, 1);
-		assert.equal(sessions[0].sessionId, "treated");
+	// req: R-697
+	check("after includes only report-sized messages after canonical rule attachment, including pre-window sessions", () => {
+		assert.deepEqual(sessions.map((session) => session.sessionId), ["pre-window", "treated"]);
 	});
 	// req: R-694
 	check("scoring reports strict and former first-sentence lenient totals together", () => {
-		const body = `${long("A routine introduction.")}\n\n${long("DONE.")}`;
-		const result = score([{ sessionId: "later-verdict", reports: [{ body, timestamp: "2026-10-05T12:00:00Z", day: "2026-10-05" }] }], "after");
-		assert.equal(result.reports, 1);
-		assert.equal(result.strictPasses, 0);
-		assert.equal(result.lenientPasses, 0);
+		const reports = [
+			{ sessionId: "strict", body: long("DONE."), timestamp: "2026-10-05T12:00:00Z", day: "2026-10-05" },
+			{ sessionId: "lenient-only", body: "This is open. A routine report follows.", timestamp: "2026-10-05T13:00:00Z", day: "2026-10-05" },
+		];
+		const result = score([{ sessionId: "mixed", reports }], "after");
+		assert.equal(result.reports, 2);
+		assert.equal(result.strictPasses, 1);
+		assert.equal(result.lenientPasses, 2);
 	});
 	f.cleanup();
 }
@@ -118,7 +122,21 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 }
 {
 	const f = fixture();
-	const body = "Baseline words stay private and deterministic.";
+	const external = path.join(f.root, "external");
+	fs.mkdirSync(external);
+	const destination = path.join(f.root, "linked-output");
+	fs.symlinkSync(external, destination);
+	const session = { sessionId: "outside", last: { body: "private", timestamp: "2026-09-20T12:00:00Z" } };
+	// req: R-695
+	check("preservation rejects a symlinked output directory without writing externally", () => {
+		assert.throws(() => preserve([session], destination), /symlink/u);
+		assert.equal(fs.existsSync(path.join(external, "outside.txt")), false);
+	});
+	f.cleanup();
+}
+{
+	const f = fixture();
+	const body = "DONE.\n\nThis sentence contains enough words to exceed the sentence cap because it deliberately has twenty eight separate words included here while adding more words for certainty.";
 	const normalized = `${body}\n`;
 	const directory = path.join(f.root, "corpus");
 	fs.mkdirSync(directory);
@@ -129,7 +147,8 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	check("private corpus input verifies hashes and scores the exact preserved text", () => {
 		const sessions = loadPrivateCorpus(path.join(directory, "manifest.json"));
 		assert.equal(sessions.length, 1);
-		assert.equal(score(sessions, "baseline").reports, 1);
+		const result = score(sessions, "baseline");
+		assert.deepEqual({ reports: result.reports, sentences: result.sentences, over25: result.over25, strictPasses: result.strictPasses, lenientPasses: result.lenientPasses }, { reports: 1, sentences: 1, over25: 1, strictPasses: 1, lenientPasses: 1 });
 		fs.writeFileSync(path.join(directory, "saved.txt"), "changed");
 		assert.throws(() => loadPrivateCorpus(path.join(directory, "manifest.json")), /hash mismatch/u);
 	});
@@ -152,15 +171,17 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	f.cleanup();
 }
 {
-	const reports = [{ sessionId: "gold", timestamp: "2026-10-05T12:00:00Z", body: ["YOUR CALL — decision one", "1. What I tested", "2. Result: 3 passed", "3. Trade: speed versus safety", "4. Recommendation: choose A", "5. Why this is Jake's call", "", "YOUR CALL — decision two", "1. What I measured", "2. Result: 2 failures", "3. Risk is lower, but slower", "4. I recommend B", "5. Jake decides"].join("\n\n") }];
+	const reports = [{ sessionId: "gold", timestamp: "2026-10-05T12:00:00Z", body: ["YOUR CALL — decision one", "1. What I tested", "2. Result: 3 passed", "3. Trade: speed versus safety", "4. Recommendation: choose A", "5. Why this is Jake's call", "", "YOUR CALL — decision two", "1. What I measured", "2. Result: 2 failures", "3. Risk is lower, but slower", "4. I recommend B", "5. Jake decides", "", "YOUR CALL — incomplete decision", "1. What I tested", "2. Result: 1 failure", "3. Notes: the option preserves time", "4. I recommend C"].join("\n\n") }];
 	// req: R-698
 	check("redacted decision golden corpus groups boundaries and preserves ordered rubric parts", () => {
 		const decisions = scoreDecisions(reports);
-		assert.equal(decisions.length, 2);
+		assert.equal(decisions.length, 3);
 		assert.deepEqual(decisions[0].orderedParts, [true, true, true, true, true]);
 		assert.deepEqual(decisions[1].orderedParts, [true, true, true, true, true]);
+		assert.deepEqual(decisions[2].orderedParts, [true, true, false, true, false]);
 		assert.equal(decisions[0].score, 5);
 		assert.equal(decisions[1].score, 5);
+		assert.equal(decisions[2].score, 3);
 	});
 }
 if (failures) process.exitCode = 1;

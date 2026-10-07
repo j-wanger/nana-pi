@@ -10,4 +10,4 @@
 | Recommendation | `recommend`, `recommendation`, `should`, `choose`, `prefer`, or `propose` |
 | Why Jake decides | `your call`, `Jake`, `you decide`, or `your decision` |
 
-Current after extract (`2026-10-04` through `2026-10-07`) scores each marker-bounded decision in the 25 extracted messages. A redacted golden fixture pins two decisions, their five ordered part slots, and scores. The script prints session ID, message timestamp, ordered part signals and total without message text. Re-run against the same transcript snapshot to reproduce the scores.
+Current after extract (`2026-10-04` through `2026-10-07`) scores each marker-bounded decision in the 25 extracted messages. Residual: the extractor finds 7 decisions while the hand read found 12; unmarked semantic decisions remain hand-read. A redacted golden fixture pins complete and incomplete decisions, their exact ordered part slots, and scores. The script prints session ID, message timestamp, ordered part signals and total without message text. Re-run against the same transcript snapshot to reproduce the scores.

@@ -68,7 +68,7 @@ function collect(root, from, to, mode = "baseline") {
 		const first = entries.find((entry) => entry.timestamp ?? entry.message?.timestamp);
 		const firstTimestamp = first?.timestamp ?? first?.message?.timestamp;
 		const startDay = edtDay(firstTimestamp);
-		if (!dateInRange(startDay, from, to)) continue;
+		if (mode === "baseline" && !dateInRange(startDay, from, to)) continue;
 		const sessionId = entries.find((entry) => entry.sessionId)?.sessionId ?? path.basename(file, ".jsonl");
 		let ruleLoaded = false;
 		let treatedAt = null;
@@ -133,6 +133,16 @@ function scoreDecisions(reports) {
 }
 function preserve(sessions, output) {
 	const destination = path.resolve(output);
+	let current = path.parse(destination).root;
+	for (const component of destination.slice(current.length).split(path.sep).filter(Boolean)) {
+		current = path.join(current, component);
+		try {
+			if (fs.lstatSync(current).isSymbolicLink()) throw new Error(`private output path contains symlink: ${current}`);
+		} catch (error) {
+			if (error.code === "ENOENT") break;
+			throw error;
+		}
+	}
 	fs.mkdirSync(destination, { recursive: true, mode: 0o700 });
 	const manifest = [];
 	for (const session of sessions) {
