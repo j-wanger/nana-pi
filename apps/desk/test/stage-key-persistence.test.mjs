@@ -275,9 +275,10 @@ let log = "";
 async function startServer(run, ports, confirmBudget = null) {
 	log = "";
 	DESK = 0; // never match the PREVIOUS run's startup line
+	const { DESK_TEST_CONFIRM_BUDGET_MS: _ambientConfirmBudget, ...parentEnv } = process.env;
 	server = spawn("node", [SERVER], {
 		env: {
-			...process.env, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
+			...parentEnv, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
 			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
 			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
 			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM, STUB_LATE: LATE,
@@ -580,10 +581,12 @@ try {
 		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
 		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
 
-	// Restart with the production default for the late-answer and exact-boundary cases.
+	// Restart with the production default for the delayed-answer and boundary cases,
+	// even when this test process itself carries an ambient test-only override.
 	const beforeDefaultRestart = await rpc(s.id, { type: "get_state" });
 	setManifestSession("alpha", beforeDefaultRestart?.data?.sessionFile);
 	await stopServer();
+	process.env.DESK_TEST_CONFIRM_BUDGET_MS = "10000";
 	await startServer("3-default", [A, B]);
 	s = await post(A, "/api/session", {}).then((r) => r.json());
 	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
@@ -593,10 +596,10 @@ try {
 	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
 	fs.rmSync(LATE, { force: true });
 	fs.writeFileSync(AFTER_FORK, "slow:3000");
-	const t0 = Date.now();
 	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	const forkMs = Date.now() - t0;
-	check("run 3: a confirmation answered after the budget does not extend the command", r?.success === true && forkMs < 2000, `${forkMs} ms`);
+	// req: R-947
+	check("run 3: an ambient test budget cannot change the default confirmation budget",
+		r?.success === true && !fs.existsSync(LATE), `late marker present=${fs.existsSync(LATE)}`);
 	// stay alive for the late answer, and give the desk a moment to mishandle it
 	await until(() => fs.existsSync(LATE), "the stub's late answer to go out", 8000);
 	await sleep(250);
@@ -616,7 +619,7 @@ try {
 	await sleep(250);
 	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
 	// req: R-441 R-946
-	check("run 3: an answer landing ON the deadline confirms nothing either",
+	check("run 3: a confirmation response delayed 1000 ms after request receipt confirms nothing",
 		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
 	await stopServer();
 

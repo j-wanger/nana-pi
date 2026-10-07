@@ -6,8 +6,8 @@
  * @inputs argv (--verbose, --self-test, path substrings), env NANA_TEST_SELFTEST and NANA_TEST_TIMEOUT_MS,
  *  and the test files directly under each package's tests/ dir, apps/desk/test and apps/bench/test (e2e,
  *  studies and fixture dirs excluded)
- * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the failing tail of a red
- *  file, a totals line with warnings and the self-test verdict, and the exit code
+ * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
+ *  file in non-verbose mode, a totals line with warnings and the self-test verdict, and the exit code
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
