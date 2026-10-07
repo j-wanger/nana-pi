@@ -1,6 +1,6 @@
 # Writing trial — baseline (landing day, 2026-10-04)
 
-The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not to Jake, and they write differently (8% over cap against the seat's 31%).
+The report corpus is seat sessions only: project dirs without `-wt-`, entries with `isSidechain` false. Worker sessions report to the seat, not to Jake, and they write differently (8% over cap against the seat's 31%). Re-baseline and the comparable strict/lenient verdict counts: [rebaseline.md](rebaseline.md).
 
 ## Measured with the landed checker
 

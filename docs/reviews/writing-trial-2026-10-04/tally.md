@@ -16,7 +16,7 @@ condition and blur two different targets.
 
 **Landing date:** 2026-10-04 (merge on main)
 
-**Stop condition:** day 14 after landing, or 20 REPORTS checked (the `HANDOFF.md` corpus does
+**Stop condition:** day 14 after landing, or 20 distinct reports sent and checked (the `HANDOFF.md` corpus does
 not count toward this), whichever comes first. Stop early after two lost-detail complaints —
 Jake saying a report dropped detail he needed.
 
@@ -25,7 +25,15 @@ Jake saying a report dropped detail he needed.
 | 2026-10-04 | 0 | 0/0 | 0 | 0 | 0 | 0 | 0 |
 | 2026-10-05 | 6 | 6/6 | 176 | 0 | 60 | 0 | 0 |
 
-2026-10-05 note: the seat checked its three end-of-task reports and its `HANDOFF.md` edits (its own sentences only; renumbered old lines excluded). It sent about fifteen short status updates unchecked, so the rule's "run it before you send" step is not yet a habit for status updates. A later session checked a fourth and fifth report (pi durable agent and Karpathy's other formats, 50 sentences; the code-map comparison, 28 sentences; three passives fixed before sending) and 7 new HANDOFF sentences; then a sixth report (the map-test-links land, 28 sentences) and 19 more HANDOFF sentences after fixing one over-cap and two passives. Its short status updates went unchecked too.
+2026-10-05 note: the original hand tally covers the reports it checked, not every report-sized final. Status updates remain style-scoped but are not individually checker-scoped; the report-only command is not a status-update habit metric.
+
+Reviewer-harm trigger record: the “reviewers drop paths” trigger was checked against the post-landing review corpus and did not fire. Identifier density per 100 words: pre-landing 6.9, 5.7, 4.6, 4.9; post-landing 4.8, 4.9, 2.1, 7.1, 7.6, 7.9, 3.6, 4.0, 6.1. Over-cap findings stayed at 0–1 per file in both periods. These aggregate measures do not prove that no necessary detail was dropped.
+
+The pi half has no corpus yet: the journal does not distinguish Jake-facing UI output from worker or reviewer sessions.
+
+The extractor's `checkerCalls` count is not a count of distinct reports sent: it cannot associate repeated or diagnostic invocations with sent reports, so the seat audits distinct reports against the stop condition at verdict time.
+
+The reproducible extractor is `extract.mjs`; the treated corpus and baseline remeasurement are recorded in [after.md](after.md) and [rebaseline.md](rebaseline.md). The October 5 audit count is reproduced exactly: 14 reports / 10 former-check passes. The published 6/35 baseline was a hand count on 35 messages and is NOT reproduced; the committed old-checker result on the 32-message window is 3/32 lenient and 0/32 strict.
 
 Targets (design-ruling.md §3, re-based on the Markdown-aware splitter), one set per corpus:
 over-cap at or under a quarter of the baseline share `baseline.md` measures on landing day,

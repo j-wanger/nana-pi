@@ -182,11 +182,10 @@ export function bannedFindings(text) {
 	return out;
 }
 
-/** True when `text` contains a verdict word/phrase as a WHOLE word or phrase (astra r1 MUST 2:
- *  a substring match let "reopened" pass as carrying OPEN). \b anchors both ends, so "YOUR
- *  CALL" matches as the two-word phrase it is and "reopened" never satisfies \bOPEN\b. */
+/** True only when a listed uppercase verdict is the first token, allowing leading emphasis markers. */
 function hasVerdictWord(text) {
-	return VERDICT_WORDS.some((w) => new RegExp(`\\b${escapeRegExp(w)}\\b`, "i").test(text));
+	const firstToken = text.trim().replace(/^(?:[*_~]{1,2})*/, "");
+	return VERDICT_WORDS.some((word) => new RegExp(`^${escapeRegExp(word)}(?=$|[\\s.,!?;:])`).test(firstToken));
 }
 
 /** null when the first prose sentence carries a verdict word/phrase (no finding); a finding
