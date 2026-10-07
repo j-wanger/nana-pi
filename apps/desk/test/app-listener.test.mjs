@@ -167,7 +167,6 @@ try {
 	}
 	// req: R-447
 	check("invalid manifests rejected at load (bad name, bad cwd, EMPTY tools)", /Bad Name.json/.test(serverLog) && /badcwd.json/.test(serverLog) && /notools.json: tools: a non-empty/.test(serverLog), serverLog.split("\n").filter((l) => /apps:/.test(l)).join(" | "));
-	// req: R-447
 	// req: R-948
 	check("app-listener fixture allocates distinct free ports for its desk, apps and invalid manifests", new Set([DESK, PA, PB, PZ, PG, PD, P_BADPAGE, P_BADDATA, P_BADDATA2, P_BADNAME, P_BADCWD, P_NOTOOLS, P_BADBUILTIN, P_BADBUILTIN2, P_EPSILON, DESK2]).size === 16);
 	// req: R-447
