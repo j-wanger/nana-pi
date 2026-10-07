@@ -10,9 +10,8 @@ The note says waits on a week of log (item 3 of Next).
 
 ## Next
 1. LANDED and verified work.
-2. Run the pull check by 2026-10-01.
+2. Run the pull check due 2026-10-01.
 
 ## Open for Jake
 - Decide whether the old wait condition should remain.
 2. Record the second unresolved choice without a status tag.
-

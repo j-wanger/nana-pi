@@ -780,7 +780,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — a HANDOFF path, optional --today YYYY-MM-DD clock and optional --strict flag
 - **outputs** — one file:line finding per issue followed by a summary; strict mode sets failure status
 - **effects** — disk (reads the named HANDOFF)
-- **errors** — unreadable input is reported; malformed options or dates exit nonzero
+- **errors** — unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`
 

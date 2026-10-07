@@ -249,7 +249,7 @@ It prints `file:line: kind: detail` findings and a summary. The default clock us
 
 ## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
 
-The ninth CLI. Zero-dep, Node only, cross-platform; the pure checks live in
+Zero-dep, Node only, cross-platform; the pure checks live in
 `lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
 `docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
 named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an

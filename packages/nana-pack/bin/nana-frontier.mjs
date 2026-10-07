@@ -5,7 +5,7 @@
  * @inputs a HANDOFF path, optional --today YYYY-MM-DD clock and optional --strict flag
  * @outputs one file:line finding per issue followed by a summary; strict mode sets failure status
  * @effects disk (reads the named HANDOFF)
- * @errors unreadable input is reported; malformed options or dates exit nonzero
+ * @errors unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
  */
 import * as fs from "node:fs";
 import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
@@ -24,7 +24,7 @@ for (let i = 0; i < args.length; i++) {
 	} else if (file === null) file = args[i];
 	else {
 		console.error("expected one HANDOFF path");
-		process.exit(2);
+		process.exit(strict ? 1 : 0);
 	}
 }
 if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(`${today}T00:00:00Z`))) {
@@ -52,14 +52,16 @@ for (let i = 0; i < lines.length; i++) {
 	const match = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(lines[i]);
 	if (match) headings.push({ index: i, level: match[1].length, title: match[2] });
 }
-const sectionFor = (index) => {
-	let section = null;
+const headingStackAt = (index) => {
+	const stack = [];
 	for (const heading of headings) {
 		if (heading.index > index) break;
-		section = heading.title.toLowerCase();
+		while (stack.length && stack.at(-1).level >= heading.level) stack.pop();
+		stack.push(heading);
 	}
-	return section;
+	return stack;
 };
+const inSection = (index, title) => headingStackAt(index).some((heading) => heading.title.trim().toLowerCase() === title);
 const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
 if (wordCount > HANDOFF_WORD_BUDGET) add(1, "word-budget", `words=${wordCount} budget=${HANDOFF_WORD_BUDGET}`);
 
@@ -87,7 +89,7 @@ if (nextHeading) {
 		if (item) nextItems.push(Number(item[1]));
 	}
 }
-const inTargetSections = (i) => /^(?:next|open for jake)$/i.test(sectionFor(i) ?? "");
+const inTargetSections = (i) => inSection(i, "next") || inSection(i, "open for jake");
 for (let i = 0; i < lines.length; i++) {
 	for (const ref of lines[i].matchAll(/\bitem\s+(\d+)\s+of\s+Next\b/gi)) {
 		const number = Number(ref[1]);
@@ -95,10 +97,11 @@ for (let i = 0; i < lines.length; i++) {
 	}
 	if (!inTargetSections(i)) continue;
 	if (/\bLANDED\b/i.test(lines[i])) add(i + 1, "misplaced-landed", "LANDED appears under Next or Open for Jake");
-	for (const date of lines[i].matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)) {
-		if (date[1] < today && !Number.isNaN(Date.parse(`${date[1]}T00:00:00Z`))) add(i + 1, "overdue-date", `${date[1]} precedes ${today}`);
+	for (const due of lines[i].matchAll(/\b(?:due|deadline)\b[^\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi)) {
+		const date = due[2] ?? due[1];
+		if (date < today && !Number.isNaN(Date.parse(`${date}T00:00:00Z`))) add(i + 1, "overdue-date", `${date} precedes ${today}`);
 	}
-	if (/^open for jake$/i.test(sectionFor(i) ?? "") && /^\s*(?:[-*+]|\d+[.)])\s+/.test(lines[i]) && !/\[(?:blocking|optional|parked),\s*since\s+\d{4}-\d{2}-\d{2}\]/i.test(lines[i])) {
+	if (inSection(i, "open for jake") && /^\s*(?:[-*+]|\d+[.)])\s+/.test(lines[i]) && !/\[(?:blocking|optional|parked),\s*since\s+\d{4}-\d{2}-\d{2}\]/i.test(lines[i])) {
 		add(i + 1, "open-tag", "Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD]");
 	}
 }
