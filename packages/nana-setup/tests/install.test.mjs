@@ -86,7 +86,7 @@ const link = (p) => {
 		return null;
 	}
 };
-for (const h of ["nana-objective.sh", "nana-shared-memory.sh", "context-size-check.sh"]) {
+for (const h of ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"]) {
 	// req: R-301
 	check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 }
@@ -102,6 +102,12 @@ check("no AGENTS.md was created in the pi agent dir", !fs.existsSync(path.join(h
 // Claude Code reads the pack's own skill — one source for both runtimes (skills-and-standards.test.mjs owns the detail)
 // req: R-302
 check("skill requirements is a symlink to the pack skill", link(path.join(home, ".claude", "skills", "requirements")) === path.join(repo, "packages", "nana-pack", "skills", "requirements"));
+for (const name of ["spec", "py-lint", "py-review", "py-test"]) {
+	// req: R-665
+	check(`skill ${name} is a symlink to the pack skill`, link(path.join(home, ".claude", "skills", name)) === path.join(repo, "packages", "nana-pack", "skills", name));
+}
+// req: R-301
+check("retired context hook is not installed", !fs.existsSync(path.join(home, ".claude", "hooks", "context-size-check.sh")));
 const personal = path.join(home, ".claude", "rules", "nana-personal.md");
 check("private rule is a REGULAR file (never a link into the repo)", fs.lstatSync(personal).isFile());
 // req: R-306
@@ -109,6 +115,8 @@ check("private rule is not in the repo", !fs.existsSync(path.join(pkg, "claude",
 
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const commands = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
+// req: R-301
+check("retired context hook is absent from settings", !JSON.stringify(settings).includes("context-size-check.sh"));
 for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
 	check(`settings.json wires ${w.marker}`, commands.some((c) => commandInvokes(c, w.spec)));
 }

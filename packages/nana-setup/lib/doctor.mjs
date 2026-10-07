@@ -24,7 +24,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -42,7 +42,7 @@ function linkOk(target, source) {
 	try {
 		const st = fs.lstatSync(target);
 		if (st.isSymbolicLink()) {
-			return path.resolve(path.dirname(target), fs.readlinkSync(target)) === path.resolve(source);
+			return fs.realpathSync(target) === fs.realpathSync(source);
 		}
 		return platform() === "win32" && st.isFile() && fs.readFileSync(target).equals(fs.readFileSync(source));
 	} catch {
@@ -60,12 +60,10 @@ export function skillLinkState(target, source) {
 	if (!st) return { ok: false, detail: `missing — run \`nana-setup install\`` };
 	if (st.isSymbolicLink()) {
 		let current = null;
-		try {
-			current = path.resolve(path.dirname(target), fs.readlinkSync(target));
-		} catch {
-			/* unreadable link */
-		}
-		return current === path.resolve(source) ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
+		try { current = fs.realpathSync(target); } catch { /* dangling link */ }
+		let canonicalSource = path.resolve(source);
+		try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+		return current === canonicalSource ? { ok: true, detail: `-> ${source}` } : { ok: false, detail: `-> ${current ?? "(unreadable)"}, not ${source}` };
 	}
 	if (platform() !== "win32") return { ok: false, detail: `${st.isDirectory() ? "a directory" : "a regular file"} is there instead of a symlink to ${source} — move it, then re-run \`nana-setup install\`` };
 	// win32: a copy of every file the source ships, byte for byte
@@ -210,9 +208,17 @@ export function diagnose(layout, opts = {}) {
 	);
 
 	for (const name of CLAUDE_SKILLS) {
+		if (win && NEW_CLAUDE_SKILLS.includes(name)) {
+			add(NOTE, `skill ${name}`, "skipped (win32; pi-only)");
+			continue;
+		}
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
 		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
 	}
+	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.claudeHome, name)));
+	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
+	const legacyScaffolders = ["py-init", "ts-init", "nana-init"].filter((name) => lstatSafe(path.join(layout.skillsDir, name)));
+	add(legacyScaffolders.length ? WARN : OK, "legacy scaffolders", legacyScaffolders.length ? `${legacyScaffolders.join(", ")} present — run nana-setup install to back up recognized nana-dev-kit copies` : "none present");
 
 	let settings = null;
 	let parseError = null;

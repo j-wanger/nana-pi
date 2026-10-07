@@ -47,10 +47,10 @@ check("win32 install exits 0", r.status === 0, r.stderr);
 
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
-for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh", "hook context-size-check.sh", "PATH pi-review"]) {
+for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh", "PATH pi-review"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
-for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory", "settings UserPromptSubmit context-size"]) {
+for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory"]) {
 	check(`win32: ${label} reports skipped (win32: bash hook)`, line(label).includes("skipped (win32: bash hook)"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
