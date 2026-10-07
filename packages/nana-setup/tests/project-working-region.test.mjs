@@ -37,6 +37,16 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 }
 
 {
+	const prefix = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("owner prose before markers\n")]);
+	const original = Buffer.concat([prefix, Buffer.from(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`)]);
+	const dir = make(original.toString("utf8"));
+	const expected = Buffer.concat([prefix, Buffer.from(`${WORKING_BEGIN}\n${shared}${WORKING_END}\n`)]);
+	const result = refreshWorkingRegion(dir);
+	// req: R-986
+	check("BOM and prose before markers remain byte-identical after refresh", result.status === "created" && fs.readFileSync(path.join(dir, "AGENTS.md")).equals(expected));
+}
+
+{
 	const dir = make(`${WORKING_BEGIN}\n${shared}${WORKING_END}\n`);
 	const matchingBefore = fs.readFileSync(path.join(dir, "AGENTS.md"));
 	const result = refreshWorkingRegion(dir);

@@ -179,7 +179,7 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		const originalBytes = fs.readFileSync(fd);
 		let original;
 		try {
-			original = new TextDecoder("utf-8", { fatal: true }).decode(originalBytes);
+			original = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(originalBytes);
 		} catch {
 			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md is not valid UTF-8 — left alone" };
 		}
@@ -193,6 +193,19 @@ export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {
 		const nl = original.includes("\r\n") ? "\r\n" : "\n";
 		const canonical = readShared("working-under-nana-pi.md").replace(/\r?\n/g, nl);
 		const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
+		const beginBytes = Buffer.from(WORKING_BEGIN, "ascii");
+		const endBytes = Buffer.from(WORKING_END, "ascii");
+		const replacementBytes = Buffer.from(replacement, "utf8");
+		const originalBegin = originalBytes.indexOf(beginBytes, Buffer.byteLength(original.slice(0, begin.start)));
+		const originalEndStart = originalBytes.indexOf(endBytes, Buffer.byteLength(original.slice(0, end.start)));
+		const originalEnd = originalEndStart + endBytes.length;
+		const replacementBegin = replacementBytes.indexOf(beginBytes, Buffer.byteLength(replacement.slice(0, begin.start)));
+		const replacementEndStart = replacementBytes.indexOf(endBytes, Buffer.byteLength(replacement.slice(0, begin.end + canonical.length)));
+		const replacementEnd = replacementEndStart + endBytes.length;
+		if (originalBegin < 0 || originalEnd < endBytes.length || replacementBegin < 0 || replacementEnd < endBytes.length ||
+			!originalBytes.subarray(0, originalBegin).equals(replacementBytes.subarray(0, replacementBegin)) ||
+			!originalBytes.subarray(originalEnd).equals(replacementBytes.subarray(replacementEnd)))
+			return { label: "AGENTS.md working region", status: SKIPPED, detail: "outside bytes changed during reconstruction — left alone" };
 		if (replacement === original) return { label: "AGENTS.md working region", status: UNCHANGED, detail: "unchanged" };
 		if (dryRun) return { label: "AGENTS.md working region", status: CREATED, detail: "would refresh marker-owned region" };
 		const temp = path.join(dir, `.AGENTS.md.nana-${randomUUID()}.tmp`);
