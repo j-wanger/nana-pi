@@ -9,7 +9,7 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows; STATUS (ok | fail | note | warn); NODE_FLOOR
+ * @outputs an array of { status, label, detail } rows; knowledgeIndexState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }
  * @effects disk (reads only), process (spawns node and launchctl to probe)
@@ -21,6 +21,7 @@
 // entry and (when asked for) the desk service are actually in place.
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
@@ -31,6 +32,18 @@ const OK = "ok";
 const FAIL = "fail";
 const NOTE = "note";
 const WARN = "warn";
+const require = createRequire(import.meta.url);
+
+export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite").DatabaseSync) {
+	let db;
+	try {
+		db = new DatabaseSync(dbPath, { readOnly: true });
+		const row = db.prepare("SELECT COUNT(*) AS n FROM docs").get();
+		return { ok: Number.isInteger(row?.n), detail: `read-only docs count: ${row?.n}` };
+	} catch (error) {
+		return { ok: false, detail: `cannot open/query expected docs schema (${error.message})` };
+	} finally { try { db?.close(); } catch { /* already closed */ } }
+}
 
 /**
  * ✓ means "this file is the repo's file". On posix that is a symlink and nothing else — a
@@ -405,7 +418,8 @@ export function diagnose(layout, opts = {}) {
 
 	// --- knowledge pull ---
 	const db = path.join(layout.knowledgeHome, "index.db");
-	add(fs.existsSync(db) ? OK : FAIL, "knowledge index", db);
+	const index = knowledgeIndexState(db);
+	add(index.ok ? OK : FAIL, "knowledge index", `${db} — ${index.detail}`);
 
 	// --- PATH ---
 	if (win) add(NOTE, "PATH pi-review", "skipped (win32)");

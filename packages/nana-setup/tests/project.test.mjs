@@ -101,15 +101,16 @@ function walk(dir) {
 	// req: R-327
 	check("month file is a header only", read(path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`)).split("\n").filter((l) => l.trim()).length === 2);
 
-	// --check is green now
-	check("project --check exits 0 on a seeded folder", run(["project", dir, "--check", "--home", home]).status === 0);
+	// The seeded empty checker set and undecided trust are explicit warnings.
+	const seededCheck = run(["project", dir, "--check", "--home", home]);
+	check("project --check warns on an empty checker set and undecided trust", seededCheck.status === 1 && /! post-edit commands.*empty/.test(seededCheck.stdout) && /! project trust.*nana-setup trust/.test(seededCheck.stdout), seededCheck.stdout);
 	const currentMonth = path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`);
 	fs.unlinkSync(currentMonth);
 	const olderMonth = path.join(dir, "docs", "sessions", "2001-01.md");
 	fs.writeFileSync(olderMonth, "# historical log\n");
 	const oldLogCheck = run(["project", dir, "--check", "--home", home]);
 	// req: R-395
-	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 0 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
+	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 1 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
 	fs.unlinkSync(olderMonth);
 	const impossibleMonth = path.join(dir, "docs", "sessions", "2026-99.md");
 	fs.writeFileSync(impossibleMonth, "# impossible month\n");
@@ -160,7 +161,8 @@ function walk(dir) {
 	// req: R-329
 	check("CLAUDE.md-only: no AGENTS.md written", !fs.existsSync(path.join(dir, "AGENTS.md")));
 	check("CLAUDE.md-only: the file is untouched", read(path.join(dir, "CLAUDE.md")) === "MY CLAUDE\n");
-	check("CLAUDE.md-only: --check is still green", run(["project", dir, "--check", "--home", home]).status === 0);
+	const claudeCheck = run(["project", dir, "--check", "--home", home]);
+	check("CLAUDE.md-only: --check keeps the navigation file healthy while warning about empty checkers", claudeCheck.status === 1 && /✓ AGENTS\.md\s+CLAUDE\.md/.test(claudeCheck.stdout) && /! post-edit commands/.test(claudeCheck.stdout));
 }
 
 /* --- 5. an empty project postEdit block must not shadow user-scope commands ---------- */
@@ -200,6 +202,14 @@ function walk(dir) {
 	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
+
+	// req: R-673
+	check("--check warns when effective post-edit commands are empty", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	// req: R-674
+	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "(?!)", run: "your-formatter {file}" }] } }));
+	// req: R-673
+	check("--check warns when post-edit commands are still the starter placeholder", /! post-edit commands.*starter placeholder/.test(run(["project", dir, "--check", "--home", home]).stdout));
 
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).
@@ -262,7 +272,7 @@ function walk(dir) {
 	check("inside a repo: no nested git init", !fs.existsSync(path.join(inner, ".git")) && /inside .* already — no nested repo created/.test(setup.stdout), setup.stdout);
 	const c1 = run(["project", inner, "--check", "--home", home]);
 	// req: R-336
-	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 0 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout), c1.stdout);
+	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 1 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout) && /! post-edit commands/.test(c1.stdout), c1.stdout);
 
 	// b. pack config deliberately omitted because user-scope postEdit.commands exist
 	const { dir, home: home2 } = freshProject();

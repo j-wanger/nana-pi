@@ -28,8 +28,11 @@
 //
 // Run it as often as you like: it only ever ADDS, it backs up anything it replaces, and a
 // second run reports "nothing to do".
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
@@ -40,6 +43,7 @@ const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
   nana-setup install [options]        install / repair every piece (idempotent)
   nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
+  nana-setup trust <dir> [--yes]      record pi project trust after confirmation
 
 Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
@@ -161,10 +165,10 @@ async function runProject(opts) {
 		// same refusal as `install` (sol r3).
 		const checkLayout = resolveLayout(opts);
 		refuseCwdRelativePiHome(checkLayout, "this check");
-		const checks = checkProject(dir, checkLayout);
+		const checks = await checkProject(dir, checkLayout);
 		const width = Math.max(...checks.map((c) => c.label.length));
 		console.log(`nana-setup project --check — ${dir}\n`);
-		for (const c of checks) console.log(`  ${c.ok ? "✓" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
+		for (const c of checks) console.log(`  ${c.ok ? "✓" : c.label === "post-edit commands" || c.label === "project trust" ? "!" : "✗"} ${c.label.padEnd(width)}  ${c.detail}`);
 		const bad = checks.filter((c) => !c.ok);
 		console.log(bad.length ? `\n  ${bad.length} missing — run: nana-setup project ${dir}` : "\n  all good.");
 		return bad.length ? 1 : 0;
@@ -206,17 +210,33 @@ async function runProject(opts) {
 				? "\n  nothing to do — everything was already in place."
 				: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
 	);
-	if (!opts.dryRun && changed) {
-		console.log("  next: open a session here and ratify the two DRAFT lines in OBJECTIVE.md — they are yours, not a default.");
-	}
-	if (!opts.dryRun && fs.existsSync(path.join(dir, ".pi", "nana-pack.json"))) {
-		console.log(
-			"  trust: .pi/nana-pack.json is IGNORED until you decide this folder's trust — run /trust in pi here, then restart pi.\n" +
-				"         `pi -a` / `--approve` (the desk's trust box) trusts one run only; it is not a recorded decision.",
-		);
+	if (!opts.dryRun) {
+		console.log(`  next: 1. ratify the seeded OBJECTIVE.md: fill the date; the DRAFT lines are yours to ratify.\n        2. trust this folder: nana-setup trust <dir>`);
 	}
 	// Same rule as `install`: a ✗ row means this is not a set-up project (sol r3).
 	return problems ? 1 : 0;
+}
+
+async function runTrust(opts) {
+	const dirArg = opts._[1];
+	if (!dirArg) throw new SetupError("trust needs a directory");
+	const dir = path.resolve(dirArg);
+	const layout = resolveLayout(opts);
+	refuseCwdRelativePiHome(layout, "this trust decision");
+	if (!opts.yes) {
+		if (!process.stdin.isTTY || !process.stdout.isTTY) throw new SetupError("trust needs --yes when no interactive confirmation is available");
+		const prompt = createInterface({ input: process.stdin, output: process.stdout });
+		let answer;
+		try { answer = await prompt.question(`Record affirmative pi trust for ${dir}? [y/N] `); } finally { prompt.close(); }
+		if (!/^y(es)?$/i.test(answer.trim())) throw new SetupError("trust decision not recorded (confirmation declined)");
+	}
+	const root = spawnSync("npm", ["root", "-g"], { encoding: "utf8" });
+	if (root.status !== 0 || !root.stdout.trim()) throw new SetupError("cannot locate the globally installed pi package");
+	const trustModule = await import(pathToFileURL(path.join(root.stdout.trim(), "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js")).href);
+	const store = new trustModule.ProjectTrustStore(layout.piHome);
+	store.set(dir, true);
+	console.log(`Recorded affirmative pi project trust for ${dir}`);
+	console.log(`Trust store: ${store.trustPath}`);
 }
 
 async function main(argv) {
@@ -236,6 +256,7 @@ async function main(argv) {
 		if (cmd === "install") return runInstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
 		if (cmd === "project") return await runProject(opts);
+		if (cmd === "trust") { await runTrust(opts); return 0; }
 	} catch (err) {
 		if (err instanceof SetupError) {
 			console.error(`\nnana-setup: ${err.message}`);

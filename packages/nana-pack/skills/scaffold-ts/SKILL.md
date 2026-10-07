@@ -41,7 +41,10 @@ wired into the post-edit checks (`pnpm map:check` / `pnpm map:impact`).
    `pnpm install`, `pnpm check` (typecheck + lint + test), commit the lockfile —
    and confirm `pnpm check` is green before handing over.
 
-5. **The first real step after scaffolding is writing the project's first
+5. **The first two project steps**: ratify the seeded `OBJECTIVE.md` (fill the
+   date; the DRAFT lines are the owner's to ratify), then trust the folder with
+   `nana-setup trust <dir>`.
+6. **The first real step after scaffolding is writing the project's first
    requirement rows** — `Part G` arrives filled in, the product rows are empty.
    Use the `requirements` skill: one EARS `shall` row per behaviour the project
    promises, each `planned` until a test with a `req:` marker pins it. Do this

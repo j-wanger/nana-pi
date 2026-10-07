@@ -4,11 +4,10 @@
  *  overwriting, the per-project files the machine-level mechanisms read.
  * @inputs the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the
  *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
- *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands);
+ *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader;
  *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS,
  *  NANA_SETUP_PLATFORM
- * @outputs setupProject() / checkProject() report arrays ({ label, status, detail } and
- *  { label, ok, detail }); on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
+ * @outputs setupProject() reports rows and checkProject() asynchronously reports rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a relative CLAUDE.md symlink (a copy on
  *  win32), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
  *  exports SHARED_DIR, today(), fillSeed(), monthHeader(), agentsStub(), PACK_STARTER,
@@ -31,7 +30,9 @@
 //
 // Every step is idempotent and never overwrites: a file that is already there is left alone.
 import { spawn, spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { platform, repoRoot } from "./paths.mjs";
@@ -313,7 +314,7 @@ export async function setupProject(dir, layout, opts = {}) {
  * a check that fails a state setup deliberately produced would send the owner round a loop
  * re-running a command that correctly does nothing (sol r1).
  */
-export function checkProject(dir, layout = {}) {
+export async function checkProject(dir, layout = {}) {
 	const has = (rel) => Boolean(lstat(path.join(dir, ...rel.split("/"))));
 	/**
 	 * A seed counts only as a REGULAR file. Setup deliberately refuses to write through a
@@ -421,12 +422,30 @@ export function checkProject(dir, layout = {}) {
 		label: ".pi/nana-pack.json",
 		ok: pack.ok || (!pack.found && shadowed),
 		detail: pack.ok
-			? "post-edit on-ramp"
+			? "file present"
 			: pack.found
 				? `${pack.found} is there — not a readable .pi/nana-pack.json`
 				: shadowed
 					? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
 					: "post-edit on-ramp",
 	});
+	let projectConfig = null;
+	if (pack.ok) {
+		try { projectConfig = JSON.parse(fs.readFileSync(path.join(dir, ".pi", "nana-pack.json"), "utf8")); } catch { /* the file-presence row reports existence; diagnostics fail closed */ }
+	}
+	const commands = pack.ok ? projectConfig?.postEdit?.commands : user?.postEdit?.commands;
+	const starter = !Array.isArray(commands) || commands.length === 0 || commands.every((entry) => entry?.match === "(?!)");
+	checks.push({ label: "post-edit commands", ok: !starter, detail: starter ? "effective checker set is empty or still the starter placeholder — configure real postEdit.commands" : `${commands.length} effective checker command(s)` });
+	if (pack.ok) {
+		let vouched = false;
+		const prior = process.env.PI_CODING_AGENT_DIR;
+		try {
+			process.env.PI_CODING_AGENT_DIR = path.resolve(layout.piHome || path.join(os.homedir(), ".pi", "agent"));
+			const mod = await import(pathToFileURL(path.join(repoRoot, "packages", "nana-pack", "lib", "objective.ts")).href);
+			vouched = mod.trustRecord(dir).vouched;
+		} catch { /* no usable affirmative pack trust record */ }
+		finally { if (prior === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = prior; }
+		checks.push({ label: "project trust", ok: vouched, detail: vouched ? "affirmative project trust recorded" : `no affirmative trust record covers this folder — run nana-setup trust <dir>` });
+	}
 	return checks;
 }
