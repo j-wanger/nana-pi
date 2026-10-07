@@ -429,7 +429,8 @@ export default function (pi: ExtensionAPI) {
 		} catch {
 			return undefined;
 		}
-		return { systemPrompt: (event as any).systemPrompt + block };
+		(event as any).systemPromptOptions.sections["nana-handoff"] = block;
+		return undefined;
 	});
 
 	pi.on("session_compact", async (event, ctx) => {

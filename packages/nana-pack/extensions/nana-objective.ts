@@ -82,6 +82,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (!block) return undefined;
 		if (!loadConfig(ctx).objective.enabled) return undefined;
-		return { systemPrompt: `${(event as any).systemPrompt}\n\n${block}` };
+		(event as any).systemPromptOptions.sections["nana-objective"] = block;
+		return undefined;
 	});
 }

@@ -104,16 +104,28 @@ export function repoRootOf(canon) {
 
 /** What the repository root itself shows — nothing outside it. */
 export function rootState(root, objectiveFile = "OBJECTIVE.md") {
+	const handoffFile = path.join(root, "HANDOFF.md");
+	let regularHandoff = false;
+	try {
+		regularHandoff = fs.statSync(handoffFile).isFile();
+	} catch {
+		/* not an adoption marker */
+	}
+	const canonicalRoot = canonicalCwd(root);
+	const tempRoots = [os.tmpdir(), ...(process.platform === "win32" ? [] : ["/tmp"])].map(canonicalCwd);
+	const temporary = tempRoots.some((tmp) => canonicalRoot === tmp || canonicalRoot.startsWith(`${tmp}${path.sep}`));
 	return {
 		handoff: present(storePathFor(root)),
 		objective: present(path.join(root, objectiveFile)),
 		agents: present(path.join(root, "AGENTS.md")),
 		sessions: isDir(path.join(root, "docs", "sessions")),
 		dismissed: present(path.join(root, MARKER)),
+		regularHandoff,
+		temporary,
 	};
 }
 
-export const isAdopted = (s) => s.handoff || s.objective || s.dismissed;
+export const isAdopted = (s) => s.handoff || s.objective || s.dismissed || (s.regularHandoff && s.agents && s.sessions) || s.temporary;
 
 /**
  * The last TAIL_BYTES of `file` as whole lines (a line cut by the window is dropped). An ABSENT

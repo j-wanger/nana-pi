@@ -28,7 +28,7 @@ Seven extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-gate` | Pre-tool permission gating | `tool_call` (blocking) |
 | `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
 | `nana-lifecycle` | Session lifecycle observability + `/reload-runtime` | `session_start/…compact…/shutdown`, `registerCommand` |
-| `nana-notify` | Outward notifications | `agent_settled` |
+| `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
@@ -562,16 +562,16 @@ is user-scope only** — project config never contributes to it, trusted or not.
   not been exercised on real Windows.
 - **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
-- **Notify** never writes terminal escape codes without an attached UI, so print/RPC
-  output stays clean. Headless notifications are opt-in (`notify.headless`). A failing OS
+- **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.
+  Headless notifications are opt-in (`notify.headless`). `ui_prompt_start` sends the fixed body
+  "Approval needed in pi"; notification titles never expose dialog text. A failing OS
   notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
   in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
   an 8 s deadline, so a hung one fails over instead of holding the pipe open.
 - **Adoption signal** (L5, 2026-09-29). When a fresh session's store entry is *missing* (never
   merely unreadable), no `handoff.path` is configured, and the session runs inside a git
-  repository (`.git` directory or file — a linked worktree is its own root) whose **root** has no
-  store entry, no objective file (user-scope `objective.projectFile`, default `OBJECTIVE.md`) and
-  no `.nana-not-a-project`, the handoff extension journals
+  repository (`.git` directory or file — a linked worktree is its own root) whose **root** is not
+  adopted, the handoff extension journals
   `{"event":"directory_unadopted","cwd":"<repo root>","has":{"handoff","objective","agents","sessions"}}`
   — at most once per root per 24 h (a 256 KiB journal tail is checked). **Journal only**: nothing
   is added to any prompt. This line is **user-scope state**: it goes to the user-scope

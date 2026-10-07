@@ -887,8 +887,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/extensions/nana-notify.ts`
 
 - **purpose** — Notify the owner on the desktop when the agent settles, falling back in-app when the OS notifier fails.
-- **inputs** — pi `agent_settled` events, the notify config block (enabled, headless), ctx.hasUI, and process.platform
-- **outputs** — an osascript notification, a PowerShell toast or an OSC 777 sequence, an in-app ctx.ui.notify on failure, and a `notify_fallback` journal line carrying the reason
+- **inputs** — pi `agent_settled` and `ui_prompt_start` events, the notify config block (enabled, headless), ctx.mode, ctx.hasUI, and process.platform
+- **outputs** — an osascript notification, a PowerShell toast or a TUI-only OSC 777 sequence, an in-app ctx.ui.notify on failure, and a `notify_fallback` journal line carrying the reason
 - **effects** — process (spawns osascript or powershell.exe under NOTIFIER_TIMEOUT_MS), disk (appends the journal)
 - **errors** — none — notifierFailure classifies a spawn failure, a non-zero exit, the deadline kill and a PowerShell error record printed on an exit-0 run, each as the fallback's reason
 - **callers** — `packages/nana-pack/tests/notify-fallback.test.mjs`
@@ -912,7 +912,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (spawns each check in a shell under its timeoutMs, then SIGTERM and SIGKILL over its tree), disk (hashes the declared inputs before and after, writes receipts, appends the journal)
 - **errors** — never throws — each check is classified checks_passed / checks_failed / error / timeout / not_run plus a `lock` refusal, and a malformed command entry or bad match regex is skipped
 - **callers** — `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`, `packages/nana-pack/tests/receipt-binding.test.mjs`
-- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/receipts.ts`
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/receipts.ts`
 
 ### `packages/nana-pack/extensions/nana-writing.ts`
 
@@ -971,7 +971,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pi's resolution of an edit/write path, every candidate form of it, the policy file a candidate set or a command word lands on (or null), and pi's active trust store path
 - **effects** — disk (realpath / readlink / lstat of candidate paths, the agent dirs and their nana-pack.json and trust.json)
 - **errors** — none — every function is total and degrades to the raw input or to null
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`
 
 ### `packages/nana-pack/lib/gate-shell.ts`
