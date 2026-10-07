@@ -130,6 +130,34 @@ fs.mkdirSync(RELOCATED, { recursive: true });
 fs.symlinkSync(externalRoot, path.join(RELOCATED, "extensions"), "dir");
 // req: R-631
 check("symlinked extension root floors its direct target", (await decide("edit", path.join(externalRoot, "loaded.ts"))) === "BLOCK");
+{
+	const spacedAgent = path.join(NANA_HOME, "relocated agent with space");
+	const spacedExtensions = path.join(spacedAgent, "extensions");
+	const spacedTarget = path.join(spacedExtensions, "evil; target.ts");
+	const linkedRoot = path.join(NANA_HOME, "discovered linked target with space");
+	const linkedTarget = path.join(linkedRoot, "evil; linked.ts");
+	fs.mkdirSync(spacedExtensions, { recursive: true });
+	fs.mkdirSync(linkedRoot, { recursive: true });
+	fs.writeFileSync(spacedTarget, "export {};");
+	fs.writeFileSync(linkedTarget, "export {};");
+	fs.symlinkSync(linkedRoot, path.join(spacedExtensions, "linked"), "dir");
+	process.env.PI_CODING_AGENT_DIR = spacedAgent;
+	const quoted = (value) => `"${value}"`;
+	const spacedCommands = [
+		`printf x > ${quoted(spacedTarget)}`,
+		`tee ${quoted(spacedTarget)}`,
+		`dd of=${quoted(spacedTarget)}`,
+		`printf x > ${quoted(linkedTarget)}`,
+		`dd of=${quoted(linkedTarget)}`,
+	];
+	const commandResults = await Promise.all(spacedCommands.map(decideCommand));
+	const ordinaryResult = await decideCommand(`printf x > ${quoted(path.join(NANA_HOME, "ordinary folder", "free; target.ts"))}`);
+	// req: R-631
+	check("quoted literal paths and assignment values floor relocated and symlink targets while ordinary paths remain allowed", commandResults.every((result) => result === "BLOCK") && ordinaryResult === "ALLOW");
+	process.env.PI_CODING_AGENT_DIR = RELOCATED;
+	fs.rmSync(spacedAgent, { recursive: true, force: true });
+	fs.rmSync(linkedRoot, { recursive: true, force: true });
+}
 fs.unlinkSync(path.join(RELOCATED, "extensions"));
 fs.mkdirSync(path.join(RELOCATED, "extensions"));
 for (let i = 0; i < gatePaths.EXTENSION_WALK_ENTRY_CAP - 1; i++) fs.writeFileSync(path.join(RELOCATED, "extensions", `entry-${String(i).padStart(4, "0")}`), "x");

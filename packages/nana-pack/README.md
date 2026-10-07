@@ -448,7 +448,8 @@ is user-scope only** — project config never contributes to it, trusted or not.
   expansion, 2026-09-28: a project `.claude/settings.json` carries hooks that run code). What
   is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
   backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
-  one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
+  one **literally**, including quote-preserved shell words with spaces or delimiters and
+  `name=value` operands such as `dd of=...` (`>`, `tee`, `sed -i`, `cp`, `install`, `Set-Content`,
   `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
   `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
   followed by `/nana-pack.json` or `/trust.json` (either slash), balanced forms only, matched
@@ -458,11 +459,12 @@ is user-scope only** — project config never contributes to it, trusted or not.
   expansion included:
   `cd ~/.pi/agent && printf x > nana-pack.json` (relative after shell `cd`, also for `trust.json`
   and `cd .pi`; basename tokens resolve against the supplied session cwd, so starting inside a floored
-  directory correctly blocks), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
-  variable other than the one spelling above, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
-  directory symlink created and written through in the same command, `cd … | xargs tee
-  nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
-  command text would not close this (every pattern invites the next form), so none is added.
+  directory correctly blocks), a glob (`nana-*.json`) or brace-expanded path, a directory in a
+  variable other than the one spelling above, `Set-Location …; sc nana-pack.json`, a directory
+  symlink created and written through in the same command, `cd … | xargs tee nana-pack.json`, a
+  script file, or a Python/Node string built at run time. The scanner handles literal quote and
+  assignment syntax; paths produced by shell expansion or execution remain outside its guarantee.
+  Matching more command text would not close that class (each form invites another), so none is added.
   **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
   `session_start`. The **other blocks in the same file, including `postEdit.commands`, apply
   live**, so a write that evades the gate's text scan can run code in the **same** session

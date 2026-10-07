@@ -23,6 +23,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piNormalizePath } from "./agent-dir.mjs";
+import { splitCommand, tokens } from "./gate-shell.ts";
 
 // Mirrors pi's `resolveToCwd` (dist/core/tools/path-utils.js): unicode spaces folded, leading `@`
 // stripped, then pi's normalizePath (lib/agent-dir.mjs: win32 shell paths, `~`, file://).
@@ -205,16 +206,21 @@ const AGENT_DIR_VAR_RE = /(?:\$PI_CODING_AGENT_DIR|\$\{PI_CODING_AGENT_DIR\}|%PI
  */
 export function commandPolicyHit(command: string, cwd: string): string | null {
 	try {
-		const text = command
-			.replace(/["']/g, "")
-			.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
+		const text = command.replace(/(\$\{HOME\}|\$HOME|\$env:USERPROFILE|%USERPROFILE%|\$env:HOME)(?=[/\\])/gi, "~");
 		const direct = [...POLICY_RES, AGENT_DIR_VAR_RE].find((re) => re.test(text));
 		if (direct) return String(direct);
 		const walk = extensionWalk(cwd);
 		if (walk.overflow) return walk.overflow;
-		for (const w of text.split(/[\s;|&<>()=,`]+/)) {
-			const hit = policyFileHitWithWalk(pathCandidates(w, cwd), walk);
-			if (hit) return hit;
+		for (const segment of splitCommand(text).segments) {
+			for (const word of tokens(segment.text, true)) {
+				const candidates = [word];
+				const assignment = word.indexOf("=");
+				if (assignment >= 0 && assignment + 1 < word.length) candidates.push(word.slice(assignment + 1));
+				for (const candidate of candidates) {
+					const hit = policyFileHitWithWalk(pathCandidates(candidate, cwd), walk);
+					if (hit) return hit;
+				}
+			}
 		}
 		return null;
 	} catch {

@@ -2,8 +2,7 @@
  * @module packages/nana-pack/lib/gate-shell.ts
  * @purpose Segment a shell command and name its destructive forms for nana-gate.
  * @inputs a command string, or one Segment {text, piped} for segmentDanger
- * @outputs quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, the
- *  dequoted tokens, and a Danger {reason, floor} or null
+ * @outputs quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, shell tokens, and a Danger {reason, floor} or null
  * @effects none
  * @errors none — an unbalanced quote or an unsegmentable construct sets segmentable:false, and an internal
  *  failure comes back as the non-floor danger `unparseable segment`
@@ -129,10 +128,31 @@ export function detectionSegments(cmd: string): Segment[] {
 	return out;
 }
 
-export function tokens(text: string): string[] {
-	return dequote(text.replace(/\$\{HOME\}/g, "$HOME"))
-		.split(/[\s(){};|&`<>]+/)
-		.filter(Boolean);
+export function tokens(text: string, preserveQuotedWords = false): string[] {
+	if (!preserveQuotedWords) {
+		return dequote(text.replace(/\$\{HOME\}/g, "$HOME"))
+			.split(/[\s(){};|&`<>]+/)
+			.filter(Boolean);
+	}
+	const input = text.replace(/\$\{HOME\}/g, "$HOME");
+	const out: string[] = [];
+	let word = "";
+	let quote: string | null = null;
+	for (let i = 0; i < input.length; i++) {
+		const c = input[i];
+		if (quote) {
+			if (c === quote) quote = null;
+			else if (quote === '"' && c === "\\" && /[\\"$`]/.test(input[i + 1] ?? "")) word += input[++i];
+			else word += c;
+		} else if (c === "'" || c === '"') quote = c;
+		else if (c === "\\" && /[\\\s'";|&<>()[\]{}$`]/.test(input[i + 1] ?? "")) word += input[++i];
+		else if (/[\s(){};|&`<>]/.test(c)) {
+			if (word) out.push(word);
+			word = "";
+		} else word += c;
+	}
+	if (word) out.push(word);
+	return out;
 }
 
 const base = (tok: string) =>

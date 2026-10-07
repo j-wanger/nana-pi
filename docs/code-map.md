@@ -982,16 +982,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (realpath / readlink / lstat of candidate paths, agent dirs and code-loading policy files)
 - **errors** — none — every function is total and degrades to the raw input or to null
 - **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/receipts.ts`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`
-- **callees** — `packages/nana-pack/lib/agent-dir.mjs`
+- **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/gate-shell.ts`
 
 ### `packages/nana-pack/lib/gate-shell.ts`
 
 - **purpose** — Segment a shell command and name its destructive forms for nana-gate.
 - **inputs** — a command string, or one Segment {text, piped} for segmentDanger
-- **outputs** — quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, the dequoted tokens, and a Danger {reason, floor} or null
+- **outputs** — quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, shell tokens, and a Danger {reason, floor} or null
 - **effects** — none
 - **errors** — none — an unbalanced quote or an unsegmentable construct sets segmentable:false, and an internal failure comes back as the non-floor danger `unparseable segment`
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-paths.ts`
 - **callees** — —
 
 ### `packages/nana-pack/lib/objective.ts`
