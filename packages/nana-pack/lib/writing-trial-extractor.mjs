@@ -61,7 +61,9 @@ function transcriptFiles(root) {
 	return found.sort((a, b) => a.file.localeCompare(b.file));
 }
 function dateInRange(day, from, to) { return day && day >= from && day <= to; }
-function collect(root, from, to, mode = "baseline") {
+function collect(root, from, to, mode = "baseline", until = null) {
+	const untilTime = until === null ? null : Date.parse(until);
+	if (untilTime !== null && !Number.isFinite(untilTime)) throw new Error("--until must be an ISO timestamp");
 	const sessions = [];
 	for (const { project, file } of transcriptFiles(root)) {
 		const entries = entriesIn(file);
@@ -71,25 +73,24 @@ function collect(root, from, to, mode = "baseline") {
 		if (mode === "baseline" && !dateInRange(startDay, from, to)) continue;
 		const sessionId = entries.find((entry) => entry.sessionId)?.sessionId ?? path.basename(file, ".jsonl");
 		let ruleLoaded = false;
-		let treatedAt = null;
 		const messages = [];
 		const checks = [];
 		for (const entry of entries) {
-			if (isRuleAttachment(entry)) { ruleLoaded = true; treatedAt = entry.timestamp ?? entry.message?.timestamp; }
+			if (isRuleAttachment(entry) && !ruleLoaded) ruleLoaded = true;
 			const timestamp = entry.timestamp ?? entry.message?.timestamp;
 			const day = edtDay(timestamp);
+			const withinCutoff = mode !== "after" || untilTime === null || (Number.isFinite(Date.parse(timestamp)) && Date.parse(timestamp) <= untilTime);
 			const body = assistantText(entry).replace(/\r\n?/gu, "\n").trim();
-			if (entry.isSidechain === false && body && WORDS(body) >= 80) messages.push({ body, timestamp, day, treated: ruleLoaded });
+			if (entry.isSidechain === false && body && WORDS(body) >= 80 && withinCutoff) messages.push({ body, timestamp, day, treated: ruleLoaded });
 			const parts = entry.message?.content ?? entry.content;
 			const calls = Array.isArray(parts) ? parts.filter((part) => part?.type === "tool_use" && part.name === "Bash" && /(?:^|\/)nana-writing\.mjs\b/u.test(String(part.input?.command ?? part.input?.cmd ?? "")) && /--report\b/u.test(String(part.input?.command ?? part.input?.cmd ?? ""))) : [];
-			if (ruleLoaded && calls.length && dateInRange(day, from, to)) checks.push({ day, timestamp, count: calls.length });
+			if (ruleLoaded && calls.length && dateInRange(day, from, to) && withinCutoff) checks.push({ day, timestamp, count: calls.length });
 		}
 		if (mode === "baseline") {
 			if (messages.length) sessions.push({ project, sessionId, checked: checks.reduce((sum, row) => sum + row.count, 0), checks, last: messages.at(-1) });
 		} else {
 			const reports = messages.filter((message) => message.treated && dateInRange(message.day, from, to));
-			const eligibleChecks = checks.filter((row) => !treatedAt || new Date(row.timestamp) >= new Date(treatedAt));
-			if (reports.length || eligibleChecks.length) sessions.push({ project, sessionId, checked: eligibleChecks.reduce((sum, row) => sum + row.count, 0), checks: eligibleChecks, reports });
+			if (reports.length || checks.length) sessions.push({ project, sessionId, checked: checks.reduce((sum, row) => sum + row.count, 0), checks, reports });
 		}
 	}
 	return sessions;
@@ -169,13 +170,13 @@ function loadPrivateCorpus(manifestPath, corpusDirectory = path.dirname(path.res
 
 function argumentsFrom(argv) {
 	const args = Object.fromEntries(argv.slice(2).map((arg, index, all) => arg.startsWith("--") ? [arg.slice(2), all[index + 1]?.startsWith("--") ? "" : all[index + 1]] : null).filter(Boolean));
-	if ((!args.manifest && (!args.from || !args.to)) || !["baseline", "after"].includes(args.mode ?? "baseline")) throw new Error("usage: node extract.mjs --from YYYY-MM-DD --to YYYY-MM-DD [--mode baseline|after] [--root DIR] [--manifest FILE --corpus-dir DIR] [--preserve DIR]");
+	if ((!args.manifest && (!args.from || !args.to)) || !["baseline", "after"].includes(args.mode ?? "baseline")) throw new Error("usage: node extract.mjs --from YYYY-MM-DD --to YYYY-MM-DD [--mode baseline|after] [--until ISO_TIMESTAMP] [--root DIR] [--manifest FILE --corpus-dir DIR] [--preserve DIR]");
 	return args;
 }
 function runExtractor(argv) {
 	const args = argumentsFrom(argv);
 	const mode = args.mode ?? "baseline";
-	const sessions = args.manifest ? loadPrivateCorpus(args.manifest, args["corpus-dir"]) : collect(args.root || DEFAULT_ROOT, args.from, args.to, mode);
+	const sessions = args.manifest ? loadPrivateCorpus(args.manifest, args["corpus-dir"]) : collect(args.root || DEFAULT_ROOT, args.from, args.to, mode, args.until || null);
 	const result = score(sessions, mode);
 	if (args.preserve) {
 		if (mode !== "baseline") throw new Error("private preservation is baseline-only");

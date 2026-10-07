@@ -66,7 +66,7 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 }
 {
 	const f = fixture();
-	f.add("-Users-seat", "treated", [entry("user", "2026-10-04T12:00:00Z", "start"), attachment, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
+	f.add("-Users-seat", "treated", [entry("user", "2026-10-04T12:00:00Z", "start"), entry("assistant", "2026-10-04T12:30:00Z", long("OPEN.")), attachment, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
 	f.add("-Users-seat", "untreated", [entry("user", "2026-10-04T12:00:00Z", "start"), entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
 	f.add("-Users-seat", "pre-window", [entry("user", "2026-10-03T12:00:00Z", "start"), { ...attachment, timestamp: "2026-10-04T14:00:00Z" }, entry("assistant", "2026-10-05T12:00:00Z", long("DONE."))]);
 	const sessions = collect(f.root, "2026-10-04", "2026-10-05", "after");
@@ -74,6 +74,7 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	// req: R-697
 	check("after includes only report-sized messages after canonical rule attachment, including pre-window sessions", () => {
 		assert.deepEqual(sessions.map((session) => session.sessionId), ["pre-window", "treated"]);
+		assert.deepEqual(sessions.find((session) => session.sessionId === "treated").reports.map((report) => report.body.startsWith("DONE.")), [true]);
 	});
 	// req: R-694
 	check("scoring reports strict and former first-sentence lenient totals together", () => {
@@ -160,13 +161,20 @@ const attachment = { type: "attachment", timestamp: "2026-10-04T13:00:00Z", atta
 	const after = "2026-10-05T15:00:00Z";
 	const call = { type: "tool_use", name: "Bash", input: { command: "node /tmp/nana-writing.mjs --report" } };
 	const treatmentAttachment = { ...attachment, timestamp: "2026-10-05T14:00:00Z" };
-	f.add("-Users-seat", "bounded", [entry("user", "2026-10-04T12:00:00Z", "start"), { type: "assistant", timestamp: early, isSidechain: false, message: { role: "assistant", content: [call] } }, treatmentAttachment, { type: "assistant", timestamp: early, isSidechain: false, message: { role: "assistant", content: [call] } }, { type: "assistant", timestamp: after, isSidechain: false, message: { role: "assistant", content: [call] } }, entry("assistant", after, long("DONE.")), entry("assistant", "2026-10-06T13:00:00Z", long("DONE.")), { type: "assistant", timestamp: "2026-10-06T13:00:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }]);
+	const repeatedAttachment = { ...attachment, timestamp: "2026-10-05T14:02:00Z" };
+	f.add("-Users-seat", "bounded", [entry("user", "2026-10-04T12:00:00Z", "start"), { type: "assistant", timestamp: early, isSidechain: false, message: { role: "assistant", content: [call] } }, treatmentAttachment, { type: "assistant", timestamp: "2026-10-05T14:01:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, repeatedAttachment, { type: "assistant", timestamp: "2026-10-05T14:03:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }, { type: "assistant", timestamp: after, isSidechain: false, message: { role: "assistant", content: [call] } }, entry("assistant", after, long("DONE.")), entry("assistant", "2026-10-06T13:00:00Z", long("DONE.")), { type: "assistant", timestamp: "2026-10-06T13:00:00Z", isSidechain: false, message: { role: "assistant", content: [call] } }]);
 	const sessions = collect(f.root, "2026-10-04", "2026-10-05", "after");
 	// req: R-697
-	check("after reports obey their own date boundary and checker calls are per-day post-attachment", () => {
+	check("after reports obey their own date boundary and repeated attachments retain post-first-attachment calls", () => {
 		assert.equal(sessions[0].reports.length, 1);
-		assert.equal(sessions[0].checked, 1);
-		assert.deepEqual(checksByDay(sessions), [{ day: "2026-10-05", count: 1 }]);
+		assert.equal(sessions[0].checked, 3);
+		assert.deepEqual(checksByDay(sessions), [{ day: "2026-10-05", count: 3 }]);
+	});
+	// req: R-697
+	check("after cutoff is inclusive at the exact message timestamp", () => {
+		const cutoff = collect(f.root, "2026-10-04", "2026-10-05", "after", after);
+		assert.equal(cutoff[0].reports.length, 1);
+		assert.equal(cutoff[0].checked, 3);
 	});
 	f.cleanup();
 }
