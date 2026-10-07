@@ -156,8 +156,8 @@ export function versionAtLeast(version, floor) {
 			.split(".")
 			.slice(0, 3)
 			.map(Number);
-	const [a1, a2, a3] = parts(version);
-	const [b1, b2, b3] = parts(floor);
+	const [a1, a2, a3 = 0] = parts(version);
+	const [b1, b2, b3 = 0] = parts(floor);
 	if (![a1, a2, a3].every(Number.isFinite)) return false;
 	if (a1 !== b1) return a1 > b1;
 	if (a2 !== b2) return a2 > b2;

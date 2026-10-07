@@ -1509,7 +1509,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Merge the nana hook entries into Claude Code settings while preserving foreign hooks and repairing recognized stale knowledge targets.
 - **inputs** — a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot }; the command strings already in settings.hooks
 - **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
-- **effects** — none (no file is opened here)
+- **effects** — disk (reads only)
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
 - **callers** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`
 - **callees** — —

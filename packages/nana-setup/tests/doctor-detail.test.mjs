@@ -100,6 +100,12 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 		const running = diagnoseDesk(process.execPath);
 		// req: R-399
 		check("doctor reports healthy only for running service and valid plist Node", running?.status === "ok" && running.detail.includes(`Node ${process.versions.node}`), JSON.stringify(running));
+		const floorNode = path.join(home, "node-floor");
+		fs.writeFileSync(floorNode, "#!/bin/sh\necho v22.19.0\n");
+		fs.chmodSync(floorNode, 0o755);
+		const exactFloor = diagnoseDesk(floorNode);
+		// req: R-399
+		check("doctor accepts exact desk Node floor 22.19.0", exactFloor?.status === "ok" && exactFloor.detail.includes("Node v22.19.0"), JSON.stringify(exactFloor));
 		const stopped = diagnoseDesk(process.execPath, "waiting");
 		const missing = diagnoseDesk(path.join(home, "absent-node"));
 		const tooOld = diagnoseDesk(oldNode);
