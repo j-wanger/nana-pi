@@ -211,7 +211,7 @@ export function diagnose(layout, opts = {}) {
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
 		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
 	}
-	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.base, ".claude", name)));
+	const legacyFlags = ["enforce", "enforce-memory"].filter((name) => lstatSafe(path.join(layout.claudeHome, name)));
 	add(legacyFlags.length ? WARN : OK, "legacy enforcement flags", legacyFlags.length ? `${legacyFlags.join(", ")} present — run nana-setup install to back up recognized empty flags` : "none present");
 	const legacyScaffolders = ["py-init", "ts-init", "nana-init"].filter((name) => lstatSafe(path.join(layout.skillsDir, name)));
 	add(legacyScaffolders.length ? WARN : OK, "legacy scaffolders", legacyScaffolders.length ? `${legacyScaffolders.join(", ")} present — run nana-setup install to back up recognized nana-dev-kit copies` : "none present");

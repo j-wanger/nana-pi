@@ -10,7 +10,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
-import { matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
+import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
@@ -61,7 +61,15 @@ try {
 		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
 		// req: R-669
 		check("added owner file invalidates real legacy artifact fingerprint", !matchesFingerprintArtifact(added, "dev-check", testFingerprints));
-		const names = retiredArtifacts("/home/example").map((entry) => entry.relative);
+		const productionEntries = retiredArtifacts("/home/example");
+		const productionFingerprints = JSON.parse(fs.readFileSync(path.join(pkg, "lib", "retired-fingerprints.json"), "utf8"));
+		// req: R-668
+		check("production fingerprints cover every declared artifact", fingerprintManifestComplete(productionEntries, productionFingerprints));
+		const missingFingerprint = { ...productionFingerprints };
+		delete missingFingerprint[".claude/enforce"];
+		// req: R-668
+		check("missing production fingerprint invalidates manifest completeness", !fingerprintManifestComplete(productionEntries, missingFingerprint));
+		const names = productionEntries.map((entry) => entry.relative);
 		// req: R-668
 		check("manifest names all 22 requested legacy Agent Skills", ["dev-check", "dev-debrief", "dev-init", "dev-plan", "dev-scan", "dev-wiki", "knowledge-wiki", "memory-consolidate", "nana", "nana-init", "py-init", "ts-init", "wiki-absorb", "wiki-add", "wiki-bootstrap", "wiki-consolidate", "wiki-health", "wiki-index", "wiki-init", "wiki-query", "wiki-registry", "wiki-reorg"].every((name) => names.includes(`.agents/skills/${name}`)));
 		// req: R-668
@@ -153,6 +161,29 @@ try {
 	}
 	{
 		const h = home();
+		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-source-target-"));
+		dirs.push(external);
+		copyTree(path.join(fixture, "spec"), path.join(external, "spec"));
+		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
+		fs.symlinkSync(external, path.join(h, ".claude", "skills"));
+		const result = install(h);
+		// req: R-663
+		check("source symlink ancestors are refused without changing their external target", result.status !== 0 && fs.existsSync(path.join(external, "spec", "SKILL.md")) && !fs.existsSync(path.join(external, "backups")), result.stdout);
+	}
+	{
+		const h = home();
+		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-hook-target-"));
+		dirs.push(external);
+		const hook = path.join(external, "context-size-check.sh");
+		fs.writeFileSync(hook, "keep hook\n");
+		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
+		fs.symlinkSync(external, path.join(h, ".claude", "hooks"));
+		const result = install(h);
+		// req: R-663
+		check("hook source symlink ancestor is refused without changing its external target", result.status !== 0 && fs.readFileSync(hook, "utf8") === "keep hook\n", result.stdout);
+	}
+	{
+		const h = home();
 		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-backup-target-"));
 		dirs.push(external);
 		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
@@ -172,6 +203,15 @@ try {
 		const result = run(["install", "--home", h, "--claude-home", alternateClaude]);
 		// req: R-663
 		check("alternate Claude home scopes retirement away from the default home", result.status === 0 && fs.existsSync(path.join(defaultSkill, "SKILL.md")) && fs.realpathSync(selectedSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")) && fs.existsSync(path.join(alternateClaude, "backups", `${date}-retired`, "skills", "spec", "SKILL.md")), result.stdout);
+	}
+	{
+		const h = home();
+		const alternateClaude = path.join(h, "selected-claude");
+		fs.mkdirSync(path.join(alternateClaude), { recursive: true });
+		fs.writeFileSync(path.join(alternateClaude, "enforce"), "");
+		const result = run(["doctor", "--home", h, "--claude-home", alternateClaude]);
+		// req: R-667
+		check("doctor checks enforcement flags in the selected Claude home", result.stdout.includes("! legacy enforcement flags") && result.stdout.includes("enforce present"), result.stdout);
 	}
 	{
 		const h = home();

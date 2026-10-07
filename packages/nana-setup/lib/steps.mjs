@@ -70,17 +70,18 @@ export function lstatSafe(p) {
 	}
 }
 
-function destinationAncestorsAreDirectories(root, destinationParent) {
-	const relative = path.relative(root, destinationParent);
+function directoryAncestorsAreSafe(root, targetDirectory, allowMissing = false) {
+	const relative = path.relative(root, targetDirectory);
 	if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) return false;
 	let current = root;
-	for (const part of relative.split(path.sep).filter(Boolean)) {
+	for (const part of [null, ...relative.split(path.sep).filter(Boolean)]) {
 		const stat = lstatSafe(current);
-		if (stat && (!stat.isDirectory() || stat.isSymbolicLink())) return false;
-		current = path.join(current, part);
+		if (!stat) return allowMissing;
+		if (!stat.isDirectory() || stat.isSymbolicLink()) return false;
+		if (part !== null) current = path.join(current, part);
 	}
-	const stat = lstatSafe(current);
-	return !stat || (stat.isDirectory() && !stat.isSymbolicLink());
+	const finalStat = lstatSafe(current);
+	return !finalStat ? allowMissing : finalStat.isDirectory() && !finalStat.isSymbolicLink();
 }
 
 /* ---------------------------------------------------------------- claude hooks and rules */
@@ -243,6 +244,10 @@ export function stepRetiredArtifacts(layout, o) {
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
 		const source = root === ".claude" ? path.join(artifactHome, relativeTail) : path.join(artifactHome, entry.relative);
+		if (!directoryAncestorsAreSafe(artifactHome, path.dirname(source), true)) {
+			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe source ancestor under ${artifactHome}; source left untouched` });
+			continue;
+		}
 		const st = lstatSafe(source);
 		if (!st) continue;
 		if (!matchesRetiredArtifact(entry, st, source)) {
@@ -251,7 +256,7 @@ export function stepRetiredArtifacts(layout, o) {
 		}
 		const backupRoot = root === ".claude" ? artifactHome : path.join(artifactHome, root);
 		const destination = path.join(backupRoot, "backups", `${date}-retired`, relativeTail);
-		if (!destinationAncestorsAreDirectories(backupRoot, path.dirname(destination))) {
+		if (!directoryAncestorsAreSafe(backupRoot, path.dirname(destination), true)) {
 			out.push({ label: `retired ${entry.relative}`, status: PROBLEM, detail: `unsafe backup ancestor under ${backupRoot}; source left untouched` });
 			continue;
 		}
@@ -266,7 +271,9 @@ export function stepRetiredArtifacts(layout, o) {
 		out.push({ label: `retired ${entry.relative}`, status: UPDATED, detail: `${o.dryRun ? "would move" : "moved"} to ${destination}` });
 	}
 	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
-	const hookStat = lstatSafe(legacyHook);
+	const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
+	const hookStat = hookAncestorsSafe ? lstatSafe(legacyHook) : null;
+	if (!hookAncestorsSafe) out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
 	if (hookStat?.isSymbolicLink()) {
 		let target = null;
 		try { target = fs.realpathSync(legacyHook); } catch { /* dangling */ }

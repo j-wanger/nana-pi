@@ -44,6 +44,15 @@ export function matchesFingerprintArtifact(root, relative, manifest) {
  } catch { return false; }
 }
 
+export function fingerprintManifestComplete(entries, manifest) {
+ return entries.every((entry) => {
+  if (entry.kind === "file") return typeof manifest[entry.relative] === "string";
+  const prefix = `${entry.relative}/`;
+  const files = Object.entries(manifest).filter(([name]) => name.startsWith(prefix));
+  return files.length > 0 && files.every(([, hash]) => typeof hash === "string" && hash.length > 0);
+ });
+}
+
 function exactArtifact(relative, kind) {
  return (stat, absolutePath) => {
   if (kind === "directory") return stat.isDirectory() && matchesFingerprintArtifact(absolutePath, relative, fingerprints);
