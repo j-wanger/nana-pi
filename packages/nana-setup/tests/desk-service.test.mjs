@@ -80,6 +80,7 @@ const r = run(["install", "--home", home, "--desk"]);
 check("--desk exits 0", r.status === 0, r.stderr);
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
+// req: R-651
 check("plist uses the resolved node", body.includes(`<string>${process.execPath}</string>`));
 check("plist points at this install's desk server", body.includes(path.join(repo, "apps", "desk", "server.mjs")));
 check("plist WorkingDirectory is the install root", body.includes(`<key>WorkingDirectory</key><string>${repo}</string>`));

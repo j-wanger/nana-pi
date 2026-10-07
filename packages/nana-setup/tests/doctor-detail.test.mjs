@@ -68,7 +68,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 	check("desk Node floor is pinned at 22.19", DESK_NODE_FLOOR === "22.19");
 	const sample = '<key>ProgramArguments</key><array><string>/node</string><string>/desk/server.mjs</string></array><key>PATH</key><string>/bin</string>';
 	const parsed = parsePlistValues(sample);
-	// req: R-651
+	// req: R-399
 	check("doctor parses ProgramArguments[0] as the service executable", parsed.programArguments[0] === "/node");
 }
 
@@ -95,7 +95,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 	};
 	try {
 		const healthy = diagnoseDesk(oldNode);
-		// req: R-651
+		// req: R-399
 		check("doctor reads the plist executable rather than the current process", /Node v?22\.18\.0/.test(healthy?.detail ?? "") && healthy?.status === "fail", JSON.stringify(healthy));
 		const running = diagnoseDesk(process.execPath);
 		// req: R-399

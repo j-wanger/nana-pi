@@ -769,9 +769,19 @@ export function packageCoverage(layout) {
 	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { /* no settings */ }
 	const entries = Array.isArray(settings.packages) ? settings.packages.filter((e) => typeof e === "string") : [];
 	const rootEntry = entries.find((entry) => remoteMatches(entry) || exactLocalEntry(entry, layout, repoRoot));
-	const covered = rootEntry ? packageRoots : packageRoots.filter((root) => entries.some((entry) => exactLocalEntry(entry, layout, root)));
-	const missing = packageRoots.filter((root) => !covered.includes(root)).flatMap((root) => manifestExtensions(root));
-	return { present: missing.length === 0, entries, match: rootEntry ?? entries.find((entry) => covered.length && packageRoots.some((root) => exactLocalEntry(entry, layout, root))) ?? null, missing, packageRoots };
+	const loaded = new Set(rootEntry ? extensionDirs : []);
+	let match = rootEntry ?? null;
+	if (!rootEntry) {
+		for (const root of packageRoots) {
+			if (root === repoRoot) continue;
+			const entry = entries.find((candidate) => exactLocalEntry(candidate, layout, root));
+			if (!entry) continue;
+			for (const dir of manifestExtensions(root)) loaded.add(dir);
+			match ??= entry;
+		}
+	}
+	const missing = extensionDirs.filter((dir) => !loaded.has(dir));
+	return { present: missing.length === 0, entries, match, missing, packageRoots };
 }
 
 export function registrationState(layout) {
