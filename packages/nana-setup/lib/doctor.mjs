@@ -24,7 +24,7 @@ import * as path from "node:path";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -208,6 +208,10 @@ export function diagnose(layout, opts = {}) {
 	);
 
 	for (const name of CLAUDE_SKILLS) {
+		if (win && NEW_CLAUDE_SKILLS.includes(name)) {
+			add(NOTE, `skill ${name}`, "skipped (win32; pi-only)");
+			continue;
+		}
 		const st = skillLinkState(path.join(layout.skillsDir, name), path.join(PACK_SKILLS_DIR, name));
 		add(st.ok ? OK : FAIL, `skill ${name}`, st.detail);
 	}

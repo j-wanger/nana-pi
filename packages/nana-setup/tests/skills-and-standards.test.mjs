@@ -163,7 +163,8 @@ try {
 		check("win32: install refreshes the stale copy", fix.status === 0 && fs.readFileSync(path.join(target, "SKILL.md")).equals(fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"))));
 		const baks = fs.readdirSync(target).filter((f) => f.includes(".bak-"));
 		check("win32: the hand-written file was backed up, not destroyed", baks.length === 1 && fs.readFileSync(path.join(target, baks[0]), "utf8").includes("HAND-WRITTEN"), baks.join(","));
-		check("win32: the backup is a FILE inside the skill dir, never a sibling skill directory", fs.readdirSync(path.join(w, ".claude", "skills")).length === 5 && !fs.readdirSync(path.join(w, ".claude", "skills")).some((name) => name.includes(".bak-")));
+		// req: R-665
+		check("win32: requirements backup is a FILE inside the skill dir; new skills stay pi-only", fs.readdirSync(path.join(w, ".claude", "skills")).length === 1 && !fs.readdirSync(path.join(w, ".claude", "skills")).some((name) => name.includes(".bak-")));
 		check("win32: doctor is green again", run(["doctor", "--home", w], env).status === 0);
 	}
 

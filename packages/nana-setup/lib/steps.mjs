@@ -53,6 +53,7 @@ export function ruleSource(rule) {
 }
 /** Skills Claude Code gets from the SAME source pi reads: packages/nana-pack/skills/<name>. */
 export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "py-test"];
+export const NEW_CLAUDE_SKILLS = ["spec", "py-lint", "py-review", "py-test"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
@@ -192,9 +193,9 @@ export function mirrorDirsProblem(target, files) {
  * is, never backed up into `~/.claude/skills/` (a `requirements.bak-<date>` directory there would
  * be loaded as a SECOND skill claiming the same name) and never written through.
  *
- * win32 has no usable symlink, so the source files are mirrored in one by one through the same
- * copy path the rules use — which backs a hand-written file up beside itself (`SKILL.md.bak-<date>`
- * is a file, not a second skill) and never writes through a link. Files the owner added are left.
+ * win32 has no usable symlink, so the `requirements` source files are mirrored through the same
+ * copy path the rules use. The four newer runtime-neutral skills are skipped by stepSkills; no
+ * mirror is attempted for an unrecognized directory at those names.
  *
  * The win32 mirror checks the DIRECTORIES it is about to write into before it touches a file
  * (sol r1, CRITICAL): `linkFile` only ever sees the leaf, so a directory symlink/junction at
@@ -217,7 +218,14 @@ export function linkSkill(target, source, o = {}) {
 	const st = lstatSafe(target);
 	const resolved = path.resolve(source);
 	if (st?.isSymbolicLink()) {
-		const current = path.resolve(path.dirname(target), fs.readlinkSync(target));
+		let current = path.resolve(path.dirname(target), fs.readlinkSync(target));
+		if (o.preserveForeignLink) {
+			try { current = fs.realpathSync(target); } catch { /* broken foreign link */ }
+			let canonicalSource = resolved;
+			try { canonicalSource = fs.realpathSync(source); } catch { /* missing pack source */ }
+			if (current === canonicalSource) return { status: UNCHANGED, detail: null };
+			return { status: PROBLEM, detail: `foreign link at ${target} -> ${current} — left untouched` };
+		}
 		if (current === resolved) return { status: UNCHANGED, detail: null };
 		if (o.dryRun) return { status: UPDATED, detail: `would relink (was ${current})` };
 		fs.unlinkSync(target);
@@ -240,6 +248,7 @@ export function stepRetiredArtifacts(layout, o) {
 	const out = [];
 	const date = new Date().toISOString().slice(0, 10);
 	for (const entry of retiredArtifacts(layout.base)) {
+		if (win() && NEW_CLAUDE_SKILLS.some((name) => entry.relative === `.claude/skills/${name}`)) continue;
 		const root = entry.relative.startsWith(".agents/") ? ".agents" : ".claude";
 		const artifactHome = root === ".claude" ? layout.claudeHome : layout.base;
 		const relativeTail = entry.relative.slice(root.length + 1);
@@ -291,11 +300,14 @@ export function stepSkills(layout, o) {
 	return CLAUDE_SKILLS.map((name) => {
 		const target = path.join(layout.skillsDir, name);
 		const source = path.join(PACK_SKILLS_DIR, name);
+		if (win() && NEW_CLAUDE_SKILLS.includes(name)) return skip(`skill ${name}`);
+		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.skillsDir, true))
+			return { label: `skill ${name}`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; skill left untouched` };
 		const legacy = retiredArtifacts(layout.base).find((entry) => entry.relative === `.claude/skills/${name}`);
 		const st = lstatSafe(target);
 		if (o.dryRun && legacy && matchesRetiredArtifact(legacy, st, target))
 			return { label: `skill ${name}`, status: UPDATED, detail: "would link after the provenance-confirmed backup" };
-		return { label: `skill ${name}`, ...linkSkill(target, source, o) };
+		return { label: `skill ${name}`, ...linkSkill(target, source, { ...o, preserveForeignLink: NEW_CLAUDE_SKILLS.includes(name) }) };
 	});
 }
 

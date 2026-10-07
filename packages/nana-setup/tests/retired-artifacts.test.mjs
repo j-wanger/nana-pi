@@ -32,7 +32,7 @@ function home() {
 	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return dir;
 }
-const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
+const run = (args, env = process.env) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env });
 const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
 const date = new Date().toISOString().slice(0, 10);
 const backup = (h, root, rel) => path.join(h, root, "backups", `${date}-retired`, rel);
@@ -43,6 +43,21 @@ function copyTree(from, to) {
 		fs.mkdirSync(to, { recursive: true });
 		for (const name of fs.readdirSync(from)) copyTree(path.join(from, name), path.join(to, name));
 	} else fs.copyFileSync(from, to);
+}
+function treeSnapshot(root) {
+	const entries = [];
+	const walk = (dir, rel = "") => {
+		for (const name of fs.readdirSync(dir).sort()) {
+			const child = path.join(dir, name);
+			const childRel = rel ? `${rel}/${name}` : name;
+			const stat = fs.lstatSync(child);
+			if (stat.isDirectory()) { entries.push([childRel, "dir"]); walk(child, childRel); }
+			else if (stat.isSymbolicLink()) entries.push([childRel, `link:${fs.readlinkSync(child)}`]);
+			else entries.push([childRel, fs.readFileSync(child).toString("base64")]);
+		}
+	};
+	walk(root);
+	return JSON.stringify(entries);
 }
 
 try {
@@ -164,11 +179,16 @@ try {
 		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-source-target-"));
 		dirs.push(external);
 		copyTree(path.join(fixture, "spec"), path.join(external, "spec"));
+		fs.mkdirSync(path.join(external, "py-lint"), { recursive: true });
+		fs.writeFileSync(path.join(external, "py-lint", "owner.txt"), "external owner bytes\n");
 		fs.mkdirSync(path.join(h, ".claude"), { recursive: true });
 		fs.symlinkSync(external, path.join(h, ".claude", "skills"));
+		const before = treeSnapshot(external);
+		const dry = install(h, ["--dry-run"]);
+		const dryUnchanged = treeSnapshot(external) === before;
 		const result = install(h);
 		// req: R-663
-		check("source symlink ancestors are refused without changing their external target", result.status !== 0 && fs.existsSync(path.join(external, "spec", "SKILL.md")) && !fs.existsSync(path.join(external, "backups")), result.stdout);
+		check("source symlink ancestors are refused without changing their external target", dry.status !== 0 && result.status !== 0 && dryUnchanged && treeSnapshot(external) === before, `${dry.stdout}\n${result.stdout}`);
 	}
 	{
 		const h = home();
@@ -244,6 +264,43 @@ try {
 		const result = install(h);
 		// req: R-669
 		check("edited and extended real legacy artifacts stay active and unbacked", result.status === 1 && fs.existsSync(path.join(edited, "SKILL.md")) && fs.existsSync(path.join(added, "owner-notes.md")) && !fs.existsSync(backup(h, ".claude", "skills/spec")) && !fs.existsSync(backup(h, ".agents", "skills/dev-check")), result.stdout);
+	}
+	{
+		const h = home();
+		const external = fs.mkdtempSync(path.join(os.tmpdir(), "nana-foreign-skill-"));
+		dirs.push(external);
+		fs.writeFileSync(path.join(external, "SKILL.md"), "owner's separate skill\n");
+		const skills = path.join(h, ".claude", "skills");
+		fs.mkdirSync(skills, { recursive: true });
+		const target = path.join(skills, "spec");
+		fs.symlinkSync(external, target);
+		const result = install(h);
+		// req: R-665 R-669
+		check("foreign newly managed skill link survives end-to-end install", result.status === 1 && fs.lstatSync(target).isSymbolicLink() && fs.readlinkSync(target) === external && fs.readFileSync(path.join(external, "SKILL.md"), "utf8") === "owner's separate skill\n" && result.stdout.includes("foreign link"), result.stdout);
+	}
+	{
+		const h = home();
+		const target = path.join(h, ".claude", "skills", "spec");
+		const source = path.join(repo, "packages", "nana-pack", "skills", "spec");
+		fs.mkdirSync(path.dirname(target), { recursive: true });
+		fs.symlinkSync(path.relative(path.dirname(target), source), target);
+		const result = install(h);
+		// req: R-665
+		check("newly managed skill canonical realpath link is accepted", result.status === 0 && fs.readlinkSync(target) === path.relative(path.dirname(target), source) && !result.stdout.includes("foreign link"), result.stdout);
+	}
+	{
+		const h = home();
+		const edited = path.join(h, ".claude", "skills", "spec");
+		fs.mkdirSync(edited, { recursive: true });
+		fs.writeFileSync(path.join(edited, "SKILL.md"), "owner's unrecognized win32 skill\n");
+		const result = run(["install", "--home", h], { ...process.env, NANA_SETUP_PLATFORM: "win32" });
+		const doctor = run(["doctor", "--home", h], { ...process.env, NANA_SETUP_PLATFORM: "win32" });
+		// req: R-665 R-669
+		check("win32 install leaves the unrecognized skill owner directory unchanged", result.status === 0 && fs.readFileSync(path.join(edited, "SKILL.md"), "utf8") === "owner's unrecognized win32 skill\n", `${result.status} ${result.stdout}`);
+		// req: R-665
+		check("win32 install reports all four new skill rows skipped", ["spec", "py-lint", "py-review", "py-test"].every((name) => result.stdout.includes(`skill ${name}`) && result.stdout.includes("skipped (win32)")), result.stdout);
+		// req: R-665 R-666
+		check("win32 preserves requirements mirror behavior and doctor skips pi-only skills", fs.readFileSync(path.join(h, ".claude", "skills", "requirements", "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "requirements", "SKILL.md"))) && /✓ skill requirements\s+copied from/.test(doctor.stdout) && ["spec", "py-lint", "py-review", "py-test"].every((name) => new RegExp(`· skill ${name}\\s+skipped \\(win32; pi-only\\)`).test(doctor.stdout)), doctor.stdout);
 	}
 	{
 		const h = home();
