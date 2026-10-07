@@ -1,7 +1,8 @@
 # nana-pi
 
-Adoption of the [pi coding agent](https://github.com/earendil-works/pi) as a primary
-coding-agent platform (macOS + native Windows, Codex subscription + local models).
+Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
+
+Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
@@ -137,7 +138,7 @@ toolchain, and copier runs as `uvx copier` with `uvx` shipping inside uv, so the
 TypeScript path needs uv as well (copier itself is nothing extra to install); plus
 `pnpm` for the TypeScript template. On Windows add
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
-everything here works in PowerShell or cmd, no WSL needed). If pi errors
+the documented pack and project commands work in PowerShell or cmd, no WSL needed). If pi errors
 `No bash shell found`: install Git for Windows to its default location (pi probes
 `%ProgramFiles%\Git\bin\bash.exe`, no PATH change needed), or for scoop/portable Git
 set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. Don't

@@ -1522,7 +1522,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, rendered projects), process (spawns the render and check commands in the rendered projects)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `packages/nana-pack/tests/test-runner.test.mjs`
 
@@ -1641,7 +1641,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; desiredHooks(); knowledgeHookHealthy(); mergeKnowledgeHook(); validateShape(); hasHook(); mergeHooks() { settings (mutated in place), added labels, changed }; serialize() JSON text
 - **effects** — disk (reads only)
 - **errors** — none thrown — validateShape returns the reason the shape cannot be extended, and any command that is unparseable or carries a shell operator reads as NOT installed
-- **callers** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`
+- **callers** — `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/steps.mjs`
