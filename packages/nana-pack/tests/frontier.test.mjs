@@ -63,5 +63,9 @@ check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 	const r = run(legacy, ["--strict"]);
 	// req: R-879
 	check("strict mode exits nonzero when findings exist", r.status !== 0, `${r.status}: ${r.stdout}`);
+	const reportOnlyError = spawnSync(process.execPath, [CLI, "--today", "invalid"], { encoding: "utf8" });
+	const strictError = spawnSync(process.execPath, [CLI, "--today", "invalid", "--strict"], { encoding: "utf8" });
+	// req: R-879
+	check("CLI errors also exit 0 by default and nonzero in strict mode", reportOnlyError.status === 0 && strictError.status !== 0, `${reportOnlyError.status} / ${strictError.status}`);
 }
 if (fails) process.exitCode = 1;

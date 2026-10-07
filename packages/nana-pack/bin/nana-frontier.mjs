@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
 
 const args = process.argv.slice(2);
-let strict = false;
+let strict = args.includes("--strict");
 let today = new Date().toISOString().slice(0, 10);
 let file = null;
 for (let i = 0; i < args.length; i++) {
@@ -20,7 +20,7 @@ for (let i = 0; i < args.length; i++) {
 	else if (args[i].startsWith("--today=")) today = args[i].slice(8);
 	else if (args[i].startsWith("-")) {
 		console.error(`unknown option: ${args[i]}`);
-		process.exit(2);
+		process.exit(strict ? 1 : 0);
 	} else if (file === null) file = args[i];
 	else {
 		console.error("expected one HANDOFF path");
@@ -29,11 +29,11 @@ for (let i = 0; i < args.length; i++) {
 }
 if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(`${today}T00:00:00Z`))) {
 	console.error(`invalid --today date: ${today}`);
-	process.exit(2);
+	process.exit(strict ? 1 : 0);
 }
 if (!file) {
 	console.error("usage: nana-frontier.mjs [--strict] [--today YYYY-MM-DD] <HANDOFF.md>");
-	process.exit(2);
+	process.exit(strict ? 1 : 0);
 }
 let text;
 try {

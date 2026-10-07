@@ -556,7 +556,7 @@ there (R-737, R-738, R-756, R-858, R-859); R-863's and R-864's ids are never reu
 | R-876 | WHEN a numbered reference says item N of Next, the HANDOFF frontier report shall report it if Next has no item N. | implemented | `packages/nana-pack/tests/frontier.test.mjs::unresolvable item-of-Next reference is reported` |
 | R-877 | WHEN an explicit date in Next or Open for Jake precedes the injected current date, the HANDOFF frontier report shall report that date. | implemented | `packages/nana-pack/tests/frontier.test.mjs::past explicit date is reported against injected clock` |
 | R-878 | WHEN an Open for Jake entry lacks a blocking, optional or parked tag with a since date, the HANDOFF frontier report shall report that entry. | implemented | `packages/nana-pack/tests/frontier.test.mjs::each bullet or numbered Open for Jake entry without a tag is reported` |
-| R-879 | WHEN the HANDOFF frontier report has findings, the CLI shall exit 0 by default or nonzero in strict mode. | implemented | `packages/nana-pack/tests/frontier.test.mjs::findings are report-only by default`, `packages/nana-pack/tests/frontier.test.mjs::strict mode exits nonzero when findings exist` |
+| R-879 | The HANDOFF frontier CLI shall exit 0 unless --strict is supplied. | implemented | `packages/nana-pack/tests/frontier.test.mjs::findings are report-only by default`, `packages/nana-pack/tests/frontier.test.mjs::strict mode exits nonzero when findings exist`, `packages/nana-pack/tests/frontier.test.mjs::CLI errors also exit 0 by default and nonzero in strict mode` |
 
 Measured on nana-pi itself after the fix (R-860): 245 import edges over the same 172 modules
 (144 before), 0 new `--check` problems; 27 of 77 non-test modules now have no direct test
