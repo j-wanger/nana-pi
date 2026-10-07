@@ -10,6 +10,13 @@
 - **D1 is answered by the roster, not by the recommendation:** the canonical builder is a pi session — `pi-worker` running `gpt-6-luna` at `--thinking high` with the lane worktree as its cwd — so builders get the gate, post-edit, the worktree's AGENTS.md, the objective and the knowledge pull. Claude Agent-tool subagents no longer build. Tranche 3.1 therefore makes `pi-worker` the installed, fail-closed lane launcher instead of a `nana-builder` Agent definition; G1d-05 (SubagentStart injection) drops out with the Agent builder path.
 - **Roster** (shared memory `reference_roster.md`): seat = the Claude Code session; builder = pi `gpt-6-luna` high; slice review = pi `gpt-5.6-sol` (≤ 3 rounds); land review = pi `gpt-6-astra` on the final revision; Fable = seat adversarial consultation only.
 
+## Seat rulings during tranche 1 (2026-10-07)
+
+- **Plan item 1.4 / L5-02 changed:** the rm-text relaxation (skip scanning for "non-executing" commands, inline-only interpreter scanning) is SUBTRACTED — sol found destructive bypasses in two straight rounds. The gate's rm and interpreter scanning stays as before the program; R-040 restored; R-632 and R-637 retired. The template-source command exception was subtracted for the same reason; template sources are editable through edit/write only. The new code-loading floor runs AFTER the unchanged pre-program matcher (composition), and literal paths inside interpreter code operands are a declared gap.
+- **t1-flake:** port-0 app listeners (a small desk change) instead of reserve-then-close test ports, because lanes run in parallel through tranche 6.
+- **t1-ledger** landed before t1-gate after astra confirmed no in-flight dependency on the old verdict predicate.
+- **New tranche-2 lane t2-tests** (found during tranche 1): per-file temp isolation in the runner, a guard against tests mutating tracked files, watchdog capture cleanup, the T17 timing fix, isolated knowledge logs. Plan item 6.4 (writing-trial measurement) moved into tranche 2 because transcripts roll off.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).

@@ -12,6 +12,7 @@
 - 2026-10-04: pi 1.0 adoption, the writing trial, the EARS form lane — `docs/sessions/2026-10.md`.
 - 2026-10-05: the edge desk on pi's built-in MCP, the full audit, the code map sees the tests — `docs/sessions/2026-10.md`.
 - 2026-10-06: the hardening plan and audit corpus; main pushed; tag `v0.6.3` — `docs/hardening-plan-2026-10-06.md`.
+- 2026-10-07: hardening tranche 1, six lanes (docs, ledger, flake, setup, session, gate) — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -23,7 +24,6 @@
 - Edge desk: nothing bounds the total size of the blocks one tool returns; a narrowed desk spawn drops the MCP servers and pi's other built-ins.
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first); seven tests find pi through `npm root -g` (hardening 6.2).
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
-- The intermittent `stage-key-persistence` failure: the hardening lane t1-flake is on it (2026-10-06).
 - Desk residuals live in `apps/desk/README.md` Known limits.
 
 ## Where things stand
@@ -37,7 +37,7 @@
 
 ## Next
 
-1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** The builder is a pi luna worker at high effort. sol reviews each lane, astra gives the land review, and Fable only advises the seat. Tranche 1 runs as six lanes. Tranches 2 to 6 follow in plan order. Detail: `docs/hardening-plan-2026-10-06.md`.
+1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranche 1 landed on 2026-10-07: all six lanes, pushed, each live-probed. Tranche 2 runs as seven lanes. Tranches 3 to 6 follow in plan order. Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
 2. **Writing trial verdict, 2026-10-18 or the 20th report.** The seat runs the after-measure. Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend. The tally-hook question returns as one option at that verdict.
 3. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 4. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
@@ -47,8 +47,9 @@
 
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". The seat found one real gap: a subagent started from a prompt template always runs in the foreground. Where did you see it: pi in the terminal, the desk, or Claude Code? Did the agent wait while the subagent ran, or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis. Writability and staleness are pre-checks, not proof. The Claude hook resolves a relative override against its own cwd. The `nana-setup trust` command (hardening tranche 2) removes the start-pi-in-that-folder step.
+- **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is what is unfelt.** The session-start block, the provenance label and the review ladder's cost are the surfaces you meet every session. Judge them by using them.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 2, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Seven rows read `violated`: R-058, R-542 and five desk rows.
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 2, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Six rows read `violated`: R-542 and five desk rows (R-058 closed by t1-gate, 2026-10-07).
 - **[parked, since 2026-09-16] Changes-bar baseline.** The files-changed bar is git working tree versus HEAD, not attributed to the conversation. Switching is a design change.
 - **[parked, since 2026-09-16] Raw-only wikis.** `agent-memory` and `agentic-engineering` are scrape-only. The index skips their `raw/` folders. This rides with hardening D2(c).
