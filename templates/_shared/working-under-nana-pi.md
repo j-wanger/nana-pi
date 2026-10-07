@@ -55,20 +55,21 @@ setup. What that means while you work here:
   `notify.headless` is true). The in-app fallback fires only when the OS notifier
   itself fails.
 - **Gate.** Inspects `bash`/`powershell` command strings for dangerous forms and
-  `edit`/`write` target paths for protected files (`.ssh`, `.env`, pi auth under the
-  default agent dir — a relocated `PI_CODING_AGENT_DIR`'s `auth.json`/`settings.json`
-  is a carried gap — and the policy
-  files: `nana-pack.json`, pi's `trust.json`, `.claude/settings*.json`, `.claude/hooks/`),
+  `edit`/`write` target paths for protected files (`.ssh`, `.env`, and files whose content
+  runs or shapes the next session's code: nana-pack policy, pi's `auth.json`, `settings.json`,
+  `mcp.json`, `extensions/**` in active/default agent dirs and project `.pi/` settings,
+  mcp and extensions, plus `.claude/settings*.json` and `.claude/hooks/`),
   and prompts before running — or blocks, when there's no UI to prompt. Allow patterns
   exempt one command segment, never a compound or the floor; an ordinary valid policy
   change loosens the gate only at the next session start or `/reload` — a malformed-config
   stop is different: it clears live, as soon as the file is repaired. Policy files are caught through
-  `edit`/`write` (every path form, for the user- and default-scope files; a project-scope
-  policy file's own symlink TARGET is a carried gap) and through targets a command names *literally*, plus one
+  `edit`/`write` (every path form for user/default and project-scope files) and through targets a command names *literally*, plus one
   variable spelling: `$PI_CODING_AGENT_DIR` / `${PI_CODING_AGENT_DIR}` / `%PI_CODING_AGENT_DIR%` /
   `$env:PI_CODING_AGENT_DIR` directly followed by `/nana-pack.json` or `/trust.json` (balanced forms
-  only; case-insensitive on purpose, as cmd/pwsh names are). Any other
-  path the shell computes (relative after `cd` — `cd <dir> && … > nana-pack.json` included —
+  only; case-insensitive on purpose, as cmd/pwsh names are). rm-text checks scan every command
+  segment, including quoted arguments and text-only mentions. Interpreter deletion scans inspect
+  the complete interpreter command string.
+  Any other path the shell computes (relative after `cd` — `cd <dir> && … > nana-pack.json` included —
   other variables and general variable expansion, globs, escapes, a symlink made in the same
   command, script files, interpreter string-building) is NOT caught — gate loosening
   from such a write waits for `session_start`, but the file's other blocks, including
@@ -77,7 +78,7 @@ setup. What that means while you work here:
   reads, custom tools, and direct extension commands are NOT gated, and a later
   handler can still mutate input the gate already checked. It is **advisory** — a
   load-path convenience, not a security boundary; real enforcement is the sandbox /
-  container layer.
+  container layer. Direct edits to an external target of a project-policy symlink may not reveal that project's policy identity.
 
 ### Requirements-first
 

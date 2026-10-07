@@ -52,6 +52,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { readBounded } from "./bounded-read.mjs";
 import { piAgentDir } from "./gate-paths.ts";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
@@ -293,7 +294,7 @@ function linkText(p: string): string {
 function readConfigFile(p: string): FileRead {
 	let text: string;
 	try {
-		text = fs.readFileSync(p, "utf-8");
+		text = readBounded(p).toString("utf-8");
 	} catch (e: any) {
 		if (e?.code === "ENOENT" || e?.code === "ENOTDIR") {
 			// Absent only if NOTHING is there. A symlink that resolves nowhere is a policy file

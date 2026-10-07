@@ -48,14 +48,13 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { displayPath, displayText } from "../lib/objective.ts";
-import { commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
+import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit } from "../lib/gate-paths.ts";
 import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
 	/\.pi[/\\]agent[/\\]settings\.json/i,
-	/\.pi[/\\]agent[/\\]trust\.json/i,
-	/\.pi[/\\](agent[/\\])?nana-pack\.json/i,
+	NANA_PACK_POLICY_RE,
 	/(^|[\s/\\"'])\.ssh([/\\]|\b)/,
 	/(^|[\s/\\"'])\.env(\.[\w-]+)?\b/,
 	/\.aws[/\\]credentials\b/i,
@@ -154,7 +153,7 @@ function commandHit(command: string, gate: Policy, cwd: string): Hit {
 
 function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	const cands = pathCandidates(subject, cwd);
-	const policy = policyFileHit(cands);
+	const policy = policyFileHit(cands, cwd);
 	if (policy) return { label: "policy file", reason: `${policy} (floor)` };
 	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
 	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
@@ -273,7 +272,7 @@ export default function (pi: ExtensionAPI) {
 		if (gate.stopReason) {
 			gated += 1;
 			publishStatus(ctx);
-			return { block: true, reason: `nana-gate: ${gate.stopReason}` };
+			return { block: true, reason: `nana-gate: ${gate.stopReason}. Recovery: repair the named config file outside pi, then retry.` };
 		}
 
 		const cwd = String((ctx as any).cwd ?? "");
@@ -288,7 +287,7 @@ export default function (pi: ExtensionAPI) {
 		if (!hit) return undefined;
 
 		if (!ctx.hasUI) {
-			return { block: true, reason: `nana-gate: ${hit.label} blocked (headless fail-closed): ${hit.reason}` };
+			return { block: true, reason: `nana-gate: ${hit.label} blocked (headless fail-closed): ${hit.reason}. Recovery: inspect the named command or path and edit it outside the gated call instead of running it, then retry.` };
 		}
 
 		// DISPLAY only: the raw subject above decided the hit; the person sees it through the shared

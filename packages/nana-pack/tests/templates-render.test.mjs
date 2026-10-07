@@ -234,6 +234,8 @@ if (!version) {
 
 			const reqs = partG(language, dest, "scaffold");
 			check(`${language}: the example product row is implemented`, /^\|\s*R-001\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "R-001 is not implemented");
+			// req: R-630
+			check(`${language}: rendered policy config has the protected filename`, fs.existsSync(path.join(dest, ".pi", "nana-pack.json")));
 
 			// the scaffolded smoke test carries the marker for the example row
 			const smoke = fs.readFileSync(path.join(dest, spec.markerIn), "utf-8");

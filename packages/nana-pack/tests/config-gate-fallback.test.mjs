@@ -49,7 +49,7 @@ const bash = (call, command) => call("bash", { command });
 const blocked = (r) => r?.block === true;
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
-const STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json gate block is malformed — repair it \\(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.+\\)$`, "s");
+const STOP = (file) => new RegExp(`^nana-gate: user nana-pack\\.json gate block is malformed — repair it \\(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.+\\)(?:\\. Recovery:.*)?$`, "s");
 
 // Runs the gate in a FRESH node process (no in-memory state) against HOME.
 const CHILD = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "gatefb-child-")), "child.mjs");

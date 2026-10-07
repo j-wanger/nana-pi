@@ -58,6 +58,8 @@ const L2_BLOCK = [
 	"cd /tmp && rm -rf x", "(rm -rf ~)", "eval \"$(echo rm -rf ~)\"", "bash -c \"rm -rf ~\"", "su -c \"rm x\"",
 	"diskutil eraseDisk JHFS+ x disk2", "Format-Volume -DriveLetter D", "git branch -D main", "git stash drop",
 	"perl -e \"system q(rm -rf ~)\"", "perl -e 'unlink glob q(*)'", "cat ${HOME}/.s's'h/id_rsa",
+	`printf 'rm -rf ~\\n' | xargs`, `node --eval='require("fs").rmSync("/x")'`, `python3 -c'import shutil;shutil.rmtree("/x")'`, `node <<<'require("fs").rmSync("/x")'`,
+	"git -c alias.x='!rm -rf ~' x", "git -calias.x=!rm -rf ~ x", "grep -r \"rm -rf\" docs/",
 ];
 // ---- Must ALLOW (headless, no config)
 const ALLOW = [
@@ -72,15 +74,46 @@ const ALLOW = [
 	for (const c of BUILTINS) check(`built-in BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
 	// req: R-039
 	for (const c of L2_BLOCK) check(`L2 BLOCK: ${JSON.stringify(c)}`, (await run(c)) === "BLOCK");
+	// req: R-631
+	check("all existing main-floor corpus commands stay blocked", (await Promise.all([...BUILTINS, ...L2_BLOCK].map((command) => run(command)))).every((result) => result === "BLOCK"));
+	const relocatedAgent = path.join(HOME, "relocated-agent");
+	process.env.PI_CODING_AGENT_DIR = relocatedAgent;
+	const relocatedPolicy = path.join(relocatedAgent, "nana-pack.json");
+	// req: R-631
+	check("quoted inline policy writes block in bash -c and eval bodies", (await run(`bash -c 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK" && (await run(`eval 'printf "{}" > ${relocatedPolicy}'`)) === "BLOCK");
+	// req: R-631
+	check("quoted active-agent variable writes block for both policy filenames", (await run('printf x > "$PI_CODING_AGENT_DIR"/nana-pack.json')) === "BLOCK" && (await run('printf x > "${PI_CODING_AGENT_DIR}"/nana-pack.json')) === "BLOCK" && (await run('printf x > "$PI_CODING_AGENT_DIR"/trust.json')) === "BLOCK" && (await run('printf x > "${PI_CODING_AGENT_DIR}"/trust.json')) === "BLOCK");
+	delete process.env.PI_CODING_AGENT_DIR;
 // req: R-764
 	for (const c of ALLOW) check(`ALLOW: ${JSON.stringify(c)}`, (await run(c)) === "ALLOW");
 	// req: R-038
 	check("powershell tool is gated the same", (await run("ri -r -fo C:\\x", "powershell")) === "BLOCK");
-	// DECIDED + PINNED: a string that reads as `rm -rf` is gated even as a grep argument — rm is
-	// matched anywhere in a segment, because a command-position rule for rm would miss
-	// `xargs rm -rf`, `find -exec rm`, `perl -e "…rm -rf…"`. Interactive users answer the dialog.
 	// req: R-040
-	check("grep -r \"rm -rf\" docs/ is gated (pinned: rm matched anywhere in a segment)", (await run('grep -r "rm -rf" docs/')) === "BLOCK");
+	check('grep -r "rm -rf" docs/ is gated (pinned: rm matched anywhere in a segment)', (await run('grep -r "rm -rf" docs/')) === "BLOCK");
+	check("ordinary Git configuration remains allowed", (await run("git -c core.editor=vim status")) === "ALLOW");
+	// req: R-039
+	check("attached and here-string interpreter code forms are blocked", (await run(`node --eval='require("fs").rmSync("/x")'`)) === "BLOCK" && (await run(`python3 -c'import shutil;shutil.rmtree("/x")'`)) === "BLOCK" && (await run(`node <<<'require("fs").rmSync("/x")'`)) === "BLOCK");
+	// req: R-764
+	check("interpreter command without deletion code remains allowed", (await run("python3 -m pytest -k syntax")) === "ALLOW");
+	// req: R-630
+	check("template source command names stay gated by the legacy policy", (await run("git diff -- templates/python/template/.pi/nana-pack.json.jinja")) === "BLOCK" && (await run("cat templates/typescript/template/.pi/nana-pack.json.jinja")) === "BLOCK");
+	// req: R-630
+	check("traversal through a template-shaped source name stays gated", (await run("printf x > templates/python/template/.pi/nana-pack.json.jinja/../nana-pack.json")) === "BLOCK");
+	// req: R-039
+	check("Git shell aliases use the full destructive-command scanner", (await run("git -c alias.x='!wipefs /dev/x' x")) === "BLOCK" && (await run(`git -c alias.x='!node -e "require(\"fs\").rmSync(\"/x\")"' x`)) === "BLOCK");
+	// req: R-040
+	check("rm-text scanner still blocks an executing nested substitution", (await run('echo "$(rm -rf ~)"')) === "BLOCK");
+	// req: R-040
+	check("rm-text scanner still blocks a backtick in a git message", (await run('git commit -m "`rm -rf ~`"')) === "BLOCK");
+	const blockedReason = await (async () => {
+		fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: false } }));
+		const h = {}; ext({ on: (name, fn) => { h[name] = fn; } });
+		const ctx = { cwd: CWD, hasUI: false, isProjectTrusted: () => false };
+		await h.session_start({ type: "session_start", reason: "startup" }, ctx);
+		return h.tool_call({ toolName: "bash", input: { command: "rm -rf build" } }, ctx);
+	})();
+	// req: R-633
+	check("headless block names category and recovery", blockedReason?.reason?.includes("dangerous command") && blockedReason.reason.includes("instead"));
 	// `.` at the repo root is dangerous but NOT floor (next block shows `^rm` exempts it)
 // req: R-767
 	check("rm -rf . is gated", (await run("rm -rf .")) === "BLOCK");

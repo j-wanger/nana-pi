@@ -86,7 +86,7 @@ function run(cwd, calls, { trusted = true, corrupt = null } = {}) {
 }
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const PSTOP = (file) => new RegExp(`^nana-gate: project nana-pack\\.json gate block is malformed — repair it \\(${esc(file)}:.+\\)$`, "s");
+const PSTOP = (file) => new RegExp(`^nana-gate: project nana-pack\\.json gate block is malformed — repair it \\(${esc(file)}:.+\\)(?:\\. Recovery:.*)?$`, "s");
 const blocked = (r) => r?.block === true;
 const TRAILING = '{ "gate": { "extraPatterns": ["\\\\bterraform\\\\s+destroy\\\\b"], }, }';
 

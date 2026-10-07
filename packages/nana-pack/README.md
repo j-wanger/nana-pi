@@ -434,35 +434,49 @@ is user-scope only** — project config never contributes to it, trusted or not.
   PowerShell `Remove-Item`/`ri`/`rm`/`del` with `-Recurse`/`-Force` or fed by a pipe,
   cmd `rd /s`, `del /f|/s|/q`, `format X:`; plus protected paths (`auth.json`,
   `settings.json`, `.ssh`, `.env*`, `.aws/credentials`, `.netrc`, `.config/gh/hosts.yml`)
-  checked in commands AND edit/write targets. `rm` is matched anywhere in a command
-  segment, so `grep -r "rm -rf" docs/` is gated too (a position rule would miss `xargs rm`).
-- **Policy files** — `nana-pack.json` (user and project), pi's `trust.json` (also under
-  `PI_CODING_AGENT_DIR`), `.claude/settings.json`, `.claude/settings.local.json`,
-  `.claude/hooks/**`. The `.claude` files are gated at **project scope too** (a ratified
+  checked in commands AND edit/write targets. rm-text checks scan every command segment,
+  including quoted arguments and text-only mentions. Interpreter deletion scans inspect the
+  complete interpreter command string.
+- **Policy files** — `nana-pack.json` (user and project), pi `auth.json`, `settings.json`,
+  `mcp.json`, `trust.json` and `extensions/**` in the active and default agent dirs, project
+  `.pi/settings.json`, `.pi/mcp.json`, `.pi/extensions/**`, plus `.claude/settings.json`,
+  `.claude/settings.local.json`, and `.claude/hooks/**`. These are files whose content runs
+  or shapes the next session's code; prompt-only resources such as SYSTEM, APPEND_SYSTEM,
+  skills and prompts are not on this floor. The `.claude` files are gated at **project scope too** (a ratified
   expansion, 2026-09-28: a project `.claude/settings.json` carries hooks that run code). What
   is caught: **edit/write** to one in every path form pi resolves (relative, `~`, `@`, `..`,
   backslash, any case, a symlinked alias), and a bash/PowerShell command whose text names
-  one **literally** (`>`, `tee`, `sed -i`, `cp`, `install`, `dd of=`, `Set-Content`,
-  `Out-File`, even `cat`) — plus exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
+  one **literally**, including quote-preserved shell words with spaces or delimiters and
+  `name=value` operands such as `dd of=...` (`>`, `tee`, `sed -i`, `cp`, `install`, `Set-Content`,
+  `Out-File`, even `cat`) — except for a literal path inside interpreter code operands such as
+  `python3 -c "open('/private/tmp/agent/settings.json','w').write('{}')"`: paths inside these
+  operands are not extracted for the newly floored pi settings/auth/mcp/extensions files. This is
+  a declared gap, not a promise that the command is safe. The legacy nana-pack/trust floor still
+  covers its own files. Also accepted is exactly one variable spelling: `$PI_CODING_AGENT_DIR`,
   `${PI_CODING_AGENT_DIR}`, `%PI_CODING_AGENT_DIR%` or `$env:PI_CODING_AGENT_DIR` directly
   followed by `/nana-pack.json` or `/trust.json` (either slash), balanced forms only, matched
   case-insensitively on purpose (cmd/pwsh names are). When `nana-pack.json` or
   `trust.json` in the active or default agent dir is a symlink, its target is a policy file
   too. What is **not** caught — a path the shell computes at run time, general variable
   expansion included:
-  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after `cd`, also for `trust.json`
-  and `cd .pi`), an escaped name (`nana\-pack.json`), a glob (`nana-*.json`), a directory in a
-  variable other than the one spelling above, escaped `install -m` / `dd of=` targets, `Set-Location …; sc nana-pack.json`, a
-  directory symlink created and written through in the same command, `cd … | xargs tee
-  nana-pack.json`, a script file, or a Python/Node string built at run time. Matching more
-  command text would not close this (every pattern invites the next form), so none is added.
+  `cd ~/.pi/agent && printf x > nana-pack.json` (relative after shell `cd`, also for `trust.json`
+  and `cd .pi`; basename tokens resolve against the supplied session cwd, so starting inside a floored
+  directory correctly blocks), a glob (`nana-*.json`) or brace-expanded path, a directory in a
+  variable other than the one spelling above, `Set-Location …; sc nana-pack.json`, a directory
+  symlink created and written through in the same command, `cd … | xargs tee nana-pack.json`, a
+  script file, or a Python/Node string built at run time. The scanner handles literal quote and
+  assignment syntax; paths produced by shell expansion or execution remain outside its guarantee.
+  Matching more command text would not close that class (each form invites another), so none is added.
   **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
   `session_start`. The **other blocks in the same file, including `postEdit.commands`, apply
   live**, so a write that evades the gate's text scan can run code in the **same** session
   through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
   container layer. The agent edits policy files only through you:
   `nana-setup`, the desk settings window, or "Allow once". The handoff store
-  `~/.pi/agent/handoffs/**` is not a policy file.
+  `~/.pi/agent/handoffs/**` is not a policy file. Script files are not inspected, so sandboxing
+  remains the enforcement boundary.
+- **Headless blocks name the category and a recovery step:** inspect the named command or path,
+  edit it outside the gated call, then retry.
 - **`allowPatterns` exempt one command segment, never a compound.** A command is split on
   `;` `&&` `||` `|` `&` and newlines; the pattern must match the segment that hit, so
   `git status; rm -rf ~` is not covered by `^git status`. A command the gate cannot segment

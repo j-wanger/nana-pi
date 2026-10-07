@@ -70,6 +70,7 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { readBounded } from "../lib/bounded-read.mjs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { EVENT as UNADOPTED, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, storePathFor, tailLines } from "../lib/adoption.mjs";
 import { appendJournal, loadConfig } from "../lib/config.ts";
@@ -150,7 +151,7 @@ function danglingReason(file: string): string | null {
  */
 export function readHandoff(file: string): HandoffRead {
 	try {
-		return { kind: "ok", text: new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file)) };
+		return { kind: "ok", text: new TextDecoder("utf-8", { fatal: true }).decode(readBounded(file)) };
 	} catch (e: any) {
 		if (e?.code !== "ENOENT") return { kind: "error", reason: String(e?.code ?? e).slice(0, 80) };
 		const broken = danglingReason(file);

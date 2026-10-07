@@ -55,6 +55,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { piAgentDir, piAgentDirIsCwdRelative, piTrustStorePath } from "./gate-paths.ts";
+import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
 // The display renderers live in lib/display.mjs (lane S1, one implementation for every surface);
 // re-exported here unchanged, so every existing import and the T2c goldens are untouched.
 import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
@@ -162,19 +163,12 @@ type Read = { text: string } | { cause: string };
 
 /** Bounded read of a regular file; CRLF/CR normalised to LF; trimmed. */
 function readObjective(file: string): Read {
-	let fd: number | undefined;
 	try {
-		if (!fs.statSync(file).isFile()) return { cause: "unreadable" };
-		fd = fs.openSync(file, "r");
-		// Up to 3 bytes past the cap: a sequence that STARTS inside the cap is decoded WHOLE,
-		// so its continuation bytes are validated even when they lie past the cap.
-		const buf = Buffer.alloc(FILE_READ_MAX + 3);
-		const n = fs.readSync(fd, buf, 0, FILE_READ_MAX + 3, 0);
+		// Keep the objective producer's historical prefix window while sharing descriptor safety.
+		const buf = readBounded(file, BOUNDED_READ_CAP, FILE_READ_MAX + 2);
 		let decoded: string;
 		try {
-			// fatal, never streamed: invalid UTF-8 — a malformed sequence, or one left incomplete
-			// by end of file — is refused, not injected as U+FFFD.
-			decoded = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(0, decodeEnd(buf, n)));
+			decoded = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(0, decodeEnd(buf, buf.length)));
 		} catch {
 			return { cause: "not valid UTF-8" };
 		}
@@ -183,8 +177,6 @@ function readObjective(file: string): Read {
 	} catch (err) {
 		const code = (err as NodeJS.ErrnoException)?.code;
 		return { cause: code === "ENOENT" || code === "ENOTDIR" ? "file not found" : "unreadable" };
-	} finally {
-		if (fd !== undefined) try { fs.closeSync(fd); } catch { /* closed */ }
 	}
 }
 

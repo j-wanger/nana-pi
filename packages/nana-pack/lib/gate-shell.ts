@@ -2,8 +2,7 @@
  * @module packages/nana-pack/lib/gate-shell.ts
  * @purpose Segment a shell command and name its destructive forms for nana-gate.
  * @inputs a command string, or one Segment {text, piped} for segmentDanger
- * @outputs quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, the
- *  dequoted tokens, and a Danger {reason, floor} or null
+ * @outputs quote-aware exec segments with a `segmentable` verdict, quote-unaware detection segments, shell tokens, and a Danger {reason, floor} or null
  * @effects none
  * @errors none — an unbalanced quote or an unsegmentable construct sets segmentable:false, and an internal
  *  failure comes back as the non-floor danger `unparseable segment`
@@ -129,10 +128,31 @@ export function detectionSegments(cmd: string): Segment[] {
 	return out;
 }
 
-export function tokens(text: string): string[] {
-	return dequote(text.replace(/\$\{HOME\}/g, "$HOME"))
-		.split(/[\s(){};|&`<>]+/)
-		.filter(Boolean);
+export function tokens(text: string, preserveQuotedWords = false): string[] {
+	if (!preserveQuotedWords) {
+		return dequote(text.replace(/\$\{HOME\}/g, "$HOME"))
+			.split(/[\s(){};|&`<>]+/)
+			.filter(Boolean);
+	}
+	const input = text.replace(/\$\{HOME\}/g, "$HOME");
+	const out: string[] = [];
+	let word = "";
+	let quote: string | null = null;
+	for (let i = 0; i < input.length; i++) {
+		const c = input[i];
+		if (quote) {
+			if (c === quote) quote = null;
+			else if (quote === '"' && c === "\\" && /[\\"$`]/.test(input[i + 1] ?? "")) word += input[++i];
+			else word += c;
+		} else if (c === "'" || c === '"') quote = c;
+		else if (c === "\\" && /[\\\s'";|&<>()[\]{}$`]/.test(input[i + 1] ?? "")) word += input[++i];
+		else if (/[\s(){};|&`<>]/.test(c)) {
+			if (word) out.push(word);
+			word = "";
+		} else word += c;
+	}
+	if (word) out.push(word);
+	return out;
 }
 
 const base = (tok: string) =>
@@ -239,9 +259,15 @@ export function segmentDanger(seg: Segment): Danger | null {
 	try {
 		const t = tokens(seg.text);
 		if (!t.length) return null;
-		// rm is matched anywhere in the segment (xargs rm, find -exec rm, perl -e "…rm -rf…"):
-		// a string argument that reads as `rm -rf` is gated too (see the corpus: grep "rm -rf").
+		// Preserve whole-segment scanning from the original gate. Git shell aliases execute their
+		// value as a shell body, so inspect that body even though tokenization joins it to alias.x=.
 		for (let i = 0; i < t.length; i++) {
+			const alias = /^(?:-c)?alias\.[^=]+=!(.*)$/i.exec(t[i]);
+			const body = alias?.[1] ? [alias[1], ...t.slice(i + 1)] : [];
+			for (const aliasSegment of detectionSegments(body.join(" "))) {
+				const d = segmentDanger(aliasSegment);
+				if (d) return d;
+			}
 			if (base(t[i]) === "rm" && !(i > 0 && SUBCOMMAND_HOSTS.has(base(t[i - 1])))) {
 				const d = rmDanger(t.slice(i + 1));
 				if (d) return d;
