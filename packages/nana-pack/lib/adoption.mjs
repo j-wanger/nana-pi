@@ -114,7 +114,7 @@ export function rootState(root, objectiveFile = "OBJECTIVE.md") {
 	const handoffFile = path.join(root, "HANDOFF.md");
 	let regularHandoff = false;
 	try {
-		regularHandoff = fs.statSync(handoffFile).isFile();
+		regularHandoff = fs.lstatSync(handoffFile).isFile();
 	} catch {
 		/* not an adoption marker */
 	}

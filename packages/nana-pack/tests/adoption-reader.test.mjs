@@ -115,6 +115,19 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-152
 	check("reader: HANDOFF.md-only root remains listed", r.stdout.includes(handoffOnly));
 }
+// A symlinked root HANDOFF.md is not the regular file required for complete-structure adoption.
+{
+	const symlinked = repo("symlink-handoff");
+	fs.writeFileSync(path.join(symlinked, "AGENTS.md"), "x");
+	fs.mkdirSync(path.join(symlinked, "docs", "sessions"), { recursive: true });
+	const target = path.join(base, "handoff-target.md");
+	fs.writeFileSync(target, "x");
+	fs.symlinkSync(target, path.join(symlinked, "HANDOFF.md"));
+	fs.writeFileSync(JOURNAL, line(symlinked, 1));
+	const r = run();
+	// req: R-152
+	check("reader: symlinked HANDOFF.md plus remaining structure remains listed", r.stdout.includes(symlinked));
+}
 // Production defaults skip real OS temporary roots; the override must be absent.
 {
 	fs.writeFileSync(JOURNAL, line(handoffOnly, 1));

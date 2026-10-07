@@ -75,6 +75,22 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
 }
 
+// Override journaling is attempted at session start, independent of a stored handoff, and retries after append failure.
+{
+	const r = repo("stored-handoff", []);
+	const stored = lib.storePathFor(r);
+	fs.mkdirSync(path.dirname(stored), { recursive: true });
+	fs.writeFileSync(stored, `Cwd: ${lib.canonicalCwd(r)}\nWriter: test\nWritten: ${new Date().toISOString()}\n---\nstored summary\n`);
+	const blockedJournal = mk(path.join(base, "blocked-journal"));
+	cfg({ journal: { enabled: true, path: blockedJournal } });
+	await prompt(r);
+	// req: R-647
+	check("adoption: failed override append leaves the once guard retryable", overrideJournal().length === 0);
+	cfg();
+	const output = await prompt(r);
+	// req: R-647
+	check("adoption: test seam override is journaled once with its value when a stored handoff exists", output.includes("stored summary") && overrideJournal().length === 1 && overrideJournal()[0].value === "");
+}
 // (a) written once for a repo root with nothing — the line as emitted
 {
 	const r = repo("bare", ["AGENTS.md", "docs/sessions/"]);
@@ -114,6 +130,17 @@ check("adoption: design comment names complete Nana structure and temporary-root
 		// req: R-147
 		check("a: no .git above → no line", reports().length === before);
 	}
+}
+// A symlinked root HANDOFF.md is not the regular file required for complete-structure adoption.
+{
+	const r = repo("symlink-handoff", ["HANDOFF.md", "AGENTS.md", "docs/sessions/"]);
+	const target = path.join(base, "handoff-target.md");
+	fs.writeFileSync(target, "x\n");
+	fs.unlinkSync(path.join(r, "HANDOFF.md"));
+	fs.symlinkSync(target, path.join(r, "HANDOFF.md"));
+	await prompt(r);
+	// req: R-152
+	check("adoption: symlinked HANDOFF.md plus remaining structure remains unadopted", reportsFor(r).length === 1);
 }
 // The complete Nana structure adopts; HANDOFF.md by itself does not.
 {

@@ -304,6 +304,17 @@ export default function (pi: ExtensionAPI) {
 		legacyWriteNotified = false;
 		const reason = (event as any).reason;
 		if (reason !== "startup" && reason !== "new") return;
+		if (!adoptionOverrideJournaled && process.env.NANA_TEST_TEMP_ROOTS !== undefined) {
+			try {
+				const { journal } = adoptionSettings();
+				if (journal) {
+					fs.appendFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: "adoption_test_temp_roots_override", value: process.env.NANA_TEST_TEMP_ROOTS })}\n`);
+					adoptionOverrideJournaled = true;
+				}
+			} catch {
+				// best-effort; leave the guard clear so a later session start can retry
+			}
+		}
 		let cfg;
 		try {
 			cfg = loadConfig(ctx);
@@ -362,10 +373,6 @@ export default function (pi: ExtensionAPI) {
 						try {
 							// user-scope state: the one journal + objective name the reader computes too
 							const { journal, objectiveFile } = adoptionSettings();
-							if (!adoptionOverrideJournaled && process.env.NANA_TEST_TEMP_ROOTS !== undefined && journal) {
-								adoptionOverrideJournaled = true;
-								fs.appendFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: "adoption_test_temp_roots_override", value: process.env.NANA_TEST_TEMP_ROOTS })}\n`);
-							}
 							const root = repoRootOf(canon);
 							// a root the reader would refuse is never journaled (its dedup could not see it)
 							const s = root && journal && printable(root) ? rootState(root, objectiveFile) : null;
