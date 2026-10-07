@@ -69,8 +69,9 @@ const rootReadme = fs.readFileSync(path.join(REPO_ROOT, "README.md"), "utf-8");
 const rootPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8"));
 const packPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/package.json"), "utf-8"));
 const seven = ["gate", "post-edit", "lifecycle", "notify", "handoff", "objective", "writing"];
+const packageBullet = rootReadme.match(/- `packages\/` —[\s\S]*?(?=\n- )/)?.[0] ?? "";
 // req: R-658
-check("front-door descriptions name both runtimes and all seven extensions", rootReadme.includes("UserPromptSubmit") && rootReadme.includes("before_agent_start") && [rootReadme, rootPackage.description, packPackage.description].every((text) => seven.every((name) => text.includes(name))));
+check("front-door descriptions name both runtimes and all seven extensions", rootReadme.includes("UserPromptSubmit") && rootReadme.includes("before_agent_start") && seven.every((name) => packageBullet.includes(name)) && [rootPackage.description, packPackage.description].every((text) => seven.every((name) => text.includes(name))));
 
 const objective = fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf-8").split("## Working under nana-pi")[0];
 // req: R-659
