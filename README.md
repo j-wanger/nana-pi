@@ -138,7 +138,7 @@ toolchain, and copier runs as `uvx copier` with `uvx` shipping inside uv, so the
 TypeScript path needs uv as well (copier itself is nothing extra to install); plus
 `pnpm` for the TypeScript template. On Windows add
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
-everything here works in PowerShell or cmd, no WSL needed). If pi errors
+the documented pack and project commands work in PowerShell or cmd, no WSL needed). If pi errors
 `No bash shell found`: install Git for Windows to its default location (pi probes
 `%ProgramFiles%\Git\bin\bash.exe`, no PATH change needed), or for scoop/portable Git
 set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. Don't

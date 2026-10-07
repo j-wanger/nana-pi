@@ -233,12 +233,24 @@ function runtimeInventoryDocumented(inventory, matrix) {
 	return inventory.every((item) => RUNTIME_INVENTORY_TEXT[item] && matrix.includes(RUNTIME_INVENTORY_TEXT[item]));
 }
 
+function startupRequirementsScopeValid(text) {
+	return text.split(/(?<=[.!?])\s+|\n+/).every((sentence) => {
+		if (!/REQUIREMENTS\.md/i.test(sentence) || !/\b(?:read|open|consult|load)\b/i.test(sentence)) return true;
+		return /\b(?:affected\s+rows?|rows?\s+by\s+ID|by\s+ID|grep|lookup|requirements skill)\b/i.test(sentence);
+	});
+}
+
+function hasBroadWindowsParity(text) {
+	return /\b(?:everything|all)\b.{0,60}\b(?:works?|working|supported|parity)\b.{0,60}\b(?:PowerShell|cmd|Windows)\b/i.test(text);
+}
+
 function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
 	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
-	const support = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
-		fs.readFileSync(path.join(REPO, file), "utf-8").match(/^Support:.*$/m)?.[0]);
+	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
+		fs.readFileSync(path.join(REPO, file), "utf-8"));
+	const support = frontDoors.map((text) => text.match(/^Support:.*$/m)?.[0]);
 	// req: R-680
 	check("shared runtime matrix declares four runtime surfaces, nine capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
@@ -253,14 +265,22 @@ function checkInstructionContracts() {
 
 	const startup = "At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.";
 	const rootStartup = "Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
+	const startupFiles = [
+		shared,
+		fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8"),
+		fs.readFileSync(path.join(REPO, "templates/python/template/AGENTS.md.jinja"), "utf-8"),
+		fs.readFileSync(path.join(REPO, "templates/typescript/template/AGENTS.md.jinja"), "utf-8"),
+	];
+	const contradictoryStartup = `${shared}\nAt startup, read REQUIREMENTS.md.`;
 	// req: R-681
-	check("startup guidance is exact and rejects whole-requirements startup instructions", shared.includes(startup) && fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8").includes(rootStartup) && !/startup[^\n]*(?:read|open)[^\n]*(?:whole|entire) `?REQUIREMENTS\.md`?/i.test(`${shared}\n${fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8")}`));
+	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
 	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to Jake on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "Local overrides"].every((v) => shared.includes(v)));
+	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	// req: R-684
-	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? ""));
+	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? "") && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
 		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&
