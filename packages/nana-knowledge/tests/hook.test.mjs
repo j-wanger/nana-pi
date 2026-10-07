@@ -82,6 +82,16 @@ const rCap = await call(JSON.stringify({ session_id: "scap", prompt: "x".repeat(
 // req: R-227
 check("only the first 8 KB of a prompt is tokenized", rCap.output === null && rCap.reason === "too-few-tokens");
 
+// --- reviewer role suppresses all knowledge side effects ---
+const priorRole = process.env.NANA_ROLE;
+const logBeforeReviewer = fs.existsSync(path.join(home, "pull.log")) ? fs.readFileSync(path.join(home, "pull.log"), "utf8") : "";
+process.env.NANA_ROLE = "reviewer";
+const reviewerPull = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
+if (priorRole === undefined) delete process.env.NANA_ROLE; else process.env.NANA_ROLE = priorRole;
+// req: R-973
+check("reviewer role skips output and pull-log writes", reviewerPull.output === null && reviewerPull.reason === "reviewer-role" &&
+	(fs.existsSync(path.join(home, "pull.log")) ? fs.readFileSync(path.join(home, "pull.log"), "utf8") : "") === logBeforeReviewer);
+
 // --- a real pull ---
 const r1 = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
 check("real prompt pulls pointers", r1.reason === "ok" && r1.output !== null);

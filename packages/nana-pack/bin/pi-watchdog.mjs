@@ -97,14 +97,14 @@ function killGroup(child, signal = 'SIGKILL') {
 
 const nonEmpty = () => true;
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty }, attempt, onChild, interrupted, signalWait) {
+async function runOnce(tag, { piArgs, stallSecs, pollSecs, accept = nonEmpty, childEnv = {} }, attempt, onChild, interrupted, signalWait) {
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
   // NANA_HANDOFF=off: a watchdog child is a NON-WRITER — it neither picks up nor writes the
   // nana handoff (L3; the role comes from this explicit marker, never the tool list).
-  const child = spawn('pi', args, { stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off' } });
+  const child = spawn('pi', args, { stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv } });
 
   let spawnErr = null;
   onChild(child);

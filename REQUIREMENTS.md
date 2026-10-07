@@ -434,6 +434,13 @@ allocation because the pack has no IDs left; the lane brief permits R-918 or R-9
 | R-623 | WHEN pi-review or pi-worker receives SIGINT, SIGTERM or SIGHUP, the watchdog shall terminate and reap the child process tree, release any review reservation, and exit with 130, 143 or 129 respectively. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::watchdog signals reap children, release review reservations and preserve signal exit codes` |
 | R-624 | WHERE the reviewed tree is outside git, admission shall be refused with guidance to use --tree. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::outside git refuses admission unless --tree names a reviewed repository` |
 | R-625 | Redirect detection shall not detect log files located inside initialized submodule contents. | untested | Declared limitation: parent repository redirect checks enumerate git paths and do not traverse submodule contents. |
+| R-967 | WHEN pi-review admits a review, it shall materialize the exact source revision in an isolated detached worktree before admission, require snapshot equality, run and complete against that worktree, and remove its registration on every exit path. | untested | — |
+| R-968 | WHEN a source tree contains a dirty submodule or nested repository, pi-review shall refuse before admission and leave no round consumed. | untested | — |
+| R-969 | Each completed round shall record the first verdict word, provider/model, launch and end timestamps, attempt count, role and override reason; readRounds exposes these fields without mutation. | untested | — |
+| R-970 | The review-ledger report command shall print one read-only line per round with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. | untested | — |
+| R-971 | Formal reviews through pi-review or review-ledger run shall earn counted rounds; Agent-tool and hand-run reviews are supplemental and earn no round. | untested | — |
+| R-972 | Any number of reviews and roles on one revision shall count as one round, while a new revision earns a round regardless of role. | untested | — |
+| R-974 | The pi-review child shall receive NANA_ROLE=reviewer and the immutable checkout path in NANA_REVIEW_ROOT and its system prompt. | untested | — |
 
 ## 11. pi-worker
 
@@ -683,6 +690,9 @@ cover).
 
 ## 18. The pi extension (nana-knowledge)
 
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-973 | WHEN NANA_ROLE is reviewer, the nana-knowledge hook and pi extension shall suppress knowledge output and pull-log writes. | implemented | `packages/nana-knowledge/tests/hook.test.mjs::reviewer role skips output and pull-log writes` |
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-233 | WHEN pi starts an agent, exactly one before_agent_start handler shall spawn the same hook CLI and inject its output as one displayed nana-knowledge session message, mutating no system prompt and never loading node:sqlite in pi's process. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::registers exactly one before_agent_start handler`, `packages/nana-knowledge/tests/extension.test.mjs::1: no systemPrompt mutation`, `packages/nana-knowledge/tests/extension.test.mjs::9: ...and node:sqlite never loaded in the extension's process`, `packages/nana-knowledge/tests/extension.test.mjs::1: customType is nana-knowledge`, `packages/nana-knowledge/tests/extension.test.mjs::1: display is true (the owner sees what the agent sees)`, `packages/nana-knowledge/tests/extension.test.mjs::1: content is the untrusted-pointers block` |

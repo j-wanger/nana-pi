@@ -182,11 +182,15 @@ pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider 
 ### Trust model
 
 **This is a self-governance device against the fix-review treadmill, not a security control.**
+Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and
+hand-run reviews are supplemental and earn no round; do not describe them as formal counted reviews.
+Any number of reviews, by any roles, on one revision is one round. A land ruling on the revision the
+last round reviewed consumes nothing; a land review of a new revision is a round like any other.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
 write it can exhaust an item (three fabricated round lines) or extend one (delete lines); anyone
-can also run `pi -p` or `pi-worker` by hand and never touch it. What the ledger buys is that every
-round earned, every completed verdict and every override is **recorded** — a bypass has to be an
-explicit act, never an accident of a file name or a launcher. Not every admission is: an ordinary
+can also run a launcher by hand and never touch it. `NANA_ROLE=reviewer` is a context-isolation
+convenience, not a security boundary: a worker or user can spoof or clear it. What the ledger buys
+is that every counted round, completed verdict and override is recorded — a bypass must be explicit. Not every admission is: an ordinary
 (non-override) admission whose review fails leaves **no durable record** once its reservation is
 returned. **Budget is not enforced here:** these wrappers do not read, pass or enforce
 `--max-budget-usd` (or any spend limit); budget control is external — the caller's own flags and

@@ -48,7 +48,7 @@ if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
 const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
 let r;
-try { r = await runWatchdog('pi-review', { ...w, accept: reviewShaped }); }
+try { r = await runWatchdog('pi-review', { ...w, childEnv: { NANA_ROLE: 'reviewer' }, accept: reviewShaped }); }
 finally {
   stopHeartbeat();
   if (!r?.ok) release(adm.id);
