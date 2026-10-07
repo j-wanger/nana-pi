@@ -22,6 +22,7 @@ const check = (title, pass) => {
 const cases = [
 	["audit slip before commit", "npm test 2>&1 | tail -5 && git commit -am 'done'", true],
 	["git -C target commit", "git log | head; git -C dir commit -m ok", true],
+	["git equals-valued global option", "git log | head; git --work-tree=/tmp commit -m ok", true],
 	["env-prefixed commit", "git log | head; env X=1 git commit -m ok", true],
 	["commit in command substitution", "git log | head; echo $(git commit -m ok)", true],
 	["quoted command substitution remains executable", "echo \"$(git log | head)\"; git commit -m ok", true],
@@ -40,6 +41,14 @@ const cases = [
 	["quoted pipe and commit text", "echo 'a | git commit' && git commit -m ok", false],
 	["commented pipeline", "echo okay # npm test | tail && git commit\ngit commit -m ok", false],
 	["here-doc text is not executed", "cat <<'END'\nnpm test | tail && git commit\nEND\ngit commit -m ok", false],
+	["here-string does not hide following pipeline", "cat <<< marker\nnpm test | tail; git commit -m ok", true],
+	["eval-built command is not inspected", "eval \"npm test | tail; git commit\"", false],
+	["variable-built command is not inspected", "cmd='npm test | tail; git commit'; $cmd", false],
+	["alias-built command is not inspected", "alias verify='npm test | tail'; verify; git commit -m ok", false],
+	["function-built command is not inspected", "verify() { npm test | tail; }; verify; git commit -m ok", false],
+	["script command is not inspected", "./verify-and-commit.sh", false],
+	["xargs-built command is not inspected", "printf x | xargs -I{} sh -c 'npm test | tail; git commit'", false],
+	["interpreter-string command is not inspected", "node -e 'run(\"npm test | tail; git commit\")'", false],
 	["PowerShell pipeline", "npm test | Select-Object -First 1; git commit -m ok", true],
 ];
 for (const [name, command, expected, dialect] of cases) {
