@@ -132,11 +132,11 @@ function markerLines(text) {
 		if (!line[0] && offset >= text.length) break;
 		const raw = line[0];
 		const body = raw.replace(/\r?\n$/, "");
-		const fenceMatch = /^\s*(```+|~~~+)/.exec(body);
-		if (fenceMatch) {
-			if (fence === null) fence = fenceMatch[1][0];
-			else if (fenceMatch[1][0] === fence) fence = null;
-		} else if (fence === null && (body === WORKING_BEGIN || body === WORKING_END)) {
+		const opening = /^\s*(`{3,}|~{3,})/.exec(body);
+		const closing = /^\s*(`{3,}|~{3,})\s*$/.exec(body);
+		if (fence === null && opening) fence = { char: opening[1][0], length: opening[1].length };
+		else if (fence !== null && closing && closing[1][0] === fence.char && closing[1].length >= fence.length) fence = null;
+		else if (fence === null && (body === WORKING_BEGIN || body === WORKING_END)) {
 			lines.push({ marker: body, start: offset, end: offset + raw.length });
 		}
 		offset += raw.length;
@@ -144,25 +144,42 @@ function markerLines(text) {
 	return lines;
 }
 
-export function refreshWorkingRegion(dir, { dryRun = false } = {}) {
+export function refreshWorkingRegion(dir, { dryRun = false, beforeOpen = () => {} } = {}) {
 	const target = path.join(dir, "AGENTS.md");
 	const st = lstat(target);
 	if (!st || !st.isFile() || st.isSymbolicLink()) return { label: "AGENTS.md working region", status: SKIPPED, detail: st?.isSymbolicLink() ? "AGENTS.md is a symlink — left alone" : "AGENTS.md is not a regular file" };
-	const original = fs.readFileSync(target, "utf8");
-	const markers = markerLines(original);
-	const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
-	const ends = markers.filter((m) => m.marker === WORKING_END);
-	if (begins.length !== 1 || ends.length !== 1 || begins[0].start >= ends[0].start)
-		return { label: "AGENTS.md working region", status: SKIPPED, detail: "marker pair absent or malformed — wrap the section once with the nana working-region markers" };
-	const begin = begins[0];
-	const end = ends[0];
-	const nl = original.includes("\r\n") ? "\r\n" : "\n";
-	const canonical = readShared("working-under-nana-pi.md").replace(/\r?\n/g, nl);
-	const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
-	if (replacement === original) return { label: "AGENTS.md working region", status: UNCHANGED, detail: "unchanged" };
-	if (dryRun) return { label: "AGENTS.md working region", status: CREATED, detail: "would refresh marker-owned region" };
-	fs.writeFileSync(target, replacement);
-	return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
+	beforeOpen();
+	const noFollow = fs.constants.O_NOFOLLOW ?? 0;
+	let fd;
+	try {
+		fd = fs.openSync(target, fs.constants.O_RDWR | noFollow);
+	} catch (error) {
+		if (error?.code === "ELOOP") return { label: "AGENTS.md working region", status: SKIPPED, detail: "symlinked AGENTS.md left alone" };
+		return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
+	}
+	try {
+		const opened = fs.fstatSync(fd);
+		if (!opened.isFile() || opened.dev !== st.dev || opened.ino !== st.ino)
+			return { label: "AGENTS.md working region", status: SKIPPED, detail: "AGENTS.md changed before it could be opened — left alone" };
+		const original = fs.readFileSync(fd, "utf8");
+		const markers = markerLines(original);
+		const begins = markers.filter((m) => m.marker === WORKING_BEGIN);
+		const ends = markers.filter((m) => m.marker === WORKING_END);
+		if (begins.length !== 1 || ends.length !== 1 || begins[0].start >= ends[0].start)
+			return { label: "AGENTS.md working region", status: SKIPPED, detail: "marker pair absent or malformed — wrap the section once with the nana working-region markers" };
+		const begin = begins[0];
+		const end = ends[0];
+		const nl = original.includes("\r\n") ? "\r\n" : "\n";
+		const canonical = readShared("working-under-nana-pi.md").replace(/\r?\n/g, nl);
+		const replacement = `${original.slice(0, begin.end)}${canonical}${original.slice(end.start)}`;
+		if (replacement === original) return { label: "AGENTS.md working region", status: UNCHANGED, detail: "unchanged" };
+		if (dryRun) return { label: "AGENTS.md working region", status: CREATED, detail: "would refresh marker-owned region" };
+		fs.ftruncateSync(fd, 0);
+		fs.writeSync(fd, replacement, 0, "utf8");
+		return { label: "AGENTS.md working region", status: CREATED, detail: "refreshed marker-owned region" };
+	} finally {
+		fs.closeSync(fd);
+	}
 }
 
 /**

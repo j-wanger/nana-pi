@@ -23,10 +23,11 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const suffix = "outside-after\r\n";
 	const stale = `${prefix}${WORKING_BEGIN}\r\nstale\r\n${WORKING_END}\r\n${suffix}`;
 	const dir = make(stale);
+	const expected = `${prefix}${WORKING_BEGIN}\r\n${shared.replace(/\n/g, "\r\n")}${WORKING_END}\r\n${suffix}`;
 	const refresh = refreshWorkingRegion(dir);
 	const result = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8");
 	// req: R-986
-	check("refresh changes only the marked bytes and retains CRLF surrounding bytes", refresh.status === "created" && result.startsWith(prefix) && result.endsWith(suffix) && result.includes(shared.replace(/\n/g, "\r\n")), result);
+	check("refresh changes only the marked bytes and retains CRLF surrounding bytes", refresh.status === "created" && result === expected, result);
 	// req: R-989
 	check("check accepts the refreshed region", (await checkProject(dir)).find((c) => c.label === "AGENTS.md working region")?.ok === true);
 	fs.appendFileSync(path.join(dir, "AGENTS.md"), "outside mutation\n");
@@ -36,8 +37,10 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 
 {
 	const dir = make(`${WORKING_BEGIN}\n${shared}${WORKING_END}\n`);
+	const matchingBefore = fs.readFileSync(path.join(dir, "AGENTS.md"));
+	const result = refreshWorkingRegion(dir);
 	// req: R-986
-	check("matching region is unchanged", refreshWorkingRegion(dir).status === "unchanged");
+	check("matching region is unchanged byte-for-byte", result.status === "unchanged" && fs.readFileSync(path.join(dir, "AGENTS.md")).equals(matchingBefore));
 	fs.writeFileSync(path.join(dir, "AGENTS.md"), `${WORKING_BEGIN}\nold\n${WORKING_END}\n`);
 	const before = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8");
 	// req: R-987
@@ -52,6 +55,7 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 		["duplicates", `${WORKING_BEGIN}\n${WORKING_BEGIN}\n${WORKING_END}\n`],
 		["reversed", `${WORKING_END}\n${WORKING_BEGIN}\n`],
 		["markers only inside a fenced block", `\`\`\`md\n${WORKING_BEGIN}\n${WORKING_END}\n\`\`\`\n`],
+		["four-backtick fence ignores three-backtick pseudo-close", `\`\`\`\`md\nstill fenced\n\`\`\`\n${WORKING_BEGIN}\nstale\n${WORKING_END}\n\`\`\`\`\n`],
 	]) {
 		const dir = make(body);
 		const before = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8");
@@ -64,7 +68,12 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 		}
 	}
 	// req: R-987
-	check("all invalid marker layouts are refused without writes", malformedCases.length === 5 && malformedCases.every(Boolean));
+	check("all invalid marker layouts are refused without writes", malformedCases.length === 6 && malformedCases.every(Boolean));
+	const fenced = make(`\`\`\`\`md\nstill fenced\n\`\`\`\n${WORKING_BEGIN}\nstale\n${WORKING_END}\n\`\`\`\`\n`);
+	const fencedBefore = fs.readFileSync(path.join(fenced, "AGENTS.md"));
+	const fencedResult = refreshWorkingRegion(fenced);
+	// req: R-986
+	check("markers inside mismatched fenced code remain ignored", fencedResult.status === "skipped" && fs.readFileSync(path.join(fenced, "AGENTS.md")).equals(fencedBefore));
 }
 
 {
@@ -76,6 +85,17 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const result = refreshWorkingRegion(dir);
 	// req: R-987
 	check("symlinked AGENTS is reported and left alone", result.status === "skipped" && result.detail.includes("symlink") && fs.readFileSync(external, "utf8") === victim);
+}
+
+{
+	const dir = make(`${WORKING_BEGIN}\nstale\n${WORKING_END}\n`);
+	const target = path.join(dir, "AGENTS.md");
+	const external = path.join(root, "race-target.md");
+	const victim = `${WORKING_BEGIN}\nstale race section\n${WORKING_END}\n`;
+	fs.writeFileSync(external, victim);
+	const result = refreshWorkingRegion(dir, { beforeOpen: () => { fs.unlinkSync(target); fs.symlinkSync(external, target); } });
+	// req: R-987
+	check("symlink swap after lstat is refused without changing its target", result.status === "skipped" && result.detail.includes("symlinked AGENTS.md left alone") && fs.readFileSync(external, "utf8") === victim);
 }
 
 {

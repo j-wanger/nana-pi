@@ -26,10 +26,10 @@ write(shared, "actual-file.md", "shared-name", "Shared body.\n");
 write(project, "project-file.md", "project-name", "Project body.\n");
 write(shared, "references.md", "references", "[[shared-name]] [[project-name]] [[missing-name]]\n");
 write(project, "references.md", "local-references", "[[shared-name]] [[project-name]]\n");
-let state = memoryLinkState(shared, project);
 const snapshot = (dir) => fs.readdirSync(dir).sort().map((file) => [file, fs.readFileSync(path.join(dir, file), "utf8")]);
 const beforeShared = snapshot(shared);
 const beforeProject = snapshot(project);
+let state = memoryLinkState(shared, project);
 // req: R-990
 check("frontmatter names ignore filenames and tier rules flag only invalid links", !state.ok && state.issues.some((i) => i.includes("shared-to-project link [[project-name]]")) && state.issues.some((i) => i.includes("dangling link [[missing-name]]")) && !state.issues.some((i) => i.includes("dangling link [[shared-name]]")) && !state.issues.some((i) => i.includes("dangling link [[project-name]]")), JSON.stringify(state));
 // req: R-990
