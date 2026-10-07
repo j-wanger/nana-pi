@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 175 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 178 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -774,6 +774,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`
 
+### `packages/nana-pack/bin/nana-frontier.mjs`
+
+- **purpose** — Reports structural drift in a HANDOFF frontier without changing the document.
+- **inputs** — a HANDOFF path, optional --today YYYY-MM-DD clock and optional --strict flag
+- **outputs** — one file:line finding per issue followed by a summary; strict mode sets failure status
+- **effects** — disk (reads the named HANDOFF)
+- **errors** — unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`
+
 ### `packages/nana-pack/bin/nana-objective.mjs`
 
 - **purpose** — Print the objective block for a session cwd as the Claude Code SessionStart hook's producer.
@@ -972,6 +982,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe code span is refused with null rather than escaped
 - **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/display-surfaces.test.mjs`
+- **callees** — —
+
+### `packages/nana-pack/lib/frontier-config.mjs`
+
+- **purpose** — Defines the sealed word budget for HANDOFF frontier reports.
+- **inputs** — none
+- **outputs** — HANDOFF_WORD_BUDGET
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/frontier.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/gate-paths.ts`
@@ -1193,6 +1213,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/objective.ts`
+
+### `packages/nana-pack/tests/frontier.test.mjs`
+
+- **purpose** — Pins the report-only HANDOFF frontier checker against rewritten and legacy fixtures, structural findings, an injected date, and strict-mode exits.
+- **inputs** — the frontier CLI, fixture HANDOFF files, and temporary oversized input
+- **outputs** — named PASS/FAIL checks and a nonzero test exit when an assertion fails
+- **effects** — disk (temporary input); process (spawns the CLI)
+- **errors** — failed assertions are reported and cause exit 1
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`
 
 ### `packages/nana-pack/tests/gate-config-robustness.test.mjs`
 

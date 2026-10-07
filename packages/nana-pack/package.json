@@ -7,7 +7,8 @@
 	"bin": {
 		"pi-review": "bin/pi-review.mjs",
 		"pi-worker": "bin/pi-worker.mjs",
-		"review-ledger": "bin/review-ledger.mjs"
+		"review-ledger": "bin/review-ledger.mjs",
+		"nana-frontier": "bin/nana-frontier.mjs"
 	},
 	"pi": {
 		"extensions": ["./extensions"],

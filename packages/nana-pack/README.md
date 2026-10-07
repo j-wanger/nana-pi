@@ -235,9 +235,21 @@ submodule contents, so logs redirected inside a submodule are not detected.
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
 Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes).
 
+## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
+
+This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for Jake, unresolved numbered references, overdue explicit dates, and missing Open for Jake tags.
+
+```bash
+node packages/nana-pack/bin/nana-frontier.mjs HANDOFF.md
+node packages/nana-pack/bin/nana-frontier.mjs --today 2026-10-06 HANDOFF.md
+node packages/nana-pack/bin/nana-frontier.mjs --strict HANDOFF.md
+```
+
+It prints `file:line: kind: detail` findings and a summary. The default clock uses the current UTC date; `--today` injects a deterministic `YYYY-MM-DD` date. Findings do not change the default exit status; `--strict` exits nonzero when findings exist. A blank line ends a list entry, so a later indented paragraph is not joined to it. Tests: `packages/nana-pack/tests/frontier.test.mjs`.
+
 ## Writing checker (`bin/nana-writing.mjs`) — report-only, trial only
 
-The ninth CLI. Zero-dep, Node only, cross-platform; the pure checks live in
+Zero-dep, Node only, cross-platform; the pure checks live in
 `lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
 `docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
 named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an

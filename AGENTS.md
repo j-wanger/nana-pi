@@ -48,11 +48,11 @@ what it answers — append dated addenda when facts drift, pi releases fast).
 
 - `packages/nana-pack/` — the pi extension pack: gate, post-edit checks + receipts,
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
-  adopt-ts, adopt-structure, dev workflow); `bin/` — nine CLIs: the `pi-review` runner (canonical home since
-  2026-09-18, on PATH via `~/.local/bin/pi-review`) with `review-round`, `review-shape`,
-  `review-ledger` and `pi-worker` behind it, `pi-watchdog`, the two producers the seat's
-  Claude Code SessionStart hooks run — `nana-objective` and `nana-adoption` — and `nana-writing`
-  (the report-only writing checker).
+  adopt-ts, adopt-structure, dev workflow); `bin/` — the `pi-review` runner (canonical home since 2026-09-18, on PATH via
+  `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `review-ledger` and `pi-worker`
+  behind it, `pi-watchdog`, the two producers the seat's Claude Code SessionStart hooks run —
+  `nana-objective` and `nana-adoption` — `nana-writing` (the report-only writing checker), and
+  `nana-frontier` (the report-only HANDOFF structure checker).
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
   over the markdown knowledge stores on this machine, read from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` via one shared `hook` CLI.
