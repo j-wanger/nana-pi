@@ -28,6 +28,13 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
 check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
 
 {
+	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
+	const packReadme = fs.readFileSync(path.resolve(HERE, "../README.md"), "utf8");
+	// req: G-012
+	check("CLI inventory names nana-frontier without stale ordinals", rootLayout.includes("nana-frontier") && packReadme.includes("nana-frontier") && !packReadme.includes("The ninth CLI"));
+}
+
+{
 	const r = run(rewritten);
 	// req: R-873 R-874 R-875 R-876 R-877 R-878
 	check("rewritten HANDOFF passes each structural check", r.status === 0 && !/\b(?:word-budget|landed-entry|misplaced-landed|broken-reference|overdue-date|open-tag):/.test(r.stdout), r.stdout);
