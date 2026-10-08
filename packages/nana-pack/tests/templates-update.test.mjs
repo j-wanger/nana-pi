@@ -70,17 +70,46 @@ result = railCheck(root, { testRoots: ["tests"] });
 check("without the general file the rail uses REQUIREMENTS.md alone", result.earsOffForm.includes("G-001"), result.earsLine);
 
 const sourceRoot = new URL("../../../", import.meta.url);
+const uvCache = spawnSync("uv", ["cache", "dir"], { encoding: "utf8" }).stdout.trim();
+const env = { ...process.env, HOME: root, UV_CACHE_DIR: uvCache, GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
 const shared = readFileSync(new URL("templates/_shared/requirements-general.md", sourceRoot), "utf8");
 const copierConfig = readFileSync(new URL("copier.yml", sourceRoot), "utf8");
-check("template-owned file path is not skip-listed", !copierConfig.split("\\n").some((line) => /^\\s*-\\s*[\"']?REQUIREMENTS-general\\.md[\"']?\\s*$/.test(line)));
-for (const language of ["python", "typescript"]) {
- for (const adopt of [false, true]) {
-  const template = new URL(`templates/${language}/template/REQUIREMENTS-general.md.jinja`, sourceRoot);
-  check(`${language} ${adopt ? "adopt" : "scaffold"} template has shared general requirements source`, existsSync(template) && readFileSync(template, "utf8").includes("templates/_shared/requirements-general.md") && shared.includes("G-001"), String(template));
+const skipMatches = (config, target) => config.split("\n").some((line) => {
+ const item = /^\s*-\s*[\"']?([^\"']+)[\"']?\s*$/.exec(line);
+ if (!item) return false;
+ const pattern = item[1].replace(/[.+^${}()|[\\]\\]/g, "\\$&").replaceAll("*", ".*").replaceAll("?", ".");
+ return new RegExp(`^${pattern}$`).test(target);
+});
+// req: R-581
+check("skip-pattern matcher catches a matching path fixture", skipMatches('_skip_if_exists:\n  - "REQUIREMENTS-general.md"', "REQUIREMENTS-general.md"));
+// req: R-581
+check("template-owned file path is not skip-listed", !skipMatches(copierConfig, "REQUIREMENTS-general.md"));
+const parseG = (text) => new Map([...text.matchAll(/^\|\s*(G-\d{3})\s*\|\s*(.*?)\s*\|\s*(\w+)\s*\|/gm)].map((match) => [match[1], { requirement: match[2], status: match[3] }]));
+const copyProbe = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8" });
+if (copyProbe.status !== 0) {
+ console.log("SKIP fresh Part G render matrix: uvx copier unavailable");
+} else {
+ for (const language of ["python", "typescript"]) {
+  for (const adopt of [false, true]) {
+   const dest = join(root, `render-${language}-${adopt ? "adopt" : "scaffold"}`);
+   const copyArgs = ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "HEAD", "-d", `language=${language}`, "-d", `project_name=partg-${language}`];
+   if (adopt) copyArgs.push("-d", "adopt=true");
+   copyArgs.push(sourceRoot.pathname, dest);
+   const rendered = spawnSync("uvx", copyArgs, { encoding: "utf8", env });
+   const generalPath = join(dest, "REQUIREMENTS-general.md");
+   const generalText = existsSync(generalPath) ? readFileSync(generalPath, "utf8") : "";
+   const projectText = existsSync(join(dest, "REQUIREMENTS.md")) ? readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") : "";
+   const generalRows = parseG(generalText);
+   const projectRows = parseG(projectText);
+   const statuses = new Set([...generalRows.values()].map((row) => row.status));
+   const modeStatus = adopt ? statuses.size === 1 && statuses.has("untested") : statuses.has("implemented") && statuses.has("untested");
+   const matches = rendered.status === 0 && generalRows.size > 0 && JSON.stringify([...generalRows]) === JSON.stringify([...projectRows]) && modeStatus && !/\{\{|\{%/.test(generalText);
+   // req: R-581
+   check("render has the shared Part G map, mode status, and no Jinja", matches, `${language}/${adopt}: ${rendered.stdout} ${rendered.stderr} ${generalRows.size}/${projectRows.size}`);
+  }
  }
 }
-const repo = new URL("../../../", import.meta.url);
-const env = { ...process.env, HOME: root, GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
+const repo = sourceRoot;
 const available = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8" });
 const hasOldTag = spawnSync("git", ["-C", repo.pathname, "rev-parse", "--verify", "v0.6.0"], { encoding: "utf8" }).status === 0;
 if (available.status !== 0 || !hasOldTag) {
