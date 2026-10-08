@@ -44,7 +44,7 @@ check("counts only template-surface commits after the highest tag", () => {
 // req: R-584
 check("selects the highest plain numeric release tag, not a prerelease or nearest tag", () => {
   const root = tmpDir(path.join(os.tmpdir(), "release-tag-order-")); const dir = repo(root);
-  git(dir, "tag", "v0.9.0"); commit(dir, "older.txt", "older\n", "older"); git(dir, "tag", "v0.10.0");
+  git(dir, "tag", "v0.10.0"); commit(dir, "older.txt", "older\n", "older"); git(dir, "tag", "v0.9.0");
   commit(dir, "newer.txt", "newer\n", "newer"); git(dir, "tag", "v0.11.0-rc1");
   assert.equal(releaseStatus({ repo: dir }).tag, "v0.10.0");
 });
