@@ -160,6 +160,10 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 `review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
 (exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
 
+`review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded round:
+item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
+launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
+
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,

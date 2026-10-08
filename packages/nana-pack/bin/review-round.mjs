@@ -526,7 +526,7 @@ const REFUSE = (d) => `${d.where}; revision would be round ${d.round}, over the 
  * Never throws. Returns {ok:false, message} | {ok:true, id, res, note}. On ok the caller MUST
  * later call complete(res, out) on a completed verdict, or release(id) otherwise.
  */
-export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd = process.cwd() } = {}) {
+export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd = process.cwd(), provider, model, attempts = 1 } = {}) {
   const p = ledgerPaths(home);
   try {
     const q = parseReview(args, cwd);
@@ -538,7 +538,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       if (override) appendAudit(p, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
-      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude };
+      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, overCapReason: q.overCap ?? null, attempts, startedAt: new Date().toISOString() };
       const fd = openSync(join(p.resDir, `${id}.json`), C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
       const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +
@@ -577,7 +577,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
  *     over counting nothing: then editing during a review would make every review free.
  *  The revision is re-derived UNDER the lock, just before recording (sol r3 TOCTOU).
  *  Never throws: {ok:true, round} | {ok:false, message}. `r` = admit(...).res */
-export function complete(r, out, { home = homedir() } = {}) {
+export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1 } = {}) {
   const p = ledgerPaths(home);
   try {
     return withLock(p, () => {
@@ -597,12 +597,14 @@ export function complete(r, out, { home = homedir() } = {}) {
       rotateAudit(p);
       const rounds = readTally(p).filter((x) => sameItem(x, held));
       let idx = rounds.findIndex((x) => x.revision === held.revision);
+      const endedAt = new Date().toISOString();
+      const metadata = { provider: held.provider ?? null, model: held.model ?? null, startedAt: held.startedAt ?? null, endedAt, attempts, durationMs: held.startedAt ? Math.max(0, Date.parse(endedAt) - Date.parse(held.startedAt)) : null };
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
       if (idx < 0) {
-        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, verdict: verdictWord(out), ...drift });
+        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
         idx = rounds.length;
       }
-      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, verdict: verdictWord(out), ...drift });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round: idx + 1, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +

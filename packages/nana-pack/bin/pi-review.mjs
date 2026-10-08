@@ -127,7 +127,13 @@ try {
   childArgs[outIndex + 1] = outPath;
   w.outPath = outPath;
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd() });
+  const piOption = (name) => {
+    const equals = w.piArgs.find((arg) => arg.startsWith(`${name}=`));
+    if (equals) return equals.slice(name.length + 1);
+    const i = w.piArgs.indexOf(name);
+    return i >= 0 ? w.piArgs[i + 1] : null;
+  };
+  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd(), provider: piOption('--provider'), model: piOption('--model'), attempts: w.retries + 1 });
   if (!adm.ok) throw new Error(adm.message);
   admittedId = adm.id;
   process.stderr.write(`pi-review: ${adm.note}\n`);
@@ -147,7 +153,7 @@ try {
     process.stderr.write(`[pi-review] aborted by ${r.signal}; reservation released\n`);
   } else if (r.ok) {
     writeFileSync(w.outPath, r.text);
-    const c = complete(adm.res, w.outPath); // complete derives in the immutable checkout
+    const c = complete(adm.res, w.outPath, { attempts: r.attempt }); // complete derives in the immutable checkout
     if (!c.ok) throw new Error(`review written to ${w.outPath}, but ${c.message}`);
     process.stderr.write(`[pi-review] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath}; round ${c.round})\n`);
     process.exitCode = 0;

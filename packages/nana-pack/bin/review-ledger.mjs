@@ -24,9 +24,10 @@
 //       would a review of this tree's revision be admitted? exit 0 yes / 1 no. Takes the lock,
 //       writes nothing (no reservation, no pruning).
 
-import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
-import { admit, complete, project, release, startHeartbeat } from './review-round.mjs';
+import { spawn, spawnSync } from 'node:child_process';
+import { realpathSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { admit, complete, project, readRounds, release, startHeartbeat } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -34,8 +35,31 @@ const sep = rest.indexOf('--');
 const own = sep >= 0 ? rest.slice(0, sep) : rest;
 const child = sep >= 0 ? rest.slice(sep + 1) : [];
 const die = (m) => { process.stderr.write(`review-ledger: ${m}\n`); process.exit(1); };
+const ownOption = (name) => {
+  const i = own.indexOf(name);
+  return i >= 0 ? own[i + 1] : undefined;
+};
 
-if (cmd !== 'run' && cmd !== 'check') die('usage: review-ledger run|check --item <slug> ... (see packages/nana-pack/README.md)');
+if (cmd === 'report') {
+  const item = ownOption('--item');
+  const repoPath = ownOption('--repo');
+  let repo;
+  if (repoPath) {
+    const resolved = resolve(repoPath);
+    const git = spawnSync('git', ['rev-parse', '--git-common-dir'], { cwd: resolved, encoding: 'utf8' });
+    if (git.status !== 0) die(`--repo is not a git repository: ${repoPath}`);
+    repo = `git:${realpathSync(resolve(resolved, git.stdout.trim()))}`;
+  }
+  const home = process.env.HOME ?? process.env.USERPROFILE;
+  for (const r of readRounds(home, { item, repo })) {
+    const short = String(r.revision ?? '-').slice(0, 12);
+    const duration = Number.isFinite(r.durationMs) ? `${r.durationMs}ms` : '-';
+    const fields = [r.item ?? '-', short, r.role ?? '-', r.model ?? '-', duration, r.attempts ?? '-', r.verdict ?? '-', r.overCap ?? '-'];
+    process.stdout.write(fields.map((x) => String(x).replace(/\s+/g, '_')).join(' | ') + '\n');
+  }
+  process.exit(0);
+}
+if (cmd !== 'run' && cmd !== 'check') die('usage: review-ledger run|check|report [--item <slug>] [--repo <path>] (see packages/nana-pack/README.md)');
 if (cmd === 'check') {
   if (own.includes('--over-cap')) die('check takes no --over-cap (an override is recorded only when a review runs)');
   const pr = project(own);
@@ -46,7 +70,13 @@ if (cmd === 'check') {
 }
 if (!own.includes('--out') || !child.length) die('run needs --out <file> and -- <cmd...>');
 
-const adm = admit(own, { launcher: 'review-ledger run' });
+const childOption = (name) => {
+  const eq = child.find((x) => x.startsWith(`${name}=`));
+  if (eq) return eq.slice(name.length + 1);
+  const i = child.indexOf(name);
+  return i >= 0 ? child[i + 1] : null;
+};
+const adm = admit(own, { launcher: 'review-ledger run', provider: childOption('--provider'), model: childOption('--model'), attempts: 1 });
 if (!adm.ok) die(adm.message);
 process.stderr.write(`review-ledger: ${adm.note}\n`);
 if (adm.warning) process.stderr.write(`review-ledger: WARNING: ${adm.warning}\n`);
@@ -64,7 +94,7 @@ stopHeartbeat();
 const text = r.stdout ?? '';
 try { writeFileSync(out, text); } catch (e) { release(adm.id); die(`cannot write ${out}: ${e.message} — reservation returned`); }
 if (r.status === 0 && text.trim() && reviewShaped(text)) {
-  const c = complete(adm.res, out);
+  const c = complete(adm.res, out, { attempts: 1 });
   if (!c.ok) die(`review written to ${out}, but ${c.message}`);
   process.stderr.write(`review-ledger: verdict recorded for item ${adm.res.item} (round ${c.round}; ${out})\n`);
   process.exit(0);

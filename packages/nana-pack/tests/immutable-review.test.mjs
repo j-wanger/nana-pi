@@ -51,7 +51,7 @@ const revision = reviewRound.resolveRevision(undefined, reviewRound.treeScope(re
 const out = path.join(root, "review.md");
 const observe = path.join(root, "observed.txt");
 const release = path.join(root, "release");
-const args = [piReview, "--item", "immutable", "--role", "sol", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review"];
+const args = [piReview, "--item", "immutable", "--role", "sol", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "anthropic", "--model", "review-test-7"];
 const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -79,7 +79,12 @@ let failures = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) failures++; };
 // req: R-967
 // req: R-968
+// req: R-974
 check("dirty working state is reproduced exactly and reviewer runs in the immutable checkout", result === 0 && snapshotCorrect && row?.revision === revision, JSON.stringify({ result, observed, row, revision }));
+// req: R-970
+check("pi-review records its provider, model, actual attempts and duration",
+  row?.provider === "anthropic" && row?.model === "review-test-7" && row?.attempts === 1 && Number.isFinite(row?.durationMs) &&
+  Date.parse(row?.startedAt) <= Date.parse(row?.endedAt), JSON.stringify(row));
 // req: R-967
 check("source commit during review does not void the admitted round", result === 0 && row?.revision === revision && git(repo, "rev-parse", "HEAD") !== initialHead);
 // req: R-967
