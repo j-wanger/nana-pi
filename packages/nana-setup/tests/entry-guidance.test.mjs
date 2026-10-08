@@ -66,5 +66,8 @@ const result = spawnSync(process.execPath, [cli, "project", dir, "--home", path.
 const outputList = result.stdout.match(/next: 1\. ([^\n]+)\n\s+2\. ([^\n]+)/);
 // req: R-676
 check("project output entries 1 and 2 are ratification and trust", result.status === 0 && outputList && /ratif.*OBJECTIVE\.md/i.test(outputList[1]) && /nana-setup trust <dir>/.test(outputList[2]), `${result.status} ${result.stdout} ${result.stderr}`);
+const setupReadme = fs.readFileSync(path.join(repo, "packages/nana-setup/README.md"), "utf8");
+// req: R-676
+check("README limits fill-the-date guidance to scaffold and adopt", setupReadme.includes("Scaffold and adopt messages also say\nto fill the date; project setup already fills it.") && !setupReadme.includes("seeded `OBJECTIVE.md` (fill the date; the DRAFT lines are yours)"));
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);
