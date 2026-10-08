@@ -62,11 +62,9 @@ let childEnv = {};
 let maxArg;
 let laneRoot, laneGitDir, briefPath, preambleFile, laneLock;
 let validateLaneAttempt = () => null;
-if (duplicateOwnOption) {
-	if (laneMode) laneFailure(`duplicate option ${duplicateOwnOption}`);
-	process.stderr.write(`pi-worker: duplicate option ${duplicateOwnOption}\n`);
-	process.exit(1);
-}
+// Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
+// pre-lane launcher (first occurrence wins) — astra land r7 on t3-launcher.
+if (duplicateOwnOption && laneMode) laneFailure(`duplicate option ${duplicateOwnOption}`);
 for (const [flag, present, arg] of [['--lane', lanePresent, lane], ['--brief', briefPresent, brief], ['--max-secs', maxPresent, maxRaw]]) {
 	if (present && (arg === null || arg === '' || arg.startsWith('-'))) laneFailure(`${flag} requires a value`);
 }
