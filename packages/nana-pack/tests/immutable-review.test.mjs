@@ -22,6 +22,7 @@ fs.mkdirSync(fakeBin);
 const fakePi = path.join(fakeBin, "pi");
 fs.writeFileSync(fakePi, `#!/bin/sh
 printf '%s\\n%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" "$*" > "$OBSERVE"
+printf '%s\\n' "$$" > "$OBSERVE_PID"
 while [ -n "$WAIT_FOR" ] && [ ! -e "$WAIT_FOR" ]; do sleep 0.05; done
 case "$MODE" in fail) exit 1;; stall) exec sleep 30;; *) echo 'VERDICT: LAND';; esac
 `);
@@ -54,6 +55,17 @@ const revision = reviewRound.resolveRevision(undefined, reviewRound.treeScope(re
 const out = path.join(root, "review.md");
 const observe = path.join(root, "observed.txt");
 const release = path.join(root, "release");
+let failures = 0;
+const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) failures++; };
+const trackedOut = spawnSync(process.execPath, [piReview, "--item", "tracked-out", "--out", path.join(repo, "tracked.txt"), "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: path.join(root, "tracked-out-observe") }), encoding: "utf8", timeout: 30000,
+});
+const trackedOutTrees = git(repo, "worktree", "list", "--porcelain");
+// req: R-724
+check("pi-review refuses tracked --out before checkout or admission and leaves the file untouched", trackedOut.status === 1 && /TRACKED file/.test(trackedOut.stderr) &&
+  fs.readFileSync(path.join(repo, "tracked.txt"), "utf8") === "dirty tracked content\n" && !fs.existsSync(path.join(root, "tracked-out-observe")) &&
+  !trackedOutTrees.split(/\r?\n/).some((line) => line.startsWith("worktree ") && line.includes("nana-review-")) &&
+  reviewRound.readRounds(home, { item: "tracked-out" }).length === 0, JSON.stringify({ status: trackedOut.status, stderr: trackedOut.stderr, output: fs.readFileSync(path.join(repo, "tracked.txt"), "utf8"), observe: fs.existsSync(path.join(root, "tracked-out-observe")), trackedOutTrees }));
 const args = [piReview, "--item", "immutable", "--role", "sol", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "anthropic", "--model", "review-test-7"];
 const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
@@ -79,8 +91,6 @@ fs.writeFileSync(release, "go");
 const result = await childClosed;
 const row = reviewRound.readRounds(home, { item: "immutable" })[0];
 const worktreesAfterSuccess = git(repo, "worktree", "list", "--porcelain");
-let failures = 0;
-const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) failures++; };
 // req: R-967
 // req: R-968
 // req: R-974
@@ -101,16 +111,16 @@ const fail = spawnSync(process.execPath, [piReview, "--item", "failure", "--out"
 });
 const afterFailure = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
-check("temporary worktree registration is removed after child failure", fail.status === 1 && !afterFailure.includes("nana-review-immutable-"), fail.stderr);
+check("temporary worktree registration is removed after child failure", fail.status === 1 && !afterFailure.includes("nana-review-"), fail.stderr);
 const stall = spawnSync(process.execPath, [piReview, "--item", "stall", "--out", path.join(root, "stall.md"), "--poll", "0.1", "--stall-secs", "0.2", "--retries", "0", "--", "-p", "review"], {
   cwd: repo, env: env({ OBSERVE: path.join(root, "stall-observe"), MODE: "stall" }), encoding: "utf8", timeout: 30000,
 });
 const afterStall = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
-check("temporary worktree registration is removed after watchdog stall", stall.status === 1 && !afterStall.includes("nana-review-immutable-") && /STALL/.test(stall.stderr), stall.stderr);
+check("temporary worktree registration is removed after watchdog stall", stall.status === 1 && !afterStall.includes("nana-review-") && /STALL/.test(stall.stderr), stall.stderr);
 const signalObserve = path.join(root, "signal-observe");
 const signaled = spawn(process.execPath, [piReview, "--item", "signal", "--out", path.join(root, "signal.md"), "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review"], {
-  cwd: repo, env: env({ OBSERVE: signalObserve, WAIT_FOR: path.join(root, "never-release") }),
+  cwd: repo, env: env({ OBSERVE: signalObserve, OBSERVE_PID: path.join(root, "signal-pid"), WAIT_FOR: path.join(root, "never-release") }),
 });
 const signalClosed = new Promise((resolve) => signaled.on("close", (code) => resolve(code)));
 for (let i = 0; i < 200 && !fs.existsSync(signalObserve); i++) await delay(25);
@@ -119,7 +129,40 @@ signaled.kill("SIGTERM");
 const signalCode = await signalClosed;
 const afterSignal = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
-check("temporary worktree registration is removed after signal interruption", signalCode === 143 && !afterSignal.includes("nana-review-immutable-") && !fs.existsSync(signalCheckout), afterSignal);
+check("temporary worktree registration is removed after signal interruption", signalCode === 143 && !afterSignal.includes("nana-review-") && !fs.existsSync(signalCheckout), afterSignal);
+
+const killedObserve = path.join(root, "killed-observe");
+const killedPidFile = path.join(root, "killed-pid");
+const killedReview = spawn(process.execPath, [piReview, "--item", "killed", "--out", path.join(root, "killed.md"), "--retries", "0", "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: killedObserve, OBSERVE_PID: killedPidFile, WAIT_FOR: path.join(root, "never-release") }),
+});
+const killedClosed = new Promise((resolve) => killedReview.on("close", (code, signal) => resolve({ code, signal })));
+for (let i = 0; i < 200 && !fs.existsSync(killedObserve); i++) await delay(25);
+const killedCheckout = fs.existsSync(killedObserve) ? fs.readFileSync(killedObserve, "utf8").split("\n")[0] : "";
+if (fs.existsSync(killedPidFile)) {
+  try { process.kill(Number(fs.readFileSync(killedPidFile, "utf8").trim()), "SIGKILL"); } catch {}
+}
+killedReview.kill("SIGKILL");
+await killedClosed;
+const staleBeforeRecovery = git(repo, "worktree", "list", "--porcelain");
+const recovery = spawnSync(process.execPath, [piReview, "--item", "recovery", "--out", path.join(root, "recovery.md"), "--retries", "0", "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: path.join(root, "recovery-observe") }), encoding: "utf8", timeout: 30000,
+});
+const afterRecovery = git(repo, "worktree", "list", "--porcelain");
+// req: R-967
+check("next launch reclaims a SIGKILLed dead-owner checkout but leaves live-owner worktrees alone", recovery.status === 0 &&
+  staleBeforeRecovery.includes(killedCheckout) && !fs.existsSync(killedCheckout) && !afterRecovery.includes(killedCheckout), JSON.stringify({ status: recovery.status, stderr: recovery.stderr, killedCheckout, staleBeforeRecovery, afterRecovery }));
+
+const liveCheckout = path.join(os.tmpdir(), `nana-review-${process.pid}-live`);
+git(repo, "worktree", "add", "--detach", liveCheckout, "HEAD");
+const liveOwnerRun = spawnSync(process.execPath, [piReview, "--item", "live-owner", "--out", path.join(root, "live-owner.md"), "--retries", "0", "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: path.join(root, "live-owner-observe") }), encoding: "utf8", timeout: 30000,
+});
+const liveOwnerListed = git(repo, "worktree", "list", "--porcelain");
+// req: R-967
+check("startup reclamation never removes a live pid checkout", liveOwnerRun.status === 0 && fs.existsSync(liveCheckout) && liveOwnerListed.includes(liveCheckout), liveOwnerRun.stderr);
+git(repo, "worktree", "remove", "--force", liveCheckout);
+git(repo, "worktree", "prune");
 
 // A failed git removal must fall back, prune, and verify that the stale registration is gone.
 const gitShimDir = path.join(root, "git-shim");
@@ -133,7 +176,7 @@ const cleanupFailure = spawnSync(process.execPath, [piReview, "--item", "cleanup
 const afterCleanupFailure = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
 check("failed worktree removal falls back, prunes and verifies registration cleanup", cleanupFailure.status === 0 &&
-  !afterCleanupFailure.includes("nana-review-immutable-") && !cleanupFailure.stderr.includes("cleanup failed"), JSON.stringify({ status: cleanupFailure.status, stderr: cleanupFailure.stderr, afterCleanupFailure }));
+  !afterCleanupFailure.includes("nana-review-") && !cleanupFailure.stderr.includes("cleanup failed"), JSON.stringify({ status: cleanupFailure.status, stderr: cleanupFailure.stderr, afterCleanupFailure }));
 
 // Force a source change during the detach checkout; equality must fail before admission.
 const mismatchItem = "mismatch-refusal";
@@ -149,7 +192,7 @@ const afterMismatch = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
 check("unreproducible dirty snapshot is refused before admission with no round or worktree", mismatch.status === 1 && /snapshot could not be reproduced exactly/.test(mismatch.stderr) &&
   reviewRound.readRounds(home, { item: mismatchItem }).length === 0 && !fs.existsSync(mismatchAdmissionProbe) &&
-  !fs.existsSync(path.join(root, "mismatch-observe")) && !afterMismatch.includes("nana-review-immutable-"), mismatch.stderr);
+  !fs.existsSync(path.join(root, "mismatch-observe")) && !afterMismatch.includes("nana-review-"), mismatch.stderr);
 
 const submodule = path.join(repo, "dirty-submodule");
 fs.mkdirSync(submodule);
@@ -182,7 +225,7 @@ const afterRefusal = git(repo, "worktree", "list", "--porcelain");
 // req: R-968
 check("nested repository is refused before admission and consumes no round", refusal.status === 1 && /nested repository/.test(refusal.stderr) &&
   reviewRound.readRounds(home, { item: "nested-refusal" }).length === beforeRounds && !fs.existsSync(path.join(root, "nested-observe")) &&
-  !afterRefusal.includes("nana-review-immutable-"), refusal.stderr);
+  !afterRefusal.includes("nana-review-"), refusal.stderr);
 
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(failures);

@@ -24,9 +24,9 @@
 
 import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect } from './review-round.mjs';
+import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
@@ -50,6 +50,7 @@ const outPath = resolve(process.cwd(), w.outPath);
 const sourceScope = treeScope(sourceTree, { exclude: [outPath] });
 const sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
 const sourceRoot = realpathSync(sourceScope.root);
+let sourceOutWarning = null;
 const sourceRedirect = inTreeRedirect(sourceRoot);
 let tempRoot = null, admittedId = null, setupSignal = null;
 const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
@@ -60,6 +61,29 @@ const git = (cwd, args) => {
   return r.stdout;
 };
 const list = (cwd, args) => git(cwd, args).split('\0').filter(Boolean);
+const reclaimDeadReviewWorktrees = () => {
+  const listed = git(sourceRoot, ['worktree', 'list', '--porcelain']);
+  const paths = listed.split(/\r?\n/).filter((line) => line.startsWith('worktree ')).map((line) => line.slice(9));
+  let reclaimed = false;
+  for (const path of paths) {
+    let canonicalPath;
+    try { canonicalPath = realpathSync(path); } catch { canonicalPath = resolve(path); }
+    const tempRelative = relative(realpathSync(tmpdir()), canonicalPath);
+    if (tempRelative === '..' || tempRelative.startsWith(`..${sep}`) || tempRelative === '') continue;
+    const match = /^nana-review-(\d+)-/.exec(path.split(/[\\/]/).at(-1));
+    if (!match) continue;
+    try { process.kill(Number(match[1]), 0); } catch (error) {
+      if (error.code !== 'ESRCH') continue;
+      const removed = spawnSync('git', ['worktree', 'remove', '--force', path], { cwd: sourceRoot, stdio: 'ignore' });
+      if (removed.error || removed.status !== 0) throw new Error(`cannot reclaim stale review worktree ${path}`);
+      reclaimed = true;
+    }
+  }
+  if (reclaimed) {
+    const pruned = spawnSync('git', ['worktree', 'prune'], { cwd: sourceRoot, stdio: 'ignore' });
+    if (pruned.error || pruned.status !== 0) throw new Error('cannot prune reclaimed review worktrees');
+  }
+};
 const removeWorktree = () => {
   if (!tempRoot) return;
   const removed = spawnSync('git', ['worktree', 'remove', '--force', tempRoot], { cwd: sourceRoot, stdio: 'ignore' });
@@ -97,6 +121,9 @@ const copySnapshot = (root, target) => {
   }
 };
 try {
+  reclaimDeadReviewWorktrees();
+  sourceOutWarning = outInTree(sourceRoot, outPath);
+  if (sourceOutWarning) process.stderr.write(`pi-review: WARNING: ${sourceOutWarning}\n`);
   if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
   // Reject nested repositories (including untracked non-ignored ones) before creating a reservation.
   const gitlinks = git(sourceRoot, ['ls-files', '--stage', '-z']).split('\0').filter((x) => x.startsWith('160000 ')).map((x) => x.slice(x.indexOf('\t') + 1));
@@ -116,7 +143,7 @@ try {
       if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
     }
   }
-  tempRoot = mkdtempSync(join(tmpdir(), 'nana-review-immutable-'));
+  tempRoot = mkdtempSync(join(tmpdir(), `nana-review-${process.pid}-`));
   rmSync(tempRoot, { recursive: true, force: true });
   const add = spawnSync('git', ['worktree', 'add', '--detach', tempRoot, sourceScope.head], { cwd: sourceRoot, encoding: 'utf8' });
   if (add.status !== 0) throw new Error(`cannot create detached review worktree: ${(add.stderr || '').trim()}`);
