@@ -51,9 +51,11 @@ const structureFlat = structure.replace(/\s+/g, " ");
 check("adopt-structure ratifies after seed handling without contradictory guidance",
  firstTwoSteps(structureEntries) && /ask the owner/i.test(structureEntries[0] ?? "") &&
  structure.indexOf("**First two steps:** after seed handling") > structure.indexOf("6. **The three frontier seeds") &&
- structureFlat.includes("existing `OBJECTIVE.md` whose objective and current-priority lines contain the owner's words is already ratified") &&
- structureFlat.includes("existing seeded placeholders require asking without overwriting") &&
- structureFlat.includes("Existing frontier seeds are never overwritten") &&
+ structureFlat.includes("The seed step never replaces an existing file") &&
+ structureFlat.includes("replace only those seeded placeholder lines and their DRAFT suffix with the owner's words") &&
+ structureFlat.includes("Leave owner-written lines unchanged") &&
+ !structureFlat.includes("existing seeded placeholders require asking without overwriting") &&
+ structureFlat.includes("leave owner-written lines unchanged") &&
  !structureFlat.includes("leave every other `<…>`") && !structureFlat.includes("an existing `OBJECTIVE.md` is a ratified decision") && !structureFlat.includes("two edits they still owe"),
  "ratification must follow seeding, preserve existing files, and not describe placeholders as already ratified");
 const root = tmpDir(path.join(os.tmpdir(), "nana-guidance-"));

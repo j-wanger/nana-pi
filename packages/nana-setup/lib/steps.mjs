@@ -13,7 +13,7 @@
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
- *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker and nana-land, the desk plist
+ *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
  *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses

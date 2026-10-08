@@ -48,6 +48,9 @@ const check = (n, ok, extra) => {
 	if (!ok) fails++;
 };
 
+// req: R-589
+check("steps module outputs contract names the nana-setup PATH link", /<binDir>\/pi-review, pi-worker, nana-land and nana-setup/.test(fs.readFileSync(path.join(pkg, "lib", "steps.mjs"), "utf8")));
+
 const tmps = [];
 /** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
  *  §2): every throwaway home seeds it at the floor, the way a real, already-set-up machine has

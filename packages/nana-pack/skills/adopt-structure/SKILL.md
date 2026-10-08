@@ -143,18 +143,19 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
      why step 4 renders it with the real project name), so fill only `<date>`.
      Check the first line reads `# Objective and current priority — <the project>`
      before you copy it in; if it names a dummy, you rendered with the wrong name.
-   - If a seed file already exists, never overwrite it. An existing
-     `OBJECTIVE.md` whose objective and current-priority lines contain the
-     owner's words is already ratified. If either line is a seeded placeholder
-     or DRAFT, ask the owner for both lines; do not replace existing content
-     without their direction. Never infer that placeholders are ratified.
+   - The seed step never replaces an existing file. An existing `OBJECTIVE.md`
+     whose objective and current-priority lines contain the owner's words is
+     already ratified. If either line is a seeded placeholder or DRAFT, ask the
+     owner for both lines, then replace only those seeded placeholder lines and
+     their DRAFT suffix with the owner's words. Leave owner-written lines
+     unchanged; never infer that placeholders are ratified.
    - For a newly copied `OBJECTIVE.md`, ask the owner for one objective line
      and one current-priority line. Write only the owner's words over the two
      placeholders and DRAFT suffix, fill `<date>`, and never invent either
      line. If the owner defers, leave the DRAFT lines and say so in the handover.
 
    **First two steps:** after seed handling
-   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words and never invent; existing owner-authored lines are ratified, while existing seeded placeholders require asking without overwriting.
+   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words only over seeded placeholder lines and their DRAFT suffix, leave owner-written lines unchanged, and never invent words.
    2. Trust the folder: `nana-setup trust <dir>`.
 
    `nana-setup project <dir>` is a broader alternative outside this skill's hard rule. It also runs `git init`, writes an AGENTS.md stub and CLAUDE.md link when neither exists, refreshes a marked AGENTS.md region, seeds `.pi/nana-pack.json`, writes the month log and refreshes the knowledge index.

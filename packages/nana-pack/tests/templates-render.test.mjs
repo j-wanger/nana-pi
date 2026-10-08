@@ -523,7 +523,7 @@ if (!version) {
 const updateGuide = fs.readFileSync(path.join(REPO, "README.md"), "utf8").match(/- \*\*Generated project\*\*([\s\S]*?)(?=\n- \*\*)/)?.[1] ?? "";
 const adoptUpdateSkills = ["adopt-py", "adopt-ts"].map((name) => fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", name, "SKILL.md"), "utf8"));
 // req: R-590
-check("adopt update guidance uses inline conflict resolution", /--conflict inline/.test(updateGuide) && !/--conflict rej/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
+check("generated project update guidance is generic with adopted-project qualification", /run `uvx copier update --conflict inline` inside the\s+project/.test(updateGuide) && /For adopted projects, convert\s+decorator markers first; never use `--conflict rej`/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
 console.log(fails ? `${fails} FAILED` : "all passed");
