@@ -169,12 +169,18 @@ function realOut(target: string, cwd: string): string | null {
 	while (true) {
 		try {
 			fs.lstatSync(candidate);
-			return path.resolve(fs.realpathSync(candidate), ...suffix.reverse());
-		} catch {
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") return null;
 			const parent = path.dirname(candidate);
 			if (parent === candidate) return null;
 			suffix.push(path.basename(candidate));
 			candidate = parent;
+			continue;
+		}
+		try {
+			return path.resolve(fs.realpathSync(candidate), ...suffix.reverse());
+		} catch {
+			return null;
 		}
 	}
 }

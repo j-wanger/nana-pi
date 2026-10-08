@@ -17,6 +17,9 @@ const contained = (parent, child) => { const rel = path.relative(parent, child);
 const tempRoot = fs.realpathSync(os.tmpdir()), tmpAlias = fs.realpathSync("/tmp");
 const outsideIsIndependent = ![tempRoot, tmpAlias, worktree].some((parent) => contained(parent, fs.realpathSync(outside)));
 const link = path.join(worktree, "escape"); fs.symlinkSync(outside, link, "dir");
+const dangling = path.join(worktree, "dangling-outside"); fs.symlinkSync(path.join(outside, "missing-file"), dangling);
+const loopA = path.join(worktree, "loop-a"), loopB = path.join(worktree, "loop-b");
+fs.symlinkSync(loopB, loopA); fs.symlinkSync(loopA, loopB);
 process.env.HOME = worktree; process.env.USERPROFILE = worktree;
 const ext = (await import("../extensions/nana-gate.ts")).default;
 let handler; ext({ on: (event, fn) => { if (event === "tool_call") handler = fn; } });
@@ -30,6 +33,10 @@ check("parent traversal outside lane is blocked", !outsideIsIndependent || await
 // req: R-962
 check("symlink escape outside lane is blocked", await call("edit", "escape/not-created/deep/file.txt"));
 // req: R-962
+check("dangling in-lane symlink to missing outside target is blocked", await call("write", "dangling-outside"));
+// req: R-962
+check("symlink loop is blocked", await call("edit", "loop-a"));
+// req: R-962
 check("temporary output remains allowed", !(await call("write", path.join(os.tmpdir(), "nana-lane-safe.txt"))));
 // req: R-962
 check("bash writes stay explicitly outside this gate guard", !(await call("bash", "printf x > ../outside.txt")));
@@ -39,3 +46,5 @@ check("empty worktree root changes no existing path decision", !(await call("wri
 delete process.env.NANA_WORKTREE_ROOT;
 // req: R-962
 check("unset worktree root leaves outside edit behavior unchanged", !(await call("edit", "../outside-unset-again.txt")));
+// req: R-962
+check("ordinary sessions leave an unresolvable symlink target unchanged", !(await call("edit", "dangling-outside")));
