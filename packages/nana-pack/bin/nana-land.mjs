@@ -49,7 +49,11 @@ export function parseLandArgs(args) {
 	if (!options.main) throw new Error("--main is required");
 	if (mode === "merge" && (!options.tree || !options.suite)) throw new Error("merge requires --tree and --suite");
 	if (mode === "cleanup" && (!options.lane || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(options.lane))) throw new Error("cleanup needs a safe lane name");
-	if (options.exempt?.trim() && options.reviewed.length) throw new Error("--exempt and --reviewed cannot be combined");
+	if (options.exempt !== undefined) {
+		options.exempt = options.exempt.trim();
+		if (!options.exempt) throw new Error("--exempt needs a nonblank reason");
+	}
+	if (options.exempt && options.reviewed.length) throw new Error("--exempt and --reviewed cannot be combined");
 	if (mode === "merge" && !options.exempt && !options.reviewed.length) throw new Error("merge requires --reviewed or --exempt");
 	return options;
 }
@@ -83,7 +87,7 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 				const common = git(runGit, tree, "rev-parse", "--git-common-dir");
 				const repo = `git:${realpathSync(path.resolve(tree, common))}`;
 				const rounds = readLedger(home, { repo, item });
-				if (!rounds.some((round) => round.revision === sha && round.verdict === "LAND")) throw new Error(`no LAND review for item ${item} at revision ${sha}`);
+				if (!rounds.some((round) => round.revision === sha && round.verdict === "LAND" && round.unverified !== true)) throw new Error(`no verified LAND review for item ${item} at revision ${sha}`);
 				reviewRefs.push(sha);
 			}
 		}
@@ -92,6 +96,12 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		const suiteResult = runCommand(suite, tree);
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `${notReviewedText}suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
+		assertCleanTracked(runGit, main, "main checkout");
+		assertCleanTracked(runGit, tree, "source tree");
+		if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
+		const currentMainSha = git(runGit, main, "rev-parse", "HEAD^{commit}");
+		if (!isAncestor(runGit, currentMainSha, tip, main)) throw new Error("main is not an ancestor of the unchanged source tip; fast-forward is impossible");
 		git(runGit, main, "merge", "--ff-only", tip);
 		if (!isAncestor(runGit, tip, git(runGit, main, "rev-parse", "HEAD"), main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
 		const date = now.toISOString().slice(0, 10);
@@ -104,6 +114,7 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 	try {
 		main = path.resolve(main);
+		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		if (typeof lane !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(lane)) throw new Error("cleanup needs a safe lane name");
 		const branch = `feat/${lane}`;
 		const exists = runGit(main, ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]);
