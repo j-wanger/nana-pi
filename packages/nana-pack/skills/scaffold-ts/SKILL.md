@@ -37,7 +37,7 @@ check in the suite, and `scripts/code-map.mjs` with `--check` wired into post-ed
    continuation breaks.)
 
 4. **The first two project steps**:
-   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
+   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line. If the owner defers, leave the DRAFT lines and say so in the handover.
    2. Trust the folder: `nana-setup trust <dir>`.
 5. Then complete the other printed next steps: `git init` + first commit,
    `pnpm install`, `pnpm check` (typecheck + lint + test + readme:check), commit the lockfile —

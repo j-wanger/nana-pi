@@ -9,6 +9,8 @@ something they install), and `package.json` declares no `dependencies` or
 `devDependencies`. Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; the
 ones that load a real extension skip themselves when pi is not installed globally.
 
+Residual: the update-path legs in `tests/templates-update.test.mjs` do not assert three brief-named outcomes directly (no drift line on a fresh render; a Part G status survives an update; deleting a project's REQUIREMENTS-general.md restores exactly the nine legacy problems); focused fixtures in the same file pin the behaviour.
+
 ## Skills
 
 | Skill | What it does |

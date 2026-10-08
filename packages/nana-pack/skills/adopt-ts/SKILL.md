@@ -104,7 +104,7 @@ Files written by an adopt render into an empty folder:
 - `tsconfig.json`
 
 First two steps:
-1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
+1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line. If the owner defers, leave the DRAFT lines and say so in the handover.
 2. Trust the folder: `nana-setup trust <dir>`.
 
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure:

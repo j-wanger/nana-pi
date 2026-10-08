@@ -170,7 +170,7 @@ node nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 ```
 
 Copier renders the latest `v*` tag, never HEAD — tags are cut only by
-`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after a green suite on main. The first hosted run remains unproven until the seat records it. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
+`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after a green suite on main. The first green hosted run cut v0.6.4 on 2026-10-08. A passing gate prints no summary line, and the non-blocking Linux suite leg still fails one symlink-escape check. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
 tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
 
 ### From a local clone
