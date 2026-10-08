@@ -22,7 +22,7 @@ Sibling repo to `~/nana-agent-loop`.
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
-  via `uvx copier update`; template changes ship by commit + `v*` tag. Generated CI
+  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after a green suite on main; the first hosted run remains unproven until the seat records it. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
@@ -168,8 +168,8 @@ node nana-pi/packages/nana-setup/bin/nana-setup.mjs install
 node nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 ```
 
-Copier renders the latest `v*` tag, never HEAD — template changes ship by commit
-+ tag. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
+Copier renders the latest `v*` tag, never HEAD — tags are cut only by
+`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after a green suite on main. The first hosted run remains unproven until the seat records it. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
 tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
 
 ### From a local clone
@@ -195,6 +195,10 @@ node /path/to/nana-pi/apps/desk/server.mjs
 node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs install
 node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 ```
+
+### Template acceptance and release
+
+Run the rendered projects' native checks with `npm run template:accept -- [--src <repo>] [--ref <rev>]`. Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`); release runs acceptance before creating a tag. CI runs release only after a green suite on main. The first hosted run remains unproven until the seat records it.
 
 ### Updating and partial adoption
 

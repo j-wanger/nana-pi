@@ -13,12 +13,12 @@ import path from "node:path";
 
 /** Chosen: 10 min; warm probe 2026-10-08 render 2 s, pnpm install 4.3 s, pnpm check 5.5 s, uv sync 1.3 s. */
 export const COMMAND_TIMEOUT_MS = 600_000;
-/** Provenance: mirrored from template CI check job on 2026-10-08. */
+/** Provenance: mirrors templates/<lang>/template/.github/workflows/ci.yml check job, 2026-10-08. */
 export const ACCEPTANCE_COMMANDS = {
   python: [["uv", ["sync"]], ["uv", ["run", "ruff", "check", "."]], ["uv", ["run", "ruff", "format", "--check", "."]], ["uv", ["run", "mypy"]], ["uv", ["run", "pytest"]]],
   typescript: [["pnpm", ["install"]], ["pnpm", ["check"]]],
 };
-/** Provenance: adopt-py/adopt-ts documented overlay inputs; TS workspace carries the entry-points reconciliation. */
+/** Provenance: adopt-py/adopt-ts documented overlay inputs; pnpm-workspace.yaml was added because the adopt-ts reconcile step applied (entry-points lane). */
 export const ADOPT_FIXTURE_FILES = {
   python: ["README.md", "src", "tests/AGENTS.md", "tests/test_smoke.py"],
   typescript: ["README.md", "src", "tests/AGENTS.md", "tests/smoke.test.ts", "pnpm-workspace.yaml"],
@@ -64,7 +64,7 @@ function seedAdopt(scaffold, target, language) {
     else fs.copyFileSync(from, to);
   }
   const smoke = path.join(target, language === "python" ? "tests/test_smoke.py" : "tests/smoke.test.ts");
-  const body = fs.readFileSync(smoke, "utf8").replace(/^\s*(?:\/\/|#) req: R-001\r?\n/m, "");
+  const body = fs.readFileSync(smoke, "utf8").replace(/^[ \t]*(?:\/\/|#) req: R-001[ \t]*\r?\n/m, "");
   fs.writeFileSync(smoke, body);
 }
 
