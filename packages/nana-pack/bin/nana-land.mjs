@@ -74,8 +74,7 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
-		const mainSha = git(runGit, main, "rev-parse", "HEAD^{commit}");
-		if (!isAncestor(runGit, mainSha, tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
+		if (!isAncestor(runGit, "refs/heads/main", tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
 		const reviewRefs = [];
 		if (!exempt) {
 			for (const { sha, item } of reviewedPairs(reviewed)) {
@@ -100,10 +99,10 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
 		if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
-		const currentMainSha = git(runGit, main, "rev-parse", "HEAD^{commit}");
-		if (!isAncestor(runGit, currentMainSha, tip, main)) throw new Error("main is not an ancestor of the unchanged source tip; fast-forward is impossible");
+		if (!isAncestor(runGit, "refs/heads/main", tip, main)) throw new Error("main is not an ancestor of the unchanged source tip; fast-forward is impossible");
 		git(runGit, main, "merge", "--ff-only", tip);
-		if (!isAncestor(runGit, tip, git(runGit, main, "rev-parse", "HEAD"), main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
+		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
+		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
 		const date = now.toISOString().slice(0, 10);
 		const archive = `Session archive stub: ${date} — lane ${path.basename(tree)}${reviewRefs.length ? ` — reviewed ${reviewRefs.map((r) => r.slice(0, 12)).join(", ")}` : ""}${exempt ? ` — exempt: ${exempt}` : ""}.`;
 		return { code: 0, text: `${notReviewedText}push command: git push\n${archive}\nHANDOFF Landed: ${date} — ${path.basename(tree)} — landed ${tip.slice(0, 12)}.\n` };
@@ -133,9 +132,8 @@ export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 		} catch (error) { throw new Error(error.message.includes("does not match") ? error.message : `worktree for ${branch} is missing or unavailable: ${error.message}`); }
 		const status = git(runGit, worktree, "status", "--porcelain");
 		if (status) throw new Error(`worktree ${worktree} is dirty`);
-		const mainSha = git(runGit, main, "rev-parse", "HEAD");
 		const branchSha = git(runGit, main, "rev-parse", branch);
-		if (!isAncestor(runGit, branchSha, mainSha, main)) throw new Error(`branch ${branch} is not contained in main`);
+		if (!isAncestor(runGit, branchSha, "refs/heads/main", main)) throw new Error(`branch ${branch} is not contained in main`);
 		git(runGit, main, "worktree", "remove", worktree);
 		git(runGit, main, "branch", "-d", branch);
 		return { code: 0, text: `removed ${worktree} and ${branch}\n` };

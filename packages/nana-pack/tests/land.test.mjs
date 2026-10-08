@@ -165,7 +165,22 @@ check("successful land invokes ff-only merge and containment verification", () =
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text);
 	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge --ff-only ${tip}`));
-	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge-base --is-ancestor ${tip} ${tip}`));
+	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge-base --is-ancestor ${tip} refs/heads/main`));
+});
+// req: R-977
+check("branch switch at merge invocation refuses without landed records", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-race-merge-switch-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
+	const calls = []; let switched = false;
+	const runGit = (cwd, args) => {
+		calls.push({ cwd, args });
+		if (cwd === main && args[0] === "merge" && !switched) { git(main, "checkout", "-b", "other"); switched = true; }
+		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
+		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
+	};
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	assert.notEqual(out.code, 0); assert.match(out.text, /branch main/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
+	assert.equal(git(main, "rev-parse", "main"), git(main, "rev-parse", "HEAD^")); assert.equal(git(main, "rev-parse", "other"), tip);
 });
 // req: R-977
 check("suite command runs in the source tree", () => {
@@ -239,8 +254,16 @@ check("cleanup reports a lane branch deleted before cleanup", () => {
 check("cleanup removes a contained feat branch without force", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-clean-ok-")); const main = repo(root, "main");
 	const feature = tree(main, "feat/landed"); commit(feature, "next.txt", "next\n", "next"); git(main, "merge", "--ff-only", "feat/landed");
-	const result = runCleanup("landed", { main, worktree: feature });
-	assert.equal(result.code, 0, result.text); assert.equal(existsSync(feature), false); assert.throws(() => git(main, "show-ref", "--verify", "refs/heads/feat/landed"));
+	const calls = []; const runGit = (cwd, args) => {
+		calls.push({ cwd, args });
+		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
+		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
+	};
+	const result = runCleanup("landed", { main, worktree: feature, runGit });
+	assert.equal(result.code, 0, result.text);
+	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "worktree" && args[1] === "remove" && args[2] === feature));
+	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "branch" && args[1] === "-d" && args[2] === "feat/landed"));
+	assert.equal(existsSync(feature), false); assert.throws(() => git(main, "show-ref", "--verify", "refs/heads/feat/landed"));
 });
 // req: R-981
 check("README and AGENTS describe the land helper", () => {
