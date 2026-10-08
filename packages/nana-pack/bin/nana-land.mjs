@@ -96,7 +96,7 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 				reviewRefs.push(sha);
 			}
 		}
-		const unreviewed = reviewRefs.length ? git(runGit, tree, "rev-list", tip, "--not", ...reviewRefs).split(/\r?\n/).filter(Boolean) : [];
+		const unreviewed = reviewRefs.length ? git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean) : [];
 		const notReviewedText = unreviewed.length ? `not reviewed: ${unreviewed.join(", ")}\n` : "";
 		const suiteResult = runCommand(suite, tree);
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);

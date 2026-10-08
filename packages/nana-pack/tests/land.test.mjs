@@ -144,6 +144,20 @@ check("a valid LAND revision passes and integration commits are called out", () 
 	assert.equal(out.code, 0, out.text); assert.equal(out.text.match(/^not reviewed:.*$/m)?.[0], `not reviewed: ${tip}, ${integrationSha}`); assert.equal(git(main, "rev-parse", "HEAD"), tip);
 });
 // req: R-976
+check("main commits outside the reviewed ancestry are not reported as unreviewed", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-already-main-")); const main = repo(root, "main");
+	git(main, "checkout", "-b", "review-branch"); const reviewedSha = commit(main, "reviewed.txt", "reviewed\n", "reviewed");
+	git(main, "checkout", "main"); const landedSha = commit(main, "landed.txt", "landed\n", "previous lane landed");
+	const feature = tree(main, "integration"); git(feature, "merge", "--no-edit", "review-branch");
+	const mergeSha = git(feature, "rev-parse", "HEAD"); const tip = commit(feature, "integration.txt", "integration\n", "integration");
+	const home = path.join(root, "home"); mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+	const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir"));
+	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision: reviewedSha, verdict: "LAND" }) + "\n");
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [`${reviewedSha}=item`], home });
+	assert.equal(out.code, 0, out.text); assert.equal(out.text.match(/^not reviewed:.*$/m)?.[0], `not reviewed: ${tip}, ${mergeSha}`);
+	assert.doesNotMatch(out.text, new RegExp(landedSha));
+});
+// req: R-976
 check("a LAND round for another item does not authorize this item", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-wrong-item-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next");
