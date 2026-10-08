@@ -39,11 +39,18 @@ function releaseLock() {
 
 function holderIsDead() {
   const pidFile = path.join(LOCK_DIR, "pid");
+  const pidlessLockIsStale = () => {
+    try {
+      return Date.now() - fs.statSync(LOCK_DIR).mtimeMs > STALE_PIDLESS_MS;
+    } catch {
+      return true;
+    }
+  };
   try {
     const text = fs.readFileSync(pidFile, "utf8").trim();
-    if (!text) return false;
+    if (!/^\d+$/.test(text)) return pidlessLockIsStale();
     const pid = Number(text);
-    if (!Number.isInteger(pid) || pid < 1) return true;
+    if (!Number.isSafeInteger(pid) || pid < 1) return pidlessLockIsStale();
     try {
       process.kill(pid, 0);
       return false;
@@ -52,11 +59,7 @@ function holderIsDead() {
     }
   } catch (error) {
     if (error?.code !== "ENOENT") return false;
-    try {
-      return Date.now() - fs.statSync(LOCK_DIR).mtimeMs > STALE_PIDLESS_MS;
-    } catch {
-      return true;
-    }
+    return pidlessLockIsStale();
   }
 }
 

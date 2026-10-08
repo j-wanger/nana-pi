@@ -117,6 +117,18 @@ const readEvents = () => fs.existsSync(events) ? fs.readFileSync(events, "utf8")
   const reclaimedPidless = run([], { DELAY: "0" });
   // req: R-626
   check("a pid-less lock older than one minute is reclaimed", reclaimedPidless.status === 0 && !exists());
+  fs.mkdirSync(LOCK, { recursive: true });
+  fs.writeFileSync(path.join(LOCK, "pid"), "   \n");
+  fs.utimesSync(LOCK, expired, expired);
+  const reclaimedWhitespacePid = run([], { DELAY: "0" });
+  // req: R-626
+  check("an expired whitespace-only pid lock is reclaimed", reclaimedWhitespacePid.status === 0 && !exists());
+  fs.mkdirSync(LOCK, { recursive: true });
+  fs.writeFileSync(path.join(LOCK, "pid"), "\n");
+  const freshEmpty = run([], { DELAY: "0" }, 500);
+  // req: R-626
+  check("a fresh empty-pid lock remains protected", freshEmpty.error?.code === "ETIMEDOUT" && exists());
+  fs.rmSync(LOCK, { recursive: true, force: true });
 }
 
 {
