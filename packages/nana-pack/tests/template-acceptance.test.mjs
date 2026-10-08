@@ -76,19 +76,22 @@ function ciCheckCommands(filePath) {
   return commands;
 }
 
+function declaredCommandsMatch(filePath, language, substitution) {
+  const declared = ACCEPTANCE_COMMANDS[language].map(([cmd, args]) => [cmd, ...args].join(" "));
+  const expected = ciCheckCommands(filePath).map((command) => substitution?.[0] === command ? substitution[1] : command);
+  return JSON.stringify(declared) === JSON.stringify(expected);
+}
+
 // req: R-595
 check("declared commands mirror each template CI check job with the install substitution", () => {
   const templates = path.resolve(new URL("../../../templates", import.meta.url).pathname);
   for (const [language, substitution] of [["python", null], ["typescript", ["pnpm install --frozen-lockfile", "pnpm install"]]]) {
     const ciPath = path.join(templates, language, "template/.github/workflows/ci.yml");
-    const commands = ciCheckCommands(ciPath);
-    const declared = ACCEPTANCE_COMMANDS[language].map(([cmd, args]) => [cmd, ...args].join(" "));
-    const expected = commands.map((command) => substitution?.[0] === command ? substitution[1] : command);
-    assert.deepEqual(declared, expected, `${language} check job command drift`);
+    assert.equal(declaredCommandsMatch(ciPath, language, substitution), true, `${language} check job command drift`);
     if (language === "typescript") {
       const copy = path.join(root, "ci-mutated.yml");
-      fs.copyFileSync(ciPath, copy); fs.appendFileSync(copy, "      - run: pnpm build\n");
-      assert.notDeepEqual(declared, ciCheckCommands(copy));
+      fs.writeFileSync(copy, fs.readFileSync(ciPath, "utf8").replace("\n  template-drift:", "\n      - run: pnpm build\n\n  template-drift:"));
+      assert.equal(declaredCommandsMatch(copy, language, substitution), false, "added command must fail drift comparison");
     }
   }
 });
