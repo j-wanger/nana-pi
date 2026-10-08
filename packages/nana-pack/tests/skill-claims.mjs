@@ -28,7 +28,7 @@ export const EXEMPTIONS = [
   ...[["adopt-py", "tests/__init__.py"], ["adopt-structure", "AGENTS.override.md"], ["adopt-structure", "CLAUDE.md"], ["adopt-structure", "nana-pack.json"], ["adopt-structure", "./skills"], ["adopt-structure", "skills/adopt-structure"], ["requirements", "config.mjs"], ["requirements", "config.py"], ["requirements", "config.ts"], ["requirements", "path/to/module"], ["adopt-ts", "pnpm-workspace.yaml"], ["py-review", "uv.lock"], ["spec", "specs"]].map(([surface, text]) => ({ surface, kind: "path", text, reason: "Claim is a documented placeholder or optional target, measured in the lane probe." })),
   ...["nana-adoption.sh", "nana-knowledge.ts", "nana-knowledge.ts hook", "nana-objective.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", "nana-knowledge"].map((text) => ({ surface: "templates/_shared/working-under-nana-pi.md", kind: "path", text, reason: "Runtime name is provided by another package or runtime, measured in the lane probe." })),
 ];
-const COMMAND_HEADS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "uv", "uvx", "python", "python3", "node", "make", "just", "git", "pi", "claude", "codex", "ruff", "mypy", "pytest", "curl", "brew", "chmod", "cp", "mv", "mkdir", "touch", "export", "source", "cd", "echo", "cat", "grep", "sed", "find", "ls"]);
+export const UNJUDGED_CLAIM_NOTES = ["prose claims", "PATH links", "uv run <tool>", "uvx copier --data", "node -e", "required-but-missing flags"];
 
 export function judgedClaimCount(claimsCount, unjudgedCommands) {
   return claimsCount - unjudgedCommands.length;
@@ -64,7 +64,10 @@ function scriptsOf(root) {
 
 function binSources(root) {
   const found = new Map();
-  for (const entry of fs.readdirSync(path.join(root, "packages"), { withFileTypes: true })) {
+  let entries;
+  try { entries = fs.readdirSync(path.join(root, "packages"), { withFileTypes: true }); }
+  catch { return found; }
+  for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const pkgRoot = path.join(root, "packages", entry.name);
     try {
@@ -136,10 +139,13 @@ export function judgeClaims({ surface, root, targets, text }) {
     if (claim.kind === "command") {
       const first = claim.text.trim().split(/\s+/)[0];
       const pm = /^(npm|pnpm|yarn|bun)\s+(?:run\s+)?([A-Za-z0-9:_.-]+)/.exec(claim.text);
+      let validated = false;
       for (const target of targets) {
         if (!targetClaimApplies(target, surface, claim)) continue;
         const scripts = scriptsOf(target.root);
         commandIssues.push(...commandProblems(target.root, surface, claim, scripts));
+        if (pm && scripts.includes(pm[2])) validated = true;
+        if (binSources(target.root).has(first)) validated = true;
         if (pm && pm[1] === "pnpm" && scripts.includes(pm[2]) && /(?:^|\s)--(?:\s|$)/.test(claim.text)) {
           commandIssues.push(`${surface}:${claim.line}: literal -- separator after pnpm script in target '${target.name}'`);
         }
@@ -149,7 +155,7 @@ export function judgeClaims({ surface, root, targets, text }) {
           for (const flag of flags) flagIssues.push(...flagProblems(target.root, surface, { ...claim, text: `${claim.text.split(/\s+/)[0]} ${flag}` }));
         }
       }
-      if (!pm && !COMMAND_HEADS.has(first) && !path.isAbsolute(first)) unjudgedCommands.push(first);
+      if (!validated) unjudgedCommands.push(first);
     }
     if (claim.kind === "flag") {
       for (const target of targets) {

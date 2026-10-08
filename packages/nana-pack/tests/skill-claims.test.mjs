@@ -12,7 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { claims, commandProblems } from "../../../templates/typescript/template/scripts/readme-check.mjs";
-import { EXEMPTIONS, SURFACES, judgedClaimCount, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
+import { EXEMPTIONS, SURFACES, UNJUDGED_CLAIM_NOTES, judgedClaimCount, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let failures = 0;
@@ -126,6 +126,12 @@ const unjudged = checkoutJudgements.flatMap(({ result }) => result.unjudgedComma
 const judged = judgedClaimCount(claimCount, unjudged);
 // req: R-599
 check("judged claim accounting excludes unjudged commands", judged === claimCount - unjudged.length && unjudged.length > 0);
+// req: R-599
+check("node -e is reported as unjudged", judgeClaims({ surface: "requirements", root: REPO, targets: baseTarget, text: "`node -e 'process.exit(0)'`" }).unjudgedCommands.includes("node"));
+// req: R-599
+check("uv run pytest is reported as unjudged", judgeClaims({ surface: "requirements", root: REPO, targets: baseTarget, text: "`uv run pytest`" }).unjudgedCommands.includes("uv"));
+// req: R-599
+check("README unchecked list matches the exported classification", UNJUDGED_CLAIM_NOTES.every((note) => read("packages/nana-pack/README.md").includes(note)), UNJUDGED_CLAIM_NOTES.filter((note) => !read("packages/nana-pack/README.md").includes(note)).join(", "));
 console.log(`claims: ${judged} judged, ${unjudged.length} unjudged command claims (heads: ${[...new Set(unjudged)].join(", ") || "none"})`);
 
 if (failures) console.log(`${failures} FAILED`);
