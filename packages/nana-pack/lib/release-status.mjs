@@ -33,8 +33,10 @@ export function selectReleaseTag(tags) {
 
 /** Parse a successful Git commit count. */
 export function countTemplateCommits(output) {
-	const count = Number(String(output).trim());
-	return Number.isSafeInteger(count) && count >= 0 ? count : null;
+	const text = String(output).trim();
+	if (!/^\d+$/.test(text)) return null;
+	const count = Number(text);
+	return Number.isSafeInteger(count) ? count : null;
 }
 
 function invoke(runGit, repo, args) {

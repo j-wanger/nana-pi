@@ -1,0 +1,222 @@
+/**
+ * @module packages/nana-pack/tests/template-acceptance.test.mjs
+ * @purpose Pins immutable-ref rendering, adopt fixture order, and fail-closed acceptance outcomes.
+ * @inputs Acceptance runner and injected child process results.
+ * @outputs PASS/FAIL lines and exit status.
+ * @effects disk (temporary fixture trees).
+ * @errors Failed checks exit nonzero.
+ */
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import os from "node:os";
+import path from "node:path";
+import { tmpDir } from "./tmp-dir.mjs";
+import { ACCEPTANCE_COMMANDS, ADOPT_FIXTURE_FILES, runAcceptance } from "../../../scripts/template-acceptance.mjs";
+
+let failures = 0;
+const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
+const root = tmpDir(path.join(os.tmpdir(), "accept-test-"));
+const sha = "0123456789abcdef0123456789abcdef01234567";
+const makeFile = (base, rel, content = "seed\n") => { const file = path.join(base, rel); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, content); };
+const files = { python: ["README.md", "src/pkg/__init__.py", "tests/AGENTS.md", "tests/test_smoke.py"], typescript: ["README.md", "src/index.ts", "tests/AGENTS.md", "tests/smoke.test.ts"] };
+
+// req: R-593
+check("renders all four modes with the exact resolved SHA and prepares adopt overlays", () => {
+  const src = path.join(root, "src"); fs.mkdirSync(src);
+  const seen = []; const logs = [];
+  const run = (cmd, args, options) => {
+    if (cmd === "git") return { status: 0, stdout: `${sha}\n` };
+    if (cmd === "uvx") {
+      const dest = args.at(-1); const language = args.find((arg) => arg.startsWith("language=")).slice(9);
+      const adopt = args.includes("adopt=true");
+      assert(args.includes("--vcs-ref")); assert.equal(args[args.indexOf("--vcs-ref") + 1], sha); assert(!args.includes("HEAD"));
+      if (adopt) {
+        assert(args.includes("--overwrite"));
+        for (const rel of ADOPT_FIXTURE_FILES[language]) assert(fs.existsSync(path.join(dest, rel)), `${language} fixture ${rel} exists before overlay`);
+      } else for (const rel of files[language]) makeFile(dest, rel, rel.includes("smoke") ? "// req: R-001\nseed\n" : "seed\n");
+      seen.push(`${language}:${adopt ? "adopt" : "scaffold"}`);
+      return { status: 0, stdout: "" };
+    }
+    return { status: 0, stdout: "" };
+  };
+  assert.equal(runAcceptance({ src, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 0);
+  assert.deepEqual(seen, ["python:scaffold", "python:adopt", "typescript:scaffold", "typescript:adopt"]);
+});
+
+// req: R-594
+check("CLI executes from paths with spaces and encoded-looking names and reports missing uvx", () => {
+  const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../scripts/template-acceptance.mjs");
+  const gitBinary = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
+  for (const name of ["acceptance path with spaces", "acceptance a%20b checkout"]) {
+    const checkout = path.join(root, name); fs.mkdirSync(path.join(checkout, "scripts"), { recursive: true });
+    fs.copyFileSync(source, path.join(checkout, "scripts/template-acceptance.mjs"));
+    execFileSync("git", ["init", checkout], { stdio: "ignore" });
+    execFileSync("git", ["-C", checkout, "-c", "user.name=Test", "-c", "user.email=test@example", "commit", "--allow-empty", "-m", "base"], { stdio: "ignore" });
+    const toolBin = path.join(root, `${name}-bin`); fs.mkdirSync(toolBin); fs.symlinkSync(gitBinary, path.join(toolBin, "git"));
+    const result = spawnSync(process.execPath, [path.join(checkout, "scripts/template-acceptance.mjs")], { cwd: checkout, encoding: "utf8", env: { ...process.env, PATH: toolBin } });
+    assert.notEqual(result.status, 0, `${name}: CLI must execute and fail when uvx is unavailable`);
+    assert.match(`${result.stdout}\n${result.stderr}`, /uvx/);
+  }
+});
+
+// req: R-593
+check("removing the marker preserves blank-line separation before the test", () => {
+  const src = path.join(root, "spacing-src"); fs.mkdirSync(src);
+  const smoke = "from package import run\n\n# req: R-001\ndef test_smoke():\n    assert run()\n";
+  const run = (cmd, args) => {
+    if (cmd === "git") return { status: 0, stdout: `${sha}\n` };
+    if (cmd === "uvx") {
+      const dest = args.at(-1); const language = args.find((arg) => arg.startsWith("language=")).slice(9);
+      if (!args.includes("adopt=true")) {
+        for (const rel of ADOPT_FIXTURE_FILES[language]) {
+          if (rel === "src") fs.mkdirSync(path.join(dest, rel), { recursive: true });
+          else makeFile(dest, rel, rel === "tests/test_smoke.py" ? smoke : rel === "pnpm-workspace.yaml" ? "packages: []\\n" : "seed\\n");
+        }
+      } else if (language === "python") {
+        assert.equal(fs.readFileSync(path.join(dest, "tests/test_smoke.py"), "utf8"), "from package import run\n\ndef test_smoke():\n    assert run()\n");
+      }
+      return { status: 0, stdout: "" };
+    }
+    return { status: 0, stdout: "" };
+  };
+  assert.equal(runAcceptance({ src, ref: "HEAD", tmpRoot: root, run, log: console.log }), 0);
+});
+
+function ciCheckCommands(filePath) {
+  const commands = []; let inCheck = false;
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    if (line === "  check:") inCheck = true;
+    else if (inCheck && /^  [a-zA-Z0-9_-]+:/.test(line)) break;
+    else if (inCheck && /^      - run: /.test(line)) commands.push(line.slice("      - run: ".length));
+  }
+  return commands;
+}
+
+function declaredCommandsMatch(filePath, language, substitution) {
+  const declared = ACCEPTANCE_COMMANDS[language].map(([cmd, args]) => [cmd, ...args].join(" "));
+  const expected = ciCheckCommands(filePath).map((command) => substitution?.[0] === command ? substitution[1] : command);
+  return JSON.stringify(declared) === JSON.stringify(expected);
+}
+
+// req: R-593
+check("a dirty template edit is excluded from a SHA render", () => {
+  const available = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8", timeout: 15_000 });
+  assert.notEqual(available.error?.code, "ENOENT", "required tool uvx is missing; install uv to run the dirty SHA render");
+  assert.equal(available.status, 0, `copier availability probe failed: ${available.stderr}`);
+  const repo = path.join(root, "dirty-copier-repo");
+  execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(new URL("../../../", import.meta.url).pathname), repo], { stdio: "ignore" });
+  const sha = execFileSync("git", ["-C", repo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const template = path.join(repo, "templates/python/template/.gitignore");
+  fs.appendFileSync(template, "dirty-uncommitted-template-marker\n");
+  const destination = path.join(root, "dirty-sha-render");
+  const rendered = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", sha, "-d", "language=python", "-d", "project_name=DirtyTest", "-d", "description=Dirty test", "-d", "adopt=false", ".", destination], { cwd: repo, encoding: "utf8", timeout: 600_000 });
+  assert.equal(rendered.status, 0, `${rendered.stdout}\n${rendered.stderr}`);
+  assert(!fs.readFileSync(path.join(destination, ".gitignore"), "utf8").includes("dirty-uncommitted-template-marker"));
+});
+
+// req: R-595
+check("declared commands mirror each template CI check job with the install substitution", () => {
+  const templates = path.resolve(new URL("../../../templates", import.meta.url).pathname);
+  for (const [language, substitution] of [["python", null], ["typescript", ["pnpm install --frozen-lockfile", "pnpm install"]]]) {
+    const ciPath = path.join(templates, language, "template/.github/workflows/ci.yml");
+    assert.equal(declaredCommandsMatch(ciPath, language, substitution), true, `${language} check job command drift`);
+    if (language === "typescript") {
+      const copy = path.join(root, "ci-mutated.yml");
+      fs.writeFileSync(copy, fs.readFileSync(ciPath, "utf8").replace("\n  template-drift:", "\n      - run: pnpm build\n\n  template-drift:"));
+      assert.equal(declaredCommandsMatch(copy, language, substitution), false, "added command must fail drift comparison");
+    }
+  }
+});
+
+function acceptanceStub({ failCommand = null } = {}) {
+  const calls = []; let generatedRoot = "";
+  const run = (cmd, args, options) => {
+    calls.push({ cmd, args, options });
+    if (cmd === "git") return { status: 0, stdout: `${sha}\n` };
+    if (cmd === "uvx") {
+      const dest = args.at(-1); const language = args.find((arg) => arg.startsWith("language=")).slice(9);
+      generatedRoot = path.dirname(dest);
+      if (!args.includes("adopt=true")) for (const rel of ADOPT_FIXTURE_FILES[language]) {
+        if (rel === "src") fs.mkdirSync(path.join(dest, rel), { recursive: true });
+        else makeFile(dest, rel, "fixture\n");
+      }
+      return { status: 0, stdout: "" };
+    }
+    const command = [cmd, ...args].join(" ");
+    const failure = failCommand?.includes(":") ? failCommand.slice(failCommand.indexOf(":") + 1) : failCommand;
+    const failureMode = failCommand?.includes(":") ? failCommand.slice(0, failCommand.indexOf(":")) : null;
+    if (failure && command === failure && (!failureMode || path.basename(options.cwd) === failureMode)) return { status: 1, stdout: "failed", stderr: "stub failure" };
+    if (cmd === "pnpm" && failCommand === "pnpm ENOENT") return { status: null, error: new Error("spawn ENOENT") };
+    return { status: 0, stdout: "" };
+  };
+  return { run, calls, get generatedRoot() { return generatedRoot; } };
+}
+
+// req: R-594
+check("acceptance invokes the exact check command matrix in every combination", () => {
+  const stub = acceptanceStub();
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
+  const actual = stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).map(({ cmd, args, options }) => [path.basename(options.cwd), [cmd, ...args].join(" ")]);
+  assert.deepEqual(actual, [
+    ["python-scaffold", "uv sync"], ["python-scaffold", "uv run ruff check ."], ["python-scaffold", "uv run ruff format --check ."], ["python-scaffold", "uv run mypy"], ["python-scaffold", "uv run pytest"],
+    ["python-adopt", "uv run python scripts/code_map.py"], ["python-adopt", "uv sync"], ["python-adopt", "uv run ruff check ."], ["python-adopt", "uv run ruff format --check ."], ["python-adopt", "uv run mypy"], ["python-adopt", "uv run pytest"],
+    ["typescript-scaffold", "pnpm install"], ["typescript-scaffold", "pnpm check"],
+    ["typescript-adopt", `${process.execPath} scripts/code-map.mjs`], ["typescript-adopt", "pnpm install"], ["typescript-adopt", "pnpm check"],
+  ]);
+  assert(stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).every(({ options }) => options.timeout === 600_000));
+});
+// req: R-594
+check("a timed-out check fails and names its complete command", () => {
+  const stub = acceptanceStub(); const logs = [];
+  const run = (cmd, args, options) => {
+    if (cmd === "uv" && args.join(" ") === "run ruff check .") return { status: null, error: Object.assign(new Error("timed out"), { code: "ETIMEDOUT" }), stderr: "timed out" };
+    return stub.run(cmd, args, options);
+  };
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 1);
+  assert(logs.some((line) => line.includes("python scaffold") && line.includes("uv run ruff check .") && line.includes("exited 1")));
+});
+// req: R-594
+check("map failures report the executable and script", () => {
+  const stub = acceptanceStub(); const logs = [];
+  const run = (cmd, args, options) => {
+    if (cmd === process.execPath && args[0] === "scripts/code-map.mjs") return { status: 1, stderr: "map failed" };
+    return stub.run(cmd, args, options);
+  };
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 1);
+  assert(logs.some((line) => line.includes(`${process.execPath} scripts/code-map.mjs`)));
+});
+
+// req: R-594
+check("all four combinations run and the temporary root is removed on success", () => {
+  const stub = acceptanceStub();
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
+  assert.deepEqual(stub.calls.filter(({ cmd }) => cmd === "uvx").map(({ args }) => args.find((arg) => arg.startsWith("language=")).slice(9) + (args.includes("adopt=true") ? " adopt" : " scaffold")), ["python scaffold", "python adopt", "typescript scaffold", "typescript adopt"]);
+  assert.equal(fs.existsSync(stub.generatedRoot), false);
+  const copier = stub.calls.find(({ cmd }) => cmd === "uvx");
+  assert.equal(copier.options.env.GIT_CONFIG_KEY_0, "gc.auto"); assert.equal(copier.options.env.GIT_CONFIG_VALUE_0, "0");
+});
+// req: R-594
+check("command failures continue all combinations and ENOENT names pnpm", () => {
+  const stub = acceptanceStub({ failCommand: "pnpm ENOENT" }); const logs = [];
+  const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
+  assert.equal(status, 1); assert(logs.some((line) => line.includes("typescript scaffold: pnpm install exited 1")));
+  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
+});
+// req: R-594
+check("a single adopt mypy failure names its command while later combinations still run", () => {
+  const stub = acceptanceStub({ failCommand: "python-adopt:uv run mypy" }); const logs = [];
+  const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
+  assert.equal(status, 1); assert(logs.some((line) => line.includes("python adopt") && line.includes("uv run mypy")));
+  assert(!logs.some((line) => line.includes("python scaffold")), "scaffold must not report the adopt-only failure");
+  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
+});
+
+// req: R-594
+check("missing tools fail closed and name the tool", () => {
+  const logs = [];
+  const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: (cmd) => cmd === "git" ? { status: 0, stdout: `${sha}\n` } : { status: null, error: new Error("spawn ENOENT") }, log: (line) => logs.push(line) });
+  assert.equal(status, 1); assert(logs.join("\n").includes("uvx"));
+});
+if (failures) process.exitCode = 1;

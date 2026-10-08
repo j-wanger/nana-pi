@@ -1,0 +1,61 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # 1.0.2: installed and verified version, pi 1.0 adoption 2026-10-04
+  PI_VERSION: 1.0.2
+
+jobs:
+  suite:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}
+      - name: Verify pi version
+        run: test "$(pi --version)" = "${PI_VERSION}"
+      - run: npm test
+
+  release:
+    needs: suite
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    concurrency:
+      group: template-release
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}
+      - name: Verify pi version
+        run: test "$(pi --version)" = "${PI_VERSION}"
+      - run: git config user.name "github-actions[bot]"
+      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: node scripts/template-release.mjs --push
