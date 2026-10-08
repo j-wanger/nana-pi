@@ -19,8 +19,8 @@ export const SURFACES = {
   "py-test": ["python-scaffold"],
   "py-review": ["python-scaffold"],
   spec: ["python-scaffold", "typescript-scaffold"],
-  requirements: ["python-scaffold", "typescript-scaffold", "checkout"],
-  "adopt-structure": ["python-adopt", "typescript-adopt", "checkout"],
+  requirements: ["python-scaffold", "typescript-scaffold", "checkout-render-only"],
+  "adopt-structure": ["python-adopt", "typescript-adopt", "checkout-render-only"],
   "templates/_shared/working-under-nana-pi.md": ["python-scaffold", "typescript-scaffold", "python-adopt", "typescript-adopt", "checkout"],
 };
 
@@ -29,10 +29,6 @@ export const EXEMPTIONS = [
   ...["nana-adoption.sh", "nana-knowledge.ts", "nana-knowledge.ts hook", "nana-objective.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", "nana-knowledge"].map((text) => ({ surface: "templates/_shared/working-under-nana-pi.md", kind: "path", text, reason: "Runtime name is provided by another package or runtime, measured in the lane probe." })),
 ];
 export const UNJUDGED_CLAIM_NOTES = ["prose claims", "PATH links", "uv run <tool>", "uvx copier --data", "node -e", "required-but-missing flags"];
-
-export function judgedClaimCount(claimsCount, unjudgedCommands) {
-  return claimsCount - unjudgedCommands.length;
-}
 
 export function staleExemptions(surface, text) {
   const found = new Set(claims(stripFenceComments(text)).map((claim) => `${claim.kind}:${claim.text}`));
@@ -114,7 +110,7 @@ function targetClaimApplies(target, surface, claim) {
 }
 
 function targetPathProblems(target, surface, claim, checkoutRoot) {
-  if (!targetClaimApplies(target, surface, claim)) return [];
+  if (target.name === "checkout-render-only" || !targetClaimApplies(target, surface, claim)) return [];
   const where = surface === "templates/_shared/working-under-nana-pi.md"
     ? "templates/_shared/working-under-nana-pi.md"
     : `packages/nana-pack/skills/${surface}/SKILL.md`;

@@ -11,7 +11,7 @@ ones that load a real extension skip themselves when pi is not installed globall
 
 ## Skills
 
-The skill-claim suite checks paths, package-script commands and runner spelling, and flags and subcommands by source presence; it does not check prose claims, PATH links, `uv run <tool>`, `uvx copier --data` keys, `node -e`, or required-but-missing flags. Render-dependent checks skip when `uvx copier` is unavailable.
+The skill-claim suite checks applicable paths; package-script commands, including runner spelling and pnpm separator use; flags on script paths; and flags plus the first subcommand of declared nana commands by source presence. It does not check prose claims, PATH links, `uv run <tool>`, `uvx copier --data` keys, `node -e`, or required-but-missing flags. Render-dependent checks skip when `uvx copier` is unavailable.
 
 | Skill | What it does |
 |---|---|

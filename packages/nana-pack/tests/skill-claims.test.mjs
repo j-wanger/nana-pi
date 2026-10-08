@@ -12,7 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { claims, commandProblems } from "../../../templates/typescript/template/scripts/readme-check.mjs";
-import { EXEMPTIONS, SURFACES, UNJUDGED_CLAIM_NOTES, judgedClaimCount, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
+import { EXEMPTIONS, SURFACES, UNJUDGED_CLAIM_NOTES, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let failures = 0;
@@ -61,14 +61,21 @@ const surfaceTexts = Object.entries(SURFACES).map(([surface, declared]) => ({
   text: surface === actualShared ? working : read(`packages/nana-pack/skills/${surface}/SKILL.md`),
   declared,
 }));
-const checkoutSurfaces = surfaceTexts.filter(({ declared }) => declared.includes("checkout"));
-const checkoutJudgements = checkoutSurfaces.map(({ surface, text }) => ({ surface, text, result: judgeClaims({ surface, root: REPO, targets: cwdTargets, text }) }));
+const checkoutSurfaces = surfaceTexts.filter(({ declared }) => declared.some((target) => target.startsWith("checkout")));
+const checkoutJudgements = checkoutSurfaces.map(({ surface, text, declared }) => ({
+  surface,
+  text,
+  result: judgeClaims({ surface, root: REPO, targets: declared.filter((target) => target.startsWith("checkout")).map((name) => ({ name, root: REPO })), text }),
+}));
+const checkoutPathErrors = checkoutJudgements.flatMap(({ result }) => result.pathProblems);
 const pathErrors = checkoutJudgements.filter(({ surface }) => surface === actualShared).flatMap(({ result }) => result.pathProblems);
 const commandErrors = checkoutJudgements.flatMap(({ result }) => result.commandProblems);
 const flagErrors = checkoutJudgements.flatMap(({ result }) => result.flagProblems);
 for (const { surface, text } of surfaceTexts) {
   for (const entry of staleExemptions(surface, text)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
 }
+// req: R-598
+check("every checkout-target surface has no checkout path problems", checkoutPathErrors.length === 0, checkoutPathErrors.join("\n"));
 // req: R-598
 check("checkout shared-section claim paths resolve", pathErrors.length === 0, pathErrors.join("\n"));
 // req: R-599
@@ -123,16 +130,13 @@ check("a missing nana-command flag is rejected", judgeClaims({ surface: actualSh
 check("a declared nana subcommand absent from its source is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: cwdTargets, text: "`review-ledger reports`" }).flagProblems.some((p) => p.includes("reports")));
 const claimCount = checkoutJudgements.reduce((n, { result }) => n + result.claims, 0);
 const unjudged = checkoutJudgements.flatMap(({ result }) => result.unjudgedCommands);
-const judged = judgedClaimCount(claimCount, unjudged);
-// req: R-599
-check("judged claim accounting excludes unjudged commands", judged === claimCount - unjudged.length && unjudged.length > 0);
 // req: R-599
 check("node -e is reported as unjudged", judgeClaims({ surface: "requirements", root: REPO, targets: baseTarget, text: "`node -e 'process.exit(0)'`" }).unjudgedCommands.includes("node"));
 // req: R-599
 check("uv run pytest is reported as unjudged", judgeClaims({ surface: "requirements", root: REPO, targets: baseTarget, text: "`uv run pytest`" }).unjudgedCommands.includes("uv"));
 // req: R-599
 check("README unchecked list matches the exported classification", UNJUDGED_CLAIM_NOTES.every((note) => read("packages/nana-pack/README.md").includes(note)), UNJUDGED_CLAIM_NOTES.filter((note) => !read("packages/nana-pack/README.md").includes(note)).join(", "));
-console.log(`claims: ${judged} judged, ${unjudged.length} unjudged command claims (heads: ${[...new Set(unjudged)].join(", ") || "none"})`);
+console.log(`claims: ${claimCount} extracted, ${unjudged.length} command claims not judged (heads: ${[...new Set(unjudged)].join(", ") || "none"})`);
 
 if (failures) console.log(`${failures} FAILED`);
 else console.log("all passed");
