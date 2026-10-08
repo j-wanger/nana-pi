@@ -11,6 +11,8 @@ ones that load a real extension skip themselves when pi is not installed globall
 
 ## Skills
 
+The skill-claim suite checks paths, package-script commands and runner spelling, and flags and subcommands by source presence; it does not check prose claims, PATH links, `uv run <tool>`, `uvx copier --data` keys, `node -e`, or required-but-missing flags. Render-dependent checks skip when `uvx copier` is unavailable.
+
 | Skill | What it does |
 |---|---|
 | `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |

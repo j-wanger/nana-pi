@@ -24,7 +24,6 @@ export const SURFACES = {
   "templates/_shared/working-under-nana-pi.md": ["python-scaffold", "typescript-scaffold", "python-adopt", "typescript-adopt", "checkout"],
 };
 
-// Text-keyed exceptions document non-project names found during the initial corpus measurement.
 export const EXEMPTIONS = [
   ...[["adopt-py", "tests/__init__.py"], ["adopt-structure", "AGENTS.override.md"], ["adopt-structure", "CLAUDE.md"], ["adopt-structure", "nana-pack.json"], ["adopt-structure", "./skills"], ["adopt-structure", "skills/adopt-structure"], ["requirements", "config.mjs"], ["requirements", "config.py"], ["requirements", "config.ts"], ["requirements", "path/to/module"], ["adopt-ts", "pnpm-workspace.yaml"], ["py-review", "uv.lock"], ["spec", "specs"]].map(([surface, text]) => ({ surface, kind: "path", text, reason: "Claim is a documented placeholder or optional target, measured in the lane probe." })),
   ...["nana-adoption.sh", "nana-knowledge.ts", "nana-knowledge.ts hook", "nana-objective.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", "nana-knowledge"].map((text) => ({ surface: "templates/_shared/working-under-nana-pi.md", kind: "path", text, reason: "Runtime name is provided by another package or runtime, measured in the lane probe." })),
@@ -76,29 +75,18 @@ function binSources(root) {
 function nanaProblems(root, text, lineOffset = 0) {
   const found = binSources(root);
   const out = [];
-  const all = [...text.split("\n").entries()].map(([i, line]) => [i + 1 + lineOffset, line]);
-  const claims = [];
-  for (const [line, body] of all) {
-    const spans = [...body.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-    const fenced = shellLines(text).filter(([n]) => n === line - lineOffset).map(([, command]) => command);
-    claims.push(...spans, ...fenced);
-  }
-  for (const [line, body] of all) {
-    const candidates = [...body.matchAll(/`([^`]+)`/g)].map((m) => [m[1], line]);
-    for (const [command, n] of candidates) {
+  for (const [line, body] of [...text.split("\n").entries()].map(([i, value]) => [i + 1 + lineOffset, value])) {
+    const commands = [...body.matchAll(/`([^`]+)`/g)].map((m) => [m[1], line]);
+    commands.push(...shellLines(text).filter(([n]) => n === line - lineOffset).map(([, command]) => [command, line]));
+    for (const [command, n] of commands) {
       const tokens = command.trim().split(/\s+/);
       const bin = found.get(tokens[0]);
-      if (bin) checkNana(bin, tokens, n, out, root, tokens[0]);
+      if (bin) checkNana(bin, tokens, n, out, tokens[0]);
     }
-  }
-  for (const [n, command] of shellLines(text)) {
-    const tokens = command.split(/\s+/);
-    const bin = found.get(tokens[0]);
-    if (bin) checkNana(bin, tokens, n, out, root, tokens[0]);
   }
   return out;
 }
-function checkNana(bin, tokens, line, out, root, name) {
+function checkNana(bin, tokens, line, out, name) {
   if (!fs.existsSync(bin.file)) return;
   const source = fs.readFileSync(bin.file, "utf8");
   for (const token of tokens.slice(1)) {
@@ -108,45 +96,62 @@ function checkNana(bin, tokens, line, out, root, name) {
   if (subcommand && !source.includes(subcommand)) out.push(`${name}:${line}: '${subcommand}' is absent from command source`);
 }
 
+function targetClaimApplies(target, surface, claim) {
+  if (surface === "requirements" && target.name.startsWith("typescript") && /(?:code_map|readme_check)\.py$/.test(claim.text)) return false;
+  if (surface === "requirements" && target.name.startsWith("python") && /(?:code-map|readme-check)\.mjs$/.test(claim.text)) return false;
+  if (surface === "requirements" && target.name.startsWith("typescript") && /^(?:uv run python|python3)\s/.test(claim.text)) return false;
+  if (surface === "requirements" && target.name.startsWith("python") && /^(?:pnpm|npm)\s/.test(claim.text)) return false;
+  if (["adopt-py", "adopt-ts"].includes(surface) && claim.text === "readme-check.config.json") return false;
+  if (surface === "adopt-structure" && target.name !== "checkout" && ["templates/_shared", "package.json"].includes(claim.text)) return false;
+  return true;
+}
+
+function targetPathProblems(target, surface, claim, checkoutRoot) {
+  if (!targetClaimApplies(target, surface, claim)) return [];
+  const where = surface === "templates/_shared/working-under-nana-pi.md"
+    ? "templates/_shared/working-under-nana-pi.md"
+    : `packages/nana-pack/skills/${surface}/SKILL.md`;
+  const skillDir = path.resolve(checkoutRoot, path.dirname(where));
+  const resolved = pathProblems(target.root, ".", claim).length === 0 || pathProblems(skillDir, ".", claim).length === 0;
+  return resolved ? [] : [`${surface}:${claim.line}: '${claim.text}' does not exist in declared target '${target.name}'`];
+}
+
 export function judgeClaims({ surface, root, targets, text }) {
   const cleaned = stripFenceComments(text);
   const list = claims(cleaned);
   const pathIssues = [];
   const commandIssues = [];
-  const flagIssues = [];
+  const flagIssues = nanaProblems(root, cleaned);
   const unjudgedCommands = [];
-  const nana = nanaProblems(root, cleaned);
   for (const claim of list) {
     if (claim.kind === "path") {
-      if (EXEMPTIONS.some((e) => e.surface === surface && e.kind === "path" && e.text === claim.text)) continue;
-      if (!targets.some((target) => {
-        const where = target.name === "checkout" ? (surface === "templates/_shared/working-under-nana-pi.md" ? "templates/_shared/working-under-nana-pi.md" : `packages/nana-pack/skills/${surface}/SKILL.md`) : surface;
-        return pathProblems(target.root, where, claim).length === 0;
-      })) pathIssues.push(`${surface}:${claim.line}: '${claim.text}' does not exist in declared targets`);
+      if (!EXEMPTIONS.some((e) => e.surface === surface && e.kind === "path" && e.text === claim.text)) {
+        for (const target of targets) pathIssues.push(...targetPathProblems(target, surface, claim, root));
+      }
     }
     if (claim.kind === "command") {
       const first = claim.text.trim().split(/\s+/)[0];
       const pm = /^(npm|pnpm|yarn|bun)\s+(?:run\s+)?([A-Za-z0-9:_.-]+)/.exec(claim.text);
-      if (pm) {
-        const applicable = targets.filter((target) => scriptsOf(target.root).includes(pm[2]));
-        if (!applicable.length && !["install", "test", "exec", "dlx", "add", "remove", "run", "init", "build"].includes(pm[2])) commandIssues.push(`${surface}:${claim.line}: '${pm[2]}' is not a script in a declared target`);
-        if (pm[1] === "pnpm" && applicable.length && /(?:^|\s)--(?:\s|$)/.test(claim.text)) commandIssues.push(`${surface}:${claim.line}: literal -- separator after pnpm script`);
-        const unprefixed = targets.find((target) => scriptsOf(target.root).includes(first));
-        if (unprefixed) commandIssues.push(`${surface}:${claim.line}: '${first}' is a script; spell it with its runner`);
-      } else if (targets.some((target) => scriptsOf(target.root).includes(first))) commandIssues.push(`${surface}:${claim.line}: '${first}' is a script; spell it with its runner`);
-      if (!pm && !COMMAND_HEADS.has(first) && !path.isAbsolute(first)) unjudgedCommands.push(first);
       for (const target of targets) {
+        if (!targetClaimApplies(target, surface, claim)) continue;
+        const scripts = scriptsOf(target.root);
+        commandIssues.push(...commandProblems(target.root, surface, claim, scripts));
+        if (pm && pm[1] === "pnpm" && scripts.includes(pm[2]) && /(?:^|\s)--(?:\s|$)/.test(claim.text)) {
+          commandIssues.push(`${surface}:${claim.line}: literal -- separator after pnpm script in target '${target.name}'`);
+        }
+        if (scripts.includes(first)) commandIssues.push(`${surface}:${claim.line}: '${first}' is a script; spell it with its runner for target '${target.name}'`);
         if (claim.text.startsWith("scripts/")) {
           const flags = [...claim.text.matchAll(/--[\w-]+/g)].map((m) => m[0]);
           for (const flag of flags) flagIssues.push(...flagProblems(target.root, surface, { ...claim, text: `${claim.text.split(/\s+/)[0]} ${flag}` }));
         }
       }
+      if (!pm && !COMMAND_HEADS.has(first) && !path.isAbsolute(first)) unjudgedCommands.push(first);
     }
     if (claim.kind === "flag") {
-      const flagTarget = targets.find((target) => fs.existsSync(path.join(target.root, claim.text.split(" ")[0])));
-      if (flagTarget) flagIssues.push(...flagProblems(flagTarget.root, surface, claim));
+      for (const target of targets) {
+        if (fs.existsSync(path.join(target.root, claim.text.split(" ")[0]))) flagIssues.push(...flagProblems(target.root, surface, claim));
+      }
     }
   }
-  flagIssues.push(...nana);
   return { claims: list.length, pathProblems: pathIssues, commandProblems: commandIssues, flagProblems: flagIssues, unjudgedCommands };
 }
