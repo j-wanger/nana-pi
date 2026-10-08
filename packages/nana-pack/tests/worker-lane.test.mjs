@@ -45,6 +45,9 @@ check("lane options with missing values refuse before pi spawn", (() => {
 		["lane option starts with dash", ["--lane", "-alpha"]],
 		["brief option missing", ["--lane", "alpha", "--brief"]],
 		["max-secs option missing", ["--lane", "alpha", "--brief", brief, "--max-secs"]],
+		["repeated lane with trailing missing value", ["--lane", "alpha", "--brief", brief, "--lane"]],
+		["repeated brief with trailing missing value", ["--lane", "alpha", "--brief", brief, "--brief"]],
+		["repeated max-secs with trailing missing value", ["--lane", "alpha", "--brief", brief, "--max-secs", "30", "--max-secs"]],
 		["brief missing even without lane value", ["--brief"]],
 		["max-secs missing even without lane value", ["--max-secs"]],
 	];

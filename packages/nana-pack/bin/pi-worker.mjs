@@ -19,10 +19,22 @@ const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retrie
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
-const value = (flag) => { const at = own.indexOf(flag); return at < 0 ? null : own[at + 1] ?? null; };
-const lanePresent = own.includes('--lane');
-const briefPresent = own.includes('--brief');
-const maxPresent = own.includes('--max-secs');
+const ownOptionNames = new Set(['--out', '--stall-secs', '--retries', '--poll', '--lane', '--brief', '--max-secs']);
+const ownValues = new Map();
+let duplicateOwnOption = null;
+for (let i = 2; i < own.length; i++) {
+	const flag = own[i];
+	if (!ownOptionNames.has(flag)) continue;
+	if (ownValues.has(flag)) duplicateOwnOption ??= flag;
+	const next = own[i + 1];
+	const takesValue = next !== undefined && !ownOptionNames.has(next);
+	ownValues.set(flag, takesValue ? next : null);
+	if (takesValue) i++;
+}
+const value = (flag) => ownValues.get(flag) ?? null;
+const lanePresent = ownValues.has('--lane');
+const briefPresent = ownValues.has('--brief');
+const maxPresent = ownValues.has('--max-secs');
 const laneMode = lanePresent;
 const lane = value('--lane');
 const brief = value('--brief');
@@ -50,6 +62,11 @@ let childEnv = {};
 let maxArg;
 let laneRoot, laneGitDir, briefPath, preambleFile, laneLock;
 let validateLaneAttempt = () => null;
+if (duplicateOwnOption) {
+	if (laneMode) laneFailure(`duplicate option ${duplicateOwnOption}`);
+	process.stderr.write(`pi-worker: duplicate option ${duplicateOwnOption}\n`);
+	process.exit(1);
+}
 for (const [flag, present, arg] of [['--lane', lanePresent, lane], ['--brief', briefPresent, brief], ['--max-secs', maxPresent, maxRaw]]) {
 	if (present && (arg === null || arg === '' || arg.startsWith('-'))) laneFailure(`${flag} requires a value`);
 }
@@ -66,8 +83,7 @@ if (laneMode) {
 	if (dirs[0] === dirs[1]) laneFailure('main checkout is not a linked worktree');
 	if (branch !== `feat/${lane}`) laneFailure(`checked-out branch is ${branch || '(detached)'}, expected feat/${lane}`);
 	if (!brief || !existsSync(path.resolve(cwd, brief))) laneFailure('brief file does not exist');
-	const retryAt = own.indexOf('--retries');
-	if (retryAt >= 0 && Number(own[retryAt + 1]) > 0) laneFailure('--retries greater than zero is refused in lane mode');
+	if (ownValues.has('--retries') && Number(value('--retries')) > 0) laneFailure('--retries greater than zero is refused in lane mode');
 	if (!Number.isSafeInteger(maxSecs) || maxSecs < 1) laneFailure('--max-secs must be a positive whole number');
 	briefPath = fsReal(path.resolve(cwd, brief));
 	try {
