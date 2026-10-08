@@ -39,7 +39,7 @@ The suite. Its root is layerExempt, so a test may import any layer (G-007) - but
 ### `tests/conftest.py`
 
 - **purpose** — Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry, and that its Requirement cell carries exactly one `shall`.
-- **inputs** — REQUIREMENTS.md and every tests/**/test_*.py source, read from the pytest rootdir
+- **inputs** — REQUIREMENTS.md, optional REQUIREMENTS-general.md, and every tests/**/test_*.py source, read from the pytest rootdir
 - **outputs** — the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a problem list, a summary line on the terminal, and a non-zero exit status on a full run that disagrees
 - **effects** — disk (reads REQUIREMENTS.md and the test sources), process (sets the session exit status)
 - **errors** — pytest.UsageError for a malformed requirements table or a bad or orphan marker

@@ -191,7 +191,12 @@ def _parse_exempt(entries: Any, where: str) -> tuple[Exempt, ...]:
         if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
             raise ConfigError(f"{where}: exempt[{i}] must be an object with a non-empty 'path'")
         reason = entry.get("reason")
-        found.append(Exempt(path=entry["path"], reason=reason.strip() if isinstance(reason, str) else ""))
+        found.append(
+            Exempt(
+                path=entry["path"],
+                reason=reason.strip() if isinstance(reason, str) else "",
+            )
+        )
     return tuple(found)
 
 
@@ -218,7 +223,14 @@ def parse_config(text: str, where: str = CONFIG_PATH) -> Config:
         for key in ("id", "title", "blurb", "match"):
             if not isinstance(entry.get(key), str) or not entry[key]:
                 raise ConfigError(f"{where}: layers[{i}] has no '{key}'")
-        layers.append(Layer(id=entry["id"], title=entry["title"], blurb=entry["blurb"], match=entry["match"]))
+        layers.append(
+            Layer(
+                id=entry["id"],
+                title=entry["title"],
+                blurb=entry["blurb"],
+                match=entry["match"],
+            )
+        )
     return Config(
         roots=roots,
         module_extensions=tuple(raw["moduleExtensions"]),
@@ -289,7 +301,11 @@ def _collect_tags(lines: list[str]) -> tuple[list[str], dict[str, str], str | No
             current = name
             continue
         if current is None:
-            return order, fields, "no contract header: the module docstring must open with @module"
+            return (
+                order,
+                fields,
+                "no contract header: the module docstring must open with @module",
+            )
         fields[current] = f"{fields[current]} {line.strip()}".strip()
     return order, fields, None
 
@@ -394,7 +410,10 @@ def _dynamic_target(
     spec = node.args[0] if node.args else None
     if not isinstance(spec, ast.Constant) or not isinstance(spec.value, str):
         shown = ast.unparse(node) if spec is not None else f"{ast.unparse(node.func)}()"
-        return None, f"unmapped dynamic import at line {node.lineno}: {shown} (the argument is not a literal string)"
+        return (
+            None,
+            f"unmapped dynamic import at line {node.lineno}: {shown} (the argument is not a literal string)",
+        )
     name = spec.value
     if not name.startswith("."):
         return ((name,), False), None
@@ -417,7 +436,9 @@ def _from_targets(node: ast.ImportFrom, self_name: str, is_package: bool) -> lis
     return [((f"{base}.{a.name}", base), relative) for a in node.names]
 
 
-def _dedupe(items: list[tuple[tuple[str, ...], bool]]) -> list[tuple[tuple[str, ...], bool]]:
+def _dedupe(
+    items: list[tuple[tuple[str, ...], bool]],
+) -> list[tuple[tuple[str, ...], bool]]:
     """The same imports in source order, each one once."""
     seen: set[tuple[tuple[str, ...], bool]] = set()
     unique: list[tuple[tuple[str, ...], bool]] = []
@@ -695,7 +716,10 @@ def render_map(graph: Graph) -> str:
                 out.append("")
                 continue
             if mod.header is None:
-                out += [f"- **header** — MISSING OR MALFORMED: {mod.header_problem}", ""]
+                out += [
+                    f"- **header** — MISSING OR MALFORMED: {mod.header_problem}",
+                    "",
+                ]
                 continue
             for tag in ("purpose", "inputs", "outputs", "effects", "errors"):
                 out.append(f"- **{tag}** — {mod.header[tag]}")

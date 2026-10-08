@@ -238,6 +238,8 @@ Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm
 
 ## Tests
 
+On a shared machine, run the full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
+
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
 and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
 temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1

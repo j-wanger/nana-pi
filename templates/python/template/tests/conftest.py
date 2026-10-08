@@ -1,6 +1,6 @@
 """@module tests/conftest.py
 @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test sources actually carry, and that its Requirement cell carries exactly one `shall`.
-@inputs REQUIREMENTS.md and every tests/**/test_*.py source, read from the pytest rootdir
+@inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, and every tests/**/test_*.py source, read from the pytest rootdir
 @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line,
   a problem list, a summary line on the terminal, and a non-zero exit status on a full
   run that disagrees
@@ -85,6 +85,9 @@ SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE |
 #: test_requirements_trace.py::test_seal_ears_allowance_default_is_0.
 EARS_ALLOWANCE_DEFAULT = 0
 
+#: The template-owned Part G source (chosen, R-581).
+GENERAL_REQUIREMENTS_FILE = "REQUIREMENTS-general.md"
+
 #: The call names that count as a test declaration in a helper-driven suite, where the
 #: marked call is a call and not a ``def`` -- and may sit ANYWHERE on the line
 #: (``for case in CASES: check("...", ...)``). The FIRST such call on the line wins.
@@ -123,12 +126,14 @@ def _is_local(cite: str) -> bool:
     return bool(sep) and head.startswith("tests/") and bool(name.strip()) and head != "tests/"
 
 
-def load_requirements(path: Path) -> dict[str, Row]:
+def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
     """Parse REQUIREMENTS.md into rows by id. Raises UsageError on a malformed table."""
-    if not path.exists():
-        return {}
+    if text is None:
+        if not path.exists():
+            return {}
+        text = path.read_text(encoding="utf-8")
     found: dict[str, Row] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -338,6 +343,21 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
     return f"requirements: {len(requirements)} total ({parts}); {len(traced)} traced by tests"
 
 
+def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
+    """Return requirement, status and evidence cells for each table row."""
+    found: dict[str, tuple[str, str, str]] = {}
+    for line in text.splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or not ID_RE.match(cells[0]):
+            continue
+        if len(cells) != 4:
+            raise pytest.UsageError(f"{cells[0]} has malformed table cells")
+        if cells[0] in found:
+            raise pytest.UsageError(f"duplicate id {cells[0]}")
+        found[cells[0]] = (cells[1], cells[2], cells[3])
+    return found
+
+
 def check(
     root: Path,
     test_roots: tuple[str, ...] = ("tests",),
@@ -351,8 +371,31 @@ def check(
     -- a repo with several suites passes them all and cites each by its real path.
     """
     reqs_path = root / "REQUIREMENTS.md"
-    text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
-    requirements = load_requirements(reqs_path)
+    project_text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
+    general_path = root / GENERAL_REQUIREMENTS_FILE
+    text = project_text
+    if general_path.exists():
+        general_text = general_path.read_text(encoding="utf-8")
+        load_requirements(general_path, general_text)
+        project_cells = _row_cells(project_text)
+        general_cells = _row_cells(general_text)
+        for rid in general_cells:
+            if not rid.startswith("G-"):
+                raise pytest.UsageError(f"{rid} is not a Part G id in {GENERAL_REQUIREMENTS_FILE}")
+        merged = {rid: cells for rid, cells in project_cells.items() if not rid.startswith("G-")}
+        for rid, cells in general_cells.items():
+            owned = project_cells.get(rid)
+            merged[rid] = (
+                cells[0],
+                owned[1] if owned else cells[1],
+                owned[2] if owned else cells[2],
+            )
+        text = (
+            "\n".join(line for line in project_text.splitlines() if not line.startswith("|"))
+            + "\n"
+            + "\n".join(f"| {rid} | {cells[0]} | {cells[1]} | {cells[2]} |" for rid, cells in merged.items())
+        )
+    requirements = load_requirements(reqs_path, text)
     counts = shall_counts(text)
     off_form = ears_off_form(requirements, counts)
     traced: dict[str, list[str]] = {}
@@ -370,6 +413,24 @@ def check(
     # (G-014's "in its own line after the summary line") pinned without spying on a consumer.
     report = f"{line}\n{ears_line}"
     return requirements, traced, problems, line, off_form, ears_line, report
+
+
+def _drift_line(root: Path) -> str | None:
+    """Return the non-failing Part G text reconciliation notice, if needed."""
+    general_path = root / GENERAL_REQUIREMENTS_FILE
+    requirements_path = root / "REQUIREMENTS.md"
+    if not general_path.exists() or not requirements_path.exists():
+        return None
+    project_cells = _row_cells(requirements_path.read_text(encoding="utf-8"))
+    general_cells = _row_cells(general_path.read_text(encoding="utf-8"))
+    differences = sorted(
+        rid
+        for rid, cells in project_cells.items()
+        if rid.startswith("G-") and rid in general_cells and cells[0] != general_cells[rid][0]
+    )
+    if not differences:
+        return None
+    return f"part g: {len(differences)} cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): {', '.join(differences)}"
 
 
 def _is_full_run(config: pytest.Config) -> bool:
@@ -394,10 +455,12 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Compare REQUIREMENTS.md against the markers; fail a full run that disagrees."""
     config = session.config
     ears_allowance = config.getini("requirements_ears_allowance")
+    drift_line: str | None = None
     try:
         requirements, traced, problems, _line, _off_form, _ears_line, report = check(
             config.rootpath, ears_allowance=ears_allowance
         )
+        drift_line = _drift_line(config.rootpath)
     except pytest.UsageError as err:
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
@@ -411,6 +474,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         reporter.write_line("")
         for line_out in report.split("\n"):
             reporter.write_line(line_out)
+        if drift_line:
+            reporter.write_line(drift_line)
         if problems:
             head = "requirements trace FAILED:" if full else "requirements trace (partial run, informational):"
             reporter.write_line(head, red=full)

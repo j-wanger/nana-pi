@@ -1,7 +1,7 @@
 /**
  * @module tests/requirements-trace.ts
  * @purpose Check that every REQUIREMENTS.md row's status agrees with the `req:` markers the test suite actually carries, and that its Requirement cell carries exactly one `shall`.
- * @inputs REQUIREMENTS.md and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
+ * @inputs REQUIREMENTS.md, optional REQUIREMENTS-general.md, and every test source (.test.ts, .test.tsx, .test.mjs, .test.js) under the configured test roots, recursively, read from a project root
  * @outputs the parsed rows, the traced ids, the ids off EARS form, the `ears:` report line, a list of human-readable problems and a one-line summary
  * @effects disk (reads REQUIREMENTS.md and the test sources), process (printReport writes the report to stdout)
  * @errors a thrown Error for a malformed requirements table (duplicate id, unknown status, a pipe inside a cell) or a bad or orphan marker
@@ -119,6 +119,9 @@ export const SHALL = /(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])/gi;
  * requirements-trace.test.ts::seal: EARS_ALLOWANCE_DEFAULT is 0 (G-015).
  */
 export const EARS_ALLOWANCE_DEFAULT = 0;
+
+/** The template-owned Part G source (chosen, R-581). */
+export const GENERAL_REQUIREMENTS_FILE = "REQUIREMENTS-general.md";
 
 /** The call names that count as a test declaration, when a project does not say. */
 export const CALL_NAMES = ["test", "it"];
@@ -436,6 +439,8 @@ export interface CheckResult {
 	earsOffForm: string[];
 	/** The `ears:` report line (G-014), printed after `line` every run regardless of pass/fail. */
 	earsLine: string;
+	/** Non-failing reconciliation notice for project-owned Part G text. */
+	driftLine?: string;
 	/**
 	 * `line` and `earsLine` joined by one newline, in that order — a structural guarantee
 	 * (G-014's "in its own line after the summary line") a caller can print as one block and
@@ -462,7 +467,60 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	const testRoots = options.testRoots ?? TEST_ROOTS;
 	const callNames = options.callNames ?? CALL_NAMES;
 	const earsAllowance = options.earsAllowance ?? EARS_ALLOWANCE_DEFAULT;
-	const text = readFileSync(join(root, "REQUIREMENTS.md"), "utf8");
+	const projectText = readFileSync(join(root, "REQUIREMENTS.md"), "utf8");
+	const generalPath = join(root, GENERAL_REQUIREMENTS_FILE);
+	const hasGeneral = existsSync(generalPath);
+	const generalText = hasGeneral ? readFileSync(generalPath, "utf8") : "";
+	let text = projectText;
+	let driftLine: string | undefined;
+	if (hasGeneral) {
+		const rowCells = (source: string): Map<string, string[]> => {
+			const found = new Map<string, string[]>();
+			for (const line of source.split("\n")) {
+				const match = ROW.exec(line);
+				if (!match) continue;
+				const cells = (match[2] as string)
+					.split("|")
+					.map((cell) => cell.trim());
+				if (cells.length !== 3)
+					throw new Error(`${match[1]} has malformed table cells`);
+				if (found.has(match[1] as string))
+					throw new Error(`duplicate id ${match[1]}`);
+				found.set(match[1] as string, cells);
+			}
+			return found;
+		};
+		loadRequirements(generalText);
+		const projectRows = rowCells(projectText);
+		const generalRows = rowCells(generalText);
+		for (const id of generalRows.keys())
+			if (!id.startsWith("G-"))
+				throw new Error(
+					`${id} is not a Part G id in ${GENERAL_REQUIREMENTS_FILE}`,
+				);
+		const differences: string[] = [];
+		const merged = new Map(
+			[...projectRows].filter(([id]) => !id.startsWith("G-")),
+		);
+		for (const [id, cells] of generalRows) {
+			const owned = projectRows.get(id);
+			if (owned && owned[0] !== cells[0]) differences.push(id);
+			merged.set(id, [
+				cells[0] as string,
+				owned?.[1] ?? (cells[1] as string),
+				owned?.[2] ?? (cells[2] as string),
+			]);
+		}
+		const mergedLines = [...merged].map(
+			([id, cells]) => `| ${id} | ${cells.join(" | ")} |`,
+		);
+		text = `${projectText
+			.split("\n")
+			.filter((line) => !ROW.test(line))
+			.join("\n")}\n${mergedLines.join("\n")}\n`;
+		if (differences.length)
+			driftLine = `part g: ${differences.length} cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): ${differences.sort().join(", ")}`;
+	}
 	const requirements = loadRequirements(text);
 	const traced = new Map<string, string[]>();
 	for (const dir of testRoots) {
@@ -492,6 +550,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		line,
 		earsOffForm: earsOffFormIds,
 		earsLine,
+		driftLine,
 		report: `${line}\n${earsLine}`,
 	};
 }
@@ -505,4 +564,5 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
  */
 export function printReport(result: CheckResult): void {
 	console.log(result.report);
+	if (result.driftLine) console.log(result.driftLine);
 }
