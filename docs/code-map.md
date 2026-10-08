@@ -307,7 +307,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`
+- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
 - **callees** — —
 
 ### `apps/bench/test/usage.test.mjs`
@@ -318,7 +318,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (reads the fixtures)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/usage.mjs`
+- **callees** — `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/tmp-dir.mjs`
 
 ### `apps/desk/apps.mjs`
 

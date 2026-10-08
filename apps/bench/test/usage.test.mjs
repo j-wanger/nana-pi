@@ -11,7 +11,9 @@
 // streams — no model is called.
 // Run: node apps/bench/test/usage.test.mjs   (exit 0 = all PASS)
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { tmpDir } from "./tmp-dir.mjs";
 import { fileURLToPath } from "node:url";
 import { addUsage, costOfRecord, costTotal, costUnknownReason, emptyUsage, incompleteReason, observedCostOfRecord, parseStream, totalTokens } from "../lib/usage.mjs";
 import { loadPiExports, PI_MIN_VERSION, REQUIRED_PI_AI } from "../lib/pi-exports.mjs";
@@ -250,6 +252,13 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 
 // ── startup export check: a bench must FAIL rather than substitute its own arithmetic ──────────
 {
+	const fixtureRoot = tmpDir(path.join(os.tmpdir(), "bench-pi-export-fixture-"));
+	const aiRoot = path.join(fixtureRoot, "node_modules", "@earendil-works", "pi-ai");
+	fs.mkdirSync(aiRoot, { recursive: true });
+	fs.writeFileSync(path.join(fixtureRoot, "package.json"), JSON.stringify({ name: "@earendil-works/pi-coding-agent", version: PI_MIN_VERSION, main: "index.js" }));
+	fs.writeFileSync(path.join(aiRoot, "package.json"), JSON.stringify({ name: "@earendil-works/pi-ai", version: PI_MIN_VERSION, main: "index.js" }));
+	const previousRoot = process.env.BENCH_PI_ROOT;
+	process.env.BENCH_PI_ROOT = fixtureRoot;
 	const stub = (mod) => async () => mod;
 	let threw = null;
 	try {
@@ -258,13 +267,13 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 		threw = e.message;
 	}
 	// req: R-508
-	check("a pi without calculateCost fails LOUDLY at startup", threw !== null);
+	check("a pi without calculateCost fails LOUDLY at startup", threw !== null, threw ?? "");
 	// req: R-508
-	check("…naming the missing export", /calculateCost \(expected function/.test(threw ?? ""), (threw ?? "").split("\n")[1] ?? "");
+	check("…naming the missing export", /calculateCost \(expected function/.test(threw ?? ""), threw ?? "");
 	// req: R-508
-	check("…and refusing to fall back", /will NOT substitute its own arithmetic/.test(threw ?? ""));
+	check("…and refusing to fall back", /will NOT substitute its own arithmetic/.test(threw ?? ""), threw ?? "");
 	// req: R-508
-	check("…and naming the version it was verified against", (threw ?? "").includes(PI_MIN_VERSION));
+	check("…and naming the version it was verified against", (threw ?? "").includes(PI_MIN_VERSION), threw ?? "");
 	check("the required-export list is exported so it is reviewable", REQUIRED_PI_AI.calculateCost === "function");
 
 	threw = null;
@@ -273,7 +282,7 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	} catch (e) {
 		threw = e.message;
 	}
-	check("a pi without ModelRuntime also fails loudly", /ModelRuntime \(expected function/.test(threw ?? ""), (threw ?? "").split("\n")[1] ?? "");
+	check("a pi without ModelRuntime also fails loudly", /ModelRuntime \(expected function/.test(threw ?? ""), threw ?? "");
 
 	// A BENCH_PI_ROOT that points nowhere must fail with the paths it tried, not fall back.
 	const prev = process.env.BENCH_PI_ROOT;
@@ -288,7 +297,9 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	else process.env.BENCH_PI_ROOT = prev;
 	// req: R-508
 	check("a wrong BENCH_PI_ROOT fails and names the path tried", /definitely\/not\/a\/pi\/install/.test(threw ?? ""), (threw ?? "").slice(0, 80));
-	check("…and tells the maintainer how to fix it", /npm i -g @earendil-works\/pi-coding-agent/.test(threw ?? ""));
+	check("…and tells the maintainer how to fix it", /npm i -g @earendil-works\/pi-coding-agent/.test(threw ?? ""), threw ?? "");
+	if (previousRoot === undefined) delete process.env.BENCH_PI_ROOT;
+	else process.env.BENCH_PI_ROOT = previousRoot;
 }
 
 process.exit(fails ? 1 : 0);

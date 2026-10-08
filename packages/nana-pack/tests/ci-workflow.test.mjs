@@ -46,4 +46,9 @@ check("root CI runs the suite on macOS and nonblocking Ubuntu and gates tag rele
     assert.deepEqual(positions, [...positions].sort((a, b) => a - b), `${job} toolchain setup steps must stay ordered`);
   }
 });
+// req: R-686
+check("suite checkout fetches full history for historical-commit tests", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  assert.match(suite, /uses: actions\/checkout@v4\n        with:\n          fetch-depth: 0/);
+});
 if (failures) process.exitCode = 1;
