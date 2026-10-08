@@ -181,6 +181,7 @@ export function memoryLinkState(sharedRoot, projectRoot) {
 		}
 	}
 	const issues = [];
+	let danglingCount = 0;
 	for (const [tier, root] of [["shared", sharedRoot], ["project", projectRoot]]) {
 		for (const file of memoryFiles(root)) {
 			let text;
@@ -191,12 +192,12 @@ export function memoryLinkState(sharedRoot, projectRoot) {
 				let issue = null;
 				if (shared.length > 1 || (tier === "project" && local.length > 1)) issue = `ambiguous name [[${name}]] in ${shared.length > 1 ? "shared" : "project"} tier`;
 				else if (tier === "shared" && !shared.length && local.length) issue = `shared-to-project link [[${name}]]`;
-				else if (tier === "shared" && !shared.length || tier === "project" && !shared.length && !local.length) issue = `dangling link [[${name}]]`;
+				else if (tier === "shared" && !shared.length || tier === "project" && !shared.length && !local.length) danglingCount++;
 				if (issue) issues.push(`${path.basename(file)}: ${issue}`);
 			}
 		}
 	}
-	return { ok: issues.length === 0, issues };
+	return { ok: issues.length === 0, issues, danglingCount };
 }
 
 /** True for a parsed JSON value usable as a config object — never null, an array, or a scalar.
@@ -323,10 +324,11 @@ export function diagnose(layout, opts = {}) {
 		state === "linked" ? project : `${state} for ${project} — the SessionStart hook creates it on the next session`,
 	);
 	const memoryState = memoryLinkState(layout.sharedMemoryDir, projectMemoryDir(layout.projectsDir, project));
-	const memoryDetail = memoryState.issues.length
+	const issues = memoryState.issues.length
 		? `${memoryState.issues.slice(0, MEMORY_LINK_ISSUE_LIMIT).join("; ")}${memoryState.issues.length > MEMORY_LINK_ISSUE_LIMIT ? `; … ${memoryState.issues.length - MEMORY_LINK_ISSUE_LIMIT} more` : ""}`
-		: "all wiki links resolve within permitted memory tiers";
-	add(memoryState.ok ? OK : WARN, "memory links", memoryDetail);
+		: memoryState.danglingCount ? "no cross-tier or ambiguous wiki links" : "all wiki links resolve within permitted memory tiers";
+	const dangling = memoryState.danglingCount ? `· ${memoryState.danglingCount} links name memories not written yet` : "";
+	add(memoryState.ok ? OK : WARN, "memory links", [issues, dangling].filter(Boolean).join(" "));
 
 	// --- pi user config ---
 	// Checked where the PACK reads it: layout.piHome is nana-pack's own active-agent-dir resolver
