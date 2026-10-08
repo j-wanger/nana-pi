@@ -175,9 +175,9 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 // req: R-978
 check("runLand requires reviews or a nonblank exemption", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-required-review-")); const main = repo(root, "main");
-	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); let suiteRan = false;
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); let suiteRan = false;
 	const runCommand = () => { suiteRan = true; return { status: 0 }; };
-	for (const options of [{}, { reviewed: [] }, { reviewed: [], exempt: "   " }]) {
+	for (const options of [{}, { reviewed: [] }, { reviewed: [], exempt: "   " }, { reviewed: [`${sha}=item`], exempt: "a real reason" }]) {
 		const out = runLand({ tree: feature, main, suite: "canonical", ...options, runCommand });
 		assert.notEqual(out.code, 0); assert.match(out.text, /reviewed|exempt|nonblank/i);
 	}
