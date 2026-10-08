@@ -202,6 +202,11 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
 	// req: R-859
 	check("AGENTS.md shared section follows a complete paragraph", prefix.endsWith("\n\n") && /[.!?]$/.test(paragraph));
+	// req: R-966
+	check("working pattern names lane launcher and keeps local overrides after marker region", block.includes("pi-worker --lane <name> --brief <file>") && block.includes("overrides belong in that project's own section AFTER this marker region"));
+	const packReadme = fs.readFileSync(path.join(REPO, "packages", "nana-pack", "README.md"), "utf8");
+	// req: R-966
+	check("pack README documents lane preamble, write gap, ceiling, and trust notice", packReadme.includes("prompts/builder-preamble.md") && packReadme.includes("bash or another process") && packReadme.includes("28,800 seconds") && packReadme.includes("trust: none for"));
 
 	// Mutation, in memory only (the real AGENTS.md is never touched): dropping one byte from the middle
 	// of the marker region (both markers intact) must flip the SAME predicate, proving the check is live rather than vacuously true.
@@ -285,7 +290,7 @@ function checkInstructionContracts() {
 	// req: R-682
 	check("soul continuity rule records carry before reports and session boundaries", /Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /every unresolved item and every open question to Jake on one HANDOFF line each/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul));
 	// req: R-683
-	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "Local overrides"].every((v) => shared.includes(v)));
+	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? "") && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));

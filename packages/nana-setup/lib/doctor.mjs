@@ -7,7 +7,7 @@
  *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, the LaunchAgents plist;
+ *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review and pi-worker, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 
 const OK = "ok";
@@ -499,10 +499,12 @@ export function diagnose(layout, opts = {}) {
 	add(index.ok ? OK : FAIL, "knowledge index", `${db} — ${index.detail}`);
 
 	// --- PATH ---
-	if (win) add(NOTE, "PATH pi-review", "skipped (win32)");
+	if (win) { add(NOTE, "PATH pi-review", "skipped (win32)"); add(NOTE, "PATH pi-worker", "skipped (win32)"); }
 	else {
 		const link = path.join(layout.binDir, "pi-review");
+		const worker = path.join(layout.binDir, "pi-worker");
 		add(linkOk(link, PI_REVIEW_BIN) ? OK : FAIL, "PATH pi-review", `${link} -> ${PI_REVIEW_BIN}`);
+		add(linkOk(worker, PI_WORKER_BIN) ? OK : FAIL, "PATH pi-worker", `${worker} -> ${PI_WORKER_BIN}`);
 		const onPath = (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
 		if (!onPath) add(NOTE, "PATH contains ~/.local/bin", `${layout.binDir} is not on this shell's PATH`);
 	}

@@ -185,6 +185,14 @@ scratch=$(mktemp -d)
 pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
+#### Lane builder
+
+Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] -- <pi args>`. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must exist. It refuses the main checkout, a nested cwd, detached or switched branches, and invalid inputs before pi starts. The pack's `prompts/builder-preamble.md` is appended before the caller brief, with the verified root and branch filled in. The usual non-lane worker invocation is unchanged.
+
+Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`. The gate refuses edit/write targets outside that root, the real `os.tmpdir()` and `/tmp`; it resolves symlinks and missing nested paths through the nearest existing ancestor. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
+
+The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory.
+
 ### Trust model
 
 **This is a self-governance device against the fix-review treadmill, not a security control.**

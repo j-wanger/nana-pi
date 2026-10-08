@@ -151,6 +151,11 @@ check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, na
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // req: R-311
 check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
+// req: R-964
+check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+const workerDoctor = run(["doctor", "--home", home]);
+// req: R-964
+check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
 // req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 // req: R-311
@@ -167,6 +172,8 @@ check("second install reports nothing to do", second.stdout.includes("nothing to
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
 // req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
+// req: R-964
+check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
 const collide = freshHome();

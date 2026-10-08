@@ -97,7 +97,7 @@ function killGroup(child, signal = 'SIGKILL') {
 
 const nonEmpty = () => true;
 
-async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {} }, attempt, onChild, interrupted, signalWait) {
+async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {}, maxSecs }, attempt, onChild, interrupted, signalWait, startedAt) {
   const tmp = join(mkdtempSync(join(tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
@@ -121,7 +121,8 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
   let lastCpu = -1, flatPolls = 0;
   const maxFlat = Math.max(1, Math.ceil(stallSecs / pollSecs));
   while (true) {
-    await Promise.race([sleep(pollSecs * 1000), signalWait]);
+    const remainingMs = maxSecs ? Math.max(0, maxSecs * 1000 - (Date.now() - startedAt)) : pollSecs * 1000;
+    await Promise.race([sleep(Math.min(pollSecs * 1000, remainingMs)), signalWait]);
     if (spawnErr) {
       try { closeSync(fd); } catch { /* already closed */ }
       cleanupCapture();
@@ -133,6 +134,12 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
       return { ok: false, text: readOut(), signal: interrupted() };
     }
     if (child.exitCode !== null || child.signalCode !== null) break; // exited
+    if (maxSecs && Date.now() - startedAt >= maxSecs * 1000) {
+      process.stderr.write(`[${tag}] FAILED: wall-clock ceiling ${maxSecs}s reached — killing process group\n`);
+      killGroup(child);
+      await new Promise((r) => (child.exitCode !== null || child.signalCode !== null ? r() : child.once('close', r)));
+      return { ok: false, text: readOut(), ceiling: true };
+    }
     const cpu = cpuSeconds(child.pid);
     if (cpu === lastCpu) flatPolls++; else flatPolls = 0;
     lastCpu = cpu;
@@ -168,7 +175,8 @@ export async function runWatchdog(tag, opts) {
     for (let a = 1; a <= attempts; a++) {
       if (signal) break;
       process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
-      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait);
+      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait, Date.now());
+      if (result.ceiling) return { ok: false, text: result.text, attempt: a, ceiling: true };
       active = null;
       last = result.text;
       if (result.signal || signal) return { ok: false, text: last, attempt: a, signal: signal ?? result.signal };
