@@ -12,7 +12,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { runWatchdog } from "../bin/pi-watchdog.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker = path.join(root, "bin", "pi-worker.mjs");
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "worker-lane-")));
@@ -38,6 +37,23 @@ const run = (cwd, args, more = {}, piArgs = []) => spawnSync(process.execPath, [
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) process.exitCode = 1; };
 // req: R-960
 check("non-lane usage text remains the legacy form", spawnSync(process.execPath, [worker], { cwd: lane, encoding: "utf8" }).stderr === "usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n");
+// req: R-960
+check("lane options with missing values refuse before pi spawn", (() => {
+	const cases = [
+		["lane option missing", ["--lane"]],
+		["lane option empty", ["--lane", ""]],
+		["lane option starts with dash", ["--lane", "-alpha"]],
+		["brief option missing", ["--lane", "alpha", "--brief"]],
+		["max-secs option missing", ["--lane", "alpha", "--brief", brief, "--max-secs"]],
+		["brief missing even without lane value", ["--brief"]],
+		["max-secs missing even without lane value", ["--max-secs"]],
+	];
+	return cases.every(([, args]) => {
+		fs.rmSync(piSpawnMarker, { force: true });
+		const result = run(lane, args);
+		return result.status === 1 && /lane refused/.test(result.stderr) && !fs.existsSync(piSpawnMarker);
+	});
+})());
 // req: R-960
 check("lane mode refuses the main checkout before starting pi", /main checkout/.test(run(repo, ["--lane", "alpha", "--brief", brief]).stderr) && !fs.existsSync(out));
 fs.mkdirSync(path.join(lane, "nested"));
@@ -81,13 +97,16 @@ const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
 // req: R-960
 check("synchronized concurrent lane launchers spawn exactly one pi", fs.readFileSync(laneSpawnCount, "utf8").trim().split("\n").length === 1);
-const retrySpawnCount = path.join(temp, "retry-spawns");
-fs.writeFileSync(pi, `#!/bin/sh\necho spawn >> "${retrySpawnCount}"\ngit -C "${lane}" checkout -q feat/other\nexit 1\n`); fs.chmodSync(pi, 0o755);
-const retryGuard = await runWatchdog("lane-retry-probe", { piArgs: ["-p", "probe"], cwd: lane, stallSecs: 5, pollSecs: 0.1, retries: 1, maxSecs: 10, childEnv: { PATH: `${stubDir}${path.delimiter}${process.env.PATH}` }, validateAttempt: () => { try { return git(lane, "branch", "--show-current").stdout.trim() === "feat/alpha" ? null : "branch changed"; } catch { return "branch changed"; } } });
+const gitCalls = path.join(temp, "git-branch-calls");
+const gitWrapper = path.join(stubDir, "git");
+fs.writeFileSync(gitWrapper, `#!/bin/sh\nif [ "$1" = "branch" ] && [ "$2" = "--show-current" ]; then n=$(cat "${gitCalls}" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "${gitCalls}"; if [ "$n" -ge 2 ]; then echo feat/other; exit 0; fi; fi\nexec /usr/bin/git "$@"\n`); fs.chmodSync(gitWrapper, 0o755);
+fs.rmSync(piSpawnMarker, { force: true });
+const changedBranch = run(lane, ["--lane", "alpha", "--brief", brief], { PATH: `${stubDir}${path.delimiter}${process.env.PATH}` });
 git(lane, "checkout", "-q", "feat/alpha");
+fs.unlinkSync(gitWrapper);
 fs.writeFileSync(pi, `#!/bin/sh\nprintf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`); fs.chmodSync(pi, 0o755);
 // req: R-960
-check("retry revalidates lane branch after attempt one", retryGuard.validationFailed === true && retryGuard.attempt === 1 && fs.readFileSync(retrySpawnCount, "utf8").trim().split("\n").length === 1);
+check("production lane revalidation refuses changed branch before pi spawn", changedBranch.status === 1 && changedBranch.stderr.includes("expected feat/alpha") && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath));
 // req: R-965
 check("missing trust prints notice before worker attempt", good.stderr.indexOf("trust: none for") >= 0 && good.stderr.indexOf("trust: none for") < good.stderr.indexOf("attempt 1"));
 const trustDir = path.join(temp, ".pi", "agent"); fs.mkdirSync(trustDir, { recursive: true });
@@ -101,11 +120,12 @@ check("handled worker exit removes its worktree lock", !fs.existsSync(lockDir));
 fs.writeFileSync(lockDir, "not-a-pid\n");
 const unreadableLockRun = run(lane, ["--lane", "alpha", "--brief", brief]);
 // req: R-960
-check("unreadable worktree lock is refused", unreadableLockRun.status === 1 && /pid is unreadable/.test(unreadableLockRun.stderr));
+check("unreadable worktree lock is refused", unreadableLockRun.status === 1 && unreadableLockRun.stderr.includes(lockDir) && /recorded pid unreadable/.test(unreadableLockRun.stderr));
 fs.writeFileSync(lockDir, "999999999\n");
 const staleLockRun = run(lane, ["--lane", "alpha", "--brief", brief]);
 // req: R-960
-check("dead worktree lock is reclaimed", staleLockRun.status === 0 && !fs.existsSync(lockDir));
+check("existing worktree lock refuses and names path and pid", staleLockRun.status === 1 && staleLockRun.stderr.includes(lockDir) && /pid 999999999/.test(staleLockRun.stderr) && /confirm no builder and no pi process group.*remov.*by hand/i.test(staleLockRun.stderr) && fs.existsSync(lockDir), staleLockRun.stderr);
+fs.rmSync(lockDir);
 const config = await import("../bin/worker-config.mjs");
 // req: R-963
 check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);

@@ -156,6 +156,14 @@ check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin
 const workerDoctor = run(["doctor", "--home", home]);
 // req: R-964
 check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
+const workerLink = path.join(home, ".local", "bin", "pi-worker");
+fs.unlinkSync(workerLink);
+fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), workerLink);
+const wrongWorkerDoctor = run(["doctor", "--home", home]);
+// req: R-964
+check("doctor reports an incorrect pi-worker link", wrongWorkerDoctor.status === 1 && /✗\s+PATH pi-worker/.test(wrongWorkerDoctor.stdout));
+fs.unlinkSync(workerLink);
+fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"), workerLink);
 // req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 // req: R-311
