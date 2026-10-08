@@ -7,7 +7,7 @@
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
  * @errors exit 1 on bad args, invalid lane, failed worker, or exceeded lane ceiling
  */
-import { accessSync, constants, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -15,7 +15,7 @@ import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mj
 import { LANE_DEFAULTS, LANE_MAX_SECS } from './worker-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
-const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] -- <pi args...>\n';
+const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N]\n';
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
@@ -67,23 +67,17 @@ if (lane !== null) {
 		if (!statSync(briefPath).isFile()) laneFailure('brief must be a readable regular file');
 		accessSync(briefPath, constants.R_OK);
 	} catch { laneFailure('brief must be a readable regular file'); }
+	if (separator >= 0 && all.slice(separator + 1).length) laneFailure('caller pi arguments are refused in lane mode');
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0];
-	const piArgs = argv.slice(argv.indexOf('--') + 1);
-	const toolControls = new Set(['-t', '--tools', '-xt', '--exclude-tools', '-nbt', '--no-builtin-tools', '-nt', '--no-tools']);
-	if (piArgs.some((arg) => toolControls.has(arg) || arg.startsWith('--tools=') || arg.startsWith('--exclude-tools=') || /^-(?:t|xt).+/.test(arg))) laneFailure('tool-control options are owned by lane mode');
-	for (const [flag, value] of [['--provider', LANE_DEFAULTS.provider], ['--model', LANE_DEFAULTS.model], ['--thinking', LANE_DEFAULTS.thinking]]) {
-		if (!piArgs.includes(flag)) piArgs.unshift(flag, value);
-	}
-	piArgs.unshift('-t', LANE_DEFAULTS.tools);
-	const existing = piArgs.indexOf('--append-system-prompt');
-	const insert = existing < 0 ? piArgs.length : existing;
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
-	piArgs.splice(insert, 0, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath);
-	argv.splice(argv.indexOf('--') + 1, argv.length, ...piArgs);
+	const piArgs = ['--provider', LANE_DEFAULTS.provider, '--model', LANE_DEFAULTS.model, '--thinking', LANE_DEFAULTS.thinking, '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
+	const argvSeparator = argv.indexOf('--');
+	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...piArgs);
+	else argv.push('--', ...piArgs);
 	childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
 	maxArg = maxSecs;
 	if (!trusted(cwd)) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
@@ -133,20 +127,31 @@ process.exit(r.ok ? 0 : 1);
 function acquireLaneLock(gitDir) {
 	laneLock = path.join(gitDir, 'nana-lane.lock');
 	for (let attempt = 0; attempt < 2; attempt++) {
-		try { mkdirSync(laneLock); writeFileSync(path.join(laneLock, 'pid'), `${process.pid}\n`, { flag: 'wx' }); return; }
-		catch (error) {
-			if (error.code !== 'EEXIST') { rmSync(laneLock, { recursive: true, force: true }); laneLock = null; laneFailure(`cannot acquire worktree lock: ${error.message}`); }
-			let pid = 0;
-			try { pid = Number(readFileSync(path.join(laneLock, 'pid'), 'utf8').trim()); } catch { /* pid file not ready */ }
-			let alive = false;
-			if (Number.isSafeInteger(pid) && pid > 0) { try { process.kill(pid, 0); alive = true; } catch (probe) { alive = probe.code === 'EPERM'; } }
-			if (alive) laneFailure(`worktree is already locked by pid ${pid}`);
-			rmSync(laneLock, { recursive: true, force: true });
+		let fd;
+		try {
+			fd = openSync(laneLock, 'wx');
+			writeFileSync(fd, `${process.pid}\n`);
+			closeSync(fd);
+			fd = undefined;
+			return;
+		} catch (error) {
+			if (fd !== undefined) { try { closeSync(fd); } catch {} }
+			if (error.code !== 'EEXIST') { rmSync(laneLock, { force: true }); laneFailure(`cannot acquire worktree lock: ${error.message}`); }
+			let lockStat, pid;
+			try {
+				lockStat = statSync(laneLock);
+				pid = Number(readFileSync(laneLock, 'utf8').trim());
+			} catch { laneFailure('worktree lock exists but its pid is unreadable; refusing'); }
+			if (!Number.isSafeInteger(pid) || pid < 1) laneFailure('worktree lock exists but its pid is unreadable; refusing');
+			try { process.kill(pid, 0); laneFailure(`worktree is already locked by pid ${pid}`); }
+			catch (probe) { if (probe.code !== 'ESRCH') laneFailure(`worktree lock pid ${pid} cannot be verified; refusing`); }
+			try { if (statSync(laneLock).ino !== lockStat.ino) continue; rmSync(laneLock); }
+			catch { laneFailure('cannot reclaim dead worktree lock'); }
 		}
 	}
-	laneFailure('cannot reclaim stale worktree lock');
+	laneFailure('cannot acquire worktree lock');
 }
 function releaseLaneLock(lock) {
 	if (!lock) return;
-	try { if (Number(readFileSync(path.join(lock, 'pid'), 'utf8').trim()) === process.pid) rmSync(lock, { recursive: true, force: true }); } catch { /* best-effort handled-exit cleanup */ }
+	try { if (Number(readFileSync(lock, 'utf8').trim()) === process.pid) rmSync(lock, { force: true }); } catch { /* best-effort handled-exit cleanup */ }
 }
