@@ -98,17 +98,13 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `${notReviewedText}suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
 		assertCleanTracked(runGit, main, "main checkout");
+		if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
 		assertCleanTracked(runGit, tree, "source tree");
 		if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
-		try { git(runGit, main, "update-ref", "refs/heads/main", tip, capturedMain); }
-		catch (error) { throw new Error(`main ref compare-and-swap failed: ${error.message}`); }
-		if (git(runGit, main, "branch", "--show-current") !== "main") {
-			try { git(runGit, main, "update-ref", "refs/heads/main", capturedMain, tip); }
-			catch (rollbackError) { throw new Error(`main checkout left branch main; ref rollback failed: ${rollbackError.message}`); }
-			throw new Error("main checkout left branch main before tree update; main ref restored");
-		}
 		git(runGit, main, "merge", "--ff-only", tip);
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
+		if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
+		assertCleanTracked(runGit, main, "main checkout after merge");
 		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
 		const date = now.toISOString().slice(0, 10);
 		const archive = `Session archive stub: ${date} — lane ${path.basename(tree)}${reviewRefs.length ? ` — reviewed ${reviewRefs.map((r) => r.slice(0, 12)).join(", ")}` : ""}${exempt ? ` — exempt: ${exempt}` : ""}.`;

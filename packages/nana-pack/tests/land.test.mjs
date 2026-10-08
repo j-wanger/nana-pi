@@ -88,11 +88,13 @@ check("suite-time source revision change refuses before merge", () => {
 // req: R-977
 check("suite-time main divergence refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-main-tip-")); const main = repo(root, "main");
+	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
 		commit(main, "parallel.txt", "parallel\n", "parallel"); return { status: 0, stdout: "", stderr: "" };
 	} });
-	assert.notEqual(out.code, 0); assert.match(out.text, /compare-and-swap|update-ref/i);
+	assert.notEqual(out.code, 0); assert.match(out.text, /HEAD.*captured|main checkout/i);
+	assert.notEqual(git(main, "rev-parse", "refs/heads/main"), initialMain);
 });
 // req: R-975
 check("non-fast-forward source tip refuses before running the suite", () => {
@@ -159,16 +161,31 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 	assert.notEqual(out.code, 0); assert.match(out.text, /plain commit/i);
 });
 // req: R-977
-check("successful land invokes ff-only merge and containment verification", () => {
+check("successful land updates main checkout files and leaves tracked state clean", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-invocations-")); const main = repo(root, "main");
-	const capturedMain = git(main, "rev-parse", "refs/heads/main");
-	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
-	const calls = []; const runGit = (cwd, args) => { calls.push({ cwd, args }); try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; } catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; } };
+	writeFileSync(path.join(main, "remove.txt"), "remove me\n"); git(main, "add", "remove.txt"); git(main, "commit", "-m", "add removable file");
+	const feature = tree(main, "integration");
+	writeFileSync(path.join(feature, "base.txt"), "modified\n"); writeFileSync(path.join(feature, "added.txt"), "added\n");
+	git(feature, "rm", "remove.txt"); git(feature, "add", "base.txt", "added.txt"); git(feature, "commit", "-m", "change files");
+	const tip = git(feature, "rev-parse", "HEAD"); const calls = [];
+	const runGit = (cwd, args) => { calls.push({ cwd, args }); try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; } catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: "" }; } };
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text);
-	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `update-ref refs/heads/main ${tip} ${capturedMain}`));
+	assert.equal(calls.filter(({ cwd, args }) => cwd === main && args[0] === "merge" && args[1] === "--ff-only").length, 1);
 	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge --ff-only ${tip}`));
-	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge-base --is-ancestor ${tip} refs/heads/main`));
+	assert.equal(git(main, "rev-parse", "HEAD"), tip); assert.equal(readFileSync(path.join(main, "base.txt"), "utf8"), "modified\n");
+	assert.equal(readFileSync(path.join(main, "added.txt"), "utf8"), "added\n"); assert.equal(existsSync(path.join(main, "remove.txt")), false);
+	assert.equal(git(main, "status", "--porcelain", "--untracked-files=no"), "");
+});
+// req: R-977
+check("untracked collision refuses land without changing main", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-collision-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "collision.txt", "landed\n", "add collision");
+	writeFileSync(path.join(main, "collision.txt"), "untracked stays\n"); const before = git(main, "rev-parse", "HEAD");
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	assert.notEqual(out.code, 0); assert.match(out.text, /refused|failed/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
+	assert.equal(git(main, "rev-parse", "HEAD"), before); assert.equal(git(main, "rev-parse", "refs/heads/main"), before);
+	assert.equal(readFileSync(path.join(main, "collision.txt"), "utf8"), "untracked stays\n"); assert.notEqual(tip, before);
 });
 // req: R-977
 check("branch switch at merge invocation refuses without landed records", () => {
@@ -176,19 +193,20 @@ check("branch switch at merge invocation refuses without landed records", () => 
 	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
 	git(main, "branch", "other", initialMain);
-	const calls = []; let branchChecks = 0; let switched = false;
+	const calls = []; let switched = false;
 	const runGit = (cwd, args) => {
 		calls.push({ cwd, args });
-		if (cwd === main && args[0] === "branch" && args[1] === "--show-current" && ++branchChecks === 3 && !switched) { git(main, "checkout", "other"); switched = true; }
+		if (cwd === main && args[0] === "merge" && !switched) { git(main, "checkout", "other"); switched = true; }
 		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
 		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
 	};
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	assert(calls.some(({ cwd, args }) => cwd === main && args[0] === "merge"), "switch injection must run immediately before merge");
 	assert.notEqual(out.code, 0); assert.match(out.text, /branch main/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
-	assert.equal(git(main, "rev-parse", "refs/heads/main"), initialMain); assert.equal(git(main, "rev-parse", "refs/heads/other"), initialMain);
+	assert.equal(git(main, "rev-parse", "refs/heads/main"), initialMain); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "other")); assert.notEqual(tip, initialMain);
 });
 // req: R-977
-check("main advancing during suite fails the main ref compare-and-swap", () => {
+check("main advancing during suite refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-cas-")); const main = repo(root, "main");
 	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
@@ -196,7 +214,7 @@ check("main advancing during suite fails the main ref compare-and-swap", () => {
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
 		commit(main, "parallel.txt", "parallel\n", "parallel"); advancedMain = git(main, "rev-parse", "refs/heads/main"); return { status: 0 };
 	} });
-	assert.notEqual(out.code, 0); assert.match(out.text, /compare-and-swap|update-ref/i);
+	assert.notEqual(out.code, 0); assert.match(out.text, /HEAD.*captured|main checkout/i);
 	assert.notEqual(advancedMain, initialMain); assert.equal(git(main, "rev-parse", "refs/heads/main"), advancedMain); assert.notEqual(advancedMain, tip);
 });
 // req: R-977
@@ -286,7 +304,7 @@ check("cleanup removes a contained feat branch without force", () => {
 check("README and AGENTS describe the land helper", () => {
 	const repoRoot = path.resolve(new URL("../../..", import.meta.url).pathname);
 	const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
-	for (const pattern of [/nana-land merge/, /clean source tree/, /clean checkout on `main`/, /verified `LAND` review/, /suite succeeds/, /suite in the source tree/, /Immediately before merging it rechecks/, /`--ff-only`/, /verify containment/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
+	for (const pattern of [/nana-land merge/, /clean source tree/, /clean tracked state.*checkout on `main`/, /verified `LAND` review/, /runs the suite/, /suite in the source tree/, /Immediately before merging it rechecks/, /one `git merge --ff-only/, /main ref equal to the tip/, /verifies containment/, /branch switch.*between the final check and merge is not defended/, /Do not operate the main checkout during a land/, /helper refuses afterwards without success records/, /untracked collision/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
 	const agents = readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 	for (const pattern of [/clean source/, /clean `main` checkout/, /verified review rounds/, /suite on the reviewed tip/, /rerun the suite if either checkout changes/, /ff-only merge, and containment verification/, /separate operation/, /clean.*worktree contained in `main`/]) assert.match(agents, pattern);
 	assert.match(agents, /use `nana-land`/); assert.match(agents, /clean `main` checkout/); assert.match(agents, /verified review rounds/); assert.match(agents, /rerun the suite if either checkout changes/); assert.match(agents, /ff-only merge, and containment verification/); assert.match(agents, /clean `feat\/<lane>` worktree contained in `main`/);
