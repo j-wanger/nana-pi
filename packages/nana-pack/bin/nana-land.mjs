@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readRounds } from "./review-round.mjs";
+import { releaseStatus } from "../lib/release-status.mjs";
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
 const commandDefault = (command, cwd) => spawnSync(command, { cwd, shell: true, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
@@ -67,7 +68,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; runGit and runCommand are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, now = new Date() }) {
+export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, readReleaseStatus = releaseStatus, now = new Date() }) {
 	try {
 		if (exempt !== undefined) {
 			exempt = typeof exempt === "string" ? exempt.trim() : "";
@@ -111,9 +112,12 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
 		assertCleanTracked(runGit, main, "main checkout after merge");
 		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
+		let releaseLine;
+		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
+		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
 		const date = now.toISOString().slice(0, 10);
 		const archive = `Session archive stub: ${date} — lane ${path.basename(tree)}${reviewRefs.length ? ` — reviewed ${reviewRefs.map((r) => r.slice(0, 12)).join(", ")}` : ""}${exempt ? ` — exempt: ${exempt}` : ""}.`;
-		return { code: 0, text: `${notReviewedText}push command: git push\n${archive}\nHANDOFF Landed: ${date} — ${path.basename(tree)} — landed ${tip.slice(0, 12)}.\n` };
+		return { code: 0, text: `${notReviewedText}push command: git push\n${archive}\nHANDOFF Landed: ${date} — ${path.basename(tree)} — landed ${tip.slice(0, 12)}.\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

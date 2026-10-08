@@ -190,6 +190,8 @@ instructions from the ones pi reads.
 
 Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and the current project's tier (`~/.claude/projects/<key>/memory`). It resolves `[[name]]` by each target's frontmatter `name:` rather than filename. Shared memories may link only to shared names; project memories may link to shared or same-project names. Dangling links are informational and add only a count; they do not fail doctor. Cross-tier and ambiguous links read `!`; doctor never edits memory. The row prints at most 30 named issues, followed by a count when more remain.
 
+Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
+
 ## What it never does
 
 - **Never overwrites** `~/.claude/rules/nana-personal.md` (private, and never in this repo — the
@@ -254,6 +256,8 @@ Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and th
   changes which call it reads through.
 - Native Windows and real launchd operation are unexercised by the desk-service tests — they
   stub `launchctl` and never touch the real service or a real win32 box.
+- A tag that exists only locally reads as released, though Copier renders the highest pushed tag.
+- Release counts are only as fresh as the last fetch or push.
 
 ## Idempotence
 

@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/lib/doctor.mjs
  * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
- * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()); NANA_SETUP_PLATFORM
+ * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
  *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
@@ -27,6 +27,7 @@ import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
+import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 
 const OK = "ok";
 const FAIL = "fail";
@@ -542,6 +543,11 @@ export function diagnose(layout, opts = {}) {
 		const ok = Boolean(running && valid);
 		add(!layout.isRealHome ? NOTE : ok ? OK : FAIL, "desk service", `${layout.plistPath}: ${!running ? "launchctl does not report state = running" : "running"}; ${!node ? "ProgramArguments[0] is missing" : !fs.existsSync(node) ? `node executable is missing: ${node}` : !nodeVersion ? `could not read Node version from ${node}` : !versionAtLeast(nodeVersion, DESK_NODE_FLOOR) ? `Node ${nodeVersion} is older than ${DESK_NODE_FLOOR}` : `Node ${nodeVersion}`}`);
 	}
+
+	let releaseLine;
+	try { releaseLine = releaseStatus({ repo: opts.releaseRepo ?? repoRoot, ...(opts.runGit ? { runGit: opts.runGit } : {}) }).line; }
+	catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
+	add(NOTE, "release status", releaseLine);
 
 	return checks;
 }
