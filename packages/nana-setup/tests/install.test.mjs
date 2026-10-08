@@ -151,6 +151,8 @@ check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, na
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // req: R-311
 check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
+// req: R-980
+check("land bin is linked, executable, and doctor reports it", link(path.join(home, ".local", "bin", "nana-land")) === path.join(repo, "packages", "nana-pack", "bin", "nana-land.mjs") && spawnSync(path.join(home, ".local", "bin", "nana-land"), [], { encoding: "utf8" }).stdout.includes("usage: nana-land") && run(["doctor", "--home", home]).stdout.includes("PATH nana-land"));
 // req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 // req: R-311

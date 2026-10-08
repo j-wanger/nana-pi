@@ -166,6 +166,12 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
 
+### Land helper: `bin/nana-land.mjs`
+
+`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` requires an exact `LAND` review-ledger round for each named item and revision. `--exempt "<reason>"` replaces reviews and appears in the success record. The helper checks tracked cleanliness and fast-forward ancestry, runs the suite in the source tree, merges with `--ff-only`, checks containment, and only then prints push, archive, and HANDOFF stubs. It never pushes or edits those records. Integration commits outside reviewed ancestry are reported, not blocked.
+
+`nana-land cleanup <lane> --main <main-checkout>` is separate: it removes only a clean worktree on a main-contained `feat/<lane>` branch, without force. Run through `nana-setup install` to link `nana-land` on PATH; `nana-setup doctor` checks that link. The main checkout may have untracked files, but git can still refuse a colliding fast-forward.
+
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
