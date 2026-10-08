@@ -148,9 +148,18 @@ if (available.status !== 0 || !hasOldTag) {
    checkOutput += mapCheck.stdout ?? "";
    mapExit = mapCheck.status ?? 1;
   }
+  let pythonPytestOutput = "";
+  let pythonPytestExit = 0;
+  if (generalExists && language === "python") {
+   const pytestRun = spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts="], { encoding: "utf8", env, cwd: dest });
+   pythonPytestOutput = `${pytestRun.stdout ?? ""}${pytestRun.stderr ?? ""}`;
+   pythonPytestExit = pytestRun.status ?? 1;
+   // req: R-583
+   check("Python earlier-tag update prints Part G drift", pythonPytestOutput.includes("part g: 6 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
+  }
   const clean = copy.status === 0 && init.status === 0 && commit.status === 0 && update.status === 0 && railExit === 0 && mapExit === 0 && rejects.length === 0 && copiedRequirements === readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") && generalExists && checkOutput.includes("ears: 0 rows off form (allowance 0)") && checkOutput.includes("problems: 0") && checkOutput.endsWith("\n");
   // req: R-582
-  check(`${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean`, clean, `${copy.stderr}\n${update.stderr}\n${checkOutput}`);
+  check(`${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean`, clean, `${copy.stderr}\n${update.stderr}\n${checkOutput}\n${pythonPytestOutput.slice(-3000)}`);
  }
 }
 const adoptRoot = join(root, "adopt-python");
