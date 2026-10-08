@@ -69,6 +69,11 @@ function reviewedPairs(pairs) {
 /** Run a fail-closed merge; runGit and runCommand are injectable for controlled callers and tests. */
 export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, now = new Date() }) {
 	try {
+		if (exempt !== undefined) {
+			exempt = typeof exempt === "string" ? exempt.trim() : "";
+			if (!exempt) throw new Error("--exempt needs a nonblank reason");
+			if (reviewed.length) throw new Error("--exempt and --reviewed cannot be combined");
+		} else if (!reviewed.length) throw new Error("merge requires --reviewed or --exempt");
 		tree = path.resolve(tree); main = path.resolve(main);
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		assertCleanTracked(runGit, main, "main checkout");

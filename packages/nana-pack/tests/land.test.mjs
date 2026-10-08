@@ -108,8 +108,19 @@ check("a reviewed SHA must be ancestor of the source tip and match a LAND record
 	const root = tmpDir(path.join(os.tmpdir(), "land-review-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
 	const home = path.join(root, "home"); mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), JSON.stringify({ v: 1, kind: "round", repo: `git:${git(main, "rev-parse", "--git-common-dir")}`, item: "item", revision: tip, verdict: "NO-GO" }) + "\n");
+	const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir"));
+	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision: tip, verdict: "NO-GO" }) + "\n");
 	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [`${tip}=item`], home }); assert.notEqual(out.code, 0); assert.match(out.text, /LAND/i);
+});
+// req: R-976
+check("a matching-item LAND round for a different revision cannot authorize a merge", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-wrong-revision-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const reviewed = commit(feature, "reviewed.txt", "reviewed\n", "reviewed"); const tip = commit(feature, "next.txt", "next\n", "next");
+	const home = path.join(root, "home"); mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+	const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir"));
+	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision: tip, verdict: "LAND" }) + "\n");
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [`${reviewed}=item`], home, runCommand: () => ({ status: 0 }) });
+	assert.notEqual(out.code, 0); assert.match(out.text, /no verified LAND review/i); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
 // req: R-976
 check("drifted LAND round cannot authorize a merge", () => {
@@ -159,6 +170,18 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next");
 	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [`${sha}+snap:abc=item`] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /plain commit/i);
+});
+// req: R-976
+// req: R-978
+check("runLand requires reviews or a nonblank exemption", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-required-review-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); let suiteRan = false;
+	const runCommand = () => { suiteRan = true; return { status: 0 }; };
+	for (const options of [{}, { reviewed: [] }, { reviewed: [], exempt: "   " }]) {
+		const out = runLand({ tree: feature, main, suite: "canonical", ...options, runCommand });
+		assert.notEqual(out.code, 0); assert.match(out.text, /reviewed|exempt|nonblank/i);
+	}
+	assert.equal(suiteRan, false); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
 // req: R-977
 check("successful land updates main checkout files and leaves tracked state clean", () => {
