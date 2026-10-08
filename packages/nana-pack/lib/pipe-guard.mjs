@@ -98,13 +98,12 @@ export function verifierPipeReason(command, dialect = "bash") {
 			if (live[i] === "(" || live[i] === "{") depth++;
 			else if ((live[i] === ")" || live[i] === "}") && depth > 0) depth--;
 		}
-		for (const m of live.matchAll(/(?:^|[;&|\n])\s*set\s+(-[^\s;&|]+)\s+pipefail\b/gi)) {
-			const at = m.index ?? 0;
-			if (topLevel[at] && !m[1].startsWith("+")) events.push({ at, kind: "enable" });
+		for (const m of live.matchAll(/(?:^|[;&\n])\s*set\s+(-(?:o|[a-z]*o))\s+pipefail\s*(?=$|[;&\n])/gi)) {
+			const at = (m.index ?? 0) + m[0].lastIndexOf("set");
+			if (topLevel[at]) events.push({ at, kind: "enable" });
 		}
-		for (const m of live.matchAll(/(?:^|[;&|\n])\s*set\s+\+[^\s;&|]*o\s+pipefail\b/gi)) {
-			const at = m.index ?? 0;
-			if (topLevel[at]) events.push({ at, kind: "disable" });
+		for (const m of live.matchAll(/\bset\s+\+o\s+pipefail\b/gi)) {
+			events.push({ at: m.index ?? 0, kind: "disable" });
 		}
 	}
 	events.sort((a, b) => a.at - b.at);

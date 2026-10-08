@@ -1588,10 +1588,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Ask before a Claude Code Bash command masks a verifier failure before commit.
 - **inputs** — Claude Code PreToolUse JSON on stdin.
-- **outputs** — a PreToolUse permission decision on stdout; diagnostics on stderr.
+- **outputs** — a hit decision on stdout; errors produce a stderr diagnostic and no decision.
 - **effects** — process (reads stdin and writes stdout/stderr).
-- **errors** — malformed input and internal errors allow the tool and emit a stderr diagnostic.
-- **callers** — `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **errors** — malformed input and internal errors abstain with a stderr diagnostic.
+- **callers** — —
 - **callees** — `packages/nana-setup/lib/verifier-hook.mjs`
 
 ### `packages/nana-setup/lib/doctor.mjs`
@@ -1696,12 +1696,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/lib/verifier-hook.mjs`
 
-- **purpose** — Convert Claude Code PreToolUse input into a fail-open verifier-pipe decision.
+- **purpose** — Convert Claude Code PreToolUse input into an ask decision or fail-open abstention.
 - **inputs** — parsed hook JSON and optionally an injected pipe-reason predicate.
-- **outputs** — a hook response object and an optional diagnostic.
+- **outputs** — an optional hook response and an optional diagnostic.
 - **effects** — none
-- **errors** — predicate failures become allow responses with diagnostic text.
-- **callers** — `packages/nana-setup/claude/hooks/verifier-pipe.mjs`
+- **errors** — predicate failures become abstentions with diagnostic text.
+- **callers** — `packages/nana-setup/claude/hooks/verifier-pipe.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
 - **callees** — `packages/nana-pack/lib/pipe-guard.mjs`
 
 ### `packages/nana-setup/tests/agent-dir-consumers.test.mjs`
@@ -1922,7 +1922,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home), process (runs the hook with fixture stdin).
 - **errors** — an assertion failure exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/claude/hooks/verifier-pipe.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/verifier-hook.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/win32-degrade.test.mjs`
 

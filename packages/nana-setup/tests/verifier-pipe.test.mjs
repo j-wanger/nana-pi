@@ -14,7 +14,7 @@ import * as path from "node:path";
 import { desiredHooks } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
-import { runHook } from "../claude/hooks/verifier-pipe.mjs";
+import { decideHook } from "../lib/verifier-hook.mjs";
 
 let failures = 0;
 const check = (title, pass, extra = "") => {
@@ -24,24 +24,25 @@ const check = (title, pass, extra = "") => {
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const root = path.resolve(pkg, "..", "..");
 const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
-const invokeInstalledHook = (input) => spawnSync(process.execPath, [hook], { input, encoding: "utf8" });
+const installedHome = tmpDir(path.join(os.tmpdir(), "nana-pipe-installed-"));
+const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.mjs"), "install", "--home", installedHome], { encoding: "utf8" });
+const installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
+const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
 const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
 // req: R-984
-check("Claude hook asks with the documented PreToolUse reason", hit.status === 0 && JSON.parse(hit.stdout).hookSpecificOutput.permissionDecision === "ask" && /permissionDecisionReason/.test(hit.stdout));
+check("installed symlink asks on a verifier-pipe hit", install.status === 0 && fs.realpathSync(installedHook) === hook && hit.status === 0 && JSON.parse(hit.stdout).hookSpecificOutput.permissionDecision === "ask" && /permissionDecisionReason/.test(hit.stdout));
+const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
+// req: R-984
+check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
 const invalid = invokeInstalledHook("{");
 // req: R-984
-check("Claude hook fails open on malformed JSON with stderr note", invalid.status === 0 && JSON.parse(invalid.stdout).hookSpecificOutput.permissionDecision === "allow" && /allowing/.test(invalid.stderr));
-const capture = (raw, predicate) => {
-	let stdout = "", stderr = "";
-	runHook(raw, { predicate, stdout: { write: (text) => { stdout += text; } }, stderr: { write: (text) => { stderr += text; } } });
-	return { stdout, stderr };
-};
-const malformedShape = capture(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }));
+check("installed symlink abstains on malformed JSON with stderr note", invalid.status === 0 && invalid.stdout === "" && /nana verifier-pipe:/.test(invalid.stderr));
+const malformedShape = decideHook({ tool_name: "Bash", tool_input: { command: "git log | head; git commit" } });
 // req: R-984
-check("installed hook allows malformed event with stderr diagnostic", JSON.parse(malformedShape.stdout).hookSpecificOutput.permissionDecision === "allow" && /malformed/.test(malformedShape.stderr));
-const thrown = capture(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }), () => { throw new Error("predicate failure"); });
+check("hook abstains on malformed event with stderr diagnostic", malformedShape.response === null && /malformed/.test(malformedShape.diagnostic));
+const thrown = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }, () => { throw new Error("predicate failure"); });
 // req: R-984
-check("installed hook allows predicate errors with stderr diagnostic", JSON.parse(thrown.stdout).hookSpecificOutput.permissionDecision === "allow" && /predicate failure/.test(thrown.stderr) && /allowing/.test(thrown.stderr));
+check("hook abstains on predicate errors with stderr diagnostic", thrown.response === null && /predicate failure/.test(thrown.diagnostic) && /abstaining/.test(thrown.diagnostic));
 
 const hooks = desiredHooks({ hooksDir: "/tmp/claude/hooks", repoRoot: root });
 const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
