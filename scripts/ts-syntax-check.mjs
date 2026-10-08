@@ -23,6 +23,7 @@ try {
 	new vm.SourceTextModule(javascript, { identifier: file });
 } catch (error) {
 	const message = error instanceof Error ? error.message : String(error);
-	console.error(`${file}: ${message}`);
+	const code = error && typeof error === "object" && "code" in error ? `${error.code}: ` : "";
+	console.error(`${file}: ${code}${message}`);
 	process.exit(1);
 }

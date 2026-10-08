@@ -35,7 +35,13 @@ const invalid = path.join(ROOT, "invalid.ts");
 fs.writeFileSync(invalid, "export const answer: number = ;\n");
 const invalidResult = run(invalid);
 // req: R-993
-check("invalid TypeScript syntax exits 1 and names the file", invalidResult.status === 1 && invalidResult.stderr.startsWith(`${invalid}: `) && invalidResult.stderr.trim().length > invalid.length + 2, invalidResult.stderr);
+check("invalid TypeScript syntax exits 1 with a filename-qualified Node parser diagnostic", invalidResult.status === 1 && invalidResult.stderr.startsWith(`${invalid}: `) && invalidResult.stderr.includes("ERR_INVALID_TYPESCRIPT_SYNTAX"), invalidResult.stderr);
+
+const enumFile = path.join(ROOT, "enum.ts");
+fs.writeFileSync(enumFile, "enum Direction { Up, Down }\n");
+const enumResult = run(enumFile);
+// req: R-993
+check("TypeScript requiring transformation is rejected with a filename-qualified Node diagnostic", enumResult.status === 1 && enumResult.stderr.startsWith(`${enumFile}: `) && enumResult.stderr.includes("ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX"), enumResult.stderr);
 
 const marker = path.join(ROOT, "executed.marker");
 const sideEffect = path.join(ROOT, "side-effect.ts");
