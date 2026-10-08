@@ -7,11 +7,11 @@
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
  * @errors exit 1 on bad args, invalid lane, failed worker, or exceeded lane ceiling
  */
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
-import { LANE_MAX_SECS } from './worker-config.mjs';
+import { LANE_DEFAULTS, LANE_MAX_SECS } from './worker-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] [--lane <name> --brief <file> [--max-secs N]] -- <pi args...>\n';
 const all = process.argv;
@@ -52,12 +52,28 @@ if (lane !== null) {
 	if (!brief || !existsSync(path.resolve(cwd, brief))) laneFailure('brief file does not exist');
 	if (!Number.isSafeInteger(maxSecs) || maxSecs < 1) laneFailure('--max-secs must be a positive whole number');
 	const briefPath = path.resolve(cwd, brief);
+	let briefText;
+	try {
+		if (!statSync(briefPath).isFile()) laneFailure('brief must be a readable regular file');
+		accessSync(briefPath, constants.R_OK);
+		briefText = readFileSync(briefPath, 'utf8');
+	} catch { laneFailure('brief must be a readable regular file'); }
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	const piArgs = argv.slice(argv.indexOf('--') + 1);
+	const option = (flags) => flags.some((flag) => piArgs.includes(flag));
+	for (const [flag, value] of [['--provider', LANE_DEFAULTS.provider], ['--model', LANE_DEFAULTS.model], ['--thinking', LANE_DEFAULTS.thinking]]) {
+		if (!option([flag])) piArgs.unshift(flag, value);
+	}
+	const toolFlag = piArgs.findIndex((arg) => arg === '-t' || arg === '--tools');
+	if (toolFlag < 0) piArgs.unshift('-t', LANE_DEFAULTS.tools);
+	else {
+		const tools = (piArgs[toolFlag + 1] ?? '').split(',');
+		if (!tools.includes('edit') || !tools.includes('write')) laneFailure('tool list must include edit and write');
+	}
 	const existing = piArgs.indexOf('--append-system-prompt');
 	const insert = existing < 0 ? piArgs.length : existing;
-	piArgs.splice(insert, 0, '--append-system-prompt', preamble, '--append-system-prompt', readFileSync(briefPath, 'utf8'));
+	piArgs.splice(insert, 0, '--append-system-prompt', preamble, '--append-system-prompt', briefText);
 	argv.splice(argv.indexOf('--') + 1, argv.length, ...piArgs);
 	childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
 	maxArg = maxSecs;

@@ -163,6 +163,7 @@ export async function runWatchdog(tag, opts) {
   const attempts = opts.retries + 1;
   let last = '', signal = null, active = null, notifySignal;
   const signalWait = new Promise((resolve) => { notifySignal = resolve; });
+  const startedAt = Date.now();
   const stop = (name) => {
     if (signal) return;
     signal = name;
@@ -174,8 +175,12 @@ export async function runWatchdog(tag, opts) {
   try {
     for (let a = 1; a <= attempts; a++) {
       if (signal) break;
+      if (opts.maxSecs && Date.now() - startedAt >= opts.maxSecs * 1000) {
+        process.stderr.write(`[${tag}] FAILED: wall-clock ceiling ${opts.maxSecs}s reached — refusing another attempt\n`);
+        return { ok: false, text: last, attempt: a - 1, ceiling: true };
+      }
       process.stderr.write(`[${tag}] attempt ${a}/${attempts}\n`);
-      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait, Date.now());
+      const result = await runOnce(tag, opts, a, (child) => { active = child; }, () => signal, signalWait, startedAt);
       if (result.ceiling) return { ok: false, text: result.text, attempt: a, ceiling: true };
       active = null;
       last = result.text;

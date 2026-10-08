@@ -10,10 +10,12 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const worktree = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "lane-root-")));
-const outside = fs.realpathSync(repoRoot);
+const homeFixture = fs.realpathSync(tmpDir(path.join(os.homedir(), "lane-guard-home-")));
+const outside = path.join(homeFixture, "outside"); fs.mkdirSync(outside);
+const contained = (parent, child) => { const rel = path.relative(parent, child); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".."); };
+const tempRoot = fs.realpathSync(os.tmpdir()), tmpAlias = fs.realpathSync("/tmp");
+const outsideIsIndependent = ![tempRoot, tmpAlias, worktree].some((parent) => contained(parent, fs.realpathSync(outside)));
 const link = path.join(worktree, "escape"); fs.symlinkSync(outside, link, "dir");
 process.env.HOME = worktree; process.env.USERPROFILE = worktree;
 const ext = (await import("../extensions/nana-gate.ts")).default;
@@ -22,8 +24,9 @@ const ctx = { cwd: worktree, hasUI: false };
 const call = async (toolName, target) => (await handler({ toolName, input: toolName === "bash" ? { command: target } : { path: target } }, ctx))?.block === true;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) process.exitCode = 1; };
 process.env.NANA_WORKTREE_ROOT = worktree;
+if (!outsideIsIndependent) console.log("SKIP parent traversal outside lane is blocked: no writable home fixture outside lane and both permitted temp roots");
 // req: R-962
-check("parent traversal outside lane is blocked", await call("write", `${path.relative(worktree, outside)}/not-created/deep/file.txt`));
+check("parent traversal outside lane is blocked", !outsideIsIndependent || await call("write", path.relative(worktree, path.join(outside, "not-created/deep/file.txt"))));
 // req: R-962
 check("symlink escape outside lane is blocked", await call("edit", "escape/not-created/deep/file.txt"));
 // req: R-962

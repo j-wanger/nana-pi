@@ -908,7 +908,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Define the sealed wall-clock ceiling for lane workers.
 - **inputs** — none
-- **outputs** — LANE_MAX_SECS
+- **outputs** — LANE_MAX_SECS and LANE_DEFAULTS
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
