@@ -21,6 +21,8 @@ ones that load a real extension skip themselves when pi is not installed globall
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
 | `requirements` | Work the standing requirement set: REQUIREMENTS.md rows and the `req:` trace rail, sealed tunables, module contract headers, the code map and the README contract — plus an audit mode that extracts rows from a project that has none. `nana-setup` symlinks this same directory into `~/.claude/skills/requirements`, so pi and Claude Code read ONE source |
 
+Skill-claim checks cover paths, package-script commands and runner spelling, flags and subcommands by source presence, and declared target roots. They do not check prose claims, `uv run <tool>`, `uvx copier --data` keys, `node -e`, or required-but-missing flags. Render-dependent claims SKIP when `uvx copier` is unavailable.
+
 Seven extensions giving pi the hook coverage we require (Claude Code parity classes):
 
 | Extension | Hook class | Events used |
