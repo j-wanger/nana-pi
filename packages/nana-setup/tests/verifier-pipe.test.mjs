@@ -15,6 +15,7 @@ import { desiredHooks } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { runHook } from "../claude/hooks/verifier-pipe.mjs";
+import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
 
 let failures = 0;
 const check = (title, pass, extra = "") => {
@@ -30,7 +31,7 @@ const installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pip
 const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
 const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
 // req: R-984
-check("installed symlink asks on a verifier-pipe hit", install.status === 0 && fs.realpathSync(installedHook) === hook && hit.status === 0 && JSON.parse(hit.stdout).hookSpecificOutput.permissionDecision === "ask" && /permissionDecisionReason/.test(hit.stdout));
+check("installed symlink asks on a verifier-pipe hit", install.status === 0 && fs.realpathSync(installedHook) === hook && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
 const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
 // req: R-984
 check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
