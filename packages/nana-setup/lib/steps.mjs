@@ -13,9 +13,9 @@
  *  merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a
  *  fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json,
- *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review and nana-land, the desk plist
+ *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker and nana-land, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
- *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, KNOWLEDGE_CLI,
+ *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
  *  DESK_SERVER, NANA_LAND_BIN, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
@@ -56,6 +56,7 @@ export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "p
 export const NEW_CLAUDE_SKILLS = ["spec", "py-lint", "py-review", "py-test"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
+export const PI_WORKER_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-worker.mjs");
 export const NANA_LAND_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-land.mjs");
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
@@ -627,10 +628,11 @@ export function stepKnowledge(layout, o) {
 /* ------------------------------------------------------------------------------ PATH bin */
 
 export function stepPath(layout, o) {
-	if (win()) return [skip("PATH pi-review"), skip("PATH nana-land")];
+	if (win()) return [skip("PATH pi-review"), skip("PATH pi-worker"), skip("PATH nana-land")];
 	const r = linkFile(path.join(layout.binDir, "pi-review"), PI_REVIEW_BIN, o);
+	const worker = linkFile(path.join(layout.binDir, "pi-worker"), PI_WORKER_BIN, o);
 	const land = linkFile(path.join(layout.binDir, "nana-land"), NANA_LAND_BIN, o);
-	const out = [{ label: "PATH pi-review", ...r }, { label: "PATH nana-land", ...land }];
+	const out = [{ label: "PATH pi-review", ...r }, { label: "PATH pi-worker", ...worker }, { label: "PATH nana-land", ...land }];
 	const onPath = (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
 	if (!onPath) out.push({ label: "PATH check", status: SKIPPED, detail: `${layout.binDir} is not on this shell's PATH — add it` });
 	return out;

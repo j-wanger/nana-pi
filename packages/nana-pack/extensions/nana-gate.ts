@@ -45,6 +45,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as os from "node:os";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { compileRegexes, type GateConfig, journalFile, loadConfig, type NanaPackConfig, primeNanaTrust } from "../lib/config.ts";
 import { displayPath, displayText } from "../lib/objective.ts";
@@ -159,6 +160,46 @@ function pathHit(subject: string, gate: Policy, cwd: string): Hit {
 	if (subject.length <= MAX_SUBJECT && compileRegexes(gate.allowPatterns).some((r) => r.test(subject))) return null;
 	const p = [...PROTECTED_PATHS, ...compileRegexes(gate.protectedPaths)].find((r) => cands.some((c) => r.test(c)));
 	return p ? { label: "protected path", reason: String(p) } : null;
+}
+
+/** Resolve a possibly missing target through its nearest existing ancestor. */
+function realOut(target: string, cwd: string): string | null {
+	let candidate = path.resolve(cwd, target);
+	const suffix: string[] = [];
+	while (true) {
+		try {
+			fs.lstatSync(candidate);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") return null;
+			const parent = path.dirname(candidate);
+			if (parent === candidate) return null;
+			suffix.push(path.basename(candidate));
+			candidate = parent;
+			continue;
+		}
+		try {
+			return path.resolve(fs.realpathSync(candidate), ...suffix.reverse());
+		} catch {
+			return null;
+		}
+	}
+}
+function within(target: string, root: string): boolean {
+	const relative = path.relative(root, target);
+	return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
+}
+function laneWriteHit(subject: string, cwd: string): Hit {
+	const configured = process.env.NANA_WORKTREE_ROOT;
+	if (!configured) return null;
+	try {
+		const root = fs.realpathSync(configured);
+		const target = realOut(subject, cwd);
+		const allowed = [root, os.tmpdir(), "/tmp"].map((p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } });
+		if (target && allowed.some((p) => within(target, p))) return null;
+		return { label: "lane write boundary", reason: `target is outside NANA_WORKTREE_ROOT and temporary directories (${configured})` };
+	} catch {
+		return { label: "lane write boundary", reason: "NANA_WORKTREE_ROOT cannot be resolved" };
+	}
 }
 
 export default function (pi: ExtensionAPI) {
@@ -280,6 +321,7 @@ export default function (pi: ExtensionAPI) {
 		let hit: Hit;
 		try {
 			hit = isCommand ? commandHit(subject, gate, cwd) : pathHit(subject, gate, cwd);
+			if (!isCommand && !hit) hit = laneWriteHit(subject, cwd);
 		} catch {
 			hit = { label: "unanalysable call", reason: "gate analysis failed" };
 		}

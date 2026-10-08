@@ -191,6 +191,14 @@ scratch=$(mktemp -d)
 pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
+#### Lane builder
+
+Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, and every caller pi argument before acquiring the lock or starting pi. It builds the complete pi argv itself: provider `openai-codex`, model `gpt-6-luna`, `--thinking high`, tools `read,grep,find,bash,edit,write`, the rendered `prompts/builder-preamble.md` path, the validated brief path, and a fixed instruction naming the lane. The preamble precedes the brief. The sealed roster is one value in `bin/worker-config.mjs`, following Jake's roster ruling (2026-10-06); changing it is a roster edit requiring a requirements diff. Caller overrides are not supported. The usual non-lane worker invocation is unchanged.
+
+Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`. The gate refuses edit/write targets outside that root, the real `os.tmpdir()` and `/tmp`; it resolves symlinks and missing nested paths through the nearest existing ancestor. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
+
+Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; automatic reclamation is deliberately disabled because a dead watchdog may leave its pi process group running. Before removing a lock by hand, confirm that no builder and no pi process group for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire pi process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory.
+
 ### Trust model
 
 **This is a self-governance device against the fix-review treadmill, not a security control.**

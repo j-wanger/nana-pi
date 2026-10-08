@@ -90,10 +90,10 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 ### Working pattern
 
 - Default worktree root: `~/<repo>-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
-- Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker`; reviewer launcher: `pi-review`.
+- Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker --lane <name> --brief <file>`; reviewer launcher: `pi-review`.
 - Review ladder: package reviewer, then land reviewer when blast radius warrants both. Maximum three rounds per item; a different model lineage reviews the work.
 - Land checklist: resolve review findings or record residuals at point of use; use `nana-land` with a clean `main` checkout and clean source, verified review rounds, and the suite on the reviewed tip; rerun the suite if either checkout changes, and rely on the helper's immediate pre-merge checks, ff-only merge, and containment verification. Cleanup is a separate operation, only for a clean `feat/<lane>` worktree contained in `main`. Then run map, README, and locked full-suite checks; commit explicit paths and report evidence.
-- **Local overrides to fill in:** worktree root and branch convention; corpus root; builder/reviewer launchers and roster; review-round cap; lineage constraints; land checklist and UI/test exemptions.
+- Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
 <!-- nana:working-under-nana-pi end -->
 
 ### Requirements-first

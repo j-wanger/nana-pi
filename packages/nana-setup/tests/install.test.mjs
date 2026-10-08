@@ -166,6 +166,19 @@ const landDoctorEvidence = (() => {
 })();
 // req: R-980
 check("land bin is linked, executable, and doctor reports accurate state", landDoctorEvidence.ok, landDoctorEvidence.detail);
+// req: R-964
+check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+const workerDoctor = run(["doctor", "--home", home]);
+// req: R-964
+check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
+const workerLink = path.join(home, ".local", "bin", "pi-worker");
+fs.unlinkSync(workerLink);
+fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), workerLink);
+const wrongWorkerDoctor = run(["doctor", "--home", home]);
+// req: R-964
+check("doctor reports an incorrect pi-worker link", wrongWorkerDoctor.status === 1 && /✗\s+PATH pi-worker/.test(wrongWorkerDoctor.stdout));
+fs.unlinkSync(workerLink);
+fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"), workerLink);
 // req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 // req: R-311
@@ -182,6 +195,8 @@ check("second install reports nothing to do", second.stdout.includes("nothing to
 check("second install reports no created/updated line", !/^\s+\+ /m.test(second.stdout), second.stdout);
 // req: R-300
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
+// req: R-964
+check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
 const collide = freshHome();
