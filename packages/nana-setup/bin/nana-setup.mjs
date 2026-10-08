@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-setup/bin/nana-setup.mjs
- * @purpose The nana-setup CLI: parse argv, resolve one layout, run the install / doctor / project
- *  command it names, and print one marked line per piece.
- * @inputs argv (`install` | `doctor` | `project [dir]`, plus --home, --claude-home, --pi-home,
- *  --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
+ * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
+ * @inputs argv (`install` | `doctor` | `project [dir]` | `state`, plus --home, --claude-home, --pi-home,
+ *  --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
  *  defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
@@ -39,11 +38,13 @@ import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
+import { stateRows } from "../lib/state-manifest.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
   nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
+  nana-setup state [--paths] [options] list state stores; --paths prints durable regular-file paths
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
   nana-setup trust <dir> [--yes]      record pi project trust after confirmation
 
@@ -76,7 +77,8 @@ function parse(argv) {
 		} else if (a === "--name") {
 			opts.name = argv[++i];
 			if (!opts.name) throw new SetupError("--name needs a value");
-		} else if (a === "--check") opts.check = true;
+		} else if (a === "--paths") opts.paths = true;
+		else if (a === "--check") opts.check = true;
 		else if (a === "--desk") opts.desk = true;
 		else if (a === "--not-a-project") opts.notAProject = true;
 		else if (a === "--dry-run") opts.dryRun = true;
@@ -151,6 +153,83 @@ function runInstall(opts) {
 	// A ✗ row is a machine that is NOT set up. Exiting 0 there tells automation the install
 	// succeeded (sol r3) — the dry run included, since it reports the same ✗.
 	return installExitCode(results);
+}
+
+function within(root, target) {
+	const rel = path.relative(root, target);
+	return rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+}
+
+function statePresence(target) {
+	if (target.includes("*")) return expandPattern(target).some((entry) => {
+		try { fs.lstatSync(entry); return true; }
+		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return false; throw err; }
+	}) ? "present" : "absent";
+	try { fs.lstatSync(target); return "present"; }
+	catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return "absent"; throw err; }
+}
+
+function walkRegularFiles(root, current, files) {
+	let st;
+	try { st = fs.lstatSync(current); } catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return; throw err; }
+	if (st.isSymbolicLink()) return;
+	if (st.isFile()) { files.push(current); return; }
+	if (!st.isDirectory()) return;
+	for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+		const child = path.join(current, entry.name);
+		let childStat;
+		try { childStat = fs.lstatSync(child); } catch (err) { if (err.code === "ENOENT") continue; throw err; }
+		if (childStat.isSymbolicLink()) continue;
+		if (childStat.isFile()) files.push(child);
+		else if (childStat.isDirectory()) walkRegularFiles(root, child, files);
+	}
+}
+
+function runState(opts) {
+	const layout = resolveLayout(opts);
+	refuseCwdRelativePiHome(layout, "this state listing");
+	const rows = stateRows(layout);
+	if (!opts.paths) {
+		for (const row of rows) console.log(`${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${statePresence(row.path)}`);
+		return 0;
+	}
+	const files = new Set();
+	for (const row of rows.filter((entry) => entry.class === "durable")) {
+		if (!within(layout.base, row.path)) {
+			console.error(`durable store outside home: ${row.store} (${row.path})`);
+			return 2;
+		}
+		const targets = row.path.includes("*") ? expandPattern(row.path) : [row.path];
+		for (const target of targets) {
+			if (!within(layout.base, target)) { console.error(`durable store outside home: ${row.store} (${target})`); return 2; }
+			const found = [];
+			walkRegularFiles(layout.base, target, found);
+			for (const file of found) {
+				const name = path.relative(layout.base, file);
+				if (/[\u0000-\u001f\u007f]/.test(name)) { console.error(`control character in durable store ${row.store}`); return 2; }
+				files.add(name.split(path.sep).join("/"));
+			}
+		}
+	}
+	for (const file of [...files].sort()) console.log(file);
+	return 0;
+}
+
+function expandPattern(pattern) {
+	const absolute = path.resolve(pattern);
+	const root = path.parse(absolute).root;
+	const parts = absolute.slice(root.length).split(path.sep).filter(Boolean);
+	const walk = (current, index) => {
+		if (index === parts.length) return [current];
+		const part = parts[index];
+		if (!part.includes("*")) return walk(path.join(current, part), index + 1);
+		let entries;
+		try { entries = fs.readdirSync(current, { withFileTypes: true }); }
+		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
+		const matcher = new RegExp(`^${part.split("*").map((text) => text.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join(".*")}$`);
+		return entries.filter((entry) => matcher.test(entry.name)).flatMap((entry) => walk(path.join(current, entry.name), index + 1));
+	};
+	return walk(root, 0);
 }
 
 function runDoctor(opts) {
@@ -300,6 +379,7 @@ async function main(argv) {
 	try {
 		if (cmd === "install") return runInstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
+		if (cmd === "state") return runState(opts);
 		if (cmd === "project") return await runProject(opts);
 		if (cmd === "trust") { await runTrust(opts); return 0; }
 	} catch (err) {

@@ -57,6 +57,51 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 
 Before updating this checkout, quiesce desk activity and close or pause sessions that depend on it. Update the checkout only after the desk is quiescent. Then explicitly repair and restart the desk with `node packages/nana-setup/bin/nana-setup.mjs install --desk`, and verify the result with `node packages/nana-setup/bin/nana-setup.mjs doctor`. Doctor must report the desk running and its plist-selected Node version healthy.
 
+## State and restore
+
+State classes:
+
+- **durable** — private working state to archive and restore.
+- **rebuildable** — links, generated indexes and configuration recreated by setup or their owner.
+- **re-ratified** — trust decisions that must be recorded again for each repository.
+- **disposable** — locks, caches, logs and temporary working state; do not archive.
+- **secret** — credentials, sessions, transcripts and key material; carry by hand or sign in again.
+
+`nana-setup state` lists each store's class, owner, resolved path and presence. `state --paths` lists regular files under present durable stores only; symlinks are skipped. The inventory is the archive boundary.
+
+| Store | Class | How it comes back |
+|---|---|---|
+| Private rule, shared memory, project memories | durable | Restore from the private archive; the SessionStart hook recreates project `shared` links. |
+| Review-ledger tally, audit and rotated files | durable | Restore from the private archive. |
+| nana-pack config, objective, pi settings, knowledge sources and pull log, apps and nana share | durable | Restore from the private archive. |
+| Hook, rule, skill and bin links; subagent config and reviewer seed | rebuildable | Run `nana-setup install`. |
+| Knowledge index, pi-subagents package and desk plist | rebuildable | Build knowledge, install pi-subagents from the network, and use `install --desk` when needed. |
+| Project trust | re-ratified | Run `nana-setup trust <dir>` for every repository. |
+| Ledger locks and reservations, suite lock, knowledge shown/build lock, desk log, MCP cache, handoffs and nana journal | disposable | Recreated as needed; not archived. |
+| Login credentials, MCP/model config, sessions, Claude transcripts, bench agent and desk stage keys | secret | Sign in again or carry by hand; not archived. |
+
+Back up the listed files as one archive:
+
+```sh
+node packages/nana-setup/bin/nana-setup.mjs state --paths > ~/nana-state.list && tar -czf ~/nana-state.tgz -C ~ -T ~/nana-state.list
+```
+
+Restore in order:
+
+1. Install Node and pi; clone nana-pi, nana-agent-loop and the product repositories at the SAME absolute paths.
+2. Run `nana-setup state`; every durable row must be absent. Otherwise stop: this is not a clean home.
+3. Extract the archive: `tar -xzkf ~/nana-state.tgz -C ~`.
+4. Run `nana-setup install`.
+5. Sign in again to pi (`/login`) and Claude Code.
+6. Run `nana-setup trust <dir>` for each repository.
+7. Run `pi install npm:pi-subagents@0.75.0`.
+8. Run `install --desk` if the desk is used.
+9. Run `doctor`.
+
+The restore needs the same home path and repository paths: memory keys, nana-pack config, knowledge sources and ledger repository identity use absolute paths. A different username needs hand edits; no re-keying is built. The archive is unencrypted private data. Secret stores are carried by hand or recreated by signing in. macOS `tar -k` keeps existing files; GNU tar errors instead, so the target must be clean. This procedure is macOS-tested only.
+
+This inventory does not configure a backup destination. Several repositories have no remote, and unpushed commits in other repositories are outside this archive.
+
 ## The nana-owned reviewer agent — why `agents/reviewer.md` shadows the builtin
 
 `agents/reviewer.md` doesn't add a new agent — it REPLACES pi-subagents' builtin `reviewer` for
@@ -354,6 +399,8 @@ loudly and counted, never silent.
 
 | File | Covers |
 |---|---|
+| `tests/state-manifest.test.mjs` | classified inventory, layout coverage, ledger parity, secret classification, and read-only listing with inaccessible secret fixtures |
+| `tests/restore.test.mjs` | documented command lines, durable-store absence, inventory listing and restore ordering |
 | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
 | `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
 | `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
