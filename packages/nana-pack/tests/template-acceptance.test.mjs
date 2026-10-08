@@ -8,6 +8,7 @@
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -82,6 +83,22 @@ function declaredCommandsMatch(filePath, language, substitution) {
   return JSON.stringify(declared) === JSON.stringify(expected);
 }
 
+// req: R-593
+check("a dirty template edit is excluded from a SHA render", () => {
+  const available = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8", timeout: 15_000 });
+  if (available.error?.code === "ENOENT") { console.log("SKIP dirty SHA render: copier unavailable (uvx)"); return; }
+  assert.equal(available.status, 0, `copier availability probe failed: ${available.stderr}`);
+  const repo = path.join(root, "dirty-copier-repo");
+  execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(new URL("../../../", import.meta.url).pathname), repo], { stdio: "ignore" });
+  const sha = execFileSync("git", ["-C", repo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const template = path.join(repo, "templates/python/template/.gitignore");
+  fs.appendFileSync(template, "dirty-uncommitted-template-marker\n");
+  const destination = path.join(root, "dirty-sha-render");
+  const rendered = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", sha, "-d", "language=python", "-d", "project_name=DirtyTest", "-d", "description=Dirty test", "-d", "adopt=false", ".", destination], { cwd: repo, encoding: "utf8", timeout: 600_000 });
+  assert.equal(rendered.status, 0, `${rendered.stdout}\n${rendered.stderr}`);
+  assert(!fs.readFileSync(path.join(destination, ".gitignore"), "utf8").includes("dirty-uncommitted-template-marker"));
+});
+
 // req: R-595
 check("declared commands mirror each template CI check job with the install substitution", () => {
   const templates = path.resolve(new URL("../../../templates", import.meta.url).pathname);
@@ -118,6 +135,40 @@ function acceptanceStub({ failCommand = null } = {}) {
 }
 
 // req: R-594
+check("acceptance invokes the exact check command matrix in every combination", () => {
+  const stub = acceptanceStub();
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
+  const actual = stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).map(({ cmd, args, options }) => [path.basename(options.cwd), [cmd, ...args].join(" ")]);
+  assert.deepEqual(actual, [
+    ["python-scaffold", "uv sync"], ["python-scaffold", "uv run ruff check ."], ["python-scaffold", "uv run ruff format --check ."], ["python-scaffold", "uv run mypy"], ["python-scaffold", "uv run pytest"],
+    ["python-adopt", "uv run python scripts/code_map.py"], ["python-adopt", "uv sync"], ["python-adopt", "uv run ruff check ."], ["python-adopt", "uv run ruff format --check ."], ["python-adopt", "uv run mypy"], ["python-adopt", "uv run pytest"],
+    ["typescript-scaffold", "pnpm install"], ["typescript-scaffold", "pnpm check"],
+    ["typescript-adopt", `${process.execPath} scripts/code-map.mjs`], ["typescript-adopt", "pnpm install"], ["typescript-adopt", "pnpm check"],
+  ]);
+  assert(stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).every(({ options }) => options.timeout === 600_000));
+});
+// req: R-594
+check("a timed-out check fails and names its complete command", () => {
+  const stub = acceptanceStub(); const logs = [];
+  const run = (cmd, args, options) => {
+    if (cmd === "uv" && args.join(" ") === "run ruff check .") return { status: null, error: Object.assign(new Error("timed out"), { code: "ETIMEDOUT" }), stderr: "timed out" };
+    return stub.run(cmd, args, options);
+  };
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 1);
+  assert(logs.some((line) => line.includes("python scaffold") && line.includes("uv run ruff check .") && line.includes("exited 1")));
+});
+// req: R-594
+check("map failures report the executable and script", () => {
+  const stub = acceptanceStub(); const logs = [];
+  const run = (cmd, args, options) => {
+    if (cmd === process.execPath && args[0] === "scripts/code-map.mjs") return { status: 1, stderr: "map failed" };
+    return stub.run(cmd, args, options);
+  };
+  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 1);
+  assert(logs.some((line) => line.includes(`${process.execPath} scripts/code-map.mjs`)));
+});
+
+// req: R-594
 check("all four combinations run and the temporary root is removed on success", () => {
   const stub = acceptanceStub();
   assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
@@ -130,7 +181,7 @@ check("all four combinations run and the temporary root is removed on success", 
 check("command failures continue all combinations and ENOENT names pnpm", () => {
   const stub = acceptanceStub({ failCommand: "pnpm ENOENT" }); const logs = [];
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
-  assert.equal(status, 1); assert(logs.join("\n").includes("pnpm"));
+  assert.equal(status, 1); assert(logs.some((line) => line.includes("typescript scaffold: pnpm install exited 1")));
   assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
 });
 // req: R-594

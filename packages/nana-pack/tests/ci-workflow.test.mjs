@@ -26,7 +26,7 @@ check("root CI runs the locked suite on macOS and nonblocking Ubuntu and gates t
   assert.match(workflow, /^    permissions:\n      contents: write/m);
   assert.match(workflow, /^    concurrency:\n      group: template-release\n      cancel-in-progress: false/m);
   assert.match(workflow, /^        with:\n          fetch-depth: 0/m);
-  assert.match(workflow, /^      - run: node scripts\/template-release.mjs --push/m);
+  assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: node scripts\/template-release\.mjs --push/m);
   assert(workflow.indexOf("pi --version") < workflow.indexOf("npm test"));
   assert.match(workflow, /PI_VERSION: 1\.0\.2/);
 });

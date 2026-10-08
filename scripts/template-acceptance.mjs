@@ -93,7 +93,7 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
         if (mode === "adopt") {
           const map = language === "python" ? ["uv", ["run", "python", "scripts/code_map.py"]] : [process.execPath, ["scripts/code-map.mjs"]];
           const mapped = runChecked(run, map[0], map[1], dir);
-          if (!mapped.ok) failures.push({ language, mode, command: map[1].join(" "), code: mapped.result?.status, output: textOf(mapped.result) });
+          if (!mapped.ok) failures.push({ language, mode, command: [map[0], ...map[1]].join(" "), code: mapped.result?.status, output: textOf(mapped.result) });
         }
         for (const [cmd, args] of ACCEPTANCE_COMMANDS[language]) {
           const result = runChecked(run, cmd, args, dir);
