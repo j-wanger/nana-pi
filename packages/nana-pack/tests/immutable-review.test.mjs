@@ -75,7 +75,7 @@ const existingOutRun = spawnSync(process.execPath, [piReview, "--item", "existin
 check("pre-existing untracked in-tree output warns and review proceeds", existingOutRun.status === 0 && /WARNING/.test(existingOutRun.stderr) && fs.readFileSync(preexistingOut, "utf8").includes("VERDICT: LAND") &&
   reviewRound.readRounds(home, { item: "existing-output" }).length === 1, existingOutRun.stderr);
 fs.rmSync(preexistingOut);
-const args = [piReview, "--item", "immutable", "--role", "sol", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "anthropic", "--model", "review-test-7"];
+const args = [piReview, "--item", "immutable", "--role", "sol", "--revision", "main", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "openai-codex", "-m", "gpt-5.6-sol"];
 const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -106,7 +106,7 @@ const worktreesAfterSuccess = git(repo, "worktree", "list", "--porcelain");
 check("dirty working state is reproduced exactly and reviewer runs in the immutable checkout", result === 0 && snapshotCorrect && row?.revision === revision, JSON.stringify({ result, observed, row, revision }));
 // req: R-970
 check("pi-review records its provider, model, actual attempts and duration",
-  row?.provider === "anthropic" && row?.model === "review-test-7" && row?.attempts === 1 && Number.isFinite(row?.durationMs) &&
+  row?.provider === "openai-codex" && row?.model === "gpt-5.6-sol" && row?.attempts === 1 && Number.isFinite(row?.durationMs) &&
   Date.parse(row?.startedAt) <= Date.parse(row?.endedAt), JSON.stringify(row));
 // req: R-967
 check("source commit during review does not void the admitted round", result === 0 && row?.revision === revision && git(repo, "rev-parse", "HEAD") !== initialHead);

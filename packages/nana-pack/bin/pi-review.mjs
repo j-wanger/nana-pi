@@ -142,24 +142,30 @@ try {
   const checkoutOutPath = outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? outPath : resolve(tempRoot, outputRelative);
   copySnapshot(sourceRoot, tempRoot, outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? null : outPath);
   const checkoutScope = treeScope(tempRoot, { exclude: [checkoutOutPath] });
-  const checkoutRevision = resolveRevision(optionValue('--revision'), checkoutScope, checkoutScope.root);
+  const checkoutRevision = resolveRevision(sourceScope.head, checkoutScope, checkoutScope.root);
   if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
 
   const childArgs = [...w.ownArgs];
   const treeIndex = childArgs.indexOf('--tree');
   if (treeIndex >= 0) childArgs[treeIndex + 1] = tempRoot;
   else childArgs.push('--tree', tempRoot);
+  const revisionIndex = childArgs.indexOf('--revision');
+  if (revisionIndex >= 0) childArgs[revisionIndex + 1] = sourceScope.head;
+  else childArgs.push('--revision', sourceScope.head);
   const outIndex = childArgs.indexOf('--out');
   childArgs[outIndex + 1] = outPath;
   w.outPath = outPath;
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  const piOption = (name) => {
-    const equals = w.piArgs.find((arg) => arg.startsWith(`${name}=`));
-    if (equals) return equals.slice(name.length + 1);
-    const i = w.piArgs.indexOf(name);
-    return i >= 0 ? w.piArgs[i + 1] : null;
+  const piOption = (...names) => {
+    for (const name of names) {
+      const equals = w.piArgs.find((arg) => arg.startsWith(`${name}=`));
+      if (equals) return equals.slice(name.length + 1);
+      const i = w.piArgs.indexOf(name);
+      if (i >= 0) return w.piArgs[i + 1];
+    }
+    return null;
   };
-  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd(), provider: piOption('--provider'), model: piOption('--model'), attempts: w.retries + 1 });
+  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd(), provider: piOption('--provider'), model: piOption('--model', '-m'), attempts: w.retries + 1 });
   if (!adm.ok) throw new Error(adm.message);
   admittedId = adm.id;
   process.stderr.write(`pi-review: ${adm.note}\n`);
