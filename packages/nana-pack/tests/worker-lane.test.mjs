@@ -35,7 +35,7 @@ const run = (cwd, args, more = {}, piArgs = []) => spawnSync(process.execPath, [
 	env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, ...more },
 });
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) process.exitCode = 1; };
-const legacyRepeat = run(lane, ["--poll", "0.1"], {}, ["-p", "legacy"]);
+const legacyRepeat = run(lane, ["--poll", "invalid"], {}, ["-p", "legacy"]);
 // req: R-960
 check("non-lane repeated worker options keep the legacy first-occurrence behaviour", legacyRepeat.status === 0 && !/duplicate option/.test(legacyRepeat.stderr), legacyRepeat.stderr);
 fs.rmSync(piSpawnMarker, { force: true }); fs.rmSync(out, { force: true });

@@ -26,6 +26,16 @@
 - **Not done in tranche 2, carried to tranche 3 wave A:** 2.8 (memory hygiene: doctor link checks; aml-desk facts into its product memory) and 2.9's mechanism (`nana-setup project` refreshes and `--check` compares only the marker region; refresh the product copies once). 2.3 (one roster) was done by the seat on 2026-10-06.
 - **Tranche 3 waves** (Fable consult on the lane specs, 2026-10-07): A = review immutability and the reviewer role (3.3, D7) with the pipe guard (3.5) and the 2.8/2.9 carry; B = the launcher (3.1 as ruled by D1) with the land helper (3.4), branched after A lands, because the land helper reads the verdict field the review lane adds. 3.2 (nana-pi's own post-edit checks) and 3.7 (the canary) are seat acts after B.
 
+## Seat rulings during tranche 3 (2026-10-07/08)
+
+- **D1 as built:** `pi-worker --lane` owns the whole builder argv (one sealed roster value), refuses caller pi arguments, retries and duplicate options, and never reclaims a stale lock automatically. No `nana-builder` Agent definition.
+- **Review isolation (3.3):** reviews run in an immutable checkout; repositories with initialized submodules are refused (none on this machine uses them).
+- **Pipe guard (3.5):** the Claude hook abstains unless it hits; pipefail exempts only as the first command in canonical form; heredoc bodies are skipped only for quoted delimiters; commands built at run time are a declared gap.
+- **Land helper (3.4):** one ff-only merge with pre- and post-checks; a branch switch in the main checkout mid-merge is a declared residual. The seat's compare-and-swap design was wrong and was subtracted.
+- **2.8/2.9 carried in:** region refresh landed; dangling memory links are informational (the memory convention allows them); the aml-desk memory move waits until the session writing it ends; jev-research and the-hive copies were refreshed, aml-desk waits.
+- **Builder:** Jake ruled "if anything use sonnet 5.5"; a blind A/B on the land helper tied; luna stays the default.
+- **Proportional stopping:** on low-risk lanes, rare edge cases after three rounds become declared residuals; over-cap rounds go only to builder bugs on named cases, regressions and safety findings.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).

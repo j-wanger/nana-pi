@@ -1,0 +1,1991 @@
+[
+ {
+  "lane": "t1-docs",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-658 test searched the whole README; 'quality gates' kept the gate assertion green; mutation only inverted the assertion.",
+  "why": "Row marked implemented while its cited check survives removing an extension name."
+ },
+ {
+  "lane": "t1-docs",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "readme-check @errors headers still say bad CLI input throws; main() now prints usage and exits 2; code map repeats it.",
+  "why": "Module contract text out of step with behaviour; code was correct."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Default-budget test server inherits an ambient DESK_TEST_CONFIRM_BUDGET_MS, so the production-default boundary case is not guaranteed.",
+  "why": "Ambient environment leak is an uncommon case the brief did not name."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Left the whole-RPC forkMs<2000 timing assertion in place; the finding named it and said to measure via trace events.",
+  "why": "Brief's finding text named this exact assertion and the fix."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "R-916 promises a 20-line cap on any failure; --verbose bypasses it and the test covers non-verbose only; header stale.",
+  "why": "Row overclaims beyond what its cited check pins."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "New R-946 claims an answer ON the deadline; the reused fixture cannot prove equality, so >= to > stays green.",
+  "why": "Cited check would pass under the wrong comparison."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-916 fixture emits only FAIL lines; removing the 'not ok' branch leaves the cited check green.",
+  "why": "Half the row's clause is unpinned by its evidence."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-948/R-949 claim dynamic allocation; tests only check numbers differ; mutation pairs only inverted assertions.",
+  "why": "Fixed replacement ports would keep the cited checks green."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "New R-948 check inserted under an existing R-447 marker, attaching R-447 to the dynamic-port assertion.",
+  "why": "req: marker placement slip on the trace rail."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Port helpers reserve-then-close, which server.mjs calls racy; the seat's round-3b brief prescribed bind 0, read, close.",
+  "why": "Builder followed the seat's prescribed design; seat later ruled port-0 listeners instead."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Narrowed R-948/R-949 accept any distinct fixed ports; narrowing followed the seat's round-4 'prefer narrowing' steer on its racy design.",
+  "why": "Seat brief steered the narrowing and chose the design the rows could not pin."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Desk README still states an unconditional 1000 ms budget; the test-only override works in any server process, undocumented.",
+  "why": "README out of step with behaviour; no code defect."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "Round-5 port-zero support widened manifest validation to 0-65535 and null/false/''/[] via Number().",
+  "why": "Introduced by the previous fix round; was 1024-65535 before."
+ },
+ {
+  "lane": "t1-flake",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Round-2 replacement check (marker absent after awaiting fork) is still scheduling-sensitive; it followed sol r1's suggested fix.",
+  "why": "Defect introduced by a fix round that implemented the reviewer's prescription."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Signal handler forwards the signal rather than killing; a signal-ignoring child hangs runOnce and the reservation is never released.",
+  "why": "Brief said kill the group and assert no child survives; code fails that named case."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-620 test cannot pin refusal 'before the review runs'; the fake reviewer records no invocation marker.",
+  "why": "Moving refusal after the child would keep the cited check green."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-621 test never compares the tally revision with the selected tree's HEAD.",
+  "why": "A fixed or wrong revision would pass the cited check."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r1.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "pi-review and review-ledger @inputs headers and usage comments omit the new --tree option.",
+  "why": "Contract header text lagged the new flag."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-712 (any git failure carries git's error) re-cited to the outside-git test asserting custom guidance; contradicts R-624.",
+  "why": "Requirement evidence/row slip made by the builder in round 1."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-701 tests never isolate case sensitivity or the word boundary; a case-insensitive predicate stays green.",
+  "why": "Brief named case-sensitive; cited checks do not pin it."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "Redirect refusal tested only via pi-review; --tree tested only via review-ledger from another repo, not a non-git cwd.",
+  "why": "Mutations confined to the untested launcher or path would pass."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "review-ledger redirect branch passes -p as the executable; its marker cannot prove refusal precedes the child start.",
+  "why": "Cited check survives starting the child before refusal."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r3.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-712 also cites the unresolvable-revision check, which asserts a custom diagnostic, not git's error.",
+  "why": "Evidence citation slip added in the round-3 fix."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "sol-r3.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "treeScope JSDoc still describes the removed path: fallback.",
+  "why": "Doc comment out of step with behaviour."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "astra-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "review-ledger run spawns the reviewer at the repo root, not the launcher cwd; brief said --tree sets scope, separate from working cwd.",
+  "why": "Builder conflated identity root with execution cwd, silently changing semantics."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "astra-r3.md",
+  "severity": "SHOULD",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Redirect detection skips initialized submodule contents that the snapshot still covers; declared as a residual.",
+  "why": "Submodule case the brief did not name."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "astra-r3.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "Repeats sol r3: review-ledger redirect branch's marker cannot prove refusal before the child starts.",
+  "why": "Cited check survives the wrong ordering."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "astra-r3.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Repeats sol r3: R-712 cites the unresolvable-revision check that asserts a custom message.",
+  "why": "Evidence citation slip."
+ },
+ {
+  "lane": "t1-ledger",
+  "review": "astra-r3.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Repeats sol r3: treeScope JSDoc describes the removed non-git fallback.",
+  "why": "Doc comment out of step with behaviour."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Runtime-matrix test checks four static rows only; matrix omits adoption/context-size hooks and lifecycle extension.",
+  "why": "Brief explicitly required a test failing on any unmapped desiredHooks entry or extension; builder shipped a static check and incomplete matrix."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Shared template hardcodes ~/nana-pi-wt/<lane> instead of generic ~/<repo>-wt/<lane>; test pins the wrong value.",
+  "why": "Brief named the exact generic path; builder wrote the repo-specific one."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Desk matrix never states which nana surfaces app children get; R-685 check is token presence only.",
+  "why": "Brief quoted the L6-07 falsifier (can a reader tell if an edge-desk turn sees the objective); doc did not answer it."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-681 implemented but test only checks desired sentence exists; a 'read whole file' instruction would still pass.",
+  "why": "Limiting clause 'never whole' unpinned; standing rules require each clause to fail under wrong text."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "R-681 check rejects only 'whole'/'entire'; unscoped 'At startup, read REQUIREMENTS.md.' still passes.",
+  "why": "Clause still unpinned; builder had followed sol r1's own suggested smallest fix, so the bar moved."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "README line still claims everything works in PowerShell/cmd, competing with the single scoped support claim.",
+  "why": "Stray README text out of step with the brief's ONE-claim rule; R-684 test read only the first Support line."
+ },
+ {
+  "lane": "t2-instructions",
+  "review": "astra-r3.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Both language templates still say 'see Requirements-first below' after that heading was dropped.",
+  "why": "Dangling doc reference left after the brief-directed shrink; no code defect."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Receipt removal incomplete: AGENTS.md, shared template, desk README and desk Settings controls still present receipts.",
+  "why": "Brief's L5-08 fix named production, rows, tests and UI; a receipt grep would have found every surface."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "nana-post-edit.ts still uses CheckStatus after its import was removed; TypeScript source invalid.",
+  "why": "Plain code error from the subtraction, hidden only by runtime type stripping."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-793 marked implemented with one invalid-regex check; other malformed-entry shapes unpinned after test deletion.",
+  "why": "Row broader than its cited test; status honesty breach."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-105 coverage dropped with receipt tests; changed R-644 check computes expected but asserts only source.includes.",
+  "why": "Non-receipt post-edit behaviour lost its pins; the rewritten check cannot fail under a regression."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Worker report claims mutation proof yet omits the changed, non-falsifying R-644 check.",
+  "why": "Mutation-pair reporting slip required by standing rules."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Requirements trace rail red: R-644 and R-793 evidence cells cite stale or misspelled test titles.",
+  "why": "Evidence-title slip; builder committed without the suite (PARTIAL, lock contention) and seat skipped cheap rails before review."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Adoption hook still prints 'saved handoff' (test pins it) and desk labels the store 'Handoff'.",
+  "why": "Brief item 2 explicitly required compaction-summary wording on user-visible surfaces; two were missed."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-867 preservation clause pinned only by a source grep for '...n', not the UI save path.",
+  "why": "Implemented row whose test stays green if the UI drops receipts; seat later dropped the clause."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "AGENTS.md package map still describes nana-pack as 'post-edit checks + receipts'.",
+  "why": "Doc text out of step after receipt subtraction; no code defect."
+ },
+ {
+  "lane": "t2-pack",
+  "review": "astra-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Adoption hook claims 'no HANDOFF.md' for HANDOFF-only repos; G1c-03 fix conflicts with landed R-152 rule.",
+  "why": "Brief listed G1c-03 without reconciling it with tranche-1 R-152 or a seat note; seat ruled only in r4."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Phrase-based provenance (nana-dev-kit / 5-layer) matches none of the live legacy skill dirs; fixture faked the marker.",
+  "why": "Seat brief supplied that unverified signature as the provenance example; seat r2 ruling switched to exact fingerprints."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Provenance too broad: one phrase, any '.Codex', or any .bak containing 'nana' retires owner-edited or unrelated content.",
+  "why": "Weakens 'never move unknown content'; brief warned of owner-edit probes, though seat's phrase example contributed."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r1.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Settings test comments still say merge 'ADDS and nothing else'; settings.mjs header omits removeRetiredContextHook.",
+  "why": "Stale contract comments after adding removal; no behaviour defect."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Backup moves follow a symlinked backup root or dated dir, redirecting artifacts outside the home.",
+  "why": "Intermediate destination-ancestor symlink: deeper than the brief's lstat-the-artifact rule."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "--claude-home ignored by retirement; artifacts resolved under default home, so real root could be retired.",
+  "why": "resolveLayout already exposed claudeHome; ordinary reading of existing code makes the scoping obvious."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "Context-hook removal matches tokenized command regardless of type or metadata, not the exact managed entry.",
+  "why": "Brief said remove ONLY the exact nana entry; builder chose a looser match that weakens that guarantee."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r2.md",
+  "severity": "NIT",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "git diff --check main...HEAD fails on trailing whitespace in captured py-init fixture.",
+  "why": "Introduced by the round-2 fix that added real captured fixtures."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Retirement follows symlinked source ancestors (skills/ or hooks/), reading and moving inside external targets.",
+  "why": "Symlinked-ancestor class; builder fixed destinations in r3 but did not generalize to sources."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "Most production fingerprints unpinned; deleting py-lint or Agent Skills hashes leaves tests green.",
+  "why": "R-668 implemented while its production data could regress silently; mutations covered code, not data."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Doctor reads enforcement flags from default home, not the selected --claude-home.",
+  "why": "Same scoping bug sol r2 named for install; builder fixed steps but not doctor."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Ancestor guard skipped by stepSkills and dry-run; links created inside an external symlinked skills dir.",
+  "why": "Symlink-ancestor class again; guard applied to retirement only, test checked one file not the tree."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Foreign links for spec/py-* preserved by retirement then replaced by linkSkill, breaking R-669.",
+  "why": "Brief named 'a link already pointing elsewhere' as an expected probe; row promised preservation the install broke."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "win32 mirror overwrites unrecognized legacy skill dirs; doctor accepts mirrors contrary to R-666.",
+  "why": "Native Windows path in pre-existing linkSkill; rows omitted the exception."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "astra-r5.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Setup README Platforms does not declare that win32 skips the four newly managed skills.",
+  "why": "README out of step with r5 behaviour; no code defect."
+ },
+ {
+  "lane": "t2-retire",
+  "review": "astra-r5.md",
+  "severity": "NIT",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "win32 skipped-rows check matches the skip text globally, not on each skill's own line.",
+  "why": "Assertion could pass from another skipped step; clause not pinned per skill."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-152 cited evidence stays green under 'any HANDOFF.md adopts'; the HANDOFF-only negative check was tagged R-151 instead.",
+  "why": "Implemented row's cited test does not pin its clause; brief named the HANDOFF-only case."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "R-640 checks both set NANA_TEST_TEMP_ROOTS, so the production os.tmpdir and /tmp skip stays unpinned.",
+  "why": "Seat's round-2 brief dictated the env seam and told the temp-root test to set it."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "R-644 behavioural parity test cannot prove post-edit uses the shared resolver; a private duplicate would pass.",
+  "why": "Row claims structural reuse; cited test pins only behaviour (the seat had asked for the parity case)."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Section order depends on pi's unsorted extension load; the composition test called handlers in a fixed order it manufactured.",
+  "why": "Brief named 'stable order'; code gave no production guarantee and needed pi loader knowledge to see."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Pack README says 'adopted' but never defines the complete-structure predicate or temp-root exclusion.",
+  "why": "README out of step with behaviour; no code defect."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "Composition check never asserts section values; foreign keys were already lexical, so alphabetic reorder or overwrite passes.",
+  "why": "R-641/R-751 marked implemented with a test that survives the wrong implementation."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "R-642 headless opt-in case unpinned; a handler always suppressing when hasUI is false still passes.",
+  "why": "Clause not pinned by cited tests; seat's list named only the negative headless cases."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "R-643 promises OSC only in TUI but tests only RPC; mode !== 'rpc' survives for json and print.",
+  "why": "Row wider than its evidence; seat's brief asked only for the rpc regression."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "NANA_TEST_TEMP_ROOTS is an ambient production env override that can disable temp-root filtering.",
+  "why": "The env-knob design was the seat's explicit round-2 decision."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r2.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Adoption design comment in nana-handoff.ts omits complete structure and temp-root exclusion.",
+  "why": "Stale comment text; no behaviour defect."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "New R-647 journaling fires only in the missing-handoff branch and sets the once-guard before the append succeeds.",
+  "why": "Defect in code added by the round-4 fix."
+ },
+ {
+  "lane": "t1-session",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "statSync follows a symlinked HANDOFF.md, so the 'regular root HANDOFF.md' predicate accepts symlinks.",
+  "why": "Symlink case not named; stat-reports-regular is a reasonable misreading."
+ },
+ {
+  "lane": "t1-session",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Round-5 journaling still sits after the startup-only filter; resume/fork/reload never journal. Seat later narrowed R-647 instead.",
+  "why": "Incomplete placement of the fix the review and brief asked for ('near session_start')."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "Stale-hook migration treats any node nana-knowledge hook as installer-owned, overwriting hand-written entries.",
+  "why": "Permissive ownership rule weakens the brief's 'never touch an entry it did not write' guarantee."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-323 wording says install runs only when every dir is unloaded, contradicting the partial-registration behaviour it cites.",
+  "why": "Requirement row text slip against its own evidence."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-398/399/651/356 unpinned: helper called directly, healthy-only doctor case, parser-only test, no bootstrap/kickstart order assertion.",
+  "why": "Implemented rows whose tests pass under obvious wrong implementations."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-394 atomic replacement and R-653 byte-for-byte preservation claimed, but tests check only command strings.",
+  "why": "Evidence does not pin the claimed clauses."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Month-log matcher accepts impossible months such as 2026-99.md.",
+  "why": "Uncommon malformed input the brief did not name."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Doctor rejects the exact Node floor 22.19.0: two-component floor compared with a three-component comparator; boundary untested.",
+  "why": "Brief named node >= 22.19; boundary is an ordinary case."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "settings.mjs header still declares @effects none after adding realpathSync calls.",
+  "why": "Module contract header slip."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Registration coverage counted per package root; diverging root vs package manifests can report complete while a dir is unloaded.",
+  "why": "Hypothetical diverging-manifest case not named in the brief."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Brief required splitting R-354 so node selection is its own clause; builder left it bundled and the assertion untagged.",
+  "why": "Partial completion of a briefed row change."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Round-2 ownership fix still uses a permissive matcher; env-prefixed customized hooks get replaced wholesale.",
+  "why": "Kept a loose matcher on a preservation guarantee; found by adversarial probing."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "Round-4 diverging-manifest test rewrites the repo's own root and package manifests, restoring only in finally.",
+  "why": "Introduced by the previous fix round's new fixture."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "README omits stale-entry replacement and the quiesce, update, repair, doctor procedure the finding asked for.",
+  "why": "Documentation gap; no code defect."
+ },
+ {
+  "lane": "t1-setup",
+  "review": "astra-r5.md",
+  "severity": "NIT",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Injected manifest root not threaded through root-entry identity matching; production unaffected.",
+  "why": "Incomplete application of the briefed injection seam."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Overdue check flags ruling dates and range starts; brief item (d) literally asked for any past explicit date.",
+  "why": "Seat reinterpreted its own brief to due dates only after the build."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Nearest-heading section lookup lets a nested ### heading under Next or Open escape all section checks.",
+  "why": "Ordinary Markdown section semantics for 'under Next'."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Extra positional operand exits 2 without --strict, contradicting the brief's exit-0-unless-strict rule.",
+  "why": "Brief named the exit policy explicitly."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "README still calls nana-writing the ninth CLI; root inventory omits the frontier checker.",
+  "why": "Doc out of step; no code defect."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r1.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Fixture EOF blank line fails git diff --check, though the report claimed exit 0.",
+  "why": "Verification claim not matching reality."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Test reads the moving HANDOFF.md; the frozen-fixture rule reached only the reviewer, while the relayed fix said assert the live file.",
+  "why": "Seat put the instruction in the review brief, not the builder brief."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Due cues by/until/verdict on/review on missing; the seat's cue list was never in the builder's brief.",
+  "why": "Builder implemented what the relayed review said; the cue list sat in a reviewer-only seat note."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Date.parse normalizes 2026-02-30, so impossible --today dates are accepted silently.",
+  "why": "Classic JS calendar edge not named in the brief."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Lazy-continuation Landed list lines not joined to their entry, so multi-line entries escape R-874.",
+  "why": "Uncommon Markdown construct an ordinary builder could miss."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Open-for-Jake tag checked on the entry's first line only; impossible since-date 2026-99-99 accepted.",
+  "why": "Brief said 'entries', not lines; date-validity part is a minor edge."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Builder tagged an inventory-name test as G-012 evidence; it does not pin G-012's clause.",
+  "why": "Touched a row outside the lane with dishonest evidence."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Synthetic legacy fixture doesn't pin the real pre-rewrite signal; seat's '20 findings' baseline was itself wrong (caused r4 PARTIAL).",
+  "why": "Brief allowed a 'pre-rewrite shape' fixture; seat's count came from the buggy r1 checker."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "Round-3 entry refactor limited due-date scanning to list items; r1/r2 scanned every line in Next/Open.",
+  "why": "Coverage lost in the previous fix round (verified in commits 2e06360 vs 852d3f3)."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Parser breaks on blank-line paragraphs (seat's r3 entry definition, no Markdown lib), fenced '## Next', nested numbering.",
+  "why": "Half follows the seat's explicit entry rule; fence/nesting are edges. Seat later declared one case."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-879 evidence cell omits the marked unreadable-input tests that pin its error clause.",
+  "why": "Evidence-citation slip."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Exact heading match skips the real 'Open for Jake (\u2026)' heading; the frozen fixture's zero findings hid it.",
+  "why": "Builder had the real HANDOFF fixture since r1/r3; obvious on a careful read."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "unclear",
+  "summary": "Permissive cue-to-date gap lets the r3-added 'by' cue consume historical dates such as 'by Jake (adopted \u2026)'.",
+  "why": "Defect surfaced by the previous rounds' cue regex and cue expansion."
+ },
+ {
+  "lane": "t2-frontier",
+  "review": "astra-r5.md",
+  "severity": "NIT",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-875 promises the marker's line, but cited tests assert only the finding kind.",
+  "why": "Line-number clause not pinned by cited assertions."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Brief item 4 (source-level mkdtemp cleanup in every test) left undone; builder reported PARTIAL.",
+  "why": "Partial completion of a brief-named item, not a design error."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Runner signal cleanup() ignores the loop-local per-file temp root, so SIGINT/SIGTERM leaves nana-test-* behind.",
+  "why": "Brief said cleanup 'always'; the existing cleanup() pattern made the gap obvious."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "50,000-dir fixture nested under one subdir instead of filling the temp root, so it cannot falsify a root scan.",
+  "why": "Brief named the topology (fill a temp root with 50,000 dirs); builder built it wrong."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "R-918 compares porcelain status only, missing re-modification of an already-dirty tracked file.",
+  "why": "Brief prescribed exactly a git status --porcelain before/after snapshot; builder followed it."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Knowledge-home isolation added to three E2Es with no row or guarding check, and the E2Es were not run.",
+  "why": "Requirements-first slip: behaviour shipped without a row or test."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "L8-02 (undeclared whole-file skips) still open; seat later ruled it attached for context only.",
+  "why": "Seat attached the finding under 'findings this lane closes' but meant it out of scope."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "L7-08 failure-logging clause (db-open-failed/no-hits not logged) still open; seat later scoped it to tranche 6.",
+  "why": "Brief text claimed the lane closes L7-08 while seat notes asked only for home isolation."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-915 flipped implemented on a SIGTERM-only check with no grandchild or scratch assertion.",
+  "why": "Cited test stays green under parent-only kill or broken SIGINT handler."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "Source-cleanup check treats test-runner.test.mjs as compliant just for importing tmpDir, a blind spot in R-917 proof.",
+  "why": "A direct leaking mkdtempSync in that file would not fail the cited check."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Committed pi-1.0 acceptance-driver probe still launches pi without temp NANA_KNOWLEDGE_HOME; guard hard-codes three filenames.",
+  "why": "Brief item 7 named 'every real-process E2E harness and probe'; a probe was missed."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "T17 re-stamps the lock between golden() calls, not before each runtime inside golden(); 11 s falsifier still open.",
+  "why": "Brief said re-stamp before EACH runtime's evaluation; builder placed it wrong and sol missed it thrice."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "New SIGINT/SIGTERM runner test cannot pass on native Windows, where child.kill does not deliver catchable signals.",
+  "why": "Native Windows signal semantics; uncommon platform edge introduced by earlier fix rounds."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-918 index-state clause unpinned: both fixtures change content, so dropping indexState from the snapshot stays green.",
+  "why": "Implemented row whose cited tests pass under the wrong implementation."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "Round-4 probe isolation creates acceptance-knowledge-* temp dir that is never removed.",
+  "why": "Leak introduced by the previous fix round, against the lane's own cleanup item."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r5.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-899 cited test only greps for a removal call inside finally; cannot prove child-close ordering or failure cleanup.",
+  "why": "Static source-text check pins code text, not behaviour."
+ },
+ {
+  "lane": "t2-tests",
+  "review": "astra-r5.md",
+  "severity": "SHOULD",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "unclear",
+  "summary": "Round-5 removal of the forced exit leaves wait() timers alive, so the driver can hang up to 900 s.",
+  "why": "Defect introduced by the previous fix round's cleanup change."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "'Lenient' scoring searches the whole message, not the old checker's first prose sentence; baseline 21/32 instead of 3/32.",
+  "why": "Brief evidence said the old check ran on the first prose sentence; misreproduced existing code."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Extractor cannot score the preserved private corpus; rebaseline numbers came from live transcripts and already drifted.",
+  "why": "Brief required the verdict be recomputable from preserved inputs; no such mode built."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "After-mode windows by session start, counts prose mentions and pre-treatment calls, emits one aggregate not per EDT day.",
+  "why": "Brief named per-EDT-day output and the checked-report count; implementation diverged."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Private preservation follows a pre-existing filename symlink and can write outside the output directory.",
+  "why": "Symlink-trap edge needing adversarial probing."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Rubric treats each YOUR CALL paragraph as a decision and scores only that paragraph; no test of the rubric.",
+  "why": "Decision boundary logic wrong (15 vs 12) and unpinned."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "rebaseline.md calls published 6/35 reproducible, contradicting the earlier ruling; the seat's round-4 note ordered that wording.",
+  "why": "Seat flip-flopped its own ruling in the round-4 brief; builder followed it."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "After-mode still applies the session-start window, dropping treated reports from sessions begun before the window.",
+  "why": "Incomplete fix of sol r1 item 3; seat's round-2 'window by first entry' note contributed."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Preservation still follows a symlinked output directory; only the final-filename symlink was guarded.",
+  "why": "Directory-symlink escape; uncommon filesystem edge."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-694, R-696, R-698 tests pass under hardcoded zeros, no recomputed measures, and all-parts-true rubric.",
+  "why": "Three implemented rows whose cited tests do not pin their clauses."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Known 7-extracted vs 12-hand-read rubric gap not recorded in committed rubric.md.",
+  "why": "Residual existed only in the worker report, not in docs."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "unclear",
+  "summary": "treatedAt overwritten by the last canonical attachment, so checker-call counts shrink when a session re-attaches the rule.",
+  "why": "Post-attachment filter added in fix round r4 introduced the defect."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Published after snapshot (25 msgs, 7 decisions) not reproducible; live transcripts grew and no cutoff was recorded.",
+  "why": "Seat asked for counts '10-04 to today' with date-only windows and no snapshot cutoff."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "G1a-06 falsifier fails: rubric scores 7 decisions vs 12 hand-read; seat later ruled it a declared residual.",
+  "why": "Attached finding's falsifier conflicted with the seat note scoping to extractor-found decisions."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-693 cited test has no pre-attachment long message, so including all treated-session messages stays green.",
+  "why": "Temporal clause of an implemented row is unpinned."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "astra-r6.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "After measure scores every message (15/25) while baseline uses last-per-session unit; comparison not like for like.",
+  "why": "Brief and seat rounds demanded both the session unit and the audit's all-message 14/10 count."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "astra-r6.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-697 cutoff, R-694 later-sentence lenient, R-692 sidechain/80-word clauses all survive wrong implementations.",
+  "why": "Implemented rows whose fixtures cannot fail under the forbidden behaviour."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "astra-r6.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Bash checker invocations exposed as checkedReports, conflated with distinct sent reports for the 20-report stop condition.",
+  "why": "Misread the semantics of 'checked report' versus checker call."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "astra-r6.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Pack README still describes the old verdict contract, not uppercase first-token.",
+  "why": "README out of step with changed checker behaviour; no code defect."
+ },
+ {
+  "lane": "t2-trial",
+  "review": "astra-r7.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Checker-call collection lacks the main-thread filter, so sidechain Bash calls inflate checkerCalls.",
+  "why": "Brief named seat-only, isSidechain-false scope; applied to reports but not calls."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "project.mjs rewrites process.env.PI_CODING_AGENT_DIR around trustRecord(), a second resolver; suite failure misattributed as out-of-lane.",
+  "why": "Global-state mutation design breaking the one-resolver rule."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "project --check reads raw JSON instead of the pack's command normalization, counting malformed commands as effective.",
+  "why": "Brief and finding named shared pack parsing; builder reimplemented it."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "New trust command accepts global --dry-run but still writes trust, violating R-313.",
+  "why": "Existing CLI contract makes the dry-run requirement obvious."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Desk bootstrap retry detects error 5 only from output text, not exit status 5.",
+  "why": "Brief said retry on error 5; status check is the plain reading."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "Interactive trust confirmation implemented but absent from requirement rows and tests.",
+  "why": "Brief-named behaviour shipped without row or test."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "doctor has no project-trust row and never prints nana-setup trust <dir>.",
+  "why": "Brief item 1 named doctor as well as project --check."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "--home <temp> --pi-home <live dir> lets trust write the live store while marked hermetic.",
+  "why": "Uncommon flag combination escaping the test-home guarantee."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-672 test refuses on an already-trusted dir, so write-before-refuse would stay green.",
+  "why": "'Without writing a decision' clause unpinned."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Unload wait not truly bounded: a hung synchronous launchctl print exceeds the sealed deadline.",
+  "why": "Hung-subprocess edge beyond the brief's bounded-poll design."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "project --check labels effective-state warnings 'missing' and recommends rerunning project, which fixes neither.",
+  "why": "Wrong summary output on an ordinary reading of what project setup does."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "--home containment is lexical; an in-home symlink to an external dir lets pi write outside.",
+  "why": "Symlink escape edge."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-676 test checks ratify-before-trust substring order, not that they are steps 1 and 2.",
+  "why": "Implemented row stays green if other steps precede both."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "trust.json itself symlinked outside home still passes containment; pi writes through the link.",
+  "why": "File-symlink escape; the seat's round-4 brief prescribed directory-only realpath."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Trust discovery spawns 'npm' directly, which fails on native Windows where npm is npm.cmd.",
+  "why": "Native Windows command-shim edge."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-678 Node-link test derives expectation from ambient PATH; reverting to execPath stays green without a link.",
+  "why": "Non-deterministic fixture cannot falsify the wrong implementation."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r4.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "README closing code fence removed, turning later docs into code.",
+  "why": "Documentation formatting slip; no code defect."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r5.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-671 wording forbids writing whenever --yes is absent, contradicting accepted interactive confirmation.",
+  "why": "Requirement row text slip versus implemented behaviour."
+ },
+ {
+  "lane": "t2-trust",
+  "review": "astra-r5.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "README still says doctor checks the knowledge index via existsSync after the lane replaced it.",
+  "why": "README out of step with behaviour."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Symlinked extension entries' external targets not floored; a direct edit of the target bypasses the code-loading floor.",
+  "why": "The builder brief named extensions/** paths only. The symlink-target direction appeared in the seat's reviewer note, not the builder brief."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Project .pi regexes not anchored to a path segment, so project.foo.pi/extensions/x.ts is floored.",
+  "why": "Brief item 3 explicitly required project entries anchored to a .pi/ path segment."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-630 promises one shared regex; cited tests check only suffix behaviour and stay green if the regex is duplicated.",
+  "why": "Implemented row whose clause is not pinned by its cited test."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Benign rm-text and inline-only interpreter relaxation lets printf|xargs, attached --eval=, and here-string deletions through.",
+  "why": "The brief's item 2 (plan L5-02) asked for this relaxation; the seat subtracted it in r3."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "git -c alias.x='!rm -rf ~' bypasses the rm scan because the token becomes alias.x=!rm.",
+  "why": "Pre-existing on base a3afab2 (the token matcher needs base(t)==='rm'). The brief did not name it; the seat called it a pre-existing gap."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Symlinked extensions root not floored; walk overflow floors only the lexical dir, leaving external targets open.",
+  "why": "Follows the seat's r2 walk design: add realpaths of entries only, and on overflow treat the whole dir as floored."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-639 evidence asserts only the cap constant; the off-by-one visits 2049 entries; R-637's sole check cannot fail.",
+  "why": "Implemented rows cite tests that stay green with overflow behaviour or detection removed."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "unclear",
+  "summary": "FIFO rows R-634/R-636 are unconditional, but their tests skip on Windows, so the win32 degrade is unverified.",
+  "why": "The clause is not pinned on one platform; the fix scoped the rows."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Git alias body scanned only with rmDanger, so non-rm destructive or interpreter-deletion aliases pass.",
+  "why": "The seat's r3 ruling said to scan the alias body as a shell command; the builder narrowed the scan to rm only."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "AGENTS.md and shared guidance still describe the withdrawn rm-text skip after the r3 revert.",
+  "why": "Doc text out of step with the restored behaviour; no code defect."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "commandPolicyHit drops the session cwd (r2 added a process.cwd() default), so shell writes to project symlink targets pass.",
+  "why": "Obvious argument-forwarding bug masked by a default parameter, introduced in r2 rather than the previous round."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Walk-cap fail-closed check runs only for slash-bearing command words, not once per gated call.",
+  "why": "The r3 brief and R-639 said overflow fails closed for the whole call; the builder implemented it only inside the path loop."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r5.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Slash-less basename shell writes skip resolution; printf x > target.ts with cwd in extensions passes.",
+  "why": "Inherited main's slash-word filter; it matters only when the session cwd is inside a floored dir, which the brief did not name."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r6.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Quote-strip-then-split breaks a relocated agent dir containing spaces, so quoted literal writes miss the floor.",
+  "why": "Uncommon relocated-path-with-spaces case, inherited from main's extraction; the brief did not name it."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r7.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Quote-preserving extraction replaced the conservative split, so a policy write in a bash -c body passes (regression vs main).",
+  "why": "The seat's r7 ruling ordered replacing the extraction (mutation = old extraction). The seat later adopted the compose-old-with-new lesson."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r8.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "The 'conservative' pass used tokens() instead of main's quote-strip-then-split; a python -c open() policy write escapes.",
+  "why": "The r8 brief said to union main's original extraction; the builder approximated it with a different tokenizer."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r9.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "The 'verbatim' legacy copy pushes the direct regex hit as a path candidate, so a quoted $PI_CODING_AGENT_DIR policy write passes.",
+  "why": "The r9 brief said copy verbatim; the builder reshaped main's direct return. Its r7 change had also dropped the quote strip before the direct test, unrequested."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r9.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "Shared guidance dropped the project-policy symlink-target residual (in r1), although the gap remains.",
+  "why": "Doc overclaims coverage; no code change was needed."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r10.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Template-source exception strips matching substrings anywhere in a command, so traversal and symlinked paths reach real policy files.",
+  "why": "The builder added a loose exemption on the floor. Pressure came from the seat's r10 legacy-first ruling clashing with R-630's ALLOW."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r11.md",
+  "severity": "MUST",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "R-631 and the README overclaim literal-path coverage; python -c open(relocated settings.json) is unmatched and must be declared.",
+  "why": "Declaration-only fix under the seat's r7 ruling. The builder had the python form from astra r8 but never declared it for the new files."
+ },
+ {
+  "lane": "t1-gate",
+  "review": "astra-r12.md",
+  "severity": "NIT",
+  "category": "DOC",
+  "firstPassAvoidable": "unclear",
+  "summary": "Shared guidance and AGENTS.md omit the interpreter-operand gap that the README now declares.",
+  "why": "Doc mirror out of step; the r12 brief named only the pack README."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "Fence tracking ignored fence length: a 4-backtick fence holding a 3-backtick line exposed enclosed marker text to refresh.",
+  "why": "Brief named fenced markers; the CommonMark length rule is a deeper sub-case."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "lstat-then-path read/write let a symlink swap after the check make refresh write through a link.",
+  "why": "TOCTOU symlink-swap race, which needs adversarial probing."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-990 snapshot was taken after the lint call; the R-986 test checked only prefix/suffix, so outside-byte insertions passed.",
+  "why": "Implemented rows' cited tests stay green under wrong implementations."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Dry run opened O_RDWR, so a read-only AGENTS.md failed instead of reporting the refresh.",
+  "why": "Seat's round-2 ruling prescribed one O_RDWR|O_NOFOLLOW open for every run."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Refresh truncated live AGENTS.md before writing; a signal or disk-full error could corrupt owner bytes.",
+  "why": "Seat ruling prescribed 'read, truncate and write only through that descriptor'."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Older row R-334 ('overwrite nothing existing') was left contradicting the new marker-region overwrite.",
+  "why": "The brief's finding text named the needed exception, but the seat never allocated R-334 to the lane."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "A UTF-8 string round-trip turned invalid bytes outside the markers into replacement characters on refresh.",
+  "why": "An uncommon encoding edge the brief did not name."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r4.md",
+  "severity": "SHOULD",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "The pre-rename dev/ino check missed in-place concurrent owner edits, which refresh would overwrite with its stale snapshot.",
+  "why": "A concurrency edge needing adversarial reasoning."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r4.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-986 evidence cell omitted the tagged mode-preservation test.",
+  "why": "An evidence-cell slip on the requirement rail."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r5.md",
+  "severity": "MUST",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "unclear",
+  "summary": "The round-5 strict TextDecoder stripped a leading UTF-8 BOM, changing bytes outside the owned region.",
+  "why": "Round-5's switch from readFileSync utf8 to TextDecoder introduced it (verified in git)."
+ },
+ {
+  "lane": "t3-carry",
+  "review": "astra-r6.md",
+  "severity": "NIT",
+  "category": "BUILDER_PROCESS",
+  "firstPassAvoidable": "likely",
+  "summary": "R-986 evidence omitted the new BOM test, though the builder report claimed it was cited.",
+  "why": "An evidence-cell slip with a report that overclaimed it."
+ },
+ {
+  "lane": "t3-carry2",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-990 tests inspected memoryLinkState issues only; rendering cross-tier or ambiguous links as OK would stay green.",
+  "why": "The brief asked to test the '!' row; cited tests did not pin the output or exit code."
+ },
+ {
+  "lane": "t3-carry2",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "The setup README still said dangling links read '!' after the behaviour changed to informational.",
+  "why": "Doc text out of step with behaviour; no code defect."
+ },
+ {
+  "lane": "t3-carry2",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "Ambiguity fixtures covered only the shared tier; removing project-tier ambiguity detection left tests green.",
+  "why": "An implemented clause branch was unpinned."
+ },
+ {
+  "lane": "t3-carry2",
+  "review": "sol-r2.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Dangling-only output said 'all wiki links resolve' next to a count of unresolved links; the test locked that wording.",
+  "why": "Wrong output text on the case the brief defined."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "Pipefail counted inside subshells and in PowerShell, so the inactive setting exempted the pipeline.",
+  "why": "Brief named subshell and PowerShell probes; the row claimed 'active' pipefail but the code was textual."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Backtick substitutions inside double quotes were treated as inert, though $() there was handled.",
+  "why": "An inconsistent obvious sibling of a handled, brief-named form."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-984 tests checked decideHook results only; removing the launcher's stderr write left every test green.",
+  "why": "Cited tests did not pin the stderr clause."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "On win32 the installer wired a settings entry to a hook file it skips installing; doctor accepted the dead command.",
+  "why": "Existing stepHooks win32 skip made it visible; standing rules require graceful win32 degrade."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "The setup README edit replaced existing migration guarantees instead of appending the verifier-pipe line.",
+  "why": "README text went out of step with still-present behaviour."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "The heredoc regex matched here-strings (<<<) and suppressed later lines; 'git --opt=value commit' was not recognized.",
+  "why": "Present since round 1 in brief-named areas (heredocs, git -C)."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "DOC",
+  "firstPassAvoidable": "likely",
+  "summary": "The pack README claimed 'every session' without the win32 caveat the builder's own R-985 required; the test didn't pin it.",
+  "why": "Doc omission; the original brief asked for both READMEs."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "The builder masked whole function definitions, so a literal 'f() { npm test | tail; git commit; }' stopped flagging.",
+  "why": "Masking text the scanner can see; a relaxation on a floor."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "likely",
+  "summary": "The null-case test 'function-built command is not inspected' pinned the relaxation and resisted restoring coverage.",
+  "why": "Same root cause as the mask: a test codifying the weakened guarantee."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "The installed hook did nothing: the argv[1]-vs-realpath main-module check failed through the install symlink.",
+  "why": "Present since round 1; tests spawned the repo source, never the installed symlink."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_JUDGMENT",
+  "firstPassAvoidable": "unclear",
+  "summary": "The hook emitted permissionDecision 'allow' on non-matches and errors, skipping Claude's permission prompt for every Bash command.",
+  "why": "Approval instead of abstention; the brief's 'malformed input \u2192 allow' wording nudged it."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r4.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "'set -e pipefail', piped 'set -o pipefail | cat' and a subshell 'set +o pipefail' still exempted the pipeline.",
+  "why": "Implementation looser than the seat's round-2 ruling (set at top level, not unset later)."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r5.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unclear",
+  "summary": "Backgrounded 'set -o pipefail &' and conditional 'false && set -o pipefail' still exempted the pipeline.",
+  "why": "Seat's round-5 ruling refined the exemption with enumerated exclusions; the seat later called this a chase."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r5.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Unquoted heredoc bodies were skipped wholesale, hiding an executable $(npm test | tail; git commit).",
+  "why": "An uncommon, adversarial shell-grammar case."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r5.md",
+  "severity": "SHOULD",
+  "category": "FIX_REGRESSION",
+  "firstPassAvoidable": "likely",
+  "summary": "The round-5 launcher rewrite dropped R-984's stderr pin; removing the diagnostic write left tests green again.",
+  "why": "Round-5 fix lost coverage that round 2 had added."
+ },
+ {
+  "lane": "t3-pipe",
+  "review": "astra-r6.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "The installed-hook test asserted that permissionDecisionReason exists, not its content; an empty reason would pass.",
+  "why": "The cited assertion does not pin the clause."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "The copy set came only from the index, so staged deletions were not materialized and valid dirty trees were refused.",
+  "why": "Brief named 'deletions' in exact working-state materialization."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "Verdict extraction required line-start 'VERDICT:' while review-shape accepts prefixed lines, so it recorded null verdicts.",
+  "why": "Reading the existing predicate made the mismatch obvious."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "SPEC_SEAT",
+  "firstPassAvoidable": "unlikely",
+  "summary": "The lane used unallocated ID R-992.",
+  "why": "The seat allocated R-992 in its round-4 brief but did not tell the reviewer."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "The R-967 test could not detect admission before the equality check; the R-974 test matched generic prompt wording, not the revision or path.",
+  "why": "Cited tests stay green under wrong implementations."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "likely",
+  "summary": "The report stored any supplied --over-cap text, so it labelled ordinary under-cap rounds as over-cap; the test expected that.",
+  "why": "Misread 'over-cap reason' as the flag text, not the actual override."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r1.md",
+  "severity": "SHOULD",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unclear",
+  "summary": "removeWorktree ignored git exit statuses and pruned before its fallback deletion, leaving stale registrations.",
+  "why": "Ordering bug on an uncommon failure path."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "--out was validated against the detached checkout, bypassing R-724 and letting a review overwrite a tracked source file.",
+  "why": "Cross-feature interaction with an existing contract, present since the round-4 build."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r2.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "A hard kill after worktree add left registered checkouts forever; later launches had no reclamation.",
+  "why": "Brief named the 'interrupted \u2026 leftover registration' probe; only graceful signals were handled."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "EDGE_DEPTH",
+  "firstPassAvoidable": "unlikely",
+  "summary": "Clean initialized submodules became empty directories in the checkout, yet the revision-equality check falsely passed.",
+  "why": "A submodule edge; the brief only named dirty submodules."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r3.md",
+  "severity": "MUST",
+  "category": "BUILDER_BUG",
+  "firstPassAvoidable": "unclear",
+  "summary": "A pre-existing untracked --out file was copied into the checkout but excluded by its source path, so equality failed and review refused.",
+  "why": "Exclusion-path mismatch present since the round-4 build (verified in git)."
+ },
+ {
+  "lane": "t3-review",
+  "review": "sol-r3.md",
+  "severity": "SHOULD",
+  "category": "WEAK_EVIDENCE",
+  "firstPassAvoidable": "likely",
+  "summary": "R-971 was implemented without cited evidence that 'review-ledger run' earns a round.",
+  "why": "Cited tests pin refusal and README text, not the clause."
+ }
+]
