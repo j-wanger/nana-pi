@@ -352,6 +352,8 @@ def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
             continue
         if len(cells) != 4:
             raise pytest.UsageError(f"{cells[0]} has malformed table cells")
+        if cells[0] in found:
+            raise pytest.UsageError(f"duplicate id {cells[0]}")
         found[cells[0]] = (cells[1], cells[2], cells[3])
     return found
 

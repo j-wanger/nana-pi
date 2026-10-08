@@ -484,6 +484,8 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 					.map((cell) => cell.trim());
 				if (cells.length !== 3)
 					throw new Error(`${match[1]} has malformed table cells`);
+				if (found.has(match[1] as string))
+					throw new Error(`duplicate id ${match[1]}`);
 				found.set(match[1] as string, cells);
 			}
 			return found;

@@ -153,5 +153,25 @@ if (available.status !== 0 || !hasOldTag) {
   check(`${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean`, clean, `${copy.stderr}\n${update.stderr}\n${checkOutput}`);
  }
 }
+const adoptRoot = join(root, "adopt-python");
+mkdirSync(adoptRoot, { recursive: true });
+const initialRequirements = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-900 | The existing project shall remain identifiable. | untested | — |\n";
+writeFileSync(join(adoptRoot, "REQUIREMENTS.md"), initialRequirements);
+const initAdopt = spawnSync("git", ["init", adoptRoot], { encoding: "utf8", env });
+spawnSync("git", ["-C", adoptRoot, "add", "REQUIREMENTS.md"], { encoding: "utf8", env });
+const commitAdopt = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "existing project"], { encoding: "utf8", env });
+const adoptCopy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", "language=python", "-d", "project_name=partg-adopt", "-d", "adopt=true", repo.pathname, adoptRoot], { encoding: "utf8", env });
+spawnSync("git", ["-C", adoptRoot, "add", "."], { encoding: "utf8", env });
+const adoptCommit = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "adopt scaffold"], { encoding: "utf8", env });
+const adoptUpdate = spawnSync("uvx", ["copier", "update", "--trust", "--defaults", "--vcs-ref", "HEAD", "--conflict", "rej"], { encoding: "utf8", env, cwd: adoptRoot });
+let adoptRailOutput = "";
+let adoptRailExit = 1;
+if (existsSync(join(adoptRoot, "REQUIREMENTS-general.md"))) {
+ const rail = spawnSync("uvx", ["--with", "pytest", "python", "-c", "from pathlib import Path; import runpy; m=runpy.run_path('tests/conftest.py'); r=m['check'](Path('.')); print(r[3]); print('rows: ' + str(sum(i.startswith('G-') for i in r[0])) + ' G, ' + str(sum(i.startswith('R-') for i in r[0])) + ' R'); print('problems: ' + str(len(r[2]))); print(r[5])"], { encoding: "utf8", env, cwd: adoptRoot });
+ adoptRailOutput = rail.stdout ?? "";
+ adoptRailExit = rail.status ?? 1;
+}
+// req: R-579
+check("Python adopt update adds 22 untested Part G rows without replacing the project's R row", initAdopt.status === 0 && commitAdopt.status === 0 && adoptCopy.status === 0 && adoptCommit.status === 0 && adoptUpdate.status === 0 && adoptRailExit === 0 && adoptRailOutput.includes("23 total (23 untested)") && adoptRailOutput.includes("rows: 22 G, 1 R") && adoptRailOutput.includes("problems: 0") && adoptRailOutput.includes("ears: 0 rows off form (allowance 0)"), `${adoptCopy.stderr}\n${adoptUpdate.stderr}\n${adoptRailOutput}`);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);
