@@ -326,7 +326,7 @@ export function diagnose(layout, opts = {}) {
 	const memoryState = memoryLinkState(layout.sharedMemoryDir, projectMemoryDir(layout.projectsDir, project));
 	const issues = memoryState.issues.length
 		? `${memoryState.issues.slice(0, MEMORY_LINK_ISSUE_LIMIT).join("; ")}${memoryState.issues.length > MEMORY_LINK_ISSUE_LIMIT ? `; … ${memoryState.issues.length - MEMORY_LINK_ISSUE_LIMIT} more` : ""}`
-		: "all wiki links resolve within permitted memory tiers";
+		: memoryState.danglingCount ? "no cross-tier or ambiguous wiki links" : "all wiki links resolve within permitted memory tiers";
 	const dangling = memoryState.danglingCount ? `· ${memoryState.danglingCount} links name memories not written yet` : "";
 	add(memoryState.ok ? OK : WARN, "memory links", [issues, dangling].filter(Boolean).join(" "));
 

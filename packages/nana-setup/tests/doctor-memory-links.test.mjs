@@ -29,6 +29,8 @@ write(shared, "actual-file.md", "shared-name", "Shared body.\n");
 write(project, "project-file.md", "project-name", "Project body.\n");
 write(shared, "references.md", "references", "[[shared-name]] [[project-name]] [[missing-name]]\n");
 write(project, "references.md", "local-references", "[[shared-name]] [[project-name]]\n");
+// req: R-990
+check("README describes dangling links as informational and reserves warnings for cross-tier and ambiguous links", /Dangling links are informational and add only a count; they do not fail doctor\.[\s\S]*Cross-tier and ambiguous links read `!`/.test(fs.readFileSync(fileURLToPath(new URL("../README.md", import.meta.url)), "utf8")));
 const snapshot = (dir) => fs.readdirSync(dir).sort().map((file) => [file, fs.readFileSync(path.join(dir, file), "utf8")]);
 const beforeShared = snapshot(shared);
 const beforeProject = snapshot(project);
@@ -98,6 +100,12 @@ const doctorMemoryResult = (label, sharedFiles, projectFiles) => {
 }
 
 {
+	const result = doctorMemoryResult("project-ambiguous", [], [["reference.md", "reference", "[[duplicated-local]]\n"], ["first.md", "duplicated-local", "first\n"], ["second.md", "duplicated-local", "second\n"]]);
+	// req: R-990
+	check("doctor warns and exits nonzero for project-tier ambiguity", result.status === 1 && /! memory links\s+.*ambiguous name \[\[duplicated-local\]\] in project tier/.test(result.stdout), `${result.status} ${result.stdout} ${result.stderr}`);
+}
+
+{
 	const home = path.join(root, "dangling-doctor-home");
 	const layout = resolveLayout({ home });
 	install(layout);
@@ -110,7 +118,7 @@ const doctorMemoryResult = (label, sharedFiles, projectFiles) => {
 	const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
 	const result = spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: projectDir, encoding: "utf8" });
 	// req: R-990
-	check("dangling-only links keep doctor green and report only their count", result.status === 0 && /✓ memory links\s+all wiki links resolve within permitted memory tiers · 2 links name memories not written yet/.test(result.stdout) && !result.stdout.includes("not-written-yet") && !result.stdout.includes("another-future"), `${result.status} ${result.stdout} ${result.stderr}`);
+	check("dangling-only links keep doctor green and report only their count", result.status === 0 && /✓ memory links\s+no cross-tier or ambiguous wiki links · 2 links name memories not written yet/.test(result.stdout) && !result.stdout.includes("not-written-yet") && !result.stdout.includes("another-future"), `${result.status} ${result.stdout} ${result.stderr}`);
 }
 
 console.log(`${fails ? "FAIL" : "PASS"} summary: ${fails} failures`);
