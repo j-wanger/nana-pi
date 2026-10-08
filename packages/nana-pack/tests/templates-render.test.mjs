@@ -471,10 +471,15 @@ if (!version) {
 			const renderedFiles = emittedFiles(dir);
 			// req: R-590
 			check(`${language} adopt: skill file list exactly matches emitted files`, skillFiles.length > 0 && JSON.stringify(skillFiles) === JSON.stringify(renderedFiles), `listed-only: ${skillFiles.filter((f) => !renderedFiles.includes(f))}; render-only: ${renderedFiles.filter((f) => !skillFiles.includes(f))}`);
+			const conditionalSeeds = ["OBJECTIVE.md", "HANDOFF.md", "REQUIREMENTS.md", "docs/sessions/README.md", "docs/code-map.md"];
+			// req: R-590
+			check(`${language} adopt: all copier-preserved files are marked written only when absent`, conditionalSeeds.every((file) => skill.includes(`- \`${file}\` (written only when absent)`)), `missing conditional label: ${conditionalSeeds.filter((file) => !skill.includes(`- \`${file}\` (written only when absent)`))}`);
 			if (language === "typescript") {
 				const scripts = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).scripts);
 				// req: R-590
 				check("typescript adopt: every rendered package script is named in adopt-ts", scripts.length > 0 && scripts.every((script) => skill.includes(`\`${script}\``)), `unnamed: ${scripts.filter((script) => !skill.includes(`\`${script}\``))}`);
+				// req: R-590
+				check("typescript adopt: workspace build permission is valid YAML", /```yaml\n\s*allowBuilds:\n\s+esbuild: true\n\s*```/.test(skill) && !/allowBuilds: esbuild: true/.test(skill));
 			}
 
 			const missing = [...spec.files, ...RAIL[language]].filter((f) => !fs.existsSync(path.join(dir, f)));
@@ -514,6 +519,11 @@ if (!version) {
 		}
 	}
 }
+
+const updateGuide = fs.readFileSync(path.join(REPO, "README.md"), "utf8").match(/- \*\*Generated project\*\*([\s\S]*?)(?=\n- \*\*)/)?.[1] ?? "";
+const adoptUpdateSkills = ["adopt-py", "adopt-ts"].map((name) => fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", name, "SKILL.md"), "utf8"));
+// req: R-590
+check("adopt update guidance uses inline conflict resolution", /--conflict inline/.test(updateGuide) && !/--conflict rej/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
 console.log(fails ? `${fails} FAILED` : "all passed");

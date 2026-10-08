@@ -90,7 +90,7 @@ Files written by an adopt render into an empty folder:
 - `REQUIREMENTS.md` (written only when absent)
 - `biome.json`
 - `code-map.config.json`
-- `docs/code-map.md`
+- `docs/code-map.md` (written only when absent)
 - `docs/sessions/README.md` (written only when absent)
 - `package.json`
 - `scripts/code-map.mjs`
@@ -125,7 +125,12 @@ First two steps:
      every edit fires failing post-edit commands. Merge any pre-existing
      postEdit list. On the keep-your-linter path, swap the
      `biome check --write` entry for their own format/lint command.
-   - `pnpm-workspace.yaml`: ensure it carries `allowBuilds: esbuild: true`; create the file with only that setting if absent.
+   - `pnpm-workspace.yaml`: ensure it carries this valid YAML block (create the file with only this setting if absent):
+
+     ```yaml
+     allowBuilds:
+       esbuild: true
+     ```
    - Before validation, reconcile the README so the rendered readme check passes: include install/run/test headings and document the code-map and readme-check scripts, or declare a script in `readme-check.config.json` with a reason. Fix the README, never the check.
    - On an adopted project, run `copier update --conflict inline`, never `--conflict rej`; convert decorator markers first.
    - CI: adapt the workflow to their package manager; if they already have CI,

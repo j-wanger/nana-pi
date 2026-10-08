@@ -208,12 +208,11 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 - **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
   switches user/project scope) to switch individual extensions and skills on or
   off. There is no per-skill install; enable/disable is the partial surface.
-- **Generated project** — on an adopted project, convert decorator markers first, then run `uvx copier update --conflict inline` (never `--conflict rej`) inside the project (reads
+- **Generated project** — on an adopted project, convert decorator markers first, then run `uvx copier update --conflict inline` inside the project (reads
   `.copier-answers.yml`): a three-way merge that replays your local edits onto
-  the newest template tag. Partial-merge controls: `--conflict inline` (default,
-  git-style markers in-file) or `--conflict rej` (clean files + `.rej` patches),
-  `--skip-answered` to keep prior answers, `--pretend` for a dry run, `--vcs-ref`
-  to pin a specific tag. `copier recopy` is the escape hatch — re-render clean,
+  the newest template tag. Other update controls include `--skip-answered` to
+  keep prior answers, `--pretend` for a dry run, and `--vcs-ref` to pin a
+  specific tag. `copier recopy` is the escape hatch — re-render clean,
   discarding your diff. Generated CI carries a `template-drift` job that goes
   red when the project is behind the latest template tag.
 - **Existing project, configs only** — adopt mode: the `adopt-py`/`adopt-ts`

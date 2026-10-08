@@ -24,14 +24,12 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
   biome, ruff…), lockfiles, or CI.
 - Derive every doc from the folder's REAL contents — read before you write. No
   invented structure, no aspirational rules.
-- Safe on re-run: if a file already exists, RECONCILE (refresh what's stale,
-  keep what's still true, fold in hand edits) — never clobber.
+- Safe on re-run: reconcile existing `AGENTS.md` files (refresh what's stale,
+  keep what's still true, fold in hand edits) — never clobber them. Existing
+  frontier seeds are never overwritten; resolve `OBJECTIVE.md` ratification as
+  described in step 6.
 
 ## Steps
-
-First two steps:
-1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
-2. Trust the folder: `nana-setup trust <dir>`.
 
 1. **Scan the tree.** List the top-level folders and identify the major source
    folders (skip `node_modules`, `.git`, `dist`/`build`, `.venv`, vendored
@@ -145,12 +143,19 @@ First two steps:
      why step 4 renders it with the real project name), so fill only `<date>`.
      Check the first line reads `# Objective and current priority — <the project>`
      before you copy it in; if it names a dummy, you rendered with the wrong name.
-   - **Leave every other `<…>`** in both cases — those are the owner's draft text.
-   - If any of the three already exists, leave it exactly as it is. This is a
-     seed, never a reconcile: an existing `OBJECTIVE.md` is a ratified decision.
-   - Tell the user, in one line, that the two `(DRAFT — ratify …)` lines in
-     `OBJECTIVE.md` are **theirs** to ratify — the skill has no business guessing
-     a project's objective or its current priority.
+   - If a seed file already exists, never overwrite it. An existing
+     `OBJECTIVE.md` whose objective and current-priority lines contain the
+     owner's words is already ratified. If either line is a seeded placeholder
+     or DRAFT, ask the owner for both lines; do not replace existing content
+     without their direction. Never infer that placeholders are ratified.
+   - For a newly copied `OBJECTIVE.md`, ask the owner for one objective line
+     and one current-priority line. Write only the owner's words over the two
+     placeholders and DRAFT suffix, fill `<date>`, and never invent either
+     line. If the owner defers, leave the DRAFT lines and say so in the handover.
+
+   **First two steps:** after seed handling
+   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words and never invent; existing owner-authored lines are ratified, while existing seeded placeholders require asking without overwriting.
+   2. Trust the folder: `nana-setup trust <dir>`.
 
    `nana-setup project <dir>` is a broader alternative outside this skill's hard rule. It also runs `git init`, writes an AGENTS.md stub and CLAUDE.md link when neither exists, refreshes a marked AGENTS.md region, seeds `.pi/nana-pack.json`, writes the month log and refreshes the knowledge index.
 
@@ -170,8 +175,8 @@ First two steps:
    vs. left alone (and, when you used the fallback render, that the seeds carry
    this project's name and today's date), whether the `.pi/nana-pack.json` was
    created or reconciled, and what the audit left behind (rows drafted, conflicts
-   open, rows that are honestly `violated`). Point the user at the two edits they
-   still owe: replacing the empty post-edit list with real commands.
+   open, rows that are honestly `violated`). Tell the user whether the empty
+   post-edit list needs real commands.
 
 ## Notes
 

@@ -74,7 +74,7 @@ Files written by an adopt render into an empty folder:
 - `OBJECTIVE.md` (written only when absent)
 - `REQUIREMENTS.md` (written only when absent)
 - `code-map.config.json`
-- `docs/code-map.md`
+- `docs/code-map.md` (written only when absent)
 - `docs/sessions/README.md` (written only when absent)
 - `pyproject.toml`
 - `scripts/code_map.py`
