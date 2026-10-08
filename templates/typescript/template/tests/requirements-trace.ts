@@ -490,6 +490,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 			}
 			return found;
 		};
+		loadRequirements(generalText);
 		const projectRows = rowCells(projectText);
 		const generalRows = rowCells(generalText);
 		for (const id of generalRows.keys())

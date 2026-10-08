@@ -376,6 +376,7 @@ def check(
     text = project_text
     if general_path.exists():
         general_text = general_path.read_text(encoding="utf-8")
+        load_requirements(general_path, general_text)
         project_cells = _row_cells(project_text)
         general_cells = _row_cells(general_text)
         for rid in general_cells:

@@ -21,6 +21,7 @@ const check = (title, ok, detail = "") => {
  if (!ok) failures++;
 };
 const table = (entries) => ["| ID | Requirement | Status | Evidence |", "|---|---|---|---|", ...entries.map(([id, req, status = "untested", evidence = "—"]) => `| ${id} | ${req} | ${status} | ${evidence} |`), ""].join("\n");
+const findRejectFiles = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => { const path = join(dir, entry.name); return entry.isDirectory() ? findRejectFiles(path) : entry.name.endsWith(".rej") ? [path] : []; });
 const baseRows = [
  ["G-001", "The fixture shall be shaped and shall expose its source."],
  ["G-002", "The fixture shall use configured values.", "violated", "tests/fixture.test.ts::owned evidence"],
@@ -68,10 +69,28 @@ unlinkSync(join(root, "REQUIREMENTS-general.md"));
 result = railCheck(root, { testRoots: ["tests"] });
 // req: R-580
 check("without the general file the rail uses REQUIREMENTS.md alone", result.earsOffForm.includes("G-001"), result.earsLine);
+writeFileSync(join(root, "REQUIREMENTS.md"), table([["G-017", "The malformed fixture shall be rejected.", "untested"]]));
+writeFileSync(join(root, "REQUIREMENTS-general.md"), table([["G-017", "The malformed fixture shall be rejected.", "bogus"]]));
+let malformedTs = false;
+try { railCheck(root, { testRoots: ["tests"] }); } catch (error) { malformedTs = String(error).includes("unknown status 'bogus'"); }
+// req: R-579
+check("TypeScript rejects malformed template status before merging project-owned fields", malformedTs);
 
 const sourceRoot = new URL("../../../", import.meta.url);
-const uvCache = spawnSync("uv", ["cache", "dir"], { encoding: "utf8" }).stdout.trim();
-const env = { ...process.env, HOME: root, UV_CACHE_DIR: uvCache, GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
+const probe = (command, args, options = {}) => {
+ try { return spawnSync(command, args, { encoding: "utf8", ...options }); }
+ catch (error) { return { status: null, error }; }
+};
+const unavailableProbe = probe("nana-partg-unavailable-tool", [], { cwd: root });
+const unavailableReason = "nana-partg-unavailable-tool unavailable";
+const unavailableStdout = unavailableProbe.status === 0 ? (unavailableProbe.stdout ?? "").trim() : "";
+console.log(`SKIP simulated unavailable tool: ${unavailableReason}`);
+// req: R-582
+check("unavailable tool probe safely reports its named skip", unavailableProbe.status === null && unavailableProbe.error?.code === "ENOENT" && unavailableReason.includes("nana-partg-unavailable-tool") && unavailableStdout === "");
+const uvProbe = probe("uv", ["cache", "dir"], { cwd: root });
+const uvCache = uvProbe.status === 0 ? (uvProbe.stdout ?? "").trim() : "";
+const env = { ...process.env, HOME: root, ...(uvCache ? { UV_CACHE_DIR: uvCache } : {}), GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
+if (uvProbe.status !== 0) console.log(`SKIP uv cache configuration: uv unavailable${uvProbe.error ? ` (${uvProbe.error.message})` : ""}`);
 const shared = readFileSync(new URL("templates/_shared/requirements-general.md", sourceRoot), "utf8");
 const copierConfig = readFileSync(new URL("copier.yml", sourceRoot), "utf8");
 const skipMatches = (config, target) => config.split("\n").some((line) => {
@@ -84,10 +103,60 @@ const skipMatches = (config, target) => config.split("\n").some((line) => {
 check("skip-pattern matcher catches a matching path fixture", skipMatches('_skip_if_exists:\n  - "REQUIREMENTS-general.md"', "REQUIREMENTS-general.md"));
 // req: R-581
 check("template-owned file path is not skip-listed", !skipMatches(copierConfig, "REQUIREMENTS-general.md"));
+const nestedRejectFixture = join(root, "nested-reject-fixture", "docs");
+mkdirSync(nestedRejectFixture, { recursive: true });
+writeFileSync(join(nestedRejectFixture, "conflict.rej"), "fixture");
+// req: R-582
+check("updated trees reject nested conflict files before map regeneration", findRejectFiles(join(root, "nested-reject-fixture")).length === 1);
 const parseG = (text) => new Map([...text.matchAll(/^\|\s*(G-\d{3})\s*\|\s*(.*?)\s*\|\s*(\w+)\s*\|/gm)].map((match) => [match[1], { requirement: match[2], status: match[3] }]));
-const copyProbe = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8" });
-if (copyProbe.status !== 0) {
- console.log("SKIP fresh Part G render matrix: uvx copier unavailable");
+const sharedRequirements = new Map([...shared.matchAll(/^\|\s*(G-\d{3})\s*\|\s*(.*?)\s*\|/gm)].map((match) => [match[1], match[2]]));
+const pythonJinja = readFileSync(new URL("templates/python/template/REQUIREMENTS-general.md.jinja", sourceRoot), "utf8");
+// req: R-581
+check("Python rendered Jinja includes the shared source", pythonJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
+const pythonRailSource = readFileSync(new URL("templates/python/template/tests/conftest.py", sourceRoot), "utf8");
+// req: R-581
+check("Python filename constant is pinned to REQUIREMENTS-general.md", /GENERAL_REQUIREMENTS_FILE\s*=\s*["']REQUIREMENTS-general\.md["']/.test(pythonRailSource));
+const typescriptJinja = readFileSync(new URL("templates/typescript/template/REQUIREMENTS-general.md.jinja", sourceRoot), "utf8");
+// req: R-581
+check("TypeScript rendered Jinja includes the shared source", typescriptJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
+const typescriptRailSource = readFileSync(new URL("templates/typescript/template/tests/requirements-trace.ts", sourceRoot), "utf8");
+// req: R-581
+check("TypeScript filename constant is pinned to REQUIREMENTS-general.md", /GENERAL_REQUIREMENTS_FILE\s*=\s*["']REQUIREMENTS-general\.md["']/.test(typescriptRailSource));
+const copyProbe = probe("uvx", ["copier", "--version"], { cwd: root });
+const pythonProbe = probe("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { cwd: root });
+const haveCopier = copyProbe.status === 0;
+const havePytest = pythonProbe.status === 0;
+if (!havePytest) console.log(`SKIP Python rail fixtures: pytest through uvx unavailable${pythonProbe.error ? ` (${pythonProbe.error.message})` : ""}`);
+if (havePytest) {
+ const pythonRail = (fixture, code) => probe("uvx", ["--with", "pytest", "python", "-c", code, fixture, new URL("../../../templates/python/template/tests/conftest.py", import.meta.url).pathname], { cwd: fixture });
+ const pythonFixture = (name, project, general) => {
+  const dir = join(root, name); mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "REQUIREMENTS.md"), table(project));
+  if (general) writeFileSync(join(dir, "REQUIREMENTS-general.md"), table(general));
+  return dir;
+ };
+ const ownedStatus = pythonFixture("python-owned", [["G-001", "The project shall retain this longer two shall contract.", "violated", "`tests/test_owned.py::owned status evidence`"]], [["G-001", "The file shall govern Requirement text."], ["G-016", "An inline literal shall not tune behavior.", "untested", "`tests/template.test.py::fallback evidence`"]]);
+ const precedence = pythonRail(ownedStatus, "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1]), test_roots=()); assert r[0]['G-001'].status == 'violated'; assert r[0]['G-001'].local == ['tests/test_owned.py::owned status evidence']; assert r[0]['G-016'].status == 'untested'; assert r[0]['G-016'].local == ['tests/template.test.py::fallback evidence']; assert 'G-001' not in r[4]");
+ // req: R-578
+ // req: R-579
+ check("Python rail uses the file Requirement while preserving project-owned fields", precedence.status === 0, precedence.stderr ?? "");
+ const fallback = pythonFixture("python-fallback", [["G-001", "The fixture shall work and shall report."]], null);
+ mkdirSync(join(fallback, "tests"));
+ writeFileSync(join(fallback, "tests", "test_marker.py"), "# req: G-013\ndef test_unknown_marker():\n    pass\n");
+ const noGeneral = pythonRail(fallback, "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1])); assert 'G-001' in r[4]; assert any('G-013' in p and 'not in REQUIREMENTS.md' in p for p in r[2])");
+ // req: R-580
+ check("Python rail reads Part G from REQUIREMENTS.md when the template file is absent", noGeneral.status === 0, noGeneral.stderr ?? "");
+ const drift = pythonFixture("python-drift", [["G-001", "The project shall keep its two shall cells."]], [["G-001", "The file shall govern the cell."]]);
+ const driftCheck = pythonRail(drift, "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1]), test_roots=()); line=m['_drift_line'](Path(sys.argv[1])); assert r[2] == []; assert line and line.endswith('G-001')");
+ // req: R-583
+ check("Python rail reports drift without failing its check", driftCheck.status === 0, driftCheck.stderr ?? "");
+ const malformed = pythonFixture("python-malformed", [["G-017", "The malformed fixture shall fail.", "untested"]], [["G-017", "The malformed fixture shall fail.", "bogus"]]);
+ const badStatus = pythonRail(malformed, "import runpy,sys; from pathlib import Path; import pytest; m=runpy.run_path(sys.argv[2]);\ntry: m['check'](Path(sys.argv[1]), test_roots=())\nexcept pytest.UsageError as e: assert 'unknown status' in str(e) and 'bogus' in str(e)\nelse: raise AssertionError('invalid template status was masked by project ownership')");
+ // req: R-579
+ check("Python rejects malformed template status before merging project-owned fields", badStatus.status === 0, badStatus.stderr ?? "");
+}
+if (!haveCopier) {
+ console.log(`SKIP fresh Part G render matrix: uvx copier unavailable${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);
 } else {
  for (const language of ["python", "typescript"]) {
   for (const adopt of [false, true]) {
@@ -95,35 +164,34 @@ if (copyProbe.status !== 0) {
    const copyArgs = ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "HEAD", "-d", `language=${language}`, "-d", `project_name=partg-${language}`];
    if (adopt) copyArgs.push("-d", "adopt=true");
    copyArgs.push(sourceRoot.pathname, dest);
-   const rendered = spawnSync("uvx", copyArgs, { encoding: "utf8", env });
+   const rendered = spawnSync("uvx", copyArgs, { encoding: "utf8", env, cwd: root });
    const generalPath = join(dest, "REQUIREMENTS-general.md");
    const generalText = existsSync(generalPath) ? readFileSync(generalPath, "utf8") : "";
-   const projectText = existsSync(join(dest, "REQUIREMENTS.md")) ? readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") : "";
    const generalRows = parseG(generalText);
-   const projectRows = parseG(projectText);
-   const statuses = new Set([...generalRows.values()].map((row) => row.status));
-   const modeStatus = adopt ? statuses.size === 1 && statuses.has("untested") : statuses.has("implemented") && statuses.has("untested");
-   const matches = rendered.status === 0 && generalRows.size > 0 && JSON.stringify([...generalRows]) === JSON.stringify([...projectRows]) && modeStatus && !/\{\{|\{%/.test(generalText);
+   const expectedRows = parseG(shared.replaceAll("{{ _status }}", adopt ? "untested" : "implemented"));
+   const matches = rendered.status === 0 && generalRows.size === sharedRequirements.size && JSON.stringify([...generalRows]) === JSON.stringify([...expectedRows]) && !/\{\{|\{%/.test(generalText);
    // req: R-581
-   check("render has the shared Part G map, mode status, and no Jinja", matches, `${language}/${adopt}: ${rendered.stdout} ${rendered.stderr} ${generalRows.size}/${projectRows.size}`);
+   check("render has the shared Part G map, mode status, and no Jinja", matches, `${language}/${adopt}: ${rendered.stdout} ${rendered.stderr} ${generalRows.size}/${expectedRows.size}`);
   }
  }
 }
 const repo = sourceRoot;
-const available = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8" });
-const hasOldTag = spawnSync("git", ["-C", repo.pathname, "rev-parse", "--verify", "v0.6.0"], { encoding: "utf8" }).status === 0;
-if (available.status !== 0 || !hasOldTag) {
- console.log(`SKIP copier update legs: ${available.status !== 0 ? "uvx copier unavailable" : "v0.6.0 tag unavailable"}`);
+const available = copyProbe;
+const hasOldTag = probe("git", ["-C", repo.pathname, "rev-parse", "--verify", "v0.6.0"]).status === 0;
+if (!haveCopier || !hasOldTag || !havePytest) {
+ console.log(`SKIP copier update legs: ${!haveCopier ? "uvx copier unavailable" : !hasOldTag ? "v0.6.0 tag unavailable" : "pytest through uvx unavailable"}`);
 } else {
  for (const language of ["python", "typescript"]) {
   const dest = join(root, `update-${language}`);
-  const copy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", `language=${language}`, "-d", `project_name=partg-${language}`, repo.pathname, dest], { encoding: "utf8", env });
+  const copy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", `language=${language}`, "-d", `project_name=partg-${language}`, repo.pathname, dest], { encoding: "utf8", env, cwd: root });
   const copiedRequirements = existsSync(join(dest, "REQUIREMENTS.md")) ? readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") : "";
   const init = spawnSync("git", ["init", dest], { encoding: "utf8", env });
   spawnSync("git", ["-C", dest, "add", "."], { encoding: "utf8", env });
   const commit = spawnSync("git", ["-C", dest, "commit", "-m", "fixture"], { encoding: "utf8", env });
   const update = spawnSync("uvx", ["copier", "update", "--trust", "--defaults", "--vcs-ref", "HEAD", "--conflict", "rej"], { encoding: "utf8", env, cwd: dest });
-  const rejects = existsSync(dest) ? readdirSync(dest).filter((name) => name.endsWith(".rej")) : [];
+  const rejects = existsSync(dest) ? findRejectFiles(dest) : [];
+  // req: R-582
+  check(`${language} update has no rejection files anywhere before map regeneration`, rejects.length === 0, rejects.join(", "));
   const generalExists = existsSync(join(dest, "REQUIREMENTS-general.md"));
   let checkOutput = "";
   let railExit = 1;
@@ -151,17 +219,20 @@ if (available.status !== 0 || !hasOldTag) {
   let pythonPytestOutput = "";
   let pythonPytestExit = 0;
   if (generalExists && language === "python") {
-   const pytestRun = spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts="], { encoding: "utf8", env, cwd: dest });
+   const pytestRun = spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts="], { encoding: "utf8", env: { ...env, PYTHONPATH: join(dest, "src") }, cwd: dest });
    pythonPytestOutput = `${pytestRun.stdout ?? ""}${pytestRun.stderr ?? ""}`;
    pythonPytestExit = pytestRun.status ?? 1;
    // req: R-583
-   check("Python earlier-tag update prints Part G drift", pythonPytestOutput.includes("part g: 6 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
+   check("Python earlier-tag update prints Part G drift", pythonPytestExit === 0 && pythonPytestOutput.includes("part g: 6 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
   }
   const clean = copy.status === 0 && init.status === 0 && commit.status === 0 && update.status === 0 && railExit === 0 && mapExit === 0 && rejects.length === 0 && copiedRequirements === readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") && generalExists && checkOutput.includes("ears: 0 rows off form (allowance 0)") && checkOutput.includes("problems: 0") && checkOutput.endsWith("\n");
   // req: R-582
   check(`${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean`, clean, `${copy.stderr}\n${update.stderr}\n${checkOutput}\n${pythonPytestOutput.slice(-3000)}`);
  }
 }
+if (!haveCopier || !hasOldTag || !havePytest) {
+ console.log(`SKIP Python adopt update leg: ${!haveCopier ? "uvx copier unavailable" : !hasOldTag ? "v0.6.0 tag unavailable" : "pytest through uvx unavailable"}`);
+} else {
 const adoptRoot = join(root, "adopt-python");
 mkdirSync(adoptRoot, { recursive: true });
 const initialRequirements = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-900 | The existing project shall remain identifiable. | untested | — |\n";
@@ -169,7 +240,7 @@ writeFileSync(join(adoptRoot, "REQUIREMENTS.md"), initialRequirements);
 const initAdopt = spawnSync("git", ["init", adoptRoot], { encoding: "utf8", env });
 spawnSync("git", ["-C", adoptRoot, "add", "REQUIREMENTS.md"], { encoding: "utf8", env });
 const commitAdopt = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "existing project"], { encoding: "utf8", env });
-const adoptCopy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", "language=python", "-d", "project_name=partg-adopt", "-d", "adopt=true", repo.pathname, adoptRoot], { encoding: "utf8", env });
+const adoptCopy = spawnSync("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", "v0.6.0", "-d", "language=python", "-d", "project_name=partg-adopt", "-d", "adopt=true", repo.pathname, adoptRoot], { encoding: "utf8", env, cwd: root });
 spawnSync("git", ["-C", adoptRoot, "add", "."], { encoding: "utf8", env });
 const adoptCommit = spawnSync("git", ["-C", adoptRoot, "commit", "-m", "adopt scaffold"], { encoding: "utf8", env });
 const adoptUpdate = spawnSync("uvx", ["copier", "update", "--trust", "--defaults", "--vcs-ref", "HEAD", "--conflict", "rej"], { encoding: "utf8", env, cwd: adoptRoot });
@@ -182,5 +253,6 @@ if (existsSync(join(adoptRoot, "REQUIREMENTS-general.md"))) {
 }
 // req: R-579
 check("Python adopt update adds 22 untested Part G rows without replacing the project's R row", initAdopt.status === 0 && commitAdopt.status === 0 && adoptCopy.status === 0 && adoptCommit.status === 0 && adoptUpdate.status === 0 && adoptRailExit === 0 && adoptRailOutput.includes("23 total (23 untested)") && adoptRailOutput.includes("rows: 22 G, 1 R") && adoptRailOutput.includes("problems: 0") && adoptRailOutput.includes("ears: 0 rows off form (allowance 0)"), `${adoptCopy.stderr}\n${adoptUpdate.stderr}\n${adoptRailOutput}`);
+}
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);
