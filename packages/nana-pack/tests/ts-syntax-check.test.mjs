@@ -43,6 +43,12 @@ const enumResult = run(enumFile);
 // req: R-993
 check("TypeScript requiring transformation is rejected with a filename-qualified Node diagnostic", enumResult.status === 1 && enumResult.stderr.startsWith(`${enumFile}: `) && enumResult.stderr.includes("ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX"), enumResult.stderr);
 
+const moduleError = path.join(ROOT, "module-error.ts");
+fs.writeFileSync(moduleError, "export { missing };\n");
+const moduleErrorResult = run(moduleError);
+// req: R-994
+check("module-level early errors fail compilation with a filename-qualified diagnostic", moduleErrorResult.status === 1 && moduleErrorResult.stderr.startsWith(`${moduleError}: `), moduleErrorResult.stderr);
+
 const marker = path.join(ROOT, "executed.marker");
 const sideEffect = path.join(ROOT, "side-effect.ts");
 fs.writeFileSync(sideEffect, `import { writeFileSync } from "node:fs";\nwriteFileSync(${JSON.stringify(marker)}, "executed");\n`);
