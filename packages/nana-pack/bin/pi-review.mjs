@@ -97,19 +97,11 @@ const removeWorktree = () => {
   if (registrations.status !== 0) throw new Error('cannot verify worktree cleanup');
   if (registrations.stdout.split(/\r?\n/).includes(`worktree ${tempRoot}`)) throw new Error(`worktree registration remains: ${tempRoot}`);
 };
-const copySnapshot = (root, target) => {
-  const index = git(root, ['ls-files', '--stage', '-z']);
-  for (const row of index.split('\0').filter(Boolean)) {
-    const mode = row.slice(0, 6);
-    if (mode === '160000') {
-      const p = row.slice(row.indexOf('\t') + 1);
-      const status = spawnSync('git', ['-C', join(root, p), 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
-      if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
-    }
-  }
+const copySnapshot = (root, target, excludedPath = null) => {
   const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
   for (const p of files) {
     const from = join(root, p), to = join(target, p);
+    if (excludedPath && resolve(from) === excludedPath) continue;
     let st;
     try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
     mkdirSync(dirname(to), { recursive: true });
@@ -137,19 +129,19 @@ try {
       catch (e) { if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e; }
     }
   }
-  if (gitlinks.length) {
-    for (const p of gitlinks) {
-      const status = spawnSync('git', ['-C', join(sourceRoot, p), 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
-      if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
-    }
+  for (const p of gitlinks) {
+    const status = spawnSync('git', ['-C', join(sourceRoot, p), 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+    if (status.status === 0) throw new Error(`initialized submodule cannot be materialized: ${p}`);
   }
   tempRoot = mkdtempSync(join(tmpdir(), `nana-review-${process.pid}-`));
   rmSync(tempRoot, { recursive: true, force: true });
   const add = spawnSync('git', ['worktree', 'add', '--detach', tempRoot, sourceScope.head], { cwd: sourceRoot, encoding: 'utf8' });
   if (add.status !== 0) throw new Error(`cannot create detached review worktree: ${(add.stderr || '').trim()}`);
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  copySnapshot(sourceRoot, tempRoot);
-  const checkoutScope = treeScope(tempRoot, { exclude: [outPath] });
+  const outputRelative = relative(sourceRoot, outPath);
+  const checkoutOutPath = outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? outPath : resolve(tempRoot, outputRelative);
+  copySnapshot(sourceRoot, tempRoot, outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? null : outPath);
+  const checkoutScope = treeScope(tempRoot, { exclude: [checkoutOutPath] });
   const checkoutRevision = resolveRevision(optionValue('--revision'), checkoutScope, checkoutScope.root);
   if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
 

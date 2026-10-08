@@ -89,6 +89,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	// req: R-854
 	check("pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
 		w.every((x) => x.status === 1 && /--worker was removed/.test(x.stderr) && !/attempt 1/.test(x.stderr)), w[0].stderr);
+	freshHome("wrapper-formal");
+	const wrapped = ledgerRun(["--item", "wrapped-formal"]);
+	// req: R-971
+	check("review-ledger run earns a counted round", wrapped.status === 0 && roundsOf("wrapped-formal").length === 1, wrapped.stderr);
+	freshHome("0");
 	const nr = piReview(["--item", "no-rev", "--out", out()], { cwd: plain });
 	// req: R-624
 	check("outside git without --tree → refused", nr.status === 1 && /run from the reviewed tree or pass --tree/.test(nr.stderr), nr.stderr);

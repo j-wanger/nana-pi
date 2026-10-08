@@ -66,6 +66,15 @@ check("pi-review refuses tracked --out before checkout or admission and leaves t
   fs.readFileSync(path.join(repo, "tracked.txt"), "utf8") === "dirty tracked content\n" && !fs.existsSync(path.join(root, "tracked-out-observe")) &&
   !trackedOutTrees.split(/\r?\n/).some((line) => line.startsWith("worktree ") && line.includes("nana-review-")) &&
   reviewRound.readRounds(home, { item: "tracked-out" }).length === 0, JSON.stringify({ status: trackedOut.status, stderr: trackedOut.stderr, output: fs.readFileSync(path.join(repo, "tracked.txt"), "utf8"), observe: fs.existsSync(path.join(root, "tracked-out-observe")), trackedOutTrees }));
+const preexistingOut = path.join(repo, "existing-output.md");
+fs.writeFileSync(preexistingOut, "old untracked output\n");
+const existingOutRun = spawnSync(process.execPath, [piReview, "--item", "existing-output", "--out", preexistingOut, "--retries", "0", "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: path.join(root, "existing-output-observe") }), encoding: "utf8", timeout: 30000,
+});
+// req: R-967
+check("pre-existing untracked in-tree output warns and review proceeds", existingOutRun.status === 0 && /WARNING/.test(existingOutRun.stderr) && fs.readFileSync(preexistingOut, "utf8").includes("VERDICT: LAND") &&
+  reviewRound.readRounds(home, { item: "existing-output" }).length === 1, existingOutRun.stderr);
+fs.rmSync(preexistingOut);
 const args = [piReview, "--item", "immutable", "--role", "sol", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "anthropic", "--model", "review-test-7"];
 const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
@@ -194,6 +203,24 @@ check("unreproducible dirty snapshot is refused before admission with no round o
   reviewRound.readRounds(home, { item: mismatchItem }).length === 0 && !fs.existsSync(mismatchAdmissionProbe) &&
   !fs.existsSync(path.join(root, "mismatch-observe")) && !afterMismatch.includes("nana-review-"), mismatch.stderr);
 
+const cleanSubmodule = path.join(repo, "clean-submodule");
+fs.mkdirSync(cleanSubmodule);
+git(cleanSubmodule, "init", "-q");
+fs.writeFileSync(path.join(cleanSubmodule, "sub.txt"), "clean initialized contents\n");
+git(cleanSubmodule, "add", "sub.txt");
+git(cleanSubmodule, "commit", "-qm", "clean submodule");
+const cleanSubHead = git(cleanSubmodule, "rev-parse", "HEAD");
+git(repo, "update-index", "--add", "--cacheinfo", `160000,${cleanSubHead},clean-submodule`);
+const cleanSubItem = "clean-submodule-refusal";
+const cleanSubRefusal = spawnSync(process.execPath, [piReview, "--item", cleanSubItem, "--out", path.join(root, "clean-submodule.md"), "--", "-p", "review"], {
+  cwd: repo, env: env({ OBSERVE: path.join(root, "clean-submodule-observe") }), encoding: "utf8", timeout: 30000,
+});
+// req: R-968
+check("clean initialized submodule is refused before admission and consumes no round", cleanSubRefusal.status === 1 && /initialized submodule cannot be materialized: clean-submodule/.test(cleanSubRefusal.stderr) &&
+  reviewRound.readRounds(home, { item: cleanSubItem }).length === 0 && !fs.existsSync(path.join(root, "clean-submodule-observe")), cleanSubRefusal.stderr);
+git(repo, "update-index", "--force-remove", "clean-submodule");
+fs.rmSync(cleanSubmodule, { recursive: true, force: true });
+
 const submodule = path.join(repo, "dirty-submodule");
 fs.mkdirSync(submodule);
 git(submodule, "init", "-q");
@@ -208,7 +235,7 @@ const subRefusal = spawnSync(process.execPath, [piReview, "--item", subItem, "--
   cwd: repo, env: env({ OBSERVE: path.join(root, "submodule-observe") }), encoding: "utf8", timeout: 30000,
 });
 // req: R-968
-check("dirty submodule is refused before admission and consumes no round", subRefusal.status === 1 && /dirty submodule/.test(subRefusal.stderr) &&
+check("dirty submodule is refused before admission and consumes no round", subRefusal.status === 1 && /initialized submodule cannot be materialized/.test(subRefusal.stderr) &&
   reviewRound.readRounds(home, { item: subItem }).length === 0 && !fs.existsSync(path.join(root, "submodule-observe")), subRefusal.stderr);
 git(repo, "update-index", "--force-remove", "dirty-submodule");
 fs.rmSync(submodule, { recursive: true, force: true });

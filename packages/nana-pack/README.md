@@ -188,6 +188,8 @@ pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider 
 **This is a self-governance device against the fix-review treadmill, not a security control.**
 Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and
 hand-run reviews are supplemental and earn no round; do not describe them as formal counted reviews.
+`pi-review` refuses any initialized submodule before admission because no repository on this machine
+uses submodules and recursive materialization is deliberately unsupported.
 Any number of reviews, by any roles, on one revision is one round. A land ruling on the revision the
 last round reviewed consumes nothing; a land review of a new revision is a round like any other.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
