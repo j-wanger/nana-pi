@@ -30,6 +30,10 @@ export const EXEMPTIONS = [
 ];
 const COMMAND_HEADS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "uv", "uvx", "python", "python3", "node", "make", "just", "git", "pi", "claude", "codex", "ruff", "mypy", "pytest", "curl", "brew", "chmod", "cp", "mv", "mkdir", "touch", "export", "source", "cd", "echo", "cat", "grep", "sed", "find", "ls"]);
 
+export function judgedClaimCount(claimsCount, unjudgedCommands) {
+  return claimsCount - unjudgedCommands.length;
+}
+
 export function staleExemptions(surface, text) {
   const found = new Set(claims(stripFenceComments(text)).map((claim) => `${claim.kind}:${claim.text}`));
   return EXEMPTIONS.filter((entry) => entry.surface === surface && !found.has(`${entry.kind}:${entry.text}`));

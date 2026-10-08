@@ -7,7 +7,7 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { EXEMPTIONS, SURFACES, judgeClaims, staleExemptions } from "./skill-claims.mjs";
+import { EXEMPTIONS, SURFACES, judgedClaimCount, judgeClaims, staleExemptions } from "./skill-claims.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -640,6 +640,6 @@ const adoptUpdateSkills = ["adopt-py", "adopt-ts"].map((name) => fs.readFileSync
 check("generated project update guidance is generic with adopted-project qualification", /run `uvx copier update --conflict inline` inside the\s+project/.test(updateGuide) && /For adopted projects, convert\s+decorator markers first; never use `--conflict rej`/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
-console.log(`claims: ${skillClaimsJudged} judged, ${skillUnjudged.length} unjudged command claims (heads: ${[...new Set(skillUnjudged)].join(", ") || "none"})`);
+console.log(`claims: ${judgedClaimCount(skillClaimsJudged, skillUnjudged)} judged, ${skillUnjudged.length} unjudged command claims (heads: ${[...new Set(skillUnjudged)].join(", ") || "none"})`);
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

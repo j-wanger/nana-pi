@@ -12,7 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { claims, commandProblems } from "../../../templates/typescript/template/scripts/readme-check.mjs";
-import { EXEMPTIONS, SURFACES, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
+import { EXEMPTIONS, SURFACES, judgedClaimCount, judgeClaims, staleExemptions, surfaceCoverage } from "./skill-claims.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let failures = 0;
@@ -123,7 +123,10 @@ check("a missing nana-command flag is rejected", judgeClaims({ surface: actualSh
 check("a declared nana subcommand absent from its source is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: cwdTargets, text: "`review-ledger reports`" }).flagProblems.some((p) => p.includes("reports")));
 const claimCount = checkoutJudgements.reduce((n, { result }) => n + result.claims, 0);
 const unjudged = checkoutJudgements.flatMap(({ result }) => result.unjudgedCommands);
-console.log(`claims: ${claimCount} judged, ${unjudged.length} unjudged command claims (heads: ${[...new Set(unjudged)].join(", ") || "none"})`);
+const judged = judgedClaimCount(claimCount, unjudged);
+// req: R-599
+check("judged claim accounting excludes unjudged commands", judged === claimCount - unjudged.length && unjudged.length > 0);
+console.log(`claims: ${judged} judged, ${unjudged.length} unjudged command claims (heads: ${[...new Set(unjudged)].join(", ") || "none"})`);
 
 if (failures) console.log(`${failures} FAILED`);
 else console.log("all passed");
