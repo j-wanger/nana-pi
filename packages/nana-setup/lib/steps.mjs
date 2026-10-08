@@ -39,7 +39,7 @@ import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
 export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
@@ -454,7 +454,7 @@ export function stepSettings(layout, o, state) {
 	// cmd.exe — so drop those entries and the env prefix on the one that survives.
 	const applicable = win()
 		? wanted
-				.filter((w) => !w.entry.command.startsWith("bash "))
+				.filter((w) => !w.entry.command.startsWith("bash ") && w.label !== "PreToolUse verifier pipe")
 				.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
 		: wanted;
 	const live = new Set(applicable.map((w) => w.label));
@@ -462,7 +462,7 @@ export function stepSettings(layout, o, state) {
 		...wanted.map((w) => ({
 			label: `settings ${w.label}`,
 			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
-			detail: !live.has(w.label) ? "skipped (win32: bash hook)" : added.includes(w.label) ? "added" : "already wired",
+			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "bash hook"})` : added.includes(w.label) ? "added" : "already wired",
 		})),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 	];

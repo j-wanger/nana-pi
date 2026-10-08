@@ -17,6 +17,7 @@
     "packages/nana-stage/extensions",
     "packages/nana-setup/lib",
     "packages/nana-setup/bin",
+    "packages/nana-setup/claude/hooks",
     { "path": "packages/nana-pack/tests", "layerExempt": true },
     { "path": "packages/nana-knowledge/tests", "layerExempt": true },
     { "path": "packages/nana-stage/tests", "layerExempt": true },

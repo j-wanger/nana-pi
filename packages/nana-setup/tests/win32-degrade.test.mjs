@@ -71,6 +71,8 @@ const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h
 check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts"));
 check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
+// req: R-985
+check("win32: no Claude verifier PreToolUse entry is installed", !settings.hooks.PreToolUse?.some((group) => group.hooks.some((entry) => entry.command.includes("verifier-pipe.mjs"))));
 
 /* doctor agrees, and does not fail on what the platform cannot have */
 const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
@@ -78,6 +80,8 @@ check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
 check("win32 doctor marks the skipped pieces", (doc.stdout.match(/skipped \(win32\)/g) || []).length >= 4);
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
+// req: R-985
+check("win32 doctor skips rather than expects a Claude verifier entry", /settings PreToolUse verifier pipe\s+skipped \(win32; Claude Code hooks unavailable\)/.test(doc.stdout) && !/✗ settings PreToolUse verifier pipe/.test(doc.stdout));
 
 /* re-running is still idempotent under the win32 branch */
 const again = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });

@@ -129,6 +129,7 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 	const adoption = sh("nana-adoption.sh");
 	const shared = sh("nana-shared-memory.sh");
 	const knowledgeCli = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
+	const verifierPipe = `${hooksDir}/verifier-pipe.mjs`;
 	return [
 		{
 			event: "SessionStart",
@@ -152,6 +153,14 @@ export function desiredHooks({ hooksDir, repoRoot }) {
 			marker: "nana-shared-memory.sh",
 			spec: shared.spec,
 			entry: { type: "command", command: shared.command, timeout: 5, statusMessage: "nana: shared memory index" },
+		},
+		{
+			event: "PreToolUse",
+			matcher: "Bash",
+			label: "PreToolUse verifier pipe",
+			marker: "verifier-pipe.mjs",
+			spec: { interpreters: ["node"], script: "verifier-pipe.mjs" },
+			entry: { type: "command", command: `node ${shq(verifierPipe)}`, timeout: 5, statusMessage: "nana: verifier pipe" },
 		},
 		{
 			event: "UserPromptSubmit",
@@ -188,10 +197,10 @@ export function validateShape(settings) {
 	return null;
 }
 
-export function hasHook(settings, event, spec) {
+export function hasHook(settings, event, spec, matcher) {
 	const groups = settings?.hooks?.[event];
 	if (!Array.isArray(groups)) return false;
-	return groups.some((g) => Array.isArray(g?.hooks) && g.hooks.some((h) => commandInvokes(h?.command, spec)));
+	return groups.some((g) => g?.matcher === matcher && Array.isArray(g?.hooks) && g.hooks.some((h) => commandInvokes(h?.command, spec)));
 }
 
 /** Remove only the exact installer-owned context hook object. */
@@ -271,13 +280,13 @@ export function knowledgeHookHealthy(settings, repoRoot) {
 export function mergeHooks(settings, wanted) {
 	const added = [];
 	for (const w of wanted) {
-		if (hasHook(settings, w.event, w.spec)) continue;
+		if (hasHook(settings, w.event, w.spec, w.matcher)) continue;
 		settings.hooks ??= {};
 		settings.hooks[w.event] ??= [];
 		const groups = settings.hooks[w.event];
-		let group = groups.find((g) => g && typeof g === "object" && !("matcher" in g) && Array.isArray(g.hooks));
+		let group = groups.find((g) => g && typeof g === "object" && g.matcher === w.matcher && Array.isArray(g.hooks));
 		if (!group) {
-			group = { hooks: [] };
+			group = { ...(w.matcher ? { matcher: w.matcher } : {}), hooks: [] };
 			groups.push(group);
 		}
 		group.hooks.push(w.entry);

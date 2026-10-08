@@ -31,7 +31,7 @@ const check = (n, ok, extra) => {
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("four active hook entries are wanted", wanted.length === 4);
+check("five active hook entries are wanted", wanted.length === 5);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -113,7 +113,7 @@ check("four active hook entries are wanted", wanted.length === 4);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all four active entries added", r.added.length === 4);
+	check("empty settings: all five active entries added", r.added.length === 5);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -134,7 +134,7 @@ check("four active hook entries are wanted", wanted.length === 4);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other four are added", r.added.length === 4);
+	check("the other five are added", r.added.length === 5);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
@@ -210,7 +210,9 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check("install over an existing settings.json exits 0", r.status === 0, r.stderr);
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	check("model key survives", after.model === "fable");
-	check("PreToolUse survives untouched", JSON.stringify(after.hooks.PreToolUse) === JSON.stringify(original.hooks.PreToolUse));
+	const preTool = after.hooks.PreToolUse.flatMap((group) => group.hooks);
+	// req: R-985
+	check("PreToolUse preserves the foreign hook and appends the Node verifier hook", preTool[0].command === original.hooks.PreToolUse[0].hooks[0].command && preTool.some((entry) => entry.command.endsWith("/verifier-pipe.mjs'")));
 	// req: R-660
 	check("exact nana context invocation is removed", !JSON.stringify(after).includes('"command": "bash ~/.claude/hooks/context-size-check.sh"'), JSON.stringify(after));
 	// req: R-660

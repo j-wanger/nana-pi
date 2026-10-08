@@ -297,15 +297,15 @@ export function diagnose(layout, opts = {}) {
 		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
 	}
 	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot })) {
-		if (win && w.entry.command.startsWith("bash ")) {
-			add(NOTE, `settings ${w.label}`, "skipped (win32)");
+		if (win && (w.entry.command.startsWith("bash ") || w.label === "PreToolUse verifier pipe")) {
+			add(NOTE, `settings ${w.label}`, `skipped (win32${w.label === "PreToolUse verifier pipe" ? "; Claude Code hooks unavailable" : ""})`);
 			continue;
 		}
 		if (parseError) add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`);
 		else {
 			const healthy = w.label === "UserPromptSubmit knowledge pull"
 				? knowledgeHookHealthy(settings, repoRoot)
-				: hasHook(settings, w.event, w.spec);
+				: hasHook(settings, w.event, w.spec, w.matcher);
 			add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
 				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
 				: w.marker);
