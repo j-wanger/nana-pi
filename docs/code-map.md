@@ -2157,7 +2157,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/tests/win32-degrade.test.mjs`
 
 - **purpose** — Pins that on Windows every posix-only install step SAYS it skipped instead of failing, driven through the platform seam rather than by patching process.platform
-- **inputs** — bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and a throwaway --home
+- **inputs** — bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, the root README, and throwaway --home directories
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

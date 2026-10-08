@@ -309,9 +309,9 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` �
 
 ## Platforms
 
-Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
+Support: macOS tested; Linux runs in hosted CI, where the suite leg is non-blocking, with no recorded machine install; the pack runs on native Windows but is untested, and on Windows there is no Claude Code hook except the knowledge pull, none of its PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 
-On Windows, installer copies and skipped shell hooks are implementation details, not a claim of supported parity.
+On Windows, installer copies and skipped hooks and PATH commands are implementation details, not a claim of supported parity.
 On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there.
 
 ## Usage and options
@@ -344,7 +344,7 @@ Environment switches (tests and CI only):
 
 | Variable | Effect |
 |---|---|
-| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `tests/project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — it exists so a machine that cannot render never drops the byte-equality and `_skip_if_exists` invariants silently. **Residual (2026-09-18): this repo has no CI workflow at all** — the only `.github/workflows` here belong to the two project *templates*, and nothing in the repo runs these tests automatically. Until there is one, set this by hand on any machine that is meant to exercise the renders; when a repo workflow is added, the job that runs these tests must install `uv` and set `NANA_SETUP_REQUIRE_COPIER: "1"` |
+| `NANA_SETUP_REQUIRE_COPIER=1` | the copier renders in `tests/project.test.mjs` become a FAILURE instead of a counted `SKIP` when `uvx` is missing — it exists so a machine that cannot render never drops the byte-equality and `_skip_if_exists` invariants silently. Root CI (`.github/workflows/ci.yml`) installs uv and sets this variable on both suite legs. |
 | `NANA_SETUP_PLATFORM` | forces the win32 branches on a Mac |
 | `NANA_SETUP_KNOWLEDGE_CLI` | points the knowledge refresh at a stub binary |
 | `NANA_SETUP_KNOWLEDGE_DEADLINE_MS` / `NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS` | shrink the refresh deadline and the SIGTERM→SIGKILL grace so the deadline is testable in under a second |
