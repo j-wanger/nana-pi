@@ -85,13 +85,14 @@ check("suite-time source revision change refuses before merge", () => {
 	assert.notEqual(out.code, 0); assert.match(out.text, /source tip changed/i);
 });
 // req: R-975
+// req: R-977
 check("suite-time main divergence refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-main-tip-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
 		commit(main, "parallel.txt", "parallel\n", "parallel"); return { status: 0, stdout: "", stderr: "" };
 	} });
-	assert.notEqual(out.code, 0); assert.match(out.text, /main is not an ancestor/i);
+	assert.notEqual(out.code, 0); assert.match(out.text, /compare-and-swap|update-ref/i);
 });
 // req: R-975
 check("non-fast-forward source tip refuses before running the suite", () => {
@@ -160,27 +161,43 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 // req: R-977
 check("successful land invokes ff-only merge and containment verification", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-invocations-")); const main = repo(root, "main");
+	const capturedMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
 	const calls = []; const runGit = (cwd, args) => { calls.push({ cwd, args }); try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; } catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; } };
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text);
+	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `update-ref refs/heads/main ${tip} ${capturedMain}`));
 	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge --ff-only ${tip}`));
 	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge-base --is-ancestor ${tip} refs/heads/main`));
 });
 // req: R-977
 check("branch switch at merge invocation refuses without landed records", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-merge-switch-")); const main = repo(root, "main");
+	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
-	const calls = []; let switched = false;
+	git(main, "branch", "other", initialMain);
+	const calls = []; let branchChecks = 0; let switched = false;
 	const runGit = (cwd, args) => {
 		calls.push({ cwd, args });
-		if (cwd === main && args[0] === "merge" && !switched) { git(main, "checkout", "-b", "other"); switched = true; }
+		if (cwd === main && args[0] === "branch" && args[1] === "--show-current" && ++branchChecks === 3 && !switched) { git(main, "checkout", "other"); switched = true; }
 		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
 		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
 	};
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
 	assert.notEqual(out.code, 0); assert.match(out.text, /branch main/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
-	assert.equal(git(main, "rev-parse", "main"), git(main, "rev-parse", "HEAD^")); assert.equal(git(main, "rev-parse", "other"), tip);
+	assert.equal(git(main, "rev-parse", "refs/heads/main"), initialMain); assert.equal(git(main, "rev-parse", "refs/heads/other"), initialMain);
+});
+// req: R-977
+check("main advancing during suite fails the main ref compare-and-swap", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-race-cas-")); const main = repo(root, "main");
+	const initialMain = git(main, "rev-parse", "refs/heads/main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
+	let advancedMain;
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+		commit(main, "parallel.txt", "parallel\n", "parallel"); advancedMain = git(main, "rev-parse", "refs/heads/main"); return { status: 0 };
+	} });
+	assert.notEqual(out.code, 0); assert.match(out.text, /compare-and-swap|update-ref/i);
+	assert.notEqual(advancedMain, initialMain); assert.equal(git(main, "rev-parse", "refs/heads/main"), advancedMain); assert.notEqual(advancedMain, tip);
 });
 // req: R-977
 check("suite command runs in the source tree", () => {
@@ -269,8 +286,9 @@ check("cleanup removes a contained feat branch without force", () => {
 check("README and AGENTS describe the land helper", () => {
 	const repoRoot = path.resolve(new URL("../../..", import.meta.url).pathname);
 	const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
-	assert.match(readme, /nana-land merge/); assert.match(readme, /clean checkout on `main`/); assert.match(readme, /suite succeeds/); assert.match(readme, /Immediately before merging it rechecks/); assert.match(readme, /is a separate operation/);
+	for (const pattern of [/nana-land merge/, /clean source tree/, /clean checkout on `main`/, /verified `LAND` review/, /suite succeeds/, /suite in the source tree/, /Immediately before merging it rechecks/, /`--ff-only`/, /verify containment/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
 	const agents = readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+	for (const pattern of [/clean source/, /clean `main` checkout/, /verified review rounds/, /suite on the reviewed tip/, /rerun the suite if either checkout changes/, /ff-only merge, and containment verification/, /separate operation/, /clean.*worktree contained in `main`/]) assert.match(agents, pattern);
 	assert.match(agents, /use `nana-land`/); assert.match(agents, /clean `main` checkout/); assert.match(agents, /verified review rounds/); assert.match(agents, /rerun the suite if either checkout changes/); assert.match(agents, /ff-only merge, and containment verification/); assert.match(agents, /clean `feat\/<lane>` worktree contained in `main`/);
 	assert.equal(JSON.parse(readFileSync(path.join(repoRoot, "packages/nana-pack/package.json"), "utf8")).bin["nana-land"], "bin/nana-land.mjs");
 });

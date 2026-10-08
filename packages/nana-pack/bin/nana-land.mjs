@@ -73,8 +73,9 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
+		const capturedMain = git(runGit, main, "rev-parse", "refs/heads/main");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
-		if (!isAncestor(runGit, "refs/heads/main", tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
+		if (!isAncestor(runGit, capturedMain, tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
 		const reviewRefs = [];
 		if (!exempt) {
 			for (const { sha, item } of reviewedPairs(reviewed)) {
@@ -99,7 +100,13 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
 		if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
-		if (!isAncestor(runGit, "refs/heads/main", tip, main)) throw new Error("main is not an ancestor of the unchanged source tip; fast-forward is impossible");
+		try { git(runGit, main, "update-ref", "refs/heads/main", tip, capturedMain); }
+		catch (error) { throw new Error(`main ref compare-and-swap failed: ${error.message}`); }
+		if (git(runGit, main, "branch", "--show-current") !== "main") {
+			try { git(runGit, main, "update-ref", "refs/heads/main", capturedMain, tip); }
+			catch (rollbackError) { throw new Error(`main checkout left branch main; ref rollback failed: ${rollbackError.message}`); }
+			throw new Error("main checkout left branch main before tree update; main ref restored");
+		}
 		git(runGit, main, "merge", "--ff-only", tip);
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
 		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
