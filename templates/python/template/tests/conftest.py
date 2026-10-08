@@ -77,9 +77,7 @@ BACKTICK_RE = re.compile(r"`([^`]+)`")
 #: literal "shall" otherwise. JS's own `/gi` (no `u` flag) never had this bug -- confirmed by
 #: the same sweep -- so only Python needed the flag. See PARITY_FIXTURES (the test file) for
 #: the codepoints this was measured against.
-SHALL_RE = re.compile(
-    r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE | re.ASCII
-)
+SHALL_RE = re.compile(r"(?<![A-Za-z0-9_])shall(?![A-Za-z0-9_])", re.IGNORECASE | re.ASCII)
 
 #: The allowance default for a project with no declared ini value: a new project writes
 #: rows one at a time, so it starts at zero (chosen, design-ruling.md 2026-10-04 §1; same
@@ -125,12 +123,7 @@ def _cites(evidence: str) -> list[str]:
 def _is_local(cite: str) -> bool:
     """A well-formed citation of a test in THIS repo: ``tests/<file>::<test name>``."""
     head, sep, name = cite.partition("::")
-    return (
-        bool(sep)
-        and head.startswith("tests/")
-        and bool(name.strip())
-        and head != "tests/"
-    )
+    return bool(sep) and head.startswith("tests/") and bool(name.strip()) and head != "tests/"
 
 
 def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
@@ -206,9 +199,7 @@ def _mask_code_spans(text: str) -> str:
             out.append(text[i:j])  # no matching close: the opening run is literal text
             i = j
         else:
-            out.append(
-                " "
-            )  # the whole span becomes ONE separator, delimiters and content gone
+            out.append(" ")  # the whole span becomes ONE separator, delimiters and content gone
             i = close_end
     return "".join(out)
 
@@ -238,11 +229,7 @@ def shall_counts(text: str) -> dict[str, int]:
 def ears_off_form(requirements: dict[str, Row], counts: dict[str, int]) -> list[str]:
     """Ids off EARS form (G-013): not ``retired``, and the Requirement cell's `shall` count,
     code spans masked, is not exactly one."""
-    return sorted(
-        rid
-        for rid, row in requirements.items()
-        if row.status != "retired" and counts.get(rid, 0) != 1
-    )
+    return sorted(rid for rid, row in requirements.items() if row.status != "retired" and counts.get(rid, 0) != 1)
 
 
 def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
@@ -254,17 +241,13 @@ def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
             break
         for rid in m.group(1).split():
             if not ID_RE.match(rid.rstrip(",")):
-                raise pytest.UsageError(
-                    f"{name}:{i + 1}: bad requirement id {rid!r} (expected R-NNN or G-NNN)"
-                )
+                raise pytest.UsageError(f"{name}:{i + 1}: bad requirement id {rid!r} (expected R-NNN or G-NNN)")
             ids.append(rid.rstrip(","))
         i += 1
     return ids, i
 
 
-def scan_source(
-    source: str, name: str, call_names: tuple[str, ...] = CALL_NAMES
-) -> list[tuple[list[str], str]]:
+def scan_source(source: str, name: str, call_names: tuple[str, ...] = CALL_NAMES) -> list[tuple[list[str], str]]:
     """Every marker in one test source, as ``(ids, test name)``.
 
     The marked line is either a ``def test_...`` (the usual shape) or a call to one of
@@ -294,9 +277,7 @@ def scan_source(
     return found
 
 
-def scan_dir(
-    directory: Path, call_names: tuple[str, ...] = CALL_NAMES, prefix: str = "tests"
-) -> dict[str, list[str]]:
+def scan_dir(directory: Path, call_names: tuple[str, ...] = CALL_NAMES, prefix: str = "tests") -> dict[str, list[str]]:
     """Every marker under a tests directory, as ``{id: ['tests/<path>::<test>', ...]}``.
 
     Recursive and deterministic: feature-shaped suites nest their tests, so a marker
@@ -314,15 +295,11 @@ def scan_dir(
     return traced
 
 
-def trace_problems(
-    requirements: dict[str, Row], traced: dict[str, list[str]]
-) -> list[str]:
+def trace_problems(requirements: dict[str, Row], traced: dict[str, list[str]]) -> list[str]:
     """The mismatches, as human-readable lines; empty when the file and the suite agree."""
     problems: list[str] = []
     for rid in sorted(set(traced) - set(requirements)):
-        problems.append(
-            f"{rid} is marked on {len(traced[rid])} test(s) but is not in REQUIREMENTS.md"
-        )
+        problems.append(f"{rid} is marked on {len(traced[rid])} test(s) but is not in REQUIREMENTS.md")
     for rid, row in sorted(requirements.items()):
         have = traced.get(rid, [])
         if row.status == "implemented" and not have and not row.external:
@@ -330,17 +307,13 @@ def trace_problems(
                 f"{rid} is 'implemented' but no test carries '# req: {rid}' and its evidence is not external"
             )
         elif row.status in {"untested", "planned", "violated"} and have:
-            problems.append(
-                f"{rid} is '{row.status}' but {len(have)} test(s) trace it; set status to implemented"
-            )
+            problems.append(f"{rid} is '{row.status}' but {len(have)} test(s) trace it; set status to implemented")
         if row.status != "implemented":
             continue
         problems += _evidence_problems(rid, row)
         for cite in row.local:
             if cite not in have:
-                problems.append(
-                    f"{rid} cites '{cite}' but no test with that name carries '# req: {rid}'"
-                )
+                problems.append(f"{rid} cites '{cite}' but no test with that name carries '# req: {rid}'")
     return problems
 
 
@@ -405,14 +378,8 @@ def check(
         general_cells = _row_cells(general_text)
         for rid in general_cells:
             if not rid.startswith("G-"):
-                raise pytest.UsageError(
-                    f"{rid} is not a Part G id in {GENERAL_REQUIREMENTS_FILE}"
-                )
-        merged = {
-            rid: cells
-            for rid, cells in project_cells.items()
-            if not rid.startswith("G-")
-        }
+                raise pytest.UsageError(f"{rid} is not a Part G id in {GENERAL_REQUIREMENTS_FILE}")
+        merged = {rid: cells for rid, cells in project_cells.items() if not rid.startswith("G-")}
         for rid, cells in general_cells.items():
             owned = project_cells.get(rid)
             merged[rid] = (
@@ -421,14 +388,9 @@ def check(
                 owned[2] if owned else cells[2],
             )
         text = (
-            "\n".join(
-                line for line in project_text.splitlines() if not line.startswith("|")
-            )
+            "\n".join(line for line in project_text.splitlines() if not line.startswith("|"))
             + "\n"
-            + "\n".join(
-                f"| {rid} | {cells[0]} | {cells[1]} | {cells[2]} |"
-                for rid, cells in merged.items()
-            )
+            + "\n".join(f"| {rid} | {cells[0]} | {cells[1]} | {cells[2]} |" for rid, cells in merged.items())
         )
     requirements = load_requirements(reqs_path, text)
     counts = shall_counts(text)
@@ -441,10 +403,7 @@ def check(
             traced.setdefault(rid, []).extend(cites)
     problems = trace_problems(requirements, traced)
     if len(off_form) > ears_allowance:
-        problems += [
-            f"{rid} carries {counts.get(rid, 0)} shall (one is the form)"
-            for rid in off_form
-        ]
+        problems += [f"{rid} carries {counts.get(rid, 0)} shall (one is the form)" for rid in off_form]
     line = summary(requirements, traced)
     ears_line = f"ears: {len(off_form)} rows off form (allowance {ears_allowance})"
     # `line` and `ears_line` joined by one newline, in that order -- a structural guarantee
@@ -464,9 +423,7 @@ def _drift_line(root: Path) -> str | None:
     differences = sorted(
         rid
         for rid, cells in project_cells.items()
-        if rid.startswith("G-")
-        and rid in general_cells
-        and cells[0] != general_cells[rid][0]
+        if rid.startswith("G-") and rid in general_cells and cells[0] != general_cells[rid][0]
     )
     if not differences:
         return None
@@ -474,9 +431,7 @@ def _drift_line(root: Path) -> str | None:
 
 
 def _is_full_run(config: pytest.Config) -> bool:
-    testpaths = [
-        str((config.rootpath / p).resolve()) for p in config.getini("testpaths")
-    ]
+    testpaths = [str((config.rootpath / p).resolve()) for p in config.getini("testpaths")]
     args = [str(Path(a.split("::")[0]).resolve()) for a in config.args]
     return args == testpaths
 
@@ -518,17 +473,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         if drift_line:
             reporter.write_line(drift_line)
         if problems:
-            head = (
-                "requirements trace FAILED:"
-                if full
-                else "requirements trace (partial run, informational):"
-            )
+            head = "requirements trace FAILED:" if full else "requirements trace (partial run, informational):"
             reporter.write_line(head, red=full)
             for p in problems:
                 reporter.write_line(f"  {p}", red=full)
             if full:
-                reporter.write_line(
-                    "  fix REQUIREMENTS.md or the markers; do not silence this check"
-                )
+                reporter.write_line("  fix REQUIREMENTS.md or the markers; do not silence this check")
     if problems and full and exitstatus == 0:
         session.exitstatus = int(pytest.ExitCode.TESTS_FAILED)

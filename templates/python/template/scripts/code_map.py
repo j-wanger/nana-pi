@@ -93,9 +93,7 @@ class Config:
 
     def is_layer_exempt(self, path: str) -> bool:
         """True when this path sits under a root declared layerExempt."""
-        return any(
-            path == root or path.startswith(f"{root}/") for root in self.exempt_roots
-        )
+        return any(path == root or path.startswith(f"{root}/") for root in self.exempt_roots)
 
     def exempt_reason(self, path: str) -> str | None:
         """The declared reason this module is excused from the header rule, or None."""
@@ -152,9 +150,7 @@ class Impact:
 # --------------------------------------------------------------------- config
 
 
-def _parse_roots(
-    entries: list[Any], where: str
-) -> tuple[tuple[str, ...], frozenset[str]]:
+def _parse_roots(entries: list[Any], where: str) -> tuple[tuple[str, ...], frozenset[str]]:
     """Read ``roots``: each entry is a path string, or an object with ``path`` and optional ``layerExempt``."""
     paths: list[str] = []
     exempt: set[str] = set()
@@ -162,14 +158,8 @@ def _parse_roots(
         if isinstance(entry, str) and entry:
             paths.append(entry)
             continue
-        if (
-            not isinstance(entry, dict)
-            or not isinstance(entry.get("path"), str)
-            or not entry["path"]
-        ):
-            raise ConfigError(
-                f"{where}: roots[{i}] must be a path string or an object with a 'path'"
-            )
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
+            raise ConfigError(f"{where}: roots[{i}] must be a path string or an object with a 'path'")
         if not isinstance(entry.get("layerExempt", False), bool):
             raise ConfigError(f"{where}: roots[{i}] has a non-boolean 'layerExempt'")
         paths.append(entry["path"])
@@ -178,9 +168,7 @@ def _parse_roots(
     return tuple(paths), frozenset(exempt)
 
 
-def _parse_test_roots(
-    entries: Any, roots: tuple[str, ...], where: str
-) -> frozenset[str]:
+def _parse_test_roots(entries: Any, roots: tuple[str, ...], where: str) -> frozenset[str]:
     """``testRoots`` is shorthand for ``layerExempt`` on roots that hold tests."""
     if entries is None:
         return frozenset()
@@ -188,9 +176,7 @@ def _parse_test_roots(
         raise ConfigError(f"{where}: 'testRoots' must be an array of root paths")
     for i, entry in enumerate(entries):
         if not isinstance(entry, str) or entry not in roots:
-            raise ConfigError(
-                f"{where}: testRoots[{i}] {entry!r} is not one of 'roots'"
-            )
+            raise ConfigError(f"{where}: testRoots[{i}] {entry!r} is not one of 'roots'")
     return frozenset(entries)
 
 
@@ -199,19 +185,11 @@ def _parse_exempt(entries: Any, where: str) -> tuple[Exempt, ...]:
     if entries is None:
         return ()
     if not isinstance(entries, list):
-        raise ConfigError(
-            f"{where}: 'exempt' must be an array of objects with a 'path' and a 'reason'"
-        )
+        raise ConfigError(f"{where}: 'exempt' must be an array of objects with a 'path' and a 'reason'")
     found: list[Exempt] = []
     for i, entry in enumerate(entries):
-        if (
-            not isinstance(entry, dict)
-            or not isinstance(entry.get("path"), str)
-            or not entry["path"]
-        ):
-            raise ConfigError(
-                f"{where}: exempt[{i}] must be an object with a non-empty 'path'"
-            )
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
+            raise ConfigError(f"{where}: exempt[{i}] must be an object with a non-empty 'path'")
         reason = entry.get("reason")
         found.append(
             Exempt(
@@ -351,9 +329,7 @@ def _tag_problem(order: list[str], fields: dict[str, str]) -> str | None:
         return f"the contract header's tags are out of order: {got} (expected {want})"
     extra = [t for t in order if t not in HEADER_TAGS]
     if extra:
-        return "the contract header carries unknown tag(s): " + ", ".join(
-            f"@{t}" for t in extra
-        )
+        return "the contract header carries unknown tag(s): " + ", ".join(f"@{t}" for t in extra)
     effects = _effects_problem(fields["effects"])
     if effects:
         return effects
@@ -447,9 +423,7 @@ def _dynamic_target(
     return (((f"{anchor}.{rest}" if rest else anchor,), True), None)
 
 
-def _from_targets(
-    node: ast.ImportFrom, self_name: str, is_package: bool
-) -> list[tuple[tuple[str, ...], bool]]:
+def _from_targets(node: ast.ImportFrom, self_name: str, is_package: bool) -> list[tuple[tuple[str, ...], bool]]:
     """One ``from ... import ...`` statement, as candidate dotted names per imported name."""
     relative = node.level > 0
     if relative:
@@ -525,7 +499,9 @@ def _layer_problem(config: Config, mod: Module, target: Module) -> str | None:
         return f"{mod.path}: imports {target.path} against the layer direction ({mod.layer.id} -> {target.layer.id})"
     if b > a + 1:
         skipped = ", ".join(layer.id for layer in config.layers[a + 1 : b])
-        return f"{mod.path}: imports {target.path} SKIPPING a layer ({mod.layer.id} -> {target.layer.id}, past {skipped})"
+        return (
+            f"{mod.path}: imports {target.path} SKIPPING a layer ({mod.layer.id} -> {target.layer.id}, past {skipped})"
+        )
     return None
 
 
@@ -533,9 +509,7 @@ def _make_module(config: Config, path: str, source: str, problems: list[str]) ->
     """One module record, appending every problem its layer and header show."""
     found = layer_of(config, path)
     if found is None:
-        problems.append(
-            f"{path}: no declared layer covers this module ({CONFIG_PATH} layers)"
-        )
+        problems.append(f"{path}: no declared layer covers this module ({CONFIG_PATH} layers)")
     excused = config.exempt_reason(path)
     base = Module(
         path=path,
@@ -564,11 +538,7 @@ def _link_imports(
     problems: list[str],
 ) -> None:
     """Add every intra-project import edge, appending a problem for each one that does not resolve."""
-    by_dotted = {
-        name: path
-        for path in sorted(sources)
-        if (name := dotted_name(config, path)) is not None
-    }
+    by_dotted = {name: path for path in sorted(sources) if (name := dotted_name(config, path)) is not None}
     package_roots = {name.split(".")[0] for name in by_dotted}
     for path in sorted(sources):
         mod = modules[path]
@@ -580,9 +550,7 @@ def _link_imports(
             target = next((by_dotted[c] for c in candidates if c in by_dotted), None)
             if target is None:
                 if is_relative or candidates[0].split(".")[0] in package_roots:
-                    problems.append(
-                        f"{path}: import '{candidates[0]}' does not resolve to a mapped module"
-                    )
+                    problems.append(f"{path}: import '{candidates[0]}' does not resolve to a mapped module")
                 continue
             if target == path:
                 continue
@@ -599,9 +567,7 @@ def _exempt_problems(config: Config, sources: dict[str, str]) -> list[str]:
     for entry in config.exempt:
         if entry.path not in sources:
             where = ", ".join(config.roots)
-            problems.append(
-                f"{CONFIG_PATH}: exempt path '{entry.path}' is not a module under {where}"
-            )
+            problems.append(f"{CONFIG_PATH}: exempt path '{entry.path}' is not a module under {where}")
         if not entry.reason:
             problems.append(f"{CONFIG_PATH}: exempt path '{entry.path}' has no reason")
     return problems
@@ -611,9 +577,7 @@ def build_graph(sources: dict[str, str], config: Config) -> Graph:
     """Build the graph over ``{path: source}``."""
     problems: list[str] = _exempt_problems(config, sources)
     order = sorted(sources)
-    modules = {
-        path: _make_module(config, path, sources[path], problems) for path in order
-    }
+    modules = {path: _make_module(config, path, sources[path], problems) for path in order}
     _link_imports(config, modules, sources, problems)
     for mod in modules.values():
         mod.callees = sorted(set(mod.callees))
@@ -634,9 +598,7 @@ def _walk(modules: dict[str, Module], start: str, edge: str) -> list[str]:
             continue
         seen.add(nxt)
         found = modules.get(nxt)
-        queue.extend(
-            n for n in (getattr(found, edge) if found else []) if n not in seen
-        )
+        queue.extend(n for n in (getattr(found, edge) if found else []) if n not in seen)
     seen.discard(start)
     return sorted(seen)
 
@@ -682,17 +644,11 @@ def format_impact(graph: Graph, paths: list[str]) -> str:
     for entry in result.per:
         suffix = "" if entry.known else "  [NOT A MAPPED MODULE]"
         out.append(f"{entry.path}{suffix}")
-        out.append(
-            f"  transitive callers ({len(entry.callers)}): {' '.join(entry.callers) or '—'}"
-        )
-        out.append(
-            f"  transitive callees ({len(entry.callees)}): {' '.join(entry.callees) or '—'}"
-        )
+        out.append(f"  transitive callers ({len(entry.callers)}): {' '.join(entry.callers) or '—'}")
+        out.append(f"  transitive callees ({len(entry.callees)}): {' '.join(entry.callees) or '—'}")
     if len(paths) > 1:
         out.append("")
-        out.append(
-            f"blast radius: {len(result.callers)} upstream, {len(result.callees)} downstream"
-        )
+        out.append(f"blast radius: {len(result.callers)} upstream, {len(result.callees)} downstream")
     untraced, total = untraced_tests(graph)
     out.append("")
     out.append(
@@ -736,9 +692,7 @@ def render_map(graph: Graph) -> str:
         "**Layer direction** (G-007): a module may import from its own layer or the one",
         "directly after it, never an earlier one and never skipping one.",
         "",
-        "**Effects vocabulary** (G-004): `"
-        + "` · `".join(EFFECTS)
-        + "`, with an optional",
+        "**Effects vocabulary** (G-004): `" + "` · `".join(EFFECTS) + "`, with an optional",
         "parenthetical qualifier. A value a caller is handed back is an *output*, not an",
         "effect; a file written under the project counts as `disk`.",
         "",
@@ -794,10 +748,7 @@ def collect_modules(root: Path, config: Config) -> dict[str, str]:
             rel = f.relative_to(root).as_posix()
             if not f.is_file() or not rel.endswith(config.module_extensions):
                 continue
-            if any(
-                part.startswith(".") or part == "__pycache__"
-                for part in f.relative_to(root).parts
-            ):
+            if any(part.startswith(".") or part == "__pycache__" for part in f.relative_to(root).parts):
                 continue
             found[rel] = f.read_text(encoding="utf-8")
     return found
@@ -816,11 +767,7 @@ def check_project(root: Path) -> tuple[Graph, str, list[str], str]:
     else:
         on_disk = map_file.read_text(encoding="utf-8")
         listed = set(map_entries(on_disk))
-        problems += [
-            f"{p} has no entry in {config.map_path}; {run}"
-            for p in graph.order
-            if p not in listed
-        ]
+        problems += [f"{p} has no entry in {config.map_path}; {run}" for p in graph.order if p not in listed]
         problems += [
             f"{config.map_path} lists {p}, which is not a module under {', '.join(config.roots)}"
             for p in sorted(listed)
@@ -885,12 +832,7 @@ def main(argv: list[str], root: Path = PROJECT_ROOT) -> int:
 def _relative(arg: str, root: Path) -> str:
     candidate = Path(arg)
     try:
-        return (
-            (candidate if candidate.is_absolute() else (root / candidate))
-            .resolve()
-            .relative_to(root)
-            .as_posix()
-        )
+        return (candidate if candidate.is_absolute() else (root / candidate)).resolve().relative_to(root).as_posix()
     except ValueError:
         return arg
 
