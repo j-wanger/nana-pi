@@ -133,6 +133,10 @@ loaded in this process; with none (a fresh process), it stops every gated tool u
 repairs the named file with any editor **outside pi**, or deletes it (missing = defaults, which
 discards that scope's custom denies).
 
+### Shared-machine test runs
+
+Run the full suite with `npm run test:locked` when worktrees share a machine. The command holds one machine-wide lock for full runs; path-filtered runs do not wait for it.
+
 ### The desk
 
 Sessions here are visible and driveable on nana code (the desk, started separately) — a local browser

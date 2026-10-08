@@ -1,5 +1,6 @@
 {%- set _ts = language == 'typescript' -%}
-{%- set _status = g_status | default('untested') -%}
+{%- set _status = 'untested' if adopt else 'implemented' -%}
+{%- set _general_preamble = 'Template-owned file; do not edit. Refreshed by `uvx copier update`. The rail reads Requirement cells here and Status/Evidence from REQUIREMENTS.md when listed there.' -%}
 {%- set _ev = _status == 'implemented' -%}
 {%- set _g004 = 'tests/code-map.test.ts::this project: every module has a contract header and docs/code-map.md is current' if _ts else 'tests/test_code_map.py::test_this_project_headers_and_map_are_current' -%}
 {%- set _g009 = 'tests/code-map.test.ts::the rendered map carries one entry per module under its layer' if _ts else 'tests/test_code_map.py::test_rendered_map_carries_one_entry_per_module' -%}
@@ -12,9 +13,8 @@
 # Part G. General engineering requirements (every nana project)
 
 These rows are the same in every nana project and are **never renumbered or edited
-per project** — they arrive with the template and are re-synced by `uvx copier update`.
-What changes per project is the Status and Evidence column: promote a row when a test
-in this repo pins it, and say where.
+per project**. {{ _general_preamble }} Status and Evidence remain project-owned in
+REQUIREMENTS.md; promote a row when a test in this repo pins it, and say where.
 
 Where a row says *every module*, that is every module under the roots declared in
 `code-map.config.json` — which ships covering the package, `scripts/` and the test
