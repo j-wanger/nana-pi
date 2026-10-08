@@ -7,13 +7,15 @@
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
  * @errors exit 1 on bad args, invalid lane, failed worker, or exceeded lane ceiling
  */
-import { accessSync, constants, existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import { LANE_DEFAULTS, LANE_MAX_SECS } from './worker-config.mjs';
 
-const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] [--lane <name> --brief <file> [--max-secs N]] -- <pi args...>\n';
+const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
+const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] -- <pi args...>\n';
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
@@ -28,7 +30,12 @@ const argv = [...filteredOwn, ...(separator < 0 ? [] : ['--', ...all.slice(separ
 function git(...args) {
 	return execFileSync('git', args, { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
-function laneFailure(reason) { process.stderr.write(`pi-worker: lane refused: ${reason}\n`); process.exit(1); }
+function laneFailure(reason) {
+	if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true });
+	if (laneLock) releaseLaneLock(laneLock);
+	process.stderr.write(`pi-worker: lane refused: ${reason}\n`);
+	process.exit(1);
+}
 function trusted(worktree) {
 	const reader = new URL('../lib/objective.ts', import.meta.url).href;
 	const shared = spawnSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', `import { trustRecord } from ${JSON.stringify(reader)}; process.stdout.write(String(trustRecord(process.argv[1]).vouched));`, worktree], { encoding: 'utf8', env: process.env });
@@ -37,6 +44,8 @@ function trusted(worktree) {
 
 let childEnv = {};
 let maxArg;
+let laneRoot, laneGitDir, briefPath, preambleFile, laneLock;
+let validateLaneAttempt = () => null;
 if (lane !== null) {
 	if (!lane || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(lane)) laneFailure('lane name is missing or invalid');
 	let cwd, root, branch, dirs;
@@ -50,50 +59,94 @@ if (lane !== null) {
 	if (dirs[0] === dirs[1]) laneFailure('main checkout is not a linked worktree');
 	if (branch !== `feat/${lane}`) laneFailure(`checked-out branch is ${branch || '(detached)'}, expected feat/${lane}`);
 	if (!brief || !existsSync(path.resolve(cwd, brief))) laneFailure('brief file does not exist');
+	const retryAt = own.indexOf('--retries');
+	if (retryAt >= 0 && Number(own[retryAt + 1]) > 0) laneFailure('--retries greater than zero is refused in lane mode');
 	if (!Number.isSafeInteger(maxSecs) || maxSecs < 1) laneFailure('--max-secs must be a positive whole number');
-	const briefPath = path.resolve(cwd, brief);
-	let briefText;
+	briefPath = fsReal(path.resolve(cwd, brief));
 	try {
 		if (!statSync(briefPath).isFile()) laneFailure('brief must be a readable regular file');
 		accessSync(briefPath, constants.R_OK);
-		briefText = readFileSync(briefPath, 'utf8');
 	} catch { laneFailure('brief must be a readable regular file'); }
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
+	laneRoot = cwd; laneGitDir = dirs[0];
 	const piArgs = argv.slice(argv.indexOf('--') + 1);
-	const option = (flags) => flags.some((flag) => piArgs.includes(flag));
+	const toolControls = new Set(['-t', '--tools', '-xt', '--exclude-tools', '-nbt', '--no-builtin-tools', '-nt', '--no-tools']);
+	if (piArgs.some((arg) => toolControls.has(arg) || arg.startsWith('--tools=') || arg.startsWith('--exclude-tools=') || /^-(?:t|xt).+/.test(arg))) laneFailure('tool-control options are owned by lane mode');
 	for (const [flag, value] of [['--provider', LANE_DEFAULTS.provider], ['--model', LANE_DEFAULTS.model], ['--thinking', LANE_DEFAULTS.thinking]]) {
-		if (!option([flag])) piArgs.unshift(flag, value);
+		if (!piArgs.includes(flag)) piArgs.unshift(flag, value);
 	}
-	const toolFlag = piArgs.findIndex((arg) => arg === '-t' || arg === '--tools');
-	if (toolFlag < 0) piArgs.unshift('-t', LANE_DEFAULTS.tools);
-	else {
-		const tools = (piArgs[toolFlag + 1] ?? '').split(',');
-		if (!tools.includes('edit') || !tools.includes('write')) laneFailure('tool list must include edit and write');
-	}
+	piArgs.unshift('-t', LANE_DEFAULTS.tools);
 	const existing = piArgs.indexOf('--append-system-prompt');
 	const insert = existing < 0 ? piArgs.length : existing;
-	piArgs.splice(insert, 0, '--append-system-prompt', preamble, '--append-system-prompt', briefText);
+	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
+	preambleFile = path.join(preambleDir, 'preamble.md');
+	writeFileSync(preambleFile, preamble);
+	piArgs.splice(insert, 0, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath);
 	argv.splice(argv.indexOf('--') + 1, argv.length, ...piArgs);
 	childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
 	maxArg = maxSecs;
 	if (!trusted(cwd)) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
+	function validateLane() {
+		try {
+			const nowCwd = fsReal(process.cwd());
+			const nowRoot = fsReal(git('rev-parse', '--show-toplevel'));
+			const nowBranch = git('branch', '--show-current');
+			const nowDirs = git('rev-parse', '--git-dir', '--git-common-dir').split(/\r?\n/).map((p) => fsReal(path.resolve(nowCwd, p)));
+			if (nowCwd !== laneRoot || nowRoot !== laneRoot) return 'cwd is no longer the repository root';
+			if (nowDirs[0] === nowDirs[1] || nowDirs[0] !== laneGitDir) return 'linked-worktree metadata changed';
+			if (nowBranch !== `feat/${lane}`) return `checked-out branch is ${nowBranch || '(detached)'}, expected feat/${lane}`;
+			return null;
+		} catch { return 'cannot resolve repository root, linked-worktree metadata, or branch'; }
+	}
+	validateLaneAttempt = validateLane;
 }
 function fsReal(p) { return realpathSync(p); }
 
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
-if (w.error) { process.stderr.write(w.error === 'usage' ? USAGE : `pi-worker: ${w.error}\n`); process.exit(1); }
+if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (lane !== null || own.some((arg) => ['--lane', '--brief', '--max-secs'].includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
+if (lane !== null && w.retries > 0) laneFailure('--retries greater than zero is refused in lane mode');
 const reviewFlag = ['--item', '--role', '--revision', '--over-cap', '--worker'].find((f) => w.ownArgs.includes(f));
 if (reviewFlag) {
 	process.stderr.write(`pi-worker: ${reviewFlag} is a review option — pi-worker records nothing. A review goes through pi-review --item <slug>.\n`);
 	process.exit(1);
 }
-if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
-if (w.retries > 0) process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
-const r = await runWatchdog('pi-worker', { ...w, ...(maxArg ? { maxSecs: maxArg } : {}), childEnv });
-if (r.text.trim()) writeFileSync(w.outPath, r.text);
+if (w.retriesExplicit && lane === null) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
+if (w.retries > 0 && lane === null) process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
+if (lane !== null) acquireLaneLock(laneGitDir);
+let r;
+try {
+	if (lane !== null) {
+		const preambleDir = path.dirname(preambleFile);
+		try { r = await runWatchdog('pi-worker', { ...w, maxSecs: maxArg, childEnv, validateAttempt: validateLaneAttempt }); }
+		finally { rmSync(preambleDir, { recursive: true, force: true }); }
+	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
+} catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }
+try { if (r.text.trim()) writeFileSync(w.outPath, r.text); }
+finally { if (laneLock) { releaseLaneLock(laneLock); laneLock = null; } }
 if (r.signal) { process.stderr.write(`[pi-worker] aborted by ${r.signal}\n`); process.exit({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[r.signal] ?? 1); }
 process.stderr.write(r.ok
 	? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
 	: r.ceiling ? `[pi-worker] FAILED: wall-clock ceiling ${maxArg}s reached\n` : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);
 process.exit(r.ok ? 0 : 1);
+
+function acquireLaneLock(gitDir) {
+	laneLock = path.join(gitDir, 'nana-lane.lock');
+	for (let attempt = 0; attempt < 2; attempt++) {
+		try { mkdirSync(laneLock); writeFileSync(path.join(laneLock, 'pid'), `${process.pid}\n`, { flag: 'wx' }); return; }
+		catch (error) {
+			if (error.code !== 'EEXIST') { rmSync(laneLock, { recursive: true, force: true }); laneLock = null; laneFailure(`cannot acquire worktree lock: ${error.message}`); }
+			let pid = 0;
+			try { pid = Number(readFileSync(path.join(laneLock, 'pid'), 'utf8').trim()); } catch { /* pid file not ready */ }
+			let alive = false;
+			if (Number.isSafeInteger(pid) && pid > 0) { try { process.kill(pid, 0); alive = true; } catch (probe) { alive = probe.code === 'EPERM'; } }
+			if (alive) laneFailure(`worktree is already locked by pid ${pid}`);
+			rmSync(laneLock, { recursive: true, force: true });
+		}
+	}
+	laneFailure('cannot reclaim stale worktree lock');
+}
+function releaseLaneLock(lock) {
+	if (!lock) return;
+	try { if (Number(readFileSync(path.join(lock, 'pid'), 'utf8').trim()) === process.pid) rmSync(lock, { recursive: true, force: true }); } catch { /* best-effort handled-exit cleanup */ }
+}

@@ -175,6 +175,11 @@ export async function runWatchdog(tag, opts) {
   try {
     for (let a = 1; a <= attempts; a++) {
       if (signal) break;
+      const validation = opts.validateAttempt?.();
+      if (validation) {
+        process.stderr.write(`[${tag}] FAILED before attempt ${a}: ${validation}\n`);
+        return { ok: false, text: last, attempt: a - 1, validationFailed: true };
+      }
       if (opts.maxSecs && Date.now() - startedAt >= opts.maxSecs * 1000) {
         process.stderr.write(`[${tag}] FAILED: wall-clock ceiling ${opts.maxSecs}s reached — refusing another attempt\n`);
         return { ok: false, text: last, attempt: a - 1, ceiling: true };
