@@ -32,7 +32,7 @@ reconciliation surface — nothing is lost because the tree starts clean.
    (`pytest --cov` if cheap). You need the coverage number for step 5.
 2. **Present the plan and get an OK** — what lands (tool pins, `.pi` post-edit
    preset, CI workflow, root AGENTS.md, answers file, and the requirements rail:
-   `REQUIREMENTS.md`, the map generator and three files under `tests/` — see
+   `REQUIREMENTS.md`, the map and readme-check generators and four tests under `tests/` — see
    step 3), what gets merged (their
    `[project]` metadata + deps into the pinned pyproject, .gitignore union),
    what is never touched (source tree and tests — adopt does not restructure
@@ -57,15 +57,36 @@ reconciliation surface — nothing is lost because the tree starts clean.
    - a PLACEHOLDER `docs/code-map.md`. The first `--check` reports it stale and
      names the one command that regenerates it (`uv run python
      scripts/code_map.py`, or `python3 scripts/code_map.py` — it needs no deps);
-   - three rail files under `tests/`: the trace plugin `tests/conftest.py` and
-     its self-tests `tests/test_requirements_trace.py` and
-     `tests/test_code_map.py`. Their markers render as `req-candidate:`, not
-     `req:`, so the rail stays green until a row is promoted — promote one by
-     renaming its marker to `req:` and citing the test in the row.
+   - four rail tests under `tests/`: `tests/conftest.py`,
+     `tests/test_requirements_trace.py`, `tests/test_code_map.py`, and
+     `tests/test_readme_check.py`, plus `scripts/readme_check.py`. Their markers
+     render as `req-candidate:`, not `req:`, so the rail stays green until a row
+     is promoted — rename its marker and cite the test in the row.
 
-   No README/src/tests starters beyond those three.
+Files written by an adopt render into an empty folder:
+- `.copier-answers.yml`
+- `.github/workflows/ci.yml`
+- `.gitignore`
+- `.pi/nana-pack.json`
+- `.pre-commit-config.yaml`
+- `AGENTS.md`
+- `HANDOFF.md` (written only when absent)
+- `OBJECTIVE.md` (written only when absent)
+- `REQUIREMENTS.md` (written only when absent)
+- `code-map.config.json`
+- `docs/code-map.md`
+- `docs/sessions/README.md` (written only when absent)
+- `pyproject.toml`
+- `scripts/code_map.py`
+- `scripts/readme_check.py`
+- `tests/conftest.py`
+- `tests/test_code_map.py`
+- `tests/test_readme_check.py`
+- `tests/test_requirements_trace.py`
+
+No README/src/tests starters are emitted.
 First two steps:
-1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
 2. Trust the folder: `nana-setup trust <dir>`.
 
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure,
@@ -91,10 +112,12 @@ First two steps:
      REPLACED, not merged. The `git diff` this step already reads is the
      recovery: fold their conftest content (fixtures, plugins, path setup) back
      in alongside the template's plugin, keeping both. A project whose tests do
-     not live in `tests/` moves the three rail files into the real test
-     directory and updates the citations that name them.
+     not live in `tests/` moves the four rail test files into the real test
+     directory and updates citations.
 5. **Stage the strictness** — legacy code won't be green day one; pins stay,
    escapes are recorded:
+   - Before validation, reconcile the README so the rendered readme check passes: include install/run/test headings and document the code-map and readme-check scripts, or declare a script in `readme-check.config.json` with a reason. Fix the README, never the check.
+   - On an adopted project, run `copier update --conflict inline`, never `--conflict rej`; convert decorator markers first.
    - `uv run ruff format .`, then `ruff check --fix`; fix the cheap remainder,
      per-file-ignores with a `# ratchet:` comment for the rest.
    - mypy: keep `strict = true`; add `[[tool.mypy.overrides]]` with relaxed

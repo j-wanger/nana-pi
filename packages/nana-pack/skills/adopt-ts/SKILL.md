@@ -32,7 +32,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    whether the project is ESM or CJS and whether `strict` is already on.
 2. **Present the plan and get an OK** — what lands (tsconfig pins, biome.json,
    `.pi` post-edit preset, CI, root AGENTS.md, answers file, and the
-   requirements rail: `REQUIREMENTS.md`, the map generator and three files under
+   requirements rail: `REQUIREMENTS.md`, the map and readme-check generators and four tests under
    `tests/` — see step 3), what gets merged
    (their package.json fields/deps with the pinned scripts + devDeps), what is
    never touched (source tree and tests). If they run ESLint/Prettier, the
@@ -73,21 +73,44 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    - a PLACEHOLDER `docs/code-map.md`. The first `--check` reports it stale and
      names the one command that regenerates it (`node scripts/code-map.mjs` —
      it needs no dependencies);
-   - three rail files under `tests/`: the trace lib `tests/requirements-trace.ts`
-     and its self-tests `tests/requirements-trace.test.ts` and
-     `tests/code-map.test.ts`. Their markers render as `req-candidate:`, not
-     `req:`, so the rail stays green until a row is promoted — promote one by
-     renaming its marker to `req:` and citing the test in the row.
+   - four rail tests under `tests/`: `tests/requirements-trace.ts`,
+     `tests/requirements-trace.test.ts`, `tests/code-map.test.ts`, and
+     `tests/readme-check.test.ts`, plus `scripts/readme-check.mjs`. Their markers
+     render as `req-candidate:`, not `req:`, so the rail stays green until a row
+     is promoted — rename its marker and cite the test in the row.
 
-   No README/src/tests starters beyond those three, and no pnpm-workspace.
+Files written by an adopt render into an empty folder:
+- `.copier-answers.yml`
+- `.github/workflows/ci.yml`
+- `.gitignore`
+- `.pi/nana-pack.json`
+- `AGENTS.md`
+- `HANDOFF.md` (written only when absent)
+- `OBJECTIVE.md` (written only when absent)
+- `REQUIREMENTS.md` (written only when absent)
+- `biome.json`
+- `code-map.config.json`
+- `docs/code-map.md`
+- `docs/sessions/README.md` (written only when absent)
+- `package.json`
+- `scripts/code-map.mjs`
+- `scripts/readme-check.mjs`
+- `tests/code-map.test.ts`
+- `tests/readme-check.test.ts`
+- `tests/requirements-trace.test.ts`
+- `tests/requirements-trace.ts`
+- `tsconfig.build.json`
+- `tsconfig.json`
+
 First two steps:
-1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
 2. Trust the folder: `nana-setup trust <dir>`.
 
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure:
    - `package.json`: restore their fields (name, version, deps, engines, bin,
-     exports…); merge scripts — keep theirs where names collide, add the
-     pinned `typecheck`/`lint`/`format`/`test`/`check` set, and rewrite
+     exports…); merge scripts — keep theirs where names collide, and preserve
+     every pinned `build`, `typecheck`, `lint`, `format`, `test`, `map`,
+     `map:check`, `map:impact`, `readme:check`, and `check` script; rewrite
      `check` to their package manager. Add the missing devDeps
      (typescript/biome/vitest/@types/node) via THEIR package manager so the
      right lockfile updates — minus biome on the keep-your-linter path.
@@ -102,6 +125,9 @@ First two steps:
      every edit fires failing post-edit commands. Merge any pre-existing
      postEdit list. On the keep-your-linter path, swap the
      `biome check --write` entry for their own format/lint command.
+   - `pnpm-workspace.yaml`: ensure it carries `allowBuilds: esbuild: true`; create the file with only that setting if absent.
+   - Before validation, reconcile the README so the rendered readme check passes: include install/run/test headings and document the code-map and readme-check scripts, or declare a script in `readme-check.config.json` with a reason. Fix the README, never the check.
+   - On an adopted project, run `copier update --conflict inline`, never `--conflict rej`; convert decorator markers first.
    - CI: adapt the workflow to their package manager; if they already have CI,
      merge the `check` step AND the template-drift job into it instead of
      adding a duplicate workflow.
@@ -113,7 +139,7 @@ First two steps:
      a same-named rail file (a `tests/code-map.test.ts` of their own, say) was
      REPLACED, not merged. The `git diff` this step already reads is the
      recovery: restore their content next to the template's, keeping both. A
-     project whose tests do not live in `tests/` moves the three rail files into
+     project whose tests do not live in `tests/` moves the four rail test files into
      the real test directory and updates the citations that name them.
 5. **Stage the strictness** — pins stay, escapes are recorded:
    - Run format + lint across the repo; fix the cheap remainder, targeted

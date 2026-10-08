@@ -13,11 +13,10 @@ AGENTS.md files, and a `.pi/nana-pack.json` post-edit preset (biome fix on every
 edit, 300-line file cap, `tsc --noEmit`).
 
 It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
-standard general-engineering block (`Part G`, G-001 to G-012 — sealed tunables
+standard general-engineering block (`Part G` — sealed tunables
 with provenance, the six-tag module header, named exports, injected resources,
 layer direction, the code map, the README contract), the `// req: R-nnn` trace
-check in the suite, and `scripts/code-map.mjs` with `--check` and `--impact`
-wired into the post-edit checks (`pnpm map:check` / `pnpm map:impact`).
+check in the suite, and `scripts/code-map.mjs` with `--check` wired into post-edit checks on code edits (`pnpm map:check`) plus the README check on README edits. Run `--impact` yourself before touching a mapped module.
 
 ## Steps
 
@@ -38,10 +37,10 @@ wired into the post-edit checks (`pnpm map:check` / `pnpm map:impact`).
    continuation breaks.)
 
 4. **The first two project steps**:
-   1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
    2. Trust the folder: `nana-setup trust <dir>`.
 5. Then complete the other printed next steps: `git init` + first commit,
-   `pnpm install`, `pnpm check` (typecheck + lint + test), commit the lockfile —
+   `pnpm install`, `pnpm check` (typecheck + lint + test + readme:check), commit the lockfile —
    and confirm `pnpm check` is green before handing over.
 6. **The first real step after scaffolding is writing the project's first
    requirement rows** — `Part G` arrives filled in, the product rows are empty.

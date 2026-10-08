@@ -4,8 +4,8 @@ One command that installs nana setup surfaces outside pi.
 
 `pi install` brings the pi extensions, skills and templates. Everything else used to be
 hand-maintained dotfiles on one Mac: the Claude Code hooks and rules, the settings wiring, the
-two-tier auto-memory, the user-scope pi config, the `pi-review` entry on PATH, and the desk
-service. `nana-setup` installs the supported surfaces from the repo, and `nana-setup doctor` reports their state.
+two-tier auto-memory, the user-scope pi config, and the PATH entries for `pi-review`, `pi-worker`, `nana-land` and `nana-setup`, and the desk
+service. `nana-setup` installs the supported surfaces from the repo, and `nana-setup doctor` reports their state. A bare `uvx copier copy` route keeps its seeded DRAFT objective lines; only the skills ask the owner to ratify both lines.
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs install      # install / repair everything
@@ -44,7 +44,10 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 | `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces an ORDINARY, model-driven top-level `subagent` tool launch into the background (the gated runner process) regardless of what the model asks for (see `packages/nana-pack/README.md` Behavior notes for the exceptions it does not reach); `maxSubagentDepth` caps nested fan-out at one level. `doctor` reads ✗ naming the key and its required value when either is wrong, or when the file is missing or invalid — and never rewrites a file you already have |
 | `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply. `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
 | knowledge index | `~/.pi/agent/nana-knowledge/index.db` (under `--pi-home` / `--home` when given) — **not** under an ambient `PI_CODING_AGENT_DIR` | built when absent (`nana-knowledge build` refreshes it); doctor opens read-only and counts rows from the expected `docs` table, so a corrupt or wrong-schema database reads ✗. The knowledge runtime reads `NANA_KNOWLEDGE_HOME` or `~/.pi/agent/nana-knowledge` and never `PI_CODING_AGENT_DIR`, so following that variable here built an index nothing read; moving knowledge storage needs a deliberate cross-runtime contract, which this installer does not make on its own |
-| `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs` (`pi install` does no bin linking) |
+| `pi-review` | `~/.local/bin/pi-review` | symlink to `packages/nana-pack/bin/pi-review.mjs`; doctor checks `PATH pi-review` (`pi install` does no bin linking) |
+| `pi-worker` | `~/.local/bin/pi-worker` | symlink to `packages/nana-pack/bin/pi-worker.mjs`; doctor checks `PATH pi-worker` |
+| `nana-land` | `~/.local/bin/nana-land` | symlink to `packages/nana-pack/bin/nana-land.mjs`; doctor checks `PATH nana-land` |
+| `nana-setup` | `~/.local/bin/nana-setup` | symlink to `packages/nana-setup/bin/nana-setup.mjs`; doctor checks `PATH nana-setup` |
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. After bootout it waits for launchd to report the job absent before bootstrap; an error-5 bootstrap gets one retry after the same wait. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | Registration is complete only when every extension directory in the root `package.json` manifest is loaded. A root entry covers both manifests; per-package entries cover their own manifest. Install adds only missing per-package entries, never a root entry atop existing package entries. Paths use pi's matching rules (`~`, settings-relative paths, real paths and linked-worktree identity); exact remote entries are also recognized. |
 
@@ -175,7 +178,7 @@ whole command.
 inside an existing repo reads ✓ `inside <root> — no nested repo, by design`, and a deliberately
 omitted `.pi/nana-pack.json` reads ✓ with its reason. Separate `!` rows flag an empty or starter
 checker set and missing affirmative trust when project configuration exists; these rows make
-`--check` exit nonzero without replacing the file-presence row.
+`--check` exit nonzero without replacing the file-presence row. A copier-born project reads ✗ for the month log until `nana-setup project` runs; that setup route and copier/scaffold/adopt routes remain distinct.
 
 **…but a seed must be a REGULAR file to read ✓.** A symlink or a directory sitting at
 `OBJECTIVE.md` is exactly what setup refused to write through, and the objective still cannot
@@ -191,6 +194,11 @@ instructions from the ones pi reads.
 Doctor reads the shared auto-memory tier (`~/.claude/nana-memory/shared`) and the current project's tier (`~/.claude/projects/<key>/memory`). It resolves `[[name]]` by each target's frontmatter `name:` rather than filename. Shared memories may link only to shared names; project memories may link to shared or same-project names. Dangling links are informational and add only a count; they do not fail doctor. Cross-tier and ambiguous links read `!`; doctor never edits memory. The row prints at most 30 named issues, followed by a count when more remain.
 
 Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
+
+## Known limits
+
+- A bare `uvx copier copy` project keeps the seeded objective's DRAFT lines until an owner ratifies them through the relevant scaffold or adopt skill; copier alone does not ask for either line.
+- A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
 
 ## What it never does
 

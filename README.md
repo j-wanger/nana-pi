@@ -123,8 +123,9 @@ command, from any shell, for any language — pi or Claude Code:
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # creates the folder if needed; seeds; idempotent
 ```
 
-Then: open a session in that folder, and ratify the two DRAFT lines in its `OBJECTIVE.md` —
-the objective and the current priority are yours, and nothing guesses them for you.
+Before the first session:
+1. Ratify the two DRAFT lines in `OBJECTIVE.md`: give one objective line and one current-priority line; your words are written, never invented.
+2. Run `nana-setup trust <dir>`.
 
 It seeds `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/` (README + this month's file),
 `AGENTS.md` + a `CLAUDE.md` symlink and a `.pi/nana-pack.json` on-ramp, `git init`s when
@@ -207,7 +208,7 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 - **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
   switches user/project scope) to switch individual extensions and skills on or
   off. There is no per-skill install; enable/disable is the partial surface.
-- **Generated project** — `uvx copier update` inside the project (reads
+- **Generated project** — on an adopted project, convert decorator markers first, then run `uvx copier update --conflict inline` (never `--conflict rej`) inside the project (reads
   `.copier-answers.yml`): a three-way merge that replays your local edits onto
   the newest template tag. Partial-merge controls: `--conflict inline` (default,
   git-style markers in-file) or `--conflict rej` (clean files + `.rej` patches),

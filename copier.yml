@@ -56,7 +56,7 @@ _message_after_copy: |
   {{ project_name }}: nana stack overlaid (adopt mode — configs only, source tree untouched).
 
   First two steps:
-    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
     2. Trust this folder: `nana-setup trust <dir>`.
 
   Now reconcile from `git diff` per the adopt-{{ 'py' if language == 'python' else 'ts' }} skill:
@@ -66,7 +66,7 @@ _message_after_copy: |
   {{ project_name }} scaffolded.
 
   First two steps:
-    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
     2. Trust this folder: `nana-setup trust <dir>`.
 
   Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
@@ -81,7 +81,7 @@ _message_after_copy: |
   {{ project_name }} scaffolded.
 
   First two steps:
-    1. Ratify the seeded `OBJECTIVE.md`: fill the date; the DRAFT lines are the owner's to ratify.
+    1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line.
     2. Trust this folder: `nana-setup trust <dir>`.
 
   Next steps (one command per line — `&&` breaks in Windows PowerShell 5.1):
@@ -91,7 +91,6 @@ _message_after_copy: |
       git commit -m "scaffold"
       pnpm install
       pnpm check
-    (pnpm check = typecheck + lint + test)
       git add pnpm-lock.yaml
       git commit -m "lockfile"
   {%- endif %}

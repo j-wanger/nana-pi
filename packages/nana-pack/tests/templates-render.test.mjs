@@ -58,6 +58,23 @@ function render(language, answers) {
 }
 
 /** Strip the module's leading contract header: a JSDoc block, or a Python docstring. */
+function listedAdoptFiles(skill) {
+	const section = skill.match(/Files written by an adopt render into an empty folder:\n([\s\S]*?)(?:\n\n|$)/)?.[1] ?? "";
+	return [...section.matchAll(/^\s*- `([^`]+)`/gm)].map((m) => m[1]);
+}
+function emittedFiles(root) {
+	const files = [];
+	const visit = (dir) => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) visit(full);
+			else if (entry.isFile()) files.push(path.relative(root, full).split(path.sep).join("/"));
+		}
+	};
+	visit(root);
+	return files.sort();
+}
+
 function dropHeader(file) {
 	const src = fs.readFileSync(file, "utf-8");
 	const stripped = file.endsWith(".py")
@@ -447,6 +464,18 @@ if (!version) {
 			check(`${language} adopt: copier renders the template`, adopt.ok, adopt.out.slice(-800));
 			if (!adopt.ok) continue;
 			const dir = adopt.dest;
+
+			const skillName = language === "python" ? "adopt-py" : "adopt-ts";
+			const skill = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", skillName, "SKILL.md"), "utf8");
+			const skillFiles = listedAdoptFiles(skill).sort();
+			const renderedFiles = emittedFiles(dir);
+			// req: R-590
+			check(`${language} adopt: skill file list exactly matches emitted files`, skillFiles.length > 0 && JSON.stringify(skillFiles) === JSON.stringify(renderedFiles), `listed-only: ${skillFiles.filter((f) => !renderedFiles.includes(f))}; render-only: ${renderedFiles.filter((f) => !skillFiles.includes(f))}`);
+			if (language === "typescript") {
+				const scripts = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).scripts);
+				// req: R-590
+				check("typescript adopt: every rendered package script is named in adopt-ts", scripts.length > 0 && scripts.every((script) => skill.includes(`\`${script}\``)), `unnamed: ${scripts.filter((script) => !skill.includes(`\`${script}\``))}`);
+			}
 
 			const missing = [...spec.files, ...RAIL[language]].filter((f) => !fs.existsSync(path.join(dir, f)));
 			check(`${language} adopt: the rail and the generator land too`, missing.length === 0, `missing: ${missing}`);

@@ -50,11 +50,13 @@ const line = (label) => lines.find((l) => l.includes(label)) ?? "";
 for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh", "PATH pi-review"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
+// req: R-589
+check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
 for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory"]) {
 	check(`win32: ${label} reports skipped (win32: bash hook)`, line(label).includes("skipped (win32: bash hook)"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
-check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin", "pi-review")));
+check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin", "pi-review")) && !fs.existsSync(path.join(home, ".local", "bin", "nana-setup")));
 check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
 /* the pieces that DO work on Windows still run */

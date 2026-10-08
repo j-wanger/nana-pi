@@ -233,7 +233,7 @@ async function runProject(opts) {
 				: `\n  ${changed} ${opts.dryRun ? "would change" : "changed"}.`,
 	);
 	if (!opts.dryRun) {
-		console.log(`  next: 1. ratify the seeded OBJECTIVE.md: fill the date; the DRAFT lines are yours to ratify.\n        2. trust this folder: nana-setup trust <dir>`);
+		console.log(`  next: 1. ratify the two DRAFT lines in OBJECTIVE.md; they are yours to decide.\n        2. trust this folder: nana-setup trust <dir>`);
 	}
 	// Same rule as `install`: a ✗ row means this is not a set-up project (sol r3).
 	return problems ? 1 : 0;

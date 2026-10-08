@@ -168,6 +168,26 @@ const landDoctorEvidence = (() => {
 check("land bin is linked, executable, and doctor reports accurate state", landDoctorEvidence.ok, landDoctorEvidence.detail);
 // req: R-964
 check("pi-worker installed as PATH symlink", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+const setupLink = path.join(home, ".local", "bin", "nana-setup");
+// req: R-589
+check("nana-setup installed as PATH symlink", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
+// req: R-589
+check("nana-setup symlink dispatches usage", spawnSync(setupLink, ["--help"], { encoding: "utf8" }).stdout.includes("nana-setup install [options]"));
+const setupDoctor = run(["doctor", "--home", home]);
+// req: R-589
+check("doctor reports healthy nana-setup link", setupDoctor.status === 0 && /✓ PATH nana-setup/.test(setupDoctor.stdout));
+const setupBrokenHome = freshHome();
+run(["install", "--home", setupBrokenHome]);
+fs.unlinkSync(path.join(setupBrokenHome, ".local", "bin", "nana-setup"));
+const setupMissingDoctor = run(["doctor", "--home", setupBrokenHome]);
+// req: R-589
+check("doctor rejects missing nana-setup link", setupMissingDoctor.status !== 0 && /✗ PATH nana-setup/.test(setupMissingDoctor.stdout));
+fs.unlinkSync(setupLink);
+fs.symlinkSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), setupLink);
+const setupWrongDoctor = run(["doctor", "--home", home]);
+// req: R-589
+check("doctor rejects wrong nana-setup target", setupWrongDoctor.status === 1 && /✗\s+PATH nana-setup/.test(setupWrongDoctor.stdout));
+run(["install", "--home", home]);
 const workerDoctor = run(["doctor", "--home", home]);
 // req: R-964
 check("doctor reports the installed pi-worker link", workerDoctor.status === 0 && /PATH pi-worker/.test(workerDoctor.stdout));
@@ -197,6 +217,8 @@ check("second install reports no created/updated line", !/^\s+\+ /m.test(second.
 check("second install left the tree byte-identical", JSON.stringify(walk(home)) === before);
 // req: R-964
 check("second install keeps the identical pi-worker link", link(path.join(home, ".local", "bin", "pi-worker")) === path.join(repo, "packages", "nana-pack", "bin", "pi-worker.mjs"));
+// req: R-589
+check("second install keeps the identical nana-setup link", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
 const collide = freshHome();

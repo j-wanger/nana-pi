@@ -35,6 +35,19 @@ check("scaffold-ts completion list entries 1 and 2 are ratification and trust", 
 check("adopt-py completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-py"), "First two steps:")));
 // req: R-676
 check("adopt-ts completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-ts"), "First two steps:")));
+for (const skill of ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"]) {
+ const text = skillText(skill);
+ const entries = skill === "scaffold-py" || skill === "scaffold-ts"
+  ? listEntries(text, "**The first two project steps**:")
+  : listEntries(text, "First two steps:");
+ // req: R-676
+ check(`${skill} ratification asks owner for both lines and forbids inventing`,
+  Boolean(entries?.[0] && /ask the owner/i.test(entries[0]) && /objective/i.test(entries[0]) && /current[- ]priority/i.test(entries[0]) && /write their words/i.test(entries[0]) && /never invent/i.test(entries[0])));
+}
+const structure = skillText("adopt-structure");
+const structureEntries = listEntries(structure, "First two steps:");
+// req: R-676
+check("adopt-structure has the ratification and trust list", firstTwoSteps(structureEntries) && /ask the owner/i.test(structureEntries[0] ?? ""));
 const root = tmpDir(path.join(os.tmpdir(), "nana-guidance-"));
 const dir = path.join(root, "project");
 fs.mkdirSync(dir);
