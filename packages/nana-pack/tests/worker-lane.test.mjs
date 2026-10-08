@@ -55,7 +55,12 @@ check("affirmative trust record suppresses notice", trusted.status === 0 && !tru
 const config = await import("../bin/worker-config.mjs");
 // req: R-963
 check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);
-fs.writeFileSync(pi, "#!/bin/sh\nsleep 10\necho late\n"); fs.chmodSync(pi, 0o755);
+const descendantPid = path.join(temp, "descendant.pid");
+fs.writeFileSync(pi, `#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`); fs.chmodSync(pi, 0o755);
 const capped = run(lane, ["--lane", "alpha", "--brief", brief, "--max-secs", "1", "--stall-secs", "10"]);
 // req: R-963
 check("max-secs override kills and names the lane wall-clock ceiling", capped.status === 1 && /wall-clock ceiling 1s reached/.test(capped.stderr));
+let descendantAlive = false;
+try { process.kill(Number(fs.readFileSync(descendantPid, "utf8").trim()), 0); descendantAlive = true; } catch { /* process group was reaped */ }
+// req: R-963
+check("wall-clock ceiling kills the worker process group", capped.status === 1 && !descendantAlive);
