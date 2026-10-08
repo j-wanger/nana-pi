@@ -104,11 +104,10 @@ function commandSpec() {
     }
     return { command: TEST_COMMAND[0], args: [...TEST_COMMAND.slice(1), ...FILTERS], options: {} };
   }
-  const command = process.platform === "win32" ? "npm.cmd" : "npm";
   return {
-    command,
-    args: FILTERS.length ? ["test", "--", ...FILTERS] : ["test"],
-    options: process.platform === "win32" ? { shell: true } : {},
+    command: process.execPath,
+    args: [process.env.npm_execpath, "test", ...(FILTERS.length ? ["--", ...FILTERS] : [])],
+    options: {},
   };
 }
 
