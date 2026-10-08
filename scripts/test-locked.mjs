@@ -13,6 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 
+// chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
 const LOCK_DIR = process.env.NANA_SUITE_LOCK_DIR || path.join(os.homedir(), ".nana", "suite.lock");
 const STALE_PIDLESS_MS = 60_000; // contract (design R-626): reclaim a pid-less lock only after 60 seconds
 const RETRY_MS = 100; // chosen: short polling interval keeps contention responsive without busy-waiting
@@ -24,6 +25,8 @@ const TEST_COMMAND = process.env.NANA_SUITE_TEST_COMMAND
 let child = null;
 let ownsLock = false;
 let stopping = false;
+let signalExitCode = null;
+let termination = null;
 
 function releaseLock() {
   if (!ownsLock) return;
@@ -60,11 +63,9 @@ function holderIsDead() {
 async function acquireLock() {
   fs.mkdirSync(path.dirname(LOCK_DIR), { recursive: true });
   for (;;) {
+    if (stopping) throw new Error("suite run interrupted before lock acquisition");
     try {
       fs.mkdirSync(LOCK_DIR);
-      fs.writeFileSync(path.join(LOCK_DIR, "pid"), `${process.pid}\n`, { flag: "wx" });
-      ownsLock = true;
-      return;
     } catch (error) {
       if (error?.code !== "EEXIST") throw error;
       if (holderIsDead()) {
@@ -78,6 +79,20 @@ async function acquireLock() {
         continue;
       }
       await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+      continue;
+    }
+
+    const token = fs.statSync(LOCK_DIR);
+    try {
+      fs.writeFileSync(path.join(LOCK_DIR, "pid"), `${process.pid}\n`, { flag: "wx" });
+      ownsLock = true;
+      return;
+    } catch (error) {
+      try {
+        const current = fs.statSync(LOCK_DIR);
+        if (current.dev === token.dev && current.ino === token.ino) fs.rmSync(LOCK_DIR, { recursive: true, force: true });
+      } catch {}
+      throw error;
     }
   }
 }
@@ -100,7 +115,7 @@ function commandSpec() {
 function runCommand() {
   const spec = commandSpec();
   return new Promise((resolve, reject) => {
-    child = spawn(spec.command, spec.args, { cwd: process.cwd(), stdio: "inherit", ...spec.options });
+    child = spawn(spec.command, spec.args, { cwd: process.cwd(), stdio: "inherit", detached: process.platform !== "win32", ...spec.options });
     child.once("error", reject);
     child.once("exit", (code, signal) => {
       child = null;
@@ -109,13 +124,40 @@ function runCommand() {
   });
 }
 
+function signalChild(signal, target = child) {
+  if (!target) return;
+  try {
+    if (process.platform !== "win32") process.kill(-target.pid, signal);
+    else target.kill(signal);
+  } catch (error) {
+    if (error?.code !== "ESRCH") throw error;
+  }
+}
+
+function terminateChild(signal) {
+  if (!child) return Promise.resolve();
+  const active = child;
+  return new Promise((resolve) => {
+    let childExited = false;
+    let escalationFinished = false;
+    const finish = () => { if (childExited && escalationFinished) resolve(); };
+    active.once("exit", () => { childExited = true; finish(); });
+    signalChild(signal, active);
+    setTimeout(() => {
+      signalChild("SIGKILL", active);
+      escalationFinished = true;
+      finish();
+    }, 500);
+  });
+}
+
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   process.on(signal, () => {
     if (stopping) return;
     stopping = true;
-    if (child) child.kill(signal);
-    releaseLock();
-    process.exit(signal === "SIGINT" ? 130 : signal === "SIGTERM" ? 143 : 129);
+    signalExitCode = signal === "SIGINT" ? 130 : signal === "SIGTERM" ? 143 : 129;
+    termination = terminateChild(signal);
+    void termination.then(() => releaseLock());
   });
 }
 process.on("exit", releaseLock);
@@ -127,5 +169,7 @@ try {
   console.error(`[test-locked] ${error.message}`);
   process.exitCode = 1;
 } finally {
+  if (termination) await termination;
   releaseLock();
+  if (signalExitCode !== null) process.exitCode = signalExitCode;
 }

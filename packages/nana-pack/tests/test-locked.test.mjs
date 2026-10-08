@@ -18,11 +18,13 @@ const SCRIPT = path.join(REPO, "scripts", "test-locked.mjs");
 const ROOT = tmpDir(path.join(os.tmpdir(), "locked-suite-"));
 const LOCK = path.join(ROOT, "machine-lock");
 const FIXTURE = path.join(ROOT, "fixture.mjs");
+const PID_FAILURE_PRELOAD = path.join(ROOT, "pid-failure.cjs");
+fs.writeFileSync(PID_FAILURE_PRELOAD, `const fs = require('node:fs');\nconst path = require('node:path');\nconst write = fs.writeFileSync;\nfs.writeFileSync = function (file, ...args) { if (path.resolve(String(file)) === path.join(process.env.NANA_SUITE_LOCK_DIR, 'pid')) { const error = new Error('injected pid initialization failure'); error.code = 'EACCES'; throw error; } return write.call(this, file, ...args); };\n`);
 const events = path.join(ROOT, "events.log");
-fs.writeFileSync(FIXTURE, `import fs from 'node:fs';\nconst event = (s) => fs.appendFileSync(process.env.EVENTS, s + '\\n');\nevent('start');\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-start' : 'no-lock-start');\nawait new Promise(r => setTimeout(r, Number(process.env.DELAY || 250)));\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-end' : 'no-lock-end');\nevent('end');\nprocess.exitCode = Number(process.env.EXIT_CODE || 0);\n`);
+fs.writeFileSync(FIXTURE, `import fs from 'node:fs';\nconst event = (s) => fs.appendFileSync(process.env.EVENTS, s + '\\n');\nevent('start');\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-start' : 'no-lock-start');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-start' : 'no-default-lock-start');\nif (process.env.IGNORE_TERM === '1') process.on('SIGTERM', () => event('term-ignored'));\nawait new Promise(r => setTimeout(r, Number(process.env.DELAY || 250)));\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-end' : 'no-lock-end');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-end' : 'no-default-lock-end');\nevent('end');\nprocess.exitCode = Number(process.env.EXIT_CODE || 0);\n`);
 
 let failures = 0;
-const check = (name, ok) => { console.log(ok ? "PASS" : "FAIL", name); if (!ok) failures++; };
+const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, !ok ? detail : ""); if (!ok) failures++; };
 const env = (extra = {}) => ({
   ...process.env,
   NANA_SUITE_LOCK_DIR: LOCK,
@@ -101,6 +103,22 @@ const readEvents = () => fs.existsSync(events) ? fs.readFileSync(events, "utf8")
   check("a pid-less lock older than one minute is reclaimed", reclaimedPidless.status === 0 && !exists());
 }
 
+{
+  fs.rmSync(LOCK, { recursive: true, force: true });
+  const failedInitialization = run([], { NODE_OPTIONS: `--require=${PID_FAILURE_PRELOAD}` });
+  // req: R-626
+  check("pid initialization failure removes only the newly created lock", failedInitialization.status === 1 && !exists());
+}
+
+{
+  const home = path.join(ROOT, "default-home");
+  fs.rmSync(home, { recursive: true, force: true });
+  fs.rmSync(events, { force: true });
+  const result = run([], { HOME: home, USERPROFILE: home, NANA_SUITE_LOCK_DIR: undefined, DELAY: "0" });
+  // req: R-626
+  check("the default lock lives under the temporary home", result.status === 0 && readEvents().includes("default-lock-start") && readEvents().includes("default-lock-end") && !fs.existsSync(path.join(home, ".nana", "suite.lock")));
+}
+
 if (process.platform !== "win32") {
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     fs.rmSync(LOCK, { recursive: true, force: true });
@@ -120,8 +138,27 @@ if (process.platform !== "win32") {
       check("SIGHUP releases the full-run lock", !exists());
     }
   }
+}
+
+if (process.platform !== "win32") {
+  fs.rmSync(LOCK, { recursive: true, force: true });
+  fs.rmSync(events, { force: true });
+  const first = launch([], { IGNORE_TERM: "1", DELAY: "5000" });
+  const firstDone = finished(first);
+  await wait(150);
+  first.kill("SIGTERM");
+  await wait(250);
+  const second = launch([], { DELAY: "0" });
+  const secondDone = finished(second);
+  await wait(100);
+  const blocked = exists() && readEvents().filter((event) => event === "start").length === 1;
+  const firstResult = await firstDone;
+  const secondResult = await secondDone;
+  const log = readEvents();
+  // req: R-626
+  check("handled signals wait for suite termination before releasing the lock", blocked && firstResult.code === 143 && secondResult.code === 0 && log.filter((event) => event === "start").length === 2 && log.indexOf("term-ignored") >= 0 && log.lastIndexOf("start") > log.indexOf("term-ignored"), JSON.stringify({ blocked, firstResult, secondResult, log }));
 } else {
-  console.log("SKIP signal lock cleanup on native Windows");
+  console.log("SKIP signal process-group wait on native Windows");
 }
 
 if (failures) process.exitCode = 1;

@@ -78,7 +78,7 @@ const result = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 const promptPaths = result.split("\n").reduce((all, arg, i, args) => arg === "--append-system-prompt" ? [...all, args[i + 1]] : all, []);
 // req: R-961
 check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === fs.realpathSync(brief) && fs.readFileSync(path.join(temp, "prompt-1"), "utf8").includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === "lane brief content", `${good.stderr}${result} paths=${promptPaths.join(",")}`);
-// req: R-961
+// req: R-628
 check("lane preamble keeps package managers out of the worktree", fs.readFileSync(path.join(temp, "prompt-1"), "utf8").includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root; render a template project into a temp directory and use that project's toolchain there."));
 const defaultPairs = [["--provider", "openai-codex"], ["--model", "gpt-6-luna"], ["--thinking", "high"], ["-t", "read,grep,find,bash,edit,write"]];
 const receivedArgs = result.split("\n");
