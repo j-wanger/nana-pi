@@ -162,6 +162,10 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 `review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
 (exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
 
+`review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded round:
+item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
+launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
+
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
@@ -184,11 +188,19 @@ pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider 
 ### Trust model
 
 **This is a self-governance device against the fix-review treadmill, not a security control.**
+Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and
+hand-run reviews are supplemental and earn no round; do not describe them as formal counted reviews.
+Each review runs from a detached checkout under the OS temporary directory; ignored files such as
+`node_modules` are not copied, so a reviewer that needs them must install dependencies or review read-only.
+The checkout path is available as `NANA_REVIEW_ROOT`; initialized submodules are refused before admission,
+and stale checkouts from dead reviews are reclaimed at startup.
+Any number of reviews, by any roles, on one revision is one round. A land ruling on the revision the
+last round reviewed consumes nothing; a land review of a new revision is a round like any other.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
 write it can exhaust an item (three fabricated round lines) or extend one (delete lines); anyone
-can also run `pi -p` or `pi-worker` by hand and never touch it. What the ledger buys is that every
-round earned, every completed verdict and every override is **recorded** — a bypass has to be an
-explicit act, never an accident of a file name or a launcher. Not every admission is: an ordinary
+can also run a launcher by hand and never touch it. `NANA_ROLE=reviewer` is a context-isolation
+convenience, not a security boundary: a worker or user can spoof or clear it. What the ledger buys
+is that every counted round, completed verdict and override is recorded — a bypass must be explicit. Not every admission is: an ordinary
 (non-override) admission whose review fails leaves **no durable record** once its reservation is
 returned. **Budget is not enforced here:** these wrappers do not read, pass or enforce
 `--max-budget-usd` (or any spend limit); budget control is external — the caller's own flags and

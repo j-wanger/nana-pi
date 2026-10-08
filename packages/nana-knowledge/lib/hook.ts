@@ -136,6 +136,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	const budget = opts.budgetMs ?? BUDGET_MS;
 	const over = () => Date.now() - t0 > budget;
 	const none = (reason: string): HookResult => ({ output: null, reason, hits: [] });
+	if (process.env.NANA_ROLE === "reviewer") return none("reviewer-role");
 
 	let input: any;
 	try { input = JSON.parse(raw); } catch { return none("bad-json"); }

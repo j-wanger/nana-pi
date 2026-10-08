@@ -89,6 +89,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	// req: R-854
 	check("pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs",
 		w.every((x) => x.status === 1 && /--worker was removed/.test(x.stderr) && !/attempt 1/.test(x.stderr)), w[0].stderr);
+	freshHome("wrapper-formal");
+	const wrapped = ledgerRun(["--item", "wrapped-formal"]);
+	// req: R-971
+	check("review-ledger run earns a counted round", wrapped.status === 0 && roundsOf("wrapped-formal").length === 1, wrapped.stderr);
+	freshHome("0");
 	const nr = piReview(["--item", "no-rev", "--out", out()], { cwd: plain });
 	// req: R-624
 	check("outside git without --tree → refused", nr.status === 1 && /run from the reviewed tree or pass --tree/.test(nr.stderr), nr.stderr);
@@ -122,12 +127,14 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const rs = names.map((nm, i) => { A.at(i); return piReview(["--item", "four", "--role", "sol", "--out", path.join(outs, nm)]); });
 	check("sol-final.md / r3b.md / anything.md on revisions 1-3 admitted", rs.slice(0, 3).every((r) => r.status === 0), rs.map((r) => r.stderr).join("\n"));
 	check("notes.md on a 4th revision refused", rs[3].status === 1 && /round 4, over the cap of 3/.test(rs[3].stderr), rs[3].stderr);
+	// req: R-971
 	check("tally holds exactly 3 rounds, audit exactly 3 verdicts", roundsOf("four").length === 3 && verdictsOf("four").length === 3);
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
 		rec.v === 1 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
 		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", JSON.stringify(rec));
 	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
+	// req: R-971
 	// req: R-729 R-841
 	check("switching launcher (review-ledger run) does not reset the count", viaLedger.status === 1 && /over the cap/.test(viaLedger.stderr), viaLedger.stderr);
 }
@@ -137,13 +144,21 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	freshHome("2");
 	A.at(0);
 	const ten = Array.from({ length: 10 }, (_, i) => ledgerRun(["--item", "rev", "--role", `role${i}`]).status);
+	// req: R-972
 	check("ten verdicts under ten roles on one revision all admitted", ten.every((s) => s === 0), JSON.stringify(ten));
+	// req: R-972
 	// req: R-729
 	check("…and they are ONE round (1 tally line, 10 audit verdicts)", roundsOf("rev").length === 1 && verdictsOf("rev").length === 10);
+	const tallyBeforeRead = fs.readFileSync(tallyFile, "utf8");
+	// req: R-969 R-992
+	check("completed round records verdict and readRounds filters without mutation", roundsOf("rev")[0]?.verdict === "LAND" &&
+		mod.readRounds(home, { item: "rev", repo: roundsOf("rev")[0]?.repo }).length === 1 && mod.readRounds(home, { item: "missing" }).length === 0 &&
+		fs.readFileSync(tallyFile, "utf8") === tallyBeforeRead, JSON.stringify({ row: roundsOf("rev")[0], read: mod.readRounds(home, { item: "rev" }) }));
 	A.at(1);
 	const two = [ledgerRun(["--item", "rev", "--role", "sol"]).status, ledgerRun(["--item", "rev", "--role", "sol"]).status];
 	check("two sol reviews of one revision (sol r1: consumed 2) = one round", JSON.stringify(two) === "[0,0]" && roundsOf("rev").length === 2);
-	check("third revision admitted", reviewAt("rev", 2).status === 0);
+	// req: R-972
+	check("new revision earns a round regardless of role", reviewAt("rev", 2, ["--role", "land-reviewer"]).status === 0 && roundsOf("rev").length === 3);
 	// req: R-840
 	check("fourth revision refused", reviewAt("rev", 3).status === 1);
 	check("re-reviewing an already-counted revision is admitted and earns nothing", reviewAt("rev", 1).status === 0 && roundsOf("rev").length === 3);
@@ -270,6 +285,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const ledgerAllowed = ledgerRun(["--item", "shape-ledger-allowed"], { cwd: A.d,
 		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(accepted)})`] });
 	ledgerAccepts &&= ledgerAllowed.status === 0;
+	const prefixed = ledgerRun(["--item", "shape-prefixed-verdict"], { cwd: A.d,
+		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify("- VERDICT: BLOCK")})`] });
+	// req: R-969
+	check("prefixed verdict accepted by shape predicate is extracted into the recorded round",
+		prefixed.status === 0 && roundsOf("shape-prefixed-verdict")[0]?.verdict === "BLOCK", JSON.stringify(roundsOf("shape-prefixed-verdict")));
 	// req: R-701
 	check("pi-review enforces the case-sensitive verdict line boundary", piRejects && piAccepts);
 	// req: R-701
@@ -814,6 +834,48 @@ if (process.platform !== "win32") {
 		sizes.every(([st, sz]) => st === 1 && sz <= mod.LEDGER_MAX_BYTES) && fs.existsSync(rotated) &&
 		jsonl(auditFile).filter((l) => l.kind === "override" && l.item === "aud").length === 3 && roundsOf("aud").length === 3, JSON.stringify(sizes));
 }
+
+// 23. round metadata and report are read-only; absent legacy fields render as dashes
+{
+	freshHome("23");
+	A.at(0);
+	const launch = ledgerRun(["--item", "report-item", "--role", "sol", "--over-cap", "not actually over cap"], {
+		cmd: [process.execPath, "-e", "console.log('VERDICT: LAND')", "--", "--provider", "anthropic", "--model", "claude-test-1"],
+	});
+	const current = roundsOf("report-item")[0];
+	const before = fs.readFileSync(tallyFile, "utf8");
+	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
+	const repoReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--repo", A.d, "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
+	const reportTally = fs.readFileSync(tallyFile, "utf8");
+	for (let i = 0; i < 3; i++) reviewAt("report-over-cap", i);
+	A.at(3);
+	const overCap = ledgerRun(["--item", "report-over-cap", "--over-cap", "approved exception"], { cwd: A.d });
+	const overCapRow = roundsOf("report-over-cap").at(-1);
+	const overCapReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-over-cap"], { cwd: A.d, env: env(), encoding: "utf8" });
+	// req: R-970
+	check("report records metadata, omits unused override reasons, and reports real over-cap reason read-only",
+		launch.status === 0 && current.provider === "anthropic" && current.model === "claude-test-1" &&
+		Date.parse(current.startedAt) <= Date.parse(current.endedAt) && Number.isFinite(current.durationMs) && current.attempts === 1 &&
+		current.role === "sol" && current.overCap === null &&
+		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| -\n$/.test(report.stdout) &&
+		report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && reportTally === before &&
+		overCap.status === 0 && overCapRow?.overCap === "approved exception" && /\| approved_exception\n$/.test(overCapReport.stdout),
+		JSON.stringify({ current, report: report.stdout, repoReport: repoReport.stdout, overCapRow, overCapReport: overCapReport.stdout }));
+	const legacy = { v: 1, kind: "round", repo: current.repo, item: "legacy-report", revision: A.shas[1], role: "reviewer" };
+	fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
+	const oldReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "legacy-report"], { cwd: A.d, env: env(), encoding: "utf8" });
+	// req: R-970
+	check("legacy rounds print - for every unavailable report field", oldReport.status === 0 &&
+		oldReport.stdout === `legacy-report | ${A.shas[1].slice(0, 12)} | reviewer | - | - | - | - | -\n`, oldReport.stdout);
+}
+
+const trustText = fs.readFileSync(path.join(bin, "..", "README.md"), "utf8").replace(/\s+/g, " ");
+// req: R-971
+// req: R-972
+check("Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting",
+	trustText.includes("Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and hand-run reviews are supplemental and earn no round") &&
+	trustText.includes("Any number of reviews, by any roles, on one revision is one round") &&
+	trustText.includes("A land ruling on the revision the last round reviewed consumes nothing; a land review of a new revision is a round like any other"));
 
 // 21. --retries contract notice (sol r3 LOW): printed only when the flag is explicit
 {
