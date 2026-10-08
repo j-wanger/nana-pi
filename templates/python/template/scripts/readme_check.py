@@ -33,7 +33,9 @@ CONFIG_PATH = "readme-check.config.json"
 MAP_CONFIG_PATH = "code-map.config.json"
 
 #: Fence info strings whose body is shell: a `json` or `python` block is not a command.
-SHELL_LANGS = frozenset({"", "bash", "sh", "shell", "zsh", "console", "shell-session", "text"})
+SHELL_LANGS = frozenset(
+    {"", "bash", "sh", "shell", "zsh", "console", "shell-session", "text"}
+)
 
 #: Extensions that make a bare token (no slash) a path claim.
 KNOWN_EXT = frozenset(
@@ -190,7 +192,13 @@ def _map_roots(root: Path) -> list[str]:
         return []
     out: list[str] = []
     for entry in entries:
-        path = entry if isinstance(entry, str) else entry.get("path") if isinstance(entry, dict) else None
+        path = (
+            entry
+            if isinstance(entry, str)
+            else entry.get("path")
+            if isinstance(entry, dict)
+            else None
+        )
         if isinstance(path, str) and path:
             out.append(path)
     return out
@@ -199,7 +207,9 @@ def _map_roots(root: Path) -> list[str]:
 def default_readmes(root: Path) -> tuple[str, ...]:
     """``README.md`` plus every ``<code-map root>/README.md`` that exists."""
     found = ["README.md"]
-    found += sorted(f"{r}/README.md" for r in _map_roots(root) if (root / r / "README.md").is_file())
+    found += sorted(
+        f"{r}/README.md" for r in _map_roots(root) if (root / r / "README.md").is_file()
+    )
     return tuple(dict.fromkeys(found))
 
 
@@ -212,15 +222,26 @@ def parse_config(text: str, root: Path, where: str = CONFIG_PATH) -> Config:
     if not isinstance(raw, dict):
         raise ConfigError(f"{where}: the top level must be an object")
     readmes = raw.get("readmes", None)
-    if readmes is not None and (not isinstance(readmes, list) or not all(isinstance(r, str) and r for r in readmes)):
+    if readmes is not None and (
+        not isinstance(readmes, list)
+        or not all(isinstance(r, str) and r for r in readmes)
+    ):
         raise ConfigError(f"{where}: 'readmes' must be an array of paths")
     undocumented: dict[str, str] = {}
     entries = raw.get("undocumented", [])
     if not isinstance(entries, list):
-        raise ConfigError(f"{where}: 'undocumented' must be an array of objects with a 'name' and a 'reason'")
+        raise ConfigError(
+            f"{where}: 'undocumented' must be an array of objects with a 'name' and a 'reason'"
+        )
     for i, entry in enumerate(entries):
-        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str) or not entry["name"]:
-            raise ConfigError(f"{where}: undocumented[{i}] must be an object with a non-empty 'name'")
+        if (
+            not isinstance(entry, dict)
+            or not isinstance(entry.get("name"), str)
+            or not entry["name"]
+        ):
+            raise ConfigError(
+                f"{where}: undocumented[{i}] must be an object with a non-empty 'name'"
+            )
         reason = entry.get("reason")
         undocumented[entry["name"]] = reason.strip() if isinstance(reason, str) else ""
     return Config(
@@ -349,7 +370,11 @@ def flag_claims(text: str) -> list[Claim]:
 
 def headings(text: str) -> list[str]:
     """Every heading's text, lowercased."""
-    return [m.group(1).lower() for m in (HEADING_RE.match(line) for line in text.split("\n")) if m]
+    return [
+        m.group(1).lower()
+        for m in (HEADING_RE.match(line) for line in text.split("\n"))
+        if m
+    ]
 
 
 def first_paragraph(text: str) -> str:
@@ -377,25 +402,40 @@ def _package_scripts(root: Path) -> dict[str, str]:
     except json.JSONDecodeError:
         return {}
     scripts = raw.get("scripts") if isinstance(raw, dict) else None
-    return {k: v for k, v in scripts.items() if isinstance(k, str)} if isinstance(scripts, dict) else {}
+    return (
+        {k: v for k, v in scripts.items() if isinstance(k, str)}
+        if isinstance(scripts, dict)
+        else {}
+    )
 
 
 def _script_files(root: Path) -> list[str]:
     base = root / "scripts"
     if not base.is_dir():
         return []
-    return sorted(f.name for f in base.iterdir() if f.is_file() and not f.name.startswith("."))
+    return sorted(
+        f.name for f in base.iterdir() if f.is_file() and not f.name.startswith(".")
+    )
 
 
-def command_problems(root: Path, where: str, claim: Claim, scripts: dict[str, str]) -> list[str]:
+def command_problems(
+    root: Path, where: str, claim: Claim, scripts: dict[str, str]
+) -> list[str]:
     """One command line, measured against package.json scripts and the files it names."""
     problems: list[str] = []
     pm = PM_RE.match(claim.text)
     if pm and pm.group(2) not in scripts and pm.group(2) not in PM_BUILTINS:
-        problems.append(f"{where}:{claim.line}: '{pm.group(1)} {pm.group(2)}' is not a script in package.json")
+        problems.append(
+            f"{where}:{claim.line}: '{pm.group(1)} {pm.group(2)}' is not a script in package.json"
+        )
     runner = RUNNER_RE.match(claim.text)
-    if runner and not any((root / name).exists() for name in ("Makefile", "makefile", "justfile", "Justfile")):
-        problems.append(f"{where}:{claim.line}: '{runner.group(1)}' is not this project's runner (no such file)")
+    if runner and not any(
+        (root / name).exists()
+        for name in ("Makefile", "makefile", "justfile", "Justfile")
+    ):
+        problems.append(
+            f"{where}:{claim.line}: '{runner.group(1)}' is not this project's runner (no such file)"
+        )
     return problems
 
 
@@ -421,11 +461,15 @@ def section_problems(where: str, text: str) -> list[str]:
     """A README a reader cannot install, run and test from is incomplete."""
     problems: list[str] = []
     if not first_paragraph(text):
-        problems.append(f"{where}:1: no first paragraph saying what this project is for")
+        problems.append(
+            f"{where}:1: no first paragraph saying what this project is for"
+        )
     found = headings(text)
     for name, words in SECTIONS:
         if not any(word in heading for heading in found for word in words):
-            problems.append(f"{where}:1: no heading for how to {name} it ({' | '.join(words)})")
+            problems.append(
+                f"{where}:1: no heading for how to {name} it ({' | '.join(words)})"
+            )
     return problems
 
 
@@ -440,7 +484,9 @@ def documented_problems(root: Path, config: Config, texts: dict[str, str]) -> li
                 problems.append(f"{CONFIG_PATH}:1: undocumented '{name}' has no reason")
             continue
         if name not in body:
-            problems.append(f"{config.readmes[0]}:1: script '{name}' is not documented in any README")
+            problems.append(
+                f"{config.readmes[0]}:1: script '{name}' is not documented in any README"
+            )
     return problems
 
 
@@ -450,7 +496,9 @@ def claims(text: str) -> list[Claim]:
     return sorted(found, key=lambda c: (c.line, c.kind, c.text))
 
 
-def check_readme(root: Path, where: str, text: str, scripts: dict[str, str]) -> tuple[list[Claim], list[str]]:
+def check_readme(
+    root: Path, where: str, text: str, scripts: dict[str, str]
+) -> tuple[list[Claim], list[str]]:
     """One README's claims and the problems they raise."""
     found = claims(text)
     problems = section_problems(where, text)
@@ -474,7 +522,9 @@ def check_project(root: Path) -> tuple[list[Claim], list[str], str]:
     for rel in config.readmes:
         f = root / rel
         if not f.is_file():
-            problems.append(f"{rel}:1: does not exist, but readme-check is configured to check it")
+            problems.append(
+                f"{rel}:1: does not exist, but readme-check is configured to check it"
+            )
             continue
         texts[rel] = f.read_text(encoding="utf-8")
         one, bad = check_readme(root, rel, texts[rel], scripts)

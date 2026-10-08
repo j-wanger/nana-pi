@@ -43,8 +43,8 @@ The rail is the plugin in `tests/conftest.py`; it scans `tests/` recursively, fa
 and only reports on a partial one.
 
 **ID blocks:** `R-001` onward are this project's rows. `G-001` onward are Part G, the
-general engineering requirements every nana project carries — they arrive with the
-template, are never renumbered, and only their Status and Evidence are yours to change.
+general engineering requirements in `REQUIREMENTS-general.md`. That template-owned file
+is refreshed by `uvx copier update`; Status and Evidence remain yours in REQUIREMENTS.md.
 
 **New behaviour in this project: requirement diff, then tagged tests, then code.**
 {% if adopt %}
