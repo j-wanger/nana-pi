@@ -36,6 +36,16 @@ check("release contract values and exported pure selectors are pinned", () => {
   assert.equal(countTemplateCommits("2\n"), 2);
 });
 // req: R-584
+check("template commit count accepts decimal digits only and distinguishes missing values", () => {
+  assert.equal(countTemplateCommits(""), null);
+  assert.equal(countTemplateCommits("  \n"), null);
+  assert.equal(countTemplateCommits("nope"), null);
+  assert.equal(countTemplateCommits("0x10"), null);
+  assert.equal(countTemplateCommits("1e2"), null);
+  assert.equal(countTemplateCommits("0"), 0);
+  assert.equal(countTemplateCommits("17\n"), 17);
+});
+// req: R-584
 check("counts only template-surface commits after the highest tag", () => {
   const root = tmpDir(path.join(os.tmpdir(), "release-surface-")); const dir = repo(root); git(dir, "tag", "v0.1.0");
   commit(dir, "templates/x", "one\n", "template change"); commit(dir, "copier.yml", "_subdirectory: templates/{{ language }}/template\n# two\n", "copier change"); commit(dir, "README.md", "docs\n", "docs change");

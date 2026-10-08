@@ -239,4 +239,6 @@ if any file fails — also when no file matched the filter, or a `--self-test` f
 its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
 active test's process tree. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
-deliberately failing file to prove the runner turns red.
+deliberately failing file to prove the runner turns red. `node scripts/template-acceptance.mjs`
+runs the separate rendered-template acceptance gate; `--src <repo>` and `--ref <rev>` select
+its source and commit. It is intentionally not collected by `npm test`.
