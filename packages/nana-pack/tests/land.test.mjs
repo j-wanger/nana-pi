@@ -347,4 +347,43 @@ check("README and AGENTS describe the land helper", () => {
 	assert.match(agents, /use `nana-land`/); assert.match(agents, /clean `main` checkout/); assert.match(agents, /verified review rounds/); assert.match(agents, /rerun the suite if either checkout changes/); assert.match(agents, /ff-only merge, and containment verification/); assert.match(agents, /clean `feat\/<lane>` worktree contained in `main`/);
 	assert.equal(JSON.parse(readFileSync(path.join(repoRoot, "packages/nana-pack/package.json"), "utf8")).bin["nana-land"], "bin/nana-land.mjs");
 });
+// req: R-588
+check("successful merge prints post-merge release status and divergence", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-release-normal-")); const main = repo(root, "main");
+	writeFileSync(path.join(main, "copier.yml"), "source\n"); mkdirSync(path.join(main, "templates"), { recursive: true }); writeFileSync(path.join(main, "templates", "base"), "base\n");
+	git(main, "add", "copier.yml", "templates"); git(main, "commit", "-m", "template base"); git(main, "tag", "v0.1.0");
+	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
+	const feature = tree(main, "integration"); commit(feature, "templates/new", "new\n", "template change");
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*1 template commit.*v0\.1\.0.*main 1 ahead.*origin/i);
+});
+// req: R-588
+check("release status failure after merge keeps success code and records", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-release-failure-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next"); let releaseStarted = false;
+	const runGit = (cwd, args) => {
+		if (releaseStarted) return { status: 128, stdout: "", stderr: "injected failure" };
+		try {
+			const stdout = execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+			if (cwd === main && args.join(" ") === "rev-parse --verify --quiet refs/heads/main") releaseStarted = true;
+			return { status: 0, stdout, stderr: "" };
+		} catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
+	};
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	assert.equal(out.code, 0, out.text); assert.equal(git(main, "rev-parse", "HEAD"), tip);
+	assert.match(out.text, /release status: .*unavailable/i); assert.match(out.text, /Session archive stub:/); assert.match(out.text, /HANDOFF Landed:/);
+	const throwingRoot = tmpDir(path.join(os.tmpdir(), "land-release-throw-")); const throwingMain = repo(throwingRoot, "main");
+	const throwingFeature = tree(throwingMain, "integration"); const throwingTip = commit(throwingFeature, "next.txt", "next\n", "next");
+	const guarded = runLand({ tree: throwingFeature, main: throwingMain, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }), readReleaseStatus: () => { throw new Error("injected status reader failure"); } });
+	assert.equal(guarded.code, 0, guarded.text); assert.equal(git(throwingMain, "rev-parse", "HEAD"), throwingTip);
+	assert.match(guarded.text, /release status: .*unavailable/i); assert.match(guarded.text, /Session archive stub:/); assert.match(guarded.text, /HANDOFF Landed:/);
+});
+// req: R-588
+check("successful merge without copier reports only the origin release clause", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-release-no-copier-")); const main = repo(root, "main");
+	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
+	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*not a template source.*origin/i); assert.doesNotMatch(out.text, /template commits?/i);
+});
 process.exit(failures ? 1 : 0);
