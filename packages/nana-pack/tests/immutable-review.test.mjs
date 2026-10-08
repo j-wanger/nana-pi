@@ -36,7 +36,7 @@ const git = (cwd, ...args) => {
 };
 const repo = path.join(root, "repo");
 fs.mkdirSync(repo);
-git(repo, "init", "-q");
+git(repo, "init", "-q", "-b", "main");
 fs.writeFileSync(path.join(repo, ".gitignore"), "ignored.txt\n");
 fs.writeFileSync(path.join(repo, "tracked.txt"), "base\n");
 fs.writeFileSync(path.join(repo, "deleted.txt"), "delete me\n");

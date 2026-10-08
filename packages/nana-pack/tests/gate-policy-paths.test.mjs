@@ -190,7 +190,13 @@ delete process.env.PI_CODING_AGENT_DIR;
 	const historicalDir = tmpDir(path.join(os.tmpdir(), "gate-legacy-reference-"));
 	const historicalPath = path.join(historicalDir, "gate-paths.ts");
 	try {
-		const source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
+		let source = null;
+		try {
+			source = execFileSync("git", ["show", "a3afab28ce136e394bbf6fb89384a169f0a5ee67:packages/nana-pack/lib/gate-paths.ts"], { cwd: path.resolve(new URL("../../../", import.meta.url).pathname), encoding: "utf8" });
+		} catch (error) {
+			check("historical gate baseline a3afab28ce136e394bbf6fb89384a169f0a5ee67 is available (suite checkout requires full history)", false, error.stderr?.trim() || error.message);
+		}
+		if (source) {
 		fs.writeFileSync(historicalPath, source);
 		fs.copyFileSync(new URL("../lib/agent-dir.mjs", import.meta.url), path.join(historicalDir, "agent-dir.mjs"));
 		const mainPaths = await import(`${new URL(`file://${historicalPath}`).href}?probe=${process.pid}`);
@@ -229,6 +235,7 @@ delete process.env.PI_CODING_AGENT_DIR;
 		const settingsOperand = `python3 -c "open('${relocatedSettings}','w').write('{}')"`;
 		// req: R-631
 		check("declared gap: Python open literal inside -c does not hit relocated settings policy", !gatePaths.commandPolicyHit(settingsOperand, "/tmp/proj") && (await decideCommand(settingsOperand)) === "ALLOW");
+		}
 	} finally {
 		fs.rmSync(historicalDir, { recursive: true, force: true });
 		delete process.env.PI_CODING_AGENT_DIR;
