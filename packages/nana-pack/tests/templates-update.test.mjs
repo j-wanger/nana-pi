@@ -155,6 +155,33 @@ if (havePytest) {
  const badStatus = pythonRail(malformed, "import runpy,sys; from pathlib import Path; import pytest; m=runpy.run_path(sys.argv[2]);\ntry: m['check'](Path(sys.argv[1]), test_roots=())\nexcept pytest.UsageError as e: assert 'unknown status' in str(e) and 'bogus' in str(e)\nelse: raise AssertionError('invalid template status was masked by project ownership')");
  // req: R-579
  check("Python rejects malformed template status before merging project-owned fields", badStatus.status === 0, badStatus.stderr ?? "");
+ const conftestSource = readFileSync(new URL("../../../templates/python/template/tests/conftest.py", import.meta.url), "utf8");
+ for (const [shape, malformedTable, expected] of [
+  ["duplicate ID", table([["G-017", "The duplicate fixture shall fail."], ["G-017", "The duplicate fixture shall fail again."]]), "duplicate id G-017"],
+  ["wrong cell count", "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-017 | The cell-count fixture shall fail. | untested | — | extra |\n", "cells, expected 4"],
+ ]) {
+  const fullRun = join(root, `python-full-${shape.replaceAll(" ", "-")}`);
+  mkdirSync(join(fullRun, "tests"), { recursive: true });
+  writeFileSync(join(fullRun, "conftest.py"), conftestSource);
+  writeFileSync(join(fullRun, "pytest.ini"), "[pytest]\ntestpaths = tests\n");
+  writeFileSync(join(fullRun, "REQUIREMENTS.md"), table([["R-900", "The fixture shall exist."]]));
+  writeFileSync(join(fullRun, "REQUIREMENTS-general.md"), malformedTable);
+  writeFileSync(join(fullRun, "tests", "test_smoke.py"), "def test_smoke():\n    assert True\n");
+  const fullPytest = probe("uvx", ["--with", "pytest", "pytest", "-o", "addopts="], { cwd: fullRun, env });
+  const fullOutput = `${fullPytest.stdout ?? ""}${fullPytest.stderr ?? ""}`;
+  // req: R-583
+  check(`full pytest reports malformed ${shape} as a readable rail failure`, fullPytest.status === 1 && fullOutput.includes(expected) && fullOutput.includes("requirements trace FAILED:") && !fullOutput.includes("INTERNALERROR") && !fullOutput.includes("PluggyTeardownRaisedWarning"), `${fullPytest.status}: ${fullOutput.slice(-1200)}`);
+ }
+ const duplicateTs = table([["G-017", "The duplicate fixture shall fail."], ["G-017", "The duplicate fixture shall fail again."]]);
+ const wrongCountTs = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-017 | The cell-count fixture shall fail. | untested | — | extra |\n";
+ for (const [shape, malformedText, expected] of [["duplicate ID", duplicateTs, "duplicate id G-017"], ["wrong cell count", wrongCountTs, "cells"]]) {
+  writeFileSync(join(root, "REQUIREMENTS.md"), table([["R-900", "The fixture shall exist."]]));
+  writeFileSync(join(root, "REQUIREMENTS-general.md"), malformedText);
+  let rejected = false;
+  try { railCheck(root, { testRoots: ["tests"] }); } catch (error) { rejected = String(error).includes(expected); }
+  // req: R-583
+  check(`TypeScript rail rejects malformed ${shape} before returning drift`, rejected);
+ }
 }
 if (!haveCopier) {
  console.log(`SKIP fresh Part G render matrix: ${unavailableReason("uvx copier")}${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);

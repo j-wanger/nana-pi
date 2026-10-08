@@ -455,10 +455,12 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Compare REQUIREMENTS.md against the markers; fail a full run that disagrees."""
     config = session.config
     ears_allowance = config.getini("requirements_ears_allowance")
+    drift_line: str | None = None
     try:
         requirements, traced, problems, _line, _off_form, _ears_line, report = check(
             config.rootpath, ears_allowance=ears_allowance
         )
+        drift_line = _drift_line(config.rootpath)
     except pytest.UsageError as err:
         # A malformed table or a bad marker is reported as a trace problem rather
         # than an internal error: the point is a readable failure, not a traceback.
@@ -472,7 +474,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         reporter.write_line("")
         for line_out in report.split("\n"):
             reporter.write_line(line_out)
-        drift_line = _drift_line(config.rootpath)
         if drift_line:
             reporter.write_line(drift_line)
         if problems:
