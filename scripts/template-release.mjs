@@ -7,11 +7,13 @@
  * @errors Git, containment, gate, tag, or push failures return status 1.
  */
 import { spawnSync } from "node:child_process";
-import path from "node:path";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { RELEASE_BRANCH_REF, RELEASE_REMOTE_REF, RELEASE_SURFACE, RELEASE_TAG_PATTERN, selectReleaseTag } from "../packages/nana-pack/lib/release-status.mjs";
+import { runAcceptance } from "./template-acceptance.mjs";
 
 const defaultGit = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8" });
-const defaultGate = (cwd, sha) => spawnSync(process.execPath, [path.join(cwd, "scripts/template-acceptance.mjs"), "--src", cwd, "--ref", sha], { cwd, encoding: "utf8", stdio: "inherit" }).status;
+const defaultGate = (cwd, sha) => runAcceptance({ src: cwd, ref: sha });
 function call(runGit, repo, args) {
   try { const result = runGit(repo, args); return { ok: result?.status === 0 && !result?.error, out: String(result?.stdout ?? "").trim(), error: result?.stderr || result?.error?.message || "git failed" }; }
   catch (error) { return { ok: false, out: "", error: error?.message ?? "git failed" }; }
@@ -53,7 +55,7 @@ export function runRelease({ repo, ref = "HEAD", push = false, runGit = defaultG
   }
   log(`released ${next} at ${sha}`); return 0;
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try { process.exitCode = runRelease({ repo: process.cwd(), ...cli(process.argv.slice(2)) }); }
   catch (error) { console.error(error.message); process.exitCode = 2; }
 }

@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -42,6 +43,22 @@ check("renders all four modes with the exact resolved SHA and prepares adopt ove
   };
   assert.equal(runAcceptance({ src, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 0);
   assert.deepEqual(seen, ["python:scaffold", "python:adopt", "typescript:scaffold", "typescript:adopt"]);
+});
+
+// req: R-594
+check("CLI executes from paths with spaces and encoded-looking names and reports missing uvx", () => {
+  const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../scripts/template-acceptance.mjs");
+  const gitBinary = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
+  for (const name of ["acceptance path with spaces", "acceptance a%20b checkout"]) {
+    const checkout = path.join(root, name); fs.mkdirSync(path.join(checkout, "scripts"), { recursive: true });
+    fs.copyFileSync(source, path.join(checkout, "scripts/template-acceptance.mjs"));
+    execFileSync("git", ["init", checkout], { stdio: "ignore" });
+    execFileSync("git", ["-C", checkout, "-c", "user.name=Test", "-c", "user.email=test@example", "commit", "--allow-empty", "-m", "base"], { stdio: "ignore" });
+    const toolBin = path.join(root, `${name}-bin`); fs.mkdirSync(toolBin); fs.symlinkSync(gitBinary, path.join(toolBin, "git"));
+    const result = spawnSync(process.execPath, [path.join(checkout, "scripts/template-acceptance.mjs")], { cwd: checkout, encoding: "utf8", env: { ...process.env, PATH: toolBin } });
+    assert.notEqual(result.status, 0, `${name}: CLI must execute and fail when uvx is unavailable`);
+    assert.match(`${result.stdout}\n${result.stderr}`, /uvx/);
+  }
 });
 
 // req: R-593

@@ -7,10 +7,11 @@
  * @errors Failed checks exit nonzero.
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { runRelease } from "../../../scripts/template-release.mjs";
 
@@ -18,6 +19,7 @@ let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const root = tmpDir(path.join(os.tmpdir(), "template-release-test-"));
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 function setup(name) {
   const repo = path.join(root, name); mkdirSync(repo, { recursive: true }); git(repo, "init", "-b", "main"); git(repo, "config", "user.email", "release@test"); git(repo, "config", "user.name", "Release Test");
   writeFileSync(path.join(repo, "copier.yml"), "source\n"); mkdirSync(path.join(repo, "templates")); writeFileSync(path.join(repo, "templates/base"), "base\n");
@@ -28,6 +30,26 @@ function setup(name) {
 }
 function change(repo) { writeFileSync(path.join(repo, "templates/base"), "changed\n"); git(repo, "add", "templates/base"); git(repo, "commit", "-m", "template change"); return git(repo, "rev-parse", "HEAD"); }
 
+// req: R-596
+check("release CLI runs its in-process gate from spaced and percent-looking checkout paths", () => {
+  const gitBinary = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
+  for (const name of ["release path with spaces", "release a%20b checkout"]) {
+    const repo = path.join(root, name); mkdirSync(path.join(repo, "scripts"), { recursive: true });
+    mkdirSync(path.join(repo, "packages/nana-pack/lib"), { recursive: true });
+    for (const file of ["template-release.mjs", "template-acceptance.mjs"]) writeFileSync(path.join(repo, "scripts", file), readFileSync(path.join(repoRoot, "scripts", file), "utf8"));
+    writeFileSync(path.join(repo, "packages/nana-pack/lib/release-status.mjs"), readFileSync(path.join(repoRoot, "packages/nana-pack/lib/release-status.mjs"), "utf8"));
+    git(repo, "init", "-b", "main"); git(repo, "config", "user.email", "release@test"); git(repo, "config", "user.name", "Release Test");
+    writeFileSync(path.join(repo, "copier.yml"), "source\n"); mkdirSync(path.join(repo, "templates")); writeFileSync(path.join(repo, "templates/base"), "base\n");
+    git(repo, "add", "."); git(repo, "commit", "-m", "base"); git(repo, "tag", "-a", "v0.6.3", "-m", "v0.6.3");
+    writeFileSync(path.join(repo, "templates/base"), "changed\n"); git(repo, "add", "templates/base"); git(repo, "commit", "-m", "template change");
+    const bare = path.join(root, `${name}.git`); git(root, "init", "--bare", bare); git(repo, "remote", "add", "origin", bare); git(repo, "push", "-u", "origin", "main", "--tags");
+    const toolBin = path.join(root, `${name}-bin`); mkdirSync(toolBin); symlinkSync(gitBinary, path.join(toolBin, "git"));
+    const cli = spawnSync(process.execPath, [path.join(repo, "scripts/template-release.mjs")], { cwd: repo, encoding: "utf8", env: { ...process.env, PATH: toolBin } });
+    assert.notEqual(cli.status, 0, `${name}: red default acceptance must fail release`);
+    assert.match(`${cli.stdout}\n${cli.stderr}`, /uvx/);
+    assert.equal(git(repo, "tag", "--points-at", "HEAD"), "");
+  }
+});
 // req: R-596
 check("red gate and no template diff create no tag", () => {
   const plain = setup("plain"); let calls = 0; const logs = [];

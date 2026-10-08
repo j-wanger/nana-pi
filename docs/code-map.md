@@ -617,7 +617,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One failure report per failed command and a process exit status.
 - **effects** — process (git, copier, and package-manager children), disk (temporary renders).
 - **errors** — Missing tools, render failures, timeouts, or check failures return status 1.
-- **callers** — `packages/nana-pack/tests/template-acceptance.test.mjs`
+- **callers** — `packages/nana-pack/tests/template-acceptance.test.mjs`, `scripts/template-release.mjs`
 - **callees** — —
 
 ### `scripts/template-release.mjs`
@@ -628,7 +628,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — process (Git and acceptance children), disk (annotated Git tag).
 - **errors** — Git, containment, gate, tag, or push failures return status 1.
 - **callers** — `packages/nana-pack/tests/template-release.test.mjs`
-- **callees** — `packages/nana-pack/lib/release-status.mjs`
+- **callees** — `packages/nana-pack/lib/release-status.mjs`, `scripts/template-acceptance.mjs`
 
 ### `scripts/test.mjs`
 

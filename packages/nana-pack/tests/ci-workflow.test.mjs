@@ -15,7 +15,7 @@ let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
 const workflow = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../.github/workflows/ci.yml"), "utf8");
 // req: R-597
-check("root CI runs the locked suite on macOS and nonblocking Ubuntu and gates tag release", () => {
+check("root CI runs the suite on macOS and nonblocking Ubuntu and gates tag release", () => {
   assert(workflow.includes("on:\n  push:\n    branches: [main]\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
   assert.match(workflow, /^  suite:\n    strategy:/m);

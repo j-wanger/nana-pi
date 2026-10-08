@@ -8,8 +8,10 @@
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** Chosen: 10 min; warm probe 2026-10-08 render 2 s, pnpm install 4.3 s, pnpm check 5.5 s, uv sync 1.3 s. */
 export const COMMAND_TIMEOUT_MS = 600_000;
@@ -31,7 +33,7 @@ const ANSWERS = {
 const defaultRun = (cmd, args, options) => spawnSync(cmd, args, { encoding: "utf8", ...options });
 const textOf = (result) => `${result?.stdout ?? ""}${result?.stderr ?? ""}`;
 function cli(argv) {
-  let src = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+  let src = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   let ref = "HEAD";
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--src" && argv[i + 1]) src = path.resolve(argv[++i]);
@@ -109,7 +111,7 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
   return failures.length ? 1 : 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try { process.exitCode = runAcceptance({ ...cli(process.argv.slice(2)) }); }
   catch (error) { console.error(error.message); process.exitCode = 2; }
 }

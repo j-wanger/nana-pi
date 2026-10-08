@@ -198,7 +198,9 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 
 ### Template acceptance and release
 
-Run the rendered projects' native checks with `npm run template:accept -- [--src <repo>] [--ref <rev>]`. Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`); release runs acceptance before creating a tag. CI runs release only after a green suite on main. The first hosted run remains unproven until the seat records it.
+Run the rendered projects' native checks with `npm run template:accept -- [--src <repo>] [--ref <rev>]`.
+
+Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`). Release runs acceptance before creating a tag. CI runs release only after a green suite on main. The first hosted run remains unproven until the seat records it.
 
 ### Updating and partial adoption
 
