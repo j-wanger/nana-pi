@@ -166,6 +166,12 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
 
+### Land helper: `bin/nana-land.mjs`
+
+`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` requires a verified `LAND` review-ledger round for each named item and revision; drifted, unverified rounds do not authorize a merge. `--exempt "<reason>"` requires a nonblank reason, replaces reviews, and appears in the success record. The helper requires a clean source tree and clean tracked state in the checkout on `main`, checks fast-forward ancestry, and runs the suite in the source tree. Immediately before merging it rechecks both clean states, that the checkout is still on `main` at its captured HEAD, and that the source tip is unchanged. It then runs one `git merge --ff-only <tip>`; afterwards it requires the checkout still on `main`, main ref equal to the tip, and clean tracked state before it verifies containment and prints push, archive, and HANDOFF stubs. It never pushes or edits those records. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, though the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. Integration commits outside reviewed ancestry are reported exactly, not blocked.
+
+`nana-land cleanup <lane> --main <main-checkout>` is a separate operation: it requires the checkout on `main`, then removes only a clean worktree whose `feat/<lane>` branch is contained in `main`, without force. Run through `nana-setup install` to link `nana-land` on PATH; `nana-setup doctor` reports whether the link is valid. The main checkout may have untracked files, but git can still refuse a colliding fast-forward.
+
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,

@@ -8,6 +8,7 @@
  */
 // Gate: `install` is idempotent, additive, and never destroys what the owner wrote by hand.
 // Every run here goes into a throwaway --home; nothing touches the real machine.
+import assert from "node:assert/strict";
 import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -151,6 +152,20 @@ check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, na
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // req: R-311
 check("pi-review on PATH", link(path.join(home, ".local", "bin", "pi-review")) === path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"));
+const landDoctorEvidence = (() => {
+	try {
+		const bin = path.join(home, ".local", "bin", "nana-land");
+		assert.equal(link(bin), path.join(repo, "packages", "nana-pack", "bin", "nana-land.mjs"));
+		assert.match(spawnSync(bin, [], { encoding: "utf8" }).stdout, /usage: nana-land/);
+		const healthy = run(["doctor", "--home", home]); assert.equal(healthy.status, 0, healthy.stdout); assert.match(healthy.stdout, /✓ PATH nana-land/);
+		const brokenHome = freshHome(); assert.equal(run(["install", "--home", brokenHome]).status, 0);
+		fs.unlinkSync(path.join(brokenHome, ".local", "bin", "nana-land"));
+		const missing = run(["doctor", "--home", brokenHome]); assert.notEqual(missing.status, 0, missing.stdout); assert.match(missing.stdout, /✗ PATH nana-land/);
+		return { ok: true };
+	} catch (error) { return { ok: false, detail: error.message }; }
+})();
+// req: R-980
+check("land bin is linked, executable, and doctor reports accurate state", landDoctorEvidence.ok, landDoctorEvidence.detail);
 // req: R-311
 check("pi-review is executable with a node shebang", fs.readFileSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs"), "utf8").startsWith("#!/usr/bin/env node") && (fs.statSync(path.join(repo, "packages", "nana-pack", "bin", "pi-review.mjs")).mode & 0o111) !== 0);
 // req: R-311
