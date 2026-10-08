@@ -19,6 +19,7 @@ const pkg = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const shared = path.join(repo, "templates", "_shared");
+const { PACK_STARTER } = await import(new URL("../lib/project.mjs", import.meta.url).href);
 
 let fails = 0;
 let passes = 0;
@@ -271,6 +272,11 @@ function walk(dir) {
 	);
 // req: R-929
 	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
+ // req: R-591
+ check("SKILL.md: names the skill-relative canonical shared source and it resolves", (skillText.match(/\.\.\/\.\.\/\.\.\/\.\.\/templates\/_shared\//g) ?? []).length >= 4 && fs.existsSync(path.resolve(path.dirname(skillFile), "../../../../templates/_shared/working-under-nana-pi.md")) && /Only when this canonical path is absent on\s+disk may you render a throwaway scaffold/.test(skillText));
+ const starter = skillText.match(/^[ \t]*```json\n([\s\S]*?)\n[ \t]*```/m);
+ // req: R-592
+ check("SKILL.md starter equals nana-setup project's PACK_STARTER", Boolean(starter) && JSON.stringify(JSON.parse(starter[1])) === JSON.stringify(JSON.parse(PACK_STARTER)), `${starter?.[1]} != ${PACK_STARTER}`);
 }
 
 /* --- 8. --check mirrors what setup decided, never fails a deliberate state ------------ */

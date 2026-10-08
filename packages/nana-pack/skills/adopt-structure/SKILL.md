@@ -24,8 +24,10 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
   biome, ruff…), lockfiles, or CI.
 - Derive every doc from the folder's REAL contents — read before you write. No
   invented structure, no aspirational rules.
-- Safe on re-run: if a file already exists, RECONCILE (refresh what's stale,
-  keep what's still true, fold in hand edits) — never clobber.
+- Safe on re-run: reconcile existing `AGENTS.md` files (refresh what's stale,
+  keep what's still true, fold in hand edits) — never clobber them. Existing
+  frontier seeds are never overwritten; resolve `OBJECTIVE.md` ratification as
+  described in step 6.
 
 ## Steps
 
@@ -56,13 +58,12 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
 
 4. **Canonical section — copy from the single source, do not re-derive.** The
    "Working under nana-pi" section has ONE source of truth:
-   `templates/_shared/working-under-nana-pi.md` in the nana-pi template source
-   (the same source this pack was installed from). Copy that file's contents
+   `../../../../templates/_shared/working-under-nana-pi.md` relative to this skill directory. Copy that file's contents
    VERBATIM into the root `AGENTS.md` — scaffolded projects emit the identical
    block, and the whole point is that adopted and scaffolded projects read the
-   same. Do not paraphrase or hand-write it. If that file is not reachable on
-   disk, lift the exact text instead by rendering a throwaway scaffold and
-   copying the `## Working under nana-pi` section out of its `AGENTS.md`.
+   same. Do not paraphrase or hand-write it. Only when this canonical path is absent on
+   disk may you render a throwaway scaffold and copy the `## Working under nana-pi`
+   section out of its `AGENTS.md`.
 
    Render it with **this project's real name**, not a dummy: copier substitutes
    `<name>` in the step-6 seeds at render time, so a throwaway named `_tmp` would
@@ -106,26 +107,18 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    project config replaces user config per key-group, so a project `postEdit`
    block would SHADOW their global checks in this project; say the global checks
    stay active and skip the file. Otherwise, if no project config exists, write this
-   starter at the project root. It is a SAFE on-ramp: the post-edit
-   `match` matches no real path and the `run` is an obvious placeholder, so
-   **nothing runs until the user replaces them** with their real toolchain. The
+   starter at the project root. It is a SAFE on-ramp: the canonical starter is `{"postEdit":{"commands":[]}}`;
+   nothing runs until a command is added. Its shape is in the pack README Config section. The
    starter carries ONLY `postEdit` — omit the `gate` and `handoff` keys on purpose:
    they default correctly, and empty project arrays / `handoff.enabled` would only
    shadow the user's user-scope gate patterns or re-enable a globally-disabled
    handoff in this one project.
 
    ```json
-   {
-     "postEdit": {
-       "commands": [
-         { "match": "(?!)", "run": "your-formatter {file}" }
-       ]
-     }
-   }
+   {"postEdit":{"commands":[]}}
    ```
 
-   `(?!)` is a regex that matches nothing, so post-edit stays inert until the
-   user swaps it for a real path regex (e.g. `\.py$`) and sets their command.
+   Post-edit stays inert until a real command is added.
 
    If a `.pi/nana-pack.json` already exists, RECONCILE — leave a user-defined
    `postEdit.commands` and any gate/handoff settings untouched; only add the
@@ -133,14 +126,14 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    user where to fill in their real `match`/`run`, and that this file takes effect
    **only in a trusted project** (pi's project-trust gate) — an untrusted repo's
    **project** config is ignored, though any user-scope `nana-pack.json` commands (the one in pi's
-   active agent dir, as above) still run. Tell the user to run `/trust` in pi once for this folder (then restart): pi auto-trusts a `.pi/` holding only nana files, and nana does not count that, so the seeded config stays inert (with a warning) until they do.
+   active agent dir, as above) still run. The folder-trust step is `nana-setup trust <dir>`; do not direct the user to `/trust` in pi.
 
 6. **The three frontier seeds — only when absent.** A project the pack can
    actually run a session in needs `OBJECTIVE.md` (what session start prints and
    scores the session against), `HANDOFF.md` (the frontier) and `docs/sessions/`
    (the narrative). They come from the SAME single source as step 4 —
-   `templates/_shared/OBJECTIVE.md`, `templates/_shared/HANDOFF.md`,
-   `templates/_shared/docs/sessions/README.md` — copied VERBATIM, with the same
+   `../../../../templates/_shared/OBJECTIVE.md`, `../../../../templates/_shared/HANDOFF.md`,
+   `../../../../templates/_shared/docs/sessions/README.md` — copied VERBATIM, with the same
    throwaway-render fallback when that directory is not on disk. Which source you
    used decides what is left to fill:
 
@@ -150,15 +143,22 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
      why step 4 renders it with the real project name), so fill only `<date>`.
      Check the first line reads `# Objective and current priority — <the project>`
      before you copy it in; if it names a dummy, you rendered with the wrong name.
-   - **Leave every other `<…>`** in both cases — those are the owner's draft text.
-   - If any of the three already exists, leave it exactly as it is. This is a
-     seed, never a reconcile: an existing `OBJECTIVE.md` is a ratified decision.
-   - Tell the user, in one line, that the two `(DRAFT — ratify …)` lines in
-     `OBJECTIVE.md` are **theirs** to ratify — the skill has no business guessing
-     a project's objective or its current priority.
+   - The seed step never replaces an existing file. An existing `OBJECTIVE.md`
+     whose objective and current-priority lines contain the owner's words is
+     already ratified. If either line is a seeded placeholder or DRAFT, ask the
+     owner for both lines, then replace only those seeded placeholder lines and
+     their DRAFT suffix with the owner's words. Leave owner-written lines
+     unchanged; never infer that placeholders are ratified.
+   - For a newly copied `OBJECTIVE.md`, ask the owner for one objective line
+     and one current-priority line. Write only the owner's words over the two
+     placeholders and DRAFT suffix, fill `<date>`, and never invent either
+     line. If the owner defers, leave the DRAFT lines and say so in the handover.
 
-   On a machine that has `nana-setup`, `nana-setup project <dir>` does exactly
-   this step (plus the month's session file) from any shell, pi or not.
+   **First two steps:** after seed handling
+   1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words only over seeded placeholder lines and their DRAFT suffix, leave owner-written lines unchanged, and never invent words.
+   2. Trust the folder: `nana-setup trust <dir>`.
+
+   `nana-setup project <dir>` is a broader alternative outside this skill's hard rule. It also runs `git init`, writes an AGENTS.md stub and CLAUDE.md link when neither exists, refreshes a marked AGENTS.md region, seeds `.pi/nana-pack.json`, writes the month log and refreshes the knowledge index.
 
 7. **Run the requirements audit mode — before the report, not after it.** What
    the audit finds is the most important thing the report carries, and a report
@@ -176,9 +176,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    vs. left alone (and, when you used the fallback render, that the seeds carry
    this project's name and today's date), whether the `.pi/nana-pack.json` was
    created or reconciled, and what the audit left behind (rows drafted, conflicts
-   open, rows that are honestly `violated`). Point the user at the two edits they
-   still owe: the two DRAFT objective lines, and replacing the post-edit
-   placeholder with their formatter/linter.
+   open, rows that are honestly `violated`). Tell the user whether the empty
+   post-edit list needs real commands.
 
 ## Notes
 

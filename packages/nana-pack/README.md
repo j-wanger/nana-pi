@@ -240,8 +240,7 @@ to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
 - `~/.claude/nana-memory/shared/reference_pi_review_procedure.md` and
   `~/nana-agent-loop/loops/system-map.components.json` describe the old basename rule; update them.
 
-**When this lands:** `~/.local/bin/pi-worker` must be symlinked to `bin/pi-worker.mjs` (the seat
-does it), beside the existing `~/.local/bin/pi-review` link.
+**When this lands:** `nana-setup install` links `pi-worker` to `bin/pi-worker.mjs`; doctor checks it alongside the existing `pi-review` link.
 
 **Release note — `--retries` changed meaning (T2b).** `--retries N` now means N **re-attempts
 after the first** (N+1 attempts total); before T2b it meant N attempts total. An explicit

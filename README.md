@@ -123,8 +123,9 @@ command, from any shell, for any language — pi or Claude Code:
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # creates the folder if needed; seeds; idempotent
 ```
 
-Then: open a session in that folder, and ratify the two DRAFT lines in its `OBJECTIVE.md` —
-the objective and the current priority are yours, and nothing guesses them for you.
+Before the first session:
+1. Ratify the two DRAFT lines in `OBJECTIVE.md`: give one objective line and one current-priority line; your words are written, never invented.
+2. Run `nana-setup trust <dir>`.
 
 It seeds `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/` (README + this month's file),
 `AGENTS.md` + a `CLAUDE.md` symlink and a `.pi/nana-pack.json` on-ramp, `git init`s when
@@ -213,14 +214,14 @@ Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/templa
 - **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
   switches user/project scope) to switch individual extensions and skills on or
   off. There is no per-skill install; enable/disable is the partial surface.
-- **Generated project** — `uvx copier update` inside the project (reads
-  `.copier-answers.yml`): a three-way merge that replays your local edits onto
-  the newest template tag. Partial-merge controls: `--conflict inline` (default,
-  git-style markers in-file) or `--conflict rej` (clean files + `.rej` patches),
-  `--skip-answered` to keep prior answers, `--pretend` for a dry run, `--vcs-ref`
-  to pin a specific tag. `copier recopy` is the escape hatch — re-render clean,
-  discarding your diff. Generated CI carries a `template-drift` job that goes
-  red when the project is behind the latest template tag.
+- **Generated project** — run `uvx copier update --conflict inline` inside the
+  project (reads `.copier-answers.yml`): a three-way merge that replays your
+  local edits onto the newest template tag. For adopted projects, convert
+  decorator markers first; never use `--conflict rej`. Other update controls
+  include `--skip-answered` to keep prior answers, `--pretend` for a dry run,
+  and `--vcs-ref` to pin a specific tag. `copier recopy` is the escape hatch —
+  re-render clean, discarding your diff. Generated CI carries a `template-drift`
+  job that goes red when the project is behind the latest template tag.
 - **Existing project, configs only** — adopt mode: the `adopt-py`/`adopt-ts`
   skills (or `--data adopt=true` on the copier command) overlay the pinned
   configs and leave the source tree untouched; reconcile from `git diff`, then

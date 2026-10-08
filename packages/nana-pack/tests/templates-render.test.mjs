@@ -58,6 +58,23 @@ function render(language, answers) {
 }
 
 /** Strip the module's leading contract header: a JSDoc block, or a Python docstring. */
+function listedAdoptFiles(skill) {
+	const section = skill.match(/Files written by an adopt render into an empty folder:\n([\s\S]*?)(?:\n\n|$)/)?.[1] ?? "";
+	return [...section.matchAll(/^\s*- `([^`]+)`/gm)].map((m) => m[1]);
+}
+function emittedFiles(root) {
+	const files = [];
+	const visit = (dir) => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) visit(full);
+			else if (entry.isFile()) files.push(path.relative(root, full).split(path.sep).join("/"));
+		}
+	};
+	visit(root);
+	return files.sort();
+}
+
 function dropHeader(file) {
 	const src = fs.readFileSync(file, "utf-8");
 	const stripped = file.endsWith(".py")
@@ -448,6 +465,23 @@ if (!version) {
 			if (!adopt.ok) continue;
 			const dir = adopt.dest;
 
+			const skillName = language === "python" ? "adopt-py" : "adopt-ts";
+			const skill = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", skillName, "SKILL.md"), "utf8");
+			const skillFiles = listedAdoptFiles(skill).sort();
+			const renderedFiles = emittedFiles(dir);
+			// req: R-590
+			check(`${language} adopt: skill file list exactly matches emitted files`, skillFiles.length > 0 && JSON.stringify(skillFiles) === JSON.stringify(renderedFiles), `listed-only: ${skillFiles.filter((f) => !renderedFiles.includes(f))}; render-only: ${renderedFiles.filter((f) => !skillFiles.includes(f))}`);
+			const conditionalSeeds = ["OBJECTIVE.md", "HANDOFF.md", "REQUIREMENTS.md", "docs/sessions/README.md", "docs/code-map.md"];
+			// req: R-590
+			check(`${language} adopt: all copier-preserved files are marked written only when absent`, conditionalSeeds.every((file) => skill.includes(`- \`${file}\` (written only when absent)`)), `missing conditional label: ${conditionalSeeds.filter((file) => !skill.includes(`- \`${file}\` (written only when absent)`))}`);
+			if (language === "typescript") {
+				const scripts = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).scripts);
+				// req: R-590
+				check("typescript adopt: every rendered package script is named in adopt-ts", scripts.length > 0 && scripts.every((script) => skill.includes(`\`${script}\``)), `unnamed: ${scripts.filter((script) => !skill.includes(`\`${script}\``))}`);
+				// req: R-590
+				check("typescript adopt: workspace build permission is valid YAML", /```yaml\n\s*allowBuilds:\n\s+esbuild: true\n\s*```/.test(skill) && !/allowBuilds: esbuild: true/.test(skill));
+			}
+
 			const missing = [...spec.files, ...RAIL[language]].filter((f) => !fs.existsSync(path.join(dir, f)));
 			check(`${language} adopt: the rail and the generator land too`, missing.length === 0, `missing: ${missing}`);
 			const present = spec.scaffoldOnly.filter((f) => fs.existsSync(path.join(dir, f)));
@@ -485,6 +519,11 @@ if (!version) {
 		}
 	}
 }
+
+const updateGuide = fs.readFileSync(path.join(REPO, "README.md"), "utf8").match(/- \*\*Generated project\*\*([\s\S]*?)(?=\n- \*\*)/)?.[1] ?? "";
+const adoptUpdateSkills = ["adopt-py", "adopt-ts"].map((name) => fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", name, "SKILL.md"), "utf8"));
+// req: R-590
+check("generated project update guidance is generic with adopted-project qualification", /run `uvx copier update --conflict inline` inside the\s+project/.test(updateGuide) && /For adopted projects, convert\s+decorator markers first; never use `--conflict rej`/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
 console.log(fails ? `${fails} FAILED` : "all passed");

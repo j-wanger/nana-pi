@@ -35,6 +35,29 @@ check("scaffold-ts completion list entries 1 and 2 are ratification and trust", 
 check("adopt-py completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-py"), "First two steps:")));
 // req: R-676
 check("adopt-ts completion list entries 1 and 2 are ratification and trust", firstTwoSteps(listEntries(skillText("adopt-ts"), "First two steps:")));
+for (const skill of ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"]) {
+ const text = skillText(skill);
+ const entries = skill === "scaffold-py" || skill === "scaffold-ts"
+  ? listEntries(text, "**The first two project steps**:")
+  : listEntries(text, "First two steps:");
+ // req: R-676
+ check(`${skill} ratification asks owner for both lines and forbids inventing`,
+  Boolean(entries?.[0] && /ask the owner/i.test(entries[0]) && /objective/i.test(entries[0]) && /current[- ]priority/i.test(entries[0]) && /write their words/i.test(entries[0]) && /never invent/i.test(entries[0])));
+}
+const structure = skillText("adopt-structure");
+const structureEntries = listEntries(structure, "First two steps:");
+const structureFlat = structure.replace(/\s+/g, " ");
+// req: R-676
+check("adopt-structure ratifies after seed handling without contradictory guidance",
+ firstTwoSteps(structureEntries) && /ask the owner/i.test(structureEntries[0] ?? "") &&
+ structure.indexOf("**First two steps:** after seed handling") > structure.indexOf("6. **The three frontier seeds") &&
+ structureFlat.includes("The seed step never replaces an existing file") &&
+ structureFlat.includes("replace only those seeded placeholder lines and their DRAFT suffix with the owner's words") &&
+ structureFlat.includes("Leave owner-written lines unchanged") &&
+ !structureFlat.includes("existing seeded placeholders require asking without overwriting") &&
+ structureFlat.includes("leave owner-written lines unchanged") &&
+ !structureFlat.includes("leave every other `<…>`") && !structureFlat.includes("an existing `OBJECTIVE.md` is a ratified decision") && !structureFlat.includes("two edits they still owe"),
+ "ratification must follow seeding, preserve existing files, and not describe placeholders as already ratified");
 const root = tmpDir(path.join(os.tmpdir(), "nana-guidance-"));
 const dir = path.join(root, "project");
 fs.mkdirSync(dir);
@@ -43,5 +66,8 @@ const result = spawnSync(process.execPath, [cli, "project", dir, "--home", path.
 const outputList = result.stdout.match(/next: 1\. ([^\n]+)\n\s+2\. ([^\n]+)/);
 // req: R-676
 check("project output entries 1 and 2 are ratification and trust", result.status === 0 && outputList && /ratif.*OBJECTIVE\.md/i.test(outputList[1]) && /nana-setup trust <dir>/.test(outputList[2]), `${result.status} ${result.stdout} ${result.stderr}`);
+const setupReadme = fs.readFileSync(path.join(repo, "packages/nana-setup/README.md"), "utf8");
+// req: R-676
+check("README limits fill-the-date guidance to scaffold and adopt", setupReadme.includes("Scaffold and adopt messages also say\nto fill the date; project setup already fills it.") && !setupReadme.includes("seeded `OBJECTIVE.md` (fill the date; the DRAFT lines are yours)"));
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

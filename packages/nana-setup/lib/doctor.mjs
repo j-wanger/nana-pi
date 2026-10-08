@@ -7,7 +7,7 @@
  *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
- *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker and nana-land, the LaunchAgents plist;
+ *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 
@@ -504,6 +504,7 @@ export function diagnose(layout, opts = {}) {
 		add(NOTE, "PATH pi-review", "skipped (win32)");
 		add(NOTE, "PATH pi-worker", "skipped (win32)");
 		add(NOTE, "PATH nana-land", "skipped (win32)");
+		add(NOTE, "PATH nana-setup", "skipped (win32)");
 	} else {
 		const link = path.join(layout.binDir, "pi-review");
 		const worker = path.join(layout.binDir, "pi-worker");
@@ -511,6 +512,8 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(worker, PI_WORKER_BIN) ? OK : FAIL, "PATH pi-worker", `${worker} -> ${PI_WORKER_BIN}`);
 		const landLink = path.join(layout.binDir, "nana-land");
 		add(linkOk(landLink, NANA_LAND_BIN) ? OK : FAIL, "PATH nana-land", `${landLink} -> ${NANA_LAND_BIN}`);
+		const setupLink = path.join(layout.binDir, "nana-setup");
+		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const onPath = (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
 		if (!onPath) add(NOTE, "PATH contains ~/.local/bin", `${layout.binDir} is not on this shell's PATH`);
 	}
