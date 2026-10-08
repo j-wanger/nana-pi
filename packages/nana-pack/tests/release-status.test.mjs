@@ -67,17 +67,21 @@ check("uses only the release reader's allowed read-only Git subcommands", () => 
 check("names each unavailable release input without throwing", () => {
   const root = tmpDir(path.join(os.tmpdir(), "release-missing-"));
   const empty = path.join(root, "empty"); mkdirSync(empty);
-  assert.match(releaseStatus({ repo: empty }).line, /git|main/i);
+  assert(releaseStatus({ repo: empty }).line.includes("not a git repository"));
+  const noMain = path.join(root, "no-main"); mkdirSync(noMain); git(noMain, "init", "-b", "main");
+  assert(releaseStatus({ repo: noMain }).line.includes("main ref unavailable"));
   const dir = repo(root, "no-origin");
-  assert.match(releaseStatus({ repo: dir }).line, /origin/i);
+  assert(releaseStatus({ repo: dir }).line.includes("origin/main tracking ref unavailable"));
   const noCopier = path.join(root, "no-copier"); mkdirSync(noCopier); git(noCopier, "init", "-b", "main"); git(noCopier, "config", "user.email", "release@test"); git(noCopier, "config", "user.name", "Release Test"); writeFileSync(path.join(noCopier, "x"), "x"); git(noCopier, "add", "."); git(noCopier, "commit", "-m", "base");
-  assert.match(releaseStatus({ repo: noCopier }).line, /not a template source/i);
+  const noCopierStatus = releaseStatus({ repo: noCopier });
+  assert(noCopierStatus.line.includes("copier.yml unavailable"), noCopierStatus.line);
   git(noCopier, "remote", "add", "origin", path.join(root, "absent.git"));
   assert.match(releaseStatus({ repo: noCopier }).line, /origin/i);
   const noTag = path.join(root, "no-tag"); const noTagBare = path.join(root, "no-tag-origin.git"); const tagged = repo(root, "tagged"); git(root, "init", "--bare", noTagBare); git(tagged, "remote", "add", "origin", noTagBare); git(tagged, "push", "-u", "origin", "main");
-  assert.match(releaseStatus({ repo: tagged }).line, /tag/i);
-  const broken = () => ({ status: 128, stdout: "", stderr: "fatal" });
-  assert.doesNotThrow(() => { const result = releaseStatus({ repo: dir, runGit: broken }); assert.match(result.line, /unavailable|git/i); });
-  assert.doesNotThrow(() => { const result = releaseStatus({ repo: dir, runGit: () => { throw new Error("git runner failed"); } }); assert.match(result.line, /unavailable|git/i); });
+  assert(releaseStatus({ repo: tagged }).line.includes("plain vX.Y.Z release tag unavailable"));
+  const broken = () => ({ status: 128, stdout: "", stderr: "fatal: injected git failure" });
+  assert.doesNotThrow(() => { const result = releaseStatus({ repo: dir, runGit: broken }); assert(result.line.includes("git unavailable")); });
+  assert.doesNotThrow(() => { const result = releaseStatus({ repo: dir, runGit: () => ({ error: new Error("spawn ENOENT"), status: null, stderr: "" }) }); assert(result.line.includes("git unavailable")); });
+  assert.doesNotThrow(() => { const result = releaseStatus({ repo: dir, runGit: () => { throw new Error("git runner failed"); } }); assert(result.line.includes("git unavailable")); });
 });
 if (failures) process.exitCode = 1;

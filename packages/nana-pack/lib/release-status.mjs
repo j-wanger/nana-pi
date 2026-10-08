@@ -40,10 +40,14 @@ export function countTemplateCommits(output) {
 function invoke(runGit, repo, args) {
 	try {
 		const result = runGit(repo, args);
-		if (result?.error || result?.status !== 0) return { ok: false, text: (result?.stderr || result?.error?.message || "git command failed").trim() };
+		if (result?.error || result?.status !== 0) {
+			const text = (result?.stderr || result?.error?.message || "git command failed").trim();
+			const unavailable = result?.error || (result?.status === 128 && args[0] !== "cat-file");
+			return { ok: false, text, failure: /not a git repository/i.test(text) ? "not a git repository" : unavailable ? "git unavailable" : null };
+		}
 		return { ok: true, text: String(result.stdout ?? "").trim() };
 	} catch (error) {
-		return { ok: false, text: error?.message ?? "git command failed" };
+		return { ok: false, text: error?.message ?? "git command failed", failure: "git unavailable" };
 	}
 }
 
@@ -64,16 +68,17 @@ export function releaseStatus({ repo, runGit = defaultRunGit }) {
 		const main = invoke(runGit, repo, ["rev-parse", "--verify", "--quiet", RELEASE_BRANCH_REF]);
 		mainAvailable = main.ok && Boolean(main.text);
 		if (!mainAvailable) {
-			missing.push("main ref unavailable");
+			missing.push(main.failure ?? "main ref unavailable");
 		} else {
 			const copier = invoke(runGit, repo, ["cat-file", "-e", `${RELEASE_BRANCH_REF}:copier.yml`]);
 			copierAvailable = copier.ok;
 			if (!copierAvailable) {
+				missing.push(copier.failure ?? "copier.yml unavailable");
 				templateDetail = "repository is not a template source";
 			} else {
 				const refs = invoke(runGit, repo, ["for-each-ref", "--sort=-v:refname", "--format=%(refname:short)", "refs/tags/v*"]);
 				if (!refs.ok) {
-					missing.push(`release tags unavailable (${refs.text})`);
+					missing.push(refs.failure ?? `release tags unavailable (${refs.text})`);
 				} else {
 					tag = selectReleaseTag(refs.text.split(/\r?\n/).filter(Boolean));
 					if (!tag) missing.push("plain vX.Y.Z release tag unavailable");
@@ -89,7 +94,7 @@ export function releaseStatus({ repo, runGit = defaultRunGit }) {
 
 		const remote = invoke(runGit, repo, ["rev-parse", "--verify", "--quiet", RELEASE_REMOTE_REF]);
 		originAvailable = remote.ok && Boolean(remote.text);
-		if (!originAvailable) missing.push("origin/main tracking ref unavailable");
+		if (!originAvailable) missing.push(remote.failure ?? "origin/main tracking ref unavailable");
 		else if (mainAvailable) {
 			const divergence = invoke(runGit, repo, ["rev-list", "--left-right", "--count", `${RELEASE_REMOTE_REF}...${RELEASE_BRANCH_REF}`]);
 			const match = divergence.ok && /^(\d+)\s+(\d+)$/.exec(divergence.text);
