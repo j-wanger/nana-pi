@@ -42,7 +42,7 @@ Seven extensions giving pi the hook coverage we require (Claude Code parity clas
 ## Install
 
 ```bash
-pi install git:github.com/j-wanger/nana-pi       # canonical — the repo-root package.json manifests this subdir
+pi install git:github.com/j-wanger/nana-pi       # canonical for pack-only use; with nana-setup or the desk, register the clone
 pi install /path/to/nana-pi/packages/nana-pack   # local dev
 pi remove ...                                     # uninstall
 ```

@@ -16,7 +16,7 @@
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -756,8 +756,11 @@ export function stepDesk(layout, o) {
 
 /* ------------------------------------------------------------- pi package registration */
 
+/** chosen: use the setup README's global pi installation command; its tested version lives in CI. */
+export const PI_INSTALL_HINT = "npm i -g --ignore-scripts @earendil-works/pi-coding-agent";
+
 /** realpath, falling back to the nearest existing ancestor so a non-existent path still resolves. */
-function realpathSafe(p) {
+export function realpathSafe(p) {
 	let cur = path.resolve(p);
 	const tail = [];
 	for (;;) {
@@ -848,11 +851,16 @@ export function remoteMatches(entry) {
 	return Boolean(bare) && hit(bare[1], bare[2]);
 }
 
+export function resolvePackageEntryPath(entry, piHome) {
+	if (typeof entry !== "string") return null;
+	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
+	return realpathSafe(path.resolve(piHome, expanded));
+}
+
 export function entryMatches(entry, piHome, root) {
 	if (typeof entry !== "string" || entry.startsWith("npm:")) return false;
 	if (/^(git:|github:|[a-z][a-z0-9+.-]*:\/\/)/i.test(entry) || /^[^@/\s]+@[^:/\s]+:/.test(entry)) return remoteMatches(entry);
-	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
-	const abs = realpathSafe(path.resolve(piHome, expanded));
+	const abs = resolvePackageEntryPath(entry, piHome);
 	const r = realpathSafe(root);
 	if (abs === r || abs.startsWith(r + path.sep)) return true;
 	if (!fs.existsSync(abs)) return false;
@@ -920,7 +928,7 @@ export function stepPiRegister(layout, o) {
 	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would add per-package entries for ${state.missing.join(", ")}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
 	const probe = spawnSync("pi", ["--version"], { encoding: "utf8" });
-	if (probe.error) return [{ label: "pi packages", status: SKIPPED, detail: "pi is not on PATH — `npm i -g @earendil-works/pi-coding-agent`, then re-run" }];
+	if (probe.error) return [{ label: "pi packages", status: SKIPPED, detail: `pi is not on PATH — \`${PI_INSTALL_HINT}\`, then re-run` }];
 	const added = [];
 	for (const dir of state.packageRoots.filter((root) => state.missing.some((ext) => ext.startsWith(root + path.sep)))) {
 		const r = spawnSync("pi", ["install", dir], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: layout.piHome } });
