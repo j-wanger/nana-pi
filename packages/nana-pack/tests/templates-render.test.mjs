@@ -7,6 +7,7 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { EXEMPTIONS, SURFACES, judgeClaims, staleExemptions } from "./skill-claims.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -33,6 +34,9 @@ process.env.USERPROFILE = NANA_HOME;
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let fails = 0;
+let skillClaimsExtracted = 0;
+const skillUnjudged = [];
+const reportedStaleExemptions = new Set();
 const check = (n, ok, why = "") => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why);
 	if (!ok) fails++;
@@ -322,6 +326,7 @@ checkInstructionContracts();
 
 const version = copierAvailable();
 if (!version) {
+	for (const surface of Object.keys(SURFACES)) skip(surface, "uvx copier unavailable");
 	for (const language of Object.keys(LANGS)) {
 		skip(`${language}: renders and the code map checks`, "uvx copier is not available on this machine");
 	}
@@ -333,6 +338,71 @@ if (!version) {
 			// req: R-737
 			check(`${language}: copier renders the template`, ok, log.slice(-800));
 			if (!ok) continue;
+			const currentTarget = { name: `${language}-scaffold`, root: dest };
+			const declaredKey = `${language}-scaffold`;
+			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
+			if (language === "python") {
+				const requirementsText = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
+				// req: R-629
+				check("requirements: a misspelled code-map flag is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: [currentTarget], text: requirementsText.replace("scripts/code_map.py --impact", "scripts/code_map.py --impakt") }).flagProblems.some((p) => p.includes("--impakt")));
+			}
+			const skillNames = Object.keys(SURFACES).filter((name) => name !== "templates/_shared/working-under-nana-pi.md" && SURFACES[name].includes(declaredKey));
+			const allSkillClaimProblems = { paths: [], commands: [], flags: [] };
+			for (const surface of [...skillNames, "templates/_shared/working-under-nana-pi.md"]) {
+				const text = surface === "templates/_shared/working-under-nana-pi.md"
+					? sharedText
+					: fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, "SKILL.md"), "utf8");
+				const result = judgeClaims({ surface, root: REPO, targets: [currentTarget], text });
+				allSkillClaimProblems.paths.push(...result.pathProblems);
+				allSkillClaimProblems.commands.push(...result.commandProblems);
+				allSkillClaimProblems.flags.push(...result.flagProblems);
+				for (const entry of staleExemptions(surface, text)) {
+					const key = `${entry.surface}:${entry.kind}:${entry.text}`;
+					if (!reportedStaleExemptions.has(key)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
+					reportedStaleExemptions.add(key);
+				}
+				if (language === "python" && declaredKey === "python-scaffold") {
+					if (surface === "scaffold-py") for (const entry of EXEMPTIONS.filter((item) => !item.reason.trim())) check("claim exemption has a reason", false, `${entry.surface} ${entry.text}`);
+					for (const entry of staleExemptions(surface, text)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
+				}
+				skillClaimsExtracted += result.claims;
+				skillUnjudged.push(...result.unjudgedCommands);
+				// req: R-598 R-599 R-629
+				check(`${language} scaffold: all declared skill claims resolve independently for ${surface}`,
+					![...result.pathProblems, ...result.commandProblems, ...result.flagProblems].length,
+					[...result.pathProblems, ...result.commandProblems, ...result.flagProblems].join("\\n"));
+				if (surface === "scaffold-py") {
+					// req: R-598
+					check("scaffold-py: a removed code-map path is rejected", judgeClaims({ surface, root: REPO, targets: [currentTarget], text: text.replace("scripts/code_map.py", "scripts/gone.py") }).pathProblems.length > 0);
+				}
+				if (surface === "scaffold-ts") {
+					// req: R-599
+					check("scaffold-ts: an unknown package script is rejected", judgeClaims({ surface, root: REPO, targets: [currentTarget], text: text.replace("pnpm map:check", "pnpm map:chek") }).commandProblems.some((p) => p.includes("not a script")));
+				}
+				if (surface === "scaffold-ts") {
+					// req: R-599
+					check("scaffold-ts: an inline pnpm separator mutation is rejected", judgeClaims({ surface, root: REPO, targets: [currentTarget], text: text.replace("pnpm map:check", "pnpm map:check -- <files>") }).commandProblems.some((p) => p.includes("separator")));
+				}
+				if (surface === "templates/_shared/working-under-nana-pi.md") {
+					// req: R-598
+					check(`${language} scaffold: a removed shared HANDOFF path is rejected`, judgeClaims({ surface, root: REPO, targets: [currentTarget], text: text.replace("HANDOFF.md", "HANDOF.md") }).pathProblems.length > 0);
+				}
+			}
+			if (language === "python") {
+				// req: R-598
+				check("python scaffold: all declared skill paths resolve independently", allSkillClaimProblems.paths.length === 0, allSkillClaimProblems.paths.join("\n"));
+				// req: R-599
+				check("python scaffold: all declared package-script commands resolve independently", allSkillClaimProblems.commands.length === 0, allSkillClaimProblems.commands.join("\n"));
+				// req: R-629
+				check("python scaffold: all declared flags and subcommands resolve independently", allSkillClaimProblems.flags.length === 0, allSkillClaimProblems.flags.join("\n"));
+			} else {
+				// req: R-598
+				check("typescript scaffold: all declared skill paths resolve independently", allSkillClaimProblems.paths.length === 0, allSkillClaimProblems.paths.join("\n"));
+				// req: R-599
+				check("typescript scaffold: all declared package-script commands resolve independently", allSkillClaimProblems.commands.length === 0, allSkillClaimProblems.commands.join("\n"));
+				// req: R-629
+				check("typescript scaffold: all declared flags and subcommands resolve independently", allSkillClaimProblems.flags.length === 0, allSkillClaimProblems.flags.join("\n"));
+			}
 
 			const renderedAgents = fs.readFileSync(path.join(dest, "AGENTS.md"), "utf-8");
 			const renderedPrefix = renderedAgents.slice(0, renderedAgents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
@@ -464,6 +534,50 @@ if (!version) {
 			check(`${language} adopt: copier renders the template`, adopt.ok, adopt.out.slice(-800));
 			if (!adopt.ok) continue;
 			const dir = adopt.dest;
+			const adoptTarget = { name: `${language}-adopt`, root: dir };
+			const adoptKey = `${language}-adopt`;
+			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
+			const adoptSkillNames = Object.keys(SURFACES).filter((name) => name !== "templates/_shared/working-under-nana-pi.md" && SURFACES[name].includes(adoptKey));
+			const allAdoptSkillClaimProblems = { paths: [], commands: [], flags: [] };
+			for (const surface of [...adoptSkillNames, "templates/_shared/working-under-nana-pi.md"]) {
+				const text = surface === "templates/_shared/working-under-nana-pi.md"
+					? sharedText
+					: fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, "SKILL.md"), "utf8");
+				const result = judgeClaims({ surface, root: REPO, targets: [adoptTarget], text });
+				allAdoptSkillClaimProblems.paths.push(...result.pathProblems);
+				allAdoptSkillClaimProblems.commands.push(...result.commandProblems);
+				allAdoptSkillClaimProblems.flags.push(...result.flagProblems);
+				for (const entry of staleExemptions(surface, text)) {
+					const key = `${entry.surface}:${entry.kind}:${entry.text}`;
+					if (!reportedStaleExemptions.has(key)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
+					reportedStaleExemptions.add(key);
+				}
+				skillClaimsExtracted += result.claims;
+				skillUnjudged.push(...result.unjudgedCommands);
+				// req: R-598 R-599 R-629
+				check(`${language} adopt: all declared skill claims resolve independently for ${surface}`,
+					![...result.pathProblems, ...result.commandProblems, ...result.flagProblems].length,
+					[...result.pathProblems, ...result.commandProblems, ...result.flagProblems].join("\\n"));
+				if (surface === "adopt-ts") {
+					// req: R-598
+					check("adopt-ts: a removed code-map test path is rejected", judgeClaims({ surface, root: REPO, targets: [adoptTarget], text: text.replace("tests/code-map.test.ts", "tests/gone.test.ts") }).pathProblems.length > 0);
+				}
+			}
+			if (language === "python") {
+				// req: R-598
+				check("python adopt: all declared skill paths resolve independently", allAdoptSkillClaimProblems.paths.length === 0, allAdoptSkillClaimProblems.paths.join("\n"));
+				// req: R-599
+				check("python adopt: all declared package-script commands resolve independently", allAdoptSkillClaimProblems.commands.length === 0, allAdoptSkillClaimProblems.commands.join("\n"));
+				// req: R-629
+				check("python adopt: all declared flags and subcommands resolve independently", allAdoptSkillClaimProblems.flags.length === 0, allAdoptSkillClaimProblems.flags.join("\n"));
+			} else {
+				// req: R-598
+				check("typescript adopt: all declared skill paths resolve independently", allAdoptSkillClaimProblems.paths.length === 0, allAdoptSkillClaimProblems.paths.join("\n"));
+				// req: R-599
+				check("typescript adopt: all declared package-script commands resolve independently", allAdoptSkillClaimProblems.commands.length === 0, allAdoptSkillClaimProblems.commands.join("\n"));
+				// req: R-629
+				check("typescript adopt: all declared flags and subcommands resolve independently", allAdoptSkillClaimProblems.flags.length === 0, allAdoptSkillClaimProblems.flags.join("\n"));
+			}
 
 			const skillName = language === "python" ? "adopt-py" : "adopt-ts";
 			const skill = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", skillName, "SKILL.md"), "utf8");
@@ -526,5 +640,6 @@ const adoptUpdateSkills = ["adopt-py", "adopt-ts"].map((name) => fs.readFileSync
 check("generated project update guidance is generic with adopted-project qualification", /run `uvx copier update --conflict inline` inside the\s+project/.test(updateGuide) && /For adopted projects, convert\s+decorator markers first; never use `--conflict rej`/.test(updateGuide) && adoptUpdateSkills.every((text) => /--conflict inline/.test(text) && /never `--conflict rej`/.test(text)));
 
 fs.rmSync(NANA_HOME, { recursive: true, force: true });
+console.log(`claims: ${skillClaimsExtracted} extracted, ${skillUnjudged.length} command claims not judged (heads: ${[...new Set(skillUnjudged)].join(", ") || "none"})`);
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
