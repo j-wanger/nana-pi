@@ -49,14 +49,14 @@ console.log = originalLog;
 // req: R-583
 check("Part G drift is printed once without becoming a problem", printed.filter((line) => line.startsWith("part g:")).length === 1 && printed.includes(result.driftLine) && result.driftLine?.includes("G-001") && result.problems.length === 0, `${printed.join("|")} ${result.problems.join("|")}`);
 writeFileSync(join(root, "REQUIREMENTS.md"), table([
- ["G-001", "The fixture shall be shaped and shall expose its source."],
+ ["G-001", "The fixture shall be shaped."],
  ["G-002", "The fixture shall use configured values.", "violated"],
  ["G-013", baseRows[2][1]], ["G-014", baseRows[3][1]], ["G-015", baseRows[4][1]],
 ]));
-writeFileSync(join(root, "REQUIREMENTS-general.md"), table(baseRows.map(([id, req, status]) => [id, id === "G-001" ? "The fixture shall be shaped." : req, status])));
+writeFileSync(join(root, "REQUIREMENTS-general.md"), table(baseRows.map(([id, req, status]) => [id, id === "G-001" ? "The fixture shall be shaped and shall expose its source." : req, status])));
 result = railCheck(root, { testRoots: ["tests"] });
 // req: R-578
-check("reverse discrepancy uses the file's single-shall Requirement", !result.earsOffForm.includes("G-001"), result.earsLine);
+check("reverse discrepancy counts the two-shall file Requirement", result.earsOffForm.includes("G-001"), result.earsLine);
 writeFileSync(join(root, "REQUIREMENTS.md"), table(baseRows));
 writeFileSync(join(root, "REQUIREMENTS-general.md"), table(baseRows.map(([id, req, status]) => [id, id === "G-001" ? "The fixture shall be shaped." : req, status])));
 result = railCheck(root, { testRoots: ["tests"] });
@@ -81,16 +81,13 @@ const probe = (command, args, options = {}) => {
  try { return spawnSync(command, args, { encoding: "utf8", ...options }); }
  catch (error) { return { status: null, error }; }
 };
-const unavailableProbe = probe("nana-partg-unavailable-tool", [], { cwd: root });
-const unavailableReason = "nana-partg-unavailable-tool unavailable";
-const unavailableStdout = unavailableProbe.status === 0 ? (unavailableProbe.stdout ?? "").trim() : "";
-console.log(`SKIP simulated unavailable tool: ${unavailableReason}`);
+const unavailableReason = (tool) => `${tool} unavailable`;
 // req: R-582
-check("unavailable tool probe safely reports its named skip", unavailableProbe.status === null && unavailableProbe.error?.code === "ENOENT" && unavailableReason.includes("nana-partg-unavailable-tool") && unavailableStdout === "");
+check("unavailable-tool skip reason names the missing tool", unavailableReason("nana-partg-unavailable-tool") === "nana-partg-unavailable-tool unavailable");
 const uvProbe = probe("uv", ["cache", "dir"], { cwd: root });
 const uvCache = uvProbe.status === 0 ? (uvProbe.stdout ?? "").trim() : "";
 const env = { ...process.env, HOME: root, ...(uvCache ? { UV_CACHE_DIR: uvCache } : {}), GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
-if (uvProbe.status !== 0) console.log(`SKIP uv cache configuration: uv unavailable${uvProbe.error ? ` (${uvProbe.error.message})` : ""}`);
+if (uvProbe.status !== 0) console.log(`SKIP uv cache configuration: ${unavailableReason("uv")}${uvProbe.error ? ` (${uvProbe.error.message})` : ""}`);
 const shared = readFileSync(new URL("templates/_shared/requirements-general.md", sourceRoot), "utf8");
 const copierConfig = readFileSync(new URL("copier.yml", sourceRoot), "utf8");
 const skipMatches = (config, target) => config.split("\n").some((line) => {
@@ -126,7 +123,7 @@ const copyProbe = probe("uvx", ["copier", "--version"], { cwd: root });
 const pythonProbe = probe("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { cwd: root });
 const haveCopier = copyProbe.status === 0;
 const havePytest = pythonProbe.status === 0;
-if (!havePytest) console.log(`SKIP Python rail fixtures: pytest through uvx unavailable${pythonProbe.error ? ` (${pythonProbe.error.message})` : ""}`);
+if (!havePytest) console.log(`SKIP Python rail fixtures: ${unavailableReason("pytest through uvx")}${pythonProbe.error ? ` (${pythonProbe.error.message})` : ""}`);
 if (havePytest) {
  const pythonRail = (fixture, code) => probe("uvx", ["--with", "pytest", "python", "-c", code, fixture, new URL("../../../templates/python/template/tests/conftest.py", import.meta.url).pathname], { cwd: fixture });
  const pythonFixture = (name, project, general) => {
@@ -140,6 +137,10 @@ if (havePytest) {
  // req: R-578
  // req: R-579
  check("Python rail uses the file Requirement while preserving project-owned fields", precedence.status === 0, precedence.stderr ?? "");
+ const reverseFixture = pythonFixture("python-reverse", [["G-001", "The fixture shall be shaped."]], [["G-001", "The fixture shall be shaped and shall expose its source."]]);
+ const reverse = pythonRail(reverseFixture, "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1]), test_roots=()); assert 'G-001' in r[4]");
+ // req: R-578
+ check("Python rail flags the two-shall file Requirement when the project has one shall", reverse.status === 0, reverse.stderr ?? "");
  const fallback = pythonFixture("python-fallback", [["G-001", "The fixture shall work and shall report."]], null);
  mkdirSync(join(fallback, "tests"));
  writeFileSync(join(fallback, "tests", "test_marker.py"), "# req: G-013\ndef test_unknown_marker():\n    pass\n");
@@ -156,7 +157,7 @@ if (havePytest) {
  check("Python rejects malformed template status before merging project-owned fields", badStatus.status === 0, badStatus.stderr ?? "");
 }
 if (!haveCopier) {
- console.log(`SKIP fresh Part G render matrix: uvx copier unavailable${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);
+ console.log(`SKIP fresh Part G render matrix: ${unavailableReason("uvx copier")}${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);
 } else {
  for (const language of ["python", "typescript"]) {
   for (const adopt of [false, true]) {
@@ -179,7 +180,7 @@ const repo = sourceRoot;
 const available = copyProbe;
 const hasOldTag = probe("git", ["-C", repo.pathname, "rev-parse", "--verify", "v0.6.0"]).status === 0;
 if (!haveCopier || !hasOldTag || !havePytest) {
- console.log(`SKIP copier update legs: ${!haveCopier ? "uvx copier unavailable" : !hasOldTag ? "v0.6.0 tag unavailable" : "pytest through uvx unavailable"}`);
+ console.log(`SKIP copier update legs: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
 } else {
  for (const language of ["python", "typescript"]) {
   const dest = join(root, `update-${language}`);
@@ -231,7 +232,7 @@ if (!haveCopier || !hasOldTag || !havePytest) {
  }
 }
 if (!haveCopier || !hasOldTag || !havePytest) {
- console.log(`SKIP Python adopt update leg: ${!haveCopier ? "uvx copier unavailable" : !hasOldTag ? "v0.6.0 tag unavailable" : "pytest through uvx unavailable"}`);
+ console.log(`SKIP Python adopt update leg: ${!haveCopier ? unavailableReason("uvx copier") : !hasOldTag ? unavailableReason("v0.6.0 tag") : unavailableReason("pytest through uvx")}`);
 } else {
 const adoptRoot = join(root, "adopt-python");
 mkdirSync(adoptRoot, { recursive: true });
