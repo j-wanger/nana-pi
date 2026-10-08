@@ -190,7 +190,7 @@ pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider 
 **This is a self-governance device against the fix-review treadmill, not a security control.**
 Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and
 hand-run reviews are supplemental and earn no round; do not describe them as formal counted reviews.
-Each review runs from a detached checkout under the OS temporary directory; ignored files such as
+Each `pi-review` review runs from a detached checkout under the OS temporary directory; ignored files such as
 `node_modules` are not copied, so a reviewer that needs them must install dependencies or review read-only.
 The checkout path is available as `NANA_REVIEW_ROOT`; initialized submodules are refused before admission,
 and stale checkouts from dead reviews are reclaimed at startup.
