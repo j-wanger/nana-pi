@@ -280,6 +280,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const ledgerAllowed = ledgerRun(["--item", "shape-ledger-allowed"], { cwd: A.d,
 		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(accepted)})`] });
 	ledgerAccepts &&= ledgerAllowed.status === 0;
+	const prefixed = ledgerRun(["--item", "shape-prefixed-verdict"], { cwd: A.d,
+		cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify("- VERDICT: BLOCK")})`] });
+	// req: R-969
+	check("prefixed verdict accepted by shape predicate is extracted into the recorded round",
+		prefixed.status === 0 && roundsOf("shape-prefixed-verdict")[0]?.verdict === "BLOCK", JSON.stringify(roundsOf("shape-prefixed-verdict")));
 	// req: R-701
 	check("pi-review enforces the case-sensitive verdict line boundary", piRejects && piAccepts);
 	// req: R-701
@@ -829,20 +834,28 @@ if (process.platform !== "win32") {
 {
 	freshHome("23");
 	A.at(0);
-	const launch = ledgerRun(["--item", "report-item", "--role", "sol", "--over-cap", "approved exception"], {
+	const launch = ledgerRun(["--item", "report-item", "--role", "sol", "--over-cap", "not actually over cap"], {
 		cmd: [process.execPath, "-e", "console.log('VERDICT: LAND')", "--", "--provider", "anthropic", "--model", "claude-test-1"],
 	});
 	const current = roundsOf("report-item")[0];
 	const before = fs.readFileSync(tallyFile, "utf8");
 	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
 	const repoReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--repo", A.d, "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
+	const reportTally = fs.readFileSync(tallyFile, "utf8");
+	for (let i = 0; i < 3; i++) reviewAt("report-over-cap", i);
+	A.at(3);
+	const overCap = ledgerRun(["--item", "report-over-cap", "--over-cap", "approved exception"], { cwd: A.d });
+	const overCapRow = roundsOf("report-over-cap").at(-1);
+	const overCapReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-over-cap"], { cwd: A.d, env: env(), encoding: "utf8" });
 	// req: R-970
-	check("report records provider, model, timestamps, duration, attempts, role and over-cap reason; report does not write",
+	check("report records metadata, omits unused override reasons, and reports real over-cap reason read-only",
 		launch.status === 0 && current.provider === "anthropic" && current.model === "claude-test-1" &&
 		Date.parse(current.startedAt) <= Date.parse(current.endedAt) && Number.isFinite(current.durationMs) && current.attempts === 1 &&
-		current.role === "sol" && current.overCap === "approved exception" &&
-		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| approved_exception\n$/.test(report.stdout) &&
-		report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && fs.readFileSync(tallyFile, "utf8") === before, JSON.stringify({ current, report: report.stdout, repoReport: repoReport.stdout, status: report.status }));
+		current.role === "sol" && current.overCap === null &&
+		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| -\n$/.test(report.stdout) &&
+		report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && reportTally === before &&
+		overCap.status === 0 && overCapRow?.overCap === "approved exception" && /\| approved_exception\n$/.test(overCapReport.stdout),
+		JSON.stringify({ current, report: report.stdout, repoReport: repoReport.stdout, overCapRow, overCapReport: overCapReport.stdout }));
 	const legacy = { v: 1, kind: "round", repo: current.repo, item: "legacy-report", revision: A.shas[1], role: "reviewer" };
 	fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
 	const oldReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "legacy-report"], { cwd: A.d, env: env(), encoding: "utf8" });

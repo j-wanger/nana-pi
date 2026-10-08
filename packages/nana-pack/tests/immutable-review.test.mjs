@@ -39,11 +39,14 @@ git(repo, "init", "-q");
 fs.writeFileSync(path.join(repo, ".gitignore"), "ignored.txt\n");
 fs.writeFileSync(path.join(repo, "tracked.txt"), "base\n");
 fs.writeFileSync(path.join(repo, "deleted.txt"), "delete me\n");
-git(repo, "add", ".gitignore", "tracked.txt", "deleted.txt");
+fs.writeFileSync(path.join(repo, "staged-deleted.txt"), "delete from index\n");
+git(repo, "add", ".gitignore", "tracked.txt", "deleted.txt", "staged-deleted.txt");
 git(repo, "commit", "-qm", "base");
 const initialHead = git(repo, "rev-parse", "HEAD");
 fs.writeFileSync(path.join(repo, "tracked.txt"), "dirty tracked content\n");
 fs.rmSync(path.join(repo, "deleted.txt"));
+fs.rmSync(path.join(repo, "staged-deleted.txt"));
+git(repo, "add", "-u", "staged-deleted.txt");
 fs.writeFileSync(path.join(repo, "name\nwith-newline.txt"), "newline filename\n");
 fs.symlinkSync("tracked.txt", path.join(repo, "link.txt"));
 fs.writeFileSync(path.join(repo, "ignored.txt"), "do not copy\n");
@@ -60,9 +63,10 @@ const launched = fs.existsSync(observe);
 let observed = launched ? fs.readFileSync(observe, "utf8").trim().split("\n") : [];
 const checkout = observed[0];
 const snapshotCorrect = launched && fs.realpathSync(checkout) === fs.realpathSync(observed[1]) && observed[2] === "reviewer" &&
-  observed[3].includes("Your cwd is an immutable checkout of revision") &&
+  observed[3].includes(`Your cwd is an immutable checkout of revision ${revision} at ${observed[1]}; read files there, not in other worktrees`) &&
   fs.readFileSync(path.join(checkout, "tracked.txt"), "utf8") === "dirty tracked content\n" &&
   !fs.existsSync(path.join(checkout, "deleted.txt")) &&
+  !fs.existsSync(path.join(checkout, "staged-deleted.txt")) &&
   fs.readFileSync(path.join(checkout, "name\nwith-newline.txt"), "utf8") === "newline filename\n" &&
   fs.readlinkSync(path.join(checkout, "link.txt")) === "tracked.txt" &&
   !fs.existsSync(path.join(checkout, "ignored.txt"));
@@ -117,10 +121,25 @@ const afterSignal = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
 check("temporary worktree registration is removed after signal interruption", signalCode === 143 && !afterSignal.includes("nana-review-immutable-") && !fs.existsSync(signalCheckout), afterSignal);
 
+// A failed git removal must fall back, prune, and verify that the stale registration is gone.
+const gitShimDir = path.join(root, "git-shim");
+fs.mkdirSync(gitShimDir);
+const realGit = spawnSync("which", ["git"], { encoding: "utf8" }).stdout.trim();
+fs.writeFileSync(path.join(gitShimDir, "git"), `#!/bin/sh\nif [ "$1" = worktree ] && [ "$2" = remove ]; then exit 1; fi\nexec '${realGit}' "$@"\n`);
+fs.chmodSync(path.join(gitShimDir, "git"), 0o755);
+const cleanupFailure = spawnSync(process.execPath, [piReview, "--item", "cleanup-fallback", "--out", path.join(root, "cleanup-fallback.md"), "--retries", "0", "--", "-p", "review"], {
+  cwd: repo, env: env({ PATH: `${gitShimDir}:${fakeBin}:${process.env.PATH}`, OBSERVE: path.join(root, "cleanup-fallback-observe") }), encoding: "utf8", timeout: 30000,
+});
+const afterCleanupFailure = git(repo, "worktree", "list", "--porcelain");
+// req: R-967
+check("failed worktree removal falls back, prunes and verifies registration cleanup", cleanupFailure.status === 0 &&
+  !afterCleanupFailure.includes("nana-review-immutable-") && !cleanupFailure.stderr.includes("cleanup failed"), JSON.stringify({ status: cleanupFailure.status, stderr: cleanupFailure.stderr, afterCleanupFailure }));
+
 // Force a source change during the detach checkout; equality must fail before admission.
 const mismatchItem = "mismatch-refusal";
+const mismatchAdmissionProbe = path.join(root, "mismatch-admission-probe");
 const mismatchHook = path.join(repo, git(repo, "rev-parse", "--git-path", "hooks"), "post-checkout");
-fs.writeFileSync(mismatchHook, `#!/bin/sh\nprintf 'changed by checkout hook\\n' > '${path.join(repo, "tracked.txt")}'\n`);
+fs.writeFileSync(mismatchHook, `#!/bin/sh\nreservations='${path.join(home, ".pi", "agent", "review-ledger.reservations")}'\nif [ -d "$reservations" ] && [ "$(find "$reservations" -type f | wc -l | tr -d ' ')" -gt 0 ]; then touch '${mismatchAdmissionProbe}'; fi\nprintf 'changed by checkout hook\\n' > '${path.join(repo, "tracked.txt")}'\n`);
 fs.chmodSync(mismatchHook, 0o755);
 const mismatch = spawnSync(process.execPath, [piReview, "--item", mismatchItem, "--out", path.join(root, "mismatch.md"), "--", "-p", "review"], {
   cwd: repo, env: env({ OBSERVE: path.join(root, "mismatch-observe") }), encoding: "utf8", timeout: 30000,
@@ -129,7 +148,8 @@ fs.rmSync(mismatchHook, { force: true });
 const afterMismatch = git(repo, "worktree", "list", "--porcelain");
 // req: R-967
 check("unreproducible dirty snapshot is refused before admission with no round or worktree", mismatch.status === 1 && /snapshot could not be reproduced exactly/.test(mismatch.stderr) &&
-  reviewRound.readRounds(home, { item: mismatchItem }).length === 0 && !fs.existsSync(path.join(root, "mismatch-observe")) && !afterMismatch.includes("nana-review-immutable-"), mismatch.stderr);
+  reviewRound.readRounds(home, { item: mismatchItem }).length === 0 && !fs.existsSync(mismatchAdmissionProbe) &&
+  !fs.existsSync(path.join(root, "mismatch-observe")) && !afterMismatch.includes("nana-review-immutable-"), mismatch.stderr);
 
 const submodule = path.join(repo, "dirty-submodule");
 fs.mkdirSync(submodule);

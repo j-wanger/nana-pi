@@ -406,7 +406,7 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
 function verdictWord(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
-  return text.match(/^VERDICT:\s*(\S+)/m)?.[1] ?? null;
+  return text.match(/^[^\w\r\n]*VERDICT:\s*(\S+)/m)?.[1] ?? null;
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
@@ -538,7 +538,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       if (override) appendAudit(p, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
-      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, overCapReason: q.overCap ?? null, attempts, startedAt: new Date().toISOString() };
+      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, overCapReason: override ?? null, attempts, startedAt: new Date().toISOString() };
       const fd = openSync(join(p.resDir, `${id}.json`), C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
       const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +

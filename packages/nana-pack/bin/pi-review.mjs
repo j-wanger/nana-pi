@@ -62,9 +62,16 @@ const git = (cwd, args) => {
 const list = (cwd, args) => git(cwd, args).split('\0').filter(Boolean);
 const removeWorktree = () => {
   if (!tempRoot) return;
-  spawnSync('git', ['worktree', 'remove', '--force', tempRoot], { cwd: sourceRoot, stdio: 'ignore' });
-  spawnSync('git', ['worktree', 'prune'], { cwd: sourceRoot, stdio: 'ignore' });
-  rmSync(tempRoot, { recursive: true, force: true });
+  const removed = spawnSync('git', ['worktree', 'remove', '--force', tempRoot], { cwd: sourceRoot, stdio: 'ignore' });
+  if (removed.error) throw removed.error;
+  if (removed.status !== 0) rmSync(tempRoot, { recursive: true, force: true });
+  const pruned = spawnSync('git', ['worktree', 'prune', '--expire', 'now'], { cwd: sourceRoot, stdio: 'ignore' });
+  if (pruned.error) throw pruned.error;
+  if (pruned.status !== 0) throw new Error('git worktree prune failed');
+  const registrations = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: sourceRoot, encoding: 'utf8' });
+  if (registrations.error) throw registrations.error;
+  if (registrations.status !== 0) throw new Error('cannot verify worktree cleanup');
+  if (registrations.stdout.split(/\r?\n/).includes(`worktree ${tempRoot}`)) throw new Error(`worktree registration remains: ${tempRoot}`);
 };
 const copySnapshot = (root, target) => {
   const index = git(root, ['ls-files', '--stage', '-z']);
@@ -76,7 +83,7 @@ const copySnapshot = (root, target) => {
       if (status.status !== 0 || status.stdout.trim()) throw new Error(`dirty submodule cannot be materialized: ${p}`);
     }
   }
-  const files = [...new Set([...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
+  const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
   for (const p of files) {
     const from = join(root, p), to = join(target, p);
     let st;
