@@ -36,6 +36,16 @@
 - **Builder:** Jake ruled "if anything use sonnet 5.5"; a blind A/B on the land helper tied; luna stays the default.
 - **Proportional stopping:** on low-risk lanes, rare edge cases after three rounds become declared residuals; over-cap rounds go only to builder bugs on named cases, regressions and safety findings.
 
+## Seat rulings during tranche 4 (2026-10-08)
+
+- **IDs re-declared, not widened:** the three-digit space below R-995 had 78 never-assigned IDs; tranche 4 used R-578–R-599, R-626–R-629 and R-686. The `[RG]-\d{3}` grammar every rendered project inherits stays as it is.
+- **Fable consult on the lane drafts:** the objective-producer change in 4.4 was cut (the seeded DRAFT line already is the not-ratified notice; entry points perform ratification); 4.2 imports 4.3's release helper instead of writing a second one; 4.5 shrank to three rows inside the existing four renders, with PATH-link policing and stale-exemption failure cut; 4.1's drift line became required.
+- **Release by CI:** the root workflow runs the suite on macOS (blocking) and Linux (non-blocking) and, on a green push to main with template changes since the newest tag, runs the acceptance gate in-process and cuts the next annotated patch tag. The first green run cut `v0.6.4` (2026-10-08, run 37840989837). Tags are never cut by hand.
+- **The acceptance gate's first run** found rendered TypeScript projects failing their own type check (TS2375 from the Part G lane); a two-line fix lane closed it before any tag carried it. Every template-touching lane now runs the gate before its land review.
+- **Hosted CI's first runs** found three host assumptions in tests (a depth-1 checkout, a default branch named main, pi's install prefix); one lane fixed them with local reproductions. One Linux-only symlink check stays declared.
+- **One suite lock:** `npm run test:locked` is the repository's full-suite lock; the seat's bash wrapper is a thin bridge onto it until no worktree predates it.
+- **4.7 product handoffs:** edge-screener names `p87-setup` as its land branch (local commit; publishing and moving `main` are Jake's). The aml-desk ruling line and the basketball-geek dormant line wait until those sessions are idle.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).

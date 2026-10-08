@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/skill-claims.mjs
  * @purpose Judge path, package-script, flag, and nana-command claims on one declared surface.
  * @inputs A surface name, its text, and the root directories against which its claims apply.
- * @outputs Judged claim counts, unjudged command heads, and categorized problems.
+ * @outputs Extracted claim counts, unjudged command heads, and categorized problems.
  * @effects disk (reads package metadata and claimed source paths).
  * @errors Invalid package metadata is treated as an empty declaration; claim failures are returned to the caller.
  */
