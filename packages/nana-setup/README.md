@@ -156,8 +156,8 @@ records through pi's own `ProjectTrustStore` and prints the store path. `pi -a` 
 (and the desk's trust box, which sends `-a`) trusts one run only; it is not a recorded decision.
 
 `project` and every scaffold and adopt completion message name the first two steps: ratify the
-seeded `OBJECTIVE.md` (fill the date; the DRAFT lines are yours), then run
-`nana-setup trust <dir>`. What the tool will not do is decide your objective.
+seeded `OBJECTIVE.md`, then run `nana-setup trust <dir>`. Scaffold and adopt messages also say
+to fill the date; project setup already fills it. What the tool will not do is decide your objective.
 
 **Present means present, not readable.** Every "is it already there?" decision about a file this
 installer WRITES is `lstat`, not `existsSync`: a **dangling** symlink reads as absent to

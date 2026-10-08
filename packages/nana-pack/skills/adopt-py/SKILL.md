@@ -73,6 +73,7 @@ Files written by an adopt render into an empty folder:
 - `HANDOFF.md` (written only when absent)
 - `OBJECTIVE.md` (written only when absent)
 - `REQUIREMENTS.md` (written only when absent)
+- `REQUIREMENTS-general.md`
 - `code-map.config.json`
 - `docs/code-map.md` (written only when absent)
 - `docs/sessions/README.md` (written only when absent)
