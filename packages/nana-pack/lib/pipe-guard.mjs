@@ -72,8 +72,8 @@ function liveText(command) {
 			comment = true; text += " "; line += " "; continue;
 		}
 		if (ch === "\n") {
-			const marker = line.match(/(?:^|[^<])<<-?(?!<)\s*['"]?([\w.-]+)['"]?\s*$/);
-			if (marker) heredoc = marker[1];
+			const marker = line.match(/(?:^|[^<])<<-?(?!<)\s*(?:'([\w.-]+)'|"([\w.-]+)"|\\([\w.-]+))\s*$/);
+			if (marker) heredoc = marker[1] ?? marker[2] ?? marker[3];
 			line = "";
 		} else line += ch;
 		text += ch;
@@ -90,30 +90,12 @@ export function verifierPipeReason(command, dialect = "bash") {
 	for (let i = 0; i < live.length; i++) {
 		if (live[i] === "|" && live[i - 1] !== "|" && live[i + 1] !== "|") events.push({ at: i, kind: "pipe" });
 	}
-	if (dialect !== "powershell") {
-		const topLevel = new Uint8Array(live.length + 1);
-		let depth = 0;
-		for (let i = 0; i < live.length; i++) {
-			topLevel[i] = depth === 0 ? 1 : 0;
-			if (live[i] === "(" || live[i] === "{") depth++;
-			else if ((live[i] === ")" || live[i] === "}") && depth > 0) depth--;
-		}
-		for (const m of live.matchAll(/(?:^|[;&\n])\s*set\s+(-(?:o|[a-z]*o))\s+pipefail\s*(?=$|[;&\n])/gi)) {
-			const at = (m.index ?? 0) + m[0].lastIndexOf("set");
-			if (topLevel[at]) events.push({ at, kind: "enable" });
-		}
-		for (const m of live.matchAll(/\bset\s+\+o\s+pipefail\b/gi)) {
-			events.push({ at: m.index ?? 0, kind: "disable" });
-		}
-	}
-	events.sort((a, b) => a.at - b.at);
+	const initialPipefail = dialect !== "powershell"
+		&& /^\s*set\s+-(?:o|[a-z]*o)\s+pipefail(?:;|&&|\n)/i.test(live)
+		&& !/\bset\s+\+o\s+pipefail\b/i.test(live);
 	for (const commit of commits) {
-		let enabled = false;
-		for (const event of events) {
-			if (event.at >= commit) break;
-			if (event.kind === "enable") enabled = true;
-			if (event.kind === "disable") enabled = false;
-			if (event.kind === "pipe" && !enabled) return "A pipeline runs before git commit without active pipefail; rerun the verifier without a masking pipe or enable pipefail first.";
+		if (events.some((event) => event.kind === "pipe" && event.at < commit) && !initialPipefail) {
+			return "A pipeline runs before git commit without active pipefail; rerun the verifier without a masking pipe or enable pipefail first.";
 		}
 	}
 	return null;

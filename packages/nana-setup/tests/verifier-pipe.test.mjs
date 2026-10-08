@@ -14,7 +14,7 @@ import * as path from "node:path";
 import { desiredHooks } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
-import { decideHook } from "../lib/verifier-hook.mjs";
+import { runHook } from "../claude/hooks/verifier-pipe.mjs";
 
 let failures = 0;
 const check = (title, pass, extra = "") => {
@@ -37,12 +37,18 @@ check("installed symlink abstains on an unrelated command", ordinary.status === 
 const invalid = invokeInstalledHook("{");
 // req: R-984
 check("installed symlink abstains on malformed JSON with stderr note", invalid.status === 0 && invalid.stdout === "" && /nana verifier-pipe:/.test(invalid.stderr));
-const malformedShape = decideHook({ tool_name: "Bash", tool_input: { command: "git log | head; git commit" } });
+const malformedShape = invokeInstalledHook(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }));
 // req: R-984
-check("hook abstains on malformed event with stderr diagnostic", malformedShape.response === null && /malformed/.test(malformedShape.diagnostic));
-const thrown = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }, () => { throw new Error("predicate failure"); });
+check("installed hook reports malformed JSON shape on stderr", malformedShape.status === 0 && malformedShape.stdout === "" && /nana verifier-pipe:.*malformed/.test(malformedShape.stderr));
+let protocolStdout = "";
+let protocolStderr = "";
+runHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }), {
+	predicate: () => { throw new Error("predicate failure"); },
+	stdout: { write: (text) => { protocolStdout += text; } },
+	stderr: { write: (text) => { protocolStderr += text; } },
+});
 // req: R-984
-check("hook abstains on predicate errors with stderr diagnostic", thrown.response === null && /predicate failure/.test(thrown.diagnostic) && /abstaining/.test(thrown.diagnostic));
+check("protocol writer reports predicate errors on stderr", protocolStdout === "" && /nana verifier-pipe:.*predicate failure.*abstaining/.test(protocolStderr));
 
 const hooks = desiredHooks({ hooksDir: "/tmp/claude/hooks", repoRoot: root });
 const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
