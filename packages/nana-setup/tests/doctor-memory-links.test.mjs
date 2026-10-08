@@ -69,6 +69,34 @@ check("memory lint leaves both tiers byte-identical", JSON.stringify(snapshot(sh
 	check("doctor reports only the configured issue limit plus a remainder count", row?.status === "warn" && row.detail.includes("… 5 more") && row.detail.split("; ").length === MEMORY_LINK_ISSUE_LIMIT + 1, row?.detail);
 }
 
+const doctorMemoryResult = (label, sharedFiles, projectFiles) => {
+	const home = path.join(root, `${label}-doctor-home`);
+	const layout = resolveLayout({ home });
+	install(layout);
+	const subagentsPackage = path.join(layout.piHome, "npm", "node_modules", "pi-subagents");
+	fs.mkdirSync(subagentsPackage, { recursive: true });
+	fs.writeFileSync(path.join(subagentsPackage, "package.json"), '{"version":"0.75.0"}\n');
+	const projectDir = path.join(root, `${label}-doctor-project`); fs.mkdirSync(projectDir);
+	const canonicalProjectDir = fs.realpathSync(projectDir);
+	const projectMemory = projectMemoryDir(layout.projectsDir, canonicalProjectDir); fs.mkdirSync(projectMemory, { recursive: true });
+	for (const [file, name, body] of sharedFiles) write(layout.sharedMemoryDir, file, name, body);
+	for (const [file, name, body] of projectFiles) write(projectMemory, file, name, body);
+	const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
+	return spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: canonicalProjectDir, encoding: "utf8" });
+};
+
+{
+	const result = doctorMemoryResult("cross-tier", [["reference.md", "reference", "[[project-only]]\n"]], [["target.md", "project-only", "target\n"]]);
+	// req: R-990
+	check("doctor warns and exits nonzero for a shared-to-project link", result.status === 1 && /! memory links\s+.*shared-to-project link \[\[project-only\]\]/.test(result.stdout), `${result.status} ${result.stdout} ${result.stderr}`);
+}
+
+{
+	const result = doctorMemoryResult("ambiguous", [["reference.md", "reference", "[[duplicated]]\n"], ["first.md", "duplicated", "first\n"], ["second.md", "duplicated", "second\n"]], []);
+	// req: R-990
+	check("doctor warns and exits nonzero for an ambiguous name", result.status === 1 && /! memory links\s+.*ambiguous name \[\[duplicated\]\] in shared tier/.test(result.stdout), `${result.status} ${result.stdout} ${result.stderr}`);
+}
+
 {
 	const home = path.join(root, "dangling-doctor-home");
 	const layout = resolveLayout({ home });
