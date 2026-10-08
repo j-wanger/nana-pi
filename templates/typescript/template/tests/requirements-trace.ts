@@ -550,7 +550,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		line,
 		earsOffForm: earsOffFormIds,
 		earsLine,
-		driftLine,
+		...(driftLine === undefined ? {} : { driftLine }),
 		report: `${line}\n${earsLine}`,
 	};
 }
