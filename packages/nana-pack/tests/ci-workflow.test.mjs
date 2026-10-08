@@ -29,5 +29,21 @@ check("root CI runs the locked suite on macOS and nonblocking Ubuntu and gates t
   assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: node scripts\/template-release\.mjs --push/m);
   assert(workflow.indexOf("pi --version") < workflow.indexOf("npm test"));
   assert.match(workflow, /PI_VERSION: 1\.0\.2/);
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
+  for (const [job, body] of [["suite", suite], ["release", release]]) {
+    const setup = [
+      "uses: actions/checkout@v4",
+      "uses: actions/setup-node@v4",
+      "node-version: 22",
+      "uses: astral-sh/setup-uv@v5",
+      "uses: pnpm/action-setup@v4",
+      "version: 11",
+      "run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}",
+    ];
+    const positions = setup.map((step) => body.indexOf(step));
+    assert(positions.every((position) => position >= 0), `${job} must include every pinned toolchain setup step`);
+    assert.deepEqual(positions, [...positions].sort((a, b) => a - b), `${job} toolchain setup steps must stay ordered`);
+  }
 });
 if (failures) process.exitCode = 1;

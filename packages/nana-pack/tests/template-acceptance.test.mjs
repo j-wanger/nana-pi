@@ -86,7 +86,7 @@ function declaredCommandsMatch(filePath, language, substitution) {
 // req: R-593
 check("a dirty template edit is excluded from a SHA render", () => {
   const available = spawnSync("uvx", ["copier", "--version"], { encoding: "utf8", timeout: 15_000 });
-  if (available.error?.code === "ENOENT") { console.log("SKIP dirty SHA render: copier unavailable (uvx)"); return; }
+  assert.notEqual(available.error?.code, "ENOENT", "required tool uvx is missing; install uv to run the dirty SHA render");
   assert.equal(available.status, 0, `copier availability probe failed: ${available.stderr}`);
   const repo = path.join(root, "dirty-copier-repo");
   execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(new URL("../../../", import.meta.url).pathname), repo], { stdio: "ignore" });
@@ -127,7 +127,10 @@ function acceptanceStub({ failCommand = null } = {}) {
       }
       return { status: 0, stdout: "" };
     }
-    if (failCommand && [cmd, ...args].join(" ") === failCommand) return { status: 1, stdout: "failed", stderr: "stub failure" };
+    const command = [cmd, ...args].join(" ");
+    const failure = failCommand?.includes(":") ? failCommand.slice(failCommand.indexOf(":") + 1) : failCommand;
+    const failureMode = failCommand?.includes(":") ? failCommand.slice(0, failCommand.indexOf(":")) : null;
+    if (failure && command === failure && (!failureMode || path.basename(options.cwd) === failureMode)) return { status: 1, stdout: "failed", stderr: "stub failure" };
     if (cmd === "pnpm" && failCommand === "pnpm ENOENT") return { status: null, error: new Error("spawn ENOENT") };
     return { status: 0, stdout: "" };
   };
@@ -186,9 +189,10 @@ check("command failures continue all combinations and ENOENT names pnpm", () => 
 });
 // req: R-594
 check("a single adopt mypy failure names its command while later combinations still run", () => {
-  const stub = acceptanceStub({ failCommand: "uv run mypy" }); const logs = [];
+  const stub = acceptanceStub({ failCommand: "python-adopt:uv run mypy" }); const logs = [];
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
   assert.equal(status, 1); assert(logs.some((line) => line.includes("python adopt") && line.includes("uv run mypy")));
+  assert(!logs.some((line) => line.includes("python scaffold")), "scaffold must not report the adopt-only failure");
   assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
 });
 
