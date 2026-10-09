@@ -24,7 +24,7 @@
 - Tranche 4: the acceptance gate prints nothing on a pass; one Linux CI symlink check fails.
 - Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only; the shared-memory hook throws on a closed pipe.
 - Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; native Windows is unexecuted.
-- Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever (two killed 10-09).
+- Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever.
 - Tranche 2: an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Desk residuals live in `apps/desk/README.md` Known limits.
@@ -37,7 +37,7 @@
 
 1. **Hardening program: complete, 2026-10-09.** The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
 2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
-3. **2026-10-23 readings:** the pre-registered desk usage tally (D4), the 6.6 compaction replay, and the seat's knowledge pull; desk and store stay frozen until then. The pull reading starts at this land, sorts pi sessions by launcher name; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
+3. **2026-10-23 readings:** the pre-registered desk usage tally (D4), the 6.6 compaction replay, and the seat's knowledge pull; desk and store stay frozen until then. The pull reading starts at this land and drops sessions named for pi-worker or pi-review; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
 
