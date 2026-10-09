@@ -207,21 +207,38 @@ function runState(opts) {
 		return 0;
 	}
 	const files = new Set();
-	const rank = { durable: 0, rebuildable: 1, disposable: 2, "re-ratified": 3, secret: 4 };
-	const classifiedPaths = rows.map((row) => ({
-		class: row.class,
-		paths: row.path.includes("*") ? expandPattern(row.path, layout.base) : [path.resolve(row.path)],
-	}));
-	const strongestClassFor = (candidate) => {
-		let strongest = null;
-		for (const entry of classifiedPaths) {
-			for (const storePath of entry.paths) {
-				if ((path.resolve(candidate) === storePath || within(storePath, path.resolve(candidate))) && (strongest === null || rank[entry.class] > rank[strongest])) strongest = entry.class;
-			}
-		}
-		return strongest;
-	};
 	const durableRows = rows.filter((row) => row.class === "durable");
+	const roots = [
+		{ name: "Claude home", path: layout.claudeHome },
+		{ name: "pi home", path: layout.piHome },
+		{ name: "knowledge home", path: layout.knowledgeHome },
+	].map((root) => ({ ...root, path: realpathThroughExistingAncestor(root.path) }));
+	const overlaps = (left, right) => within(left, right) || within(right, left);
+	for (let i = 0; i < roots.length; i++) for (let j = i + 1; j < roots.length; j++) {
+		const expectedKnowledgeNesting = (roots[i].name === "pi home" && roots[j].name === "knowledge home" && path.dirname(roots[j].path) === roots[i].path) || (roots[j].name === "pi home" && roots[i].name === "knowledge home" && path.dirname(roots[i].path) === roots[j].path);
+		if (!expectedKnowledgeNesting && overlaps(roots[i].path, roots[j].path)) {
+			console.error(`overlapping roots: ${roots[i].name} and ${roots[j].name}`);
+			return 2;
+		}
+	}
+	const durableDirs = durableRows.filter((row) => row.kind === "dir" || row.kind === "dir-pattern").flatMap((row) =>
+		(row.path.includes("*") ? expandPattern(row.path, layout.base) : [row.path]).map((target) => ({ name: row.store, path: realpathThroughExistingAncestor(target) })),
+	);
+	for (const dir of durableDirs) for (const root of roots) {
+		// Durable directories naturally live inside their owning home; only overlap across roots is unsupported.
+		if (within(root.path, dir.path)) continue;
+		if (overlaps(dir.path, root.path)) {
+			console.error(`overlapping roots: ${root.name} and ${dir.name}`);
+			return 2;
+		}
+	}
+	for (let i = 0; i < durableDirs.length; i++) for (let j = i + 1; j < durableDirs.length; j++) {
+		if (overlaps(durableDirs[i].path, durableDirs[j].path)) {
+			console.error(`overlapping roots: ${durableDirs[i].name} and ${durableDirs[j].name}`);
+			return 2;
+		}
+	}
+
 	for (const row of durableRows) {
 		if (!within(layout.base, row.path)) {
 			console.error(`durable store outside home: ${row.store} (${row.path})`);
@@ -234,7 +251,6 @@ function runState(opts) {
 			const found = [];
 			walkRegularFiles(layout.base, target, found);
 			for (const file of found) {
-				if (strongestClassFor(file) !== "durable") continue;
 				const name = path.relative(layout.base, file);
 				if (name.startsWith("-")) { console.error(`leading dash in durable store ${row.store}`); return 2; }
 				if (/[\u0000-\u001f\u007f]/.test(name)) { console.error(`control character in durable store ${row.store}`); return 2; }

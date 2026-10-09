@@ -81,12 +81,19 @@ check("state prints exact row parity and preserves bytes, modes and mtimes", sta
 check("state --paths succeeds with mode-zero secrets and preserves bytes, modes and mtimes", paths.status === 0 && snapshot(home) === before, `${paths.status} ${paths.stderr}`);
 const agentAlias = path.join(home, ".pi", "agent");
 fs.mkdirSync(agentAlias, { recursive: true });
-fs.writeFileSync(path.join(agentAlias, "settings.json"), "credentials");
-const aliasOne = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--claude-home", agentAlias, "--pi-home", agentAlias], { encoding: "utf8" });
-const aliasTarget = path.join(home, "alias-target"); const aliasLink = path.join(home, "alias-link"); fs.mkdirSync(aliasTarget, { recursive: true }); fs.writeFileSync(path.join(aliasTarget, "settings.json"), "credential"); fs.symlinkSync(aliasTarget, aliasLink, process.platform === "win32" ? "junction" : "dir");
-const aliasTwo = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--claude-home", aliasTarget, "--pi-home", aliasLink], { encoding: "utf8" });
-// req: R-954
-check("aliased Claude and pi homes apply strongest secret class to identical and symlink-aliased paths", aliasOne.status === 0 && !aliasOne.stdout.split("\n").includes(".claude/settings.json") && !aliasOne.stdout.split("\n").includes(".pi/agent/settings.json") && aliasTwo.status === 0 && !aliasTwo.stdout.includes("settings.json"), `${aliasOne.stdout}\n${aliasTwo.stdout}`);
+const defaultLayout = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
+// req: R-957
+check("default disjoint home roots still produce a paths listing", defaultLayout.status === 0, `${defaultLayout.status} ${defaultLayout.stderr}`);
+const reversedLink = path.join(home, "claude-link");
+fs.symlinkSync(agentAlias, reversedLink, process.platform === "win32" ? "junction" : "dir");
+const reversedAlias = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--claude-home", reversedLink, "--pi-home", agentAlias], { encoding: "utf8" });
+// req: R-957
+check("refuses reversed symlink alias between Claude and pi home roots", reversedAlias.status === 2 && /overlapping roots: Claude home and pi home/.test(reversedAlias.stderr), `${reversedAlias.status} ${reversedAlias.stderr}`);
+const nestedPiHome = path.join(home, ".local", "share", "nana", "agent");
+fs.mkdirSync(nestedPiHome, { recursive: true });
+const nestedPi = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", nestedPiHome], { encoding: "utf8" });
+// req: R-957
+check("refuses pi home nested beneath durable nana share", nestedPi.status === 2 && /overlapping roots: pi home and nana share/.test(nestedPi.stderr), `${nestedPi.status} ${nestedPi.stderr}`);
 const nestedClaude = path.join(home, ".pi", "agent", "apps", "custom", ".claude");
 const deeperClaude = path.join(home, ".pi", "agent", "apps", "nested", "one", ".claude");
 for (const claudeHome of [nestedClaude, deeperClaude]) {
@@ -96,8 +103,8 @@ for (const claudeHome of [nestedClaude, deeperClaude]) {
 }
 const nestedSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", path.join(home, ".pi", "agent"), "--claude-home", nestedClaude], { encoding: "utf8" });
 const deeperSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", path.join(home, ".pi", "agent"), "--claude-home", deeperClaude], { encoding: "utf8" });
-// req: R-954
-check("nested Claude secret stores are excluded beneath durable pi apps at two depths", nestedSecrets.status === 0 && deeperSecrets.status === 0 && !nestedSecrets.stdout.includes("apps/custom/.claude/") && !deeperSecrets.stdout.includes("apps/nested/one/.claude/"), `${nestedSecrets.stdout}\n${deeperSecrets.stdout}`);
+// req: R-957
+check("refuses Claude home nested beneath pi home at two depths", nestedSecrets.status === 2 && deeperSecrets.status === 2 && /overlapping roots: Claude home and pi home/.test(nestedSecrets.stderr) && /overlapping roots: Claude home and pi home/.test(deeperSecrets.stderr), `${nestedSecrets.status} ${nestedSecrets.stderr}\n${deeperSecrets.status} ${deeperSecrets.stderr}`);
 for (const claudeHome of [nestedClaude, deeperClaude]) { fs.unlinkSync(path.join(claudeHome, ".credentials.json")); fs.unlinkSync(path.join(claudeHome, "settings.json")); }
 const external = path.join(home, "outside-projects");
 fs.mkdirSync(path.join(external, "memory"), { recursive: true });
@@ -119,6 +126,7 @@ const durableFile = path.join(home, ".claude", "rules", "nana-personal.md");
 fs.mkdirSync(path.dirname(durableFile), { recursive: true }); fs.writeFileSync(durableFile, "durable fixture");
 fs.writeFileSync(path.join(agent, "desk.log"), "disposable fixture"); fs.writeFileSync(path.join(agent, "auth.json"), "secret fixture"); fs.writeFileSync(path.join(agent, "trust.json"), "ratified fixture");
 fs.writeFileSync(path.join(agent, "nana-objective.md"), "durable fixture");
+fs.writeFileSync(path.join(agent, "settings.json"), "durable fixture");
 const classPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
 // req: R-957
 check("paths output is home-relative regular-file durable-only output", classPaths.status === 0 && JSON.stringify(classPaths.stdout.trim().split("\n").sort()) === JSON.stringify([".claude/rules/nana-personal.md", ".pi/agent/nana-objective.md", ".pi/agent/settings.json"].sort()) && classPaths.stdout.split("\n").filter(Boolean).every((name) => !path.isAbsolute(name) && !name.startsWith("-") && fs.lstatSync(path.join(home, name)).isFile()), classPaths.stdout);
