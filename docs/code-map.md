@@ -1788,9 +1788,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Launch the canonical nana adoption reader for the active Claude project.
 - **inputs** — Claude Code project environment and this entry's repository location.
-- **outputs** — canonical adoption text or the stable unavailable marker.
-- **effects** — process (spawns the adoption reader).
-- **errors** — producer failures are reported by the shared fail-open launcher.
+- **outputs** — adoption reader output or its fail-open marker.
+- **effects** — process (runs the adoption CLI).
+- **errors** — producer failures become an unavailable marker; the hook exits successfully.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 
@@ -1798,9 +1798,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Launch the canonical nana objective producer for the active Claude project.
 - **inputs** — Claude Code project environment and this entry's repository location.
-- **outputs** — canonical objective text or the stable unavailable marker.
-- **effects** — process (spawns the objective producer).
-- **errors** — producer failures are reported by the shared fail-open launcher.
+- **outputs** — objective producer output or its fail-open marker.
+- **effects** — process (runs the objective CLI).
+- **errors** — producer failures become an unavailable marker; the hook exits successfully.
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 

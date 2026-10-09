@@ -7,7 +7,7 @@
  * @errors failed checks set a nonzero process exit code.
  */
 import { spawn } from "node:child_process";
-import { runHookProducer } from "../lib/hook-producer.mjs";
+import { hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
 let failures = 0;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) failures++; };
 const invoke = (cli, marker, result) => {
@@ -22,6 +22,16 @@ const invoke = (cli, marker, result) => {
 check("objective failure marker is byte exact", invoke("/missing/objective.mjs", "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n", { status: 1, stdout: "" }) === "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n");
 // req: R-687
 check("adoption failure marker is byte exact", invoke("/missing/adoption.mjs", "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/missing/adoption.mjs).\n", { status: 1, stdout: "" }) === "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/missing/adoption.mjs).\n");
+// req: R-687
+check("launcher configurations drive missing-CLI output with canonical markers", ["objective", "adoption"].every((name) => {
+	const config = hookProducerConfig(name, "/clone");
+	let output = "";
+	runHookProducer({ ...config, stdout: { write: (text) => { output += text; } } });
+	const expected = name === "objective"
+		? "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/clone/packages/nana-pack/bin/nana-objective.mjs). Tell the user before spending.\n"
+		: "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/clone/packages/nana-pack/bin/nana-adoption.mjs).\n";
+	return output === expected;
+}));
 {
 	let output = "";
 	runHookProducer({ cli: "/producer.mjs", marker: "fallback", run: () => ({ status: 0, stdout: "hello\n\n" }), stdout: { write: (value) => { output += value; } } });

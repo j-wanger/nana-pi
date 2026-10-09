@@ -7,6 +7,25 @@
  * @errors spawn failures, signals and nonzero exits are represented by the marker; never thrown.
  */
 import { spawnSync } from "node:child_process";
+import path from "node:path";
+
+const launcherDefinitions = {
+	objective: {
+		cli: "packages/nana-pack/bin/nana-objective.mjs",
+		marker: (cli) => `[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (${cli}). Tell the user before spending.\n`,
+	},
+	adoption: {
+		cli: "packages/nana-pack/bin/nana-adoption.mjs",
+		marker: (cli) => `[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (${cli}).\n`,
+	},
+};
+
+export function hookProducerConfig(name, repoRoot) {
+	const definition = launcherDefinitions[name];
+	if (!definition) throw new Error(`Unknown hook producer: ${name}`);
+	const cli = path.join(repoRoot, definition.cli);
+	return { cli, marker: definition.marker(cli) };
+}
 
 export function runHookProducer({ cli, marker, cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd(), env = process.env, run = spawnSync, stdout = process.stdout }) {
 	try {

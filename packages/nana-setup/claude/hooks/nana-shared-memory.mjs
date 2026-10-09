@@ -14,6 +14,18 @@ import { readHookInput } from "../../lib/shared-memory-input.mjs";
 
 const HEADER = (idx) => `[nana:shared-memory] ${idx} — general feedback/user/reference memories are written HERE (symlinked as shared/ in this project's memory dir); project facts go in the project's own memory dir.`;
 
+function hasSymlinkedComponent(root, target) {
+	const relative = path.relative(root, target);
+	if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) return true;
+	let current = root;
+	for (const component of ["", ...relative.split(path.sep).filter(Boolean)]) {
+		if (component) current = path.join(current, component);
+		try { if (fs.lstatSync(current).isSymbolicLink()) return true; }
+		catch (error) { if (error?.code === "ENOENT") break; return true; }
+	}
+	return false;
+}
+
 let text;
 let idx;
 try {
@@ -44,10 +56,18 @@ try {
 			}
 			if (dir) {
 				const memory = path.join(dir, "memory");
-				fs.mkdirSync(memory, { recursive: true });
-				const link = path.join(memory, "shared");
-				try { fs.lstatSync(link); } catch (error) {
-					if (error?.code === "ENOENT") fs.symlinkSync(shared, link, "junction");
+				if (hasSymlinkedComponent(claudeHome, memory)) {
+					note = "self-heal skipped: symlinked path component";
+				} else {
+					fs.mkdirSync(memory, { recursive: true });
+					const link = path.join(memory, "shared");
+					if (hasSymlinkedComponent(claudeHome, memory)) {
+						note = "self-heal skipped: symlinked path component";
+					} else {
+						try { fs.lstatSync(link); } catch (error) {
+							if (error?.code === "ENOENT") fs.symlinkSync(shared, link, "junction");
+						}
+					}
 				}
 			}
 		}

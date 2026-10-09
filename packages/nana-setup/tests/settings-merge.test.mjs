@@ -185,6 +185,22 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("legacy managed bash hooks replace commands in place", migrateLegacyHooks(settings, { hooksDir: "/Users/jwang/.claude/hooks", claudeHome: "/Users/jwang/.claude" }) && settings.hooks.SessionStart[0].hooks[0].command === "node '/Users/jwang/.claude/hooks/nana-objective.mjs'" && settings.hooks.SessionStart[0].hooks[2].command === "node '/Users/jwang/.claude/hooks/nana-adoption.mjs'" && settings.hooks.SessionStart[0].hooks[1] === foreign && settings.hooks.SessionStart[0].hooks.length === 3);
 }
 
+/* --- near-match legacy entries are not migrated -------------------------------------- */
+{
+	const entries = [
+		{ type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority", owner: "foreign" },
+		{ type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 6, statusMessage: "nana: objective + current priority" },
+		{ type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "custom objective message" },
+		{ type: "command", command: "bash ~/.claude/hooks/nana-objective-custom.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+		{ type: "prompt", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+	];
+	const wrongEvent = { type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" };
+	const settings = { hooks: { SessionStart: [{ hooks: entries }], Stop: [{ hooks: [wrongEvent] }] } };
+	const before = JSON.stringify(settings);
+	// req: R-908
+	check("near-match legacy entries stay byte-identical across keys, fields, command, and event", !migrateLegacyHooks(settings, { hooksDir: "/Users/jwang/.claude/hooks", claudeHome: "/Users/jwang/.claude" }) && JSON.stringify(settings) === before);
+}
+
 /* --- unit: a disabled look-alike must NOT count as installed -------------------------- */
 {
 	const s = { hooks: { SessionStart: [{ hooks: [{ type: "command", command: "echo nana-objective.sh.disabled" }] }] } };

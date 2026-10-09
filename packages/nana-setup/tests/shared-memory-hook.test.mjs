@@ -189,6 +189,23 @@ const run = (home, env = {}, stdin = "", cwd) =>
 	check("250 non-ASCII characters match the literal UTF-16 key", fs.existsSync(path.join(home, ".claude", "projects", "-Users-x-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------9m1e4t", "memory", "shared")));
 }
 
+/* --- unsafe path components are rejected without touching an external project ----------- */
+{
+	const home = freshHome();
+	const claudeHome = path.join(home, ".claude");
+	const projects = path.join(claudeHome, "projects");
+	const external = tmpDir(path.join(os.tmpdir(), "nana-shared-external-"));
+	tmps.push(external);
+	fs.writeFileSync(path.join(external, "keep.txt"), "outside bytes\n");
+	const externalBefore = fs.readdirSync(external).sort().map((name) => [name, fs.readFileSync(path.join(external, name), "utf8")]);
+	const project = "/Users/x/symlinked-project";
+	fs.mkdirSync(projects, { recursive: true });
+	fs.symlinkSync(external, path.join(projects, projectKey(project)));
+	const r = run(home, { CLAUDE_PROJECT_DIR: project });
+	// req: R-934
+	check("symlinked project directory: external tree unchanged and self-heal skipped", r.status === 0 && /self-heal skipped/.test(r.stdout) && r.stdout.includes("- [One](one.md)") && JSON.stringify(fs.readdirSync(external).sort().map((name) => [name, fs.readFileSync(path.join(external, name), "utf8")])) === JSON.stringify(externalBefore), r.stdout + r.stderr);
+}
+
 /* --- 10. CLAUDE_CONFIG_DIR is honoured --------------------------------------------------- */
 {
 	const home = freshHome({ withIndex: false });

@@ -336,7 +336,10 @@ try {
 		const result = stepRetiredArtifacts(layout, { dryRun: false });
 		// req: R-804
 		check("dangling repository retired link is unlinked safely", !fs.existsSync(dangling) && result.some((row) => row.label === "retired nana-objective.sh link" && row.status === "updated"));
-		check("external retired link and regular file are preserved and reported", fs.lstatSync(foreign).isSymbolicLink() && fs.readFileSync(outside, "utf8") === "leave me\n" && fs.readFileSync(regular, "utf8") === "owner file\n" && result.some((row) => row.label === "retired nana-adoption.sh link" && row.status === "problem") && result.some((row) => row.label === "retired nana-shared-memory.sh link" && row.status === "problem"));
+		// req: R-804
+		check("external retired hook link is preserved", fs.lstatSync(foreign).isSymbolicLink() && fs.readlinkSync(foreign) === outside && fs.readFileSync(outside, "utf8") === "leave me\n" && result.some((row) => row.label === "retired nana-adoption.sh link" && row.status === "problem"));
+		// req: R-804
+		check("regular retired hook file is preserved", fs.lstatSync(regular).isFile() && fs.readFileSync(regular, "utf8") === "owner file\n" && result.some((row) => row.label === "retired nana-shared-memory.sh link" && row.status === "problem"));
 	}
 	{
 		const h = home();
@@ -349,7 +352,7 @@ try {
 		fs.symlinkSync(externalHooks, layout.hooksDir, "junction");
 		const result = stepRetiredArtifacts(layout, { dryRun: false });
 		// req: R-804
-		check("symlinked hooks directory is reported unsafe and nothing is unlinked", fs.lstatSync(dangling).isSymbolicLink() && result.some((row) => row.label === "retired nana-objective.sh link" && row.status === "problem"));
+		check("unsafe hooks directory is refused without removing anything", fs.lstatSync(dangling).isSymbolicLink() && result.some((row) => row.label === "retired nana-objective.sh link" && row.status === "problem"));
 	}
 	{
 		const h = home();
