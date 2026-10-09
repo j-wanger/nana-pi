@@ -220,9 +220,11 @@ writeSources(archiveHome, { roots: [{ path: archiveRoot, kind: "articles" }] });
 await build();
 const archiveDb = await openDb(path.join(archiveHome, "index.db"), {});
 const { runHook } = await import(new URL("../lib/hook.ts", import.meta.url).href);
-const ordinary = search(archiveDb, "quantum archive signal", 10);
+const queryCli = cp.spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "query", "quantum archive signal"], {
+	encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: archiveHome },
+});
 // req: R-239
-check("explicit query still returns monthly session archives", ordinary.some((h) => h.path.endsWith("/sessions/2026-09.md")));
+check("query CLI still returns monthly session archives", queryCli.status === 0 && queryCli.stdout.includes("/sessions/2026-09.md"));
 const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
 // req: R-239
 check("hook filters archives before top-three ranking and prints the non-archive article", automatic.reason === "ok" && automatic.hits.some((h) => h.path.endsWith("/article.md")) && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\\.md$/.test(h.path)));
