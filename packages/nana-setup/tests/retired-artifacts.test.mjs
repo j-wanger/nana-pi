@@ -15,6 +15,8 @@ import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifac
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
+import { stepRetiredArtifacts } from "../lib/steps.mjs";
+import { resolveLayout } from "../lib/paths.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -317,6 +319,24 @@ try {
 		check("win32 install reports all four new skill rows skipped", ["spec", "py-lint", "py-review", "py-test"].every((name) => result.stdout.includes(`skill ${name}`) && result.stdout.includes("skipped (win32)")), result.stdout);
 		// req: R-665 R-666
 		check("win32 preserves requirements mirror behavior and doctor skips pi-only skills", fs.readFileSync(path.join(h, ".claude", "skills", "requirements", "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "requirements", "SKILL.md"))) && /✓ skill requirements\s+copied from/.test(doctor.stdout) && ["spec", "py-lint", "py-review", "py-test"].every((name) => new RegExp(`· skill ${name}\\s+skipped \\(win32; pi-only\\)`).test(doctor.stdout)), doctor.stdout);
+	}
+	{
+		const h = home();
+		const layout = resolveLayout({ home: h });
+		fs.mkdirSync(layout.hooksDir, { recursive: true });
+		const dangling = path.join(layout.hooksDir, "nana-objective.sh");
+		const repoDangling = path.join(pkg, "claude", "hooks", "nana-objective.sh");
+		fs.symlinkSync(repoDangling, dangling);
+		const outside = path.join(h, "outside-target");
+		fs.writeFileSync(outside, "leave me\n");
+		const foreign = path.join(layout.hooksDir, "nana-adoption.sh");
+		fs.symlinkSync(outside, foreign);
+		const regular = path.join(layout.hooksDir, "nana-shared-memory.sh");
+		fs.writeFileSync(regular, "owner file\n");
+		const result = stepRetiredArtifacts(layout, { dryRun: false });
+		// req: R-804
+		check("dangling repository retired link is unlinked safely", !fs.existsSync(dangling) && result.some((row) => row.label === "retired nana-objective.sh link" && row.status === "updated"));
+		check("external retired link and regular file are preserved and reported", fs.lstatSync(foreign).isSymbolicLink() && fs.readFileSync(outside, "utf8") === "leave me\n" && fs.readFileSync(regular, "utf8") === "owner file\n" && result.some((row) => row.label === "retired nana-adoption.sh link" && row.status === "problem") && result.some((row) => row.label === "retired nana-shared-memory.sh link" && row.status === "problem"));
 	}
 	{
 		const h = home();

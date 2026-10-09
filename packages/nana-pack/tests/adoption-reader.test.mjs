@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 // Run: node <this file>
 const here = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.join(here, "..", "bin", "nana-adoption.mjs");
-const HOOK = path.join(here, "..", "..", "nana-setup", "claude", "hooks", "nana-adoption.sh");
+const HOOK = path.join(here, "..", "..", "nana-setup", "claude", "hooks", "nana-adoption.mjs");
 const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-reader-")));
 const HOME = path.join(base, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
@@ -45,7 +45,7 @@ const repo = (name) => {
 		// req: R-153
 		check(`c: ${label} → empty stdout, exit 0`, r.status === 0 && r.stdout === "", JSON.stringify(r));
 	}
-	const h = run("bash", [HOOK]);
+	const h = run(process.execPath, [HOOK]);
 	// req: R-153
 	check("c: the hook prints nothing when there is nothing", h.status === 0 && h.stdout === "", JSON.stringify(h));
 }
@@ -98,7 +98,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("c: ends with the action sentence", r.stdout.trimEnd().endsWith("or dismiss it once with `nana-setup project <dir> --not-a-project`."));
 	// req: R-151
 	check("c: action wording names the missing complete Nana structure", r.stdout.includes("no complete Nana structure (a regular root HANDOFF.md, root AGENTS.md, and docs/sessions/)"));
-	const h = run("bash", [HOOK]);
+	const h = run(process.execPath, [HOOK]);
 	check("c: the hook prints the same block", h.status === 0 && h.stdout === r.stdout, JSON.stringify(h.stderr));
 }
 // README contract: all adoption evidence and the production temp-root exclusion are explicit.
@@ -182,15 +182,8 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	check("c: reads the configured journal.path", r.stdout.includes(`- \`${roots[6]}\` —`), r.stdout);
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 }
-// failure: a named one-line marker, exit 0, no stack
+// malformed producer configuration remains fail-open; no-node markers are retired.
 {
-	const bare = "/usr/bin:/bin";
-	if (spawnSync("/bin/sh", ["-c", "command -v node"], { env: { PATH: bare } }).status === 0) console.log(`SKIP fail: node is on ${bare}`);
-	else {
-	const r = run("/bin/bash", [HOOK], { ...env, PATH: bare });
-	// req: R-157
-	check("fail: no node → named marker, exit 0", r.status === 0 && r.stdout === "[nana:adoption]\nADOPTION UNAVAILABLE: node not found on PATH.\n", JSON.stringify(r));
-	}
 	fs.writeFileSync(path.join(AGENT, "nana-pack.json"), JSON.stringify({ journal: { path: base } })); // a directory
 	const d = run();
 	fs.writeFileSync(path.join(AGENT, "nana-pack.json"), "{ not json");

@@ -16,8 +16,8 @@
 // Verified 2026-09-18 against the installed CLI (2.1.269): the key is the project path with
 // every character outside [A-Za-z0-9] replaced by "-", and, when that exceeds 200 characters,
 // truncated to 200 with "-<hash>" appended (hash = the 32-bit string hash, base 36). The
-// shared-memory hook reproduces the short form in bash and matches the long form by glob, so
-// a new repo links itself to the shared memory dir on its first session.
+// The Node shared-memory hook imports this implementation directly, so short, long and non-ASCII
+// paths use the CLI's UTF-16 string rule without guessing by pattern.
 import * as fs from "node:fs";
 import * as path from "node:path";
 

@@ -94,10 +94,12 @@ const link = (p) => {
 		return null;
 	}
 };
-for (const h of ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"]) {
+for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"]) {
 	// req: R-301 R-985
 	check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 }
+// req: R-357
+check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
 // req: R-301
 check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-soul.md")) === path.join(pkg, "claude", "rules", "nana-soul.md"));
 // req: R-301
@@ -134,6 +136,8 @@ check("knowledge hook points at this install root", commands.some((c) => c.inclu
 
 // req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));
+// req: R-921
+check("installer leaves per-project shared-link creation to the SessionStart hook", !fs.existsSync(path.join(home, ".claude", "projects")));
 check("pi nana-pack.json seeded", JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), "utf8")).objective.projectFile === "OBJECTIVE.md");
 check("pi nana-objective.md seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-objective.md")));
 const seededSubagentConfig = JSON.stringify(JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "extensions", "subagent", "config.json"), "utf8")));
@@ -230,14 +234,14 @@ check("second install keeps the identical nana-setup link", link(setupLink) === 
 /* --- 3. a regular file in the way is backed up, not clobbered ------------------------- */
 const collide = freshHome();
 fs.mkdirSync(path.join(collide, ".claude", "hooks"), { recursive: true });
-fs.writeFileSync(path.join(collide, ".claude", "hooks", "nana-objective.sh"), "# hand-written\n");
+fs.writeFileSync(path.join(collide, ".claude", "hooks", "nana-objective.mjs"), "# hand-written\n");
 const bak = run(["install", "--home", collide]);
 const baks = fs.readdirSync(path.join(collide, ".claude", "hooks")).filter((f) => f.includes(".bak-"));
 // req: R-312
 check("collision: exactly one backup written", baks.length === 1, baks.join(","));
 // req: R-312
 check("collision: backup keeps the old content", fs.readFileSync(path.join(collide, ".claude", "hooks", baks[0]), "utf8") === "# hand-written\n");
-check("collision: target is now the repo symlink", link(path.join(collide, ".claude", "hooks", "nana-objective.sh")) === path.join(pkg, "claude", "hooks", "nana-objective.sh"));
+check("collision: target is now the repo symlink", link(path.join(collide, ".claude", "hooks", "nana-objective.mjs")) === path.join(pkg, "claude", "hooks", "nana-objective.mjs"));
 // req: R-312
 check("collision: the backup is reported", bak.stdout.includes("backed up"));
 
@@ -278,12 +282,12 @@ check("doctor prints no ✗ after install", !ok.stdout.includes("✗"));
 // req: R-343
 check("doctor calls the seeded projectFile the default, not a rename",
 	/objective\.projectFile\s+per-repo OBJECTIVE\.md \(the default name\)/.test(ok.stdout) && !ok.stdout.includes("renamed"), ok.stdout);
-fs.unlinkSync(path.join(home, ".claude", "hooks", "nana-shared-memory.sh"));
+fs.unlinkSync(path.join(home, ".claude", "hooks", "nana-shared-memory.mjs"));
 const bad = run(["doctor", "--home", home]);
 // req: R-341
 check("doctor exits 1 on a missing piece", bad.status === 1);
 // req: R-341
-check("doctor marks the missing piece with ✗", /✗ hook nana-shared-memory\.sh/.test(bad.stdout));
+check("doctor marks the missing piece with ✗", /✗ hook nana-shared-memory\.mjs/.test(bad.stdout));
 run(["install", "--home", home]);
 // req: R-341
 check("doctor exits 0 again after a repair install", run(["doctor", "--home", home]).status === 0);

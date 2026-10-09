@@ -53,7 +53,7 @@ const installTargets = [
   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
   path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
   ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"),
-  ...["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
   ...["nana-soul.md", "nana-standards.md", "nana-writing.md"].map((name) => path.join(ownerLayout.rulesDir, name)),
   ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
   ...["pi-review", "pi-worker", "nana-land", "nana-setup"].map((name) => path.join(ownerLayout.binDir, name)),

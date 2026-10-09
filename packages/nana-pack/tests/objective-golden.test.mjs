@@ -25,7 +25,7 @@ let fails = 0;
 const check = (n, ok, extra) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) { fails++; if (extra) console.log(extra); } };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.sh");
+const hookSrc = path.resolve(here, "../../nana-setup/claude/hooks/nana-objective.mjs");
 const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "objective-golden-")));
 const origHome = process.env.HOME;
 // pi's agent-dir override is never inherited from the machine; a world with agentDir sets it for BOTH runtimes.
@@ -90,9 +90,9 @@ function world(opts = {}) {
 	if (umbrella !== null) fs.writeFileSync(umbrellaFile, umbrella);
 	const objective = { path: umbrellaFile, ...(projectFile === undefined ? {} : { projectFile }), ...(enabled === undefined ? {} : { enabled }) };
 	if (config) fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ journal: { enabled: false }, objective }));
-	// installed the way nana-setup does it: ~/.claude/hooks/nana-objective.sh -> repo
+	// installed the way nana-setup does it: ~/.claude/hooks/nana-objective.mjs -> repo
 	fs.mkdirSync(path.join(home, ".claude", "hooks"), { recursive: true });
-	fs.symlinkSync(hookSrc, path.join(home, ".claude", "hooks", "nana-objective.sh"));
+	fs.symlinkSync(hookSrc, path.join(home, ".claude", "hooks", "nana-objective.mjs"));
 	return { home, loop, product, umbrellaFile, productFile: path.join(product, "OBJECTIVE.md") };
 }
 
@@ -101,7 +101,7 @@ function runHook(w, cwd, { noProjectDir = false } = {}) {
 	const env = { HOME: w.home, PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin` };
 	if (!noProjectDir) env.CLAUDE_PROJECT_DIR = cwd;
 	if (w.agentDir) env.PI_CODING_AGENT_DIR = w.agentDir;
-	const r = spawnSync("bash", [path.join(w.home, ".claude", "hooks", "nana-objective.sh")], {
+	const r = spawnSync(process.execPath, [path.join(w.home, ".claude", "hooks", "nana-objective.mjs")], {
 		cwd: noProjectDir ? cwd : w.home,
 		env,
 		encoding: "utf-8",

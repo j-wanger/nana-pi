@@ -72,8 +72,9 @@ try {
 	// req: R-953
 	check("firstOnPath skips empty and non-executable entries", (() => { const earlier = path.join(home, "earlier-bin"); fs.mkdirSync(earlier); const noExec = path.join(earlier, "pi-review"); fs.writeFileSync(noExec, "x"); process.env.PATH = `${earlier}${path.delimiter}${path.delimiter}${realBin}`; return firstOnPath("pi-review") === path.join(realBin, "pi-review"); })());
 	process.env.PATH = realBin;
+	const realReview = diagnose(layout, { projectDir: home }).find((item) => item.label === "PATH resolves pi-review");
 	// req: R-953
-	check("real pi-review target on PATH passes", diagnose(layout, { projectDir: home }).find((item) => item.label === "PATH resolves pi-review")?.status === "ok");
+	check("real pi-review target on PATH passes without a repair remedy", realReview?.status === "ok" && realReview.detail === `${realBin}/pi-review resolves to this checkout`);
 	process.env.PATH = `${stubDir}:${realBin}`;
 	const shadow = diagnose(layout, { projectDir: home }).find((item) => item.label === "PATH resolves pi-review");
 	// req: R-953

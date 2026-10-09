@@ -55,7 +55,7 @@ export function stateRows(layout) {
 
   seed("subagent config.json", layout.subagentConfig, SUBAGENT_CONFIG_SEED, "rebuildable");
   seed("reviewer.md", layout.reviewerAgent, REVIEWER_SEED, "rebuildable");
-  for (const name of ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
+  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md"]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   for (const name of ["requirements", "spec", "py-lint", "py-review", "py-test"]) rebuild(`skill link ${name}`, p(layout.skillsDir, name));
   for (const name of ["pi-review", "pi-worker", "nana-land", "nana-setup"]) rebuild(`bin link ${name}`, p(layout.binDir, name));

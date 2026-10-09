@@ -24,7 +24,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
+import { hasHook, desiredHooks, knowledgeHookHealthy, commandInvokes } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
@@ -270,6 +270,16 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 	return null;
 }
 
+function findRetiredHook(settings, event) {
+	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+	for (const group of settings?.hooks?.[event] ?? []) {
+		for (const hook of group?.hooks ?? []) {
+			for (const script of names) if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) return hook.command;
+		}
+	}
+	return null;
+}
+
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
@@ -346,7 +356,8 @@ export function diagnose(layout, opts = {}) {
 		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
 	}
 	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot })) {
-		if (win && (w.entry.command.startsWith("bash ") || w.label === "PreToolUse verifier pipe")) {
+		const posixHook = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].includes(w.spec.script);
+		if (win && (posixHook || w.label === "PreToolUse verifier pipe")) {
 			add(NOTE, `settings ${w.label}`, `skipped (win32${w.label === "PreToolUse verifier pipe" ? "; Claude Code hooks unavailable" : ""})`);
 			continue;
 		}
@@ -355,7 +366,8 @@ export function diagnose(layout, opts = {}) {
 			const healthy = w.label === "UserPromptSubmit knowledge pull"
 				? knowledgeHookHealthy(settings, repoRoot)
 				: hasHook(settings, w.event, w.spec, w.matcher);
-			add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
+			const retired = findRetiredHook(settings, w.event);
+			add(retired ? FAIL : healthy ? OK : FAIL, `settings ${w.label}`, retired ? `retired bash hook still wired: ${retired}` : w.label === "UserPromptSubmit knowledge pull" && !healthy
 				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
 				: w.marker);
 		}
@@ -563,7 +575,8 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const found = firstOnPath("pi-review");
 		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
-		const detail = `${found ? matches ? `${found} resolves to this checkout` : `pi-review resolves to ${found}` : "pi-review not found on PATH"}; add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
+		const remedy = `add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
+		const detail = matches ? `${found} resolves to this checkout` : `${found ? `pi-review resolves to ${found}` : "pi-review not found on PATH"}; ${remedy}`;
 		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
 	}
 

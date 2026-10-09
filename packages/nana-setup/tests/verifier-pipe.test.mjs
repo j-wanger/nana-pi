@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { desiredHooks } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
-import { runHook } from "../claude/hooks/verifier-pipe.mjs";
+import { runHook } from "../lib/verifier-hook.mjs";
 import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 
@@ -32,6 +32,7 @@ const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.m
 const installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
 const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
 const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
+// req: R-985
 // req: R-984
 check("installed symlink asks on a verifier-pipe hit", install.status === 0 && fs.realpathSync(installedHook) === hook && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
 const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
@@ -71,6 +72,11 @@ fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
 const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985
 check("doctor accepts the installed Node hook wiring", healthy?.status === "ok", JSON.stringify(healthy));
+settings.hooks.SessionStart = [{ hooks: [{ type: "command", command: "/bin/bash /x/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" }] }];
+fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+const retired = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings SessionStart objective");
+// req: R-909
+check("doctor reports retired bash script entries as a problem", retired?.status === "fail" && retired.detail === "retired bash hook still wired: /bin/bash /x/nana-objective.sh");
 
 const matrix = fs.readFileSync(path.join(root, "templates/_shared/working-under-nana-pi.md"), "utf8");
 const packReadme = fs.readFileSync(path.join(root, "packages/nana-pack/README.md"), "utf8");
@@ -84,7 +90,7 @@ const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("V
 // req: R-985
 check("both READMEs declare the user-scope live verifier-pipe change", /user-scope/.test(packDeclaration) && /every session/.test(packDeclaration) && /user-scope/.test(setupDeclaration) && /every session/.test(setupDeclaration));
 // req: R-985
-check("pack README declares the Claude win32 hook limitation", /Claude Code.*unavailable on win32/.test(packDeclaration));
+check("pack README declares the Claude win32 hook limitation", /Claude Code.*not wired on native Windows/.test(packDeclaration));
 // req: R-982
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
 // req: R-985

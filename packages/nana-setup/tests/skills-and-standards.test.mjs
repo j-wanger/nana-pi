@@ -284,13 +284,13 @@ try {
 			fs.mkdirSync(path.join(h, ".claude", "hooks"), { recursive: true });
 			const decoy = path.join(h, "decoy-hook.sh");
 			fs.writeFileSync(decoy, "#!/bin/sh\necho DECOY\n");
-			fs.symlinkSync(decoy, path.join(h, ".claude", "hooks", "nana-objective.sh"));
+			fs.symlinkSync(decoy, path.join(h, ".claude", "hooks", "nana-objective.mjs"));
 			const r = run(["install", "--home", h]);
 			check("posix hook link: install exits 0", r.status === 0, r.stderr);
 			// req: R-353
 			check("posix hook link: the decoy outside the repo is untouched", fs.readFileSync(decoy, "utf8") === "#!/bin/sh\necho DECOY\n");
 			// req: R-353
-			check("posix hook link: the hook now points into the repo", linkTarget(path.join(h, ".claude", "hooks", "nana-objective.sh")) === path.join(pkg, "claude", "hooks", "nana-objective.sh"));
+			check("posix hook link: the hook now points into the repo", linkTarget(path.join(h, ".claude", "hooks", "nana-objective.mjs")) === path.join(pkg, "claude", "hooks", "nana-objective.mjs"));
 		}
 	}
 } finally {

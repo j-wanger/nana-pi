@@ -55,7 +55,7 @@ check("win32 install exits 0", r.status === 0, r.stderr);
 
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
-for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh"]) {
+for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
 // req: R-995
@@ -80,8 +80,10 @@ check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
+// req: R-387
 check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts"));
 check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
+// req: R-387
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
 // req: R-985
 check("win32: no Claude verifier PreToolUse entry is installed", !settings.hooks.PreToolUse?.some((group) => group.hooks.some((entry) => entry.command.includes("verifier-pipe.mjs"))));
@@ -134,7 +136,7 @@ check("win32: second install reports nothing to do", again.stdout.includes("noth
 if (process.platform !== "win32") {
 	const posix = freshHome();
 	run(["install", "--home", posix]);
-	check("seam does not leak: a normal run links the hooks", fs.lstatSync(path.join(posix, ".claude", "hooks", "nana-objective.sh")).isSymbolicLink());
+	check("seam does not leak: a normal run links the hooks", fs.lstatSync(path.join(posix, ".claude", "hooks", "nana-objective.mjs")).isSymbolicLink());
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

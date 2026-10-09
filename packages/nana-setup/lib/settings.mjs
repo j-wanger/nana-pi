@@ -121,36 +121,36 @@ export function commandInvokes(command, { interpreters, script, args = [] }) {
 
 /** The four active hook entries the nana experience needs, in the order they are added. */
 export function desiredHooks({ hooksDir, repoRoot }) {
-	const sh = (name) => ({
-		command: `bash ${shq(`${hooksDir}/${name}`)}`,
-		spec: { interpreters: ["bash", "sh", "zsh"], script: name },
+	const node = (name) => ({
+		command: `node ${shq(`${hooksDir}/${name}`)}`,
+		spec: { interpreters: ["node"], script: name },
 	});
-	const objective = sh("nana-objective.sh");
-	const adoption = sh("nana-adoption.sh");
-	const shared = sh("nana-shared-memory.sh");
+	const objective = node("nana-objective.mjs");
+	const adoption = node("nana-adoption.mjs");
+	const shared = node("nana-shared-memory.mjs");
 	const knowledgeCli = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
 	const verifierPipe = `${hooksDir}/verifier-pipe.mjs`;
 	return [
 		{
 			event: "SessionStart",
 			label: "SessionStart objective",
-			marker: "nana-objective.sh",
+			marker: "nana-objective.mjs",
 			spec: objective.spec,
 			entry: { type: "command", command: objective.command, timeout: 5, statusMessage: "nana: objective + current priority" },
 		},
 		{
-			// L5: prints nothing unless a session ran in a git repository nobody has adopted.
+			// Prints nothing unless a session ran in a git repository nobody has adopted.
 			// Placed after the objective so the seat reads "what governs here" before "what has no owner".
 			event: "SessionStart",
 			label: "SessionStart adoption",
-			marker: "nana-adoption.sh",
+			marker: "nana-adoption.mjs",
 			spec: adoption.spec,
 			entry: { type: "command", command: adoption.command, timeout: 5, statusMessage: "nana: unadopted repositories" },
 		},
 		{
 			event: "SessionStart",
 			label: "SessionStart shared-memory",
-			marker: "nana-shared-memory.sh",
+			marker: "nana-shared-memory.mjs",
 			spec: shared.spec,
 			entry: { type: "command", command: shared.command, timeout: 5, statusMessage: "nana: shared memory index" },
 		},
@@ -316,6 +316,34 @@ export function knowledgeHookHealthy(settings, repoRoot) {
 		}
 	}
 	return found;
+}
+
+const LEGACY_HOOKS = [
+	{ old: "nana-objective.sh", next: "nana-objective.mjs", message: "nana: objective + current priority" },
+	{ old: "nana-shared-memory.sh", next: "nana-shared-memory.mjs", message: "nana: shared memory index" },
+	{ old: "nana-adoption.sh", next: "nana-adoption.mjs", message: "nana: unadopted repositories" },
+];
+
+/** Replace only exact installer-owned legacy SessionStart commands, retaining array positions. */
+export function migrateLegacyHooks(settings, { hooksDir, claudeHome }) {
+	let changed = false;
+	const homeBase = path.basename(claudeHome) === ".claude" ? path.dirname(claudeHome) : null;
+	for (const group of settings?.hooks?.SessionStart ?? []) {
+		if (!Array.isArray(group?.hooks)) continue;
+		for (const hook of group.hooks) {
+			if (!hook || Object.keys(hook).sort().join(",") !== "command,statusMessage,timeout,type" || hook.type !== "command" || hook.timeout !== 5) continue;
+			const legacy = LEGACY_HOOKS.find((item) => hook.statusMessage === item.message);
+			if (!legacy) continue;
+			const direct = `bash ${shq(`${hooksDir}/${legacy.old}`)}`;
+			const tilde = homeBase ? `bash ~/.claude/hooks/${legacy.old}` : null;
+			if (hook.command !== direct && hook.command !== tilde) continue;
+			const wanted = desiredHooks({ hooksDir, repoRoot: "" }).find((entry) => entry.marker === legacy.next);
+			if (!wanted) continue;
+			hook.command = wanted.entry.command;
+			changed = true;
+		}
+	}
+	return changed;
 }
 
 export function mergeHooks(settings, wanted) {

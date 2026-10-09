@@ -1,15 +1,12 @@
 /**
  * @module packages/nana-setup/tests/shared-memory-hook.test.mjs
  * @purpose Pins that the shared-memory SessionStart hook self-heals and is fail-open, since it runs in every session in every repository
- * @inputs claude/hooks/nana-shared-memory.sh, lib/project-key.mjs, and a throwaway HOME with CLAUDE_PROJECT_DIR overridden
+ * @inputs claude/hooks/nana-shared-memory.mjs, lib/project-key.mjs, and a throwaway HOME with CLAUDE_PROJECT_DIR overridden
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (throwaway home layouts, memory dirs and symlinks), process (runs the bash hook)
+ * @effects disk (throwaway home layouts, memory dirs and symlinks), process (runs the Node hook)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: the shared-memory SessionStart hook self-heals. It runs in EVERY session in EVERY repo,
-// so it must (a) never print a broken session into existence — fail-open, and (b) create this
-// project's memory dir + `shared` symlink itself, which is why the installer has no per-project
-// step at all. The real bash script is executed here with HOME and CLAUDE_PROJECT_DIR overridden.
+// Gate: the shared-memory SessionStart hook self-heals using the canonical project-key module.
 import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -18,7 +15,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const hook = path.join(pkg, "claude", "hooks", "nana-shared-memory.sh");
+const hook = path.join(pkg, "claude", "hooks", "nana-shared-memory.mjs");
 const { projectKey } = await import(new URL("../lib/project-key.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -38,14 +35,15 @@ function freshHome({ withIndex = true } = {}) {
 	}
 	return td;
 }
-const run = (home, env = {}, stdin = "") =>
-	spawnSync("bash", [hook], { encoding: "utf8", input: stdin, env: { PATH: process.env.PATH, HOME: home, ...env } });
+const run = (home, env = {}, stdin = "", cwd) =>
+	spawnSync(process.execPath, [hook], { encoding: "utf8", input: stdin, cwd, env: { PATH: process.env.PATH, HOME: home, ...env } });
 
 /* --- 1. fail-open when there is no shared index ---------------------------------------- */
 {
 	const home = freshHome({ withIndex: false });
 	const r = run(home, { CLAUDE_PROJECT_DIR: "/Users/x/repo" });
 	check("no index: exit 0", r.status === 0);
+	// req: R-935
 	check("no index: prints nothing", r.stdout === "");
 	check("no index: creates nothing", !fs.existsSync(path.join(home, ".claude", "projects")));
 }
@@ -81,6 +79,7 @@ const run = (home, env = {}, stdin = "") =>
 	const stdin = JSON.stringify({ session_id: "s1", transcript_path: path.join(exact, "abc.jsonl"), cwd: "/elsewhere", hook_event_name: "SessionStart" });
 	const r = run(home, { CLAUDE_PROJECT_DIR: "/Users/x/some-other-guess" }, stdin);
 	check("transcript_path: exit 0", r.status === 0, r.stderr);
+	// req: R-348
 	check("transcript_path: links the dir the harness named", fs.lstatSync(path.join(exact, "memory", "shared")).isSymbolicLink());
 	check("transcript_path: does not use the derived key", !fs.existsSync(path.join(home, ".claude", "projects", projectKey("/Users/x/some-other-guess"))));
 }
@@ -91,6 +90,7 @@ const run = (home, env = {}, stdin = "") =>
 	const project = "/Users/x/fallback-repo";
 	const stdin = JSON.stringify({ transcript_path: "/var/folders/zz/agents/sub/abc.jsonl" });
 	const r = run(home, { CLAUDE_PROJECT_DIR: project }, stdin);
+	// req: R-348
 	check("foreign transcript_path: falls back to the derived key", fs.existsSync(path.join(home, ".claude", "projects", projectKey(project), "memory", "shared")));
 	check("foreign transcript_path: exit 0", r.status === 0);
 }
@@ -113,9 +113,20 @@ const run = (home, env = {}, stdin = "") =>
 	const home = freshHome();
 	const cwd = tmpDir(path.join(os.tmpdir(), "nana-cwd-"));
 	tmps.push(cwd);
-	const r = spawnSync("bash", [hook], { encoding: "utf8", input: "", cwd, env: { PATH: process.env.PATH, HOME: home } });
+	const r = spawnSync(process.execPath, [hook], { encoding: "utf8", input: "", cwd, env: { PATH: process.env.PATH, HOME: home } });
 	check("no CLAUDE_PROJECT_DIR: uses the cwd", fs.existsSync(path.join(home, ".claude", "projects", projectKey(fs.realpathSync(cwd)), "memory", "shared")) || fs.existsSync(path.join(home, ".claude", "projects", projectKey(cwd), "memory", "shared")));
 	check("no CLAUDE_PROJECT_DIR: exit 0", r.status === 0);
+}
+
+/* --- deleted cwd: skip self-heal but still show the index -------------------------------- */
+{
+	const home = freshHome();
+	const cwd = tmpDir(path.join(os.tmpdir(), "nana-deleted-cwd-"));
+	tmps.push(cwd);
+	const code = `import { rmdirSync } from "node:fs"; rmdirSync(process.cwd()); await import(${JSON.stringify(new URL("../claude/hooks/nana-shared-memory.mjs", import.meta.url).href)});`;
+	const r = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd, encoding: "utf8", input: "", env: { PATH: process.env.PATH, HOME: home } });
+	// req: R-934
+	check("deleted cwd: self-heal skipped, creates nothing, index still printed", r.status === 0 && /self-heal skipped/.test(r.stdout) && r.stdout.includes("- [One](one.md)") && !fs.existsSync(path.join(home, ".claude", "projects")), r.stderr + r.stdout);
 }
 
 /* --- 7. over-200-character keys: reproduce the hash, never guess by pattern ------------- */
@@ -149,20 +160,20 @@ const run = (home, env = {}, stdin = "") =>
 	check("precondition: the two keys share their first 200 chars", projectKey(a).slice(0, 200) === projectKey(b).slice(0, 200));
 	const r = run(home, { CLAUDE_PROJECT_DIR: a });
 	check("shared prefix: exit 0", r.status === 0, r.stderr);
+	// req: R-933
 	check("shared prefix: project B's memory dir was NOT linked", !fs.existsSync(path.join(bDir, "shared")));
 	check("shared prefix: project A got its own dir", fs.lstatSync(path.join(home, ".claude", "projects", projectKey(a), "memory", "shared")).isSymbolicLink());
 }
 
-/* --- 9. a non-ASCII path: say it skipped rather than guess ------------------------------- */
+/* --- 9. non-ASCII paths derive the CLI key ----------------------------------------------- */
 {
-	// bash works in bytes, the harness in UTF-16 code units, so a derived key would be a
-	// DIFFERENT (stray) directory. Such a session still heals through transcript_path.
+	// The key comes from the same UTF-16 implementation the CLI contract uses.
 	const home = freshHome();
 	const short = "/Users/x/café-repo";
 	const rs = run(home, { CLAUDE_PROJECT_DIR: short });
 	check("non-ASCII short path: exit 0", rs.status === 0);
-// req: R-934
-	check("non-ASCII short path: skipped, nothing created", /self-heal skipped/.test(rs.stdout) && !fs.existsSync(path.join(home, ".claude", "projects")));
+	// req: R-871
+	check("non-ASCII short path: derives the CLI key", fs.lstatSync(path.join(home, ".claude", "projects", "-Users-x-caf--repo", "memory", "shared")).isSymbolicLink());
 	const exact = path.join(home, ".claude", "projects", "-Users-x-caf--repo");
 	fs.mkdirSync(exact, { recursive: true });
 	const rt = run(home, { CLAUDE_PROJECT_DIR: short }, JSON.stringify({ transcript_path: path.join(exact, "s.jsonl") }));
@@ -172,9 +183,10 @@ const run = (home, env = {}, stdin = "") =>
 	const r = run(home, { CLAUDE_PROJECT_DIR: project });
 	check("non-ASCII long path: exit 0 (fail-open)", r.status === 0, r.stderr);
 	check("non-ASCII long path: the index is still printed", r.stdout.includes("- [One](one.md)"));
-// req: R-934
-	check("non-ASCII long path: it says the self-heal skipped", /self-heal skipped/.test(r.stdout), r.stdout);
-	check("non-ASCII long path: nothing was created", !fs.existsSync(path.join(home, ".claude", "projects")), fs.existsSync(path.join(home, ".claude", "projects")) ? fs.readdirSync(path.join(home, ".claude", "projects")).join(" ") : "");
+	// req: R-871
+	check("non-ASCII long path: derives exactly the CLI key", fs.lstatSync(path.join(home, ".claude", "projects", projectKey(project), "memory", "shared")).isSymbolicLink(), r.stdout);
+	// req: R-871
+	check("250 non-ASCII characters match the literal UTF-16 key", fs.existsSync(path.join(home, ".claude", "projects", "-Users-x-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------9m1e4t", "memory", "shared")));
 }
 
 /* --- 10. CLAUDE_CONFIG_DIR is honoured --------------------------------------------------- */
@@ -185,7 +197,9 @@ const run = (home, env = {}, stdin = "") =>
 	fs.writeFileSync(path.join(cfg, "nana-memory", "shared", "MEMORY.md"), "# Shared\n\n- [A](a.md) — a\n");
 	const project = "/Users/x/alt-config-repo";
 	const r = run(home, { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: cfg });
+	// req: R-386
 	check("CLAUDE_CONFIG_DIR: prints from the alternate config dir", r.stdout.includes("- [A](a.md)"));
+	// req: R-386
 	check("CLAUDE_CONFIG_DIR: links under the alternate projects dir", fs.lstatSync(path.join(cfg, "projects", projectKey(project), "memory", "shared")).isSymbolicLink());
 }
 

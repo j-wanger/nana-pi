@@ -30,7 +30,7 @@
  * just as able to spend on the wrong thing as a fresh one, so all five reasons
  * (startup, new, resume, fork, reload) pick it up.
  *
- * Per-repo objectives (2026-09-18, parity with ~/.claude/hooks/nana-objective.sh):
+ * Per-repo objectives (2026-09-18, parity with ~/.claude/hooks/nana-objective.mjs):
  * a product repo now carries its own OBJECTIVE.md, and a session there must be
  * charged against the product's two lines, not the umbrella's. UNCONDITIONALLY (no
  * configuration needed), the nearest <dir>/OBJECTIVE.md walking UP from the session

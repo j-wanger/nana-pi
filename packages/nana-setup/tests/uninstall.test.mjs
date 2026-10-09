@@ -41,7 +41,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-anchor-"));
   const targetHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-other-checkout-"));
   const layout = resolveLayout({ home });
-  const link = path.join(layout.hooksDir, "nana-objective.sh");
+  const link = path.join(layout.hooksDir, "nana-objective.mjs");
   fs.mkdirSync(path.dirname(link), { recursive: true });
   const externalTarget = path.join(targetHome, "keep");
   fs.writeFileSync(externalTarget, "external bytes");
@@ -61,12 +61,12 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
 {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-owned-link-"));
   const layout = resolveLayout({ home });
-  const link = path.join(layout.hooksDir, "nana-objective.sh");
+  const link = path.join(layout.hooksDir, "nana-objective.mjs");
   fs.mkdirSync(path.dirname(link), { recursive: true });
-  fs.symlinkSync(path.join(repo, "packages", "nana-setup", "claude", "hooks", "nana-objective.sh"), link);
+  fs.symlinkSync(path.join(repo, "packages", "nana-setup", "claude", "hooks", "nana-objective.mjs"), link);
   const results = uninstall(layout, { dryRun: false });
   // req: R-902
-  check("repository-targeting inventory symlink is unlinked", !fs.existsSync(link) && results.some((row) => row.label === "hook nana-objective.sh" && row.status === "updated"));
+  check("repository-targeting inventory symlink is unlinked", !fs.existsSync(link) && results.some((row) => row.label === "hook nana-objective.mjs" && row.status === "updated"));
 }
 
 {
@@ -79,7 +79,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   removeRetiredContextHook(context, { hooksDir: "/tmp/hooks" });
   // req: R-660
   check("released quoted context hook is removed while variants stay", context.hooks.UserPromptSubmit[0].hooks.length === 2 && context.hooks.UserPromptSubmit[0].hooks[0].owner === "variant" && context.hooks.UserPromptSubmit[0].hooks[1].command === "bash /tmp/hooks/context-size-check.sh");
-  const settings = { unrelated: true, hooks: { SessionStart: [{ hooks: [{ type: "command", command: "foreign" }, { type: "command", command: "bash '/tmp/hooks/nana-objective.sh'", timeout: 5, statusMessage: "nana: objective + current priority" }] }, { hooks: [] }], PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "foreign" }] }] } };
+  const settings = { unrelated: true, hooks: { SessionStart: [{ hooks: [{ type: "command", command: "foreign" }, { type: "command", command: "node '/tmp/hooks/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" }] }, { hooks: [] }], PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "foreign" }] }] } };
   const before = JSON.stringify(settings);
   removeInstallerHooks(settings, { hooksDir: "/tmp/hooks", repoRoot: "/repo" });
   // req: R-905
@@ -285,7 +285,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const afterDry = snapshot(dryHome);
   const dryRows = dryResult.stdout.split("\n").filter((line) => /^  [ +–✗·]/u.test(line));
   const dryLabels = dryRows.map((line) => line.slice(4).split(/\s{2,}/u)[0]).sort();
-  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.sh", "hook nana-adoption.sh", "hook nana-shared-memory.sh", "hook verifier-pipe.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
   const second = run(["uninstall", "--yes", "--home", dryHome]);
   const third = run(["uninstall", "--yes", "--home", dryHome]);
   // req: R-903 R-904 R-905 R-906 R-907
@@ -417,26 +417,26 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   fs.mkdirSync(layout.hooksDir, { recursive: true });
   fs.mkdirSync(layout.claudeHome, { recursive: true });
   fs.writeFileSync(layout.claudeSettings, "{}\n");
-  const owned = path.join(layout.hooksDir, "nana-objective.sh");
+  const owned = path.join(layout.hooksDir, "nana-objective.mjs");
   const decoy = path.join(outside, "keep");
   fs.writeFileSync(decoy, "unchanged");
-  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), owned);
-  fs.symlinkSync(decoy, path.join(layout.hooksDir, "nana-adoption.sh"));
-  const regular = path.join(layout.hooksDir, "nana-shared-memory.sh");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.mjs"), owned);
+  fs.symlinkSync(decoy, path.join(layout.hooksDir, "nana-adoption.mjs"));
+  const regular = path.join(layout.hooksDir, "nana-shared-memory.mjs");
   fs.writeFileSync(regular, "owner file");
   const directory = path.join(layout.hooksDir, "verifier-pipe.mjs");
   fs.mkdirSync(directory);
   const result = run(["uninstall", "--yes", "--home", home]);
   // req: R-902
-  check("mixed inventory leaves external and regular link-path entries while removing owned link", result.status === 0 && !fs.existsSync(owned) && fs.readFileSync(decoy, "utf8") === "unchanged" && fs.lstatSync(path.join(layout.hooksDir, "nana-adoption.sh")).isSymbolicLink() && fs.readFileSync(regular, "utf8") === "owner file" && fs.lstatSync(directory).isDirectory(), result.stdout);
+  check("mixed inventory leaves external and regular link-path entries while removing owned link", result.status === 0 && !fs.existsSync(owned) && fs.readFileSync(decoy, "utf8") === "unchanged" && fs.lstatSync(path.join(layout.hooksDir, "nana-adoption.mjs")).isSymbolicLink() && fs.readFileSync(regular, "utf8") === "owner file" && fs.lstatSync(directory).isDirectory(), result.stdout);
   const danglingHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-dangling-link-"));
   const danglingLayout = resolveLayout({ home: danglingHome });
   fs.mkdirSync(danglingLayout.hooksDir, { recursive: true });
   fs.mkdirSync(danglingLayout.claudeHome, { recursive: true });
   fs.writeFileSync(danglingLayout.claudeSettings, "{}\n");
-  const live = path.join(danglingLayout.hooksDir, "nana-objective.sh");
-  const dangling = path.join(danglingLayout.hooksDir, "nana-adoption.sh");
-  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), live);
+  const live = path.join(danglingLayout.hooksDir, "nana-objective.mjs");
+  const dangling = path.join(danglingLayout.hooksDir, "nana-adoption.mjs");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.mjs"), live);
   fs.symlinkSync(path.join(danglingHome, "missing-target"), dangling);
   const danglingResult = run(["uninstall", "--yes", "--home", danglingHome]);
   // req: R-902

@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, tokenize, validateShape, mergeKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, tokenize, validateShape, mergeKnowledgeHook, migrateLegacyHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -38,7 +38,7 @@ check("five active hook entries are wanted", wanted.length === 5);
 {
 	const w = desiredHooks({ hooksDir: "/Users/Jane Doe/.claude/hooks", repoRoot: "/Users/Jane Doe/nana-pi" });
 	// req: R-319
-	check("bash commands single-quote the path", w[0].entry.command === "bash '/Users/Jane Doe/.claude/hooks/nana-objective.sh'");
+	check("Node hook commands single-quote the path", w[0].entry.command === "node '/Users/Jane Doe/.claude/hooks/nana-objective.mjs'");
 	check("the node command single-quotes the path", w.find((x) => x.label === "UserPromptSubmit knowledge pull").entry.command === "NODE_NO_WARNINGS=1 node '/Users/Jane Doe/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
 	// req: R-319
 	check("a quote inside a path is escaped", shq("/a/b'c/d") === `'/a/b'\\''c/d'`);
@@ -49,28 +49,28 @@ check("five active hook entries are wanted", wanted.length === 5);
 {
 	const objective = spec("SessionStart objective");
 	const yes = [
-		"bash ~/.claude/hooks/nana-objective.sh",
-		"bash '/Users/Jane Doe/.claude/hooks/nana-objective.sh'",
-		'bash "/Users/x/.claude/hooks/nana-objective.sh"',
-		"/bin/bash /Users/x/.claude/hooks/nana-objective.sh",
-		"sh /opt/hooks/nana-objective.sh --quiet",
+		"node ~/.claude/hooks/nana-objective.mjs",
+		"node '/Users/Jane Doe/.claude/hooks/nana-objective.mjs'",
+		'node "/Users/x/.claude/hooks/nana-objective.mjs"',
+		"/usr/bin/node /Users/x/.claude/hooks/nana-objective.mjs",
+		"node /opt/hooks/nana-objective.mjs --quiet",
 	];
 	for (const c of yes) check(`matches: ${c}`, commandInvokes(c, objective));
 	const no = [
 		"echo bash /tmp/nana-objective.sh", // mentions an invocation, is not one
-		"bash /tmp/nana-objective.sh &&", // not even valid shell
-		"bash /tmp/nana-objective.sh | cat",
-		"bash /tmp/nana-objective.sh; rm -rf /",
-		"bash /tmp/nana-objective.sh > log",
-		"bash /tmp/nana-objective.sh < in",
-		"bash /tmp/nana-objective.sh & ",
-		"bash $(echo /tmp)/nana-objective.sh",
-		"bash `echo /tmp`/nana-objective.sh",
-		"echo nana-objective.sh.disabled",
-		"bash ~/.claude/hooks/nana-objective.sh.disabled",
-		"bash ~/.claude/hooks/old-nana-objective.shx",
-		"echo '/x/nana-objective.sh'", // no interpreter
-		"bash ~/.claude/hooks/nana-shared-memory.sh",
+		"node /tmp/nana-objective.mjs &&", // not even valid shell
+		"node /tmp/nana-objective.mjs | cat",
+		"node /tmp/nana-objective.mjs; false",
+		"node /tmp/nana-objective.mjs > log",
+		"node /tmp/nana-objective.mjs < in",
+		"node /tmp/nana-objective.mjs & ",
+		"node $(echo /tmp)/nana-objective.mjs",
+		"node `echo /tmp`/nana-objective.mjs",
+		"echo nana-objective.mjs.disabled",
+		"node ~/.claude/hooks/nana-objective.mjs.disabled",
+		"node ~/.claude/hooks/old-nana-objective.mjsx",
+		"echo '/x/nana-objective.mjs'", // no interpreter
+		"node ~/.claude/hooks/nana-shared-memory.mjs",
 	];
 	for (const c of no) check(`does NOT match: ${c}`, !commandInvokes(c, objective));
 	const knowledge = spec("UserPromptSubmit knowledge pull");
@@ -79,7 +79,7 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("knowledge: a bare mention does not", !commandInvokes("echo nana-knowledge.ts hook", knowledge));
 	check("knowledge: a quoted path with a space matches", commandInvokes("NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook", knowledge));
 	check("knowledge: `echo node … hook` does not", !commandInvokes("echo node /x/nana-knowledge.ts hook", knowledge));
-	check("unbalanced quoting reads as NOT installed", !commandInvokes("bash '/x/nana-objective.sh", objective));
+	check("unbalanced quoting reads as NOT installed", !commandInvokes("node '/x/nana-objective.mjs", objective));
 }
 
 /* --- the tokenizer the matcher is built on -------------------------------------------- */
@@ -171,6 +171,18 @@ check("five active hook entries are wanted", wanted.length === 5);
 	// req: R-653
 	check("unrecognized echo entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[3]) === JSON.stringify({ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" }));
 	check("absolute knowledge hook target outside repository is not accepted as healthy", !result.staleValid);
+}
+
+/* --- exact legacy SessionStart entries migrate in place -------------------------------- */
+{
+	const foreign = { type: "command", command: "echo foreign", timeout: 5, statusMessage: "other" };
+	const settings = { hooks: { SessionStart: [{ hooks: [
+		{ type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+		foreign,
+		{ type: "command", command: "bash '/Users/jwang/.claude/hooks/nana-adoption.sh'", timeout: 5, statusMessage: "nana: unadopted repositories" },
+	] }] } };
+	// req: R-908
+	check("legacy managed bash hooks replace commands in place", migrateLegacyHooks(settings, { hooksDir: "/Users/jwang/.claude/hooks", claudeHome: "/Users/jwang/.claude" }) && settings.hooks.SessionStart[0].hooks[0].command === "node '/Users/jwang/.claude/hooks/nana-objective.mjs'" && settings.hooks.SessionStart[0].hooks[2].command === "node '/Users/jwang/.claude/hooks/nana-adoption.mjs'" && settings.hooks.SessionStart[0].hooks[1] === foreign && settings.hooks.SessionStart[0].hooks.length === 3);
 }
 
 /* --- unit: a disabled look-alike must NOT count as installed -------------------------- */
@@ -311,7 +323,7 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	mergeHooks(fresh.settings, wanted);
 	writeSettingsAtomic(file, serialize(fresh.settings), fresh.snapshot);
 	const done = JSON.parse(fs.readFileSync(file, "utf8"));
-	check("after re-reading: the write goes through", JSON.stringify(done).includes("nana-objective.sh"));
+	check("after re-reading: the write goes through", JSON.stringify(done).includes("nana-objective.mjs"));
 	check("after re-reading: the foreign hook is still there", JSON.stringify(done).includes("someone-elses.sh"));
 	check("after re-reading: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
 }
@@ -441,7 +453,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 		stepSettings(layout, {
 			dryRun: false,
 			afterTempWrite: (tmp) => {
-				tempExisted = fs.existsSync(tmp) && fs.readFileSync(tmp, "utf8").includes("nana-objective.sh");
+				tempExisted = fs.existsSync(tmp) && fs.readFileSync(tmp, "utf8").includes("nana-objective.mjs");
 				fs.writeFileSync(file, foreignRaw);
 			},
 		}, state);
@@ -464,7 +476,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const fresh = readClaudeSettings(layout);
 	stepSettings(layout, { dryRun: false }, fresh);
 	const after = fs.readFileSync(file, "utf8");
-	check("post-write: a clean re-run writes our entries", after.includes("nana-objective.sh"));
+	check("post-write: a clean re-run writes our entries", after.includes("nana-objective.mjs"));
 	check("post-write: the foreign hook survives", after.includes("someone-elses.sh"));
 	check("post-write: mode preserved", (fs.statSync(file).mode & 0o777) === 0o600);
 }
@@ -484,7 +496,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("full install: aborts on a write that lands after the temp file", err instanceof SetupError, String(err));
 	check("full install: the sneaked-in bytes survive", fs.readFileSync(file, "utf8") === '{"model":"sneaked-in"}\n');
 	check("full install: no temp or lock left behind", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp") && !f.includes(".lock")), fs.readdirSync(path.join(home, ".claude")).join(" "));
-	check("full install: the steps BEFORE settings did run (hooks are in place)", fs.lstatSync(path.join(home, ".claude", "hooks", "nana-objective.sh")).isSymbolicLink());
+	check("full install: the steps BEFORE settings did run (hooks are in place)", fs.lstatSync(path.join(home, ".claude", "hooks", "nana-objective.mjs")).isSymbolicLink());
 	check("full install: the steps AFTER settings did not (no pi seed)", !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 }
 

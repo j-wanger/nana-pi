@@ -22,6 +22,7 @@ const installerRows = (layout) => stateRows(layout).filter((r) => r.owner === "n
 
 function settingsVariants(settings, layout) {
   const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
+  const retired = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
   const exact = new Set(wanted.map((w) => JSON.stringify(canonical(w.entry))));
   const found = [];
   for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
@@ -29,7 +30,8 @@ function settingsVariants(settings, layout) {
     for (const group of groups) for (const hook of group?.hooks ?? []) {
       if (!hook || typeof hook.command !== "string" || exact.has(JSON.stringify(canonical(hook)))) continue;
       const match = wanted.find((w) => w.event === event && (commandInvokes(hook.command, w.spec) || hook.command.split(/\s+/u).some((part) => part.replaceAll("'", "").replaceAll('"', "").endsWith(`/${w.spec.script}`))));
-      if (match) found.push(hook.command);
+      const isRetired = event === "SessionStart" && retired.some((script) => commandInvokes(hook.command, { interpreters: ["bash", "sh", "zsh"], script }));
+      if (match || isRetired) found.push(hook.command);
     }
   }
   return [...found];

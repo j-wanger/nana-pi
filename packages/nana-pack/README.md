@@ -37,7 +37,7 @@ Seven extensions giving pi the hook coverage we require (Claude Code parity clas
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The writing-for-Jake rule (trial) in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 
-**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. Claude Code's Bash hook is unavailable on win32. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
+**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command that pipelines output before `git commit` without earlier active `pipefail`. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code Bash hook is not wired on native Windows by nana-setup. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
 
 ## Install
 
@@ -452,7 +452,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   by these renderers. **Out of scope:** `apps/**` (the desk shortens and places paths itself);
   `packages/nana-knowledge` (its own `clean()` in `packages/nana-knowledge/lib/query.ts`, direct interpolation in
   `packages/nana-knowledge/lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
-  `packages/nana-setup/claude/hooks/nana-objective.sh`; and any external consumer that copied a renderer,
+  `packages/nana-setup/claude/hooks/nana-objective.mjs`; and any external consumer that copied a renderer,
   builds its strings itself, or runs an older installed checkout (importers of `lib/objective.ts`
   get the shared renderers through its re-export; nothing else is certified). Every field is
   chosen by where it LANDS —
@@ -632,7 +632,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
   `journal.path` when that is ABSOLUTE, else `<pi's active agent dir>/nana-journal.jsonl` — a
   project-scope `journal.path` never captures it, and a relative user-scope one is not honoured
   for it (every other journal event is unchanged). The seat's Claude Code SessionStart hook
-  `packages/nana-setup/claude/hooks/nana-adoption.sh` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
+  `packages/nana-setup/claude/hooks/nana-adoption.mjs` runs `bin/nana-adoption.mjs` (plain `.mjs`, no Node floor of its own), which
   computes the same file: the last 7 days of those lines, re-checked at print time (adopted,
   dismissed, gone or no-longer-a-repo roots drop), newest first, at most 5 then `…and N more`,
   under `[nana:adoption]` — and nothing at all when there is nothing. Each root prints as data, in
@@ -768,7 +768,7 @@ is user-scope only** — project config never contributes to it, trusted or not.
     2026-09-18 decentralization ruling), followed by labelled `program objective:` /
     `program current priority:` lines and a precedence sentence so the program-level objective
     stays visible. A session in a product repo is charged against that product's two lines —
-    byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.sh` (both run
+    byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.mjs` (both run
     `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for — a bare
     filename (a separator, `.` or `..` is refused with a named config problem);
     `null`/`false`/absent = `OBJECTIVE.md`, never "off". The name, the fallback and the on/off

@@ -34,12 +34,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, mergeKnowledgeHook, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { desiredHooks, mergeHooks, mergeKnowledgeHook, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"];
+export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"];
+const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
 export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
@@ -288,6 +289,27 @@ export function stepRetiredArtifacts(layout, o) {
 		}
 		out.push({ label: `retired ${entry.relative}`, status: UPDATED, detail: `${o.dryRun ? "would move" : "moved"} to ${destination}` });
 	}
+	for (const old of RETIRED_HOOKS) {
+		const link = path.join(layout.hooksDir, old);
+		if (!directoryAncestorsAreSafe(layout.claudeHome, layout.hooksDir, true)) {
+			out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
+			continue;
+		}
+		const st = lstatSafe(link);
+		if (!st) continue;
+		let owned = false;
+		if (st.isSymbolicLink()) {
+			try {
+				const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
+				const targetParent = path.dirname(target);
+				owned = path.basename(target) === old && fs.realpathSync(targetParent) === fs.realpathSync(path.join(pkgRoot, "claude", "hooks"));
+			} catch { owned = false; }
+		}
+		if (owned) {
+			if (!o.dryRun) fs.unlinkSync(link);
+			out.push({ label: `retired ${old} link`, status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
+		} else out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `${old} is not a repository-managed symlink — left untouched` });
+	}
 	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
 	const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
 	const hookStat = hookAncestorsSafe ? lstatSafe(legacyHook) : null;
@@ -459,12 +481,11 @@ export function writeSettingsAtomic(file, contents, snapshot, { afterTempWrite }
 
 export function stepSettings(layout, o, state) {
 	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
-	// win32: the three bash hooks have no interpreter there, and `VAR=1 cmd` is not a thing in
-	// cmd.exe — so drop those entries and the env prefix on the one that survives.
+	// Win32 retains today's knowledge-only Claude hook surface; recognize managed hooks by script.
+	const portedScripts = new Set(["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"]);
 	const applicable = win()
-		? wanted
-				.filter((w) => !w.entry.command.startsWith("bash ") && w.label !== "PreToolUse verifier pipe")
-				.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
+		? wanted.filter((w) => !portedScripts.has(w.spec.script) && w.label !== "PreToolUse verifier pipe")
+			.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
 		: wanted;
 	const live = new Set(applicable.map((w) => w.label));
 	const report = (added) => [
@@ -477,6 +498,7 @@ export function stepSettings(layout, o, state) {
 	];
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
+		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
 		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
 		const other = applicable.filter((w) => w !== knowledge);
 		const migration = mergeKnowledgeHook(settings, {
@@ -486,6 +508,7 @@ export function stepSettings(layout, o, state) {
 		const result = mergeHooks(settings, migration.added ? applicable : other);
 		if (migration.replaced) result.added.push(knowledge.label);
 		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
+		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
 		return result;
 	};
 	if (o.dryRun) return report(merge(structuredClone(state.settings)).added);
@@ -519,7 +542,7 @@ export function stepSharedMemory(layout, o) {
 			status: UNCHANGED,
 			// No installer step by design: the SessionStart hook creates it for whatever
 			// project the session is in, so a brand-new repo heals itself.
-			detail: "maintained by the nana-shared-memory.sh hook, per project",
+			detail: "maintained by the nana-shared-memory.mjs hook, per project",
 		},
 	];
 }

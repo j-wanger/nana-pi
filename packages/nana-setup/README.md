@@ -17,10 +17,10 @@ node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi p
 ```
 
 Runtime dependencies: **Node ≥ 22.18** and the globally installed `@earendil-works/pi-coding-agent` package (used for pi's exported project-trust API). The floor is set by the installed
-`claude/hooks/nana-objective.sh` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
+`claude/hooks/nana-objective.mjs` hook, which runs `packages/nana-pack/bin/nana-objective.mjs`; that
 CLI imports `../nana-pack/lib/objective.ts` with no flag, relying on Node's built-in TypeScript stripping (default from
 22.18). On an older Node the hook prints `OBJECTIVE UNAVAILABLE: Node <v> is older than 22.18 …`
-(and `… node not found on PATH …` with no `node` at all) instead of the objective, and `doctor`'s
+instead of the objective, and `doctor`'s
 `node for the objective hook` line reads ✗. `install` calls out to `pi` (only to register
 the packages, and only when they are not registered yet — and it probes `pi --version` first, so a
 machine without pi on PATH reports `skipped` with the install command instead of failing), to `node` (to build the knowledge
@@ -30,14 +30,14 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 
 | Piece | Where | How |
 |---|---|---|
-| `claude/hooks/nana-objective.sh`, `claude/hooks/nana-adoption.sh`, `claude/hooks/nana-shared-memory.sh` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` — a `git pull` updates them |
+| `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/verifier-pipe.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
 | `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
 | `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
 | `packages/nana-pack/rules/nana-writing.md` (writing for Jake — trial, 2026-10-04) | `~/.claude/rules/nana-writing.md` | **symlink** — sourced from `packages/nana-pack/rules/`, not this package's own `claude/rules/`, because the `nana-writing` pack extension reads the SAME file for pi (one source, two runtimes — design-ruling.md Amendment 1, 2026-10-04, §A1) |
 | `requirements`, `spec`, `py-lint`, `py-review`, `py-test` skills | matching `~/.claude/skills/<name>` | **symlinks** to the same runtime-neutral `packages/nana-pack/skills/<name>` directories pi reads. Recognized stale nana-dev-kit copies are moved to dated backups outside the active skills root before linking; unknown or edited directories are left untouched and doctor reads ✗. The `scaffold-*` and `adopt-*` skills remain pi-only because they assume pi |
 | retired nana-dev-kit and broken Codex imports | `~/.claude/backups/` or `~/.agents/backups/` | recognized artifacts move to `<YYYY-MM-DD>-retired/` only after lstat and provenance checks; unknown content stays in place. `~/.agents/skills/synced/` is excluded. Existing repository context-warning markers are not scanned; install prints a reminder to remove them manually |
 | `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
-| SessionStart + UserPromptSubmit + PreToolUse hooks | `~/.claude/settings.json` | missing active entries are added without reordering foreign entries. Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved. The knowledge hook is migrated in place only when its timeout and status metadata match and its command is exactly the installer form `NODE_NO_WARNINGS=1 node '<absolute checkout>/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, allowing only the checkout path to differ. Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries. The Node Bash PreToolUse hook asks before a pipeline precedes `git commit` without active `pipefail`; a non-match or hook error abstains with empty stdout, and errors write a diagnostic to stderr. Claude Code documents the no-decision behavior: “If no decision is returned, Claude Code continues with its normal permission flow” ([PreToolUse decision control](https://code.claude.com/docs/en/hooks#pretooluse-decision-control)). The Claude Code hooks, including this verifier hook, are unavailable on Windows, so no PreToolUse verifier entry is installed there.
+| SessionStart + UserPromptSubmit + PreToolUse hooks | `~/.claude/settings.json` | missing active entries are added without reordering foreign entries; exact managed legacy SessionStart bash entries are migrated in place. Retired script invocations outside those exact entries are preserved and doctor reports them as problems. Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved. The knowledge hook is migrated in place only when its timeout and status metadata match and its command is exactly the installer form `NODE_NO_WARNINGS=1 node '<absolute checkout>/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, allowing only the checkout path to differ. Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries. The Node Bash PreToolUse hook asks before a pipeline precedes `git commit` without active `pipefail`; a non-match or hook error abstains with empty stdout, and errors write a diagnostic to stderr. Claude Code documents the no-decision behavior: “If no decision is returned, Claude Code continues with its normal permission flow” ([PreToolUse decision control](https://code.claude.com/docs/en/hooks#pretooluse-decision-control)). On native Windows, setup wires no Claude Code hook except the knowledge pull; POSIX hook entries are omitted.
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
@@ -52,7 +52,7 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 | desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. After bootout it waits for launchd to report the job absent before bootstrap; an error-5 bootstrap gets one retry after the same wait. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | Registration is complete only when every extension directory in the root `package.json` manifest is loaded. A root entry covers both manifests; per-package entries cover their own manifest. Install adds only missing per-package entries, never a root entry atop existing package entries. Paths use pi's matching rules (`~`, settings-relative paths, real paths and linked-worktree identity); exact remote entries are also recognized. Doctor's separate `pi package source` row reports whether the registered source is the checkout supplying hooks and rules. |
 
-**Verifier-pipe guard (user-scope):** every session will prompt before running a Claude Code Bash command that pipelines output before `git commit` without earlier active `pipefail`; this Claude Code hook is unavailable on win32. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Claude Code documents the response shape as `hookSpecificOutput` with `hookEventName: "PreToolUse"`, `permissionDecision: "ask"`, and `permissionDecisionReason` ([PreToolUse hook output](https://docs.anthropic.com/en/docs/claude-code/hooks#pretooluse-decision-control)). Non-matches and hook errors abstain (empty stdout), so Claude Code's normal permission flow continues; errors write a diagnostic to stderr.
+**Verifier-pipe guard (user-scope):** every session will prompt before running a Claude Code Bash command that pipelines output before `git commit` without earlier active `pipefail`; nana-setup does not wire this Claude Code hook on native Windows. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Claude Code documents the response shape as `hookSpecificOutput` with `hookEventName: "PreToolUse"`, `permissionDecision: "ask"`, and `permissionDecisionReason` ([PreToolUse hook output](https://docs.anthropic.com/en/docs/claude-code/hooks#pretooluse-decision-control)). Non-matches and hook errors abstain (empty stdout), so Claude Code's normal permission flow continues; errors write a diagnostic to stderr.
 
 ## Updating and removing
 
@@ -268,15 +268,15 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - **Never runs `pi install` or `npm` for you** to bring `pi-subagents` to the version `doctor`
   checks for, and never edits `mcp.json` — both are read-only checks (above); the fix is a command
   `doctor` names, for you to run.
-- **Install never removes or reorders** existing settings entries except the two exact retired context-hook forms. `uninstall` removes only exact desired hook objects; variants and foreign entries stay. A hook counts as present only when
+- **Install never removes or reorders** existing settings entries except the two exact retired context-hook forms; it updates only the command field of exact managed retired SessionStart hooks, in place. `uninstall` removes only exact desired hook objects; variants and foreign entries stay. A hook counts as present only when
   the command actually **executes** that script: the command is tokenized with shell-quoting
   rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
-  (`bash`/`sh`/`zsh`, or `node`) with `argv[1]` a path ending in `/<script>` (plus the expected
+  (`node` for the ported hooks; bash/sh/zsh for other commands) with `argv[1]` a path ending in `/<script>` (plus the expected
   argument, for the knowledge hook). So a hand-edited command (a `~` path, an extra env var,
-  quotes, `/bin/bash`) is left exactly as it is, while `echo bash /tmp/nana-objective.sh` and
-  `…/nana-objective.sh.disabled` read as *not installed*. A command carrying a shell operator,
+  quotes, `/bin/bash`) is left exactly as it is, while `echo node /tmp/nana-objective.mjs` and
+  `…/nana-objective.mjs.disabled` read as *not installed*. A command carrying a shell operator,
   redirection or substitution outside quotes (`&&`, `||`, `;`, `|`, `&`, `>`, `<`, `` ` ``, `$(`)
-  is not a plain invocation and reads as not installed either — `bash …/nana-objective.sh &&` is
+  is not a plain invocation and reads as not installed either — `node …/nana-objective.mjs &&` is
   not even valid shell, and doctor must not call it healthy. Anything unparseable also reads as not
   installed — the installer would rather add a correct entry than call a machine healthy. Paths
   the installer writes are single-quoted, so a home or clone with a space in it still runs.
@@ -347,7 +347,7 @@ Claude Code keeps per-project auto-memory under `~/.claude/projects/<key>/memory
 and are symlinked in as `shared/`.
 
 Linking that per project would mean an installer step per repo, forever. Instead
-`claude/hooks/nana-shared-memory.sh` does it at session start for whatever project the session is in:
+`claude/hooks/nana-shared-memory.mjs` does it at session start for whatever project the session is in:
 
 - it prefers the **exact** directory the harness names in `transcript_path` (when that path sits
   directly under `<claude home>/projects`);
@@ -356,10 +356,9 @@ Linking that per project would mean an installer step per repo, forever. Instead
   beyond 200 characters truncated to 200 with `-<hash>`, `hash` being the 32-bit rolling string
   hash in base 36 — the hook reproduces that arithmetic rather than guessing);
 - and it **never picks a directory by pattern**: two projects can share their first 200
-  characters, so a glob "match" could mutate the wrong project's memory. When the key cannot be
-  derived in the shell (a non-ASCII path, which the harness hashes in UTF-16 code units and bash
-  cannot), it prints one line saying the self-heal was skipped and changes nothing — those
-  sessions still heal through `transcript_path`;
+  characters, so a glob "match" could mutate the wrong project's memory. The fallback key comes
+  from `lib/project-key.mjs`, including non-ASCII paths; when no project directory can be read it
+  reports self-heal skipped and still prints the index;
 - then it creates the memory dir and the `shared` symlink if they are missing, and prints the
   index.
 
@@ -370,7 +369,7 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` �
 
 Support: macOS tested; Linux runs in hosted CI, where the suite leg is non-blocking, with no recorded machine install; the pack runs on native Windows but is untested, and on Windows there is no Claude Code hook except the knowledge pull, none of its PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 
-On Windows, installer copies and skipped hooks and PATH commands are implementation details, not a claim of supported parity.
+On native Windows, nana-setup wires no Claude Code hook except the knowledge pull. Installer copies and skipped PATH commands are implementation details, not a claim of supported parity.
 On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there.
 
 ## Usage and options
@@ -417,9 +416,10 @@ loudly and counted, never silent.
 | `tests/state-manifest.test.mjs` | classified inventory, layout coverage, ledger parity, secret classification, and read-only listing with inaccessible secret fixtures |
 | `tests/restore.test.mjs` | documented command lines, durable-store absence, inventory listing and restore ordering |
 | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
-| `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching (`echo bash /tmp/nana-objective.sh` is not an invocation), shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
+| `tests/settings-merge.test.mjs` | foreign hooks preserved, no duplicates, matcher groups untouched, the tokenizer and parsed matching, in-place migration of exact retired hook entries, and doctor detection of retired commands, shape validation making the install a no-op, the lock (none left after a normal run, an existing lock aborting with path + pid + age + the `rm` command, a day-old dead-pid lock still aborting, `--dry-run` unaffected, released on throw, a replacement lock never unlinked), and the post-temp-write re-compare — injected through the real write path, asserting abort + temp removed + the other writer's bytes intact |
 | `tests/project-key.test.mjs` | the `<key>` mapping, the over-200 hash form, cross-checked against the real `~/.claude/projects` |
-| `tests/shared-memory-hook.test.mjs` | the real bash hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, non-ASCII paths skipping instead of guessing |
+| `tests/shared-memory-hook.test.mjs` | the real Node hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, and non-ASCII key derivation |
+| `tests/shared-memory-input.test.mjs` | the shared-memory hook's TTY guard and 65536-byte stdin cap |
 | `tests/pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `tests/doctor-package-source.test.mjs` | pi package source diagnosis for remote entries, object-form sources, in-checkout relative entries, external worktree identity, clone-first remedy and unrelated packages |
 | `tests/fresh-machine.test.mjs` | ordered README checklist and sourced Node, pi and pi-subagents versions |
