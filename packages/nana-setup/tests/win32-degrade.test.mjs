@@ -63,7 +63,7 @@ check("win32 install skips every POSIX PATH command and leaves bin absent or emp
 // req: R-589
 check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
 for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory"]) {
-	check(`win32: ${label} reports skipped (win32: bash hook)`, line(label).includes("skipped (win32: bash hook)"), line(label));
+	check(`win32: ${label} reports skipped (win32: POSIX hook)`, line(label).includes("skipped (win32: POSIX hook)"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
 check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0);

@@ -270,17 +270,18 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 	return null;
 }
 
-function findRetiredHook(settings, event) {
+function findRetiredHooks(settings, event) {
 	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 	const groups = settings?.hooks?.[event];
-	if (!Array.isArray(groups)) return null;
+	const commands = new Set();
+	if (!Array.isArray(groups)) return [];
 	for (const group of groups) {
 		if (!Array.isArray(group?.hooks)) continue;
 		for (const hook of group.hooks) {
-			for (const script of names) if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) return hook.command;
+			for (const script of names) if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) commands.add(hook.command);
 		}
 	}
-	return null;
+	return [...commands];
 }
 
 export function diagnose(layout, opts = {}) {
@@ -369,8 +370,8 @@ export function diagnose(layout, opts = {}) {
 			const healthy = w.label === "UserPromptSubmit knowledge pull"
 				? knowledgeHookHealthy(settings, repoRoot)
 				: hasHook(settings, w.event, w.spec, w.matcher);
-			const retired = findRetiredHook(settings, w.event);
-			add(retired ? FAIL : healthy ? OK : FAIL, `settings ${w.label}`, retired ? `retired bash hook still wired: ${retired}` : w.label === "UserPromptSubmit knowledge pull" && !healthy
+			const retired = findRetiredHooks(settings, w.event);
+			add(retired.length ? FAIL : healthy ? OK : FAIL, `settings ${w.label}`, retired.length ? `retired bash hooks still wired: ${retired.join("; ")}` : w.label === "UserPromptSubmit knowledge pull" && !healthy
 				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
 				: w.marker);
 		}

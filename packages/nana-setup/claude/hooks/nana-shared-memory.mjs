@@ -35,47 +35,47 @@ try {
 	text = fs.readFileSync(idx, "utf8");
 	let note = "";
 	try {
+		let input = {};
 		if (!process.stdin.isTTY) {
-			let input = {};
 			try { input = JSON.parse(await readHookInput(process.stdin)); } catch { input = {}; }
-			const projects = path.resolve(claudeHome, "projects");
-			const transcript = typeof input?.transcript_path === "string" ? input.transcript_path : "";
-			let dir = null;
-			if (transcript) {
-				const candidate = path.dirname(transcript);
-				if (path.resolve(path.dirname(candidate)) === projects) dir = candidate;
-			}
-			if (!dir) {
-				let project;
-				try {
-					project = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-					if (!process.env.CLAUDE_PROJECT_DIR && !fs.statSync(project).isDirectory()) project = "";
-				} catch { project = ""; }
-				if (project) dir = path.join(projects, projectKey(project));
-				else note = "self-heal skipped: no project directory can be read";
-			}
-			if (dir) {
-				const memory = path.join(dir, "memory");
+		}
+		const projects = path.resolve(claudeHome, "projects");
+		const transcript = typeof input?.transcript_path === "string" ? input.transcript_path : "";
+		let dir = null;
+		if (transcript) {
+			const candidate = path.dirname(transcript);
+			if (path.resolve(path.dirname(candidate)) === projects) dir = candidate;
+		}
+		if (!dir) {
+			let project;
+			try {
+				project = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+				if (!process.env.CLAUDE_PROJECT_DIR && !fs.statSync(project).isDirectory()) project = "";
+			} catch { project = ""; }
+			if (project) dir = path.join(projects, projectKey(project));
+			else note = "self-heal skipped: no project directory can be read";
+		}
+		if (dir) {
+			const memory = path.join(dir, "memory");
+			if (hasSymlinkedComponent(claudeHome, memory)) {
+				note = "self-heal skipped: symlinked path component";
+			} else {
+				fs.mkdirSync(memory, { recursive: true });
+				const link = path.join(memory, "shared");
 				if (hasSymlinkedComponent(claudeHome, memory)) {
 					note = "self-heal skipped: symlinked path component";
 				} else {
-					fs.mkdirSync(memory, { recursive: true });
-					const link = path.join(memory, "shared");
-					if (hasSymlinkedComponent(claudeHome, memory)) {
-						note = "self-heal skipped: symlinked path component";
-					} else {
-						let absent = false;
+					let absent = false;
+					try { fs.lstatSync(link); }
+					catch (error) {
+						if (error?.code !== "ENOENT") throw error;
+						absent = true;
+					}
+					if (absent && !hasSymlinkedComponent(claudeHome, memory)) {
 						try { fs.lstatSync(link); }
 						catch (error) {
 							if (error?.code !== "ENOENT") throw error;
-							absent = true;
-						}
-						if (absent && !hasSymlinkedComponent(claudeHome, memory)) {
-							try { fs.lstatSync(link); }
-							catch (error) {
-								if (error?.code !== "ENOENT") throw error;
-								fs.symlinkSync(shared, link, "junction");
-							}
+							fs.symlinkSync(shared, link, "junction");
 						}
 					}
 				}

@@ -512,7 +512,7 @@ export function stepSettings(layout, o, state) {
 		...wanted.map((w) => ({
 			label: `settings ${w.label}`,
 			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
-			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "bash hook"})` : added.includes(w.label) ? "added" : "already wired",
+			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "POSIX hook"})` : added.includes(w.label) ? "added" : "already wired",
 		})),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 		...retiredHookCommands(settings).map(({ event, command }) => ({ label: `settings ${event} retired hook`, status: PROBLEM, detail: `retired bash hook still wired: ${command}` })),

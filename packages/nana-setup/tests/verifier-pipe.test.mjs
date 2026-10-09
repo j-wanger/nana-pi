@@ -72,11 +72,14 @@ fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
 const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985
 check("doctor accepts the installed Node hook wiring", healthy?.status === "ok", JSON.stringify(healthy));
-settings.hooks.SessionStart = [{ hooks: [{ type: "command", command: "/bin/bash /x/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" }] }];
+settings.hooks.SessionStart = [{ hooks: [
+	{ type: "command", command: "/bin/bash /x/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+	{ type: "command", command: "/bin/sh /other/nana-adoption.sh", timeout: 5, statusMessage: "foreign retired hook" },
+] }];
 fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
-const retired = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings SessionStart objective");
+const retiredRows = withPiStub(() => diagnose(layout, { projectDir: home })).filter((item) => item.label.startsWith("settings SessionStart"));
 // req: R-909
-check("doctor reports retired bash script entries as a problem", retired?.status === "fail" && retired.detail === "retired bash hook still wired: /bin/bash /x/nana-objective.sh");
+check("doctor reports every distinct retired bash script entry as a problem", retiredRows.length > 0 && retiredRows.every((item) => item.status === "fail" && item.detail.includes("/bin/bash /x/nana-objective.sh") && item.detail.includes("/bin/sh /other/nana-adoption.sh")));
 for (const [name, value] of [["object event", {}], ["string event", "bad"], ["null event", null]]) {
 	settings.hooks.SessionStart = value;
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
