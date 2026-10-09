@@ -601,6 +601,14 @@ would send it twice.
   stage-chain-edge.e2e.mjs` is the live proof; it no longer carries the adapter's
   `outputGuard.detailsMaxBytes` overflow scenario (no built-in equivalent — R-278 retired).
 
+## Contract notes (2026-10-09 — usage line, D4)
+
+The desk writes one `desk_usage` JSON line to stdout for a successful load of the desk page (`/` or `/index.html`), a successful read of a historical transcript, or a prompt sent to a live desk session. App listeners write the same line for a successful app-page load and an app-session prompt; app surfaces are `app:<manifest name>`. Each line has exactly `ts`, `event`, `surface` and `action`, with the action `open`, `view` or `prompt`.
+
+In the shipped UI, the transcript request (and so a `view` line) comes only from a click on a historical session. Any direct client of the transcript API also produces a `view` line. The service sends stdout to the launchd plist's `StandardOutPath`, `<pi agent dir>/desk.log`; test desks send stdout to their harness pipe. Lines never carry prompt text or length, images, cwd, file or session paths, session ids or names, other manifest fields, query strings, headers, client address, user agent or stage keys.
+
+`open` over-counts reloads and restored tabs. Watching a long-open tab without opening a transcript or sending a prompt is invisible. This line exists to inform the D4 retain / freeze / retire ruling, not to tally or identify people.
+
 ## Known limits
 
 The 2026-09-08 hardening pass (five commits: four per-package under `gpt-5.6-sol` review, then
