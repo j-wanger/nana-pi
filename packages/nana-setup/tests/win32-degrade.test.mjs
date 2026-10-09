@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/win32-degrade.test.mjs
  * @purpose Pins that on Windows every posix-only install step SAYS it skipped instead of failing, driven through the platform seam rather than by patching process.platform
- * @inputs bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and a throwaway --home
+ * @inputs bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and throwaway --home directories
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -16,8 +16,9 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
@@ -40,27 +41,32 @@ function freshHome() {
 	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
-const run = (args, env = {}) => {
-	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+const run = (args, env = {}, cwd = process.cwd()) => {
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { cwd, encoding: "utf8", env: { ...process.env, ...env } });
 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
 };
 
+const posixHome = freshHome();
+const posix = run(["install", "--dry-run", "--home", posixHome], { NANA_SETUP_PLATFORM: "darwin" });
+const pathLabels = [...new Set(posix.stdout.split("\n").map((entry) => entry.match(/\b(PATH [^\s]+)/)?.[1]).filter((label) => label && label !== "PATH check"))];
 const home = freshHome();
 const r = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 check("win32 install exits 0", r.status === 0, r.stderr);
 
 const lines = r.stdout.split("\n");
 const line = (label) => lines.find((l) => l.includes(label)) ?? "";
-for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh", "PATH pi-review"]) {
+for (const label of ["hook nana-objective.sh", "hook nana-shared-memory.sh"]) {
 	check(`win32: ${label} reports skipped (win32)`, /skipped\s+skipped \(win32\)/.test(line(label)), line(label));
 }
+// req: R-995
+check("win32 install skips every POSIX PATH command and leaves bin absent or empty", posix.status === 0 && pathLabels.length > 0 && pathLabels.every((label) => /skipped\s+skipped \(win32\)/.test(line(label))) && (!fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0), pathLabels.find((label) => !/skipped\s+skipped \(win32\)/.test(line(label))) ?? "bin directory is not empty");
 // req: R-589
 check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
 for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory"]) {
 	check(`win32: ${label} reports skipped (win32: bash hook)`, line(label).includes("skipped (win32: bash hook)"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
-check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin", "pi-review")) && !fs.existsSync(path.join(home, ".local", "bin", "nana-setup")));
+check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0);
 check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
 /* the pieces that DO work on Windows still run */
@@ -81,7 +87,9 @@ check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("ba
 check("win32: no Claude verifier PreToolUse entry is installed", !settings.hooks.PreToolUse?.some((group) => group.hooks.some((entry) => entry.command.includes("verifier-pipe.mjs"))));
 
 /* doctor agrees, and does not fail on what the platform cannot have */
-const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
+const doctorCwd = tmpDir(path.join(os.tmpdir(), "nana-setup-doctor-cwd-"));
+tmps.push(doctorCwd);
+const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
 check("win32 doctor marks the skipped pieces", (doc.stdout.match(/skipped \(win32\)/g) || []).length >= 4);

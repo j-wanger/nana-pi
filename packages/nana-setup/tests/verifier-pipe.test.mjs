@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { desiredHooks } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
@@ -23,7 +24,7 @@ const check = (title, pass, extra = "") => {
 	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : extra);
 	if (!pass) failures++;
 };
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const root = path.resolve(pkg, "..", "..");
 const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
 const installedHome = tmpDir(path.join(os.tmpdir(), "nana-pipe-installed-"));
