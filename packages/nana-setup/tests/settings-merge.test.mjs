@@ -500,6 +500,33 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	check("full install: the steps AFTER settings did not (no pi seed)", !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 }
 
+/* --- managed legacy SessionStart objects migrate in place through installation ---------- */
+{
+	const home = freshHome();
+	const layout = resolveLayout({ home });
+	const file = layout.claudeSettings;
+	const before = { type: "command", command: "foreign-before", opaque: { keep: true } };
+	const after = { type: "command", command: "foreign-after", opaque: [1, 2] };
+	const message = (name) => ({ objective: "nana: objective + current priority", shared: "nana: shared memory index", adoption: "nana: unadopted repositories" })[name];
+	const old = (name, command) => ({ type: "command", command, timeout: 5, statusMessage: message(name) });
+	const settings = { hooks: { SessionStart: [{ hooks: [
+		before,
+		old("objective", "bash ~/.claude/hooks/nana-objective.sh"),
+		old("shared", "bash ~/.claude/hooks/nana-shared-memory.sh"),
+		old("adoption", `bash ${shq(path.join(layout.hooksDir, "nana-adoption.sh"))}`),
+		after,
+	] }] } };
+	fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+	const result = run(["install"], home);
+	const migrated = JSON.parse(fs.readFileSync(file, "utf8")).hooks.SessionStart[0].hooks;
+	const expected = ["nana-objective.mjs", "nana-shared-memory.mjs", "nana-adoption.mjs"];
+	// req: R-908
+	check("install migrates the three exact legacy commands in place without disturbing foreign objects", result.status === 0 && migrated.length === 5 && migrated[0].command === before.command && migrated[4].command === after.command && JSON.stringify(migrated[0]) === JSON.stringify(before) && JSON.stringify(migrated[4]) === JSON.stringify(after) && migrated.slice(1, 4).every((entry, index) => entry.command === `node ${shq(path.join(layout.hooksDir, expected[index]))}`));
+	const again = run(["install"], home);
+	// req: R-908
+	check("second install after migration reports nothing to do", again.status === 0 && /nothing to do/.test(again.stdout));
+}
+
 /* --- stale-hook migration uses the same concurrent-write protection ------------------- */
 {
 	const home = freshHome();

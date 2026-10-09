@@ -340,6 +340,19 @@ try {
 	}
 	{
 		const h = home();
+		const layout = resolveLayout({ home: h });
+		const externalHooks = path.join(h, "external-hooks");
+		fs.mkdirSync(externalHooks);
+		const dangling = path.join(externalHooks, "nana-objective.sh");
+		fs.symlinkSync(path.join(pkg, "claude", "hooks", "nana-objective.sh"), dangling);
+		fs.mkdirSync(layout.claudeHome, { recursive: true });
+		fs.symlinkSync(externalHooks, layout.hooksDir, "junction");
+		const result = stepRetiredArtifacts(layout, { dryRun: false });
+		// req: R-804
+		check("symlinked hooks directory is reported unsafe and nothing is unlinked", fs.lstatSync(dangling).isSymbolicLink() && result.some((row) => row.label === "retired nana-objective.sh link" && row.status === "problem"));
+	}
+	{
+		const h = home();
 		const elsewhere = path.join(h, "foreign-hook.sh");
 		fs.writeFileSync(elsewhere, "keep\n");
 		const hookLink = path.join(h, ".claude", "hooks", "context-size-check.sh");
