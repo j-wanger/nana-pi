@@ -33,8 +33,8 @@ let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const piRoot = findPiRoot();
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+const { root: piRoot, how: piHow } = findPiRoot();
+console.log(`pi root: ${piRoot} (${piHow})`);
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).

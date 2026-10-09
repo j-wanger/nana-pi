@@ -14,9 +14,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { findPiRoot } from "./pi-install.mjs";
-const piRoot = findPiRoot();
+const { root: piRoot, how: piHow } = findPiRoot();
 const piIndex = path.join(piRoot, "dist", "index.js");
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+console.log(`pi root: ${piRoot} (${piHow})`);
 const piMod = await import(pathToFileURL(piIndex).href);
 // Golden corpus (lane T2a): for every case, the Claude Code hook's stdout and the pi
 // extension's injected text are BYTE-IDENTICAL once the hook's leading "[nana:objective]"

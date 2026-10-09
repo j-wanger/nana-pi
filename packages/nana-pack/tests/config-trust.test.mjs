@@ -22,9 +22,9 @@ import { findPiRoot } from "./pi-install.mjs";
 // The pi-dependent cases use the REAL installed pi trust module (not a stub).
 // Run: node --experimental-strip-types <this file>
 // Locate pi before isolating HOME because npm's prefix may live in user configuration.
-const piRoot = findPiRoot();
+const { root: piRoot, how: piHow } = findPiRoot();
 const piIndex = path.join(piRoot, "dist", "index.js");
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+console.log(`pi root: ${piRoot} (${piHow})`);
 const HOME = tmpDir(path.join(os.tmpdir(), "trust-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;

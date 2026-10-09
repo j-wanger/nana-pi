@@ -1548,7 +1548,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Resolve the real installed pi package consistently for pack tests.
 - **inputs** — DESK_PI_ROOT, npm global-root discovery, and the pi executable on PATH.
-- **outputs** — The validated @earendil-works/pi-coding-agent package root.
+- **outputs** — The validated package root and the source used to resolve it.
 - **effects** — process (runs npm or PATH lookup commands), disk (reads package metadata).
 - **errors** — Throws an Error naming each candidate that could not be resolved.
 - **callers** — `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`

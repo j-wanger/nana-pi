@@ -30,9 +30,9 @@ import { findPiRoot } from "./pi-install.mjs";
 // the store write /trust performs), as in config-trust.test.mjs; every gate run is a
 // fresh child node process sharing only the temp HOME.
 // Run: node --experimental-strip-types <this file>
-const piRoot = findPiRoot();
+const { root: piRoot, how: piHow } = findPiRoot();
 const piIndex = path.join(piRoot, "dist", "index.js");
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+console.log(`pi root: ${piRoot} (${piHow})`);
 const pi = await import(pathToFileURL(piIndex).href);
 
 const HOME = tmpDir(path.join(os.tmpdir(), "pgatefb-home-"));

@@ -14,8 +14,8 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { findPiRoot } from "./pi-install.mjs";
 
-const piRoot = findPiRoot();
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+const { root: piRoot, how: piHow } = findPiRoot();
+console.log(`pi root: ${piRoot} (${piHow})`);
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).

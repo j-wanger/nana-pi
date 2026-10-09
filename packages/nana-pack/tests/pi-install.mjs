@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/pi-install.mjs
  * @purpose Resolve the real installed pi package consistently for pack tests.
  * @inputs DESK_PI_ROOT, npm global-root discovery, and the pi executable on PATH.
- * @outputs The validated @earendil-works/pi-coding-agent package root.
+ * @outputs The validated package root and the source used to resolve it.
  * @effects process (runs npm or PATH lookup commands), disk (reads package metadata).
  * @errors Throws an Error naming each candidate that could not be resolved.
  */
@@ -23,14 +23,14 @@ export function findPiRoot() {
 	if (process.env.DESK_PI_ROOT) {
 		const dir = path.resolve(process.env.DESK_PI_ROOT);
 		tried.push(`DESK_PI_ROOT=${dir}`);
-		if (packageAt(dir)) return dir;
+		if (packageAt(dir)) return { root: dir, how: "DESK_PI_ROOT" };
 		throw new Error(`pi package not found at ${tried.join("; ")}`);
 	}
 	const npm = spawnSync("npm", ["root", "-g"], { encoding: "utf8", windowsHide: true });
 	const globalRoot = npm.status === 0 ? npm.stdout.trim() : "";
 	const globalPackage = globalRoot ? path.join(globalRoot, "@earendil-works", "pi-coding-agent") : "";
 	tried.push(`npm root -g${globalPackage ? ` -> ${globalPackage}` : ` (unavailable${npm.error ? `: ${npm.error.message}` : ""})`}`);
-	if (globalPackage && packageAt(globalPackage)) return globalPackage;
+	if (globalPackage && packageAt(globalPackage)) return { root: globalPackage, how: "npm root -g" };
 	const lookup = process.platform === "win32"
 		? spawnSync("where", ["pi"], { encoding: "utf8", windowsHide: true })
 		: spawnSync("sh", ["-c", "command -v pi"], { encoding: "utf8", windowsHide: true });
@@ -39,7 +39,7 @@ export function findPiRoot() {
 	try { if (executable) resolved = fs.realpathSync(executable); } catch {}
 	tried.push(`realpath of pi on PATH${resolved ? ` -> ${resolved}` : " (unavailable)"}`);
 	for (let dir = resolved ? path.dirname(resolved) : ""; dir; dir = path.dirname(dir)) {
-		if (packageAt(dir)) return dir;
+		if (packageAt(dir)) return { root: dir, how: "PATH realpath" };
 		const parent = path.dirname(dir);
 		if (parent === dir) break;
 	}

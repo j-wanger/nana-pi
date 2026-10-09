@@ -19,8 +19,8 @@ import { findPiRoot } from "./pi-install.mjs";
 // ≤300-char POINTER (path, age, writer), never the text; the path is one read away.
 // A new compaction resets it.
 // Run: node --experimental-strip-types <this file>
-const piRoot = findPiRoot();
-console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+const { root: piRoot, how: piHow } = findPiRoot();
+console.log(`pi root: ${piRoot} (${piHow})`);
 const pathUtils = path.join(piRoot, "dist", "core", "tools", "path-utils.js");
 const PI = { how: `real pi ${pathUtils}`, resolveToCwd: (await import(pathToFileURL(pathUtils).href)).resolveToCwd };
 const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
