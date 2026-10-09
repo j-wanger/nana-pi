@@ -11,6 +11,7 @@
 		"map": "node scripts/code-map.mjs --write",
 		"map:check": "node scripts/code-map.mjs --check",
 		"map:impact": "node scripts/code-map.mjs --impact",
+		"req:rows": "node scripts/requirement-rows.mjs",
 		"readme:check": "node scripts/readme-check.mjs",
 		"template:accept": "node scripts/template-acceptance.mjs",
 		"release": "node scripts/template-release.mjs"

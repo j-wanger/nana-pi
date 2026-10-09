@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 238 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 240 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -607,7 +607,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, the summary line plus problem list of --check, the transitive callers and callees of --impact
 - **effects** — disk (reads the config and the module sources, writes the map), process (exits non-zero when --check or --write finds a problem)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; a thrown Error for a bad config or an unknown mode
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — —
 
 ### `scripts/readme-check.mjs`
@@ -620,6 +620,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `packages/nana-pack/tests/readme-check.test.mjs`
 - **callees** — —
 
+### `scripts/requirement-rows.mjs`
+
+- **purpose** — List candidate requirement rows for files by joining the code map's test callers with the rail's markers.
+- **inputs** — An injected import graph, traced marker map, status and requirement-cell lookups, or CLI file arguments.
+- **outputs** — Direct and transitive-only candidate rows with an explicit uncertainty label.
+- **effects** — disk and process
+- **errors** — CLI exits nonzero when arguments or repo inputs are invalid.
+- **callers** — `packages/nana-pack/tests/requirement-rows.test.mjs`
+- **callees** — `scripts/code-map.mjs`, `scripts/requirements-trace.mjs`
+
 ### `scripts/requirements-trace.mjs`
 
 - **purpose** — Run the project template's requirements-trace rail over this repo, so every REQUIREMENTS.md row's status is measured against the `req:` markers nana-pi's suites carry.
@@ -627,7 +637,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the summary line, the `ears:` off-form line, plus one problem line per disagreement between a row's status, form or evidence and the markers
 - **effects** — disk (reads REQUIREMENTS.md and the test sources), process (exits non-zero when a row and the suite disagree)
 - **errors** — exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
-- **callers** — `packages/nana-pack/tests/requirements-trace.test.mjs`
+- **callers** — `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — —
 
 ### `scripts/template-acceptance.mjs`
@@ -1623,6 +1633,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/requirement-rows.test.mjs`
+
+- **purpose** — Pins the candidate requirement rows lister's tiers, uncertainty label and unknown result.
+- **inputs** — Synthetic import graphs, rail markers and the checkout's mapped source graph.
+- **outputs** — PASS/FAIL lines for each R-649 clause.
+- **effects** — disk (reads this checkout), process (runs the rows CLI)
+- **errors** — A failed check is reported and makes this test process exit nonzero.
+- **callers** — —
+- **callees** — `scripts/code-map.mjs`, `scripts/requirement-rows.mjs`, `scripts/requirements-trace.mjs`
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 
