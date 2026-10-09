@@ -236,6 +236,7 @@ function runState(opts) {
 			for (const file of found) {
 				if (strongestClassFor(file) !== "durable") continue;
 				const name = path.relative(layout.base, file);
+				if (name.startsWith("-")) { console.error(`leading dash in durable store ${row.store}`); return 2; }
 				if (/[\u0000-\u001f\u007f]/.test(name)) { console.error(`control character in durable store ${row.store}`); return 2; }
 				files.add(name.split(path.sep).join("/"));
 			}

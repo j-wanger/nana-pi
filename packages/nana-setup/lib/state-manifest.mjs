@@ -50,7 +50,6 @@ export function stateRows(layout) {
   durable("pi settings", "nana-setup", "settings-entry", layout.piSettings, "restore from the private state archive", modules.setup);
   durable("knowledge sources", "user", "file", p(layout.knowledgeHome, "sources.json"), undefined, modules.knowledge);
   durable("knowledge pull log", "nana-knowledge", "file", p(layout.knowledgeHome, "pull.log"), undefined, modules.knowledge);
-  durable("knowledge home container", "nana-knowledge", "dir", layout.knowledgeHome, "durable children restore from the private state archive", modules.knowledge);
   durable("nana apps", "user", "dir", p(layout.piHome, "apps"));
   durable("nana share", "user", "dir", p(layout.base, ".local", "share", "nana"));
 

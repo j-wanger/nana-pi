@@ -86,6 +86,7 @@ for (const row of durable.filter((entry) => !["private rule", "shared memory", "
 fs.mkdirSync(path.join(sourceLayout.knowledgeHome), { recursive: true });
 fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [knowledgeRoot] }));
 fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "pull.log"), "pull bytes\n");
+for (const name of ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unknown-future-artifact"]) fs.writeFileSync(path.join(sourceLayout.knowledgeHome, name), `generated:${name}`);
 fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
 fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
 const secrets = sourceRows.filter((row) => row.class === "secret");
@@ -131,6 +132,8 @@ const expectedDurableFiles = [
 const expectedRelative = expectedDurableFiles.map((file) => path.relative(home, file).split(path.sep).join("/")).sort();
 // req: R-958
 check("independent durable fixtures are all listed", expectedRelative.every((name) => listedNames.includes(name)), `${expectedRelative.filter((name) => !listedNames.includes(name)).join(", ")}\n${listedPaths.stderr}\n${listedNames.join("\n")}`);
+// req: R-958
+check("knowledge generated sidecars, reclaim lock and unknown future files are excluded", listedPaths.status === 0 && ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unknown-future-artifact"].every((name) => !listedNames.includes(path.relative(home, path.join(sourceLayout.knowledgeHome, name)).split(path.sep).join("/"))), listedNames.filter((name) => /(?:index\.db-(?:wal|shm)|build\.lock\.reclaim|unknown-future-artifact)$/.test(name)).join(", "));
 // req: R-958
 check("archive excludes every independently derived non-durable fixture", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !nonDurableFixtures.some((fixture) => { const relative = path.relative(home, fixture).split(path.sep).join("/"); return archiveNames.some((name) => name === relative || name.startsWith(`${relative}/`)); }) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr} excluded fixtures=${nonDurableFixtures.map((file) => path.relative(home, file)).join(", ")}`);
 const clean = run(["state", "--home", destination]);

@@ -29,7 +29,8 @@ const installTupleNames = ["private rule", "pi pack config", "pi objective", "su
 const expectedInstallTuples = [["durable", "nana-setup", "seed", "packages/nana-setup/lib/steps.mjs; remove only while byte-equal to seed source", "restore from the private state archive"],["durable", "nana-setup", "seed", "packages/nana-setup/lib/steps.mjs; remove only while byte-equal to seed source", "restore from the private state archive"],["durable", "nana-setup", "seed", "packages/nana-setup/lib/steps.mjs; remove only while byte-equal to seed source", "restore from the private state archive"],["rebuildable", "nana-setup", "seed", "packages/nana-setup/lib/steps.mjs; remove only while byte-equal to seed source", "re-run nana-setup install"],["rebuildable", "nana-setup", "seed", "packages/nana-setup/lib/steps.mjs; remove only while byte-equal to seed source", "re-run nana-setup install"],["rebuildable", "nana-knowledge", "generated", "packages/nana-knowledge/lib/paths.ts", "run nana-knowledge build"],["rebuildable", "nana-setup", "plist", "packages/nana-setup/lib/steps.mjs", "re-run nana-setup install"]];
 // req: R-954
 check("install seeds and generated stores pin exact owner and kind tuples", installTupleNames.every((name, index) => JSON.stringify(tuple(name)) === JSON.stringify(expectedInstallTuples[index])) && !rows.some((row) => row.store === "LaunchAgents directory"), JSON.stringify(installTupleNames.filter((name, index) => JSON.stringify(tuple(name)) !== JSON.stringify(expectedInstallTuples[index]))));
-const containers = ["base", "claudeHome", "piHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "launchAgentsDir"];
+// knowledgeHome is a layout container only; only sources.json and pull.log are durable rows.
+const containers = ["base", "claudeHome", "piHome", "knowledgeHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "launchAgentsDir"];
 const pathEntries = Object.entries(layout).filter(([key, value]) => typeof value === "string" && path.isAbsolute(value) && !containers.includes(key));
 // req: R-955
 check("every resolved layout path except declared containers is inventoried", pathEntries.every(([, value]) => byPath.has(path.resolve(value))), pathEntries.filter(([, value]) => !byPath.has(path.resolve(value))).map(([key]) => key).join(", "));
@@ -125,4 +126,10 @@ const outside = path.join(os.tmpdir(), "state-outside-agent");
 const escaped = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", outside], { encoding: "utf8" });
 // req: R-957
 check("state --paths rejects an external durable store and names it", escaped.status === 2 && /outside home: pi pack config/.test(escaped.stderr), `${escaped.status} ${escaped.stderr}`);
+const dashHome = path.join(home, "-custom-claude");
+const dashRule = path.join(dashHome, "rules", "nana-personal.md");
+fs.mkdirSync(path.dirname(dashRule), { recursive: true }); fs.writeFileSync(dashRule, "durable rule");
+const leadingDash = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--claude-home", dashHome, "--pi-home", agent], { encoding: "utf8" });
+// req: R-957
+check("state --paths rejects leading-dash paths in custom homes", leadingDash.status === 2 && /leading dash in durable store private rule/.test(leadingDash.stderr), `${leadingDash.status} ${leadingDash.stdout}\n${leadingDash.stderr}`);
 process.exit(fails);
