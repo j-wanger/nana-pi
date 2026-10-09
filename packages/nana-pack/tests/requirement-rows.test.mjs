@@ -36,6 +36,7 @@ const graph = buildGraph([
 ], config);
 const traced = new Map([
 	["R-004", ["tests/x.test.mjs::direct marker", "tests/y.test.mjs::overlap marker"]],
+	["R-010", ["tests/y.test.mjs::transitive marker"]],
 	["R-002", ["tests/y.test.mjs::transitive marker"]],
 ]);
 const statusOf = (id) => id === undefined
@@ -47,13 +48,17 @@ const fixtureOutput = candidateRows({ graph, traced, statusOf, textOf }, ["lib/a
 // req: R-649
 check("direct and transitive tiers contain the right marked rows and are disjoint",
 	fixtureOutput.includes("direct test files (1), rows (1):\n    R-004 implemented Requirement cell for R-004") &&
-	fixtureOutput.includes("transitive-only test files (1), rows (1):\n    R-002") &&
-	!fixtureOutput.includes("transitive-only test files (1), rows (2)") &&
-	fixtureOutput.includes("R-004") && !fixtureOutput.includes("transitive-only test files (1), rows (1):\nR-002 R-004"),
+	fixtureOutput.includes("transitive-only test files (1), rows (2):\n    R-002 R-010") &&
+	fixtureOutput.indexOf("direct test files (1)") < fixtureOutput.indexOf("transitive-only test files (1)") &&
+	!fixtureOutput.includes("transitive-only test files (1), rows (2):\n    R-010 R-002") &&
+	fixtureOutput.includes("R-004") && !fixtureOutput.includes("transitive-only test files (1), rows (2):\n    R-002 R-004"),
 	fixtureOutput);
 // req: R-649
 check("each file output carries the incomplete and inexact label with the untested count",
-	fixtureOutput.includes("neither complete nor exact") && fixtureOutput.includes("2 untested rows"),
+	fixtureOutput.includes("neither complete nor exact") &&
+	fixtureOutput.includes("any marked check in an importing test file can list a row without exercising this file") &&
+	fixtureOutput.includes("untested rows carry no marker and never appear (2 untested rows)") &&
+	fixtureOutput.includes("test modules that only spawn a process are not linked"),
 	fixtureOutput);
 // req: R-649
 check("files without marked test callers print unknown, including an unmapped file",
