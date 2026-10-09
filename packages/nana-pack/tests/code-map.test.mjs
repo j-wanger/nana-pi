@@ -19,6 +19,7 @@ import * as path from "node:path";
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
 const { REPO_ROOT, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
 // R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
 // directly against the generator template ships, not the shim: tests may import anything
 // (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
@@ -84,14 +85,6 @@ check("an unmapped path is reported as unmapped rather than silently empty",
 // layerExempt — a test may import across the layer direction), so a test carries the same contract
 // header as any other module and a dropped header is a --check failure. Before this they were
 // `ignore`d, which made the "every module" rule silently stop at the suite.
-const TEST_ROOTS = [
-	"packages/nana-pack/tests",
-	"packages/nana-knowledge/tests",
-	"packages/nana-stage/tests",
-	"packages/nana-setup/tests",
-	"apps/desk/test",
-	"apps/bench/test",
-];
 const mappedTests = graph.order.filter((p) => TEST_ROOTS.some((r) => p.startsWith(`${r}/`)));
 const unrootedTestDirs = TEST_ROOTS.filter((r) => !config.roots.includes(r));
 check("every test dir `npm test` collects is a declared map root", unrootedTestDirs.length === 0, unrootedTestDirs.join(", "));

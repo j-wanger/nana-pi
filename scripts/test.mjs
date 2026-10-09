@@ -27,9 +27,9 @@
 // ever collected.
 //
 // One line per file — PASS / FAIL / SKIP — then a total; exits 1 if any file failed.
-// The verdict is the exit code: a file FAILs if it exits non-zero, dies on a signal, or times
-// out. A `FAIL` line from an exit-0 file is reported as a WARN and does not flip the verdict.
-// A file is SKIPped only when it is declared below as unrunnable on this platform.
+// The verdict is the exit code: a file FAILs if it exits non-zero, dies on a signal, times
+// out, or exits 0 without a passing check. A `FAIL` line from an exit-0 file with a PASS is a
+// WARN. A file is SKIPped only when its declared precondition is false.
 //
 // Every child runs in its own process tree; on timeout, Ctrl-C (exit 130) or SIGTERM (exit 143)
 // the runner kills that whole tree (POSIX process-group SIGKILL; win32 `taskkill /T /F`) and
@@ -158,6 +158,8 @@ const SKIPS = {
 	// not use pgrep (it guards its own POSIX cases), so it always runs there.
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>
 		posix && !onPath("pgrep") ? "needs `pgrep` on POSIX (not on PATH)" : null,
+	"apps/bench/test/study-tasks.test.mjs": () =>
+		fs.existsSync(path.join(root, "apps", "bench", ".ext", "pi-web-access")) ? null : "needs apps/bench/.ext/pi-web-access (not present)",
 };
 
 // ── self-test fixtures (never in the default set; written to scratch at run time) ─────────────
@@ -181,10 +183,12 @@ const FIXTURES = [
 		body: [
 			'import { spawn } from "node:child_process";',
 			'import * as fs from "node:fs";',
-			'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},60000)", "nana-runner-selftest-pipe-holder"], { stdio: "inherit", detached: true });',
+			'// chosen: 15s bounds the detached fixture beyond the 3s runner timeout.',
+			'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},15000)", "nana-runner-selftest-pipe-holder"], { stdio: "inherit", detached: true });',
 			'fs.writeFileSync("pipe-holder.pid", String(g.pid));',
 			'console.log("PASS spawned a detached grandchild that holds stdout");',
-			"setInterval(() => {}, 1000); // never exits: only the runner's timeout ends it",
+			"// chosen: the 3s self-test timeout fires first; this fixture exits itself after 15s.",
+			"setTimeout(() => process.exit(0), 15000);",
 			"",
 		].join("\n"),
 	},
@@ -271,6 +275,10 @@ const SCRUB = (k) => (/^NANA_/.test(k) && !/^NANA_TEST_/.test(k)) || k === "PI_C
 const BASE_ENV = (() => {
 	const e = { ...process.env };
 	for (const k of Object.keys(e)) if (SCRUB(k)) delete e[k];
+	const count = Number.isSafeInteger(Number(e.GIT_CONFIG_COUNT)) && Number(e.GIT_CONFIG_COUNT) >= 0 ? Number(e.GIT_CONFIG_COUNT) : 0;
+	e[`GIT_CONFIG_KEY_${count}`] = "gc.auto";
+	e[`GIT_CONFIG_VALUE_${count}`] = "0";
+	e.GIT_CONFIG_COUNT = String(count + 1);
 	return e;
 })();
 
@@ -360,14 +368,13 @@ try {
 		checks.pass += p;
 		checks.fail += f;
 		checks.skip += s;
-		const ok = r.code === 0 && !r.timedOut;
-		const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : !ok ? `exit ${r.code ?? r.signal}` : "";
+		const exitedOk = r.code === 0 && !r.timedOut;
+		const noPassingCheck = exitedOk && p === 0;
+		const ok = exitedOk && !noPassingCheck;
+		const why = r.timedOut ? `timed out after ${timeoutMs / 1000}s` : noPassingCheck ? "no check passed and no skip was declared" : !ok ? `exit ${r.code ?? r.signal}` : "";
 		const held = r.pipesHeld ? `  (stdio still open ${DRAIN_MS / 1000}s after exit — a descendant holds it; not waited for)` : "";
 		const stat = `${p} pass${f ? `, ${f} fail` : ""}${s ? `, ${s} skip` : ""}  ${secs}s`;
-		// A file that ran no checks and printed only SKIP lines (a declared precondition, exit 0)
-		// is a SKIP at file level too — "PASS … 0 pass" understated skipped files (sol r2, LOW).
-		const allSkip = ok && p === 0 && f === 0 && s > 0;
-		const label = allSkip ? "SKIP" : ok ? "PASS" : "FAIL";
+		const label = ok ? "PASS" : "FAIL";
 		tally[label]++;
 		console.log(`${label}  ${name.padEnd(width)}  ${stat}${why ? `  — ${why}` : ""}${held}`);
 		if (ok && f) warns.push(`WARN ${name}: FAIL line with exit 0`);
@@ -376,7 +383,7 @@ try {
 			failed.push(name);
 			if (!verbose) {
 				const tail = r.out.trimEnd().split(/\r?\n/);
-				const shown = tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
+				const shown = noPassingCheck ? tail.filter((l) => /^\s*SKIP\b/.test(l)) : tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
 				for (const l of (shown.length ? shown : tail).slice(0, 20)) console.log(`      | ${l}`);
 			}
 		}

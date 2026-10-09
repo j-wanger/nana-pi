@@ -184,7 +184,8 @@ if (havePytest) {
  }
 }
 if (!haveCopier) {
- console.log(`SKIP fresh Part G render matrix: ${unavailableReason("uvx copier")}${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);
+ if (process.env.NANA_TEST_REQUIRE_COPIER === "1") check("copier is required when NANA_TEST_REQUIRE_COPIER=1", false, "uvx copier unavailable");
+ else console.log(`SKIP fresh Part G render matrix: ${unavailableReason("uvx copier")}${copyProbe.error ? ` (${copyProbe.error.message})` : ""}`);
 } else {
  for (const language of ["python", "typescript"]) {
   for (const adopt of [false, true]) {

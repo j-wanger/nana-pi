@@ -399,9 +399,9 @@ function walk(dir) {
 	const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
 	if (uvx.error || uvx.status !== 0) {
 		// These renders ARE the invariant (byte equality with _shared, `_skip_if_exists`), so a
-		// machine without uvx must say so loudly — and CI sets NANA_SETUP_REQUIRE_COPIER=1 to
+		// machine without uvx must say so loudly — and CI sets NANA_TEST_REQUIRE_COPIER=1 to
 		// make the absence a failure instead of a shrug.
-		if (process.env.NANA_SETUP_REQUIRE_COPIER === "1") check("copier renders (NANA_SETUP_REQUIRE_COPIER=1)", false, "uvx not found — install uv, or unset NANA_SETUP_REQUIRE_COPIER");
+		if (process.env.NANA_TEST_REQUIRE_COPIER === "1") check("copier renders (NANA_TEST_REQUIRE_COPIER=1)", false, "uvx not found — install uv, or unset NANA_TEST_REQUIRE_COPIER");
 		else skip("copier renders", "uvx not found");
 	} else {
 		const dest = tmp("nana-render-");

@@ -1,17 +1,17 @@
 /**
  * @module packages/nana-pack/tests/config-trust.test.mjs
  * @purpose Pins that project-local nana-pack.json is honored only under nana-trust — a trust decision that was actually made — and fails closed when the trust API or pi's module is absent
- * @inputs lib/config.ts, the REAL installed pi trust module when it can be located, and temp projects under a temp HOME
+ * @inputs lib/config.ts, the required installed pi trust module, and temp projects under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, temp projects, pi settings fixtures), process (sets HOME, runs npm and git through execSync)
- * @errors a failed check prints FAIL and the run exits 1; the pi-dependent cases report a skip rather than a pass when no pi install is found
+ * @errors a failed check prints FAIL and the run exits 1; the pi locator throws with attempted locations when no pi install is found
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
 // Security property: project-local nana-pack.json (gate relaxation, post-edit
 // COMMANDS, handoff path) is honored only under NANA-TRUST: ctx.isProjectTrusted()
 // AND a trust decision that was actually made — pi would have asked (trust-requiring
@@ -21,19 +21,10 @@ import { pathToFileURL } from "node:url";
 // counts (arch F1). Fail-closed when the trust API or pi's module is absent.
 // The pi-dependent cases use the REAL installed pi trust module (not a stub).
 // Run: node --experimental-strip-types <this file>
-// Locate the installed pi BEFORE isolating HOME (npm's prefix may live in ~/.npmrc):
-// `npm root -g`, else the realpath of the `pi` bin on PATH.
-function findPiIndex() {
-	const cands = [];
-	try { cands.push(path.join(execSync("npm root -g", { encoding: "utf-8" }).trim(), "@earendil-works", "pi-coding-agent")); } catch {}
-	try {
-		const bin = fs.realpathSync(execSync(process.platform === "win32" ? "where pi" : "command -v pi", { encoding: "utf-8", shell: true }).trim().split(/\r?\n/)[0]);
-		for (let d = path.dirname(bin); d !== path.dirname(d); d = path.dirname(d)) if (path.basename(d) === "pi-coding-agent") { cands.push(d); break; }
-	} catch {}
-	for (const c of cands) if (fs.existsSync(path.join(c, "dist", "index.js"))) return path.join(c, "dist", "index.js");
-	return null;
-}
-const piIndex = findPiIndex();
+// Locate pi before isolating HOME because npm's prefix may live in user configuration.
+const piRoot = findPiRoot();
+const piIndex = path.join(piRoot, "dist", "index.js");
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
 const HOME = tmpDir(path.join(os.tmpdir(), "trust-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
@@ -82,9 +73,7 @@ const bare = repo({ ".pi/settings.json": "{}" });
 check("bare harness (no pi module): fail-closed even with .pi/settings.json + trusted", ignored(loadConfig({ cwd: bare, isProjectTrusted: () => true })));
 
 // ── real pi trust module ──
-if (!piIndex) {
-	console.log("SKIP real-pi trust cases: @earendil-works/pi-coding-agent is not installed globally");
-} else {
+{
 	const pi = await import(pathToFileURL(piIndex).href);
 	usePiTrustModule(pi);
 	check("fixture: pi's agent dir is the isolated HOME", pi.getAgentDir() === path.join(HOME, ".pi", "agent"));

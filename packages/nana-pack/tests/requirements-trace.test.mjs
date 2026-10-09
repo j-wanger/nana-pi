@@ -20,7 +20,7 @@
 // Run: node --experimental-strip-types <this file>
 import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -63,11 +63,29 @@ check(
 	problems.length === 0,
 	`\n  ${problems.join("\n  ")}`,
 );
-check(
-	"the rail scanned every test dir npm test collects",
-	TEST_ROOTS.length === 6 && CALL_NAMES.includes("check"),
-	`${TEST_ROOTS.length} roots, calls ${CALL_NAMES.join("/")}`,
+const expectedRoots = [
+	...readdirSync(join(REPO_ROOT, "packages"), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && existsSync(join(REPO_ROOT, "packages", entry.name, "tests")))
+		.map((entry) => `packages/${entry.name}/tests`),
+	"apps/desk/test", "apps/bench/test",
+].sort();
+const nestedTests = TEST_ROOTS.flatMap((root) => {
+	const visit = (dir, depth = 0) => readdirSync(join(REPO_ROOT, dir), { withFileTypes: true }).flatMap((entry) => {
+		if (entry.isDirectory()) {
+			if (entry.name === "fixture" || entry.name === "fixtures") return [];
+			return visit(`${dir}/${entry.name}`, depth + 1);
+		}
+		return depth > 0 && entry.isFile() && entry.name.endsWith(".test.mjs") ? [`${dir}/${entry.name}`] : [];
+	});
+	return existsSync(join(REPO_ROOT, root)) ? visit(root) : [];
+});
+// req: G-004
+check("rail roots equal the package test roots and two app roots collected by npm test",
+	JSON.stringify([...TEST_ROOTS].sort()) === JSON.stringify(expectedRoots) && CALL_NAMES.includes("check"),
+	`rail=${TEST_ROOTS.join(",")} expected=${expectedRoots.join(",")}`,
 );
+// req: G-004
+check("no collected test root has nested test files outside fixture directories", nestedTests.length === 0, nestedTests.join(", "));
 check(
 	"the rail read the whole file and traced something",
 	requirements.size > 400 && traced.size > 0,

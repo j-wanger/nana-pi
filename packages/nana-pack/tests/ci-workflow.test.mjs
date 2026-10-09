@@ -50,8 +50,8 @@ check("root CI runs the suite on macOS and nonblocking Ubuntu and gates tag rele
 check("suite job requires copier on every matrix leg", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
-  assert.match(suite, /^    env:\n      NANA_SETUP_REQUIRE_COPIER: "1"$/m);
-  assert.doesNotMatch(release, /^      NANA_SETUP_REQUIRE_COPIER:/m);
+  assert.match(suite, /^    env:\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
+  assert.doesNotMatch(release, /^      NANA_TEST_REQUIRE_COPIER:/m);
 });
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {

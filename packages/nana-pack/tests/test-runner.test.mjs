@@ -100,6 +100,7 @@ const TRAP = (what) => `console.log("FAIL ${what}");\nprocess.exit(1);\n`;
 // PATH is pointed at an empty dir so the runner's declared skip for post-edit-hardening
 // ("needs `pgrep` on POSIX") fires: that is the only SKIPS entry, and it keys off `pgrep` on PATH.
 const noPath = tmpDir(path.join(TD, "nopath-"));
+const gitBin = process.env.PATH.split(path.delimiter).map((dir) => path.join(dir, process.platform === "win32" ? "git.exe" : "git")).find((candidate) => fs.existsSync(candidate));
 const rootA = mkRoot("A", {
 	"packages/probe/ts-probe.ts": "export const bump = (n: number): number => n + 1;\n",
 	"packages/probe/tests/a-cwd.test.mjs": [
@@ -134,6 +135,16 @@ const rootA = mkRoot("A", {
 	"packages/probe/tests/d-red.test.mjs": 'import * as fs from "node:fs"; import * as os from "node:os"; import * as path from "node:path"; const leaked=fs["mkdtemp"+"Sync"](path.join(os.tmpdir(),"failing-leak-")); fs.writeFileSync(process.env.PROBE_OUT+"/failed-tmpdir.txt",os.tmpdir()); console.log("PASS the red fixture got this far");\nconsole.log("not ok - diagnostic assertion");\n' + Array.from({ length: 21 }, (_, i) => `console.log("FAIL diagnostic check ${i + 1}");`).join("\n") + "\nprocess.exit(1);\n",
 	"packages/probe/tests/e-warn.test.mjs": 'console.log("FAIL is a bare token here, not a failed check");\nconsole.log("PASS exit 0 is the verdict");\n',
 	"packages/probe/tests/f-allskip.test.mjs": 'console.log("SKIP a declared precondition is missing");\nconsole.log("SKIP and another");\n',
+	"packages/probe/tests/j-silent.test.mjs": 'console.log("silent file");\n',
+	"packages/probe/tests/k-git-config.test.mjs": [
+		'import { spawnSync } from "node:child_process";',
+		'import * as fs from "node:fs";',
+		'const gc = spawnSync(process.env.GIT_BIN, ["config", "--list"], { encoding: "utf8" });',
+		'const caller = spawnSync(process.env.GIT_BIN, ["config", "--get", "user.name"], { encoding: "utf8" });',
+		'fs.writeFileSync(process.env.PROBE_OUT + "/git-config.json", JSON.stringify({ gc: gc.stdout.split(/\\r?\\n/).some((line) => line.endsWith("gc.auto=0")), caller: caller.stdout.trim() }));',
+		'console.log("PASS git environment inspected");',
+		"",
+	].join("\n"),
 	"packages/probe/tests/g-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
 	"packages/probe/tests/i-temp-leak.test.mjs": [
 		'import * as fs from "node:fs";',
@@ -162,6 +173,7 @@ const rootA = mkRoot("A", {
 	"packages/fixtures/tests/trap.test.mjs": TRAP("a fixtures-segment package was collected"),
 	// the one declared platform skip; it must never actually run here
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": TRAP("the declared platform skip did not skip"),
+	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared study-tasks prerequisite skip did not skip"),
 });
 
 const A = run(rootA, [], {
@@ -172,6 +184,10 @@ const A = run(rootA, [], {
 	NANA_TEST_TIMEOUT_MS: "60000",
 	PI_CODING_AGENT_DIR: "/ambient/agent",
 	PI_BIN: "/kept/pi",
+	GIT_BIN: gitBin,
+	GIT_CONFIG_COUNT: "1",
+	GIT_CONFIG_KEY_0: "user.name",
+	GIT_CONFIG_VALUE_0: "caller-entry",
 });
 const tA = totals(A.out);
 const cwdJson = readJson(A.out_dir, "cwd.json");
@@ -179,9 +195,10 @@ const home1 = readJson(A.out_dir, "home1.json");
 const home2 = readJson(A.out_dir, "home2.json");
 const envJson = readJson(A.out_dir, "env.json");
 const fileTmpJson = readJson(A.out_dir, "file-tmp.json");
+const gitConfigJson = readJson(A.out_dir, "git-config.json");
 
 // req: R-600
-check("collects every test file directly under a package tests dir", tA?.files === 11 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env", "i-temp-leak"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
+check("collects every test file directly under a package tests dir", tA?.files === 14 && ["a-cwd", "b-home", "b2-home", "c-pass", "d-red", "e-warn", "f-allskip", "g-signal", "h-env", "i-temp-leak", "j-silent", "k-git-config"].every((n) => A.out.includes(`packages/probe/tests/${n}.test.mjs`)));
 // req: R-600
 check("collection does not recurse and takes only .test.mjs files", !A.out.includes("deep.test.mjs") && !A.out.includes("helper.mjs"));
 // req: R-602
@@ -192,6 +209,8 @@ check("each file runs with --experimental-strip-types from its package dir", cwd
 check("each file gets a fresh temp HOME and USERPROFILE, not the real one", !!home1 && home1.env_home === home1.userprofile && home1.home !== home1.outer && home1.dotfile === true && home1.outer_touched === false);
 // req: R-604
 check("the temp HOME is per file, not shared between files", !!home2 && home2.home !== home1?.home);
+// req: R-648
+check("every child disables git auto gc without replacing caller git config entries", gitConfigJson?.gc === true && gitConfigJson.caller === "caller-entry");
 // req: R-917
 check("a failing file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(A.out_dir, "failed-tmpdir.txt"), "utf8")));
 // req: R-910
@@ -200,12 +219,14 @@ check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g
 // req: R-606 R-910 R-911
 check("a FAIL line from an exit-0 file is a WARN and does not flip the verdict", labelFor(A.out, "e-warn.test.mjs") === "PASS" && A.out.includes("WARN packages/probe/tests/e-warn.test.mjs: FAIL line with exit 0") && tA?.warn === 1);
 // req: R-608
-check("an exit-0 file that printed only SKIP lines is a file-level SKIP", labelFor(A.out, "f-allskip.test.mjs") === "SKIP");
+check("an exit-0 file that printed only SKIP lines is FAIL without a declared precondition", labelFor(A.out, "f-allskip.test.mjs") === "FAIL" && A.out.includes("no check passed and no skip was declared") && lineFor(A.out, "f-allskip.test.mjs").includes("2 skip") && A.out.includes("| SKIP a declared precondition is missing"));
+// req: R-608
+check("a silent exit-0 file is FAIL without a declared precondition", labelFor(A.out, "j-silent.test.mjs") === "FAIL" && A.out.includes("no check passed and no skip was declared"));
 check("without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown", !A.out.includes("probe-marker") && A.out.includes("| FAIL diagnostic check 1"));
 // req: R-916
 check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
-check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 11 && tA.pass === 7 && tA.fail === 2 && tA.skip === 2 && tA.checks.pass === 8 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
+check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === 14 && tA.pass === 8 && tA.fail === 4 && tA.skip === 2 && tA.checks.pass === 9 && tA.checks.fail === 22 && tA.checks.skip === 2 && A.code === 1);
 // req: R-917
 check("each test gets a unique TMPDIR and the runner removes leaked temp contents", !!fileTmpJson?.tmp && fileTmpJson.tmp !== envJson?.tmpdir && path.basename(fileTmpJson.tmp).startsWith("nana-test-") && fileTmpJson.leaked.startsWith(fileTmpJson.tmp) && !fs.existsSync(fileTmpJson.tmp));
 // req: R-618
@@ -219,6 +240,8 @@ if (posix) {
 } else {
 	skip("a file declared unrunnable on this platform SKIPs with its reason printed", "the only declared skip is POSIX-only");
 }
+// req: R-607
+check("study tasks SKIP only when their declared extension prerequisite is absent", labelFor(A.out, "study-tasks.test.mjs") === "SKIP" && lineFor(A.out, "study-tasks.test.mjs").includes("apps/bench/.ext/pi-web-access"));
 
 // ── case B: the substring filter, and --verbose ───────────────────────────────────────────────
 const B = run(rootA, ["--verbose", "probe/tests/c-pass"]);
@@ -241,11 +264,13 @@ const rootD = mkRoot("D", {
 		'import * as path from "node:path";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/timeout-tmpdir.txt", process.env.TMPDIR);',
 		'fs.mkdirSync(path.join(process.env.TMPDIR, "timeout-leak"));',
-		'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},120000)"], { stdio: "ignore" });',
+		'// chosen: 10s exceeds this case\'s 1.5s runner timeout, but bounds the child fixture.',
+		'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},10000)"], { stdio: "ignore" });',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(g.pid));',
 		'console.log("PASS spawned a grandchild inside the tree");',
-		"setInterval(() => {}, 1000); // only the runner's timeout ends this",
-		"",
+		"// chosen: exits itself after 10s, longer than the 1.5s timeout under test.",
+		"setTimeout(() => process.exit(0), 10000);",
+		""
 	].join("\n"),
 });
 const D = run(rootD, [], { NANA_TEST_TIMEOUT_MS: "1500" });
@@ -340,9 +365,11 @@ const rootSignal = mkRoot("signal", {
 		'import { spawn } from "node:child_process";',
 		'import * as fs from "node:fs";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp.txt", process.env.TMPDIR);',
-		'const grandchild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
+		'// chosen: 15s exceeds the signal case\'s readiness window, and bounds both processes.',
+		'const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 15000)"], { stdio: "ignore" });',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(grandchild.pid));',
-		'setInterval(() => {}, 1000);',
+		'// chosen: 15s exceeds the signal case\'s readiness window and bounds the child fixture.',
+		'setTimeout(() => process.exit(0), 15000);',
 		"",
 	].join("\n"),
 });

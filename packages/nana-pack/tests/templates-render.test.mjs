@@ -326,9 +326,15 @@ checkInstructionContracts();
 
 const version = copierAvailable();
 if (!version) {
-	for (const surface of Object.keys(SURFACES)) skip(surface, "uvx copier unavailable");
+	const required = process.env.NANA_TEST_REQUIRE_COPIER === "1";
+	for (const surface of Object.keys(SURFACES)) {
+		if (required) check(surface, false, "NANA_TEST_REQUIRE_COPIER=1 but uvx copier is unavailable");
+		else skip(surface, "uvx copier unavailable");
+	}
 	for (const language of Object.keys(LANGS)) {
-		skip(`${language}: renders and the code map checks`, "uvx copier is not available on this machine");
+		const title = `${language}: renders and the code map checks`;
+		if (required) check(title, false, "NANA_TEST_REQUIRE_COPIER=1 but uvx copier is unavailable");
+		else skip(title, "uvx copier is not available on this machine");
 	}
 } else {
 	for (const [language, spec] of Object.entries(LANGS)) {
