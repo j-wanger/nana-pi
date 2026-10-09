@@ -80,7 +80,6 @@ export function stateRows(layout) {
   disp("nana journal", p(layout.base, ".pi", "agent", "nana-journal.jsonl"), "file", "nana-pack");
 
   for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"]) secret(name, "pi", "file", p(layout.piHome, name), modules.pi);
-  durable("mcp.json", "pi", "file", layout.mcpConfig);
   secret("Claude credentials", "claude-code", "file", p(layout.claudeHome, ".credentials.json"), modules.claude);
   secret("Claude settings", "claude-code", "settings", layout.claudeSettings, modules.claude);
   secret("Claude login", "claude-code", "file", p(layout.base, ".claude.json"), modules.claude);

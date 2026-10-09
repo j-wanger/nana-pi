@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-setup/tests/restore.test.mjs
- * @purpose Exercises the documented state listing and restore contract using isolated temporary homes.
- * @inputs setup CLI, state manifest and setup README.
+ * @purpose Exercises the documented state listing and complete restore using isolated temporary homes.
+ * @inputs setup CLI, state manifest, pi trust API and setup README.
  * @outputs PASS/FAIL checks and process exit status.
- * @effects disk (temporary fixture roots only).
+ * @effects disk (temporary fixture roots only), process (setup CLI and tar).
  * @errors Failed checks increment the exit status.
  */
 import * as os from "node:os";
@@ -13,47 +13,128 @@ import { spawnSync } from "node:child_process";
 import { tmpDir } from "./tmp-dir.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
+import { spawnNpmRoot } from "../lib/npm-root.mjs";
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
-const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8");
-check("README backup and extraction commands are byte-exact", readme.includes("node packages/nana-setup/bin/nana-setup.mjs state --paths > ~/nana-state.list && tar -czf ~/nana-state.tgz -C ~ -T ~/nana-state.list") && readme.includes("tar -xzkf ~/nana-state.tgz -C ~"));
 const root = tmpDir(path.join(os.tmpdir(), "state-restore-"));
-const home = path.join(root, "home");
-const destination = path.join(root, "destination");
-const shared = path.join(root, "shared-source");
-fs.mkdirSync(home);
-fs.mkdirSync(destination);
-fs.mkdirSync(shared);
-const layout = resolveLayout({ home });
-const rows = stateRows(layout);
-const durable = rows.filter((row) => row.class === "durable");
-const secret = rows.filter((row) => row.class === "secret");
+const home = path.join(root, "source-home");
+const destination = path.join(root, "destination-home");
+const clone = path.join(root, "clone");
+const project = path.join(clone, "product");
+fs.mkdirSync(home, { recursive: true });
+fs.mkdirSync(destination, { recursive: true });
+fs.mkdirSync(path.join(project, ".pi"), { recursive: true });
+const objective = path.join(clone, "OBJECTIVE.md");
+const knowledgeRoot = path.join(clone, "knowledge");
+fs.mkdirSync(knowledgeRoot);
+fs.writeFileSync(objective, "shared objective bytes\n");
+fs.writeFileSync(path.join(knowledgeRoot, "one.md"), "knowledge fixture\n");
+fs.writeFileSync(path.join(project, ".pi", "nana-pack.json"), JSON.stringify({ objective: { path: objective } }));
 const cli = path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname);
-const result = spawnSync(process.execPath, [cli, "state", "--home", home], { encoding: "utf8" });
-// req: R-956
-check("state inventory lists one presence result for every store", result.status === 0 && rows.every((row) => result.stdout.includes(row.store) && result.stdout.includes(row.class)), `${result.status} ${result.stderr}`);
-check("fresh restore target has every durable store absent", result.status === 0 && durable.every((row) => !fs.existsSync(row.path)), `${result.status} ${result.stderr}`);
-check("secret stores are excluded from durable archive paths", !durable.some((row) => secret.includes(row)));
-const privateRule = path.join(layout.rulesDir, "nana-personal.md");
-const memoryFile = path.join(layout.sharedMemoryDir, "memory.md");
-const ledgerFile = durable.find((row) => row.store === "review ledger tally")?.path;
+const nodeModules = spawnNpmRoot().stdout.trim();
+const { ProjectTrustStore } = await import(path.join(nodeModules, "@earendil-works", "pi-coding-agent", "dist", "core", "trust-manager.js"));
+const run = (args, cwd = root) => spawnSync(process.execPath, [cli, ...args], { cwd, encoding: "utf8", env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent") } });
+const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8");
+const backup = "node packages/nana-setup/bin/nana-setup.mjs state --paths > ~/nana-state.list && tar -czf ~/nana-state.tgz -C ~ -T ~/nana-state.list";
+const extraction = "tar -xzkf ~/nana-state.tgz -C ~";
+// req: R-958
+check("README backup and extraction commands are byte-exact", readme.includes(backup) && readme.includes(extraction));
+const installed = run(["install", "--home", home]);
+check("source home installs", installed.status === 0, `${installed.status} ${installed.stderr} ${installed.stdout}`);
+const sourceLayout = resolveLayout({ home });
+const sourceRows = stateRows(sourceLayout);
+const durable = sourceRows.filter((row) => row.class === "durable");
+const byStore = new Map(sourceRows.map((row) => [row.store, row]));
+fs.mkdirSync(path.dirname(sourceLayout.piPackConfig), { recursive: true });
+fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
+const privateRule = byStore.get("private rule").path;
+const sharedMemory = byStore.get("shared memory").path;
+const projectMemoryRoot = byStore.get("project memories").path.replace(`${path.sep}*${path.sep}`, `${path.sep}`);
+const memoryDir = path.join(projectMemoryRoot, encodeURIComponent(project).replaceAll("%", "-"), "memory");
 fs.mkdirSync(path.dirname(privateRule), { recursive: true });
-fs.mkdirSync(path.dirname(memoryFile), { recursive: true });
-fs.mkdirSync(path.dirname(ledgerFile), { recursive: true });
-fs.writeFileSync(privateRule, "private durable bytes\n");
-fs.writeFileSync(memoryFile, "shared durable bytes\n");
-fs.writeFileSync(ledgerFile, "ledger durable bytes\n");
-fs.symlinkSync(shared, path.join(layout.sharedMemoryDir, "external-link"));
-const listing = path.join(root, "state.list");
+fs.mkdirSync(sharedMemory, { recursive: true });
+fs.mkdirSync(memoryDir, { recursive: true });
+fs.writeFileSync(privateRule, "private rule bytes\n");
+fs.writeFileSync(path.join(sharedMemory, "one.md"), "shared memory one\n");
+fs.writeFileSync(path.join(sharedMemory, "two.md"), "shared memory two\n");
+fs.writeFileSync(path.join(memoryDir, "project.md"), "project memory bytes\n");
+fs.symlinkSync(sharedMemory, path.join(memoryDir, "shared"), process.platform === "win32" ? "junction" : "dir");
+const ledger = sourceRows.filter((row) => row.store.startsWith("review ledger "));
+for (const [index, row] of ledger.entries()) {
+  fs.mkdirSync(path.dirname(row.path), { recursive: true });
+  fs.writeFileSync(row.path, `ledger bytes ${index}\n`);
+}
+for (const row of durable.filter((entry) => !["private rule", "shared memory", "project memories", ...ledger.map((r) => r.store)].includes(entry.store))) {
+  if (row.path.includes("*")) continue;
+  if (row.kind === "dir" || row.kind === "dir-pattern") fs.mkdirSync(row.path, { recursive: true });
+  else { fs.mkdirSync(path.dirname(row.path), { recursive: true }); fs.writeFileSync(row.path, `durable ${row.store}\n`); }
+}
+fs.mkdirSync(path.join(sourceLayout.knowledgeHome), { recursive: true });
+fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [knowledgeRoot] }));
+fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "pull.log"), "pull bytes\n");
+fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
+fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
+fs.writeFileSync(path.join(home, ".local", "share", "nana", "state.dat"), "share bytes\n");
+const secrets = sourceRows.filter((row) => row.class === "secret");
+const forbiddenArchivePaths = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "trust.json"].map((name) => path.relative(home, path.join(sourceLayout.piHome, name))).concat([path.relative(home, path.join(sourceLayout.claudeHome, ".credentials.json")), path.relative(home, sourceLayout.claudeSettings)], sourceRows.filter((row) => ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"].includes(row.store)).map((row) => path.relative(home, row.path)));
+for (const store of ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"]) {
+  const row = byStore.get(store);
+  if (row.kind === "dir") { if (fs.existsSync(row.path) && !fs.statSync(row.path).isDirectory()) fs.unlinkSync(row.path); fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "disposable.txt"), `disposable:${store}`); }
+  else { fs.mkdirSync(path.dirname(row.path), { recursive: true }); fs.writeFileSync(row.path, `disposable:${store}`); }
+}
+for (const row of secrets) {
+  if (row.path.includes("*")) continue;
+  fs.mkdirSync(path.dirname(row.path), { recursive: true });
+  if (row.kind === "dir") { fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "marker.txt"), `secret:${row.store}`); }
+  else fs.writeFileSync(row.path, `secret:${row.store}`);
+}
+const trustSrc = run(["trust", project, "--yes", "--home", home], project);
+check("source project trust is recorded", trustSrc.status === 0 && new ProjectTrustStore(sourceLayout.piHome).get(project) === true, `${trustSrc.status} ${trustSrc.stderr}`);
+const listingFile = path.join(root, "state.list");
 const archive = path.join(root, "state.tgz");
-const emitted = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
-fs.writeFileSync(listing, emitted.stdout);
-const archived = spawnSync("tar", ["-czf", archive, "-C", home, "-T", listing], { encoding: "utf8" });
-const listed = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
+const listedPaths = run(["state", "--paths", "--home", home]);
+fs.writeFileSync(listingFile, listedPaths.stdout);
+const archived = spawnSync("tar", ["-czf", archive, "-C", home, "-T", listingFile], { encoding: "utf8" });
+const tarList = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
+const listedNames = listedPaths.stdout.trim().split("\n").filter(Boolean).sort();
+const archiveNames = tarList.stdout.trim().split("\n").filter(Boolean).map((name) => name.replace(/\/$/, "")).sort();
+// req: R-958
+check("archive contains durable files only and no symlinks", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr}`);
+const clean = run(["state", "--home", destination]);
+// req: R-958
+check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
 const extracted = spawnSync("tar", ["-xzkf", archive, "-C", destination], { encoding: "utf8" });
-// req: R-957
-check("documented archive restores durable bytes and excludes symlinks", emitted.status === 0 && archived.status === 0 && listed.status === 0 && extracted.status === 0 && fs.readFileSync(path.join(destination, path.relative(home, privateRule)), "utf8") === "private durable bytes\n" && fs.readFileSync(path.join(destination, path.relative(home, memoryFile)), "utf8") === "shared durable bytes\n" && fs.readFileSync(path.join(destination, path.relative(home, ledgerFile)), "utf8") === "ledger durable bytes\n" && !listed.stdout.includes("external-link"), `${emitted.stderr} ${archived.stderr} ${listed.stderr} ${extracted.stderr}`);
-check("trust is re-ratified and excluded from the durable archive", rows.some((row) => row.store === "project trust" && row.class === "re-ratified") && !durable.some((row) => row.store === "project trust"), "project trust row missing or archived");
-check("restore instructions require trust before doctor and reinstall network-owned extension", ["nana-setup trust <dir>", "pi install npm:pi-subagents@0.75.0", "doctor"].every((s) => readme.includes(s)));
-process.exit(fails);
+const installDst = spawnSync(process.execPath, [cli, "install", "--home", destination], { encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const dstLayout = resolveLayout({ home: destination });
+const packageRoot = path.join(dstLayout.piHome, "npm", "node_modules", "pi-subagents");
+fs.mkdirSync(packageRoot, { recursive: true });
+fs.writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
+const doctorBefore = spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const warningRows = doctorBefore.stdout.split("\n").filter((line) => /^\s*[!✗]/u.test(line));
+// req: R-959
+check("restored doctor reports project trust only", extracted.status === 0 && installDst.status === 0 && doctorBefore.status === 1 && warningRows.length === 1 && /^\s*! .*project trust/u.test(warningRows[0]), `${doctorBefore.status}\n${warningRows.join("\n")}\n${doctorBefore.stderr}`);
+const trustDst = spawnSync(process.execPath, [cli, "trust", project, "--yes", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const doctorAfter = spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const afterBad = doctorAfter.stdout.split("\n").filter((line) => /^\s*[!✗]/u.test(line));
+// req: R-959
+check("trust clears the only doctor warning", trustDst.status === 0 && doctorAfter.status === 0 && afterBad.length === 0, `${trustDst.status}; ${doctorAfter.status}\n${doctorAfter.stdout}\n${doctorAfter.stderr}`);
+const sourceBytes = new Map(listedNames.map((name) => [name, fs.readFileSync(path.join(home, name))]));
+let byteEqual = true;
+for (const [relative, bytes] of sourceBytes) {
+  try { if (!fs.readFileSync(path.join(destination, relative)).equals(bytes)) byteEqual = false; } catch { byteEqual = false; }
+}
+// req: R-958
+check("restored durable files are byte-equal", byteEqual, [...sourceBytes.keys()].filter((name) => !fs.existsSync(path.join(destination, name))).join(", "));
+const walk = (dir, found = []) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); found.push(file); if (entry.isDirectory()) walk(file, found); } return found; };
+const destinationPaths = walk(destination);
+const symlinkIntoSource = destinationPaths.filter((file) => { try { return fs.lstatSync(file).isSymbolicLink() && fs.realpathSync(file).startsWith(home + path.sep); } catch { return false; } });
+const secretLeak = destinationPaths.filter((file) => { try { return fs.lstatSync(file).isFile() && fs.readFileSync(file, "utf8").includes("secret:"); } catch { return false; } });
+const sourcePathLeak = destinationPaths.filter((file) => { try { return fs.lstatSync(file).isFile() && fs.readFileSync(file).includes(Buffer.from(home)); } catch { return false; } });
+// req: R-958
+check("destination has no secret markers", secretLeak.length === 0, secretLeak.join(", "));
+// req: R-958
+check("destination has no symlink resolving into source home", symlinkIntoSource.length === 0, symlinkIntoSource.join(", "));
+// req: R-958
+check("destination files contain no source-home path", sourcePathLeak.length === 0, sourcePathLeak.join(", "));
+process.exit(fails ? 1 : 0);

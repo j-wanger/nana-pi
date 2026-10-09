@@ -32,6 +32,12 @@ check("manifest ledger paths equal ledgerPaths(home)", ["tally", "audit", "rotat
 const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", ".credentials.json", "settings.json", "stage-keys", "sessions", "bench-agent"];
 // req: R-954
 check("secret-capable stores are classified as secret", secretNames.every((name) => rows.some((r) => path.basename(r.path) === name && r.class === "secret")), secretNames.filter((name) => !rows.some((r) => path.basename(r.path) === name && r.class === "secret")).join(", "));
+const installHome = tmpDir(path.join(os.tmpdir(), "state-owner-install-"));
+const install = spawnSync(process.execPath, [path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname), "install", "--home", installHome], { encoding: "utf8", env: { ...process.env, HOME: installHome, PI_CODING_AGENT_DIR: path.join(installHome, ".pi", "agent") } });
+const installedRows = stateRows(resolveLayout({ home: installHome }));
+const installOwned = installedRows.filter((row) => row.owner === "nana-setup" && !['desk plist', 'LaunchAgents directory', 'desk log', 'MCP cache'].includes(row.store));
+// req: R-954
+check("install-created manifest targets are assigned to nana-setup", install.status === 0 && installOwned.filter((row) => !row.path.includes("*")).every((row) => { try { fs.lstatSync(row.path); return true; } catch { return false; } }), `${install.status} ${install.stderr} ${installOwned.filter((row) => { try { fs.lstatSync(row.path); return false; } catch { return true; } }).map((row) => row.store).join(", ")}`);
 const home = tmpDir(path.join(os.tmpdir(), "state-readonly-"));
 const cli = path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname);
 const agent = path.join(home, ".pi", "agent");

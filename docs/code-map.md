@@ -1821,7 +1821,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the child-process result from npm root -g.
 - **effects** — process (starts npm with fixed arguments).
 - **errors** — spawn failures are returned by the child-process implementation.
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/trust.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/trust.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/paths.mjs`
@@ -2086,13 +2086,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/restore.test.mjs`
 
-- **purpose** — Exercises the documented state listing and restore contract using isolated temporary homes.
-- **inputs** — setup CLI, state manifest and setup README.
+- **purpose** — Exercises the documented state listing and complete restore using isolated temporary homes.
+- **inputs** — setup CLI, state manifest, pi trust API and setup README.
 - **outputs** — PASS/FAIL checks and process exit status.
-- **effects** — disk (temporary fixture roots only).
+- **effects** — disk (temporary fixture roots only), process (setup CLI and tar).
 - **errors** — Failed checks increment the exit status.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/retired-artifacts.test.mjs`
 
