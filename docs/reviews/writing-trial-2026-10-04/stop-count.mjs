@@ -1,4 +1,5 @@
-// Read-only stop-trigger count for the writing trial (plan 6.4, step 1).
+// Read-only stop-trigger PROXY for the writing trial (plan 6.4, step 1): a temporal proxy, not a
+// verification that the checker's input was the report that followed.
 // A report counts as CHECKED when, in the same turn (after the previous real user prompt), a
 // main-thread Bash call ran `nana-writing.mjs --report` before a report-sized (>= 80 words)
 // main-thread assistant message in a session where the canonical rule had attached.

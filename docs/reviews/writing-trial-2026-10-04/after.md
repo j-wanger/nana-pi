@@ -29,10 +29,10 @@ Recompute with `node docs/reviews/writing-trial-2026-10-04/extract.mjs --from 20
 
 ## Stop trigger (recorded 2026-10-09)
 
-The trial stops on the first of 2026-10-18, the twentieth report checked, or a second lost-detail complaint. The seat counted checked reports with `stop-count.mjs` in this folder (read-only): a report-sized (80+ words) main-thread assistant message in a rule-treated seat session counts once when a main-thread `nana-writing.mjs --report` call ran earlier in the same turn; checker calls that name `HANDOFF.md` are excluded because they check the frontier file, not a report.
+The trial stops on the first of 2026-10-18, the twentieth report checked, or a second lost-detail complaint. `stop-count.mjs` in this folder (read-only) is a temporal PROXY: it counts a report-sized (80+ words) main-thread assistant message in a rule-treated seat session once when a main-thread `nana-writing.mjs --report` call ran earlier in the same turn, excluding calls that name `HANDOFF.md`. It does not match the checker's input to the following report, so it cannot show that a candidate was actually checked.
 
-| Since | Checked reports | Twentieth report |
-|---|---:|---|
-| 2026-10-04 | 20 | 2026-10-09T09:25:13Z |
+| Since | Candidate checked reports (proxy) | Without the HANDOFF exclusion |
+|---|---:|---:|
+| 2026-10-04 to 2026-10-09T09:25Z | 20 | 23 |
 
-Without the `HANDOFF.md` exclusion the count is 23 and the twentieth falls on 2026-10-08. Either way the twentieth-report condition fired before 2026-10-18, so the trial has stopped; the after-measure and the verdict note follow. Recompute: `node docs/reviews/writing-trial-2026-10-04/stop-count.mjs ~/.claude/projects 2026-10-04T00:00:00Z`.
+Because the proxy cannot establish the twentieth checked report, the 2026-10-18 backstop binds (sol, wave-0 review). Recompute: `node docs/reviews/writing-trial-2026-10-04/stop-count.mjs ~/.claude/projects 2026-10-04T00:00:00Z`.

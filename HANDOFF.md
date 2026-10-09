@@ -35,7 +35,7 @@
 ## Next
 
 1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranches 1 to 5 are done; tranche 6 is next. The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
-2. **Writing trial: stopped at the twentieth checked report, 2026-10-09.** The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
+2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
 3. **Compaction-summary store:** re-run the 6.6 replay on 2026-10-23; the store stays frozen.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.

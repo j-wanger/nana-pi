@@ -32,7 +32,7 @@ const check = (n, ok, why = "") => {
 const { claims, problems, line } = checkProject();
 console.log(line);
 
-// req: G-012 G-022
+// req: G-012
 check("every README this repo ships holds its claims", problems.length === 0, `\n  ${problems.join("\n  ")}`);
 check("the READMEs make checkable claims at all", claims.length > 100, `${claims.length} claims`);
 
@@ -100,7 +100,7 @@ try {
 	});
 	const log = `${broken.stdout ?? ""}${broken.stderr ?? ""}`;
 	const want = `README.md:${i + 1}: 'npm nope' is not a script in package.json`;
-	// req: G-012 G-022
+	// req: G-012
 	check("breaking an inline command in README.md fails the check", broken.status === 1 && log.includes(want), log.slice(-500));
 } finally {
 	fs.rmSync(scratch, { recursive: true, force: true });

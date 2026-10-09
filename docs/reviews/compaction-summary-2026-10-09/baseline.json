@@ -1,5 +1,5 @@
 {
-  "since": "2026-09-28T19:00:00Z",
+  "since": "2026-09-28T19:00:38Z",
   "until": "2026-10-09T10:00:00Z",
   "compactions": 10,
   "eligibleCompactions": [],
@@ -7,7 +7,7 @@
   "handoff_write_failed": 0,
   "handoff_pickup": 0,
   "handoff_stale_pointer": 0,
-  "sessionStarts": 545,
+  "sessionStarts": 543,
   "eligibleStarts": 26,
   "eligibleStartsOver10Min": [
     {
