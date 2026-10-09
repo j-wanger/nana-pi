@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 238 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 242 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -324,7 +324,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Run one dedicated loopback listener per app manifest, each its own browser origin carrying only the routes a stage page needs.
 - **inputs** — the apps dir of <name>.json manifests (default ~/.pi/agent/apps, DESK_APPS_DIR); the desk server's child primitives via `deps`; static `dirs` (kit stage page, /desk-client.mjs, /md.js, /blocks.mjs from packages/nana-stage, an optional manifest `page` dir); env HOME, DESK_READY_BOUND_MS, DESK_DATA_TIMEOUT_MS, DESK_DATA_OUTPUT_CAP
-- **outputs** — exports verifiedBlocks/loadManifests/normalizeManifest/writeManifestSession/startAppListeners; serves each app's page plus /api/session, /api/events (SSE), /api/prompt, /api/ui-response, /api/abort, /api/entries, /api/manifest and POST /api/data/<key>; rewrites the manifest's `session` atomically after a spawn
+- **outputs** — exports verifiedBlocks/loadManifests/normalizeManifest/writeManifestSession/startAppListeners; usage lines through injected deps; serves each app's page plus /api/session, /api/events (SSE), /api/prompt, /api/ui-response, /api/abort, /api/entries, /api/manifest and POST /api/data/<key>; rewrites the manifest's `session` atomically after a spawn
 - **effects** — disk (reads manifests, rewrites the manifest session file), process (spawns the app's pi child and the manifest's data commands), network (one 127.0.0.1 listener per app)
 - **errors** — per-route JSON {error} at 400/403/404/409; a malformed manifest is skipped with a logged reason instead of throwing; a prompt is refused while the manifest's tools are not `ready`; a data command that fails, exceeds DESK_DATA_OUTPUT_CAP or times out is relayed as an error
 - **callers** — `apps/desk/server.mjs`
@@ -347,7 +347,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports PI_PACKAGE/PI_MIN_VERSION/parseSemver/compareSemver/sameVersion/resolvePiBin/piBinVersion/walkUpToPackage/piRootCandidates/resolvePiPackage/loadPiSession; loadPiSession returns {parseSessionEntries, migrateSessionEntries, CURRENT_SESSION_VERSION} from the same install the desk spawns
 - **effects** — disk (reads package.json files and dynamic-imports the pi package), process (execFileSync of the pi binary for --version, 8 s timeout)
 - **errors** — throws Error when no pi binary is found, when its package root cannot be resolved, when the version is below PI_MIN_VERSION, or when the imported install's version differs from the binary's
-- **callers** — `apps/desk/server.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
+- **callers** — `apps/desk/server.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `apps/desk/test/usage-line.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
 - **callees** — —
 
 ### `apps/desk/public/app.js`
@@ -404,7 +404,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — The desk's loopback HTTP server: static page, the /api surfaces over live `pi --mode rpc` children, and read/write access to pi's session and config files.
 - **inputs** — HTTP requests on 127.0.0.1 (port DESK_PORT, default 7317); env DESK_APPS_DIR, DESK_KILL_GRACE_MS, DESK_MAX_PENDING_RPC, DESK_SSE_BUFFER_CAP, DESK_STDOUT_LINE_CAP, DESK_TAIL_BUDGET, PATH; pi's ACTIVE agent dir (sessions/, settings.json, mcp.json, nana-pack.json, agents/), per-project .pi/nana-pack.json and AGENTS.md-family files, app manifests, and public/ assets
-- **outputs** — JSON responses and the per-session SSE stream (desk_hello then live RPC events); spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json, mcp.json, nana-pack.json, agents definitions and context files (each after a .bak copy); session HTML export; the startup URL on stdout
+- **outputs** — JSON responses and the per-session SSE stream (desk_hello then live RPC events); usage lines to stdout; spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json, mcp.json, nana-pack.json, agents definitions and context files (each after a .bak copy); session HTML export; the startup URL on stdout
 - **effects** — disk (session and config reads and writes), process (spawns pi, git, the native folder picker and headless title derivation; exits on signals), network (binds 127.0.0.1 only; the model calls its pi children make)
 - **errors** — per-route JSON {error} at 400 (bad body or argument), 403 (Host/Origin rejection — a request must address the desk by a loopback name), 404 (unknown session, or a path resolving outside the sessions dir), 409 (refusals and lifecycle conflicts: a write through or below a symlink, a non-session file, a session file another process is writing, a dialog that is not open, a session that is not running), 500 (child or filesystem failure); exit 1 when the desk cannot start (pi unresolvable, port taken), exit 0 after draining children on SIGINT/SIGTERM
 - **callers** — —
@@ -520,6 +520,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — —
 - **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
+### `apps/desk/test/pi-rpc-contract.test.mjs`
+
+- **purpose** — Drive installed pi RPC without model credentials and pin desk-consumed records.
+- **inputs** — The desk pi resolver, installed pi executable and a throwaway extension.
+- **outputs** — PASS/FAIL lines and a nonzero exit when the installed RPC contract drifts.
+- **effects** — disk (isolated HOME, session directory and extension), process (spawns and stops pi).
+- **errors** — Fails when resolution, startup, RPC records or bounded shutdown do not match.
+- **callers** — —
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
+
 ### `apps/desk/test/pi-session-parity.test.mjs`
 
 - **purpose** — The parity contract for reading sessions with pi's own parser — resolution ties the parser to the binary, the answers match the old parser on what a reader uses, and pi is the judge of the branch
@@ -577,8 +587,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `apps/desk/test/usage-line.test.mjs`
 - **callees** — —
+
+### `apps/desk/test/usage-line.test.mjs`
+
+- **purpose** — Pins the desk usage line triggers, exact fields and privacy boundary.
+- **inputs** — the desk server, a temporary HOME, an app manifest and a stub pi executable
+- **outputs** — PASS/FAIL lines and a failing exit code when the usage contract changes
+- **effects** — disk (temporary fixtures), process (desk and stub pi), network (ephemeral loopback listeners)
+- **errors** — failed checks increment the failure count; unexpected errors fail the process
+- **callers** — —
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `scripts/code-map.mjs`
 
@@ -587,7 +607,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, the summary line plus problem list of --check, the transitive callers and callees of --impact
 - **effects** — disk (reads the config and the module sources, writes the map), process (exits non-zero when --check or --write finds a problem)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or the map is stale; a thrown Error for a bad config or an unknown mode
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — —
 
 ### `scripts/readme-check.mjs`
@@ -600,6 +620,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `packages/nana-pack/tests/readme-check.test.mjs`
 - **callees** — —
 
+### `scripts/requirement-rows.mjs`
+
+- **purpose** — List candidate requirement rows for files by joining the code map's test callers with the rail's markers.
+- **inputs** — An injected import graph, traced marker map, status and requirement-cell lookups, or CLI file arguments.
+- **outputs** — Direct and transitive-only candidate rows with an explicit uncertainty label.
+- **effects** — disk and process
+- **errors** — CLI exits nonzero when arguments or repo inputs are invalid.
+- **callers** — `packages/nana-pack/tests/requirement-rows.test.mjs`
+- **callees** — `scripts/code-map.mjs`, `scripts/requirements-trace.mjs`
+
 ### `scripts/requirements-trace.mjs`
 
 - **purpose** — Run the project template's requirements-trace rail over this repo, so every REQUIREMENTS.md row's status is measured against the `req:` markers nana-pi's suites carry.
@@ -607,7 +637,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the summary line, the `ears:` off-form line, plus one problem line per disagreement between a row's status, form or evidence and the markers
 - **effects** — disk (reads REQUIREMENTS.md and the test sources), process (exits non-zero when a row and the suite disagree)
 - **errors** — exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `scripts/requirement-rows.mjs`
 - **callees** — —
 
 ### `scripts/template-acceptance.mjs`
@@ -668,9 +698,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The knowledge CLI — build, query, hook, status and prune over the local index.
 - **inputs** — argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
-- **outputs** — per-root build counts and totals, query hits or their JSON, the index/roots status, and the hook's pointer block — all on stdout; usage, the lock message and `no index` on stderr
+- **outputs** — per-root build counts and totals, query hits or their JSON, the index/roots status, and the hook's pointer block — all on stdout; usage and query/index failures on stderr
 - **effects** — disk (builds and reads the index, writes the shown files and pull.log), database, process (sets the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
-- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index, 0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
+- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, 0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`
 
@@ -701,17 +731,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a Db handle (exec / prepare / close), a meta value or null, and SCHEMA_VERSION
 - **effects** — disk (mkdirs the parent and creates the database file on the create path), database (WAL pragmas, the docs/files/docs_fts schema and its triggers, meta upserts)
 - **errors** — openDb rejects with whatever node:sqlite throws (absent file, unreadable, locked); getMeta swallows and returns null
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/lib/hook.ts`
 
 - **purpose** — One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
 - **inputs** — the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index at paths.db, and the per-session shown file
-- **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and one JSON line to pull.log
+- **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome records to pull.log
 - **effects** — disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25 search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
-- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, no-hits, all-shown, empty-block
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/parse.ts`
@@ -740,8 +770,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — an open Db handle, the query text, and a row limit
 - **outputs** — Hit records {key, path, display, loc, kind, title, snippet, score} whose every field is one line, capped (TITLE_MAX / DISPLAY_MAX / SNIPPET_MAX) and free of the literal FIELD_SEP, the display path exact or reversibly JSON-escaped
 - **effects** — database (one SELECT over docs_fts joined to docs)
-- **errors** — none — a failing MATCH yields no hits, and a row that cannot be rendered loses only its own pointer
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **errors** — database prepare/query errors are thrown to the caller; a row that cannot be rendered loses only its own pointer
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/sources.ts`
@@ -772,7 +802,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp directories and markdown fixtures), process (spawns the build CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/extension.test.mjs`
 
@@ -792,7 +822,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/incremental-build.test.mjs`
 
@@ -1623,6 +1653,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/requirement-rows.test.mjs`
+
+- **purpose** — Pins the candidate requirement rows lister's tiers, uncertainty label and unknown result.
+- **inputs** — Synthetic import graphs, rail markers and the checkout's mapped source graph.
+- **outputs** — PASS/FAIL lines for each R-649 clause.
+- **effects** — disk (reads this checkout), process (runs the rows CLI)
+- **errors** — A failed check is reported and makes this test process exit nonzero.
+- **callers** — —
+- **callees** — `scripts/code-map.mjs`, `scripts/requirement-rows.mjs`, `scripts/requirements-trace.mjs`
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
 

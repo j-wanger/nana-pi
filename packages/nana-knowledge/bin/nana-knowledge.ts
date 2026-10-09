@@ -5,11 +5,11 @@
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
  *  JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
  * @outputs per-root build counts and totals, query hits or their JSON, the index/roots status, and the
- *  hook's pointer block — all on stdout; usage, the lock message and `no index` on stderr
+ *  hook's pointer block — all on stdout; usage and query/index failures on stderr
  * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
  *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
- * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index, 0 otherwise — including
- *  every `hook` failure (fail-open) and a build that lost the lock
+ * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it,
+ *  0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
  */
 // nana-knowledge — build / query / hook.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
@@ -58,9 +58,17 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	const text = argv.filter((a, i) => !a.startsWith("--") && !(li >= 0 && i === li + 1)).join(" ").trim();
 	if (!text) { console.error(USAGE); return 2; }
 	if (!fs.existsSync(paths.db)) { console.error(`no index at ${paths.db} — run: nana-knowledge build`); return 1; }
-	const db = await openDb(paths.db, {});
-	const hits = search(db, text, limit);
-	db.close();
+	let db;
+	let hits;
+	try {
+		db = await openDb(paths.db, {});
+		hits = search(db, text, limit);
+	} catch (err) {
+		console.error(`query failed: ${err instanceof Error ? err.message : "index error"}`);
+		return 1;
+	} finally {
+		try { db?.close(); } catch { /* ignore */ }
+	}
 	if (json) { console.log(JSON.stringify(hits, null, 2)); return 0; }
 	if (hits.length === 0) { console.log("(no hits)"); return 0; }
 	for (const h of hits) console.log(`- ${h.title} — ${h.display} — ${h.snippet}`);

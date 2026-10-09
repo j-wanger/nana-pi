@@ -90,8 +90,9 @@ async function settle(promise) {
 // A checker that installs a no-op SIGTERM handler and never exits. The unique
 // marker rides in argv so `pgrep -f` can prove nothing was left running.
 const POSIX = process.platform !== "win32";
+const FIXTURE_EXIT_MS = 30_000; // chosen: self-reap well after WATCHDOG_MS so broken kill paths stay observable.
 const mark = (tag) => `nana-${tag}-${process.pid}-${Math.random().toString(36).slice(2)}`;
-const ignoresSigterm = (marker) => `node -e "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)" ${marker}`;
+const ignoresSigterm = (marker) => `node -e "process.on('SIGTERM',()=>{});setInterval(()=>{},1000);setTimeout(()=>process.exit(0),${FIXTURE_EXIT_MS})" ${marker}`;
 // checks that the tool argument names an existing file — proves the substituted path
 const EXISTS_CHECK = `node -e "process.exit(require('fs').existsSync(process.argv[1])?0:1)" {file}`;
 function survivors(marker) {
@@ -139,7 +140,7 @@ if (POSIX) {
 	fs.writeFileSync(spawner, [
 		'const { spawn } = require("node:child_process");',
 		"// grandchild ignores SIGTERM and inherits stdout, so the pipe stays open",
-		`spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)", process.argv[2]], { stdio: "inherit" });`,
+		`spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000);setTimeout(()=>process.exit(0),${FIXTURE_EXIT_MS})", process.argv[2]], { stdio: "inherit" });`,
 	].join("\n"));
 	const cmd = `node "${spawner}" ${marker}`;
 	fs.writeFileSync(USER_CFG, JSON.stringify({
@@ -197,7 +198,7 @@ if (POSIX) {
 		'const { spawn } = require("node:child_process");',
 		"// detached => its OWN process group, out of reach of our group kill, and it",
 		"// keeps the inherited stdout pipe open so the run never closes on its own",
-		`const c = spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)", process.argv[2]], { stdio: "inherit", detached: true });`,
+		`const c = spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000);setTimeout(()=>process.exit(0),${FIXTURE_EXIT_MS})", process.argv[2]], { stdio: "inherit", detached: true });`,
 		"c.unref();",
 	].join("\n"));
 	const cmd = `node "${spawner}" ${marker}`;

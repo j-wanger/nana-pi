@@ -67,12 +67,10 @@ function expand(p: string): string {
 export function seedRoots(): Root[] {
 	const h = os.homedir();
 	const literal: Root[] = [
-		{ path: path.join(h, "nana-agent-loop/research/knowledge"), kind: "articles" },
 		{ path: path.join(h, "nana-agent-loop/loops/DOCTRINE.md"), kind: "ledger" },
 		{ path: path.join(h, "nana-agent-loop/docs"), kind: "articles" },
 		{ path: path.join(h, "nana-pi/docs"), kind: "articles" },
 		{ path: path.join(h, "nana-pi/research"), kind: "articles" },
-		{ path: path.join(h, "the-hive/docs/research"), kind: "articles" },
 		{ path: path.join(h, "toy-battle/research"), kind: "articles" },
 		{ path: path.join(h, "fate/knowledge"), kind: "articles" },
 	];
@@ -175,12 +173,10 @@ function contains(root: string, p: string): boolean {
  * Explicit roots win: a discovered path already listed keeps its configured kind.
  *
  * Roots must also never NEST. `docs.key` is the file path, so a file reached through two
- * roots is inserted twice in one build and the UNIQUE constraint kills the whole build —
- * measured the first time discovery ran for real, where the seeded explicit root
- * `~/nana-agent-loop/research/knowledge` sits inside the discovered `~/nana-agent-loop/research`.
- * So a discovered root is dropped when it is an ancestor OR a descendant of an explicit one
- * (the explicit root's scope is what was indexed before discovery existed, and stays), and
- * between two discovered roots the ancestor is kept — it already covers the other.
+ * roots is inserted twice in one build and the UNIQUE constraint kills the whole build.
+ * Historically, explicit seeded article roots inside discoverable parents shadowed broader
+ * discovered roots; the seed now omits those redundant nested entries. Explicit roots still
+ * retain their configured scope, and between discovered roots the ancestor is kept.
  */
 function union(explicit: Root[], discovered: Root[], exclude: string[]): Sources {
 	const seen = new Set<string>();

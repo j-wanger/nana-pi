@@ -90,7 +90,8 @@ git worktree gets) is a repo; each listed `subdirs` entry that exists under it b
 `articles` root. Those are unioned with the explicit `roots` and deduped by resolved path,
 with the explicit entry winning — so a path you configured as a `ledger` stays a ledger.
 `exclude` names are skipped as path components by the same mechanism that already drops
-`raw/` and `reviews/`, both when picking repos and when walking a root. Roots never **nest**:
+`raw/` and `reviews/`, both when picking repos and when walking a root. A fresh seed omits
+explicit article roots nested inside roots supplied by default discovery. Roots never **nest**:
 a discovered root that contains — or sits inside — an explicit root is dropped, and between two
 discovered roots the ancestor is kept. (A file reached through two roots would be indexed twice,
 and `docs.key` is the file path, so the build would die on the UNIQUE constraint.) A parent that
@@ -152,8 +153,9 @@ and the header already frames every field as data.
 Behaviour, in the order it is decided:
 
 - **Fail-open, always.** Malformed stdin, a missing index, a corrupt database, a
-  permission error — it prints nothing and exits 0. A knowledge pull is never the reason
-  a prompt fails to run.
+  permission error — the hook prints nothing and exits 0. A corrupt index is logged as
+  `db-open-failed` or `query-failed`, never `no-hits`; `nana-knowledge query` reports the
+  failure on stderr and exits 1. A knowledge pull is never the reason a prompt fails to run.
 - **Budget: normally well under 1500 ms — not a hard bound.** The query itself is measured
   at ~8 ms on the real index, inside a ~60 ms Node start. A `setTimeout(process.exit(0))
   .unref()` timer is armed before stdin is read, and what it bounds is **asynchronous**
@@ -169,6 +171,9 @@ Behaviour, in the order it is decided:
   — these arrive on the same channel as your typing and are machine text about the
   session), and prompts with fewer than two meaningful tokens (length > 2, not in a short
   stopword list).
+- **Monthly session archives are excluded from automatic pulls before BM25 top-3 ranking.**
+  A file named with a four-digit year and two-digit month, ending in `.md`, directly inside a directory named `sessions` is excluded;
+  explicit `nana-knowledge query` still returns these archives.
 - **Top 3 by BM25**, then per-session dedup: paths already shown in this `session_id` are
   dropped, and if that empties the list nothing is printed. State lives in
   `shown/<session_id>.json`; files older than 7 days are pruned on each build. Dedup is
@@ -226,16 +231,17 @@ pi install /path/to/nana-pi/packages/nana-knowledge
 
 ## The log
 
-Every invocation that printed something appends one JSONL line to
-`~/.pi/agent/nana-knowledge/pull.log`: `ts`, `cwd`, `session_id`, `source` (`pi` /
-`claude-code`), the query `tokens`, the `hits` shown, and `ms`. Skipped and deduped
-prompts are not logged. This is the file that answers the real question later — *do pulled pointers get cited?* — by diffing paths that
-appeared here against paths that turn up in commits, specs, and session logs.
+Each eligible `runHook` result appends exactly one JSONL line to
+`~/.pi/agent/nana-knowledge/pull.log`: `ts`, `cwd`, `session_id`, `source`, `reason`,
+`tokens`, `hits`, and numeric `ms`. Reasons are `ok`, `no-hits`, `no-index(<freshness>)`,
+`db-open-failed`, `query-failed`, `budget`, `empty-block`, `bad-json`, and `bad-input`.
+`hits` is empty unless the pull printed. Older rows without `reason` mean `ok`. Skipped
+prompts, reviewer-role prompts, and deduped prompts are not logged. A stdin stall exits on
+the CLI timer before `runHook` runs, so it writes nothing.
 
-**It exists because it is the only instrument that says whether the pull is used at all**;
-without it the feature can be dead for weeks and look fine. It is local-only, written
-under `~/.pi/agent/nana-knowledge/` like everything else here, never transmitted, and
-`rm` on that directory removes it.
+This log helps answer whether pulled pointers get cited, by comparing shown paths with
+later reads. It is local-only, written under `~/.pi/agent/nana-knowledge/`, never
+transmitted, and removing that directory removes it.
 
 ## Limits
 
