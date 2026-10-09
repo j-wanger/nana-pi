@@ -7,7 +7,7 @@
 ## Landed (one line each; the narrative is in `docs/sessions/`)
 
 - 2026-09-18 to 10-05: setup and the per-repo objective, the 09-28 rulings, self-hosted requirements, pi 1.0, the writing trial, the edge desk on pi MCP, the code map seeing tests — `docs/sessions/2026-09.md`, `docs/sessions/2026-10.md`.
-- 2026-10-06 to 10-08: the hardening plan and tranches 1 to 4, thirty lanes; CI cut `v0.6.4` — `docs/hardening-plan-2026-10-06.md`, `docs/sessions/2026-10.md`.
+- 2026-10-06 to 10-09: the hardening plan and tranches 1 to 5, thirty-five lanes; CI cuts the template tags — `docs/hardening-plan-2026-10-06.md`, `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -21,6 +21,7 @@
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
 - Tranche 3: the land helper does not defend a branch switch in the main checkout mid-merge; reviews refuse repositories with submodules.
 - Tranche 4: the acceptance gate prints nothing on a pass; one Linux CI symlink check fails; two setup tests inherit the cwd's trust; leaked runner fixtures (tranche 6).
+- Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only; the shared-memory hook throws on a closed pipe.
 - Tranche 2: native Windows paths unexecuted; an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Desk residuals live in `apps/desk/README.md` Known limits.
@@ -28,14 +29,12 @@
 ## Where things stand
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Discretionary desk hardening is FROZEN (hardening D4, 2026-10-06); desk usage events will feed a retain / freeze / retire ruling after two weeks.
-- **Knowledge pull runs in both runtimes** — one producer (`bin/nana-knowledge.ts hook`), one `pull.log` tagged `source: pi|claude-code`; pointers framed as untrusted data, ≤ 2000 chars, per-session dedup, 1 h staleness. Monthly session archives leave automatic results under hardening D6.
-- **pi lineup (b):** pi's public data-type exports, not `pi-client` or `pi-server`. `pi-durable` is parked until a product needs crash-safe long runs (Jake, 2026-10-05).
 - **UI-centric frontend slices** (nana-stage + the two dashboards) are built and review-landed; slice 1b is deferred by Jake; the AML desk is its own product at `~/aml-desk`.
 - **Verified pi facts** (don't re-derive): hooks activate from `pi install` at USER scope, every session — install ≠ adoption; project trust only gates project-config OVERRIDES; `loadProjectContextFiles` loads cwd + ANCESTORS only, never descendants.
 
 ## Next
 
-1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranches 1 to 4 are done; CI cuts the template tags. Tranche 5 is next. Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
+1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranches 1 to 5 are done; tranche 6 is next. The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
 2. **Writing trial verdict, 2026-10-18 or the 20th report.** The seat runs the committed extractor's session-unit after-measure (baseline 0/32 strict). Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend. The tally-hook question returns as one option at that verdict.
 3. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 4. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
@@ -51,6 +50,7 @@
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` each night; `nana-setup install` then retires the copies again. A same-day second install now reads ✗ because the backup exists. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** A session working on aml-desk runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory. Starting it in `~/aml-desk` (decided 2026-09-18) fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
+- **[optional, since 2026-10-09] Backups.** `nana-setup state --paths` feeds a tar backup, but no destination is set, and some repos lack a remote or hold unpushed commits. A clean-account checklist test needs your admin rights.
 - **[optional, since 2026-10-07] A stray process.** `bench3.mjs` has run for 21 days at about 64% CPU. It is not this program's. Stop it if it is stale.
 - **[parked, since 2026-09-16] Changes-bar baseline.** The files-changed bar is git working tree versus HEAD, not attributed to the conversation. Switching is a design change.
 - **[parked, since 2026-09-16] Raw-only wikis.** `agent-memory` and `agentic-engineering` are scrape-only. The index skips their `raw/` folders. This rides with hardening D2(c).

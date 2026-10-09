@@ -46,6 +46,13 @@
 - **One suite lock:** `npm run test:locked` is the repository's full-suite lock; the seat's bash wrapper is a thin bridge onto it until no worktree predates it.
 - **4.7 product handoffs:** edge-screener names `p87-setup` as its land branch (local commit; publishing and moving `main` are Jake's). The aml-desk ruling line and the basketball-geek dormant line wait until those sessions are idle.
 
+## Seat rulings during tranche 5 (2026-10-08/09)
+
+- **IDs re-declared, not widened:** tranche 5 used R-995–R-999, R-950–R-959, R-900–R-907, R-908, R-909, R-804, R-871, R-872, R-687 and R-688 (never assigned before). R-373–R-375 stay unused, as the writing-rule test comment says.
+- **Fable consult on the six drafts:** 5.2 and 5.4 became one doctor lane; the state manifest is the one inventory and uninstall consumes its rows; the unexecutable Windows hook launchers were cut (Windows keeps only the knowledge hook); a README-versus-behaviour equivalence row was cut; `update` stays a documented sequence, not a command.
+- **Subtract on safety boundaries over configurable layouts:** `state --paths` archives by default-deny and refuses overlapping or patterned roots instead of modelling aliases; uninstall validates every destination from its outermost root and refuses a symlinked settings file; per-entry pi removal hints and a test-isolation source scanner were subtracted.
+- **Hooks move to Node in place:** the managed bash SessionStart entries are rewritten in place, retired links removed, and install and doctor name any leftover retired command. The seat backed up the Claude settings, landed, and ran install in one chain; every hook exited 0 when run by hand.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).
