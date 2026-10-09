@@ -434,7 +434,7 @@ result.positiveControl = {
 // ---------- 6. decoy floors ----------
 let indexPaths = [];
 try {
-	const outp = execFileSync("/usr/bin/sqlite3", [`file:${INDEX}?immutable=1`, "select distinct path from docs;"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+	const outp = execFileSync("/usr/bin/sqlite3", ["-init", "/dev/null", `file:${INDEX}?immutable=1`, "select distinct path from docs;"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 	indexPaths = outp.split("\n").filter(Boolean).filter((p) => !ARCHIVE.test(p));
 } catch (e) { result.indexError = String(e.message).slice(0, 120); }
 const decoy = { pool: indexPaths.length, n: 0, strict: 0, eq: 0, any: 0, strictExamples: [] };
