@@ -342,7 +342,7 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check("concurrent edit: the message says another process wrote to it", /changed on disk while nana-setup was running/.test(err?.message ?? ""));
 	const after = JSON.parse(fs.readFileSync(file, "utf8"));
 	check("concurrent edit: the foreign hook is intact", after.hooks.SessionStart[0].hooks.some((h) => h.command.includes("someone-elses.sh")));
-	check("concurrent edit: our entries were NOT written", !JSON.stringify(after).includes("nana-objective.sh"));
+	check("concurrent edit: our entries were NOT written", !JSON.stringify(after).includes("nana-objective.mjs"));
 	check("concurrent edit: no temp file left behind", fs.readdirSync(path.join(home, ".claude")).every((f) => !f.includes(".tmp")));
 
 	// and with a fresh snapshot it goes through, atomically and with the mode kept

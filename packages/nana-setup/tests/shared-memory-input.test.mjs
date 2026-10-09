@@ -37,5 +37,5 @@ let chunksRead = 0;
 const stream = { isTTY: false, async *[Symbol.asyncIterator]() { chunksRead++; yield Buffer.alloc(STDIN_CAP + 4, 0x61); chunksRead++; yield Buffer.from("extra"); } };
 const bounded = await readHookInput(stream);
 // req: R-872
-check("non-TTY input reads exactly the named byte bound", Buffer.byteLength(bounded) === STDIN_CAP && chunksRead === 1);
+check("non-TTY input reads exactly the named byte bound", STDIN_CAP === 65536 && Buffer.byteLength(bounded) === STDIN_CAP && chunksRead === 1);
 if (failures) process.exitCode = 1;

@@ -148,7 +148,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   try { liveRows = uninstall({ ...layout, isRealHome: true, plistPath: plist }); }
   finally { process.env.PATH = oldPath; }
   // req: R-906
-  check("loaded live-layout desk service is left after one print", fs.readFileSync(plist).equals(originalPlist) && fs.readFileSync(log, "utf8").trim().split("\\n").length === 1 && fs.readFileSync(log, "utf8").trim().startsWith("print ") && liveRows.some((row) => row.status === "problem" && row.detail.includes("launchctl bootout")));
+  check("loaded live-layout desk service is left after one print", fs.readFileSync(plist).equals(originalPlist) && fs.readFileSync(log, "utf8").trim().split("\n").length === 1 && fs.readFileSync(log, "utf8").trim().startsWith("print ") && liveRows.some((row) => row.status === "problem" && row.detail.includes("launchctl bootout")));
   fs.writeFileSync(log, "");
   process.env.PATH = `${stub}${path.delimiter}${oldPath || ""}`;
   try { uninstall(layout); }
