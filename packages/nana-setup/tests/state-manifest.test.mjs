@@ -86,6 +86,18 @@ const aliasTarget = path.join(home, "alias-target"); const aliasLink = path.join
 const aliasTwo = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--claude-home", aliasTarget, "--pi-home", aliasLink], { encoding: "utf8" });
 // req: R-954
 check("aliased Claude and pi homes apply strongest secret class to identical and symlink-aliased paths", aliasOne.status === 0 && !aliasOne.stdout.split("\n").includes(".claude/settings.json") && !aliasOne.stdout.split("\n").includes(".pi/agent/settings.json") && aliasTwo.status === 0 && !aliasTwo.stdout.includes("settings.json"), `${aliasOne.stdout}\n${aliasTwo.stdout}`);
+const nestedClaude = path.join(home, ".pi", "agent", "apps", "custom", ".claude");
+const deeperClaude = path.join(home, ".pi", "agent", "apps", "nested", "one", ".claude");
+for (const claudeHome of [nestedClaude, deeperClaude]) {
+  fs.mkdirSync(claudeHome, { recursive: true });
+  fs.writeFileSync(path.join(claudeHome, ".credentials.json"), "credential marker");
+  fs.writeFileSync(path.join(claudeHome, "settings.json"), "private settings marker");
+}
+const nestedSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", path.join(home, ".pi", "agent"), "--claude-home", nestedClaude], { encoding: "utf8" });
+const deeperSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", path.join(home, ".pi", "agent"), "--claude-home", deeperClaude], { encoding: "utf8" });
+// req: R-954
+check("nested Claude secret stores are excluded beneath durable pi apps at two depths", nestedSecrets.status === 0 && deeperSecrets.status === 0 && !nestedSecrets.stdout.includes("apps/custom/.claude/") && !deeperSecrets.stdout.includes("apps/nested/one/.claude/"), `${nestedSecrets.stdout}\n${deeperSecrets.stdout}`);
+for (const claudeHome of [nestedClaude, deeperClaude]) { fs.unlinkSync(path.join(claudeHome, ".credentials.json")); fs.unlinkSync(path.join(claudeHome, "settings.json")); }
 const external = path.join(home, "outside-projects");
 fs.mkdirSync(path.join(external, "memory"), { recursive: true });
 fs.writeFileSync(path.join(external, "memory", "foreign.md"), "foreign");

@@ -207,14 +207,21 @@ function runState(opts) {
 		return 0;
 	}
 	const files = new Set();
-	const physical = (target) => path.resolve(target);
 	const rank = { durable: 0, rebuildable: 1, disposable: 2, "re-ratified": 3, secret: 4 };
-	const strongest = new Map();
-	for (const row of rows) {
-		const key = physical(row.path);
-		if (!strongest.has(key) || rank[row.class] > rank[strongest.get(key)]) strongest.set(key, row.class);
-	}
-	const durableRows = rows.filter((row) => row.class === "durable" && strongest.get(physical(row.path)) === "durable");
+	const classifiedPaths = rows.map((row) => ({
+		class: row.class,
+		paths: row.path.includes("*") ? expandPattern(row.path, layout.base) : [path.resolve(row.path)],
+	}));
+	const strongestClassFor = (candidate) => {
+		let strongest = null;
+		for (const entry of classifiedPaths) {
+			for (const storePath of entry.paths) {
+				if ((path.resolve(candidate) === storePath || within(storePath, path.resolve(candidate))) && (strongest === null || rank[entry.class] > rank[strongest])) strongest = entry.class;
+			}
+		}
+		return strongest;
+	};
+	const durableRows = rows.filter((row) => row.class === "durable");
 	for (const row of durableRows) {
 		if (!within(layout.base, row.path)) {
 			console.error(`durable store outside home: ${row.store} (${row.path})`);
@@ -227,6 +234,7 @@ function runState(opts) {
 			const found = [];
 			walkRegularFiles(layout.base, target, found);
 			for (const file of found) {
+				if (strongestClassFor(file) !== "durable") continue;
 				const name = path.relative(layout.base, file);
 				if (/[\u0000-\u001f\u007f]/.test(name)) { console.error(`control character in durable store ${row.store}`); return 2; }
 				files.add(name.split(path.sep).join("/"));

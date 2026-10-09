@@ -46,6 +46,13 @@ check("source home installs", installed.status === 0, `${installed.status} ${ins
 const sourceLayout = resolveLayout({ home });
 const sourceRows = stateRows(sourceLayout);
 const durable = sourceRows.filter((row) => row.class === "durable");
+const NON_DURABLE_FIXTURE_STORES = [
+  "subagent config.json", "reviewer.md", "hook nana-objective.sh", "hook nana-adoption.sh", "hook nana-shared-memory.sh", "hook verifier-pipe.mjs",
+  "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test",
+  "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "desk plist", "pi-subagents package manifest", "knowledge index", "project memory shared links",
+  "project trust", "review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal",
+  "auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "Claude credentials", "Claude settings", "Claude login", "pi sessions", "Claude transcripts", "pi bench agent", "desk stage keys",
+];
 const byStore = new Map(sourceRows.map((row) => [row.store, row]));
 fs.mkdirSync(path.dirname(sourceLayout.piPackConfig), { recursive: true });
 fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
@@ -104,6 +111,17 @@ const archived = spawnSync("tar", ["-czf", archive, "-C", home, "-T", listingFil
 const tarList = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
 const listedNames = listedPaths.stdout.trim().split("\n").filter(Boolean).sort();
 const archiveNames = tarList.stdout.trim().split("\n").filter(Boolean).map((name) => name.replace(/\/$/, "")).sort();
+const allSourceEntries = [];
+const collectSourceEntries = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); allSourceEntries.push(file); if (entry.isDirectory()) collectSourceEntries(file); } };
+collectSourceEntries(home);
+const nonDurableFixtures = allSourceEntries.filter((candidate) => sourceRows.some((row) => {
+  if (!NON_DURABLE_FIXTURE_STORES.includes(row.store)) return false;
+  const pattern = path.resolve(row.path).split(path.sep).join("/");
+  const candidatePath = path.resolve(candidate).split(path.sep).join("/");
+  if (!pattern.includes("*")) return candidatePath === pattern || candidatePath.startsWith(`${pattern}/`);
+  const expression = new RegExp(`^${pattern.split("*").map((part) => part.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")).join(".*")}(?:/.*)?$`);
+  return expression.test(candidatePath);
+}));
 const expectedDurableFiles = [
   privateRule, path.join(sharedMemory, "MEMORY.md"), path.join(sharedMemory, "one.md"), path.join(sharedMemory, "two.md"),
   path.join(memoryDir, "project.md"), ...ledger.map((row) => row.path), sourceLayout.piPackConfig, sourceLayout.piObjective,
@@ -114,11 +132,16 @@ const expectedRelative = expectedDurableFiles.map((file) => path.relative(home, 
 // req: R-958
 check("independent durable fixtures are all listed", expectedRelative.every((name) => listedNames.includes(name)), `${expectedRelative.filter((name) => !listedNames.includes(name)).join(", ")}\n${listedPaths.stderr}\n${listedNames.join("\n")}`);
 // req: R-958
-check("archive contains durable files only and no symlinks", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr}`);
+check("archive excludes every independently derived non-durable fixture", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !nonDurableFixtures.some((fixture) => { const relative = path.relative(home, fixture).split(path.sep).join("/"); return archiveNames.some((name) => name === relative || name.startsWith(`${relative}/`)); }) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr} excluded fixtures=${nonDurableFixtures.map((file) => path.relative(home, file)).join(", ")}`);
 const clean = run(["state", "--home", destination]);
 // req: R-958
 check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
 const extracted = spawnSync("tar", ["-xzkf", archive, "-C", destination], { encoding: "utf8" });
+const extractedEntries = [];
+const collectExtractedEntries = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); extractedEntries.push(file); const stat = fs.lstatSync(file); if (stat.isDirectory()) collectExtractedEntries(file); } };
+collectExtractedEntries(destination);
+// req: R-958
+check("extracted archive entries contain no symlink of any target", extracted.status === 0 && extractedEntries.every((file) => !fs.lstatSync(file).isSymbolicLink()), `${extracted.status} ${extracted.stderr} ${extractedEntries.filter((file) => fs.lstatSync(file).isSymbolicLink()).join(", ")}`);
 const installDst = spawnSync(process.execPath, [cli, "install", "--home", destination], { encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
 const dstLayout = resolveLayout({ home: destination });
 const packageRoot = path.join(dstLayout.piHome, "npm", "node_modules", "pi-subagents");
