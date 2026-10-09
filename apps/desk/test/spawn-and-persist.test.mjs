@@ -44,7 +44,7 @@
 //
 // Run: node apps/desk/test/spawn-and-persist.test.mjs   (exit 0 = all PASS)
 import { tmpDir } from "./tmp-dir.mjs";
-import { execFileSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -67,7 +67,7 @@ const SERVER = new URL("../server.mjs", import.meta.url).pathname;
 // SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
-const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+const PI_ROOT = resolvePiPackage(resolvePiBin()).root;
 const TD = tmpDir(path.join(os.tmpdir(), "desk-spawn-"));
 const binDir = path.join(TD, "bin");
 const appsDir = path.join(TD, "apps");
@@ -353,17 +353,12 @@ try {
 	const bigEntry = lines(BIG_FILE).at(-1);
 	check("…chains to that oversized entry, NOT to a new root", bigEntry.parentId === "g2", JSON.stringify({ ...bigEntry, name: bigEntry.name }));
 	// pi's OWN loader is the judge of whether the branch survived
-	try {
-		const piRoot = path.join(execFileSync("npm", ["root", "-g"], { encoding: "utf-8" }).trim(), "@earendil-works", "pi-coding-agent");
-		const { SessionManager } = await import(path.join(piRoot, "dist", "core", "session-manager.js"));
-		const mgr = SessionManager.open(BIG_FILE);
-		const ctx = mgr.buildContextEntries();
-		check("pi resumes at our entry (getLeafId)", mgr.getLeafId() === bigEntry.id, String(mgr.getLeafId()));
-		check("pi still sees the conversation on the branch (3 entries, not 1)", ctx.length === 3 && ctx.map((e) => e.id).join(",") === `g1,g2,${bigEntry.id}`, ctx.map((e) => e.id).join(","));
-		check("pi reports the new name", mgr.getSessionName() === "Big Tail", String(mgr.getSessionName()));
-	} catch (e) {
-		console.log("SKIP pi SessionManager cross-check (could not load the installed package):", e.message);
-	}
+	const { SessionManager } = await import(path.join(PI_ROOT, "dist", "core", "session-manager.js"));
+	const mgr = SessionManager.open(BIG_FILE);
+	const ctx = mgr.buildContextEntries();
+	check("pi resumes at our entry (getLeafId)", mgr.getLeafId() === bigEntry.id, String(mgr.getLeafId()));
+	check("pi still sees the conversation on the branch (3 entries, not 1)", ctx.length === 3 && ctx.map((e) => e.id).join(",") === `g1,g2,${bigEntry.id}`, ctx.map((e) => e.id).join(","));
+	check("pi reports the new name", mgr.getSessionName() === "Big Tail", String(mgr.getSessionName()));
 
 	// C: an entry that exactly fills the last scan window is COMPLETE, not a fragment
 	check("fixture: the exact-boundary line really is one window", exactLine.length + 1 === BUDGET && exactNoNl.length === BUDGET, `${exactLine.length + 1} / ${exactNoNl.length} vs ${BUDGET}`);

@@ -7,8 +7,8 @@
  *  /md.js, /blocks.mjs from packages/nana-stage, an optional manifest `page` dir); env HOME,
  *  DESK_READY_BOUND_MS, DESK_DATA_TIMEOUT_MS, DESK_DATA_OUTPUT_CAP
  * @outputs exports
- *  verifiedBlocks/loadManifests/normalizeManifest/writeManifestSession/startAppListeners; serves
- *  each app's page plus /api/session, /api/events (SSE), /api/prompt, /api/ui-response,
+ *  verifiedBlocks/loadManifests/normalizeManifest/writeManifestSession/startAppListeners; usage
+ *  lines through injected deps; serves each app's page plus /api/session, /api/events (SSE), /api/prompt, /api/ui-response,
  *  /api/abort, /api/entries, /api/manifest and POST /api/data/<key>; rewrites the manifest's
  *  `session` atomically after a spawn
  * @effects disk (reads manifests, rewrites the manifest session file), process (spawns the app's
@@ -337,6 +337,7 @@ async function handle(app, req, res, deps, files) {
 				return json(res, 404, { error: "not found" });
 			}
 			res.writeHead(200, { "content-type": MIME[path.extname(files[p])] || "application/octet-stream" });
+			if (p === "/" || p === "/index.html") deps.usage(`app:${m.name}`, deps.usageOpen);
 			return res.end(data);
 		}
 		if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
