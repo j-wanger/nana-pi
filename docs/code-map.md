@@ -698,9 +698,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The knowledge CLI — build, query, hook, status and prune over the local index.
 - **inputs** — argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook JSON on stdin for `hook` (read to at most STDIN_MAX_BYTES), and sources.json plus the index
-- **outputs** — per-root build counts and totals, query hits or their JSON, the index/roots status, and the hook's pointer block — all on stdout; usage, the lock message and `no index` on stderr
+- **outputs** — per-root build counts and totals, query hits or their JSON, the index/roots status, and the hook's pointer block — all on stdout; usage and query/index failures on stderr
 - **effects** — disk (builds and reads the index, writes the shown files and pull.log), database, process (sets the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
-- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index, 0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
+- **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, 0 otherwise — including every `hook` failure (fail-open) and a build that lost the lock
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`
 
@@ -731,17 +731,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a Db handle (exec / prepare / close), a meta value or null, and SCHEMA_VERSION
 - **effects** — disk (mkdirs the parent and creates the database file on the create path), database (WAL pragmas, the docs/files/docs_fts schema and its triggers, meta upserts)
 - **errors** — openDb rejects with whatever node:sqlite throws (absent file, unreadable, locked); getMeta swallows and returns null
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/lib/hook.ts`
 
 - **purpose** — One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
 - **inputs** — the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index at paths.db, and the per-session shown file
-- **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and one JSON line to pull.log
+- **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome records to pull.log
 - **effects** — disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25 search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
-- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, no-hits, all-shown, empty-block
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/parse.ts`
@@ -770,8 +770,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — an open Db handle, the query text, and a row limit
 - **outputs** — Hit records {key, path, display, loc, kind, title, snippet, score} whose every field is one line, capped (TITLE_MAX / DISPLAY_MAX / SNIPPET_MAX) and free of the literal FIELD_SEP, the display path exact or reversibly JSON-escaped
 - **effects** — database (one SELECT over docs_fts joined to docs)
-- **errors** — none — a failing MATCH yields no hits, and a row that cannot be rendered loses only its own pointer
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
+- **errors** — database prepare/query errors are thrown to the caller; a row that cannot be rendered loses only its own pointer
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
 ### `packages/nana-knowledge/lib/sources.ts`
@@ -802,7 +802,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp directories and markdown fixtures), process (spawns the build CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/extension.test.mjs`
 
@@ -822,7 +822,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp home, source tree and index), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
 
 ### `packages/nana-knowledge/tests/incremental-build.test.mjs`
 
