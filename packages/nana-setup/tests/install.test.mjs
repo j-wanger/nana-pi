@@ -184,7 +184,7 @@ const setupLink = path.join(home, ".local", "bin", "nana-setup");
 // req: R-589
 check("nana-setup installed as PATH symlink", link(setupLink) === path.join(pkg, "bin", "nana-setup.mjs"));
 // req: R-589
-check("nana-setup symlink dispatches usage", spawnSync(setupLink, ["--help"], { encoding: "utf8" }).stdout.includes("nana-setup install [options]"));
+check("nana-setup symlink dispatches usage", spawnSync(setupLink, ["--help"], { cwd: NEUTRAL_CWD, encoding: "utf8" }).stdout.includes("nana-setup install [options]"));
 const setupDoctor = run(["doctor", "--home", home]);
 // req: R-589
 check("doctor reports healthy nana-setup link", setupDoctor.status === 0 && /✓ PATH nana-setup/.test(setupDoctor.stdout));

@@ -22,7 +22,13 @@ const sessions = path.join(root, "sessions");
 fs.mkdirSync(home, { recursive: true });
 fs.mkdirSync(sessions, { recursive: true });
 const piBin = resolvePiBin();
-const piPackage = resolvePiPackage(piBin);
+const originalHome = process.env.HOME;
+const originalUserProfile = process.env.USERPROFILE;
+const originalSkipVersionCheck = process.env.PI_SKIP_VERSION_CHECK;
+process.env.HOME = home;
+process.env.USERPROFILE = home;
+process.env.PI_SKIP_VERSION_CHECK = "1";
+let piPackage;
 const extension = path.join(root, "contract.ts");
 fs.writeFileSync(extension, `
 export default function (pi) {
@@ -96,6 +102,9 @@ async function stop() {
 
 try {
   // req: R-689
+  check("resolver process uses isolated home and skips version check", process.env.HOME === home && process.env.USERPROFILE === home && process.env.PI_SKIP_VERSION_CHECK === "1");
+  piPackage = resolvePiPackage(piBin);
+  // req: R-689
   check("resolver selected the installed pi package", Boolean(piPackage.root), piPackage.root);
   child = spawn(piBin, ["--mode", "rpc", "--offline", "-ne", "-ns", "-np", "-nc", "-e", extension, "--session-dir", sessions], {
     cwd: root,
@@ -136,6 +145,11 @@ try {
   check("installed pi RPC contract completes", false, error?.stack ?? String(error));
 } finally {
   await stop();
-
+  if (originalHome === undefined) delete process.env.HOME;
+  else process.env.HOME = originalHome;
+  if (originalUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = originalUserProfile;
+  if (originalSkipVersionCheck === undefined) delete process.env.PI_SKIP_VERSION_CHECK;
+  else process.env.PI_SKIP_VERSION_CHECK = originalSkipVersionCheck;
 }
 if (failed) process.exitCode = 1;
