@@ -11,6 +11,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { spawnNpmRoot } from "../lib/npm-root.mjs";
@@ -150,12 +151,12 @@ const dstLayout = resolveLayout({ home: destination });
 const packageRoot = path.join(dstLayout.piHome, "npm", "node_modules", "pi-subagents");
 fs.mkdirSync(packageRoot, { recursive: true });
 fs.writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
-const doctorBefore = spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const doctorBefore = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } }));
 const warningRows = doctorBefore.stdout.split("\n").filter((line) => /^\s*[!✗]/u.test(line));
 // req: R-959
 check("restored doctor reports project trust only", extracted.status === 0 && installDst.status === 0 && doctorBefore.status === 1 && warningRows.length === 1 && /^\s*! .*project trust/u.test(warningRows[0]), `${doctorBefore.status}\n${warningRows.join("\n")}\n${doctorBefore.stderr}`);
 const trustDst = spawnSync(process.execPath, [cli, "trust", project, "--yes", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
-const doctorAfter = spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } });
+const doctorAfter = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", destination], { cwd: project, encoding: "utf8", env: { ...process.env, HOME: destination, PI_CODING_AGENT_DIR: path.join(destination, ".pi", "agent") } }));
 const afterBad = doctorAfter.stdout.split("\n").filter((line) => /^\s*[!✗]/u.test(line));
 // req: R-959
 check("trust clears the only doctor warning", trustDst.status === 0 && doctorAfter.status === 0 && afterBad.length === 0, `${trustDst.status}; ${doctorAfter.status}\n${doctorAfter.stdout}\n${doctorAfter.stderr}`);
