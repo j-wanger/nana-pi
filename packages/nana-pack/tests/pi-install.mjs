@@ -18,7 +18,7 @@ const packageAt = (dir) => {
 };
 
 /** Find and validate the pi package, treating DESK_PI_ROOT as an exclusive override. */
-export function findPiRoot() {
+export function findPiRoot({ platform = process.platform, spawn = spawnSync } = {}) {
 	const tried = [];
 	if (process.env.DESK_PI_ROOT) {
 		const dir = path.resolve(process.env.DESK_PI_ROOT);
@@ -26,14 +26,16 @@ export function findPiRoot() {
 		if (packageAt(dir)) return { root: dir, how: "DESK_PI_ROOT" };
 		throw new Error(`pi package not found at ${tried.join("; ")}`);
 	}
-	const npm = spawnSync("npm", ["root", "-g"], { encoding: "utf8", windowsHide: true });
+	const npm = platform === "win32"
+		? spawn(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "npm root -g"], { encoding: "utf8", windowsHide: true })
+		: spawn("npm", ["root", "-g"], { encoding: "utf8", windowsHide: true });
 	const globalRoot = npm.status === 0 ? npm.stdout.trim() : "";
 	const globalPackage = globalRoot ? path.join(globalRoot, "@earendil-works", "pi-coding-agent") : "";
 	tried.push(`npm root -g${globalPackage ? ` -> ${globalPackage}` : ` (unavailable${npm.error ? `: ${npm.error.message}` : ""})`}`);
 	if (globalPackage && packageAt(globalPackage)) return { root: globalPackage, how: "npm root -g" };
-	const lookup = process.platform === "win32"
-		? spawnSync("where", ["pi"], { encoding: "utf8", windowsHide: true })
-		: spawnSync("sh", ["-c", "command -v pi"], { encoding: "utf8", windowsHide: true });
+	const lookup = platform === "win32"
+		? spawn("where", ["pi"], { encoding: "utf8", windowsHide: true })
+		: spawn("sh", ["-c", "command -v pi"], { encoding: "utf8", windowsHide: true });
 	const executable = lookup.status === 0 ? lookup.stdout.trim().split(/\r?\n/)[0] : "";
 	let resolved = "";
 	try { if (executable) resolved = fs.realpathSync(executable); } catch {}
