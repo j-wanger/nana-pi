@@ -201,6 +201,9 @@ function walkRegularFiles(root, current, files) {
 function runState(opts) {
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this state listing");
+	for (const [name, root] of [["home", layout.base], ["Claude home", layout.claudeHome], ["pi home", layout.piHome], ["knowledge home", layout.knowledgeHome]]) {
+		if (/[?*\[\]{}]/.test(root)) throw new SetupError(`glob metacharacter in configured ${name}: ${root}`);
+	}
 	const rows = stateRows(layout);
 	if (!opts.paths) {
 		for (const row of rows) console.log(`${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${statePresence(row.path, layout.base)}`);

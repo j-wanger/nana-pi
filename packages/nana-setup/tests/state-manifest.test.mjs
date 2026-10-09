@@ -105,6 +105,17 @@ const nestedSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--h
 const deeperSecrets = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home, "--pi-home", path.join(home, ".pi", "agent"), "--claude-home", deeperClaude], { encoding: "utf8" });
 // req: R-957
 check("refuses Claude home nested beneath pi home at two depths", nestedSecrets.status === 2 && deeperSecrets.status === 2 && /overlapping roots: Claude home and pi home/.test(nestedSecrets.stderr) && /overlapping roots: Claude home and pi home/.test(deeperSecrets.stderr), `${nestedSecrets.status} ${nestedSecrets.stderr}\n${deeperSecrets.status} ${deeperSecrets.stderr}`);
+const wildcardHome = path.join(home, "wildcard-root");
+fs.mkdirSync(path.join(wildcardHome, ".claude"), { recursive: true });
+fs.writeFileSync(path.join(wildcardHome, ".claude", "settings.json"), "secret Claude settings marker");
+const wildcardRoot = path.join(wildcardHome, "*");
+const questionRoot = path.join(wildcardHome, "?");
+const wildcardRuns = [
+  ...["state", "state --paths"].map((command) => spawnSync(process.execPath, [cli, ...command.split(" "), "--home", wildcardHome, "--pi-home", wildcardRoot], { encoding: "utf8" })),
+  spawnSync(process.execPath, [cli, "state", "--paths", "--home", wildcardHome, "--claude-home", questionRoot], { encoding: "utf8" }),
+];
+// req: R-957
+check("state refuses wildcard metacharacters in configured roots before output", wildcardRuns.every((run) => run.status === 2 && run.stdout === "") && wildcardRuns.slice(0, 2).every((run) => /glob metacharacter in configured pi home/.test(run.stderr)) && /glob metacharacter in configured Claude home/.test(wildcardRuns[2].stderr), wildcardRuns.map((run) => `${run.status} ${JSON.stringify(run.stdout)} ${run.stderr}`).join("\n"));
 for (const claudeHome of [nestedClaude, deeperClaude]) { fs.unlinkSync(path.join(claudeHome, ".credentials.json")); fs.unlinkSync(path.join(claudeHome, "settings.json")); }
 const external = path.join(home, "outside-projects");
 fs.mkdirSync(path.join(external, "memory"), { recursive: true });

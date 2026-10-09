@@ -242,7 +242,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 
 ## Known limits
 
-- `state --paths` archives only the default, non-overlapping layout and refuses custom homes that alias or nest.
+- `state --paths` archives only the default, non-overlapping layout and refuses custom homes that alias or nest; configured home roots cannot contain glob characters.
 - A bare `uvx copier copy` project keeps the seeded objective's DRAFT lines until an owner ratifies them through the relevant scaffold or adopt skill; copier alone does not ask for either line.
 - A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
 - `tests/install.test.mjs` and `tests/win32-degrade.test.mjs` fail when started from an untrusted working folder: their CLI subprocesses inherit that folder's trust state. The suite runs them from the repo, so it stays green.
