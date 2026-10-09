@@ -15,7 +15,7 @@
 - E1: nothing in the catch ledger may change review practice, models, roles or spend until a seeded-defect control and a clean-patch control run.
 - L5: a broken hook symlink exits 127 before its fail-open code runs; the adoption hook is not role-gated to the seat.
 - S1/S2: display and encoding follow-ups — a lossless `Cwd:` encoding, desk path display, one escape-token helper, look-alike dashes, a neutral display package, the 16× pre-cap, a CLI rendering test.
-- Requirements: the rail proves marker identity, not clause coverage (open question 6b, 279 untested rows); aml-desk's rail copy has 193 rows off form; basketball-geek has 2.
+- Requirements: the rail proves marker identity, not clause coverage (open question 6b); aml-desk's rail copy has 193 rows off form; basketball-geek has 2.
 - Edge desk: nothing bounds the total size of the blocks one tool returns; a narrowed desk spawn drops the MCP servers and pi's other built-ins.
 - pi 1.0: the seed's `asyncByDefault: true` restates upstream (drop it at the next seed revision, R-361 diff first); seven tests find pi through `npm root -g` (hardening 6.2).
 - Review-ledger lane: document the force-added ignored-file exception to staging independence; strengthen the non-mutating-`check` test with a stale sentinel.
@@ -35,9 +35,10 @@
 ## Next
 
 1. **Hardening program (Jake adopted all recommendations, 2026-10-06).** Tranches 1 to 5 are done; tranche 6 is next. The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
-2. **Writing trial verdict, 2026-10-18 or the 20th report.** The seat runs the committed extractor's session-unit after-measure (baseline 0/32 strict). Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend. The tally-hook question returns as one option at that verdict.
-3. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
-4. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
+2. **Writing trial: stopped at the twentieth checked report, 2026-10-09.** The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
+3. **Compaction-summary store:** re-run the 6.6 replay on 2026-10-23; the store stays frozen.
+4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
+5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 

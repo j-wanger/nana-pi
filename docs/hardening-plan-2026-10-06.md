@@ -53,6 +53,13 @@
 - **Subtract on safety boundaries over configurable layouts:** `state --paths` archives by default-deny and refuses overlapping or patterned roots instead of modelling aliases; uninstall validates every destination from its outermost root and refuses a symlinked settings file; per-entry pi removal hints and a test-isolation source scanner were subtracted.
 - **Hooks move to Node in place:** the managed bash SessionStart entries are rewritten in place, retired links removed, and install and doctor name any leftover retired command. The seat backed up the Claude settings, landed, and ran install in one chain; every hook exited 0 when run by hand.
 
+## Seat rulings during tranche 6 (2026-10-09)
+
+- **6.7 deferred to Jake's 6b method ruling.** No tranche-6 tool prints a coverage, judged or covered count. When the state is built, it binds each judged row to its current Requirement text (two rows were rewritten after judgement within five days). One row missing its closing pipe was invisible to the TypeScript rail and was fixed; the class is declared in Open question 9. G-022 flipped to implemented after both code mutations turned its cited check red.
+- **6.6 is a seat measurement, not a lane.** Baseline 2026-10-09: zero eligible compactions, writes or pickups since the role marker went live. The user-scope compaction-summary store and `nana-handoff.ts` are frozen until Jake rules; the replay re-runs on 2026-10-23.
+- **6.4: the trial stopped.** The twentieth checked report fell on 2026-10-09, before the 2026-10-18 backstop; the seat runs the after-measure and sends the verdict note. Nothing in the writing rule, checker or extractor changes before the verdict.
+- **IDs:** R-239–R-241, R-601, R-648, R-649, R-689 and R-699 re-declared (R-241 reserved for a randomized arm, consumed only if the one-arm bound cannot decide); R-285–R-299 stay the reserve.
+
 ## How this was produced
 
 - **Scan:** 15 read-only Opus 5.5 auditors. Ten planned lanes (session start, legacy layer, project lifecycle, the agentic loop, pack runtime, desk, knowledge and memory, proof machinery, instruction surfaces, install and platform) plus five gap lanes a completeness critic named (Jake as reader, the loop in product repos, seat continuity, the canonical builder launcher, instruction surfaces beyond READMEs).
@@ -162,9 +169,9 @@ Each is self-contained; the seat can start everything in Tranche 1 without them.
 | 6.1 | Knowledge: log eligible-query outcomes and failures (R-893 skips stay unlogged); `NANA_KNOWLEDGE_HOME` in every real-process e2e and probe; remove redundant nested roots so the-hive's docs are indexed; the D6 filter; the controlled comparison | L7-08, L7-06, L7-01, L1-10 | S | A corrupt index shows in `pull.log`; the-hive's 162 missing docs are indexed |
 | 6.2 | Test honesty: undeclared whole-file SKIPs fail; the seven pack tests that find pi through `npm root -g` honour `DESK_PI_ROOT` first (desk and bench keep their separate resolver contracts); one zero-model real-RPC contract test through the desk resolver; one test-root module for runner, rail and map | L8-02, L8-05, L6-08 | M | Removing pi from PATH turns the suite red, not quietly SKIP |
 | 6.3 | `map:impact --rows`: candidate rows for a file, labelled as an over-approximation | L8-04 | S | — |
-| 6.4 | Writing trial: commit the extractor and the 35 baseline inputs now (transcripts roll off); verdict check uppercase and first-token; count only sessions that loaded the rule; record the reviewer-harm check | G1a-01, G1a-04, G1a-07, G1a-09, G1a-10, G1a-11, G1a-06, G1a-08 | S | The 10-18 verdict is recomputable from committed files |
+| 6.4 | Writing trial: all four clauses landed in t2-trial (c439c1d); the twentieth checked report fell on 2026-10-09, so the trial stopped — the seat runs the after-measure and sends the verdict note | G1a-01, G1a-04, G1a-07, G1a-09, G1a-10, G1a-11, G1a-06, G1a-08 | S | The verdict is recomputable from committed files |
 | 6.5 | Desk usage events (D4) | L6-12 | S | — |
-| 6.6 | Compaction-summary store: measure interactive compactions and later use before any retirement | L7-09, G1c-03 | S | — |
+| 6.6 | Compaction-summary store: measure interactive compactions and later use before any retirement — seat measurement; baseline 2026-10-09: 10 compactions, 0 eligible, 0 writes, 0 pickups, 26 eligible starts (`docs/reviews/compaction-summary-2026-10-09/`) | L7-09, G1c-03 | S | — |
 | 6.7 | A machine-readable clause-coverage state before any coverage number | L8-06 | M | — |
 
 **Parked with the desk freeze (D4):** L6-02 (Settings cannot save the objective block), L6-03, L6-04, L6-05, L6-06, L6-09, L6-10, L6-11, L6-13 — recorded as Known limits; picked up only if D4 rules retain. The desk's surface matrix (L6-07) lands with 2.4 regardless.

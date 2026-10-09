@@ -26,3 +26,13 @@ This is the like-for-like trial comparison: baseline and after both use the last
 The October 5 audit remains 10/14 on the former lenient check (and 9/14 strict); it is an all-message audit, not the session-unit verdict result. The scan found 21 matching Bash checker calls across the treated sessions by EDT day: October 4: 1, October 5: 13, October 6: 7. Calls are not distinct sent reports: the extractor cannot tell whether an invocation rechecks a draft or is diagnostic, so the seat audits distinct reports at verdict time.
 
 Recompute with `node docs/reviews/writing-trial-2026-10-04/extract.mjs --from 2026-10-04 --to 2026-10-07 --mode after --until 2026-10-07T09:47:20.003Z` against the seat projects under `~/.claude/projects/`. JSON `verdictMeasure` is the trial unit; `allMessageAudit` and `days` are audit-only. `checkerCalls` counts tool invocations, not reports sent.
+
+## Stop trigger (recorded 2026-10-09)
+
+The trial stops on the first of 2026-10-18, the twentieth report checked, or a second lost-detail complaint. The seat counted checked reports with `stop-count.mjs` in this folder (read-only): a report-sized (80+ words) main-thread assistant message in a rule-treated seat session counts once when a main-thread `nana-writing.mjs --report` call ran earlier in the same turn; checker calls that name `HANDOFF.md` are excluded because they check the frontier file, not a report.
+
+| Since | Checked reports | Twentieth report |
+|---|---:|---|
+| 2026-10-04 | 20 | 2026-10-09T09:25:13Z |
+
+Without the `HANDOFF.md` exclusion the count is 23 and the twentieth falls on 2026-10-08. Either way the twentieth-report condition fired before 2026-10-18, so the trial has stopped; the after-measure and the verdict note follow. Recompute: `node docs/reviews/writing-trial-2026-10-04/stop-count.mjs ~/.claude/projects 2026-10-04T00:00:00Z`.

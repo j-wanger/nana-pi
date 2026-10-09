@@ -1,0 +1,21 @@
+{
+  "since": "2026-09-28T19:00:00Z",
+  "until": "2026-10-09T10:00:00Z",
+  "compactions": 10,
+  "eligibleCompactions": [],
+  "handoff_written": 0,
+  "handoff_write_failed": 0,
+  "handoff_pickup": 0,
+  "handoff_stale_pointer": 0,
+  "sessionStarts": 545,
+  "eligibleStarts": 26,
+  "eligibleStartsOver10Min": [
+    {
+      "ts": "2026-10-04T07:08:23.645Z",
+      "cwd": "/Users/jwang/nana-pi",
+      "min": 20
+    }
+  ],
+  "storeEntries": 0,
+  "storeMtime": "2026-10-05T12:09:06.021Z"
+}
