@@ -43,11 +43,19 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const layout = resolveLayout({ home });
   const link = path.join(layout.hooksDir, "nana-objective.sh");
   fs.mkdirSync(path.dirname(link), { recursive: true });
-  fs.symlinkSync(path.join(targetHome, "not-this-repo"), link);
-  let refused = false;
-  try { uninstall(layout, { dryRun: true }); } catch (error) { refused = /inventory links do not resolve inside/.test(error.message); }
+  const externalTarget = path.join(targetHome, "keep");
+  fs.writeFileSync(externalTarget, "external bytes");
+  const externalBefore = fs.readFileSync(externalTarget);
+  fs.symlinkSync(externalTarget, link);
+  const snapshot = (root) => {
+    const entries = [];
+    const walk = (dir) => { for (const item of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, item.name); const st = fs.lstatSync(file); if (st.isDirectory() && !st.isSymbolicLink()) walk(file); else entries.push([path.relative(root, file), st.isSymbolicLink() ? `link:${fs.readlinkSync(file)}` : fs.readFileSync(file).toString("base64")]); } };
+    walk(root); return entries.sort();
+  };
+  const beforeHome = snapshot(home);
+  const refused = run(["uninstall", "--yes", "--home", home]);
   // req: R-901
-  check("external inventory link aborts before changing its target or link", refused && fs.lstatSync(link).isSymbolicLink() && fs.existsSync(targetHome) && !fs.existsSync(path.join(layout.claudeHome, "settings.json")));
+  check("external inventory link aborts before changing its target or link", refused.status === 1 && /inventory links do not resolve inside/.test(refused.stdout) && fs.lstatSync(link).isSymbolicLink() && fs.readFileSync(externalTarget).equals(externalBefore) && !fs.existsSync(path.join(layout.claudeHome, "settings.json")) && JSON.stringify(beforeHome) === JSON.stringify(snapshot(home)), refused.stdout);
 }
 
 {
@@ -235,6 +243,186 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const third = run(["uninstall", "--yes", "--home", dryHome]);
   // req: R-903 R-904 R-905 R-906 R-907
   check("dry-run lists manifest pieces without writes and repeated uninstall is empty", dryInstall.status === 0 && dryResult.status === 0 && sameSnapshot(postInstall, afterDry) && JSON.stringify(dryLabels) === JSON.stringify(expectedLabels) && second.status === 0 && third.status === 0 && /nothing to remove/.test(third.stdout), `install=${dryInstall.status} dry=${dryResult.status} unchanged=${sameSnapshot(postInstall, afterDry)} rows=${dryRows.length} second=${second.status} third=${third.status} empty=${/nothing to remove/.test(third.stdout)}\n${third.stdout}`);
+}
+
+{
+  const snapshot = (root) => {
+    const values = new Map();
+    const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); const st = fs.lstatSync(file); if (st.isDirectory() && !st.isSymbolicLink()) walk(file); else values.set(path.relative(root, file), st.isSymbolicLink() ? `link:${fs.readlinkSync(file)}` : fs.readFileSync(file).toString("base64")); } };
+    walk(root); return values;
+  };
+  const same = (a, b) => a.size === b.size && [...a].every(([key, value]) => b.get(key) === value);
+  const ancestorResults = [];
+  for (const target of ["hooks", "rules", "LaunchAgents"]) {
+    const home = tmpDir(path.join(os.tmpdir(), `nana-uninstall-unsafe-${target}-`));
+    const outside = tmpDir(path.join(os.tmpdir(), `nana-uninstall-outside-${target}-`));
+    const layout = resolveLayout({ home });
+    fs.mkdirSync(layout.claudeHome, { recursive: true });
+    fs.writeFileSync(layout.claudeSettings, JSON.stringify({ foreign: true }));
+    const dir = target === "LaunchAgents" ? path.dirname(layout.plistPath) : path.join(layout.claudeHome, target);
+    fs.mkdirSync(path.dirname(dir), { recursive: true });
+    fs.mkdirSync(outside, { recursive: true });
+    fs.writeFileSync(path.join(outside, "keep"), "external");
+    fs.symlinkSync(outside, dir);
+    const before = snapshot(home);
+    const outsideBefore = fs.readFileSync(path.join(outside, "keep"));
+    const result = run(["uninstall", "--yes", "--home", home]);
+    ancestorResults.push(result.status === 1 && /unsafe ancestor/.test(result.stdout) && same(before, snapshot(home)) && fs.readFileSync(path.join(outside, "keep")).equals(outsideBefore));
+  }
+  // req: R-901
+  check("symlinked hooks rules and LaunchAgents ancestors refuse before any home or target change", ancestorResults.every(Boolean));
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-settings-failure-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  fs.writeFileSync(layout.claudeSettings, "{broken");
+  const link = path.join(layout.hooksDir, "nana-objective.sh");
+  fs.mkdirSync(layout.hooksDir, { recursive: true });
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
+  const { stateRows } = await import("../lib/state-manifest.mjs");
+  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  fs.mkdirSync(path.dirname(seed.path), { recursive: true });
+  fs.copyFileSync(seed.source, seed.path);
+  const beforeLink = fs.readlinkSync(link);
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-901 R-905
+  check("malformed settings report an operational failure before unlinking", result.status === 1 && /✗.*settings|✗.*uninstall/.test(result.stdout) && fs.readlinkSync(link) === beforeLink && fs.readFileSync(seed.path).equals(fs.readFileSync(seed.source)), result.stdout);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-hook-variants-"));
+  const layout = resolveLayout({ home });
+  const settings = { hooks: { SessionStart: [{ hooks: [
+    { type: "command", command: "bash ~/.claude/hooks/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+    { type: "command", command: `EXTRA=1 bash '${layout.hooksDir}/nana-adoption.sh'`, timeout: 5, statusMessage: "nana: unadopted repositories" },
+    { type: "command", command: `bash '${layout.hooksDir}/nana-shared-memory.sh'`, timeout: 5 },
+  ] }], UserPromptSubmit: [{ hooks: [
+    { type: "command", command: `NODE_NO_WARNINGS=1 node '/stale/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, timeout: 5, statusMessage: "nana: knowledge pull" },
+  ] }] } };
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-905
+  check("each near-match hook variant gets one left row naming its command", result.status === 0 && (result.stdout.match(/left —/g) ?? []).length === 4 && ["~/.claude/hooks/nana-objective.sh", "EXTRA=1", "nana-shared-memory.sh", "stale/packages/nana-knowledge"].every((part) => result.stdout.includes(part)), result.stdout);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-modes-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  fs.writeFileSync(layout.claudeSettings, "{}\n");
+  const initial = fs.readFileSync(layout.claudeSettings);
+  const both = run(["uninstall", "--dry-run", "--yes", "--home", home]);
+  const win = run(["uninstall", "--yes", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
+  const relative = run(["uninstall", "--yes"], { HOME: home, PI_CODING_AGENT_DIR: "relative-agent-dir" });
+  // req: R-900
+  check("both modes win32 and relative ambient pi home refuse without home changes", both.status === 2 && win.status === 2 && /uninstall is POSIX-only/.test(win.stderr) && relative.status === 2 && fs.readFileSync(layout.claudeSettings).equals(initial), `${both.status} ${win.status} ${relative.status}`);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-mixed-links-"));
+  const outside = tmpDir(path.join(os.tmpdir(), "nana-uninstall-decoy-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.hooksDir, { recursive: true });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  fs.writeFileSync(layout.claudeSettings, "{}\n");
+  const owned = path.join(layout.hooksDir, "nana-objective.sh");
+  const decoy = path.join(outside, "keep");
+  fs.writeFileSync(decoy, "unchanged");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), owned);
+  fs.symlinkSync(decoy, path.join(layout.hooksDir, "nana-adoption.sh"));
+  const regular = path.join(layout.hooksDir, "nana-shared-memory.sh");
+  fs.writeFileSync(regular, "owner file");
+  const directory = path.join(layout.hooksDir, "verifier-pipe.mjs");
+  fs.mkdirSync(directory);
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-902
+  check("mixed inventory leaves external and regular link-path entries while removing owned link", result.status === 0 && !fs.existsSync(owned) && fs.readFileSync(decoy, "utf8") === "unchanged" && fs.lstatSync(path.join(layout.hooksDir, "nana-adoption.sh")).isSymbolicLink() && fs.readFileSync(regular, "utf8") === "owner file" && fs.lstatSync(directory).isDirectory(), result.stdout);
+  const danglingHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-dangling-link-"));
+  const danglingLayout = resolveLayout({ home: danglingHome });
+  fs.mkdirSync(danglingLayout.hooksDir, { recursive: true });
+  fs.mkdirSync(danglingLayout.claudeHome, { recursive: true });
+  fs.writeFileSync(danglingLayout.claudeSettings, "{}\n");
+  const live = path.join(danglingLayout.hooksDir, "nana-objective.sh");
+  const dangling = path.join(danglingLayout.hooksDir, "nana-adoption.sh");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), live);
+  fs.symlinkSync(path.join(danglingHome, "missing-target"), dangling);
+  const danglingResult = run(["uninstall", "--yes", "--home", danglingHome]);
+  // req: R-902
+  check("dangling hook link is reported left while owned link is removed", danglingResult.status === 0 && !fs.existsSync(live) && fs.lstatSync(dangling).isSymbolicLink() && /dangling symlink/.test(danglingResult.stdout), danglingResult.stdout);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-desk-types-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
+  const external = path.join(home, "outside-plist");
+  fs.writeFileSync(external, "foreign");
+  fs.symlinkSync(external, layout.plistPath);
+  const result = uninstall(layout);
+  // req: R-906
+  check("foreign symlink plist is left without following it", fs.lstatSync(layout.plistPath).isSymbolicLink() && fs.readFileSync(external, "utf8") === "foreign" && result.some((row) => row.label === "desk plist" && row.status === "skipped"));
+  fs.unlinkSync(layout.plistPath);
+  fs.mkdirSync(layout.plistPath);
+  const directoryResult = uninstall(layout);
+  // req: R-906
+  check("directory at plist path is left", fs.lstatSync(layout.plistPath).isDirectory() && directoryResult.some((row) => row.label === "desk plist" && row.status === "skipped"));
+  fs.rmdirSync(layout.plistPath);
+  fs.writeFileSync(layout.plistPath, "foreign checkout server");
+  const foreignResult = uninstall(layout);
+  // req: R-906
+  check("foreign regular plist is left", fs.readFileSync(layout.plistPath, "utf8") === "foreign checkout server" && foreignResult.some((row) => row.label === "desk plist" && row.status === "skipped"));
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-write-race-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  const { desiredHooks, serialize } = await import("../lib/settings.mjs");
+  const target = desiredHooks({ hooksDir: layout.hooksDir, repoRoot: repo }).find((item) => item.label === "SessionStart objective").entry;
+  fs.writeFileSync(layout.claudeSettings, serialize({ hooks: { SessionStart: [{ hooks: [target] }] } }));
+  fs.mkdirSync(layout.hooksDir, { recursive: true });
+  const link = path.join(layout.hooksDir, "nana-objective.sh");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
+  const { stateRows } = await import("../lib/state-manifest.mjs");
+  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  fs.mkdirSync(path.dirname(seed.path), { recursive: true });
+  fs.copyFileSync(seed.source, seed.path);
+  let failed = false;
+  try { uninstall(layout, { afterTempWrite: () => fs.writeFileSync(layout.claudeSettings, "{}\n") }); } catch (error) { failed = /changed on disk/.test(error.message); }
+  // req: R-905
+  check("settings write race fails before links are removed", failed && fs.lstatSync(link).isSymbolicLink() && fs.readFileSync(seed.path).equals(fs.readFileSync(seed.source)));
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-lock-failure-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  const { desiredHooks, serialize } = await import("../lib/settings.mjs");
+  const target = desiredHooks({ hooksDir: layout.hooksDir, repoRoot: repo }).find((item) => item.label === "SessionStart objective").entry;
+  fs.writeFileSync(layout.claudeSettings, serialize({ hooks: { SessionStart: [{ hooks: [target] }] } }));
+  const lock = path.join(layout.claudeHome, ".settings.json.nana-setup.lock");
+  fs.writeFileSync(lock, "occupied");
+  fs.mkdirSync(layout.hooksDir, { recursive: true });
+  const link = path.join(layout.hooksDir, "nana-objective.sh");
+  fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
+  const { stateRows } = await import("../lib/state-manifest.mjs");
+  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  fs.mkdirSync(path.dirname(seed.path), { recursive: true });
+  fs.copyFileSync(seed.source, seed.path);
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-905
+  check("settings lock failure is operational and preserves links", result.status === 1 && /✗/.test(result.stdout) && fs.lstatSync(link).isSymbolicLink() && fs.readFileSync(seed.path).equals(fs.readFileSync(seed.source)));
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-noop-parent-"));
+  const layout = resolveLayout({ home });
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-905
+  check("no-op uninstall does not create the settings parent or lock", result.status === 0 && !fs.existsSync(layout.claudeHome) && /nothing to remove/.test(result.stdout));
 }
 
 process.exitCode = failures ? 1 : 0;

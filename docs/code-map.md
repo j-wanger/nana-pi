@@ -1780,7 +1780,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **inputs** — argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home, --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR, NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
 - **outputs** — stdout: the install root / claude home / pi home banner, a "<mark> <label> <status> <detail>" line per result (+ created|updated, · unchanged, – skipped, ✗ problem; ✓/✗/!/· for doctor), a closing summary and the "next:" hint; stderr: the usage text and error messages; process.exitCode.
 - **effects** — disk (through install / setupProject / dismissProject), process (the child processes those steps spawn; sets process.exitCode)
-- **errors** — exit 2 for an unknown option or command, no command, a SetupError (including a relative ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); exit 1 when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr); exit 0 otherwise
+- **errors** — exit 2 for an unknown option or command, no command, a usage SetupError (including a relative ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); uninstall operational failures print ✗ and exit 1; exit 1 when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr); exit 0 otherwise
 - **callers** — —
 - **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/npm-root.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/trust-decision.mjs`, `packages/nana-setup/lib/uninstall.mjs`
 
@@ -1882,16 +1882,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`
-- **callees** — `packages/nana-pack/bin/review-round.mjs`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-setup/lib/steps.mjs`
 
 ### `packages/nana-setup/lib/steps.mjs`
 
 - **purpose** — The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
 - **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json, pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and packages/nana-pack/rules (the writing rule); the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
-- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and rules (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES, PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI, DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
+- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and rules (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES, PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI, DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SetupError and the helpers doctor reuses
 - **effects** — disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`, `pi --version` / `pi install`, `git rev-parse`)
 - **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md, or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed per-package `pi install` or launchctl bootstrap/kickstart
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
 - **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `packages/nana-setup/lib/trust-decision.mjs`
@@ -1907,7 +1907,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/uninstall.mjs`
 
 - **purpose** — Removes only nana-setup-owned manifest pieces while preserving user state.
-- **inputs** — resolved layout, manifest rows, setup seed sources and settings lock helpers.
+- **inputs** — resolved layout, manifest rows with seed sources and settings lock helpers.
 - **outputs** — one result row per owned removable manifest piece and reported pi registrations.
 - **effects** — disk, process (launchctl print only for the real home).
 - **errors** — SetupError for unsafe preflight or concurrent settings changes.
@@ -2192,7 +2192,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixture for read-only CLI proof).
 - **errors** — Failed checks increment the exit status.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/stub-pi.mjs`
 

@@ -12,8 +12,8 @@
  *  process.exitCode.
  * @effects disk (through install / setupProject / dismissProject), process (the child processes
  *  those steps spawn; sets process.exitCode)
- * @errors exit 2 for an unknown option or command, no command, a SetupError (including a relative
- *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); exit 1
+ * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
+ *  ambient PI_CODING_AGENT_DIR, a .nana-not-a-project marker, a missing parent directory); uninstall operational failures print ✗ and exit 1; exit 1
  *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw (stack on stderr);
  *  exit 0 otherwise
  */
@@ -34,7 +34,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
-import { repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
+import { repoRoot, resolveLayout, tildeify, platform } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
@@ -128,9 +128,16 @@ function refuseCwdRelativePiHome(layout, what) {
 
 function runUninstall(opts) {
 	if (Boolean(opts.dryRun) === Boolean(opts.yes)) throw new SetupError("uninstall requires exactly one of --dry-run or --yes");
+	if (platform() === "win32") throw new SetupError("uninstall is POSIX-only");
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this uninstall");
-	const results = uninstall(layout, opts);
+	let results;
+	try { results = uninstall(layout, opts); }
+	catch (err) {
+		const problem = { label: "uninstall preflight", status: "problem", detail: err.message };
+		console.log(`  ✗ ${problem.label}  ${problem.status}  ${problem.detail}`);
+		return 1;
+	}
 	const width = Math.max(1, ...results.map((r) => r.label.length));
 	for (const r of results) console.log(`  ${SYMBOL[r.status] ?? (r.status === "problem" ? "✗" : "–")} ${r.label.padEnd(width)}  ${r.status.padEnd(9)}${r.detail ? `  ${r.detail}` : ""}`);
 	return results.some((r) => r.status === "problem") ? 1 : 0;

@@ -16,7 +16,7 @@
  *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  `pi --version` / `pi install`, `git rev-parse`)
  * @errors SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -55,6 +55,12 @@ export function ruleSource(rule) {
 export const CLAUDE_SKILLS = ["requirements", "spec", "py-lint", "py-review", "py-test"];
 export const NEW_CLAUDE_SKILLS = ["spec", "py-lint", "py-review", "py-test"];
 export const PACK_SKILLS_DIR = path.join(repoRoot, "packages", "nana-pack", "skills");
+export const PRIVATE_RULE_SEED = path.join(pkgRoot, "claude", "rules", "nana-personal.example.md");
+export const SHARED_MEMORY_SEED = path.join(pkgRoot, "claude", "memory", "MEMORY.seed.md");
+export const PI_PACK_SEED = path.join(pkgRoot, "pi", "nana-pack.seed.json");
+export const PI_OBJECTIVE_SEED = path.join(pkgRoot, "pi", "nana-objective.seed.md");
+export const SUBAGENT_CONFIG_SEED = path.join(pkgRoot, "pi", "subagent-config.seed.json");
+export const REVIEWER_SEED = path.join(pkgRoot, "pi", "reviewer.seed.md");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const PI_WORKER_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-worker.mjs");
 export const NANA_LAND_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-land.mjs");
@@ -74,7 +80,7 @@ export function lstatSafe(p) {
 	}
 }
 
-function directoryAncestorsAreSafe(root, targetDirectory, allowMissing = false) {
+export function directoryAncestorsAreSafe(root, targetDirectory, allowMissing = false) {
 	const relative = path.relative(root, targetDirectory);
 	if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) return false;
 	let current = root;
@@ -125,7 +131,7 @@ export function stepRules(layout, o) {
 		});
 		return out;
 	}
-	const personal = seedFile(personalPath, fs.readFileSync(path.join(pkgRoot, "claude", "rules", "nana-personal.example.md"), "utf8"), o);
+	const personal = seedFile(personalPath, fs.readFileSync(PRIVATE_RULE_SEED, "utf8"), o);
 	out.push({ label: "rule nana-personal.md (private)", ...personal });
 	return out;
 }
@@ -503,7 +509,7 @@ export function stepSettings(layout, o, state) {
 
 export function stepSharedMemory(layout, o) {
 	const dir = ensureDir(layout.sharedMemoryDir, o);
-	const header = fs.readFileSync(path.join(pkgRoot, "claude", "memory", "MEMORY.seed.md"), "utf8");
+	const header = fs.readFileSync(SHARED_MEMORY_SEED, "utf8");
 	const idx = seedFile(path.join(layout.sharedMemoryDir, "MEMORY.md"), header, o);
 	return [
 		{ label: "shared memory dir", ...dir },
@@ -534,7 +540,7 @@ export function objectiveTarget(layout, cfg) {
 }
 
 export function stepPiConfig(layout, o) {
-	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "nana-pack.seed.json"), "utf8");
+	const seedText = fs.readFileSync(PI_PACK_SEED, "utf8");
 	const pack = seedFile(layout.piPackConfig, seedText, o);
 	const out = [{ label: "pi nana-pack.json", ...pack }];
 	// The starter objective file belongs to the SEED. When nana-pack.json already exists and
@@ -543,7 +549,7 @@ export function stepPiConfig(layout, o) {
 	const cfg = pack.status === CREATED ? JSON.parse(seedText) : readPiPackConfig(layout);
 	const target = objectiveTarget(layout, cfg);
 	if (pack.status === CREATED || path.resolve(target) === path.resolve(layout.piObjective)) {
-		out.push({ label: "pi nana-objective.md", ...seedFile(layout.piObjective, fs.readFileSync(path.join(pkgRoot, "pi", "nana-objective.seed.md"), "utf8"), o) });
+		out.push({ label: "pi nana-objective.md", ...seedFile(layout.piObjective, fs.readFileSync(PI_OBJECTIVE_SEED, "utf8"), o) });
 	} else {
 		out.push({ label: "pi nana-objective.md", status: UNCHANGED, detail: `not needed — objective.path already points at ${target}` });
 	}
@@ -568,7 +574,7 @@ export function readPiPackConfig(layout) {
  * ONLY — this function never states them again.
  */
 export function stepSubagentConfig(layout, o) {
-	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "subagent-config.seed.json"), "utf8");
+	const seedText = fs.readFileSync(SUBAGENT_CONFIG_SEED, "utf8");
 	return [{ label: "pi subagent config", ...seedFile(layout.subagentConfig, seedText, o) }];
 }
 
@@ -600,7 +606,7 @@ export function firstBodyLine(content) {
 }
 
 export function stepReviewerAgent(layout, o) {
-	const seedText = fs.readFileSync(path.join(pkgRoot, "pi", "reviewer.seed.md"), "utf8");
+	const seedText = fs.readFileSync(REVIEWER_SEED, "utf8");
 	return [{ label: "pi reviewer agent", ...seedFile(layout.reviewerAgent, seedText, o) }];
 }
 
