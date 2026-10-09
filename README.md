@@ -2,7 +2,7 @@
 
 Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
 
-Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
+Support: macOS tested; Linux runs in hosted CI, where the suite leg is non-blocking, with no recorded machine install; the pack runs on native Windows but is untested, and on Windows there is no Claude Code hook except the knowledge pull, none of its PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
@@ -113,6 +113,19 @@ The experience has **two halves**, and both are installed from this repo:
    when nothing else has touched it in the meantime; a file it cannot parse *or cannot safely
    extend* aborts the install before anything on disk moves.
 
+### Fresh machine (macOS), in order
+
+1. Install Node ≥ 22.19 with a global npm prefix you can write without sudo (Homebrew, nvm/fnm, or a user prefix), and install git (`xcode-select --install` if it is missing).
+2. Run `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2`, then `pi --version`. Do not use pi's managed installer or `pi update`; see the setup README's “Upgrading pi itself” section.
+3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
+4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install` (`--desk` adds the desk service).
+5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
+6. Run `pi install npm:pi-subagents@0.75.0`.
+7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+8. Run `nana-setup doctor` from `~/nana-pi`; expect `all good`.
+
+`uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
+
 ### A blank folder → a nana project
 
 `install` sets up the machine; it does not give a folder the three files the session-start
@@ -133,40 +146,29 @@ needed, and refreshes the knowledge index. Nothing existing is ever overwritten;
 `project --check` prints one ✓/✗ per file. Scaffolded and adopted projects get the same three
 seeds from the same `templates/_shared` source (copier template, `adopt-structure` skill).
 
-Prerequisites (standard tooling only, nothing nana-specific): Node ≥ 22.19 and pi
-(`npm i -g @earendil-works/pi-coding-agent`); `uv` for BOTH templates — it is the Python
+Prerequisites (standard tooling only, nothing nana-specific): follow the [macOS fresh-machine checklist](#fresh-machine-macos-in-order); `uv` for BOTH templates — it is the Python
 toolchain, and copier runs as `uvx copier` with `uvx` shipping inside uv, so the
 TypeScript path needs uv as well (copier itself is nothing extra to install); plus
 `pnpm` for the TypeScript template. On Windows add
 Git for Windows — pi's bash tool runs through Git Bash (see pi's `docs/windows.md`;
-the documented pack and project commands work in PowerShell or cmd, no WSL needed). If pi errors
+the documented pack and project commands are written to run in PowerShell or cmd (untested there); no WSL needed). If pi errors
 `No bash shell found`: install Git for Windows to its default location (pi probes
 `%ProgramFiles%\Git\bin\bash.exe`, no PATH change needed), or for scoop/portable Git
 set `{ "shellPath": "C:\\...\\bin\\bash.exe" }` in `~/.pi/agent/settings.json`. Don't
 let it fall through to WSL's `System32\bash.exe` — commands would run inside Linux
 with Linux paths.
 
-### From git (no clone needed for the pack)
+### From git (pack-only use; no clone needed)
 
 ```bash
 # 1. the nana-pack — all seven extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
-pi install git:github.com/j-wanger/nana-pi        # add -l for project-local
+pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# 3. nana code (the desk) — no npm dependencies of its own (it uses the pi from
-#    step 1, spawned and imported), but it needs the files, so clone
-#    (two lines: `&&` breaks in Windows PowerShell 5.1)
-git clone https://github.com/j-wanger/nana-pi
-node nana-pi/apps/desk/server.mjs
-
-# 4. the Claude Code half + user-scope config — also needs the files, so run it
-#    from that clone (pi's own copy under ~/.pi/agent/git/github.com/j-wanger/nana-pi
-#    works too; see pi's docs/packages.md for where a git: install is cloned)
-node nana-pi/packages/nana-setup/bin/nana-setup.mjs install
-node nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
+# For nana-setup or the desk, install from a local clone instead (see below).
 ```
 
 Copier renders the latest `v*` tag, never HEAD — tags are cut only by
@@ -174,6 +176,8 @@ Copier renders the latest `v*` tag, never HEAD — tags are cut only by
 tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
 
 ### From a local clone
+
+Anyone using nana-setup or the desk installs from a local clone; doctor reads ✗ when pi loads a `git:` copy beside that clone.
 
 One `git clone https://github.com/j-wanger/nana-pi`, then everything runs off the
 working tree:

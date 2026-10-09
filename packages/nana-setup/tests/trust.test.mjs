@@ -11,8 +11,9 @@ import * as fs from "node:fs";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { decideTrust } = await import("../lib/trust-decision.mjs");
 const { spawnNpmRoot } = await import("../lib/npm-root.mjs");

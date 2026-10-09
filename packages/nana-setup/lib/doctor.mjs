@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/doctor.mjs
  * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
- *  and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
+ *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json,
  *  nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store,
  *  <piHome>/extensions/subagent/config.json,
@@ -11,8 +11,8 @@
  *  `node -p process.versions.node` and `launchctl print`
  * @outputs an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
- *  { ok, detail }; projectFileState() { status, kind, detail }
- * @effects disk (reads only), process (spawns node and launchctl to probe)
+ *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath()
+ * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
  */
@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 
@@ -232,6 +232,44 @@ export function versionAtLeast(version, floor) {
 	return a3 >= b3;
 }
 
+export function packageSourceState(layout, root = repoRoot) {
+	let settings;
+	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
+	const entries = Array.isArray(settings?.packages) ? settings.packages.flatMap((entry) => typeof entry === "string" ? [entry] : entry && typeof entry === "object" && typeof entry.source === "string" ? [entry.source] : []) : [];
+	const checkout = realpathSafe(root);
+	const foreign = [];
+	let found = false;
+	for (const entry of entries) {
+		if (remoteMatches(entry)) {
+			found = true;
+			foreign.push(`${entry} resolves to pi's own clone under ${path.join(layout.piHome, "git")}`);
+			continue;
+		}
+		if (!entryMatches(entry, layout.piHome, root)) continue;
+		found = true;
+		const resolved = resolvePackageEntryPath(entry, layout.piHome);
+		if (resolved !== checkout && !resolved.startsWith(checkout + path.sep)) foreign.push(`${entry} resolves to ${resolved}`);
+	}
+	if (!found) return null;
+	const managedRoot = realpathSafe(path.join(layout.piHome, "git"));
+	const managed = checkout === managedRoot || checkout.startsWith(managedRoot + path.sep);
+	return {
+		status: foreign.length ? FAIL : OK,
+		detail: foreign.length ? foreign.join("; ") : `${root}: the tree supplying hooks and rules`,
+		remedy: managed
+			? "this checkout is pi's managed copy: `git clone https://github.com/j-wanger/nana-pi`, run `nana-setup install` from the clone, then `pi remove <entry>`"
+			: `\`pi remove <entry>\`, then re-run \`nana-setup install\` from ${root}`,
+	};
+}
+
+export function firstOnPath(name, pathValue = process.env.PATH) {
+	for (const dir of String(pathValue ?? "").split(path.delimiter).filter(Boolean)) {
+		const candidate = path.join(dir, name);
+		try { if (fs.statSync(candidate).isFile() && fs.accessSync(candidate, fs.constants.X_OK) === undefined) return candidate; } catch { /* skip missing or non-executable */ }
+	}
+	return null;
+}
+
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
@@ -249,6 +287,15 @@ export function diagnose(layout, opts = {}) {
 				? `${v}${nodeMeetsFloor(v) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
 				: `node not found on PATH (needs ≥ ${NODE_FLOOR})`,
 		);
+	}
+
+	if (win) add(NOTE, "pi executable", "skipped (win32)");
+	else {
+		const probe = spawnSync("pi", ["--version"], { encoding: "utf8" });
+		const version = probe.status === 0 ? (probe.stdout || "").trim().split(/\r?\n/)[0] : "";
+		const valid = /^v?\d+\.\d+\.\d+/.test(version);
+		const detail = valid ? version : `${probe.error ? "pi not found on PATH" : probe.status !== 0 ? `pi --version exited ${probe.status}` : "pi --version printed no version"} — install: ${PI_INSTALL_HINT}`;
+		add(valid ? OK : layout.isRealHome ? FAIL : NOTE, "pi executable", detail);
 	}
 
 	// --- Claude Code half ---
@@ -514,8 +561,10 @@ export function diagnose(layout, opts = {}) {
 		add(linkOk(landLink, NANA_LAND_BIN) ? OK : FAIL, "PATH nana-land", `${landLink} -> ${NANA_LAND_BIN}`);
 		const setupLink = path.join(layout.binDir, "nana-setup");
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
-		const onPath = (process.env.PATH || "").split(path.delimiter).includes(layout.binDir);
-		if (!onPath) add(NOTE, "PATH contains ~/.local/bin", `${layout.binDir} is not on this shell's PATH`);
+		const found = firstOnPath("pi-review");
+		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
+		const detail = `${found ? matches ? `${found} resolves to this checkout` : `pi-review resolves to ${found}` : "pi-review not found on PATH"}; add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
+		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
 	}
 
 	// --- pi package registration ---
@@ -527,6 +576,9 @@ export function diagnose(layout, opts = {}) {
 		"pi packages",
 		reg.present ? `all extension directories registered${reg.match ? ` as ${reg.match}` : ""}` : `${reg.missing.map((p) => path.relative(repoRoot, p)).join(", ")} not covered by string entries in ${layout.piSettings}`,
 	);
+
+	const source = packageSourceState(layout);
+	if (source) add(source.status, "pi package source", source.status === OK ? source.detail : `${source.detail} — remedy: ${source.remedy}`);
 
 	// --- desk service (opt-in) ---
 	if (platform() !== "darwin") add(NOTE, "desk service", `skipped (${platform()})`);

@@ -14,12 +14,14 @@
 // they refuse on the same terms.
 // Nothing here touches the real machine: HOME is a temp dir, and the refusal writes nothing.
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 
 let fails = 0;
@@ -34,7 +36,10 @@ fs.mkdirSync(CWD);
 const REL = "rel-agent";
 const resolved = path.join(CWD, REL);
 const env = { ...process.env, HOME, USERPROFILE: HOME, PI_CODING_AGENT_DIR: REL };
-const run = (...args) => spawnSync(process.execPath, [cli, ...args], { cwd: CWD, env, encoding: "utf-8" });
+const run = (...args) => {
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { cwd: CWD, env: { ...env, PATH: process.env.PATH }, encoding: "utf-8" });
+	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
+};
 
 try {
 	// ── install, ambient relative, no flag → refusal, nothing written ──
@@ -95,7 +100,7 @@ try {
 	check("doctor never says 'all good' with the warning", !d.stdout.includes("all good"), d.stdout);
 // req: R-341
 	check("doctor exits non-zero with the warning", d.status === 1, `status ${d.status}`);
-	const dx = spawnSync(process.execPath, [cli, "doctor", "--pi-home", explicit], { cwd: CWD, env, encoding: "utf-8" });
+	const dx = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--pi-home", explicit], { cwd: CWD, env: { ...env, PATH: process.env.PATH }, encoding: "utf-8" }));
 	check("doctor --pi-home <abs>: no cwd-specific warning", !dx.stdout.split("\n").some((l) => l.trim().startsWith("!")), dx.stdout);
 } finally {
 	fs.rmSync(HOME, { recursive: true, force: true });

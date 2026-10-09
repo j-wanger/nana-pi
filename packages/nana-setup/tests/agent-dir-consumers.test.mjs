@@ -20,8 +20,9 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const PATHS = new URL("../lib/paths.mjs", import.meta.url).href;
 const KPATHS = new URL("../../nana-knowledge/lib/paths.ts", import.meta.url).href;

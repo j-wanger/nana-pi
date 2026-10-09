@@ -284,7 +284,7 @@ function checkInstructionContracts() {
 	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
-	const support = frontDoors.map((text) => text.match(/^Support:.*$/m)?.[0]);
+	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
 	// req: R-680 R-985
 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
@@ -314,7 +314,7 @@ function checkInstructionContracts() {
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	// req: R-684
-	check("three front doors carry one identical scoped platform claim", support.every((v) => v === support[0]) && /macOS tested/.test(support[0] ?? "") && /Linux has no recorded native acceptance/.test(support[0] ?? "") && /pack runs on native Windows but is untested/.test(support[0] ?? "") && /Claude Code shell hooks and the review wrapper are unavailable/.test(support[0] ?? "") && /launchd is macOS-only/.test(support[0] ?? "") && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
+	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1) && support.every((lines) => lines[0] === support[0]?.[0]) && ["macOS tested", "Linux runs in hosted CI", "suite leg is non-blocking", "no recorded machine install", "the pack runs on native Windows but is untested", "no Claude Code hook except the knowledge pull", "none of its PATH commands", "review and builder launchers are unavailable", "launchd is macOS-only"].every((phrase) => support[0]?.[0].includes(phrase)) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
 		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&

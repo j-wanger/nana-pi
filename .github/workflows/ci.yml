@@ -19,6 +19,8 @@ jobs:
         os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+    env:
+      NANA_SETUP_REQUIRE_COPIER: "1"
     steps:
       - uses: actions/checkout@v4
         with:

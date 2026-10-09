@@ -16,6 +16,7 @@
 // through untouched. The spawned "pi" is a stub that records the dir it resolves with pi's rule.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-parity.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPiStub } from "../../nana-setup/tests/stub-pi.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -162,8 +163,18 @@ for (const [name, value] of FORMS) {
 	check("--home install writes nothing into the ambient agent dir", !fs.existsSync(ambient));
 	const seed = JSON.parse(fs.readFileSync(seeded, "utf-8"));
 	check("seed pins no objective.path (the pack's active-dir default applies)", seed.objective && !("path" in seed.objective), JSON.stringify(seed));
-	const d = spawnSync(process.execPath, [SETUP_BIN, "doctor", "--home", tmpHome], { cwd: HOME, env: { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome, PI_CODING_AGENT_DIR: ambient }, encoding: "utf-8" });
+	const savedPath = process.env.PATH;
+	process.env.PATH = "";
+	let d;
+	try {
+		d = withPiStub(() => spawnSync(process.execPath, [SETUP_BIN, "doctor", "--home", tmpHome], { cwd: HOME, env: { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome, PI_CODING_AGENT_DIR: ambient }, encoding: "utf-8" }));
+	} finally {
+		if (savedPath === undefined) delete process.env.PATH;
+		else process.env.PATH = savedPath;
+	}
 	check("--home doctor checks <home>/.pi/agent and says why", d.stdout.includes(`${path.join(tmpHome, ".pi", "agent")} (--home)`), d.stdout);
+	// req: R-952
+	check("--home doctor uses the scoped pi version stub", process.platform === "win32" ? d.stdout.includes("skipped (win32)") : /✓ pi executable\s+1\.0\.2/.test(d.stdout), d.stdout);
 	check("--home doctor: the objective file it checks is in <home>/.pi/agent", d.stdout.includes(path.join(tmpHome, ".pi", "agent", "nana-objective.md")), d.stdout);
 	delete process.env.PI_CODING_AGENT_DIR;
 }

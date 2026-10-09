@@ -12,12 +12,14 @@
 // relative local paths resolve against the settings file's directory; identity is the resolved
 // absolute path; git entries are the repo URL without a ref.
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(new URL("..", import.meta.url).pathname);
+const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
@@ -110,7 +112,7 @@ function piHomeWith(packages) {
 	check("install reports all extension directories registered", /pi packages\s+unchanged\s+all extension directories registered/.test(r.stdout), r.stdout);
 	// req: R-323
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
-	const doc = spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" });
+	const doc = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" }));
 	check("doctor reports pi packages ✓", /✓ pi packages/.test(doc.stdout), doc.stdout);
 }
 {
@@ -159,7 +161,7 @@ function piHomeWith(packages) {
 	const coverage = packageCoverage(resolveLayout({ home }));
 	// req: R-392
 	check("knowledge-only registration leaves nana-pack's manifest extension directory uncovered", coverage.missing.some((p) => p.endsWith(path.join("packages", "nana-pack", "extensions"))), JSON.stringify(coverage));
-	const r = spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" });
+	const r = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" }));
 	// req: R-654
 	check("doctor names nana-pack's uncovered extensions directory", /✗ pi packages.*packages.nana-pack.extensions/s.test(r.stdout), r.stdout);
 	const fakeBin = tmpDir(path.join(os.tmpdir(), "nana-fake-pi-"));

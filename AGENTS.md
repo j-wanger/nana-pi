@@ -2,7 +2,7 @@
 
 The toolkit repo: adoption of pi, the nana pack, desk, knowledge pull, and project templates. Sibling to `~/nana-agent-loop`.
 
-Support: macOS tested; Linux has no recorded native acceptance; the pack runs on native Windows but is untested, Claude Code shell hooks and the review wrapper are unavailable, and launchd is macOS-only.
+Support: macOS tested; Linux runs in hosted CI, where the suite leg is non-blocking, with no recorded machine install; the pack runs on native Windows but is untested, and on Windows there is no Claude Code hook except the knowledge pull, none of its PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 
 Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 

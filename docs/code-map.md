@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 223 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 227 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1232,7 +1232,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`
 
@@ -1797,11 +1797,11 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-setup/lib/doctor.mjs`
 
 - **purpose** — Judge one machine and return an ordered check list covering its setup surfaces and memory links.
-- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM and PATH; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
-- **outputs** — an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }
-- **effects** — disk (reads only), process (spawns node and launchctl to probe)
+- **inputs** — a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md), skills, settings.json, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and nana-pack.json and the objective file it names, cwd/.pi/nana-pack.json and pi's trust store, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json, <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist; `node -p process.versions.node` and `launchctl print`
+- **outputs** — an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath()
+- **effects** — disk (reads only), process (spawns node, pi --version and launchctl to probe)
 - **errors** — none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
 - **callees** — `packages/nana-pack/lib/release-status.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`
 
 ### `packages/nana-setup/lib/fsops.mjs`
@@ -1831,7 +1831,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pkgRoot, repoRoot, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths — base, claudeHome, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath, isRealHome; platform(); tildeify()
 - **effects** — none (pure path arithmetic plus env and homedir reads; nothing on disk is read or written)
 - **errors** — none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
-- **callers** — `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callers** — `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`
 
 ### `packages/nana-setup/lib/project-key.mjs`
@@ -1888,10 +1888,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
 - **inputs** — a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md, pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json, pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and packages/nana-pack/rules (the writing rule); the live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json; NANA_SETUP_PLATFORM
-- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and rules (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES, PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI, DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
+- **outputs** — an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and rules (copies on win32), a seeded nana-personal.md, the missing hook entries merged into <claudeHome>/settings.json via an O_EXCL .settings.json.nana-setup.lock and a fsync'd temp-file rename that preserves mode, <claudeHome>/nana-memory/shared/MEMORY.md, <piHome>/nana-pack.json and nana-objective.md, <piHome>/extensions/subagent/config.json, <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the desk plist (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations; also exports HOOKS, CLAUDE_RULES, PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI, DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, SetupError and the helpers doctor reuses
 - **effects** — disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`, `pi --version` / `pi install`, `git rev-parse`)
 - **errors** — SetupError — settings.json unreadable, not valid JSON, or a shape the merge will not edit; the settings lock already held; settings.json changed on disk during the run; a plist placeholder with no value. Every other failure is a row: PROBLEM for a non-regular nana-personal.md, or anything already sitting where the skill symlink belongs, SKIPPED for win32, a failed knowledge build or missing pi, and PROBLEM for a failed per-package `pi install` or launchctl bootstrap/kickstart
-- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/writing-rule.test.mjs`
 - **callees** — `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `packages/nana-setup/lib/trust-decision.mjs`
@@ -1932,7 +1932,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, rendered plists and a stub launchctl script), process (spawns the installer CLI, and — only via the PATH-stubbed fake — `launchctl`; the REAL launchctl is never called)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-detail.test.mjs`
 
@@ -1942,7 +1942,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, regular files, symlinks and directories)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/objective.ts`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/objective.ts`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-knowledge.test.mjs`
 
@@ -1952,7 +1952,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary SQLite databases).
 - **errors** — a failed assertion prints FAIL and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-memory-links.test.mjs`
 
@@ -1962,7 +1962,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary memory fixtures only).
 - **errors** — failed assertions produce a nonzero exit.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+
+### `packages/nana-setup/tests/doctor-package-source.test.mjs`
+
+- **purpose** — Pins doctor classification of pi package entries against the checkout supplying hooks and rules.
+- **inputs** — doctor.mjs, steps.mjs, scratch pi settings and checkout fixtures.
+- **outputs** — PASS/FAIL lines and a nonzero exit on failed checks.
+- **effects** — disk (reads scratch settings and writes fixtures under the OS temp directory).
+- **errors** — failed checks exit nonzero.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-release.test.mjs`
 
@@ -1972,7 +1982,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary test repositories).
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+
+### `packages/nana-setup/tests/doctor-runtime.test.mjs`
+
+- **purpose** — Pins pi executable diagnostics and first-executable pi-review PATH resolution.
+- **inputs** — doctor.mjs, steps.mjs, PATH fixtures and scratch layouts.
+- **outputs** — PASS/FAIL lines and a nonzero exit on failed checks.
+- **effects** — disk (creates executables and links under the OS temp directory), process environment (temporarily changes PATH/platform).
+- **errors** — failed checks exit nonzero.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/doctor-trust.test.mjs`
 
@@ -1982,7 +2002,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary project config and home).
 - **errors** — a failed assertion prints FAIL and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/entry-guidance.test.mjs`
 
@@ -1993,6 +2013,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed assertion prints FAIL and exits nonzero.
 - **callers** — —
 - **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
+
+### `packages/nana-setup/tests/fresh-machine.test.mjs`
+
+- **purpose** — Pins the ordered fresh-machine README checklist and its sourced version values.
+- **inputs** — README.md, doctor and step constants, CI workflow and resolved layout names.
+- **outputs** — PASS/FAIL lines and a nonzero exit on failed checks.
+- **effects** — disk (reads repository documentation and source).
+- **errors** — failed checks exit nonzero.
+- **callers** — —
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/fsops.test.mjs`
 
@@ -2012,7 +2042,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts, settings files, symlinks), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/paths.test.mjs`
 
@@ -2032,7 +2062,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and settings fixtures), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/project-dismiss.test.mjs`
 
@@ -2082,7 +2112,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home and project dirs), process (sets PI_CODING_AGENT_DIR, spawns the setup CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/restore.test.mjs`
 
@@ -2102,7 +2132,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary homes, backups, settings and symlinks), process (installer/doctor subprocesses).
 - **errors** — unexpected process or filesystem errors fail the test; assertion failures are counted.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/settings-merge.test.mjs`
 
@@ -2142,7 +2172,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home layouts and symlinks), process (spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/state-manifest.test.mjs`
 
@@ -2154,6 +2184,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
+### `packages/nana-setup/tests/stub-pi.mjs`
+
+- **purpose** — Put a harmless scratch pi executable first on PATH for tests that run doctor.
+- **inputs** — the shared temporary-directory helper and process PATH.
+- **outputs** — withPiStub, which runs one synchronous callback with a pi version stub on PATH.
+- **effects** — disk (creates a temporary executable), process environment (temporarily sets PATH).
+- **errors** — propagates temporary-directory and file creation errors.
+- **callers** — `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callees** — `packages/nana-setup/tests/tmp-dir.mjs`
+
 ### `packages/nana-setup/tests/tmp-dir.mjs`
 
 - **purpose** — Create test temporary roots and remove them when the test process exits.
@@ -2161,7 +2201,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
+- **callers** — `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/fsops.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-dismiss.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`, `packages/nana-setup/tests/relative-agent-dir.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/skills-and-standards.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/trust.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-degrade.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/tests/trust.test.mjs`
@@ -2182,17 +2222,17 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (throwaway home), process (runs the hook with fixture stdin).
 - **errors** — an assertion failure exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-setup/claude/hooks/verifier-pipe.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-setup/claude/hooks/verifier-pipe.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/win32-degrade.test.mjs`
 
 - **purpose** — Pins that on Windows every posix-only install step SAYS it skipped instead of failing, driven through the platform seam rather than by patching process.platform
-- **inputs** — bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and a throwaway --home
+- **inputs** — bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and throwaway --home directories
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/writing-rule.test.mjs`
 

@@ -14,6 +14,8 @@ import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
+import { withPiStub } from "./stub-pi.mjs";
+const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 
 let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
@@ -26,7 +28,7 @@ const makeRepo = (root, name, withOrigin) => {
   return dir;
 };
 const addTemplate = (dir) => { writeFileSync(path.join(dir, "templates", "past-tag"), "changed\n"); git(dir, "add", "templates/past-tag"); git(dir, "commit", "-m", "template change"); };
-const getRow = (repo, root) => diagnose(resolveLayout({ home: path.join(root, "home") }), { projectDir: root, releaseRepo: repo }).find((row) => row.label === "release status");
+const getRow = (repo, root) => diagnoseWithPi(resolveLayout({ home: path.join(root, "home") }), { projectDir: root, releaseRepo: repo }).find((row) => row.label === "release status");
 
 // req: R-586
 check("lagging release status is a NOTE with the root's tag and count", () => {

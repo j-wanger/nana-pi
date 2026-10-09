@@ -12,13 +12,15 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
+import { withPiStub } from "./stub-pi.mjs";
+const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 
 const root = tmpDir(path.join(os.tmpdir(), "nana-doctor-trust-"));
 const projectDir = path.join(root, "project");
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(projectDir, ".pi"), { recursive: true });
 fs.writeFileSync(path.join(projectDir, ".pi", "nana-pack.json"), "{}\n");
-const row = diagnose(resolveLayout({ home }), { projectDir }).find((check) => check.label === "project trust");
+const row = diagnoseWithPi(resolveLayout({ home }), { projectDir }).find((check) => check.label === "project trust");
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
 // req: R-674
