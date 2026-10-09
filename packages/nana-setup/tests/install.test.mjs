@@ -78,9 +78,10 @@ function freshHome() {
 	return td;
 }
 
+const NEUTRAL_CWD = tmpDir(path.join(os.tmpdir(), "nana-setup-cwd-"));
 const run = (args) => args[0] === "doctor"
-	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" }))
-	: spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
+	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" }))
+	: spawnSync(process.execPath, [cli, ...args], { cwd: NEUTRAL_CWD, encoding: "utf8" });
 
 /* --- 1. a fresh machine: every piece lands ------------------------------------------- */
 const home = freshHome();

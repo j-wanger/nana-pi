@@ -21,8 +21,8 @@ const fakeBin = path.join(root, "fake-bin");
 fs.mkdirSync(fakeBin);
 const fakePi = path.join(fakeBin, "pi");
 fs.writeFileSync(fakePi, `#!/bin/sh
-printf '%s\\n%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" "$*" > "$OBSERVE"
 printf '%s\\n' "$$" > "$OBSERVE_PID"
+printf '%s\\n%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" "$*" > "$OBSERVE"
 while [ -n "$WAIT_FOR" ] && [ ! -e "$WAIT_FOR" ]; do sleep 0.05; done
 case "$MODE" in fail) exit 1;; stall) exec sleep 30;; *) echo 'VERDICT: LAND';; esac
 `);
@@ -76,14 +76,16 @@ check("pre-existing untracked in-tree output warns and review proceeds", existin
   reviewRound.readRounds(home, { item: "existing-output" }).length === 1, existingOutRun.stderr);
 fs.rmSync(preexistingOut);
 const args = [piReview, "--item", "immutable", "--role", "sol", "--revision", "main", "--out", out, "--poll", "0.1", "--stall-secs", "3", "--retries", "0", "--", "-p", "review", "--provider", "openai-codex", "-m", "gpt-5.6-sol"];
-const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, WAIT_FOR: release }) });
+const observePid = path.join(root, "observe-pid");
+const child = spawn(process.execPath, args, { cwd: repo, env: env({ OBSERVE: observe, OBSERVE_PID: observePid, WAIT_FOR: release }) });
 const childClosed = new Promise((resolve) => child.on("close", (code) => resolve(code)));
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-for (let i = 0; i < 200 && !fs.existsSync(observe); i++) await delay(25);
+const OBSERVE_WAIT_ITERATIONS = 200; // chosen: five seconds lets the child record launch state on loaded CI.
+for (let i = 0; i < OBSERVE_WAIT_ITERATIONS && !fs.existsSync(observe); i++) await delay(25);
 const launched = fs.existsSync(observe);
 let observed = launched ? fs.readFileSync(observe, "utf8").trim().split("\n") : [];
 const checkout = observed[0];
-const snapshotCorrect = launched && fs.realpathSync(checkout) === fs.realpathSync(observed[1]) && observed[2] === "reviewer" &&
+const snapshotCorrect = launched && fs.existsSync(observePid) && /^\d+\n?$/.test(fs.readFileSync(observePid, "utf8")) && fs.realpathSync(checkout) === fs.realpathSync(observed[1]) && observed[2] === "reviewer" &&
   observed[3].includes(`Your cwd is an immutable checkout of revision ${revision} at ${observed[1]}; read files there, not in other worktrees`) &&
   fs.readFileSync(path.join(checkout, "tracked.txt"), "utf8") === "dirty tracked content\n" &&
   !fs.existsSync(path.join(checkout, "deleted.txt")) &&
