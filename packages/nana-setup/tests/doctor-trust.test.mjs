@@ -8,7 +8,6 @@
  */
 import * as fs from "node:fs";
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, STATUS } from "../lib/doctor.mjs";

@@ -12,7 +12,6 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 

@@ -15,7 +15,7 @@
 // immediately after — this is the only way to exercise the isRealHome branch (where launchctl
 // IS called) without ever touching the real machine's real launchctl.
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -70,7 +70,9 @@ function freshHome() {
 	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
-const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
+const run = (args) => args[0] === "doctor"
+	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" }))
+	: spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
 
 /* --- opt-in ---------------------------------------------------------------------------- */
 const home = freshHome();

@@ -11,7 +11,7 @@
 // NANA_SETUP_PLATFORM is the seam (lib/paths.mjs); process.platform is never monkey-patched, so
 // sibling packages and the node runtime behave normally.
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -40,7 +40,10 @@ function freshHome() {
 	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
-const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+const run = (args, env = {}) => {
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
+};
 
 const home = freshHome();
 const r = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });

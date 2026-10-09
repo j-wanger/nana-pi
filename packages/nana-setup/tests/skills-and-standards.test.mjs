@@ -10,7 +10,7 @@
 // SAME source pi reads — a symlink into the repo, never a copy that stops tracking a `git pull`.
 // Every run goes into a throwaway --home; nothing touches the real machine.
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -45,7 +45,10 @@ function freshHome() {
 	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
 	return td;
 }
-const run = (args, env) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+const run = (args, env) => {
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
+};
 const linkTarget = (p) => {
 	try {
 		const st = fs.lstatSync(p);

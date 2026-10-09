@@ -10,7 +10,7 @@
 // Every run here goes into a throwaway --home; nothing touches the real machine.
 import assert from "node:assert/strict";
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -77,7 +77,9 @@ function freshHome() {
 	return td;
 }
 
-const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
+const run = (args) => args[0] === "doctor"
+	? withPiStub(() => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" }))
+	: spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
 
 /* --- 1. a fresh machine: every piece lands ------------------------------------------- */
 const home = freshHome();

@@ -7,7 +7,7 @@
  * @errors failed assertions produce a nonzero exit.
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -85,7 +85,7 @@ const doctorMemoryResult = (label, sharedFiles, projectFiles) => {
 	for (const [file, name, body] of sharedFiles) write(layout.sharedMemoryDir, file, name, body);
 	for (const [file, name, body] of projectFiles) write(projectMemory, file, name, body);
 	const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
-	return spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: canonicalProjectDir, encoding: "utf8" });
+	return withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: canonicalProjectDir, encoding: "utf8" }));
 };
 
 {
@@ -117,7 +117,7 @@ const doctorMemoryResult = (label, sharedFiles, projectFiles) => {
 	const projectMemory = projectMemoryDir(layout.projectsDir, projectDir); fs.mkdirSync(projectMemory, { recursive: true });
 	write(layout.sharedMemoryDir, "future.md", "future", "[[not-written-yet]] [[another-future]]\n");
 	const cli = fileURLToPath(new URL("../bin/nana-setup.mjs", import.meta.url));
-	const result = spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: projectDir, encoding: "utf8" });
+	const result = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { cwd: projectDir, encoding: "utf8" }));
 	// req: R-990
 	check("dangling-only links keep doctor green and report only their count", result.status === 0 && /✓ memory links\s+no cross-tier or ambiguous wiki links · 2 links name memories not written yet/.test(result.stdout) && !result.stdout.includes("not-written-yet") && !result.stdout.includes("another-future"), `${result.status} ${result.stdout} ${result.stderr}`);
 }

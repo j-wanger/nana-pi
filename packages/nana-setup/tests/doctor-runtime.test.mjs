@@ -7,12 +7,14 @@
  * @errors failed checks exit nonzero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, firstOnPath } from "../lib/doctor.mjs";
 import { resolveLayout, repoRoot } from "../lib/paths.mjs";
 import { PI_INSTALL_HINT, PI_REVIEW_BIN, stepPiRegister } from "../lib/steps.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
@@ -26,6 +28,15 @@ process.env.NANA_SETUP_PLATFORM = "darwin";
 const layout = { ...resolveLayout({ home }), isRealHome: true };
 const piRow = () => diagnose(layout, { projectDir: home }).find((item) => item.label === "pi executable");
 try {
+	const pathBeforeScopedStub = process.env.PATH;
+	const scopedStubWorked = withPiStub(() => {
+		const row = piRow();
+		const accidentalInstall = spawnSync("pi", ["install"], { encoding: "utf8" });
+		return row?.status === "ok" && row.detail === "1.0.2" && accidentalInstall.status !== 0 && accidentalInstall.stderr.includes("install") && process.env.PATH !== pathBeforeScopedStub;
+	});
+	const childPath = spawnSync(process.execPath, ["-e", "process.stdout.write(process.env.PATH)"], { encoding: "utf8" });
+	// req: R-952
+	check("pi stub is limited to the doctor probe and restored before later child processes", scopedStubWorked && process.env.PATH === pathBeforeScopedStub && childPath.stdout === pathBeforeScopedStub, childPath.stdout);
 	const valid = executable("pi", "echo 1.0.2");
 	process.env.PATH = `${bin}:/usr/bin:/bin`;
 	const goodPi = piRow();

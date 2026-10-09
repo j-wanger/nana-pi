@@ -12,7 +12,7 @@ import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
-import "./stub-pi.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);
@@ -34,7 +34,10 @@ function home() {
 	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return dir;
 }
-const run = (args, env = process.env) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env });
+const run = (args, env = process.env) => {
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...env, PATH: process.env.PATH } });
+	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
+};
 const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
 const date = new Date().toISOString().slice(0, 10);
 const backup = (h, root, rel) => path.join(h, root, "backups", `${date}-retired`, rel);
