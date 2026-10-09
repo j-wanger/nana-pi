@@ -79,12 +79,10 @@ const nestedTests = TEST_ROOTS.flatMap((root) => {
 	});
 	return existsSync(join(REPO_ROOT, root)) ? visit(root) : [];
 });
-// req: G-004
 check("rail roots equal the package test roots and two app roots collected by npm test",
 	JSON.stringify([...TEST_ROOTS].sort()) === JSON.stringify(expectedRoots) && CALL_NAMES.includes("check"),
 	`rail=${TEST_ROOTS.join(",")} expected=${expectedRoots.join(",")}`,
 );
-// req: G-004
 check("no collected test root has nested test files outside fixture directories", nestedTests.length === 0, nestedTests.join(", "));
 check(
 	"the rail read the whole file and traced something",

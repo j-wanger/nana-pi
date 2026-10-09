@@ -32,24 +32,23 @@ try {
 	// req: R-601
 	check("an invalid DESK_PI_ROOT fails naming the exclusive candidate", invalid.includes(process.env.DESK_PI_ROOT));
 
-	const bin = path.join(root, "bin");
-	const prefix = path.join(root, "prefix");
-	fs.mkdirSync(bin); fs.mkdirSync(prefix);
-	const npmPath = (oldPath ?? "").split(path.delimiter).map((entry) => path.join(entry, process.platform === "win32" ? "npm.cmd" : "npm")).find((entry) => fs.existsSync(entry));
-	if (process.platform !== "win32") {
+	if (process.platform === "win32") {
+		console.log("SKIP missing-pi PATH fixture: native Windows pi-absent isolation is not implemented; this platform leg is declared unexecuted");
+	} else {
+		const bin = path.join(root, "bin");
+		const prefix = path.join(root, "prefix");
+		fs.mkdirSync(bin); fs.mkdirSync(prefix);
+		const npmPath = (oldPath ?? "").split(path.delimiter).map((entry) => path.join(entry, "npm")).find((entry) => fs.existsSync(entry));
 		fs.symlinkSync(process.execPath, path.join(bin, "node"));
 		if (npmPath) fs.symlinkSync(npmPath, path.join(bin, "npm"));
 		process.env.PATH = `${bin}:/usr/bin:/bin`;
 		process.env.npm_config_prefix = prefix;
-	} else {
-		process.env.PATH = `${bin}${path.delimiter}${oldPath ?? ""}`;
-		process.env.npm_config_prefix = prefix;
+		delete process.env.DESK_PI_ROOT;
+		let missing = "";
+		try { findPiRoot(); } catch (error) { missing = error.message; }
+		// req: R-601
+		check("missing pi fails naming npm-root and PATH candidates", missing.includes("npm root -g") && missing.includes("realpath of pi on PATH"));
 	}
-	delete process.env.DESK_PI_ROOT;
-	let missing = "";
-	try { findPiRoot(); } catch (error) { missing = error.message; }
-	// req: R-601
-	check("missing pi fails naming npm-root and PATH candidates", missing.includes("npm root -g") && missing.includes("realpath of pi on PATH"));
 	const testsDir = path.dirname(fileURLToPath(import.meta.url));
 	const piTests = ["config-trust", "config-project-gate-fallback", "objective-golden", "handoff-staleness", "post-edit-status", "post-edit-file-queue"];
 	const unmigrated = piTests.filter((name) => {

@@ -243,6 +243,14 @@ if (posix) {
 // req: R-607
 check("study tasks SKIP only when their declared extension prerequisite is absent", labelFor(A.out, "study-tasks.test.mjs") === "SKIP" && lineFor(A.out, "study-tasks.test.mjs").includes("apps/bench/.ext/pi-web-access"));
 
+const rootStudy = mkRoot("study-present", {
+	"apps/bench/.ext/pi-web-access/package.json": "{}\n",
+	"apps/bench/test/study-tasks.test.mjs": 'console.log("PASS study fixture ran");\n',
+});
+const studyPresent = run(rootStudy, ["--verbose", "study-tasks"]);
+// req: R-607
+check("study tasks run when their declared extension prerequisite exists", labelFor(studyPresent.out, "study-tasks.test.mjs") === "PASS" && studyPresent.out.includes("PASS study fixture ran") && studyPresent.code === 0);
+
 // ── case B: the substring filter, and --verbose ───────────────────────────────────────────────
 const B = run(rootA, ["--verbose", "probe/tests/c-pass"]);
 const tB = totals(B.out);
