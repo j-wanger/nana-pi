@@ -34,10 +34,21 @@ const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.
 check("secret-capable stores are classified as secret", secretNames.every((name) => rows.some((r) => path.basename(r.path) === name && r.class === "secret")), secretNames.filter((name) => !rows.some((r) => path.basename(r.path) === name && r.class === "secret")).join(", "));
 const installHome = tmpDir(path.join(os.tmpdir(), "state-owner-install-"));
 const install = spawnSync(process.execPath, [path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname), "install", "--home", installHome], { encoding: "utf8", env: { ...process.env, HOME: installHome, PI_CODING_AGENT_DIR: path.join(installHome, ".pi", "agent") } });
-const installedRows = stateRows(resolveLayout({ home: installHome }));
-const installOwned = installedRows.filter((row) => row.owner === "nana-setup" && !['desk plist', 'LaunchAgents directory', 'desk log', 'MCP cache'].includes(row.store));
+const ownerLayout = resolveLayout({ home: installHome });
+const installedRows = stateRows(ownerLayout);
+const installTargets = [
+  ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
+  path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
+  ownerLayout.subagentConfig, ownerLayout.reviewerAgent,
+  ...["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  ...["nana-soul.md", "nana-standards.md", "nana-writing.md"].map((name) => path.join(ownerLayout.rulesDir, name)),
+  ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
+  ...["pi-review", "pi-worker", "nana-land", "nana-setup"].map((name) => path.join(ownerLayout.binDir, name)),
+];
+const uncoveredInstallTargets = installTargets.filter((target) => !installedRows.some((row) => row.owner === "nana-setup" && (path.resolve(row.path) === path.resolve(target) || (row.kind === "dir" && target.startsWith(`${path.resolve(row.path)}${path.sep}`)))));
+const missingInstallTargets = installTargets.filter((target) => { try { fs.lstatSync(target); return false; } catch { return true; } });
 // req: R-954
-check("install-created manifest targets are assigned to nana-setup", install.status === 0 && installOwned.filter((row) => !row.path.includes("*")).every((row) => { try { fs.lstatSync(row.path); return true; } catch { return false; } }), `${install.status} ${install.stderr} ${installOwned.filter((row) => { try { fs.lstatSync(row.path); return false; } catch { return true; } }).map((row) => row.store).join(", ")}`);
+check("every path created by install maps to a nana-setup-owned manifest row", install.status === 0 && uncoveredInstallTargets.length === 0 && missingInstallTargets.length === 0, `${install.status} ${install.stderr} unmapped=${uncoveredInstallTargets.join(", ")} absent=${missingInstallTargets.join(", ")}`);
 const home = tmpDir(path.join(os.tmpdir(), "state-readonly-"));
 const cli = path.resolve(new URL("../bin/nana-setup.mjs", import.meta.url).pathname);
 const agent = path.join(home, ".pi", "agent");

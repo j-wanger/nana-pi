@@ -35,8 +35,8 @@ export function stateRows(layout) {
   const secret = (store, owner, kind, value, from) => add(store, "secret", owner, kind, value, "sign in again or carry by hand; never archive", from);
   const disp = (store, value, kind = "file", owner = "nana-setup") => add(store, "disposable", owner, kind, value, "recreated as needed", modules.setup);
 
-  durable("private rule", "user", "file", p(layout.rulesDir, "nana-personal.md"));
-  durable("shared memory", "claude-code", "dir", layout.sharedMemoryDir, "restore archive; SessionStart recreates project shared links", modules.claude);
+  durable("private rule", "nana-setup", "file", p(layout.rulesDir, "nana-personal.md"));
+  durable("shared memory", "nana-setup", "dir", layout.sharedMemoryDir, "restore archive; SessionStart recreates project shared links", modules.setup);
   durable("project memories", "claude-code", "dir-pattern", p(layout.projectsDir, "*", "memory"), "restore archive; SessionStart recreates shared links", modules.claude);
   const ledger = ledgerPaths(layout.base);
   durable("review ledger tally", "nana-pack", "file", ledger.tally, undefined, modules.pack);
@@ -44,7 +44,7 @@ export function stateRows(layout) {
   durable("review ledger rotated", "nana-pack", "file", ledger.rotated, undefined, modules.pack);
   durable("pi pack config", "nana-setup", "settings-entry", layout.piPackConfig, undefined, modules.setup);
   durable("pi objective", "nana-setup", "file", layout.piObjective, undefined, modules.setup);
-  durable("pi settings", "pi", "settings", layout.piSettings, undefined, modules.pi);
+  durable("pi settings", "nana-setup", "settings", layout.piSettings, undefined, modules.setup);
   durable("knowledge sources", "user", "file", p(layout.knowledgeHome, "sources.json"), undefined, modules.knowledge);
   durable("knowledge pull log", "nana-knowledge", "file", p(layout.knowledgeHome, "pull.log"), undefined, modules.knowledge);
   rebuild("knowledge home", layout.knowledgeHome, "dir", "nana-knowledge", "re-run knowledge build", modules.knowledge);
@@ -81,7 +81,7 @@ export function stateRows(layout) {
 
   for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"]) secret(name, "pi", "file", p(layout.piHome, name), modules.pi);
   secret("Claude credentials", "claude-code", "file", p(layout.claudeHome, ".credentials.json"), modules.claude);
-  secret("Claude settings", "claude-code", "settings", layout.claudeSettings, modules.claude);
+  secret("Claude settings", "nana-setup", "settings", layout.claudeSettings, modules.setup);
   secret("Claude login", "claude-code", "file", p(layout.base, ".claude.json"), modules.claude);
   secret("pi sessions", "pi", "dir", p(layout.base, ".pi", "agent", "sessions"), modules.pi);
   secret("Claude transcripts", "claude-code", "dir-pattern", p(layout.projectsDir, "*", "*.jsonl"), modules.claude);
