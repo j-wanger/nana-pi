@@ -27,6 +27,8 @@ fs.writeFileSync(path.join(src, "long.md"), "# " + "Titanic ".repeat(30) + "\n" 
 fs.writeFileSync(path.join(home, "sources.json"), JSON.stringify({ roots: [{ path: src, kind: "articles" }] }));
 
 const { build, acquireBuildLock, releaseBuildLock, LOCK_TTL_MS, RECLAIM_ORPHAN_MS } = await import(new URL("../lib/build.ts", import.meta.url).href);
+const { openDb } = await import(new URL("../lib/db.ts", import.meta.url).href);
+const { search } = await import(new URL("../lib/query.ts", import.meta.url).href);
 const hook = await import(new URL("../lib/hook.ts", import.meta.url).href);
 const { runHook, renderBlock, ensureFreshIndex, readShown, BLOCK_MAX_CHARS } = hook;
 
@@ -165,9 +167,22 @@ check("a new topic in the same session still pulls",
 // --- wall-clock budget ---
 const beforeBudget = logBytes(home);
 const rb = await call(payload({ prompt: "what is the pi review round cap" }), { budgetMs: -1, spawnFn: noSpawn });
-check("over budget prints nothing", rb.output === null && rb.reason === "budget");
+check("over budget before retrieval prints nothing", rb.output === null && rb.reason === "budget");
 // req: R-231
-check("budget appends one correctly shaped row with empty hits", loggedOutcome(beforeBudget, home, "budget", []));
+check("pre-retrieval budget appends one row with empty hits", loggedOutcome(beforeBudget, home, "budget", []));
+const beforePostQueryBudget = logBytes(home);
+const budgetDb = await openDb(path.join(home, "index.db"), {});
+const budgetRetrieved = search(budgetDb, "what is the pi review round cap", 3, { excludeMonthlySessionArchives: true });
+budgetDb.close();
+// req: R-231
+check("post-query budget fixture has retrievable hits", budgetRetrieved.length > 0);
+const budgetTimes = [0, 0, 20, 20];
+let budgetTimeIndex = 0;
+const postQueryBudget = await call(payload({ session_id: "post-query-budget", prompt: "what is the pi review round cap" }), {
+	budgetMs: 1, clock: () => budgetTimes[budgetTimeIndex++] ?? 20, spawnFn: noSpawn,
+});
+// req: R-231
+check("post-retrieval budget with hits prints nothing and logs empty hits", postQueryBudget.output === null && postQueryBudget.reason === "budget" && loggedOutcome(beforePostQueryBudget, home, "budget", []));
 const t0 = Date.now();
 await call(JSON.stringify({ session_id: "s3", prompt: "review rounds compaction handoff pi" }), { spawnFn: noSpawn });
 check(`a real pull is well inside the 1500 ms budget (${Date.now() - t0} ms)`, Date.now() - t0 < 1500);

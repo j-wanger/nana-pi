@@ -131,10 +131,11 @@ export function renderBlock(hits: Hit[]): string {
  * @param raw   the hook JSON from stdin
  * @returns     what to print (null = print nothing) and why
  */
-export async function runHook(raw: string, opts: { now?: number; budgetMs?: number; spawnFn?: () => void } = {}): Promise<HookResult> {
-	const t0 = Date.now();
+export async function runHook(raw: string, opts: { now?: number; budgetMs?: number; clock?: () => number; spawnFn?: () => void } = {}): Promise<HookResult> {
+	const clock = opts.clock ?? Date.now;
+	const t0 = clock();
 	const budget = opts.budgetMs ?? BUDGET_MS;
-	const over = () => Date.now() - t0 > budget;
+	const over = () => clock() - t0 > budget;
 	let input: any = null;
 	let parsed = false;
 	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
@@ -149,7 +150,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 				reason,
 				tokens: valid && typeof input.prompt === "string" ? meaningfulTokens(input.prompt.slice(0, PROMPT_MAX_CHARS)).slice(0, 24) : [],
 				hits: output ? hits.map((h) => h.display) : [],
-				ms: Date.now() - t0,
+				ms: clock() - t0,
 			});
 		}
 		return { output, reason, hits };

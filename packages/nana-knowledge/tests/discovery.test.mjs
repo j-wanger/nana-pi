@@ -227,7 +227,7 @@ const queryCli = cp.spawnSync(process.execPath, [new URL("../bin/nana-knowledge.
 check("query CLI still returns monthly session archives", queryCli.status === 0 && queryCli.stdout.includes("/sessions/2026-09.md"));
 const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
 // req: R-239
-check("hook filters archives before top-three ranking and prints the non-archive article", automatic.reason === "ok" && automatic.hits.some((h) => h.path.endsWith("/article.md")) && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\\.md$/.test(h.path)));
+check("hook filters archives before top-three ranking and prints only the non-archive article", automatic.reason === "ok" && automatic.hits.length === 1 && automatic.hits[0].path.endsWith("/article.md") && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\.md$/.test(h.path)));
 const nonArchiveMatches = search(archiveDb, "boundary token", 20, { excludeMonthlySessionArchives: true });
 // req: R-239
 check("README, date outside sessions, and non-monthly session notes are retained", ["README.md", "2026-09.md", "2026-09-notes.md"].every((name) => nonArchiveMatches.some((h) => h.path.endsWith(name))));
