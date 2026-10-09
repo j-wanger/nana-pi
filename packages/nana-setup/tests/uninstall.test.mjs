@@ -321,6 +321,48 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
 }
 
 {
+  const snapshot = (root) => {
+    const values = new Map();
+    const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); const st = fs.lstatSync(file); if (st.isDirectory() && !st.isSymbolicLink()) walk(file); else values.set(path.relative(root, file), st.isSymbolicLink() ? `link:${fs.readlinkSync(file)}` : fs.readFileSync(file).toString("base64")); } };
+    walk(root); return values;
+  };
+  const same = (a, b) => a.size === b.size && [...a].every(([key, value]) => b.get(key) === value);
+  const cases = [];
+  {
+    const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-nested-pi-home-"));
+    const external = tmpDir(path.join(os.tmpdir(), "nana-uninstall-nested-pi-external-"));
+    const layout = resolveLayout({ home });
+    fs.mkdirSync(path.join(external, "agent", "nana-knowledge"), { recursive: true });
+    fs.writeFileSync(path.join(external, "agent", "nana-knowledge", "index.db"), "external database");
+    fs.symlinkSync(external, path.join(home, ".pi"));
+    const beforeHome = snapshot(home);
+    const beforeExternal = snapshot(external);
+    const result = run(["uninstall", "--yes", "--home", home]);
+    cases.push(result.status === 1 && /✗.*unsafe ancestor/u.test(result.stdout) && same(beforeHome, snapshot(home)) && same(beforeExternal, snapshot(external)));
+  }
+  {
+    const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-nested-claude-home-"));
+    const external = tmpDir(path.join(os.tmpdir(), "nana-uninstall-nested-claude-external-"));
+    const layout = resolveLayout({ home });
+    const externalClaude = path.join(external, "claude");
+    fs.mkdirSync(path.join(externalClaude, "hooks"), { recursive: true });
+    fs.mkdirSync(path.join(externalClaude, "rules"), { recursive: true });
+    fs.writeFileSync(path.join(externalClaude, "settings.json"), JSON.stringify({ hooks: {} }));
+    fs.symlinkSync(path.join(repo, "packages", "nana-setup", "claude", "hooks", "nana-objective.sh"), path.join(externalClaude, "hooks", "nana-objective.sh"));
+    const { stateRows } = await import("../lib/state-manifest.mjs");
+    const privateSeed = stateRows(layout).find((row) => row.store === "private rule");
+    fs.copyFileSync(privateSeed.source, path.join(externalClaude, "rules", "nana-personal.md"));
+    fs.symlinkSync(externalClaude, layout.claudeHome);
+    const beforeHome = snapshot(home);
+    const beforeExternal = snapshot(external);
+    const result = run(["uninstall", "--yes", "--home", home]);
+    cases.push(result.status === 1 && /✗.*unsafe ancestor/u.test(result.stdout) && same(beforeHome, snapshot(home)) && same(beforeExternal, snapshot(external)));
+  }
+  // req: R-901
+  check("nested selected roots refuse symlink ancestors without changing home or external targets", cases.length === 2 && cases.every(Boolean));
+}
+
+{
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-settings-failure-"));
   const layout = resolveLayout({ home });
   fs.mkdirSync(layout.claudeHome, { recursive: true });

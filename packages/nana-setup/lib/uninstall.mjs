@@ -42,7 +42,9 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   const settingsRow = rows.find((r) => r.kind === "settings-entry" && path.resolve(r.path) === path.resolve(layout.claudeSettings));
   const settingsLayout = settingsRow ? { ...layout, claudeSettings: settingsRow.path } : layout;
   const roots = [layout.base, layout.claudeHome, layout.piHome].map((root) => path.resolve(root));
-  const rootFor = (target) => roots.filter((root) => inside(root, path.resolve(target))).sort((a, b) => b.length - a.length)[0];
+  // Walk from the broadest selected root so nested roots cannot hide a symlink above them.
+  // Independent explicit roots fall back to themselves because no broader root contains them.
+  const rootFor = (target) => roots.filter((root) => inside(root, path.resolve(target))).sort((a, b) => a.length - b.length)[0];
   const preflightPaths = [...removable.map((r) => r.path), ...(settingsRow ? [settingsRow.path] : [])];
   for (const target of preflightPaths) {
     const directory = path.dirname(path.resolve(target));
