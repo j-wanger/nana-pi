@@ -59,6 +59,8 @@
 - **6.6 is a seat measurement, not a lane.** Baseline 2026-10-09: zero summaries written or picked up since the role marker went live (which sessions were eligible is not measurable exactly). The user-scope compaction-summary store and `nana-handoff.ts` are frozen until Jake rules; the replay re-runs on 2026-10-23.
 - **6.4: the 2026-10-18 backstop binds.** A temporal proxy (a checker call earlier in the same turn) counts 20–23 candidate checked reports, but it cannot show each checked the report that followed, so it does not establish the twentieth-report stop. Nothing in the writing rule, checker or extractor changes before the verdict.
 - **IDs:** R-239–R-241, R-601, R-648, R-649, R-689 and R-699 re-declared (R-241 reserved for a randomized arm, consumed only if the one-arm bound cannot decide); R-285–R-299 stay the reserve.
+- **Lanes landed (2026-10-09):** desk usage line (0278aa8), the real-pi RPC contract and fixture hygiene (d872adb), knowledge outcome logging, archive filter and seed (6b652f9), test honesty — no silent pass, one pi locator (8400e4c), the candidate-rows lister (a5a2086). Subtractions: a fixed file-name list proving locator adoption was removed and the row narrowed; a Windows npm wrapper was fixed in the locator rather than skipped.
+- **Knowledge injection (6.1 step 1):** 0 of 238 non-archive pointers read since the reviewer skip (pooled Wilson 95% upper 1.59%), the pre-registered FAIL by bound; 97% of pointers came from builder sessions with boilerplate prompts, and typed prompts got too few to judge. R-241 stays unconsumed. Whether to stop injection, and where, is Jake's call.
 
 ## How this was produced
 
