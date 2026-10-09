@@ -6,8 +6,8 @@
  *  line, capped (TITLE_MAX / DISPLAY_MAX / SNIPPET_MAX) and free of the literal FIELD_SEP, the display path
  *  exact or reversibly JSON-escaped
  * @effects database (one SELECT over docs_fts joined to docs)
- * @errors none — a failing MATCH yields no hits, and a row that cannot be rendered loses only its own
- *  pointer
+ * @errors database prepare/query errors are thrown to the caller; a row that cannot be rendered loses only
+ *  its own pointer
  */
 // BM25 over title+body. Title is weighted up: a pointer is only useful if its handle
 // tells you whether to open it.
@@ -37,19 +37,32 @@ export const DISPLAY_MAX = PATH_CAP + 17;
 /** The pointer line's field delimiter. It appears ONLY where hook.ts renderBlock puts it. */
 export const FIELD_SEP = " — ";
 
+/** D6 monthly-archive path pattern (2026-10-06, L7-01; R-239). */
+export const MONTHLY_SESSION_ARCHIVE_GLOB = "*/sessions/[0-9][0-9][0-9][0-9]-[0-9][0-9].md";
+
 const SQL =
 	"SELECT d.key, d.path, d.loc, d.kind, d.title," +
 	" snippet(docs_fts, 1, '', '', '…', 22) AS snip," +
 	" bm25(docs_fts, 4.0, 1.0) AS score" +
 	" FROM docs_fts f JOIN docs d ON d.id = f.rowid" +
-	" WHERE docs_fts MATCH ? ORDER BY f.rank LIMIT ?";
+	" WHERE docs_fts MATCH ?" +
+	" ORDER BY f.rank LIMIT ?";
 
-export function search(db: Db, text: string, limit: number): Hit[] {
+const SQL_WITHOUT_MONTHLY_ARCHIVES =
+	"SELECT d.key, d.path, d.loc, d.kind, d.title," +
+	" snippet(docs_fts, 1, '', '', '…', 22) AS snip," +
+	" bm25(docs_fts, 4.0, 1.0) AS score" +
+	" FROM docs_fts f JOIN docs d ON d.id = f.rowid" +
+	" WHERE docs_fts MATCH ? AND replace(d.path, char(92), '/') NOT GLOB ?" +
+	" ORDER BY f.rank LIMIT ?";
+
+export function search(db: Db, text: string, limit: number, options: { excludeMonthlySessionArchives?: boolean } = {}): Hit[] {
 	const tokens = meaningfulTokens(text);
 	if (tokens.length === 0) return [];
-	let rows: any[];
-	try { rows = db.prepare(SQL).all(ftsQuery(tokens), limit); }
-	catch { return []; }
+	const sql = options.excludeMonthlySessionArchives ? SQL_WITHOUT_MONTHLY_ARCHIVES : SQL;
+	const rows: any[] = options.excludeMonthlySessionArchives
+		? db.prepare(sql).all(ftsQuery(tokens), MONTHLY_SESSION_ARCHIVE_GLOB, limit)
+		: db.prepare(sql).all(ftsQuery(tokens), limit);
 	const hits: Hit[] = [];
 	// A row that cannot be rendered costs its pointer, never the search.
 	for (const r of rows) {

@@ -9,7 +9,7 @@
 // Gate: the hook is fail-open, bounded, and never repeats a pointer inside a session.
 // It runs on EVERY prompt the owner types; a throw here is a broken prompt.
 import { tmpDir } from "./tmp-dir.mjs";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -37,12 +37,12 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 const payload = (o) => JSON.stringify({ session_id: "s1", cwd: td, transcript_path: "/nope", ...o });
 const noSpawn = () => { throw new Error("build must never be spawned in these tests"); };
 
-// every runHook below goes through here so the pull.log assertion counts what was
-// actually PRINTED instead of a hand-maintained number
-let printed = 0;
+// every runHook below goes through here so the pull.log assertion counts outcomes,
+// not only invocations that printed.
+let eligible = 0;
 const call = async (raw, opts) => {
 	const r = await runHook(raw, opts);
-	if (r.output !== null) printed++;
+	if (process.env.NANA_KNOWLEDGE_HOME === home && !new Set(["reviewer-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]).has(r.reason)) eligible++;
 	return r;
 };
 
@@ -63,6 +63,8 @@ for (const [label, raw] of [
 }
 
 // --- skip rules reach the hook ---
+const logPath = path.join(home, "pull.log");
+const beforeSkipCalls = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
 // req: R-226
 check("hook skips short prompts", (await call(payload({ prompt: "hi" }), { spawnFn: noSpawn })).reason === "too-short");
 // req: R-226
@@ -77,6 +79,10 @@ for (const [label, prompt] of [
 	// req: R-226
 	check(`hook skips a ${label} prompt`, r.output === null && r.reason === "harness-notification");
 }
+// req: R-231
+// req: R-893
+check("each skip reason leaves pull.log byte-identical",
+	(fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "") === beforeSkipCalls);
 // only the first 8 KB is tokenized: terms past the cap cannot drive the query
 const rCap = await call(JSON.stringify({ session_id: "scap", prompt: "x".repeat(9000) + " compaction handoff injected session start" }), { spawnFn: noSpawn });
 // req: R-227
@@ -107,9 +113,13 @@ check("snippets are bounded at 160 chars", r1.hits.every((h) => h.snippet.length
 
 // --- per-session dedup ---
 check("shown file records what was printed", readShown("s1").size === r1.hits.length);
+const beforeAllShown = fs.readFileSync(path.join(home, "pull.log"), "utf8");
 const r2 = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
 // req: R-229
 check("same prompt in same session prints nothing", r2.output === null && r2.reason === "all-shown");
+// req: R-231
+// req: R-893
+check("all-shown repeat leaves pull.log byte-identical", fs.readFileSync(path.join(home, "pull.log"), "utf8") === beforeAllShown);
 const r3 = await call(JSON.stringify({ session_id: "s2", prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
 // req: R-891
 check("a DIFFERENT session still gets the pointers", r3.output !== null);
@@ -165,14 +175,52 @@ check("no index: spawns a background build", spawned2 === 1);
 check("no index: does NOT build synchronously", !fs.existsSync(path.join(home2, "index.db")));
 process.env.NANA_KNOWLEDGE_HOME = home;
 
-// --- the pull log ---
+// Eligible non-printing outcomes and malformed JSON are recorded; skips and dedup are not.
 const log = path.join(home, "pull.log");
-check("pull.log exists after a printed pull", fs.existsSync(log));
+const afterEligibleCalls = fs.readFileSync(log, "utf8");
+const beforeBadJsonCount = afterEligibleCalls.trim().split("\n").length;
+const badJson = await call("{", { spawnFn: noSpawn });
 const lines = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
-check(`one JSONL line per PRINTED invocation (skips/dedups not logged): ${lines.length} vs ${printed}`, lines.length === printed);
-check("log carries ts/cwd/session/tokens/hits",
-	lines.every((l) => l.ts && "cwd" in l && l.session_id && Array.isArray(l.tokens) && Array.isArray(l.hits)));
-check("log tokens exclude stopwords", !lines[0].tokens.includes("the") && !lines[0].tokens.includes("what"));
+// req: R-231
+check("bad-json is logged exactly once with its outcome", badJson.reason === "bad-json" && lines.length === beforeBadJsonCount + 1 && lines.at(-1).reason === "bad-json");
+// req: R-231
+check("eligible invocation results each append exactly one JSONL line", lines.length === eligible);
+// req: R-238
+check("every pull log row has numeric elapsed ms", lines.every((l) => typeof l.ms === "number" && Number.isFinite(l.ms)));
+// req: R-231
+check("log carries ts/cwd/session/source/tokens/hits/reason",
+	lines.every((l) => l.ts && "cwd" in l && "session_id" in l && "source" in l && Array.isArray(l.tokens) && Array.isArray(l.hits) && typeof l.reason === "string"));
+check("log tokens exclude stopwords", !lines.find((l) => l.tokens.length)?.tokens.includes("the"));
+
+const emptyHome = path.join(td, "empty-home");
+fs.mkdirSync(emptyHome, { recursive: true });
+fs.writeFileSync(path.join(emptyHome, "sources.json"), JSON.stringify({ roots: [] }));
+process.env.NANA_KNOWLEDGE_HOME = emptyHome;
+await build();
+const beforeNoHits = fs.existsSync(path.join(emptyHome, "pull.log")) ? fs.readFileSync(path.join(emptyHome, "pull.log"), "utf8") : "";
+const noHits = await call(payload({ prompt: "query words absent entirely" }), { spawnFn: noSpawn });
+const noHitLines = fs.readFileSync(path.join(emptyHome, "pull.log"), "utf8").trim().split("\n");
+// req: R-231
+check("no-hits appends exactly one line with empty hits", noHits.reason === "no-hits" && noHitLines.length === (beforeNoHits ? beforeNoHits.trim().split("\n").length : 0) + 1 && JSON.parse(noHitLines.at(-1)).reason === "no-hits" && JSON.parse(noHitLines.at(-1)).hits.length === 0);
+process.env.NANA_KNOWLEDGE_HOME = home;
+
+// A fresh but corrupt index is a query failure, never an empty successful result.
+const corruptHome = path.join(td, "corrupt-home");
+fs.mkdirSync(corruptHome, { recursive: true });
+const corruptDb = path.join(corruptHome, "index.db");
+fs.writeFileSync(corruptDb, Buffer.from("not a sqlite database"));
+fs.utimesSync(corruptDb, Date.now() / 1000, Date.now() / 1000);
+fs.writeFileSync(path.join(corruptHome, "sources.json"), JSON.stringify({ roots: [] }));
+process.env.NANA_KNOWLEDGE_HOME = corruptHome;
+const corruptHook = await call(payload({ prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
+const corruptRows = fs.readFileSync(path.join(corruptHome, "pull.log"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+// req: R-231
+check("corrupt index logs db-open-failed or query-failed, never no-hits", corruptHook.output === null && ["db-open-failed", "query-failed"].includes(corruptHook.reason) && corruptRows.at(-1).reason === corruptHook.reason);
+const corruptCliHook = spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "hook"], { input: JSON.stringify({ prompt: "what is the pi review round cap" }), encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
+check("CLI hook stays fail-open on a corrupt index", corruptCliHook.status === 0 && corruptCliHook.stdout === "" && corruptCliHook.stderr === "");
+const corruptCliQuery = spawnSync(process.execPath, [new URL("../bin/nana-knowledge.ts", import.meta.url).pathname, "query", "review round cap"], { encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: corruptHome } });
+check("CLI query exits 1 on a corrupt index", corruptCliQuery.status === 1);
+process.env.NANA_KNOWLEDGE_HOME = home;
 
 // --- end to end through the CLI, the way Claude Code will call it ---
 const cli = new URL("../bin/nana-knowledge.ts", import.meta.url).pathname;

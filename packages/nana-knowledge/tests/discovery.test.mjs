@@ -204,5 +204,60 @@ check("status exits 0", status.status === 0);
 // req: R-216
 check("status marks discovered roots", (status.stdout.match(/\(discovered\)/g) ?? []).length === 3);
 
+// D6: automatic hook excludes monthly archives in SQL before TOP_K, while explicit query retains them.
+const archiveRoot = path.join(td, "archive-root");
+fs.mkdirSync(path.join(archiveRoot, "sessions"), { recursive: true });
+fs.mkdirSync(path.join(archiveRoot, "docs", "sessions"), { recursive: true });
+md(path.join(archiveRoot, "sessions", "2026-09.md"), "# Archive One\n" + "quantum archive signal ".repeat(40));
+md(path.join(archiveRoot, "sessions", "2026-08.md"), "# Archive Two\n" + "quantum archive signal ".repeat(30));
+md(path.join(archiveRoot, "sessions", "2026-07.md"), "# Archive Three\n" + "quantum archive signal ".repeat(20));
+md(path.join(archiveRoot, "article.md"), "# Live Article\nquantum archive signal current content\n");
+md(path.join(archiveRoot, "docs", "sessions", "README.md"), "# Session Readme\nboundary readme token\n");
+md(path.join(archiveRoot, "docs", "2026-09.md"), "# Month Note\nboundary month token\n");
+md(path.join(archiveRoot, "sessions", "2026-09-notes.md"), "# Session Notes\nboundary notes token\n");
+const archiveHome = homeFor("archives");
+writeSources(archiveHome, { roots: [{ path: archiveRoot, kind: "articles" }] });
+await build();
+const archiveDb = await openDb(path.join(archiveHome, "index.db"), {});
+const { runHook } = await import(new URL("../lib/hook.ts", import.meta.url).href);
+const ordinary = search(archiveDb, "quantum archive signal", 10);
+// req: R-239
+check("explicit query still returns monthly session archives", ordinary.some((h) => h.path.endsWith("/sessions/2026-09.md")));
+const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
+// req: R-239
+check("hook filters archives before top-three ranking and prints the non-archive article", automatic.reason === "ok" && automatic.hits.some((h) => h.path.endsWith("/article.md")) && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\\.md$/.test(h.path)));
+const nonArchiveMatches = search(archiveDb, "boundary token", 20, { excludeMonthlySessionArchives: true });
+// req: R-239
+check("README, date outside sessions, and non-monthly session notes are retained", ["README.md", "2026-09.md", "2026-09-notes.md"].every((name) => nonArchiveMatches.some((h) => h.path.endsWith(name))));
+archiveDb.prepare("INSERT INTO docs (key,path,root,kind,loc,title,body) VALUES (?,?,?,?,?,?,?)").run("backslash-archive", "C:\\repo\\sessions\\2026-09.md", archiveRoot, "articles", null, "Backslash archive", "quantum archive signal");
+// req: R-239
+check("backslash-separated monthly archive path is excluded", !search(archiveDb, "quantum archive signal", 20, { excludeMonthlySessionArchives: true }).some((h) => h.key === "backslash-archive"));
+archiveDb.close();
+
+// Fresh default seed: nested historical literals must not shadow discovered repo roots.
+const fakeHome = path.join(td, "fake-home");
+const seedHome = path.join(td, "fresh-seed");
+for (const rel of ["the-hive/.git", "the-hive/docs/research", "the-hive/docs/experiments", "nana-agent-loop/.git", "nana-agent-loop/research/knowledge"]) {
+	fs.mkdirSync(path.join(fakeHome, rel), { recursive: true });
+}
+md(path.join(fakeHome, "the-hive/docs/research/a.md"), "# Research\nneedle baseline hive\n");
+md(path.join(fakeHome, "the-hive/docs/experiments/b.md"), "# Experiment\nneedle blue hive\n");
+md(path.join(fakeHome, "nana-agent-loop/research/knowledge/k.md"), "# Knowledge\nneedle green loop\n");
+md(path.join(fakeHome, "nana-agent-loop/research/IDEAS.md"), "# Ideas\nneedle red loop\n");
+fs.mkdirSync(seedHome, { recursive: true });
+process.env.HOME = fakeHome;
+process.env.USERPROFILE = fakeHome;
+process.env.NANA_KNOWLEDGE_HOME = seedHome;
+const fresh = loadSources();
+const hiveDocs = path.join(fakeHome, "the-hive/docs");
+const loopResearch = path.join(fakeHome, "nana-agent-loop/research");
+// req: R-240
+check("fresh seed discovers both roots without explicit nested roots", fresh.roots.some((r) => r.path === hiveDocs && r.discovered) && fresh.roots.some((r) => r.path === loopResearch && r.discovered) && !fresh.roots.some((r) => r.path.startsWith(hiveDocs + path.sep) || r.path.startsWith(loopResearch + path.sep)));
+const seededStats = await build();
+const seededDb = await openDb(path.join(seedHome, "index.db"), {});
+// req: R-240
+check("fresh-seeded discovered files are searchable and indexed once", seededStats.files === 4 && search(seededDb, "needle blue hive", 10).some((h) => h.path.endsWith("/experiments/b.md")) && search(seededDb, "needle red loop", 10).some((h) => h.path.endsWith("/IDEAS.md")) && seededDb.prepare("SELECT COUNT(*) AS n FROM docs").get().n === 4);
+seededDb.close();
+
 fs.rmSync(td, { recursive: true, force: true });
 process.exit(fails);

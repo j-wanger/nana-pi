@@ -4,12 +4,12 @@
  * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index
  *  at paths.db, and the per-session shown file
  * @outputs HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one
- *  pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and one JSON line to
- *  pull.log
+ *  pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome
+ *  records to pull.log
  * @effects disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25
  *  search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
  * @errors none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason,
- *  no-index(<freshness>), budget, db-open-failed, no-hits, all-shown, empty-block
+ *  no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block
  */
 // UserPromptSubmit hook. Contract: whatever goes wrong, print nothing and exit 0.
 // A knowledge pull is never allowed to be the reason a prompt does not run.
@@ -135,11 +135,29 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	const t0 = Date.now();
 	const budget = opts.budgetMs ?? BUDGET_MS;
 	const over = () => Date.now() - t0 > budget;
-	const none = (reason: string): HookResult => ({ output: null, reason, hits: [] });
+	let input: any = null;
+	let parsed = false;
+	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
+		const excluded = new Set(["reviewer-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
+		if (!excluded.has(reason)) {
+			const valid = parsed && input && typeof input === "object";
+			appendLog({
+				ts: new Date().toISOString(),
+				cwd: valid && typeof input.cwd === "string" ? input.cwd : null,
+				session_id: valid && typeof input.session_id === "string" ? input.session_id : null,
+				source: valid && typeof input.source === "string" ? input.source : (valid && typeof input.hook_event_name === "string" ? "claude-code" : null),
+				reason,
+				tokens: valid && typeof input.prompt === "string" ? meaningfulTokens(input.prompt.slice(0, PROMPT_MAX_CHARS)).slice(0, 24) : [],
+				hits: output ? hits.map((h) => h.display) : [],
+				ms: Date.now() - t0,
+			});
+		}
+		return { output, reason, hits };
+	};
+	const none = (reason: string): HookResult => finish(reason);
 	if (process.env.NANA_ROLE === "reviewer") return none("reviewer-role");
 
-	let input: any;
-	try { input = JSON.parse(raw); } catch { return none("bad-json"); }
+	try { input = JSON.parse(raw); parsed = true; } catch { return none("bad-json"); }
 	if (!input || typeof input !== "object") return none("bad-input");
 
 	// Tokenizing a pasted megabyte is pure cost for a worse query.
@@ -154,8 +172,8 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	let db;
 	try { db = await openDb(paths.db, {}); } catch { return none("db-open-failed"); }
 	let hits: Hit[];
-	try { hits = search(db, prompt, TOP_K); }
-	catch { hits = []; }
+	try { hits = search(db, prompt, TOP_K, { excludeMonthlySessionArchives: true }); }
+	catch { return none("query-failed"); }
 	finally { try { db.close(); } catch { /* ignore */ } }
 	if (over()) return none("budget");
 	if (hits.length === 0) return none("no-hits");
@@ -172,17 +190,5 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	if (over()) return none("budget");
 
 	recordShown(sessionId, fresh.map((h) => h.key));
-	appendLog({
-		ts: new Date().toISOString(),
-		cwd: typeof input.cwd === "string" ? input.cwd : null,
-		session_id: sessionId,
-		// Which harness pulled. The pi extension sends source:"pi"; Claude Code's
-		// UserPromptSubmit payload carries hook_event_name and no source. The citation
-		// checker has to be able to tell the two apart in one log.
-		source: typeof input.source === "string" ? input.source : (typeof input.hook_event_name === "string" ? "claude-code" : null),
-		tokens: meaningfulTokens(prompt).slice(0, 24),
-		hits: fresh.map((h) => h.display),
-		ms: Date.now() - t0,
-	});
-	return { output: block, reason: "ok", hits: fresh };
+	return finish("ok", block, fresh);
 }
