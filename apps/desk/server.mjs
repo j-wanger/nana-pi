@@ -8,7 +8,7 @@
  *  nana-pack.json, agents/), per-project .pi/nana-pack.json and AGENTS.md-family files, app
  *  manifests, and public/ assets
  * @outputs JSON responses and the per-session SSE stream (desk_hello then live RPC events);
- *  spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json,
+ *  usage lines to stdout; spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json,
  *  mcp.json, nana-pack.json, agents definitions and context files (each after a .bak copy);
  *  session HTML export; the startup URL on stdout
  * @effects disk (session and config reads and writes), process (spawns pi, git, the native folder
@@ -1966,6 +1966,12 @@ function assertInsideSessions(file) {
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
 
+// chosen: plan 6.5 / D4 2026-10-06; row R-699
+const USAGE = Object.freeze({ event: "desk_usage", actions: Object.freeze({ open: "open", view: "view", prompt: "prompt" }) });
+function recordUsage(surface, action) {
+	console.log(JSON.stringify({ ts: new Date().toISOString(), event: USAGE.event, surface, action }));
+}
+
 function serveStatic(res, p) {
 	const rel = p === "/" ? "index.html" : p.slice(1);
 	const full = path.normalize(path.join(PUBLIC, rel));
@@ -1978,6 +1984,7 @@ function serveStatic(res, p) {
 	}
 	res.writeHead(200, { "content-type": MIME[path.extname(full)] || "application/octet-stream" });
 	res.end(data);
+	if (full === path.join(PUBLIC, "index.html")) recordUsage("desk", USAGE.actions.open);
 	return true;
 }
 
@@ -2036,6 +2043,7 @@ function httpError(status, message) {
 
 // ── shared per-child operations (desk listener AND app listeners) ──
 async function promptChild(child, body) {
+	recordUsage(child.app ? `app:${child.app}` : "desk", USAGE.actions.prompt);
 	const mode = ["prompt", "steer", "follow_up"].includes(body.mode) ? body.mode : "prompt";
 	const cmd = { type: mode, message: String(body.message || "") };
 	const images = sanitizeImages(body.images);
@@ -2110,7 +2118,9 @@ const server = http.createServer(async (req, res) => {
 		if (p === "/api/sessions" && req.method === "GET") return json(res, 200, listSessions());
 		if (p === "/api/transcript" && req.method === "GET") {
 			const real = assertInsideSessions(url.searchParams.get("file") || "");
-			return json(res, 200, parseTranscript(real));
+			const transcript = parseTranscript(real);
+			recordUsage("desk", USAGE.actions.view);
+			return json(res, 200, transcript);
 		}
 		if (p === "/api/live" && req.method === "GET") {
 			return json(
@@ -2463,7 +2473,7 @@ const APPS_DIR = process.env.DESK_APPS_DIR || path.join(os.homedir(), ".pi", "ag
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 appListeners = startAppListeners({
 	manifests: loadManifests(APPS_DIR),
-	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession, killTree },
+	deps: { spawnChild, children, sendRpc, json, readBody, sseHead, sseLine, sseWrite, originRejection, hostRejection, failRequest, promptChild, answerDialog, childEnv, ledgerKeys, noteStageSession, killTree, usage: recordUsage, usageOpen: USAGE.actions.open },
 	dirs: {
 		stage: path.join(PUBLIC, "stage"),
 		public: PUBLIC,
