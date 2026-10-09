@@ -8,6 +8,7 @@
 
 - 2026-09-18 to 10-05: setup and the per-repo objective, the 09-28 rulings, self-hosted requirements, pi 1.0, the writing trial, the edge desk on pi MCP, the code map seeing tests — `docs/sessions/2026-09.md`, `docs/sessions/2026-10.md`.
 - 2026-10-06 to 10-09: the hardening program, six tranches and forty lanes, complete; CI cuts the template tags — `docs/hardening-plan-2026-10-06.md`, `docs/sessions/2026-10.md`.
+- 2026-10-09: builders lose the automatic knowledge pull (Jake) — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -23,6 +24,7 @@
 - Tranche 4: the acceptance gate prints nothing on a pass; one Linux CI symlink check fails.
 - Tranche 5: uninstall's preview stops at a loaded desk; its ancestor checks are preflight-only; the shared-memory hook throws on a closed pipe.
 - Tranche 6: per-check SKIPs inside a test file stay invisible to the rail; nothing keeps future pi tests on the locator; native Windows is unexecuted.
+- Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever (two killed 10-09).
 - Tranche 2: an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Desk residuals live in `apps/desk/README.md` Known limits.
@@ -35,13 +37,12 @@
 
 1. **Hardening program: complete, 2026-10-09.** The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
 2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
-3. **2026-10-23 readings:** the pre-registered desk usage tally (D4) and the 6.6 compaction replay; desk and store stay frozen until then.
+3. **2026-10-23 readings:** the pre-registered desk usage tally (D4), the 6.6 compaction replay, and the seat's knowledge pull; desk and store stay frozen until then. The pull reading starts at this land, sorts pi sessions by launcher name; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
-- **[blocking, since 2026-10-09] YOUR CALL: knowledge injection.** Tested: 238 pointers shown since the reviewer skip. Result: none was opened (95% upper bound 1.6%). Trade: stopping saves context on every prompt, but typed prompts got only 8 pointers. Recommendation: stop automatic pulls for builder sessions now, keep the seat's until 10-23, keep `nana-knowledge query`. D6 left injection to you.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
