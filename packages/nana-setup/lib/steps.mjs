@@ -515,6 +515,7 @@ export function stepSettings(layout, o, state) {
 			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "POSIX hook"})` : added.includes(w.label) ? "added" : "already wired",
 		})),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
+		...(added.includes("SessionStart retired hook migration") ? [{ label: "settings SessionStart retired hook migration", status: UPDATED, detail: o.dryRun ? "would migrate managed entries in place" : "migrated managed entries in place" }] : []),
 		...retiredHookCommands(settings).map(({ event, command }) => ({ label: `settings ${event} retired hook`, status: PROBLEM, detail: `retired bash hook still wired: ${command}` })),
 	];
 	const merge = (settings) => {

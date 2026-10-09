@@ -27,9 +27,10 @@ export function hookProducerConfig(name, repoRoot) {
 	return { cli, marker: definition.marker(cli) };
 }
 
-export function runHookProducer({ cli, marker, cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd(), env = process.env, run = spawnSync, stdout = process.stdout }) {
+export function runHookProducer({ cli, marker, cwd, env = process.env, run = spawnSync, stdout = process.stdout }) {
 	try {
-		const result = run(process.execPath, ["--no-warnings", cli, "--cwd", cwd], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env });
+		const resolvedCwd = cwd ?? process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
+		const result = run(process.execPath, ["--no-warnings", cli, "--cwd", resolvedCwd], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env });
 		if (result?.status === 0 && !result.signal && !result.error) {
 			if (typeof result.stdout === "string" && result.stdout.length > 0) stdout.write(`${result.stdout.replace(/\n+$/, "")}\n`);
 		} else {

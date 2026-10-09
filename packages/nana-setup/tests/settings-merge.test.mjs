@@ -544,7 +544,12 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 		after,
 	] }] } };
 	fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+	const dry = run(["install", "--dry-run"], home);
+	// req: R-908
+	check("dry-run reports the in-place legacy migration as would-migrate", dry.status === 0 && /SessionStart retired hook migration.*would migrate/i.test(dry.stdout));
 	const result = run(["install"], home);
+	// req: R-908
+	check("install reports the in-place legacy migration as UPDATED", result.status === 0 && /SessionStart retired hook migration.*updated/i.test(result.stdout));
 	const migrated = JSON.parse(fs.readFileSync(file, "utf8")).hooks.SessionStart[0].hooks;
 	const expected = ["nana-objective.mjs", "nana-shared-memory.mjs", "nana-adoption.mjs"];
 	// req: R-908

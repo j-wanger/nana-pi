@@ -77,9 +77,26 @@ settings.hooks.SessionStart = [{ hooks: [
 	{ type: "command", command: "/bin/sh /other/nana-adoption.sh", timeout: 5, statusMessage: "foreign retired hook" },
 ] }];
 fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
-const retiredRows = withPiStub(() => diagnose(layout, { projectDir: home })).filter((item) => item.label.startsWith("settings SessionStart"));
+const retiredRows = withPiStub(() => diagnose(layout, { projectDir: home })).filter((item) => item.label === "settings SessionStart retired hook");
 // req: R-909
-check("doctor reports every distinct retired bash script entry as a problem", retiredRows.length > 0 && retiredRows.every((item) => item.status === "fail" && item.detail.includes("/bin/bash /x/nana-objective.sh") && item.detail.includes("/bin/sh /other/nana-adoption.sh")));
+check("doctor reports every distinct retired bash script entry as a problem", retiredRows.length === 2 && retiredRows.every((item) => item.status === "fail") && retiredRows.some((item) => item.detail === "retired bash hook still wired: /bin/bash /x/nana-objective.sh") && retiredRows.some((item) => item.detail === "retired bash hook still wired: /bin/sh /other/nana-adoption.sh"));
+settings.hooks = { Stop: [{ hooks: [{ type: "command", command: "/bin/bash /x/nana-objective.sh" }] }] };
+fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+const stopRetired = withPiStub(() => diagnose(layout, { projectDir: home })).filter((item) => item.label.includes("retired") && item.detail.includes("/bin/bash /x/nana-objective.sh"));
+// req: R-909
+check("doctor finds a retired command under Stop", stopRetired.length > 0 && stopRetired.every((item) => item.status === "fail"));
+const savedPlatform = process.env.NANA_SETUP_PLATFORM;
+try {
+	process.env.NANA_SETUP_PLATFORM = "win32";
+	settings.hooks = { SessionStart: [{ hooks: [{ type: "command", command: "/bin/bash /x/nana-objective.sh" }] }] };
+	fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+	const winRetired = withPiStub(() => diagnose(layout, { projectDir: home })).filter((item) => item.label.includes("retired") && item.detail.includes("/bin/bash /x/nana-objective.sh"));
+	// req: R-909
+	check("doctor finds retired SessionStart command under forced win32", winRetired.length > 0 && winRetired.every((item) => item.status === "fail"));
+} finally {
+	if (savedPlatform === undefined) delete process.env.NANA_SETUP_PLATFORM;
+	else process.env.NANA_SETUP_PLATFORM = savedPlatform;
+}
 for (const [name, value] of [["object event", {}], ["string event", "bad"], ["null event", null]]) {
 	settings.hooks.SessionStart = value;
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));

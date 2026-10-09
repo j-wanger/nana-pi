@@ -35,6 +35,22 @@ const NOTE = "note";
 const WARN = "warn";
 const require = createRequire(import.meta.url);
 
+function retiredSettingsCommands(settings) {
+	const scripts = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+	const findings = [];
+	for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
+		if (!Array.isArray(groups)) continue;
+		for (const group of groups) {
+			if (!Array.isArray(group?.hooks)) continue;
+			for (const hook of group.hooks) {
+				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })))
+					findings.push({ event, command: hook.command });
+			}
+		}
+	}
+	return findings;
+}
+
 export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite").DatabaseSync) {
 	let db;
 	try {
@@ -270,20 +286,6 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 	return null;
 }
 
-function findRetiredHooks(settings, event) {
-	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
-	const groups = settings?.hooks?.[event];
-	const commands = new Set();
-	if (!Array.isArray(groups)) return [];
-	for (const group of groups) {
-		if (!Array.isArray(group?.hooks)) continue;
-		for (const hook of group.hooks) {
-			for (const script of names) if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) commands.add(hook.command);
-		}
-	}
-	return [...commands];
-}
-
 export function diagnose(layout, opts = {}) {
 	const win = platform() === "win32";
 	const checks = [];
@@ -370,12 +372,13 @@ export function diagnose(layout, opts = {}) {
 			const healthy = w.label === "UserPromptSubmit knowledge pull"
 				? knowledgeHookHealthy(settings, repoRoot)
 				: hasHook(settings, w.event, w.spec, w.matcher);
-			const retired = findRetiredHooks(settings, w.event);
-			add(retired.length ? FAIL : healthy ? OK : FAIL, `settings ${w.label}`, retired.length ? `retired bash hooks still wired: ${retired.join("; ")}` : w.label === "UserPromptSubmit knowledge pull" && !healthy
+			add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
 				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
 				: w.marker);
 		}
 	}
+	for (const { event, command } of retiredSettingsCommands(settings))
+		add(FAIL, `settings ${event} retired hook`, `retired bash hook still wired: ${command}`);
 
 	// --- two-tier auto-memory ---
 	const idx = path.join(layout.sharedMemoryDir, "MEMORY.md");

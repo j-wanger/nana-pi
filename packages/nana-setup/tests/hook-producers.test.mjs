@@ -32,6 +32,25 @@ check("launcher configurations drive missing-CLI output with canonical markers",
 		: "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/clone/packages/nana-pack/bin/nana-adoption.mjs).\n";
 	return output === expected;
 }));
+// req: R-687
+check("both launcher configurations fail open when fallback cwd resolution throws", ["objective", "adoption"].every((name) => {
+	const config = hookProducerConfig(name, "/clone");
+	let output = "";
+	const originalCwd = process.cwd;
+	const originalProjectDir = process.env.CLAUDE_PROJECT_DIR;
+	try {
+		delete process.env.CLAUDE_PROJECT_DIR;
+		process.cwd = () => { throw new Error("cwd unavailable"); };
+		runHookProducer({ ...config, stdout: { write: (text) => { output += text; } } });
+	} catch {
+		return false;
+	} finally {
+		process.cwd = originalCwd;
+		if (originalProjectDir === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+		else process.env.CLAUDE_PROJECT_DIR = originalProjectDir;
+	}
+	return output === config.marker;
+}));
 {
 	let output = "";
 	runHookProducer({ cli: "/producer.mjs", marker: "fallback", run: () => ({ status: 0, stdout: "hello\n\n" }), stdout: { write: (value) => { output += value; } } });
