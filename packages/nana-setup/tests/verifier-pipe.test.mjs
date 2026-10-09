@@ -16,6 +16,7 @@ import { diagnose } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { runHook } from "../claude/hooks/verifier-pipe.mjs";
 import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
+import { withPiStub } from "./stub-pi.mjs";
 
 let failures = 0;
 const check = (title, pass, extra = "") => {
@@ -61,12 +62,12 @@ const layout = resolveLayout({ home });
 fs.mkdirSync(layout.hooksDir, { recursive: true });
 fs.mkdirSync(layout.claudeHome, { recursive: true });
 fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
-const missing = diagnose(layout, { projectDir: home }).find((item) => item.label === "settings PreToolUse verifier pipe");
+const missing = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985
 check("doctor reports the missing user hook wiring unhealthy", missing?.status === "fail");
 const settings = { hooks: { PreToolUse: [{ matcher: pipe.matcher, hooks: [{ type: "command", command: pipe.entry.command }] }] } };
 fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
-const healthy = diagnose(layout, { projectDir: home }).find((item) => item.label === "settings PreToolUse verifier pipe");
+const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
 // req: R-985
 check("doctor accepts the installed Node hook wiring", healthy?.status === "ok", JSON.stringify(healthy));
 

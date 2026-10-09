@@ -14,8 +14,10 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { withPiStub } from "./stub-pi.mjs";
 
 const { diagnose, PI_SUBAGENTS_FLOOR, DESK_NODE_FLOOR, parsePlistValues } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { REVIEWER_MARKER, renderPlist, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 
@@ -42,7 +44,7 @@ function layoutWith(shape) {
 	}
 	return layout;
 }
-const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
+const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
 
 {
 	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-hook-target-"));
@@ -50,7 +52,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 	const layout = resolveLayout({ home });
 	fs.mkdirSync(layout.claudeHome, { recursive: true });
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "NODE_NO_WARNINGS=1 node /missing-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook" }] }] } }));
-	const c = diagnose(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	const c = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
 	const outside = path.join(home, "outside", "nana-knowledge.ts");
 	fs.mkdirSync(path.dirname(outside), { recursive: true });
 	fs.writeFileSync(outside, "// test target\n");
@@ -59,7 +61,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${validTarget}' hook` },
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${outside}' hook` },
 	] }] } }));
-	const outsideCheck = diagnose(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
 	// req: R-393
 	check("doctor rejects missing and out-of-repo absolute knowledge-hook targets", c?.status === "fail" && /target is missing/.test(c.detail) && outsideCheck?.status === "fail" && /does not resolve inside/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
 }
@@ -92,7 +94,7 @@ const personalCheck = (layout) => diagnose(layout, { projectDir: layout.base }).
 	const diagnoseDesk = (node, state = "running") => {
 		fs.writeFileSync(layout.plistPath, renderPlist({ LABEL: "com.nana.pi-desk", NODE: node, SERVER: DESK_SERVER, WORKDIR: pkgRoot, PATH: "/bin", LOG: path.join(home, "desk.log") }));
 		process.env.FAKE_DESK_STATE = state;
-		return diagnose(layout, { projectDir: home }).find((row) => row.label === "desk service");
+		return diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "desk service");
 	};
 	try {
 		const healthy = diagnoseDesk(oldNode);
@@ -161,7 +163,7 @@ try {
 		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
 		const objective = value === undefined ? {} : { projectFile: value };
 		fs.writeFileSync(layout.piPackConfig, JSON.stringify({ objective }));
-		return diagnose(layout, { projectDir: layout.base }).find((c) => c.label === "pi objective.projectFile");
+		return diagnoseWithPi(layout, { projectDir: layout.base }).find((c) => c.label === "pi objective.projectFile");
 	};
 	{
 		const c = pfCheck("OBJECTIVE.md");
@@ -226,7 +228,7 @@ try {
 			fs.mkdirSync(path.dirname(layout.subagentConfig), { recursive: true });
 			fs.writeFileSync(layout.subagentConfig, contentOrAbsent);
 		}
-		return { c: diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi subagent config"), layout };
+		return { c: diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi subagent config"), layout };
 	};
 	{
 		const { c } = subagentCheck(undefined);
@@ -292,7 +294,7 @@ try {
 		const layout = resolveLayout({ home });
 		fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
 		fs.writeFileSync(layout.mcpConfig, content);
-		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
+		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
 	};
 	for (const [label, bad] of [["null", "null"], ["an array", "[]"], ["a number", "7"]]) {
 		const c = mcpShapeCheck(bad);
@@ -319,7 +321,7 @@ try {
 			fs.mkdirSync(path.dirname(layout.reviewerAgent), { recursive: true });
 			fs.writeFileSync(layout.reviewerAgent, body);
 		}
-		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi reviewer agent");
+		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi reviewer agent");
 	};
 	{
 		const c = reviewerCheck(undefined);
@@ -358,7 +360,7 @@ try {
 			fs.mkdirSync(path.dirname(layout.piSubagentsPackage), { recursive: true });
 			fs.writeFileSync(layout.piSubagentsPackage, JSON.stringify({ name: "pi-subagents", version }));
 		}
-		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi pi-subagents");
+		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi pi-subagents");
 	};
 	{
 		// req: R-364
@@ -383,7 +385,7 @@ try {
 			fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
 			fs.writeFileSync(layout.mcpConfig, content);
 		}
-		return diagnose(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
+		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
 	};
 	{
 		const warn = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } } }));

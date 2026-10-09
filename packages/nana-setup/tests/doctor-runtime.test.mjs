@@ -18,6 +18,31 @@ import { withPiStub } from "./stub-pi.mjs";
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
+const unwrappedDoctorCalls = (() => {
+	const testDir = path.dirname(new URL(import.meta.url).pathname);
+	const localStubFiles = new Set([
+		"doctor-package-source.test.mjs", // installs its own pi stub first on PATH
+		"doctor-runtime.test.mjs", // owns explicit PATH stubs to pin the pi executable row
+	]);
+	const violations = [];
+	for (const name of fs.readdirSync(testDir).filter((file) => file.endsWith(".test.mjs"))) {
+		if (localStubFiles.has(name)) continue;
+		const lines = fs.readFileSync(path.join(testDir, name), "utf8").split(/\r?\n/);
+		const fileWrapsDoctor = lines.some((line) => /args\[0\] === ["']doctor["']\s*\?\s*withPiStub/.test(line));
+		for (let index = 0; index < lines.length; index++) {
+			const line = lines[index];
+			if (!line.trim().startsWith("//") && !line.includes("check(") && /\bdiagnose\s*\(/.test(line) && !/withPiStub\s*\(\s*\(\s*\)\s*=>\s*diagnose/.test(line)) {
+				violations.push(`${name}:${index + 1}: ${line.trim()}`);
+			}
+			if (/spawnSync\s*\([^\n]*["']doctor["']|["']doctor["'][^\n]*spawnSync\s*\(/.test(line) && !line.includes("withPiStub") && !fileWrapsDoctor) {
+				violations.push(`${name}:${index + 1}: ${line.trim()}`);
+			}
+		}
+	}
+	return violations;
+})();
+// req: R-952
+check("all doctor tests stub every diagnose call and doctor CLI spawn", unwrappedDoctorCalls.length === 0, unwrappedDoctorCalls.join("\n"));
 const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-runtime-"));
 const bin = path.join(home, "bin");
 fs.mkdirSync(bin);

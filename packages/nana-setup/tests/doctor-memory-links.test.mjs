@@ -67,7 +67,7 @@ check("memory lint leaves both tiers byte-identical", JSON.stringify(snapshot(sh
 	const memoryDir = projectMemoryDir(layout.projectsDir, projectDir); fs.mkdirSync(memoryDir, { recursive: true });
 	for (const name of names) write(memoryDir, `${name}.md`, name, "target\n");
 	write(layout.sharedMemoryDir, "bounded.md", "bounded", body);
-	const row = diagnose(layout, { projectDir }).find((item) => item.label === "memory links");
+	const row = withPiStub(() => diagnose(layout, { projectDir })).find((item) => item.label === "memory links");
 	// req: R-991
 	check("doctor reports only the configured issue limit plus a remainder count", row?.status === "warn" && row.detail.includes("… 5 more") && row.detail.split("; ").length === MEMORY_LINK_ISSUE_LIMIT + 1, row?.detail);
 }
