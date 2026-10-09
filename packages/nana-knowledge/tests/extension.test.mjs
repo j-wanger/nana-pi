@@ -21,6 +21,7 @@ const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });
 fs.mkdirSync(src, { recursive: true });
+delete process.env.NANA_ROLE;
 process.env.NANA_KNOWLEDGE_HOME = home;
 
 fs.writeFileSync(path.join(src, "rounds.md"), "---\ntitle: Review round cap\n---\nPi review rounds are capped at four; beyond that the reviewer repeats itself.\n");

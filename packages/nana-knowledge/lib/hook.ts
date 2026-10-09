@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-knowledge/lib/hook.ts
  * @purpose One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
- * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index
+ * @inputs the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), NANA_ROLE environment variable, the index
  *  at paths.db, and the per-session shown file
  * @outputs HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one
  *  pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome
@@ -9,7 +9,7 @@
  * @effects disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25
  *  search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
  * @errors none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason,
- *  no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block
+ *  no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block, reviewer-role, worker-role
  */
 // UserPromptSubmit hook. Contract: whatever goes wrong, print nothing and exit 0.
 // A knowledge pull is never allowed to be the reason a prompt does not run.
@@ -139,7 +139,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	let input: any = null;
 	let parsed = false;
 	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
-		const excluded = new Set(["reviewer-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
+		const excluded = new Set(["reviewer-role", "worker-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
 		if (!excluded.has(reason)) {
 			const valid = parsed && input && typeof input === "object";
 			appendLog({
@@ -157,6 +157,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	};
 	const none = (reason: string): HookResult => finish(reason);
 	if (process.env.NANA_ROLE === "reviewer") return none("reviewer-role");
+	if (process.env.NANA_ROLE === "worker") return none("worker-role");
 
 	try { input = JSON.parse(raw); parsed = true; } catch { return none("bad-json"); }
 	if (!input || typeof input !== "object") return none("bad-input");

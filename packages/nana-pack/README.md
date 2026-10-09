@@ -184,7 +184,7 @@ which never imports the ledger: it records nothing and can admit no verdict. `pi
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
 was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
 `pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`, `--worker`). A worker
-succeeds when `pi` exits 0 with non-empty output; no review shape is required.
+succeeds when `pi` exits 0 with non-empty output; no review shape is required. Every worker child gets `NANA_ROLE=worker`, so the knowledge pull prints and logs nothing for it; `nana-knowledge query` still answers.
 
 **A worker is not retried by default** (`--retries 0`). **Retrying a worker can repeat file
 mutations**: a stalled or failed attempt may already have edited, written or run commands, and a

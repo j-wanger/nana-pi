@@ -19,6 +19,7 @@ const home = path.join(td, "home");
 const src = path.join(td, "src");
 fs.mkdirSync(home, { recursive: true });
 fs.mkdirSync(src, { recursive: true });
+delete process.env.NANA_ROLE;
 process.env.NANA_KNOWLEDGE_HOME = home;
 
 fs.writeFileSync(path.join(src, "rounds.md"), "---\ntitle: Review round cap\n---\nPi review rounds are capped at four; beyond that the reviewer repeats itself.\n");
@@ -55,7 +56,7 @@ const loggedOutcome = (before, h, reason, hits) => {
 let eligible = 0;
 const call = async (raw, opts) => {
 	const r = await runHook(raw, opts);
-	if (process.env.NANA_KNOWLEDGE_HOME === home && !new Set(["reviewer-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]).has(r.reason)) eligible++;
+	if (process.env.NANA_KNOWLEDGE_HOME === home && !new Set(["reviewer-role", "worker-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]).has(r.reason)) eligible++;
 	return r;
 };
 
@@ -128,6 +129,17 @@ if (priorRole === undefined) delete process.env.NANA_ROLE; else process.env.NANA
 // req: R-973
 check("reviewer role skips output and pull-log writes", reviewerPull.output === null && reviewerPull.reason === "reviewer-role" &&
 	(fs.existsSync(path.join(home, "pull.log")) ? fs.readFileSync(path.join(home, "pull.log"), "utf8") : "") === logBeforeReviewer);
+
+// --- worker role suppresses all knowledge side effects ---
+const logBeforeWorker = logBytes(home);
+process.env.NANA_ROLE = "worker";
+const workerPull = await call(payload({ session_id: "worker-role", prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
+if (priorRole === undefined) delete process.env.NANA_ROLE; else process.env.NANA_ROLE = priorRole;
+// req: R-231
+// req: R-285
+check("worker role skips output and pull-log writes", workerPull.output === null && workerPull.reason === "worker-role" && logBytes(home) === logBeforeWorker);
+const workerControl = await call(payload({ session_id: "worker-role", prompt: "what is the pi review round cap" }), { spawnFn: noSpawn });
+check("worker role control with same input is not role-skipped", workerControl.reason !== "worker-role");
 
 // --- a real pull ---
 const beforeOk = logBytes(home);

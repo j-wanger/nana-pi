@@ -58,7 +58,7 @@ function trusted(worktree) {
 	return shared.status === 0 && shared.stdout.trim() === 'true';
 }
 
-let childEnv = {};
+let childEnv = { NANA_ROLE: 'worker' };
 let maxArg;
 let laneRoot, laneGitDir, briefPath, preambleFile, laneLock;
 let validateLaneAttempt = () => null;

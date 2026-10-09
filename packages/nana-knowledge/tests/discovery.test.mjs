@@ -16,6 +16,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+delete process.env.NANA_ROLE;
 const td = tmpDir(path.join(os.tmpdir(), "nk-discover-"));
 const parent = path.join(td, "parent");
 const mk = (...p) => { fs.mkdirSync(path.join(parent, ...p), { recursive: true }); return path.join(parent, ...p); };

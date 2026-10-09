@@ -737,10 +737,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-knowledge/lib/hook.ts`
 
 - **purpose** — One prompt-time knowledge pull — the block of pointers to print for a prompt, or nothing.
-- **inputs** — the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), the index at paths.db, and the per-session shown file
+- **inputs** — the hook JSON on stdin as a string (prompt, session_id, cwd, source / hook_event_name), NANA_ROLE environment variable, the index at paths.db, and the per-session shown file
 - **outputs** — HookResult {output, reason, hits} whose output is the `[nana:knowledge]` block (header plus one pointer line per hit, ≤ BLOCK_MAX_CHARS) or null; writes the session's shown keys and eligible outcome records to pull.log
 - **effects** — disk (reads the index, writes shown/<session>.json, appends pull.log), database (the BM25 search), process (spawns a detached, unref'd rebuild when the index is older than STALE_MS)
-- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block
+- **errors** — none — every failure is a named reason instead of output: bad-json, bad-input, a skipReason, no-index(<freshness>), budget, db-open-failed, query-failed, no-hits, all-shown, empty-block, reviewer-role, worker-role
 - **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-pack/lib/display.mjs`
 
