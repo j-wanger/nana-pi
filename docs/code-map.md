@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 236 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 237 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -347,7 +347,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports PI_PACKAGE/PI_MIN_VERSION/parseSemver/compareSemver/sameVersion/resolvePiBin/piBinVersion/walkUpToPackage/piRootCandidates/resolvePiPackage/loadPiSession; loadPiSession returns {parseSessionEntries, migrateSessionEntries, CURRENT_SESSION_VERSION} from the same install the desk spawns
 - **effects** — disk (reads package.json files and dynamic-imports the pi package), process (execFileSync of the pi binary for --version, 8 s timeout)
 - **errors** — throws Error when no pi binary is found, when its package root cannot be resolved, when the version is below PI_MIN_VERSION, or when the imported install's version differs from the binary's
-- **callers** — `apps/desk/server.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
+- **callers** — `apps/desk/server.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
 - **callees** — —
 
 ### `apps/desk/public/app.js`
@@ -520,6 +520,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — —
 - **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 
+### `apps/desk/test/pi-rpc-contract.test.mjs`
+
+- **purpose** — Drive installed pi RPC without model credentials and pin desk-consumed records.
+- **inputs** — The desk pi resolver, installed pi executable and a throwaway extension.
+- **outputs** — PASS/FAIL lines and a nonzero exit when the installed RPC contract drifts.
+- **effects** — disk (isolated HOME, session directory and extension), process (spawns and stops pi).
+- **errors** — Fails when resolution, startup, RPC records or bounded shutdown do not match.
+- **callers** — —
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
+
 ### `apps/desk/test/pi-session-parity.test.mjs`
 
 - **purpose** — The parity contract for reading sessions with pi's own parser — resolution ties the parser to the binary, the answers match the old parser on what a reader uses, and pi is the judge of the branch
@@ -577,7 +587,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`
 - **callees** — —
 
 ### `scripts/code-map.mjs`

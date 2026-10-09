@@ -976,7 +976,7 @@ cover).
 | R-403 | WHERE the package root is overridden, the desk shall use it exclusively and spawn nothing to resolve. | implemented | `apps/desk/test/pi-resolution.test.mjs::DESK_PI_ROOT is used exclusively — nothing else is consulted`, `apps/desk/test/pi-resolution.test.mjs::…and it spawns nothing: the shim recorded no run`, `apps/desk/test/pi-resolution.test.mjs::an override that disagrees with the binary's own package → refuses`, `apps/desk/test/pi-resolution.test.mjs::…unless DESK_PI_BIN names the binary too, and then it is a warning` |
 | R-469 | WHERE the package root is overridden, the desk shall still refuse an override that contradicts the binary unless the binary is named explicitly too, which downgrades the refusal to a warning. | untested | split from R-403 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-404 | The desk shall resolve pi's active agent directory once at startup and hand that one absolute directory to every child it spawns. | untested | — |
-| R-689 | The desk test suite shall drive the installed pi in RPC mode without a model call through the desk resolver and fail when a record field the desk reads is absent or renamed. | untested | — |
+| R-689 | The desk test suite shall drive the installed pi in RPC mode without a model call through the desk resolver and fail when a record field the desk reads is absent or renamed. | implemented | `apps/desk/test/pi-rpc-contract.test.mjs::installed pi RPC contract completes` |
 
 ## 28. Session reading, rail and transcript
 
