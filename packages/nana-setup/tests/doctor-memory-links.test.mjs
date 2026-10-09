@@ -7,6 +7,7 @@
  * @errors failed assertions produce a nonzero exit.
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

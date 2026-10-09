@@ -11,6 +11,7 @@
 // Gate: `doctor`'s detail text for rules/nana-personal.md agrees with its ✓/✗.
 // Four layouts, each in a throwaway --home; nothing touches the real machine.
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

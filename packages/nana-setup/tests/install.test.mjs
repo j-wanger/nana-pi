@@ -10,6 +10,7 @@
 // Every run here goes into a throwaway --home; nothing touches the real machine.
 import assert from "node:assert/strict";
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";

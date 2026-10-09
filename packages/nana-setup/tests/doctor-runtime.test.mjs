@@ -59,7 +59,7 @@ try {
 	fs.writeFileSync(stub, "#!/bin/sh\nexit 0\n");
 	fs.chmodSync(stub, 0o755);
 	// req: R-953
-	check("firstOnPath skips empty and non-executable entries", (() => { const noExec = path.join(home, "not-executable"); fs.writeFileSync(noExec, "x"); process.env.PATH = `${path.dirname(noExec)}:${realBin}`; return firstOnPath("pi-review") === path.join(realBin, "pi-review"); })());
+	check("firstOnPath skips empty and non-executable entries", (() => { const earlier = path.join(home, "earlier-bin"); fs.mkdirSync(earlier); const noExec = path.join(earlier, "pi-review"); fs.writeFileSync(noExec, "x"); process.env.PATH = `${earlier}${path.delimiter}${path.delimiter}${realBin}`; return firstOnPath("pi-review") === path.join(realBin, "pi-review"); })());
 	process.env.PATH = realBin;
 	// req: R-953
 	check("real pi-review target on PATH passes", diagnose(layout, { projectDir: home }).find((item) => item.label === "PATH resolves pi-review")?.status === "ok");

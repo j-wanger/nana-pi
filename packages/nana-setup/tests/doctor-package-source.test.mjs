@@ -17,10 +17,17 @@ import { gitCommonDir } from "../lib/steps.mjs";
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
 const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-package-source-"));
+const bin = tmpDir(path.join(os.tmpdir(), "nana-doctor-package-pi-bin-"));
+const piStub = path.join(bin, process.platform === "win32" ? "pi.cmd" : "pi");
+fs.writeFileSync(piStub, process.platform === "win32" ? "@echo off\necho pi 1.0.2\n" : "#!/bin/sh\necho pi 1.0.2\n");
+if (process.platform !== "win32") fs.chmodSync(piStub, 0o755);
+const savedPath = process.env.PATH;
 const layout = resolveLayout({ home });
 fs.mkdirSync(path.dirname(layout.piSettings), { recursive: true });
 const setPackages = (packages) => fs.writeFileSync(layout.piSettings, JSON.stringify({ packages }));
 const row = (packages, root = repoRoot) => { setPackages(packages); return packageSourceState(layout, root); };
+try {
+process.env.PATH = `${bin}${path.delimiter}${savedPath || ""}`;
 // req: R-997
 check("remote entry names pi's own managed clone as foreign", (() => { const s = row(["git:github.com/j-wanger/nana-pi"]); return s?.status === "fail" && s.detail.includes("git:github.com/j-wanger/nana-pi") && s.detail.includes(path.join(layout.piHome, "git")); })());
 // req: R-997
@@ -34,7 +41,8 @@ check("same git identity outside checkout is reported by resolved path", (() => 
 // req: R-997
 check("object-form remote source is classified", (() => { const s = row([{ source: "git:github.com/j-wanger/nana-pi" }]); return s?.status === "fail" && s.detail.includes("git:github.com/j-wanger/nana-pi"); })());
 // req: R-999
-check("managed checkout remedy clones first", (() => { const root = path.join(layout.piHome, "git", "github.com", "j-wanger", "nana-pi"); const s = row(["git:github.com/j-wanger/nana-pi"], root); return s?.remedy?.includes("git clone https://github.com/j-wanger/nana-pi") && s.remedy.indexOf("nana-setup install") < s.remedy.indexOf("pi remove"); })());
+check("managed checkout remedy clones first", (() => { const root = path.join(layout.piHome, "git", "github.com", "j-wanger", "nana-pi"); const s = row(["git:github.com/j-wanger/nana-pi"], root); return s?.remedy?.includes("git clone https://github.com/j-wanger/nana-pi") && s.remedy.includes("run `nana-setup install` from the clone") && s.remedy.indexOf("nana-setup install") < s.remedy.indexOf("pi remove"); })());
 // req: R-998
 check("unrelated npm-only entries produce no package-source state", row(["npm:pi-subagents@0.75.0"]) === null);
 if (fails) process.exitCode = 1;
+} finally { process.env.PATH = savedPath; }

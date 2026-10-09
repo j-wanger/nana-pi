@@ -16,6 +16,7 @@
 // through untouched. The spawned "pi" is a stub that records the dir it resolves with pi's rule.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-parity.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
+import "../../nana-setup/tests/stub-pi.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";

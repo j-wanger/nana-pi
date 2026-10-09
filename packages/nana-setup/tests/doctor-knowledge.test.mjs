@@ -9,6 +9,7 @@
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 const require = createRequire(import.meta.url);

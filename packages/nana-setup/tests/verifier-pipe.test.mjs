@@ -7,6 +7,7 @@
  * @errors an assertion failure exits nonzero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";

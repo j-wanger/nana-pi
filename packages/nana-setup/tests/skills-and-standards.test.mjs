@@ -10,6 +10,7 @@
 // SAME source pi reads — a symlink into the repo, never a copy that stops tracking a `git pull`.
 // Every run goes into a throwaway --home; nothing touches the real machine.
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";

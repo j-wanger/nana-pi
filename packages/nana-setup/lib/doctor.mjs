@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { hasHook, desiredHooks, knowledgeHookHealthy } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
 
@@ -236,7 +236,7 @@ export function packageSourceState(layout, root = repoRoot) {
 	let settings;
 	try { settings = JSON.parse(fs.readFileSync(layout.piSettings, "utf8")); } catch { return null; }
 	const entries = Array.isArray(settings?.packages) ? settings.packages.flatMap((entry) => typeof entry === "string" ? [entry] : entry && typeof entry === "object" && typeof entry.source === "string" ? [entry.source] : []) : [];
-	const checkout = safeRealpath(root);
+	const checkout = realpathSafe(root);
 	const foreign = [];
 	let found = false;
 	for (const entry of entries) {
@@ -251,7 +251,7 @@ export function packageSourceState(layout, root = repoRoot) {
 		if (resolved !== checkout && !resolved.startsWith(checkout + path.sep)) foreign.push(`${entry} resolves to ${resolved}`);
 	}
 	if (!found) return null;
-	const managedRoot = safeRealpath(path.join(layout.piHome, "git"));
+	const managedRoot = realpathSafe(path.join(layout.piHome, "git"));
 	const managed = checkout === managedRoot || checkout.startsWith(managedRoot + path.sep);
 	return {
 		status: foreign.length ? FAIL : OK,
@@ -260,10 +260,6 @@ export function packageSourceState(layout, root = repoRoot) {
 			? "this checkout is pi's managed copy: `git clone https://github.com/j-wanger/nana-pi`, run `nana-setup install` from the clone, then `pi remove <entry>`"
 			: `\`pi remove <entry>\`, then re-run \`nana-setup install\` from ${root}`,
 	};
-}
-
-function safeRealpath(value) {
-	try { return fs.realpathSync(value); } catch { return path.resolve(value); }
 }
 
 export function firstOnPath(name, pathValue = process.env.PATH) {
@@ -566,7 +562,7 @@ export function diagnose(layout, opts = {}) {
 		const setupLink = path.join(layout.binDir, "nana-setup");
 		add(linkOk(setupLink, NANA_SETUP_BIN) ? OK : FAIL, "PATH nana-setup", `${setupLink} -> ${NANA_SETUP_BIN}`);
 		const found = firstOnPath("pi-review");
-		const matches = found !== null && safeRealpath(found) === safeRealpath(PI_REVIEW_BIN);
+		const matches = found !== null && realpathSafe(found) === realpathSafe(PI_REVIEW_BIN);
 		const detail = `${found ? matches ? `${found} resolves to this checkout` : `pi-review resolves to ${found}` : "pi-review not found on PATH"}; add ${layout.binDir} to PATH — zsh: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zprofile, then open a new terminal`;
 		add(matches ? OK : layout.isRealHome ? FAIL : NOTE, "PATH resolves pi-review", detail);
 	}

@@ -12,6 +12,7 @@ import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 
 const pkg = path.resolve(new URL("..", import.meta.url).pathname);

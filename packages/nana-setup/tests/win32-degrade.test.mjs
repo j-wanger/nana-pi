@@ -11,6 +11,7 @@
 // NANA_SETUP_PLATFORM is the seam (lib/paths.mjs); process.platform is never monkey-patched, so
 // sibling packages and the node runtime behave normally.
 import { tmpDir } from "./tmp-dir.mjs";
+import "./stub-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
