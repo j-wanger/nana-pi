@@ -70,7 +70,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
 }
 
 {
-  const { removeInstallerHooks, removeRetiredContextHook } = await import("../lib/settings.mjs");
+  const { desiredHooks, removeInstallerHooks, removeRetiredContextHook } = await import("../lib/settings.mjs");
   const context = { hooks: { UserPromptSubmit: [{ hooks: [
     { type: "command", command: "bash '/tmp/hooks/context-size-check.sh'" },
     { type: "command", command: "bash '/tmp/hooks/context-size-check.sh'", owner: "variant" },
@@ -84,6 +84,18 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   removeInstallerHooks(settings, { hooksDir: "/tmp/hooks", repoRoot: "/repo" });
   // req: R-905
   check("settings pruning preserves foreign hooks, empty groups and unrelated keys", settings.hooks.SessionStart.length === 2 && settings.hooks.SessionStart[0].hooks.length === 1 && settings.hooks.SessionStart[1].hooks.length === 0 && settings.unrelated && JSON.stringify(settings) !== before);
+
+  const exact = desiredHooks({ hooksDir: "/tmp/hooks", repoRoot: "/repo" });
+  const objective = exact.find((item) => item.label === "SessionStart objective").entry;
+  const verifier = exact.find((item) => item.label === "PreToolUse verifier pipe").entry;
+  const misplaced = { hooks: {
+    UserPromptSubmit: [{ hooks: [objective] }],
+    PreToolUse: [{ matcher: "Other", hooks: [verifier] }],
+  } };
+  const misplacedBefore = JSON.stringify(misplaced);
+  removeInstallerHooks(misplaced, { hooksDir: "/tmp/hooks", repoRoot: "/repo" });
+  // req: R-905
+  check("wrong-event and wrong-matcher exact hooks are preserved", JSON.stringify(misplaced) === misplacedBefore);
 }
 
 {
@@ -160,7 +172,8 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const layout = resolveLayout({ home });
   fs.mkdirSync(layout.piHome, { recursive: true });
   const settings = path.join(layout.piHome, "settings.json");
-  const stored = [path.join(repo, "packages", "nana-pack"), "npm:@remote/package"];
+  const sibling = path.join(path.dirname(repo), "nana-pi-sibling", "packages", "nana-pack");
+  const stored = [path.join(repo, "packages", "nana-pack"), "npm:@remote/package", `${repo}/packages/nana-pack/unrelated`, sibling, "github:someone/nana-pi", "ssh://git@example.test/nana-pi.git"];
   fs.writeFileSync(settings, JSON.stringify({ packages: stored }));
   const before = fs.readFileSync(settings);
   const stub = tmpDir(path.join(os.tmpdir(), "nana-uninstall-pi-"));
@@ -174,7 +187,41 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   try { results = uninstall(layout); }
   finally { process.env.PATH = oldPath; }
   // req: R-907
-  check("registration reports local removal and remote retention without spawning pi", !fs.existsSync(log) && fs.readFileSync(settings).equals(before) && results.some((row) => row.detail === `run: pi remove '${stored[0]}'`) && results.some((row) => row.detail === `left (remote): ${stored[1]}`));
+  check("registration directs users to doctor attribution without spawning pi", !fs.existsSync(log) && fs.readFileSync(settings).equals(before) && results.filter((row) => row.label === "pi registration").length === 1 && results.some((row) => row.detail === "run `pi list` and `pi remove` the nana-pi entries (doctor's `pi packages` and `pi package source` rows name them)"));
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-independent-roots-"));
+  const claudeHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-independent-claude-"));
+  const piHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-independent-pi-"));
+  const install = run(["install", "--home", home, "--claude-home", claudeHome, "--pi-home", piHome]);
+  const remove = run(["uninstall", "--yes", "--home", home, "--claude-home", claudeHome, "--pi-home", piHome]);
+  // req: R-901
+  check("uninstall succeeds with independent base Claude and pi roots", install.status === 0 && remove.status === 0 && /nothing to remove|removed/.test(remove.stdout) && fs.statSync(path.join(claudeHome, "settings.json")).isFile(), `${install.status}; ${remove.status}\n${remove.stdout}\n${remove.stderr}`);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-settings-symlink-"));
+  const external = tmpDir(path.join(os.tmpdir(), "nana-uninstall-settings-target-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeHome, { recursive: true });
+  const target = path.join(external, "settings-data");
+  fs.writeFileSync(target, JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command: "foreign" }] }] } }) + "\n");
+  const targetBefore = fs.readFileSync(target);
+  fs.symlinkSync(target, layout.claudeSettings);
+  const homeBefore = fs.readlinkSync(layout.claudeSettings);
+  const refused = run(["uninstall", "--yes", "--home", home]);
+  // req: R-901
+  check("symlink settings path is refused without changing home or target", refused.status === 1 && fs.readlinkSync(layout.claudeSettings) === homeBefore && fs.readFileSync(target).equals(targetBefore), refused.stdout);
+}
+
+{
+  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-settings-directory-"));
+  const layout = resolveLayout({ home });
+  fs.mkdirSync(layout.claudeSettings, { recursive: true });
+  const result = run(["uninstall", "--yes", "--home", home]);
+  // req: R-901
+  check("non-regular settings path is refused before changes", result.status === 1 && fs.lstatSync(layout.claudeSettings).isDirectory(), result.stdout);
 }
 
 {
@@ -238,7 +285,7 @@ const run = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { en
   const afterDry = snapshot(dryHome);
   const dryRows = dryResult.stdout.split("\n").filter((line) => /^  [ +–✗·]/u.test(line));
   const dryLabels = dryRows.map((line) => line.slice(4).split(/\s{2,}/u)[0]).sort();
-  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.sh", "hook nana-adoption.sh", "hook nana-shared-memory.sh", "hook verifier-pipe.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "desk plist", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.sh", "hook nana-adoption.sh", "hook nana-shared-memory.sh", "hook verifier-pipe.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
   const second = run(["uninstall", "--yes", "--home", dryHome]);
   const third = run(["uninstall", "--yes", "--home", dryHome]);
   // req: R-903 R-904 R-905 R-906 R-907

@@ -382,8 +382,7 @@ On Windows the Claude Code `requirements` skill is the only one mirrored (a copy
 --claude-home <dir>  the .claude directory        (default ~/.claude)
 --pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
 --desk               install + load the desk launchd service (macOS, opt-in)
---dry-run            report what would change, write nothing
---dry-run            uninstall: preview removal without writing
+--dry-run            install: report changes; uninstall: preview removal (writes nothing)
 --yes                uninstall: confirm removal; install never prompts
 ```
 

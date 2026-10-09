@@ -237,21 +237,27 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot }) {
 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
 	for (const [event, groups] of Object.entries(hooks)) {
 		if (!Array.isArray(groups)) continue;
+		let emptiedByRemoval = false;
 		for (let gi = groups.length - 1; gi >= 0; gi--) {
 			const group = groups[gi];
 			if (!Array.isArray(group?.hooks) || group.hooks.length === 0) continue;
+			const matching = wanted.filter((item) => item.event === event && (item.matcher === undefined ? group.matcher === undefined : group.matcher === item.matcher));
+			if (!matching.length) continue;
 			const oldLength = group.hooks.length;
 			group.hooks = group.hooks.filter((entry) => {
-				const index = desired.findIndex((item) => JSON.stringify(item) === JSON.stringify(canonical(entry)));
+				const index = matching.findIndex((item) => JSON.stringify(canonical(item.entry)) === JSON.stringify(canonical(entry)));
 				if (index < 0) return true;
-				removed.push(wanted[index].label);
+				removed.push(matching[index].label);
 				return false;
 			});
-			if (group.hooks.length === 0) groups.splice(gi, 1);
+			if (oldLength > 0 && group.hooks.length === 0) {
+				groups.splice(gi, 1);
+				emptiedByRemoval = true;
+			}
 		}
-		if (groups.length === 0) delete hooks[event];
+		if (groups.length === 0 && emptiedByRemoval) delete hooks[event];
 	}
-	if (Object.keys(hooks).length === 0) delete settings.hooks;
+	if (Object.keys(hooks).length === 0 && removed.length > 0) delete settings.hooks;
 	return removed;
 }
 

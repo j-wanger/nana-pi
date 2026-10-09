@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { repoRoot, platform } from "./paths.mjs";
 import { stateRows } from "./state-manifest.mjs";
 import { desiredHooks, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
-import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, registrationState, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
+import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
 
 const inside = (root, target) => { const rel = path.relative(root, target); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
 const exists = (p) => { try { return fs.lstatSync(p); } catch (e) { if (e.code === "ENOENT" || e.code === "ENOTDIR") return null; throw e; } };
@@ -41,10 +41,13 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   const removable = rows.filter((r) => r.kind !== "settings-entry");
   const settingsRow = rows.find((r) => r.kind === "settings-entry" && path.resolve(r.path) === path.resolve(layout.claudeSettings));
   const settingsLayout = settingsRow ? { ...layout, claudeSettings: settingsRow.path } : layout;
+  const roots = [layout.base, layout.claudeHome, layout.piHome].map((root) => path.resolve(root));
+  const rootFor = (target) => roots.filter((root) => inside(root, path.resolve(target))).sort((a, b) => b.length - a.length)[0];
   const preflightPaths = [...removable.map((r) => r.path), ...(settingsRow ? [settingsRow.path] : [])];
   for (const target of preflightPaths) {
-    const directory = path.dirname(target);
-    if (!inside(path.resolve(layout.base), path.resolve(directory)) || !directoryAncestorsAreSafe(path.resolve(layout.base), path.resolve(directory), true)) {
+    const directory = path.dirname(path.resolve(target));
+    const root = rootFor(target);
+    if (!root || !directoryAncestorsAreSafe(root, directory, true)) {
       return [result(path.basename(target), "problem", `unsafe ancestor directory: ${directory}; nothing was changed`)];
     }
   }
@@ -73,6 +76,12 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   }
 
   // Settings parsing and shape validation is read-only and precedes every possible write.
+  if (settingsRow) {
+    const settingsStat = exists(settingsRow.path);
+    if (settingsStat && (settingsStat.isSymbolicLink() || !settingsStat.isFile())) {
+      throw new SetupError(`${settingsRow.path} is not a regular file. Nothing was changed.`);
+    }
+  }
   const initial = readClaudeSettings(settingsLayout);
   const mutateSettings = (settings) => {
     const removed = removeInstallerHooks(settings, { hooksDir: layout.hooksDir, repoRoot });
@@ -131,12 +140,6 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
       out.push(result(row.store, dryRun ? "created" : "updated", dryRun ? "would remove plist" : "removed plist"));
     }
   }
-  const coverage = registrationState(layout);
-  for (const entry of coverage.entries) {
-    if (/^(npm:|git:|https?:)/.test(entry)) { out.push(result("pi registration", "skipped", `left (remote): ${entry}`)); continue; }
-    const expanded = entry === "~" ? layout.base : entry.startsWith("~/") ? path.join(layout.base, entry.slice(2)) : entry;
-    const resolved = realpathSafe(path.resolve(layout.piHome, expanded));
-    if (coverage.packageRoots.some((root) => inside(realpathSafe(root), resolved))) out.push(result("pi registration", "skipped", `run: pi remove '${entry}'`));
-  }
+  out.push(result("pi registration", "skipped", "run `pi list` and `pi remove` the nana-pi entries (doctor's `pi packages` and `pi package source` rows name them)"));
   return out;
 }
