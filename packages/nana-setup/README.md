@@ -199,6 +199,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 
 ## Known limits
 
+- No mechanical check keeps a future doctor-calling test inside `withPiStub`; an unwrapped call runs the ambient `pi --version` (read-only), and reviewers check it.
 - A bare `uvx copier copy` project keeps the seeded objective's DRAFT lines until an owner ratifies them through the relevant scaffold or adopt skill; copier alone does not ask for either line.
 - A copier-born project has no month log until `nana-setup project` runs; the distinct entry routes are not collapsed into one setup path.
 - Project-scope `.pi/settings.json` package entries are not read; a second separate clone with a different git common dir is not recognized; `http://` spellings are invisible under R-325. Install still reports a remote- or worktree-covered registration as in place and adds nothing; doctor is the instrument for detecting a source that differs from this checkout.
