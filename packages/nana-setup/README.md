@@ -70,7 +70,7 @@ Upgrade pi itself with `npm i -g --ignore-scripts @earendil-works/pi-coding-agen
 1. Boot out the desk service if installed: `launchctl bootout gui/$(id -u)/com.nana.pi-desk`.
 2. Preview with `node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run`.
 3. Remove confirmed nana-owned pieces with `node packages/nana-setup/bin/nana-setup.mjs uninstall --yes`.
-4. Run each printed `pi remove '<entry>'` command yourself.
+4. Run `pi list` and `nana-setup doctor`; use the doctor's `pi packages` and `pi package source` rows to identify nana-pi entries, then remove those entries with `pi remove`.
 
 Edited seeds, memories, per-project `shared` links, pi trust records, backups, logs, knowledge sources and project files stay. Hand-written hook variants stay. No update command — the runbook is the sequence; build one only after a recorded miss.
 

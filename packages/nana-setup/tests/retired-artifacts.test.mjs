@@ -159,6 +159,15 @@ try {
 		// req: R-661
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
+		const completeContextEntries = settings.hooks.UserPromptSubmit[0].hooks;
+		const expectedInstalledHooks = [...ownerHooks, {
+			type: "command",
+			command: `NODE_NO_WARNINGS=1 node '${path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")}' hook`,
+			timeout: 5,
+			statusMessage: "nana: knowledge pull",
+		}];
+		// req: R-660
+		check("install removes released quoted context hook and preserves the expected variants", !completeContextEntries.some((hook) => hook.command === `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'`) && JSON.stringify(completeContextEntries) === JSON.stringify(expectedInstalledHooks), JSON.stringify(completeContextEntries));
 		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "Jake" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
