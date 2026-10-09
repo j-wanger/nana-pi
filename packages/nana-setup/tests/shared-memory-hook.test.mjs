@@ -108,6 +108,23 @@ const run = (home, env = {}, stdin = "", cwd) =>
 	check("existing shared/: contents untouched", fs.readFileSync(path.join(mem, "shared", "mine.md"), "utf8") === "mine\n");
 }
 
+{
+	const home = freshHome();
+	const project = "/Users/x/external-shared-link";
+	const mem = path.join(home, ".claude", "projects", projectKey(project), "memory");
+	const external = tmpDir(path.join(os.tmpdir(), "nana-shared-leaf-"));
+	tmps.push(external);
+	fs.writeFileSync(path.join(external, "owned.md"), "external bytes\n");
+	fs.mkdirSync(mem, { recursive: true });
+	const link = path.join(mem, "shared");
+	fs.symlinkSync(external, link, "dir");
+	const beforeTarget = fs.readlinkSync(link);
+	const beforeFiles = fs.readdirSync(external).sort().join("|");
+	const r = run(home, { CLAUDE_PROJECT_DIR: project });
+	// req: R-934
+	check("external shared symlink remains byte-identical and is never written through", r.status === 0 && fs.lstatSync(link).isSymbolicLink() && fs.readlinkSync(link) === beforeTarget && fs.readdirSync(external).sort().join("|") === beforeFiles && fs.readFileSync(path.join(external, "owned.md"), "utf8") === "external bytes\n", r.stdout + r.stderr);
+}
+
 /* --- 6. no CLAUDE_PROJECT_DIR: falls back to the cwd ------------------------------------ */
 {
 	const home = freshHome();

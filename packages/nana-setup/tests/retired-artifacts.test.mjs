@@ -344,6 +344,16 @@ try {
 	{
 		const h = home();
 		const layout = resolveLayout({ home: h });
+		fs.mkdirSync(layout.hooksDir, { recursive: true });
+		const link = path.join(layout.hooksDir, "nana-objective.sh");
+		fs.symlinkSync(path.join(pkg, "claude", "hooks", "nana-objective.sh"), link);
+		const result = stepRetiredArtifacts(layout, { dryRun: true });
+		// req: R-804
+		check("dry run reports would-unlink and keeps the repository link", fs.lstatSync(link).isSymbolicLink() && result.some((row) => row.label === "retired nana-objective.sh link" && row.detail.includes("would unlink")));
+	}
+	{
+		const h = home();
+		const layout = resolveLayout({ home: h });
 		const externalHooks = path.join(h, "external-hooks");
 		fs.mkdirSync(externalHooks);
 		const dangling = path.join(externalHooks, "nana-objective.sh");

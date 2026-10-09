@@ -77,6 +77,22 @@ fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
 const retired = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings SessionStart objective");
 // req: R-909
 check("doctor reports retired bash script entries as a problem", retired?.status === "fail" && retired.detail === "retired bash hook still wired: /bin/bash /x/nana-objective.sh");
+for (const [name, value] of [["object event", {}], ["string event", "bad"], ["null event", null]]) {
+	settings.hooks.SessionStart = value;
+	fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+	let rows;
+	try { rows = withPiStub(() => diagnose(layout, { projectDir: home })); } catch (error) { rows = error; }
+	// req: R-909
+	check(`doctor diagnoses malformed retired-hook ${name} without throwing`, Array.isArray(rows) && rows.some((item) => item.label === "settings SessionStart objective" && item.status === "fail"), String(rows));
+}
+for (const [name, group] of [["null group", null], ["string group", "bad"], ["object hooks", { hooks: {} }], ["string hooks", { hooks: "bad" }], ["null hooks", { hooks: null }]]) {
+	settings.hooks.SessionStart = [group];
+	fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+	let rows;
+	try { rows = withPiStub(() => diagnose(layout, { projectDir: home })); } catch (error) { rows = error; }
+	// req: R-909
+	check(`doctor diagnoses malformed retired-hook ${name} without throwing`, Array.isArray(rows) && rows.some((item) => item.label === "settings SessionStart objective" && item.status === "fail"), String(rows));
+}
 
 const matrix = fs.readFileSync(path.join(root, "templates/_shared/working-under-nana-pi.md"), "utf8");
 const packReadme = fs.readFileSync(path.join(root, "packages/nana-pack/README.md"), "utf8");

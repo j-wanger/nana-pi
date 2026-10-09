@@ -272,8 +272,11 @@ export function firstOnPath(name, pathValue = process.env.PATH) {
 
 function findRetiredHook(settings, event) {
 	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
-	for (const group of settings?.hooks?.[event] ?? []) {
-		for (const hook of group?.hooks ?? []) {
+	const groups = settings?.hooks?.[event];
+	if (!Array.isArray(groups)) return null;
+	for (const group of groups) {
+		if (!Array.isArray(group?.hooks)) continue;
+		for (const hook of group.hooks) {
 			for (const script of names) if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) return hook.command;
 		}
 	}

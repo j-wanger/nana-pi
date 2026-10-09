@@ -34,7 +34,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, mergeKnowledgeHook, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { commandInvokes, desiredHooks, mergeHooks, mergeKnowledgeHook, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
@@ -479,6 +479,26 @@ export function writeSettingsAtomic(file, contents, snapshot, { afterTempWrite }
 	}
 }
 
+function retiredHookCommands(settings) {
+	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+	const findings = [];
+	for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
+		if (!Array.isArray(groups)) continue;
+		for (const group of groups) {
+			if (!Array.isArray(group?.hooks)) continue;
+			for (const hook of group.hooks) {
+				for (const script of names) {
+					if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) {
+						findings.push({ event, command: hook.command });
+						break;
+					}
+				}
+			}
+		}
+	}
+	return findings;
+}
+
 export function stepSettings(layout, o, state) {
 	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
 	// Win32 retains today's knowledge-only Claude hook surface; recognize managed hooks by script.
@@ -488,13 +508,14 @@ export function stepSettings(layout, o, state) {
 			.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
 		: wanted;
 	const live = new Set(applicable.map((w) => w.label));
-	const report = (added) => [
+	const report = (added, settings) => [
 		...wanted.map((w) => ({
 			label: `settings ${w.label}`,
 			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
 			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "bash hook"})` : added.includes(w.label) ? "added" : "already wired",
 		})),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
+		...retiredHookCommands(settings).map(({ event, command }) => ({ label: `settings ${event} retired hook`, status: PROBLEM, detail: `retired bash hook still wired: ${command}` })),
 	];
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
@@ -511,7 +532,10 @@ export function stepSettings(layout, o, state) {
 		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
 		return result;
 	};
-	if (o.dryRun) return report(merge(structuredClone(state.settings)).added);
+	if (o.dryRun) {
+		const settings = structuredClone(state.settings);
+		return report(merge(settings).added, settings);
+	}
 	return withSettingsLock(layout.claudeSettings, () => {
 		// Re-read INSIDE the lock: the preflight decided this install could run at all, this
 		// decides what is written, and the two must agree or nothing is written.
@@ -524,7 +548,7 @@ export function stepSettings(layout, o, state) {
 		}
 		const { added } = merge(fresh.settings);
 		if (added.length) writeSettingsAtomic(layout.claudeSettings, serialize(fresh.settings), fresh.snapshot, o);
-		return report(added);
+		return report(added, fresh.settings);
 	});
 }
 

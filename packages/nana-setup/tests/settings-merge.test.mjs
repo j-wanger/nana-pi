@@ -255,6 +255,17 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	check("re-install reports nothing to do", again.stdout.includes("nothing to do"));
 }
 
+/* --- end-to-end: retained retired commands fail installation ------------------------- */
+{
+	const home = freshHome();
+	const command = "/bin/bash /x/nana-objective.sh";
+	fs.writeFileSync(path.join(home, ".claude", "settings.json"), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command }] }] } }));
+	const r = run(["install"], home);
+	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+	// req: R-909
+	check("install reports retained retired bash invocation as PROBLEM and exits nonzero", r.status === 1 && /PROBLEM.*retired/i.test(r.stdout) && r.stdout.includes(command) && after.hooks.SessionStart.some((group) => group.hooks.some((entry) => entry.command === command)), r.stdout + r.stderr);
+}
+
 /* --- end to end: unparseable settings.json aborts and touches nothing ------------------ */
 {
 	const home = freshHome();

@@ -64,8 +64,18 @@ try {
 					if (hasSymlinkedComponent(claudeHome, memory)) {
 						note = "self-heal skipped: symlinked path component";
 					} else {
-						try { fs.lstatSync(link); } catch (error) {
-							if (error?.code === "ENOENT") fs.symlinkSync(shared, link, "junction");
+						let absent = false;
+						try { fs.lstatSync(link); }
+						catch (error) {
+							if (error?.code !== "ENOENT") throw error;
+							absent = true;
+						}
+						if (absent && !hasSymlinkedComponent(claudeHome, memory)) {
+							try { fs.lstatSync(link); }
+							catch (error) {
+								if (error?.code !== "ENOENT") throw error;
+								fs.symlinkSync(shared, link, "junction");
+							}
 						}
 					}
 				}
