@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
 // L1 invariant 6 for PROJECT scope (astra land ruling, MUST 1): a nana-trusted
 // project's gate block that becomes malformed must never widen the gate relative to
 // the last effective policy. Mid-session the last valid project gate loaded in this
@@ -29,21 +30,9 @@ import { pathToFileURL } from "node:url";
 // the store write /trust performs), as in config-trust.test.mjs; every gate run is a
 // fresh child node process sharing only the temp HOME.
 // Run: node --experimental-strip-types <this file>
-function findPiIndex() {
-	const cands = [];
-	try { cands.push(path.join(execSync("npm root -g", { encoding: "utf-8" }).trim(), "@earendil-works", "pi-coding-agent")); } catch {}
-	try {
-		const bin = fs.realpathSync(execSync(process.platform === "win32" ? "where pi" : "command -v pi", { encoding: "utf-8", shell: true }).trim().split(/\r?\n/)[0]);
-		for (let d = path.dirname(bin); d !== path.dirname(d); d = path.dirname(d)) if (path.basename(d) === "pi-coding-agent") { cands.push(d); break; }
-	} catch {}
-	for (const c of cands) if (fs.existsSync(path.join(c, "dist", "index.js"))) return path.join(c, "dist", "index.js");
-	return null;
-}
-const piIndex = findPiIndex();
-if (!piIndex) {
-	console.log("SKIP project gate fallback: @earendil-works/pi-coding-agent is not installed globally");
-	process.exit(0);
-}
+const piRoot = findPiRoot();
+const piIndex = path.join(piRoot, "dist", "index.js");
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
 const pi = await import(pathToFileURL(piIndex).href);
 
 const HOME = tmpDir(path.join(os.tmpdir(), "pgatefb-home-"));

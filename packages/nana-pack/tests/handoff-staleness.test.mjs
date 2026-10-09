@@ -1,15 +1,17 @@
 /**
  * @module packages/nana-pack/tests/handoff-staleness.test.mjs
  * @purpose Pins handoff provenance and staleness — a fresh file is injected in full with its provenance, and one older than the staleness window becomes a bounded pointer instead of text
- * @inputs extensions/nana-handoff.ts, handoff files whose `Written:` header carries the injected clock, and the installed pi path resolver when it can be located
+ * @inputs extensions/nana-handoff.ts, handoff files whose `Written:` header carries the injected clock, and the required installed pi path resolver
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME and handoff files), process (sets HOME, runs execSync to locate pi)
+ * @effects disk (temp HOME and handoff files), process (sets HOME)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
 // L3 invariants (c) provenance and (d) staleness. The clock is injected through the file's
 // own `Written:` header. Fresh → full text with provenance (agent-written compaction
 // summary, writer session, timestamp, lower authority than OBJECTIVE/AGENTS/HANDOFF,
@@ -17,34 +19,10 @@ import * as path from "node:path";
 // ≤300-char POINTER (path, age, writer), never the text; the path is one read away.
 // A new compaction resets it.
 // Run: node --experimental-strip-types <this file>
-import { execSync } from "node:child_process";
-// Every emitted pointer path is resolved the way pi's read tool resolves it — the REAL
-// installed pi `resolveToCwd` (dist/core/tools/path-utils.js) when found, else a replica of
-// it (strip one leading @, unicode spaces → " ", ~ / ~/ → homedir, else cwd-relative).
-async function findPiResolve() {
-	const cands = [];
-	try { cands.push(path.join(execSync("npm root -g", { encoding: "utf-8" }).trim(), "@earendil-works", "pi-coding-agent")); } catch {}
-	try {
-		const bin = fs.realpathSync(execSync(process.platform === "win32" ? "where pi" : "command -v pi", { encoding: "utf-8", shell: true }).trim().split(/\r?\n/)[0]);
-		for (let d = path.dirname(bin); d !== path.dirname(d); d = path.dirname(d)) if (path.basename(d) === "pi-coding-agent") { cands.push(d); break; }
-	} catch {}
-	for (const c of cands) {
-		const f = path.join(c, "dist", "core", "tools", "path-utils.js");
-		if (fs.existsSync(f)) return { how: `real pi ${f}`, resolveToCwd: (await import(new URL(`file://${f}`).href)).resolveToCwd };
-	}
-	return {
-		how: "replica (pi not installed)",
-		resolveToCwd: (p, cwd) => {
-			let n = p.replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, " ");
-			if (n.startsWith("@")) n = n.slice(1);
-			if (n === "~") n = os.homedir();
-			else if (n.startsWith("~/")) n = path.join(os.homedir(), n.slice(2));
-			return path.isAbsolute(n) ? path.resolve(n) : path.resolve(cwd, n);
-		},
-	};
-}
-const PI = await findPiResolve();
-console.log(`  resolver: ${PI.how}`);
+const piRoot = findPiRoot();
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+const pathUtils = path.join(piRoot, "dist", "core", "tools", "path-utils.js");
+const PI = { how: `real pi ${pathUtils}`, resolveToCwd: (await import(pathToFileURL(pathUtils).href)).resolveToCwd };
 const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;

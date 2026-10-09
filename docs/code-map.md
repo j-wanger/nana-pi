@@ -1322,7 +1322,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, temp git projects, trust store), process (sets HOME, runs git and child node processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/config-trust.test.mjs`
 
@@ -1427,12 +1427,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/handoff-staleness.test.mjs`
 
 - **purpose** — Pins handoff provenance and staleness — a fresh file is injected in full with its provenance, and one older than the staleness window becomes a bounded pointer instead of text
-- **inputs** — extensions/nana-handoff.ts, handoff files whose `Written:` header carries the injected clock, and the installed pi path resolver when it can be located
+- **inputs** — extensions/nana-handoff.ts, handoff files whose `Written:` header carries the injected clock, and the required installed pi path resolver
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and handoff files), process (sets HOME, runs execSync to locate pi)
+- **effects** — disk (temp HOME and handoff files), process (sets HOME)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/handoff-store.test.mjs`
 
@@ -1527,12 +1527,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/objective-golden.test.mjs`
 
 - **purpose** — The golden corpus pinning that the Claude Code hook's stdout and the pi extension's injected text are byte-identical once the hook's tag line is removed, and that both say the right thing
-- **inputs** — extensions/nana-objective.ts, the nana-objective bash hook, and OBJECTIVE.md fixtures under a temp HOME
+- **inputs** — extensions/nana-objective.ts, the nana-objective bash hook, OBJECTIVE.md fixtures under a temp HOME, and the required installed pi trust module
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, objective fixtures, a symlinked hook), process (sets HOME, runs the bash hook with node on PATH)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/objective-injection.test.mjs`
 
@@ -1551,7 +1551,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The validated @earendil-works/pi-coding-agent package root.
 - **effects** — process (runs npm or PATH lookup commands), disk (reads package metadata).
 - **errors** — Throws an Error naming each candidate that could not be resolved.
-- **callers** — `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`
+- **callers** — `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/pi-install.test.mjs`
@@ -1582,7 +1582,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/post-edit-hardening.test.mjs`
 
@@ -1597,12 +1597,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/post-edit-status.test.mjs`
 
 - **purpose** — Pins that post-edit reports EVERY run through ctx.ui.setStatus, so a working hook never looks identical to an absent one
-- **inputs** — extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, and a temp HOME
+- **inputs** — extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, the installed pi queue module, and a temp HOME
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands)
+- **effects** — disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands and loads pi through its bundled jiti)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/readme-check.test.mjs`
 

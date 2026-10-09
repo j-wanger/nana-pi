@@ -7,11 +7,11 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
 // Concurrency property: a post-edit checker holds pi's per-file mutation queue
 // while it runs, and REFUSES to run when it cannot hold it.
 //
@@ -33,17 +33,8 @@ let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function findPiRoot() {
-	try {
-		const root = execSync("npm root -g", { encoding: "utf-8" }).trim();
-		const p = path.join(root, "@earendil-works", "pi-coding-agent");
-		return fs.existsSync(path.join(p, "dist", "index.js")) ? p : null;
-	} catch {
-		return null;
-	}
-}
-
 const piRoot = findPiRoot();
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
@@ -53,10 +44,7 @@ process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 const jitiEntry = piRoot && path.join(piRoot, "node_modules", "jiti", "lib", "jiti.mjs");
-if (!piRoot || !fs.existsSync(jitiEntry)) {
-	console.log("SKIP file-queue: @earendil-works/pi-coding-agent (with its bundled jiti) is not installed globally");
-	process.exit(0);
-}
+if (!fs.existsSync(jitiEntry)) throw new Error(`installed pi package has no bundled jiti: ${jitiEntry}`);
 
 const packageIndex = path.join(piRoot, "dist", "index.js");
 const { createJiti } = await import(pathToFileURL(jitiEntry).href);

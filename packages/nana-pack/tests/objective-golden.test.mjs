@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/objective-golden.test.mjs
  * @purpose The golden corpus pinning that the Claude Code hook's stdout and the pi extension's injected text are byte-identical once the hook's tag line is removed, and that both say the right thing
- * @inputs extensions/nana-objective.ts, the nana-objective bash hook, and OBJECTIVE.md fixtures under a temp HOME
+ * @inputs extensions/nana-objective.ts, the nana-objective bash hook, OBJECTIVE.md fixtures under a temp HOME, and the required installed pi trust module
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, objective fixtures, a symlinked hook), process (sets HOME, runs the bash hook with node on PATH)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -12,7 +12,12 @@ import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
+const piRoot = findPiRoot();
+const piIndex = path.join(piRoot, "dist", "index.js");
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
+const piMod = await import(pathToFileURL(piIndex).href);
 // Golden corpus (lane T2a): for every case, the Claude Code hook's stdout and the pi
 // extension's injected text are BYTE-IDENTICAL once the hook's leading "[nana:objective]"
 // tag line is removed — nothing else is normalised. The hook runs for real (bash, through
@@ -105,6 +110,7 @@ function runHook(w, cwd, { noProjectDir = false } = {}) {
 		cwd: noProjectDir ? cwd : w.home,
 		env,
 		encoding: "utf-8",
+		// The hook's 10 s child timeout is this file's other timing assumption.
 		timeout: 10000,
 	});
 	return { status: r.status, out: r.stdout ?? "" };
@@ -646,19 +652,6 @@ for (const extra of [0, 1]) {
 // nor isProjectTrusted(). The pi oracle below therefore checks only the recorded-decision part:
 // ownerVouched(dir) === (new ProjectTrustStore(agentDir).get(dir) === true).
 // The real pi trust module, located BEFORE any HOME swap, is the parity oracle for the verdict.
-function findPiIndex() {
-	const cands = [];
-	try { cands.push(path.join(spawnSync("npm", ["root", "-g"], { encoding: "utf-8" }).stdout.trim(), "@earendil-works", "pi-coding-agent")); } catch {}
-	try {
-		const bin = fs.realpathSync(spawnSync("sh", ["-c", "command -v pi"], { encoding: "utf-8" }).stdout.trim());
-		for (let d = path.dirname(bin); d !== path.dirname(d); d = path.dirname(d)) if (path.basename(d) === "pi-coding-agent") { cands.push(d); break; }
-	} catch {}
-	for (const c of cands) if (c && fs.existsSync(path.join(c, "dist", "index.js"))) return path.join(c, "dist", "index.js");
-	return null;
-}
-const piIndex = findPiIndex();
-const piMod = piIndex ? await import(new URL(`file://${piIndex}`).href) : null;
-if (!piMod) console.log("SKIP pi-parity oracle: @earendil-works/pi-coding-agent is not installed");
 /** pi's ACTIVE store for a world: under w.agentDir when the world overrides it, else the default. */
 const store = (w) => path.join(!w.agentDir ? path.join(w.home, ".pi", "agent") : w.agentDir.startsWith("~/") ? path.join(w.home, w.agentDir.slice(2)) : path.resolve(w.agentDir), "trust.json");
 const defaultStore = (w) => path.join(w.home, ".pi", "agent", "trust.json");
@@ -669,8 +662,8 @@ const repairRemedy = (t, w, problem, object, detail, unreadable) => t.includes(`
 const unlabelled = (t) => !t.split("\n").some((l) => l.startsWith("UNTRUSTED DATA: ") || l.startsWith("To clear this label"));
 
 /** One corpus case: product governs from cwd; expect labelled or not; both runtimes identical; parity with pi. */
-async function provenance(label, w, want, { cwd = w.product, isProjectTrusted, piAgrees = true, problem = null, object, detail, unreadable } = {}) {
-	const t = await golden(`T2c ${label}`, w, cwd, () => {}, undefined, isProjectTrusted);
+async function provenance(label, w, want, { cwd = w.product, isProjectTrusted, piAgrees = true, problem = null, object, detail, unreadable, refreshLock } = {}) {
+	const t = await golden(`T2c ${label}`, w, cwd, () => {}, undefined, isProjectTrusted, refreshLock);
 	// req: R-022
 	check(`T2c ${label}: product still governs`, t.includes(`governing: ${w.productFile}\n${OBJ("ship the widget.")}`), t);
 	// req: R-021 R-027 R-032
@@ -1057,9 +1050,13 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 		for (const rec of [true, undefined]) {
 			const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
 			const lock = `${store(w)}.lock`; make(lock);
-			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail });
+			let readRefreshes = 0;
+			const refreshRead = async () => { const mtime = fs.statSync(lock).mtime; const refreshed = mtime > new Date() ? mtime : new Date(); fs.utimesSync(lock, refreshed, refreshed); readRefreshes++; };
+			await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail, refreshLock: refreshRead });
+			// req: R-760
+			check(`T17 ${k}: held read refreshed before both runtimes`, readRefreshes === 2);
 			let refreshed = 0;
-			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {}, undefined, undefined, () => { make(lock); refreshed++; });
+			const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {}, undefined, undefined, async () => { const mtime = fs.statSync(lock).mtime; const at = mtime > new Date() ? mtime : new Date(); fs.utimesSync(lock, at, at); refreshed++; });
 			// req: R-760
 			check(`T17 ${k}: lock is refreshed before each runtime`, refreshed === 2);
 			// req: R-760
@@ -1135,8 +1132,15 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 				const w = productWorld(); if (rec) writeStore(w, { [w.product]: true });
 				const lock = `${store(w)}.lock`; make(lock);
 				try {
-					await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail, unreadable: true });
-					const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {});
+				let heldRefreshes = 0;
+					const refreshHeld = async () => { const mtime = fs.statSync(lock).mtime; const refreshed = mtime > new Date() ? mtime : new Date(); fs.utimesSync(lock, refreshed, refreshed); heldRefreshes++; };
+					await provenance(`${k}, ${rec ? "affirmative" : "no"} record`, w, true, { problem: "store locked", object: lock, detail, unreadable: true, refreshLock: refreshHeld });
+					// req: R-760
+					check(`T17 ${k}: held read refreshed before both runtimes`, heldRefreshes === 2);
+					heldRefreshes = 0;
+					const t = await golden(`T17 ${k}, ${rec ? "affirmative" : "no"} record (remedy)`, w, w.product, () => {}, undefined, undefined, refreshHeld);
+					// req: R-760
+					check(`T17 ${k} remedy: held lock refreshed before both runtimes`, heldRefreshes === 2);
 					// req: R-856
 					check(`T17 ${k}: held-unreadable remedy — no move/delete advice, no /trust steps`, heldUnreadableRemedyOk(t), t);
 					if (piMod) {
@@ -1239,13 +1243,21 @@ for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPE
 					// mean HELD, so this checks the invariant (store locked, never obstructed, held-shaped
 					// detail), not which of the two sub-messages won that race. The two SYNTHETIC cases above
 					// pin each exact message deterministically (mtime set by us via utimesSync).
+					let realLockRefreshes = 0;
+					const refreshRealLock = () => { const now = new Date(); fs.utimesSync(lock, now, now); realLockRefreshes++; };
+					refreshRealLock();
 					enter(w);
 					let rec;
 					try { rec = trustRecord(w.product); } finally { leave(); }
+					// req: R-760
+					check("T17 real lock: trustRecord refreshed acquired lock before read", realLockRefreshes === 1);
+					const refreshRealLockAsync = async () => refreshRealLock();
 					const heldDetail = /^unreadable, and (less than 10 s old, so pi treats it as held|dated in the future \([^)]+\), so pi treats it as held until 10 s after that time)$/;
 					// req: R-760
 					check("T17 astra r1 regression: pi's genuinely acquired lock reads store locked, not obstructed", rec.problem === "store locked" && rec.unreadable === true && heldDetail.test(rec.detail ?? ""), JSON.stringify(rec));
-					const t = await golden("T17 astra r1 regression: remedy", w, w.product, () => {});
+					const t = await golden("T17 astra r1 regression: remedy", w, w.product, () => {}, undefined, undefined, refreshRealLockAsync);
+					// req: R-760
+					check("T17 real lock remedy: acquired lock refreshed before both runtimes", realLockRefreshes === 3);
 					// req: R-856
 					check("T17 astra r1 regression: held-unreadable remedy — no move/delete advice, no /trust steps", heldUnreadableRemedyOk(t), t);
 				} finally {

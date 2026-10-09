@@ -30,20 +30,6 @@ const check = (n, ok, extra) => {
 	if (!ok) fails++;
 };
 
-// Found BEFORE any HOME swap (objective-golden.test.mjs's own discipline: `npm root -g` and
-// `command -v pi` are both HOME/PATH-sensitive, and the fixtures below override HOME).
-function findPiIndex() {
-	try {
-		const root = spawnSync("npm", ["root", "-g"], { encoding: "utf-8" }).stdout.trim();
-		const candidate = path.join(root, "@earendil-works", "pi-coding-agent", "dist", "index.js");
-		if (fs.existsSync(candidate)) return candidate;
-	} catch {
-		/* fall through */
-	}
-	return null;
-}
-const piIndexPath = findPiIndex();
-
 const home = tmpDir(path.join(os.tmpdir(), "writing-inject-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;

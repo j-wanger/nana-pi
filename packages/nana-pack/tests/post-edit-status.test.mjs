@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/post-edit-status.test.mjs
  * @purpose Pins that post-edit reports EVERY run through ctx.ui.setStatus, so a working hook never looks identical to an absent one
- * @inputs extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, and a temp HOME
+ * @inputs extensions/nana-post-edit.ts, a nana-pack.json with passing and failing checkers, the installed pi queue module, and a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands)
+ * @effects disk (temp HOME, workspace files), process (sets HOME, runs the configured checker commands and loads pi through its bundled jiti)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -11,6 +11,11 @@ import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { findPiRoot } from "./pi-install.mjs";
+
+const piRoot = findPiRoot();
+console.log(`pi root: ${piRoot} (${process.env.DESK_PI_ROOT ? "DESK_PI_ROOT" : "installed pi locator"})`);
 // L1 fixture: a nana-only `.pi/` is never nana-trusted (pi auto-trusts it; that is not a
 // decision), so this file's config lives at USER scope under an isolated HOME
 // (os.homedir() reads HOME on posix, USERPROFILE on win32).
@@ -19,7 +24,6 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-import { pathToFileURL } from "node:url";
 // Visibility property: post-edit reports EVERY run through ctx.ui.setStatus, not
 // only the failing ones — a hook that is working must not look identical to a
 // hook that is absent. The status also preserves the rule that a check
@@ -267,19 +271,9 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 // own loader does — same setup as post-edit-file-queue.test.mjs), POSIX mode bits
 // and a non-root uid to make the acquisition fail.
 {
-	const piRoot = (() => {
-		try {
-			const root = execSync("npm root -g", { encoding: "utf-8" }).trim();
-			const p = path.join(root, "@earendil-works", "pi-coding-agent");
-			return fs.existsSync(path.join(p, "dist", "index.js")) ? p : null;
-		} catch {
-			return null;
-		}
-	})();
-	const jitiEntry = piRoot && path.join(piRoot, "node_modules", "jiti", "lib", "jiti.mjs");
-	if (!piRoot || !fs.existsSync(jitiEntry)) {
-		console.log("SKIP h: @earendil-works/pi-coding-agent (with its bundled jiti) is not installed globally");
-	} else if (process.platform === "win32" || process.getuid?.() === 0) {
+	const jitiEntry = path.join(piRoot, "node_modules", "jiti", "lib", "jiti.mjs");
+	if (!fs.existsSync(jitiEntry)) throw new Error(`installed pi package has no bundled jiti: ${jitiEntry}`);
+	if (process.platform === "win32" || process.getuid?.() === 0) {
 		console.log("SKIP h: lock refusal needs POSIX mode bits and a non-root uid");
 	} else {
 		const { createJiti } = await import(pathToFileURL(jitiEntry).href);
