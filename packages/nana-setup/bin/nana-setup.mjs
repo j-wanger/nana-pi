@@ -160,8 +160,8 @@ function within(root, target) {
 	return rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
 }
 
-function statePresence(target) {
-	if (target.includes("*")) return expandPattern(target).some((entry) => {
+function statePresence(target, home) {
+	if (target.includes("*")) return expandPattern(target, home).some((entry) => {
 		try { fs.lstatSync(entry); return true; }
 		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return false; throw err; }
 	}) ? "present" : "absent";
@@ -169,7 +169,20 @@ function statePresence(target) {
 	catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return "absent"; throw err; }
 }
 
+function hasSymlinkComponent(root, target) {
+	const relative = path.relative(root, target);
+	if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return true;
+	let current = root;
+	for (const part of relative.split(path.sep).filter(Boolean)) {
+		current = path.join(current, part);
+		try { if (fs.lstatSync(current).isSymbolicLink()) return true; }
+		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return false; throw err; }
+	}
+	return false;
+}
+
 function walkRegularFiles(root, current, files) {
+	if (hasSymlinkComponent(root, current)) return;
 	let st;
 	try { st = fs.lstatSync(current); } catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return; throw err; }
 	if (st.isSymbolicLink()) return;
@@ -190,18 +203,27 @@ function runState(opts) {
 	refuseCwdRelativePiHome(layout, "this state listing");
 	const rows = stateRows(layout);
 	if (!opts.paths) {
-		for (const row of rows) console.log(`${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${statePresence(row.path)}`);
+		for (const row of rows) console.log(`${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${statePresence(row.path, layout.base)}`);
 		return 0;
 	}
 	const files = new Set();
-	for (const row of rows.filter((entry) => entry.class === "durable")) {
+	const physical = (target) => path.resolve(target);
+	const rank = { durable: 0, rebuildable: 1, disposable: 2, "re-ratified": 3, secret: 4 };
+	const strongest = new Map();
+	for (const row of rows) {
+		const key = physical(row.path);
+		if (!strongest.has(key) || rank[row.class] > rank[strongest.get(key)]) strongest.set(key, row.class);
+	}
+	const durableRows = rows.filter((row) => row.class === "durable" && strongest.get(physical(row.path)) === "durable");
+	for (const row of durableRows) {
 		if (!within(layout.base, row.path)) {
 			console.error(`durable store outside home: ${row.store} (${row.path})`);
 			return 2;
 		}
-		const targets = row.path.includes("*") ? expandPattern(row.path) : [row.path];
+		const targets = row.path.includes("*") ? expandPattern(row.path, layout.base) : [row.path];
 		for (const target of targets) {
 			if (!within(layout.base, target)) { console.error(`durable store outside home: ${row.store} (${target})`); return 2; }
+			if (hasSymlinkComponent(layout.base, target)) continue;
 			const found = [];
 			walkRegularFiles(layout.base, target, found);
 			for (const file of found) {
@@ -215,19 +237,31 @@ function runState(opts) {
 	return 0;
 }
 
-function expandPattern(pattern) {
+function expandPattern(pattern, home) {
 	const absolute = path.resolve(pattern);
-	const root = path.parse(absolute).root;
-	const parts = absolute.slice(root.length).split(path.sep).filter(Boolean);
+	const root = home ?? path.parse(absolute).root;
+	const relative = path.relative(root, absolute);
+	if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return [];
+	const parts = relative.split(path.sep).filter(Boolean);
 	const walk = (current, index) => {
 		if (index === parts.length) return [current];
 		const part = parts[index];
-		if (!part.includes("*")) return walk(path.join(current, part), index + 1);
+		if (!part.includes("*")) {
+			const next = path.join(current, part);
+			try { if (fs.lstatSync(next).isSymbolicLink()) return []; }
+			catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
+			return walk(next, index + 1);
+		}
 		let entries;
 		try { entries = fs.readdirSync(current, { withFileTypes: true }); }
 		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
-		const matcher = new RegExp(`^${part.split("*").map((text) => text.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join(".*")}$`);
-		return entries.filter((entry) => matcher.test(entry.name)).flatMap((entry) => walk(path.join(current, entry.name), index + 1));
+		const matcher = new RegExp(`^${part.split("*").map((text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`);
+		return entries.filter((entry) => matcher.test(entry.name)).flatMap((entry) => {
+			const child = path.join(current, entry.name);
+			try { if (fs.lstatSync(child).isSymbolicLink()) return []; }
+			catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
+			return walk(child, index + 1);
+		});
 	};
 	return walk(root, 0);
 }

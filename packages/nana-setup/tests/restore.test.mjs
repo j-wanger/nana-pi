@@ -14,6 +14,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { spawnNpmRoot } from "../lib/npm-root.mjs";
+import { projectMemoryDir } from "../lib/project-key.mjs";
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -50,8 +51,7 @@ fs.mkdirSync(path.dirname(sourceLayout.piPackConfig), { recursive: true });
 fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
 const privateRule = byStore.get("private rule").path;
 const sharedMemory = byStore.get("shared memory").path;
-const projectMemoryRoot = byStore.get("project memories").path.replace(`${path.sep}*${path.sep}`, `${path.sep}`);
-const memoryDir = path.join(projectMemoryRoot, encodeURIComponent(project).replaceAll("%", "-"), "memory");
+const memoryDir = projectMemoryDir(sourceLayout.projectsDir, project);
 fs.mkdirSync(path.dirname(privateRule), { recursive: true });
 fs.mkdirSync(sharedMemory, { recursive: true });
 fs.mkdirSync(memoryDir, { recursive: true });
@@ -60,7 +60,13 @@ fs.writeFileSync(path.join(sharedMemory, "one.md"), "shared memory one\n");
 fs.writeFileSync(path.join(sharedMemory, "two.md"), "shared memory two\n");
 fs.writeFileSync(path.join(memoryDir, "project.md"), "project memory bytes\n");
 fs.symlinkSync(sharedMemory, path.join(memoryDir, "shared"), process.platform === "win32" ? "junction" : "dir");
-const ledger = sourceRows.filter((row) => row.store.startsWith("review ledger "));
+const transcript = path.join(sourceLayout.projectsDir, path.basename(path.dirname(memoryDir)), "session.jsonl");
+fs.mkdirSync(path.dirname(transcript), { recursive: true }); fs.writeFileSync(transcript, "secret:wildcard transcript\n");
+fs.mkdirSync(path.join(sourceLayout.piHome, "apps"), { recursive: true });
+fs.writeFileSync(path.join(sourceLayout.piHome, "apps", "app.txt"), "app fixture\n");
+fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
+fs.writeFileSync(path.join(home, ".local", "share", "nana", "state.dat"), "share bytes\n");
+const ledger = sourceRows.filter((row) => ["review ledger tally", "review ledger audit", "review ledger rotated"].includes(row.store));
 for (const [index, row] of ledger.entries()) {
   fs.mkdirSync(path.dirname(row.path), { recursive: true });
   fs.writeFileSync(row.path, `ledger bytes ${index}\n`);
@@ -75,19 +81,18 @@ fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "sources.json"), JSON.str
 fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "pull.log"), "pull bytes\n");
 fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
 fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
-fs.writeFileSync(path.join(home, ".local", "share", "nana", "state.dat"), "share bytes\n");
 const secrets = sourceRows.filter((row) => row.class === "secret");
-const forbiddenArchivePaths = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "trust.json"].map((name) => path.relative(home, path.join(sourceLayout.piHome, name))).concat([path.relative(home, path.join(sourceLayout.claudeHome, ".credentials.json")), path.relative(home, sourceLayout.claudeSettings)], sourceRows.filter((row) => ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"].includes(row.store)).map((row) => path.relative(home, row.path)));
+const forbiddenArchivePaths = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"].map((name) => path.relative(home, path.join(sourceLayout.piHome, name))).concat([path.relative(home, path.join(sourceLayout.piHome, "trust.json")), path.relative(home, path.join(sourceLayout.claudeHome, ".credentials.json")), path.relative(home, sourceLayout.claudeSettings), path.relative(home, transcript)], sourceRows.filter((row) => ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"].includes(row.store)).map((row) => path.relative(home, row.path)));
 for (const store of ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"]) {
   const row = byStore.get(store);
   if (row.kind === "dir") { if (fs.existsSync(row.path) && !fs.statSync(row.path).isDirectory()) fs.unlinkSync(row.path); fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "disposable.txt"), `disposable:${store}`); }
   else { fs.mkdirSync(path.dirname(row.path), { recursive: true }); fs.writeFileSync(row.path, `disposable:${store}`); }
 }
 for (const row of secrets) {
-  if (row.path.includes("*")) continue;
-  fs.mkdirSync(path.dirname(row.path), { recursive: true });
-  if (row.kind === "dir") { fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "marker.txt"), `secret:${row.store}`); }
-  else fs.writeFileSync(row.path, `secret:${row.store}`);
+  const secretPath = row.path.includes("*") ? transcript : row.path;
+  fs.mkdirSync(path.dirname(secretPath), { recursive: true });
+  if (row.kind === "dir") { fs.mkdirSync(secretPath, { recursive: true }); fs.writeFileSync(path.join(secretPath, "marker.txt"), `secret:${row.store}`); }
+  else fs.writeFileSync(secretPath, row.store === "Claude transcripts" ? "secret:wildcard transcript\n" : `secret:${row.store}`);
 }
 const trustSrc = run(["trust", project, "--yes", "--home", home], project);
 check("source project trust is recorded", trustSrc.status === 0 && new ProjectTrustStore(sourceLayout.piHome).get(project) === true, `${trustSrc.status} ${trustSrc.stderr}`);
@@ -99,6 +104,15 @@ const archived = spawnSync("tar", ["-czf", archive, "-C", home, "-T", listingFil
 const tarList = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
 const listedNames = listedPaths.stdout.trim().split("\n").filter(Boolean).sort();
 const archiveNames = tarList.stdout.trim().split("\n").filter(Boolean).map((name) => name.replace(/\/$/, "")).sort();
+const expectedDurableFiles = [
+  privateRule, path.join(sharedMemory, "MEMORY.md"), path.join(sharedMemory, "one.md"), path.join(sharedMemory, "two.md"),
+  path.join(memoryDir, "project.md"), ...ledger.map((row) => row.path), sourceLayout.piPackConfig, sourceLayout.piObjective,
+  sourceLayout.piSettings, path.join(sourceLayout.knowledgeHome, "sources.json"), path.join(sourceLayout.knowledgeHome, "pull.log"),
+  path.join(sourceLayout.piHome, "apps", "app.txt"), path.join(home, ".local", "share", "nana", "state.dat"),
+].filter((file) => fs.existsSync(file));
+const expectedRelative = expectedDurableFiles.map((file) => path.relative(home, file).split(path.sep).join("/")).sort();
+// req: R-958
+check("independent durable fixtures are all listed", expectedRelative.every((name) => listedNames.includes(name)), `${expectedRelative.filter((name) => !listedNames.includes(name)).join(", ")}\n${listedPaths.stderr}\n${listedNames.join("\n")}`);
 // req: R-958
 check("archive contains durable files only and no symlinks", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr}`);
 const clean = run(["state", "--home", destination]);
@@ -119,13 +133,13 @@ const doctorAfter = spawnSync(process.execPath, [cli, "doctor", "--home", destin
 const afterBad = doctorAfter.stdout.split("\n").filter((line) => /^\s*[!✗]/u.test(line));
 // req: R-959
 check("trust clears the only doctor warning", trustDst.status === 0 && doctorAfter.status === 0 && afterBad.length === 0, `${trustDst.status}; ${doctorAfter.status}\n${doctorAfter.stdout}\n${doctorAfter.stderr}`);
-const sourceBytes = new Map(listedNames.map((name) => [name, fs.readFileSync(path.join(home, name))]));
+const sourceBytes = new Map(expectedDurableFiles.map((file) => [path.relative(home, file).split(path.sep).join("/"), fs.readFileSync(file)]));
 let byteEqual = true;
 for (const [relative, bytes] of sourceBytes) {
   try { if (!fs.readFileSync(path.join(destination, relative)).equals(bytes)) byteEqual = false; } catch { byteEqual = false; }
 }
 // req: R-958
-check("restored durable files are byte-equal", byteEqual, [...sourceBytes.keys()].filter((name) => !fs.existsSync(path.join(destination, name))).join(", "));
+check("every independently expected durable fixture restores byte-equal", byteEqual, [...sourceBytes.keys()].filter((name) => !fs.existsSync(path.join(destination, name))).join(", "));
 const walk = (dir, found = []) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); found.push(file); if (entry.isDirectory()) walk(file, found); } return found; };
 const destinationPaths = walk(destination);
 const symlinkIntoSource = destinationPaths.filter((file) => { try { return fs.lstatSync(file).isSymbolicLink() && fs.realpathSync(file).startsWith(home + path.sep); } catch { return false; } });
