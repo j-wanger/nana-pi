@@ -39,22 +39,35 @@ try {
 		const prefix = path.join(root, "prefix");
 		fs.mkdirSync(bin); fs.mkdirSync(prefix);
 		fs.symlinkSync(process.execPath, path.join(bin, "node"));
-		fs.writeFileSync(path.join(bin, "npm"), `#!/bin/sh\nprintf '%s\\n' '${path.join(prefix, "lib", "node_modules")}\n`, { mode: 0o755 });
+		const globalRoot = path.join(prefix, "lib", "node_modules");
+		fs.writeFileSync(path.join(bin, "npm"), `#!/bin/sh\n[ "$1 $2" = "root -g" ] || exit 2\nprintf '%s\\n' '${globalRoot}'\n`, { mode: 0o755 });
 		process.env.PATH = `${bin}:/usr/bin:/bin`;
 		process.env.npm_config_prefix = prefix;
 		delete process.env.DESK_PI_ROOT;
+		const npmCandidate = path.join(globalRoot, "@earendil-works", "pi-coding-agent");
 		let missing = "";
 		try { findPiRoot(); } catch (error) { missing = error.message; }
 		// req: R-601
 		check("missing pi fails naming npm-root and PATH candidates", missing.includes("npm root -g") && missing.includes("realpath of pi on PATH"));
+		// req: R-601
+		check("missing pi diagnostic names the concrete npm package candidate", missing.includes(npmCandidate));
 
-		const executable = path.join(packageRoot, "bin", "pi");
+		const pathPackage = path.join(root, "path-package");
+		fs.mkdirSync(pathPackage, { recursive: true });
+		fs.writeFileSync(path.join(pathPackage, "package.json"), JSON.stringify({ name: "@earendil-works/pi-coding-agent" }));
+		const executable = path.join(pathPackage, "bin", "pi");
 		fs.mkdirSync(path.dirname(executable), { recursive: true });
 		fs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
 		fs.symlinkSync(executable, path.join(bin, "pi"));
 		const fromPath = findPiRoot();
 		// req: R-601
-		check("a PATH-resolved pi reports its resolution source", fromPath.root === fs.realpathSync(packageRoot) && fromPath.how === "PATH realpath");
+		check("a PATH-resolved pi reports its resolution source", fromPath.root === fs.realpathSync(pathPackage) && fromPath.how === "PATH realpath");
+
+		fs.mkdirSync(npmCandidate, { recursive: true });
+		fs.writeFileSync(path.join(npmCandidate, "package.json"), JSON.stringify({ name: "@earendil-works/pi-coding-agent" }));
+		const fromNpm = findPiRoot();
+		// req: R-601
+		check("npm root package wins over a distinct package on PATH", fromNpm.root === npmCandidate && fromNpm.how === "npm root -g");
 	}
 } finally {
 	if (oldDesk === undefined) delete process.env.DESK_PI_ROOT; else process.env.DESK_PI_ROOT = oldDesk;
