@@ -36,9 +36,10 @@ fs.writeFileSync(path.join(bin, "pi"), stub, { mode: 0o755 });
 fs.writeFileSync(path.join(apps, "uapp.json"), JSON.stringify({ port: 0, cwd, tools: ["read"] }));
 const serverPath = new URL("../server.mjs", import.meta.url).pathname;
 const server = spawn("node", [serverPath], { env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agent, DESK_PI_ROOT: piRoot, DESK_PORT: "0", DESK_APPS_DIR: apps, PATH: `${bin}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
-let output = "";
-server.stdout.on("data", c => { output += c; });
-server.stderr.on("data", c => { output += c; });
+let stdout = "";
+let stderr = "";
+server.stdout.on("data", c => { stdout += c; });
+server.stderr.on("data", c => { stderr += c; });
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const get = (base, route) => fetch(base + route);
 const post = (base, route, body) => fetch(base + route, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -48,7 +49,7 @@ const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name
 try {
 	let desk = 0, app = 0;
 	for (let i = 0; i < 100; i++) {
-		const match = output.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
+		const match = stdout.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
 		if (match) desk = Number(match[1]);
 		if (desk) {
 			try {
@@ -59,7 +60,7 @@ try {
 		}
 		await pause(50);
 	}
-	if (!desk || !app) throw new Error(`listeners did not bind: ${output}`);
+	if (!desk || !app) throw new Error(`listeners did not bind: ${stdout} | ${stderr}`);
 	const D = `http://127.0.0.1:${desk}`, A = `http://127.0.0.1:${app}`;
 	await get(D, "/");
 	await get(D, "/app.js");
@@ -76,7 +77,18 @@ try {
 	if (!appSession.id) throw new Error(`app session failed: ${JSON.stringify(appSession)}`);
 	await post(A, "/api/prompt", { message: "APPMARK" });
 	await pause(100);
-	const lines = output.split("\n").filter(line => line.includes('"event":"desk_usage"'));
+	const usageCount = text => text.split("\n").filter(line => line.includes('"event":"desk_usage"')).length;
+	const beforeNegatives = usageCount(stdout);
+	const sse = new AbortController();
+	const sseResponse = await fetch(`${A}/api/events`, { signal: sse.signal });
+	sse.abort();
+	const entriesResponse = await get(A, "/api/entries");
+	const dataResponse = await post(A, "/api/data/nope", {});
+	const rpcResponse = await post(D, `/api/session/${encodeURIComponent(spawned.id)}/rpc`, { command: { type: "not_a_real_rpc_command" } });
+	const rejectedResponse = await post(D, "/api/spawn", { cwd: "/definitely/not/a/desk/cwd" });
+	await pause(100);
+	const afterNegatives = usageCount(stdout);
+	const lines = stdout.split("\n").filter(line => line.includes('"event":"desk_usage"'));
 	const records = lines.map(line => JSON.parse(line));
 	const actual = records.map(({ surface, action }) => `${surface}:${action}`).sort();
 	// req: R-699
@@ -88,6 +100,10 @@ try {
 	check("usage timestamps parse and fall within the request window", records.length === 5 && records.every(({ ts }) => Number.isFinite(Date.parse(ts)) && Date.parse(ts) >= start && Date.parse(ts) <= end), JSON.stringify(records.map(r => r.ts)));
 	// req: R-699
 	check("usage records expose no request, prompt, cwd or session markers", records.length === 5 && !lines.join("\n").includes("MSGMARK") && !lines.join("\n").includes("APPMARK") && !lines.join("\n").includes("CWDMARK") && !lines.join("\n").includes(sessionId) && !lines.join("\n").includes(sessionFile), lines.join(" | "));
+	// req: R-699
+	check("usage lines are written to stdout only", lines.length === 5 && !stderr.includes('"event":"desk_usage"'), `stdout=${lines.length}, stderr=${stderr}`);
+	// req: R-699
+	check("SSE attach, entries, data, RPC and rejected requests add no usage line", beforeNegatives === 5 && afterNegatives === beforeNegatives && sseResponse.status === 200 && entriesResponse.status === 200 && dataResponse.status === 404 && rpcResponse.status >= 400 && rejectedResponse.status >= 400, `before=${beforeNegatives}, after=${afterNegatives}; statuses=${sseResponse.status}/${entriesResponse.status}/${dataResponse.status}/${rpcResponse.status}/${rejectedResponse.status}`);
 } catch (error) {
 	failures++;
 	console.log("FAIL usage line fixture", error.stack || error);
