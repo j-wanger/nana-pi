@@ -204,20 +204,55 @@ export function hasHook(settings, event, spec, matcher) {
 }
 
 /** Remove only the exact installer-owned context hook object. */
-export function removeRetiredContextHook(settings) {
+export function removeRetiredContextHook(settings, { hooksDir } = {}) {
 	const groups = settings?.hooks?.UserPromptSubmit;
 	if (!Array.isArray(groups)) return false;
 	let changed = false;
 	for (const group of groups) {
 		if (!Array.isArray(group?.hooks)) continue;
 		const kept = group.hooks.filter((hook) => {
-			const isRetired = hook && Object.keys(hook).length === 2 && hook.type === "command" && hook.command === "bash ~/.claude/hooks/context-size-check.sh";
+			const exact = hook && Object.keys(hook).length === 2 && hook.type === "command";
+			const isRetired = exact && (hook.command === "bash ~/.claude/hooks/context-size-check.sh" ||
+				(hooksDir && hook.command === `bash '${hooksDir}/context-size-check.sh'`));
 			if (isRetired) changed = true;
 			return !isRetired;
 		});
 		group.hooks = kept;
 	}
 	return changed;
+}
+
+function canonical(value) {
+	if (Array.isArray(value)) return value.map(canonical);
+	if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
+	return value;
+}
+
+/** Remove only objects exactly equal to a desired hook entry, preserving all unrelated structure. */
+export function removeInstallerHooks(settings, { hooksDir, repoRoot }) {
+	const wanted = desiredHooks({ hooksDir, repoRoot });
+	const desired = wanted.map((item) => canonical(item.entry));
+	const removed = [];
+	const hooks = settings?.hooks;
+	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
+	for (const [event, groups] of Object.entries(hooks)) {
+		if (!Array.isArray(groups)) continue;
+		for (let gi = groups.length - 1; gi >= 0; gi--) {
+			const group = groups[gi];
+			if (!Array.isArray(group?.hooks) || group.hooks.length === 0) continue;
+			const oldLength = group.hooks.length;
+			group.hooks = group.hooks.filter((entry) => {
+				const index = desired.findIndex((item) => JSON.stringify(item) === JSON.stringify(canonical(entry)));
+				if (index < 0) return true;
+				removed.push(wanted[index].label);
+				return false;
+			});
+			if (group.hooks.length === 0) groups.splice(gi, 1);
+		}
+		if (groups.length === 0) delete hooks[event];
+	}
+	if (Object.keys(hooks).length === 0) delete settings.hooks;
+	return removed;
 }
 
 /**

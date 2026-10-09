@@ -34,7 +34,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, mergeHooks, mergeKnowledgeHook, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { desiredHooks, mergeHooks, mergeKnowledgeHook, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 
 export class SetupError extends Error {}
@@ -470,7 +470,7 @@ export function stepSettings(layout, o, state) {
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 	];
 	const merge = (settings) => {
-		const retiredContext = removeRetiredContextHook(settings);
+		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
 		const other = applicable.filter((w) => w !== knowledge);
 		const migration = mergeKnowledgeHook(settings, {

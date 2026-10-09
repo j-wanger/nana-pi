@@ -209,12 +209,7 @@ Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/templa
 
 ### Updating and partial adoption
 
-- **Pack** — `pi update git:github.com/j-wanger/nana-pi` for this package alone,
-  `pi update --extensions` for every installed package; a local-clone install
-  just needs `git pull`.
-- **Claude Code half** — `git pull` is enough for the hooks and rules themselves (they are
-  symlinks into the clone); re-run `nana-setup install` when the repo adds a new hook, rule or
-  settings entry, and `nana-setup doctor` to see whether a machine is behind.
+- **Pack and Claude Code half** — follow the canonical [updating and removal runbook](packages/nana-setup/README.md#updating-and-removing) for source updates, install and doctor. Targetless `pi update` updates pi itself; `pi update <source>` and `pi update --extensions` update packages only.
 - **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
   switches user/project scope) to switch individual extensions and skills on or
   off. There is no per-skill install; enable/disable is the partial surface.

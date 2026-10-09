@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-setup/bin/nana-setup.mjs
  * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
- * @inputs argv (`install` | `doctor` | `project [dir]` | `state`, plus --home, --claude-home, --pi-home,
+ * @inputs argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
  *  --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
  *  defaulted project dir; whatever resolveLayout reads (HOME, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
@@ -39,10 +39,12 @@ import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProj
 import { SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
 import { stateRows } from "../lib/state-manifest.mjs";
+import { uninstall } from "../lib/uninstall.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
+  nana-setup uninstall --dry-run|--yes [options] remove nana-owned pieces safely
   nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
   nana-setup state [--paths] [options] list state stores; --paths prints durable regular-file paths
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
@@ -58,12 +60,12 @@ Options
   --not-a-project      project: dismiss a git repository root once (writes .nana-not-a-project,
                        commit it); the seat stops reporting it. Delete the file to adopt later.
   --dry-run            report what would change, write nothing
-  --yes                accepted for scripts; the installer never prompts
+  --yes                accepted for scripts; install never prompts
   -h, --help
 
-What it never touches: an existing ~/.claude/rules/nana-personal.md (private — it is created
-from the example only when absent and never read back), an existing nana-pack.json in the pi agent dir,
-and any hook, setting or package entry that is already there.
+Uninstall is POSIX-only and requires exactly one of --dry-run or --yes. Edited seeds, foreign settings
+entries, external links, backups and remote pi packages are left in place. Install never overwrites an
+existing private rule or pi config.
 `;
 
 function parse(argv) {
@@ -122,6 +124,16 @@ function refuseCwdRelativePiHome(layout, what) {
 			`directory, so ${what} would act on the wrong one. Pass --pi-home <absolute dir>, or set ` +
 			"PI_CODING_AGENT_DIR to an absolute path, and re-run.",
 	);
+}
+
+function runUninstall(opts) {
+	if (Boolean(opts.dryRun) === Boolean(opts.yes)) throw new SetupError("uninstall requires exactly one of --dry-run or --yes");
+	const layout = resolveLayout(opts);
+	refuseCwdRelativePiHome(layout, "this uninstall");
+	const results = uninstall(layout, opts);
+	const width = Math.max(1, ...results.map((r) => r.label.length));
+	for (const r of results) console.log(`  ${SYMBOL[r.status] ?? (r.status === "problem" ? "✗" : "–")} ${r.label.padEnd(width)}  ${r.status.padEnd(9)}${r.detail ? `  ${r.detail}` : ""}`);
+	return results.some((r) => r.status === "problem") ? 1 : 0;
 }
 
 function runInstall(opts) {
@@ -440,6 +452,7 @@ async function main(argv) {
 	}
 	try {
 		if (cmd === "install") return runInstall(opts);
+		if (cmd === "uninstall") return runUninstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
 		if (cmd === "state") return runState(opts);
 		if (cmd === "project") return await runProject(opts);

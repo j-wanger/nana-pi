@@ -734,7 +734,7 @@ is not":
   2026-10-04 Contract note below.
 - **The running desk is whatever was on disk when it started.** The launchd service
   (`com.nana.pi-desk`, port 7317) keeps executing the `server.mjs` it loaded at launch — edits in
-  this repo, including everything above, do not reach it until it is restarted.
+  this repo, including everything above, do not reach it until it is restarted. Follow the nana-setup [updating and removal runbook](../../packages/nana-setup/README.md#updating-and-removing) before updating the checkout.
 
 Fixed and worth remembering: the 2026-09-02 double-rendered-user-message bug. `send()` appends
 the user bubble optimistically *before* the POST and queues it; the `message_end` handler swaps

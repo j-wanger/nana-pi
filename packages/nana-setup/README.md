@@ -12,6 +12,7 @@ node packages/nana-setup/bin/nana-setup.mjs install      # install / repair ever
 node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓ or ✗ per piece; exits 1 on any ✗ or !
 node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
+node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run  # preview safe removal
 node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi project trust after confirmation
 ```
 
@@ -36,7 +37,7 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 | `requirements`, `spec`, `py-lint`, `py-review`, `py-test` skills | matching `~/.claude/skills/<name>` | **symlinks** to the same runtime-neutral `packages/nana-pack/skills/<name>` directories pi reads. Recognized stale nana-dev-kit copies are moved to dated backups outside the active skills root before linking; unknown or edited directories are left untouched and doctor reads ✗. The `scaffold-*` and `adopt-*` skills remain pi-only because they assume pi |
 | retired nana-dev-kit and broken Codex imports | `~/.claude/backups/` or `~/.agents/backups/` | recognized artifacts move to `<YYYY-MM-DD>-retired/` only after lstat and provenance checks; unknown content stays in place. `~/.agents/skills/synced/` is excluded. Existing repository context-warning markers are not scanned; install prints a reminder to remove them manually |
 | `~/.claude/rules/nana-personal.md` (private) | `~/.claude/rules/` | **copied from `claude/rules/nana-personal.example.md`, only when absent**, then never touched. It must be a REGULAR file: a symlink there aims your private text at some other file — plausibly one inside this repo, which is how a private rule gets committed — so install prints `✗ private rule is a symlink — replace with a regular file`, the summary refuses to say "everything was already in place", and doctor reads ✗ (lstat, not existsSync) |
-| SessionStart + UserPromptSubmit + PreToolUse hooks | `~/.claude/settings.json` | missing active entries are added without reordering foreign entries. Install removes only the exact managed `bash ~/.claude/hooks/context-size-check.sh` invocation; variants are preserved. The knowledge hook is migrated in place only when its timeout and status metadata match and its command is exactly the installer form `NODE_NO_WARNINGS=1 node '<absolute checkout>/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, allowing only the checkout path to differ. Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries. The Node Bash PreToolUse hook asks before a pipeline precedes `git commit` without active `pipefail`; a non-match or hook error abstains with empty stdout, and errors write a diagnostic to stderr. Claude Code documents the no-decision behavior: “If no decision is returned, Claude Code continues with its normal permission flow” ([PreToolUse decision control](https://code.claude.com/docs/en/hooks#pretooluse-decision-control)). The Claude Code hooks, including this verifier hook, are unavailable on Windows, so no PreToolUse verifier entry is installed there.
+| SessionStart + UserPromptSubmit + PreToolUse hooks | `~/.claude/settings.json` | missing active entries are added without reordering foreign entries. Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved. The knowledge hook is migrated in place only when its timeout and status metadata match and its command is exactly the installer form `NODE_NO_WARNINGS=1 node '<absolute checkout>/packages/nana-knowledge/bin/nana-knowledge.ts' hook`, allowing only the checkout path to differ. Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries. The Node Bash PreToolUse hook asks before a pipeline precedes `git commit` without active `pipefail`; a non-match or hook error abstains with empty stdout, and errors write a diagnostic to stderr. Claude Code documents the no-decision behavior: “If no decision is returned, Claude Code continues with its normal permission flow” ([PreToolUse decision control](https://code.claude.com/docs/en/hooks#pretooluse-decision-control)). The Claude Code hooks, including this verifier hook, are unavailable on Windows, so no PreToolUse verifier entry is installed there.
 | shared auto-memory | `~/.claude/nana-memory/shared/MEMORY.md` | created when absent |
 | per-project `shared` symlink | `~/.claude/projects/<key>/memory/shared` | **no installer step** — the SessionStart hook creates it, per project, per session |
 | `nana-pack.json` | the pi agent dir (`PI_CODING_AGENT_DIR`, else `~/.pi/agent/`) | seeded **only when absent** |
@@ -53,9 +54,25 @@ index) and to `launchctl` (only with `--desk`, only on macOS, only against the r
 
 **Verifier-pipe guard (user-scope):** every session will prompt before running a Claude Code Bash command that pipelines output before `git commit` without earlier active `pipefail`; this Claude Code hook is unavailable on win32. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Claude Code documents the response shape as `hookSpecificOutput` with `hookEventName: "PreToolUse"`, `permissionDecision: "ask"`, and `permissionDecisionReason` ([PreToolUse hook output](https://docs.anthropic.com/en/docs/claude-code/hooks#pretooluse-decision-control)). Non-matches and hook errors abstain (empty stdout), so Claude Code's normal permission flow continues; errors write a diagnostic to stderr.
 
-## Updating the checkout with the desk
+## Updating and removing
 
-Before updating this checkout, quiesce desk activity and close or pause sessions that depend on it. Update the checkout only after the desk is quiescent. Then explicitly repair and restart the desk with `node packages/nana-setup/bin/nana-setup.mjs install --desk`, and verify the result with `node packages/nana-setup/bin/nana-setup.mjs doctor`. Doctor must report the desk running and its plist-selected Node version healthy.
+### Update nana-pi
+
+1. Finish or pause desk sessions, then run `launchctl bootout gui/$(id -u)/com.nana.pi-desk` if the service is installed.
+2. Update the source with `git -C <clone> pull --ff-only`. On the machine whose main branch is the live install, landing the change is the update. Quiesce before `nana-land` only when `git diff --name-only main...feat/<lane> -- apps/desk packages/nana-stage packages/nana-pack/lib/agent-dir.mjs` is non-empty.
+3. Run `node packages/nana-setup/bin/nana-setup.mjs install --desk` (drop `--desk` when there is no desk service).
+4. Run `node packages/nana-setup/bin/nana-setup.mjs doctor`.
+
+Upgrade pi itself with `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>`. Never run targetless `pi update`, `pi update --all` or `pi update --self`; `pi update <source>` and `pi update --extensions` update packages only.
+
+### Remove nana setup
+
+1. Boot out the desk service if installed: `launchctl bootout gui/$(id -u)/com.nana.pi-desk`.
+2. Preview with `node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run`.
+3. Remove confirmed nana-owned pieces with `node packages/nana-setup/bin/nana-setup.mjs uninstall --yes`.
+4. Run each printed `pi remove '<entry>'` command yourself.
+
+Edited seeds, memories, per-project `shared` links, pi trust records, backups, logs, knowledge sources and project files stay. Hand-written hook variants stay. No update command — the runbook is the sequence; build one only after a recorded miss.
 
 ## State and restore
 
@@ -148,14 +165,6 @@ own job: a third-party npm package, and pi's own MCP config.
   `nana-setup` never edits this file for you. Give the server an explicit `exposure`, or set
   `"autoEnableCodemode": false` beside `mcpServers`, to clear it. Absent entirely, this line is
   skipped — not everyone configures an MCP server.
-
-## Upgrading pi itself
-
-Upgrade with npm, **never `pi update`**: `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>`.
-Since 1.0.1, `pi update` on an npm install recommends migrating to pi.dev's managed installer,
-which moves the `pi` binary out of `npm root -g` — breaking this installer's and the desk's
-resolution until their own override variables are repointed at it. Nothing in this repo needs that
-migration; staying on the npm install keeps `doctor` and the desk working as documented here.
 
 ## `project` — a blank folder becomes a nana project
 
@@ -259,7 +268,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 - **Never runs `pi install` or `npm` for you** to bring `pi-subagents` to the version `doctor`
   checks for, and never edits `mcp.json` — both are read-only checks (above); the fix is a command
   `doctor` names, for you to run.
-- **Never removes or reorders** anything in `settings.json`. A hook counts as present only when
+- **Install never removes or reorders** existing settings entries except the two exact retired context-hook forms. `uninstall` removes only exact desired hook objects; variants and foreign entries stay. A hook counts as present only when
   the command actually **executes** that script: the command is tokenized with shell-quoting
   rules, leading `VAR=value` assignments are dropped, and `argv[0]` must be the interpreter
   (`bash`/`sh`/`zsh`, or `node`) with `argv[1]` a path ending in `/<script>` (plus the expected
@@ -320,10 +329,10 @@ Doctor's `release status` row is informational (·). It counts template commits 
 
 ## Idempotence
 
-Re-running is the normal case: the second run prints `nothing to do — everything was already in
-place`. `--dry-run` reports the same decisions and writes nothing.
+Re-running install is the normal case: the second run prints `nothing to do — everything was already in
+place`. `install --dry-run` reports the same decisions and writes nothing. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
 
-**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — and `doctor`
+**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — uninstall exits 1 only for a failure such as a loaded desk service or unsafe settings preflight. `uninstall` exits 2 when its confirmation mode is missing or the platform is win32. Left-by-design items are reported but do not fail. `doctor`
 also exits 1 on a `!` row, which says what was checked may not be what pi reads, so it never
 reports "all good" — something
 on disk is wrong and only you can fix it (today: a private rule that is not a regular file, or a
@@ -374,7 +383,8 @@ On Windows the Claude Code `requirements` skill is the only one mirrored (a copy
 --pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
 --desk               install + load the desk launchd service (macOS, opt-in)
 --dry-run            report what would change, write nothing
---yes                accepted for scripts; the installer never prompts
+--dry-run            uninstall: preview removal without writing
+--yes                uninstall: confirm removal; install never prompts
 ```
 
 A **relative** ambient `PI_CODING_AGENT_DIR` is resolved by each pi against its own start folder,
@@ -404,6 +414,7 @@ loudly and counted, never silent.
 
 | File | Covers |
 |---|---|
+| `tests/uninstall.test.mjs` | explicit confirmation, exact settings pruning, and released context-hook handling |
 | `tests/state-manifest.test.mjs` | classified inventory, layout coverage, ledger parity, secret classification, and read-only listing with inaccessible secret fixtures |
 | `tests/restore.test.mjs` | documented command lines, durable-store absence, inventory listing and restore ordering |
 | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, backup on collision, what is never overwritten (incl. a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |

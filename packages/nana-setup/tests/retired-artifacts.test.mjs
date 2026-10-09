@@ -126,6 +126,7 @@ try {
 		];
 		fs.writeFileSync(path.join(h, ".claude", "settings.json"), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
 			{ type: "command", command: "bash ~/.claude/hooks/context-size-check.sh" },
+			{ type: "command", command: `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'` },
 			...ownerHooks,
 		] }] } }, null, 2));
 		const foreign = path.join(h, "foreign-skill");
@@ -158,7 +159,7 @@ try {
 		// req: R-661
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
-		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant");
+		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "Jake" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
 		// req: R-662
