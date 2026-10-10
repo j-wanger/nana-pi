@@ -68,7 +68,7 @@ for (const [id, oldNode] of prior) {
   if (!now || oldNode.label !== now.label || oldNode.purpose !== now.purpose || JSON.stringify(oldNode.outcome) !== JSON.stringify(now.outcome)) throw Error(`tree-b changed identity, label, purpose or outcome for ${id}`);
 }
 const baseHeadings = [...prior.keys()];
-if (JSON.stringify(baseHeadings) !== JSON.stringify([...current.keys()].filter((id) => prior.has(id)))) throw Error("tree-b changed heading order");
+if (JSON.stringify(baseHeadings) !== JSON.stringify([...current.keys()])) throw Error("tree-b changed the complete heading set or order");
 for (const [id, oldNode] of prior) {
   const now = current.get(id);
   if (!oldNode.ids) continue;

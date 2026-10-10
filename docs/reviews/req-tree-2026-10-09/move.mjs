@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../../..");
 const BASE = "6b9202a501a7fe03dfc834ab34cdfc212f6d92ce";
-const INPUTS = "9e415db252464d47515f83a7b793569163a79a22";
+const INPUTS = "8c2ec5274662850a6e8173b5ef048aaf5b191548";
 const gitShow = (sha, path) => execFileSync("git", ["show", `${sha}:${path}`], { cwd: ROOT, encoding: "utf8" });
 const base = gitShow(BASE, "REQUIREMENTS.md");
 const tree = JSON.parse(gitShow(INPUTS, "docs/reviews/req-tree-2026-10-09/tree-b.json"));

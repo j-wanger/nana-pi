@@ -72,6 +72,9 @@ check("R-291: feature outline carries status and shared IDs", checkOutlineFields
 const sharedRow = actual.outline.split("\n").find((line) => /^\| [RG]-\d{3} \|/.test(line));
 // req: R-291
 check("R-291 fixture: outline field check rejects a missing shared-index row", Boolean(sharedRow) && checkOutlineFields(actual.outline.replace(`${sharedRow}\n`, ""), actual.parsed).some((p) => p.includes("index")), "shared index row was not detected");
+const multiListerRow = actual.outline.split("\n").find((line) => /^\| [RG]-\d{3} \|/.test(line) && line.split("|")[3].trim().includes(", "));
+// req: R-291
+check("R-291 fixture: field check rejects one sharing feature removed from an index row", Boolean(multiListerRow) && checkOutlineFields(actual.outline.replace(multiListerRow, multiListerRow.replace(/, FEAT-\d{3}/, "")), actual.parsed).some((p) => p.includes("index")), "missing sharing feature was not detected");
 // req: R-292
 check("R-292: real shared IDs exist once, are live, and belong to another feature", actual.problems.every((p) => !p.includes("Also applies")), actual.problems.join("; "));
 // req: R-293
@@ -127,10 +130,16 @@ for (const [label, text] of [
   ["duplicate ID", governance("active", "R-001, R-001")],
   ["retired ID", governance("active", "R-001") .replace("| R-001 | A shall work. | untested | — |", "| R-001 | A shall work. | retired | — |")],
   ["same-home ID", governance("active", "R-001").replace("FEAT-002 · Shared", "FEAT-001 · Shared")],
+  ["duplicate share lines", governance("active", "R-001").replace("Also applies: R-001", "Also applies: R-999\nAlso applies: R-001")],
 ]) {
   const result = checkTree(text);
   check(`R-292 fixture: rejects ${label}`, result.problems.some((p) => p.includes("Also applies")), result.problems.join("; "));
 }
+const duplicateStatus = checkTree(governance("active", "").replace("Purpose: shared\nStatus: active", "Purpose: shared\nStatus: done\nStatus: active"));
+// req: R-293
+check("R-293 fixture: duplicate status lines are named and rejected", duplicateStatus.problems.some((p) => /line \d+: FEAT-002 has duplicate Status: line/.test(p)), duplicateStatus.problems.join("; "));
+// req: R-292
+check("R-292 fixture: duplicate Also applies lines validate each listed ID", checkTree(governance("active", "R-001").replace("Also applies: R-001", "Also applies: R-999\nAlso applies: R-001")).problems.some((p) => p.includes("R-999 does not exist")), "invalid earlier share was ignored");
 // req: R-292
 check("R-292: shared requirement clauses reject invalid IDs", ["R-999", "R-001, R-001"].every((also) => checkTree(governance("active", also)).problems.some((p) => p.includes("Also applies"))) && checkTree(governance("active", "R-001").replace("| R-001 | A shall work. | untested | — |", "| R-001 | A shall work. | retired | — |")).problems.some((p) => p.includes("retired")) && checkTree(governance("active", "R-001").replace("FEAT-002 · Shared", "FEAT-001 · Shared")).problems.some((p) => p.includes("homed")), "a share mutation was accepted");
 for (const [label, status] of [["missing", null], ["unknown", "done"], ["empty frozen", "frozen ()"], ["empty retired", "retired ()"], ["blank reason", "frozen (   )"]]) {
@@ -162,7 +171,8 @@ const sample = fixture("| ID | Requirement | Status | Evidence |\n|---|---|---|-
 const parsedSample = parseLedger(sample);
 const original = renderOutline(parsedSample);
 // req: R-291
-check("R-291 fixture: outline field check rejects missing status and shared index data", checkOutlineFields(original.replace("  Status: active\n", ""), parsedSample).some((p) => p.includes("status")) && checkOutlineFields(original.replace("| ID | Home | Also applies to | Count |", "| ID | Home | Count |"), parsedSample).some((p) => p.includes("index")), checkOutlineFields(original, parsedSample).join("; "));
+check("R-291 fixture: independent field check catches a broken renderer dropping status", checkOutlineFields(renderOutline(parsedSample).replace("  Status: active\n", ""), parsedSample).some((p) => p.includes("status")), checkOutlineFields(original, parsedSample).join("; "));
+check("R-291 fixture: independent field check rejects missing shared index data", checkOutlineFields(original.replace("| ID | Home | Also applies to | Count |", "| ID | Home | Count |"), parsedSample).some((p) => p.includes("index")), checkOutlineFields(original, parsedSample).join("; "));
 for (const [field, mutate] of [
   ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
   ["label", (s) => s.replace("FEAT-001 · B", "FEAT-001 · Changed")],

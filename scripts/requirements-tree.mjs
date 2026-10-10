@@ -39,13 +39,13 @@ function scanBlocks(lines) {
     if (atx) {
       const structural = HEADING.exec(line);
       headingsByLine.set(i, structural
-        ? { level: atx[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", status: null, statusLine: null, alsoApplies: [], parent: null, rows: [], markdownHeading: true }
-        : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", status: null, statusLine: null, alsoApplies: [], parent: null, rows: [], markdownHeading: true });
+        ? { level: atx[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true }
+        : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true });
       continue;
     }
     if (SETEXT.test(line) && i > 0 && lines[i - 1].trim() && !ATX.test(lines[i - 1]) && !SETEXT.test(lines[i - 1]) && lines[i - 1] !== TABLE_HEADER && !ROW.test(lines[i - 1])) {
       const prior = headingsByLine.get(i - 1);
-      if (!prior) headingsByLine.set(i - 1, { level: line.trimStart()[0] === "=" ? 1 : 2, id: null, label: lines[i - 1].trim(), line: i, purpose: "", status: null, alsoApplies: [], parent: null, rows: [], markdownHeading: true });
+      if (!prior) headingsByLine.set(i - 1, { level: line.trimStart()[0] === "=" ? 1 : 2, id: null, label: lines[i - 1].trim(), line: i, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true });
     }
   }
   return { opaque, headingsByLine };
@@ -76,10 +76,15 @@ export function parseLedger(text) {
       for (let j = i + 1; j < lines.length && !headingsByLine.has(j); j++) {
         if (opaque[j]) continue;
         if (!heading.purpose && /^Purpose:/.test(lines[j])) heading.purpose = lines[j].slice("Purpose:".length).trim();
-        if (heading.id.startsWith("FEAT-") && /^Status:/.test(lines[j])) { heading.status = lines[j].slice("Status:".length).trim(); heading.statusLine = j + 1; }
+        if (heading.id.startsWith("FEAT-") && /^Status:/.test(lines[j])) {
+          const value = lines[j].slice("Status:".length).trim();
+          heading.statusLines.push({ value, line: j + 1 });
+          if (heading.statusLines.length === 1) { heading.status = value; heading.statusLine = j + 1; }
+        }
         if (heading.id.startsWith("FEAT-") && /^Also applies:/.test(lines[j])) {
           const value = lines[j].slice("Also applies:".length).trim();
-          heading.alsoApplies = value ? value.split(/,\s*/) : [];
+          heading.alsoAppliesLines.push({ value, line: j + 1 });
+          if (value) heading.alsoApplies.push(...value.split(/,\s*/));
         }
       }
     }
@@ -160,20 +165,25 @@ export function checkLifecycleAndShares(parsed) {
   for (const feature of features) {
     const status = feature.status;
     const featureTable = parsed.tables.find((table) => table.heading === feature || table.heading?.parent === feature);
+    if (feature.statusLines.length > 1) for (const entry of feature.statusLines) problems.push(`line ${entry.line}: ${feature.id} has duplicate Status: line`);
+    if (feature.alsoAppliesLines.length > 1) for (const entry of feature.alsoAppliesLines) problems.push(`line ${entry.line}: ${feature.id} has duplicate Also applies: line`);
     if (!status || !STATUS.test(status) || (featureTable && feature.statusLine >= featureTable.line)) problems.push(`line ${feature.line}: ${feature.id} has a missing, late or invalid Status: line`);
     if (status && /^(?:proposed|retired\b)/.test(status)) {
       const ids = parsed.headings.filter((h) => h === feature || h.parent === feature || h.parent?.parent === feature).flatMap((h) => h.rows);
       if (ids.length) problems.push(`${feature.id} has Status ${status} but holds rows`);
     }
     const seen = new Set();
-    for (const id of feature.alsoApplies) {
-      let why = "";
-      if (!/^[RG]-\d{3}$/.test(id) || !rowHome.has(id)) why = "does not exist";
-      else if (seen.has(id)) why = "is listed more than once";
-      else if (rowStatus.get(id) === "retired") why = "is retired";
-      else if (rowHome.get(id) === feature.id) why = "is homed in this feature";
-      if (why) problems.push(`${feature.id} Also applies: ${id} ${why}`);
-      seen.add(id);
+    for (const entry of feature.alsoAppliesLines) {
+      const ids = entry.value ? entry.value.split(/,\s*/) : [];
+      for (const id of ids) {
+        let why = "";
+        if (!/^[RG]-\d{3}$/.test(id) || !rowHome.has(id)) why = "does not exist";
+        else if (seen.has(id)) why = "is listed more than once";
+        else if (rowStatus.get(id) === "retired") why = "is retired";
+        else if (rowHome.get(id) === feature.id) why = "is homed in this feature";
+        if (why) problems.push(`line ${entry.line}: ${feature.id} Also applies: ${id} ${why}`);
+        seen.add(id);
+      }
     }
   }
   return problems;
@@ -264,33 +274,67 @@ export function expandRowIds(text) {
 export function checkOutlineFields(outline, parsed) {
   const problems = [];
   const lines = outline.split("\n");
-  for (const h of parsed.headings) {
-    const titleIndex = lines.findIndex((line) => line.includes(`**${h.id} · `));
-    if (titleIndex < 0) { problems.push(`${h.id}: outline field ID is missing`); continue; }
-    const expected = renderOutline(parsed).split("\n");
-    const statusOffset = h.id.startsWith("FEAT-") ? 2 : 0;
-    const positions = [0, 1, 2 + statusOffset];
-    for (const offset of positions) {
-      if (lines[titleIndex + offset] !== expected[titleIndex + offset]) {
-        const label = offset === 0 ? (lines[titleIndex].includes(`**${h.id} · `) ? "label" : "ID") : offset === 1 ? "purpose" : "metadata";
-        problems.push(`${h.id}: outline field ${label} is missing or altered`);
+  const compress = (ids) => {
+    const groups = new Map();
+    for (const id of ids) {
+      const prefix = id[0];
+      if (!groups.has(prefix)) groups.set(prefix, []);
+      groups.get(prefix).push(Number(id.slice(2)));
+    }
+    const result = [];
+    for (const [prefix, values] of groups) {
+      const numbers = [...new Set(values)].sort((a, b) => a - b);
+      for (let i = 0; i < numbers.length;) {
+        let end = i;
+        while (end + 1 < numbers.length && numbers[end + 1] === numbers[end] + 1) end++;
+        const first = `${prefix}-${String(numbers[i]).padStart(3, "0")}`;
+        const last = `${prefix}-${String(numbers[end]).padStart(3, "0")}`;
+        result.push(end - i >= 2 ? `${first}–${last}` : first);
+        if (end - i === 1) result.push(last);
+        i = end + 1;
       }
     }
-    const detailOffset = titleIndex + (h.id.startsWith("FEAT-") ? 4 : 2);
-    const actualDetail = /^\s+Parent: (.*?) · Rows: (\d+) · IDs: (.*)$/.exec(lines[detailOffset] ?? "");
-    const expectedDetail = /^\s+Parent: (.*?) · Rows: (\d+) · IDs: (.*)$/.exec(expected[detailOffset] ?? "");
-    if (!actualDetail || !expectedDetail || actualDetail[1] !== expectedDetail[1]) problems.push(`${h.id}: outline field parent is missing or altered`);
-    if (!actualDetail || !expectedDetail || actualDetail[2] !== expectedDetail[2]) problems.push(`${h.id}: outline field row count is missing or altered`);
-    if (!actualDetail || !expectedDetail || actualDetail[3] !== expectedDetail[3]) problems.push(`${h.id}: outline field row IDs are missing or altered`);
+    return result.join(", ") || "—";
+  };
+  const descendsFrom = (candidate, ancestor) => {
+    let parent = candidate;
+    while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
+    return false;
+  };
+  for (const h of parsed.headings) {
+    const prefix = "  ".repeat(h.level - 1);
+    const titleIndex = lines.findIndex((line) => line.startsWith(`${prefix}- **${h.id} · `));
+    if (titleIndex < 0) { problems.push(`${h.id}: outline field ID is missing`); continue; }
+    if (lines[titleIndex] !== `${prefix}- **${h.id} · ${h.label}**`) problems.push(`${h.id}: outline field label is missing or altered`);
+    if (lines[titleIndex + 1] !== `${prefix}  Purpose: ${h.purpose}`) problems.push(`${h.id}: outline field purpose is missing or altered`);
+    const hasChildren = parsed.headings.some((candidate) => candidate.parent === h);
+    const rows = hasChildren ? parsed.headings.filter((candidate) => descendsFrom(candidate, h)).flatMap((candidate) => candidate.rows) : h.rows;
+    let detailOffset = 2;
     if (h.id.startsWith("FEAT-")) {
-      if (lines[titleIndex + 2] !== expected[titleIndex + 2]) problems.push(`${h.id}: outline status is missing or altered`);
-      if (lines[titleIndex + 3] !== expected[titleIndex + 3]) problems.push(`${h.id}: outline shared requirements are missing or altered`);
+      if (lines[titleIndex + 2] !== `${prefix}  Status: ${h.status ?? ""}`) problems.push(`${h.id}: outline status is missing or altered`);
+      if (lines[titleIndex + 3] !== `${prefix}  Also applies: ${h.alsoApplies.join(", ") || "—"}`) problems.push(`${h.id}: outline shared requirements are missing or altered`);
+      detailOffset = 4;
     }
+    const expectedDetail = `${prefix}  Parent: ${h.parent?.id ?? "—"} · Rows: ${rows.length} · IDs: ${compress(rows)}`;
+    const actualDetail = lines[titleIndex + detailOffset] ?? "";
+    if (!actualDetail.includes(`Parent: ${h.parent?.id ?? "—"}`)) problems.push(`${h.id}: outline field parent is missing or altered`);
+    if (!actualDetail.includes(`Rows: ${rows.length} ·`)) problems.push(`${h.id}: outline field row count is missing or altered`);
+    if (!actualDetail.endsWith(`IDs: ${compress(rows)}`)) problems.push(`${h.id}: outline field row IDs are missing or altered`);
+    if (actualDetail !== expectedDetail && !problems.some((problem) => problem.startsWith(`${h.id}: outline field`))) problems.push(`${h.id}: outline field metadata is altered`);
   }
-  const expected = renderOutline(parsed).split("\n");
-  const expectedIndex = expected.slice(expected.findIndex((line) => line === "| ID | Home | Also applies to | Count |"));
-  const actualIndex = lines.slice(lines.findIndex((line) => line === "| ID | Home | Also applies to | Count |"));
-  if (expectedIndex.join("\n") !== actualIndex.join("\n")) problems.push("shared index is missing or altered");
+  const links = parsed.headings.filter((feature) => feature.id.startsWith("FEAT-")).flatMap((feature) => feature.alsoApplies.map((id) => ({ id, feature: feature.id })));
+  const homes = new Map();
+  for (const table of parsed.tables) for (const id of table.rows) homes.set(id, table.heading?.id?.startsWith("FEAT-") ? table.heading.id : table.heading?.parent?.id);
+  const grouped = new Map();
+  for (const link of links) {
+    if (!grouped.has(link.id)) grouped.set(link.id, { id: link.id, listers: [] });
+    grouped.get(link.id).listers.push(link.feature);
+  }
+  const before = (a, b) => (a.startsWith("R-") ? 0 : 1) - (b.startsWith("R-") ? 0 : 1) || Number(a.slice(2)) - Number(b.slice(2));
+  const expectedIndex = ["| ID | Home | Also applies to | Count |", "|---|---|---|---:|"];
+  for (const entry of [...grouped.values()].sort((a, b) => b.listers.length - a.listers.length || before(a.id, b.id))) expectedIndex.push(`| ${entry.id} | ${homes.get(entry.id) ?? "—"} | ${entry.listers.join(", ")} | ${entry.listers.length} |`);
+  const indexStart = lines.findIndex((line) => line === expectedIndex[0]);
+  if (indexStart < 0 || lines.slice(indexStart, indexStart + expectedIndex.length).join("\n") !== expectedIndex.join("\n") || lines.slice(indexStart + expectedIndex.length).some((line) => line.startsWith("| "))) problems.push("shared index is missing or altered");
   return problems;
 }
 export function checkTree(text) {
