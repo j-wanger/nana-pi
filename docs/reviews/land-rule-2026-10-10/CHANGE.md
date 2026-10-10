@@ -9,7 +9,7 @@ and R-992; R-969 and R-992 are shared with FEAT-008).
 Order: why → plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan
 review (item `land-rule-plan`; r1–r3 SEND-BACK, answered in `sol-plan-r1-response.md`,
 `sol-plan-r2-response.md` and `sol-plan-r3-response.md`; r4 over the cap, SEND-BACK, answered in
-`sol-plan-r4-response.md`) → Jake's tree decisions (checkpoint 1, before the build) → build → seat
+`sol-plan-r4-response.md`; r5 LAND-WITH-FIXES 9/10, its one SHOULD taken in §5) → Jake's tree decisions (checkpoint 1, before the build) → build → seat
 verification → sol build review → astra land review → Jake accepts (checkpoint 2).*
 
 ## 1. Why
@@ -219,9 +219,11 @@ at merge; copier consumers get it at the next template tag, which needs main pus
 - Every revision reviewed before this change needs a fresh review to land (every earlier record
   is tally version 1); records without a `verdict` field (156, before 2026-10-07) neither authorise nor
   refuse.
-- Cutover: a land process started from the OLD code before the first version-2 record, and still
-  running its suite when a new review records a version-2 SEND-BACK, merges on its earlier reading.
-  Deploy with no land process running; after the merge every land uses the linked new helper.
+- Cutover: until the first version-2 record exists, old code already loaded in a running process
+  still behaves as today — an old land process merges on its earlier reading, and an old review
+  completing against an existing version-1 LAND writes its rejection only to the audit log, where a
+  later version-2 LAND would not see it. Deploy with no land, review or worker process running (the
+  seat checks before the merge); after the merge every land and review uses the linked new code.
 - While a land holds the ledger lock (git rechecks and the ff-only merge), a review of ANOTHER
   revision that waits past the 15-second lock limit fails as it does today with any holder: its
   admission is refused, or its completion goes unrecorded with its output kept, and it is re-run.
