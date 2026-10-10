@@ -1,0 +1,34 @@
+{
+  "a valid LAND revision passes and integration commits are called out": {
+    "replacedBy": "uncovered integration commits are refused and named",
+    "why": "R-1002 refuses commits outside reviewed ancestry."
+  },
+  "runLand requires reviews or a nonblank exemption": {
+    "replacedBy": "runLand requires verified reviews",
+    "why": "R-1003 removed exemptions; reviews are now mandatory."
+  },
+  "suite failure leaves main unchanged and does not print a landed record": {
+    "replacedBy": "suite failure leaves main unchanged and prints no success report",
+    "why": "R-1007 removes landed records from successful output."
+  },
+  "branch switch at merge invocation refuses without landed records": {
+    "replacedBy": "branch switch at merge invocation refuses without a success report",
+    "why": "R-1007 removes landed records from successful output."
+  },
+  "release status failure after merge keeps success code and records": {
+    "replacedBy": "release status failure after merge keeps success code and output",
+    "why": "R-588 preserves success output without archive records."
+  },
+  "whitespace-only exemption is rejected and nonblank reason is trimmed": {
+    "retired": true,
+    "why": "R-978 retired"
+  },
+  "an exemption reason appears in the successful archive record": {
+    "retired": true,
+    "why": "R-978 retired"
+  },
+  "…and they are ONE round (1 tally line, 10 audit verdicts)": {
+    "replacedBy": "…and they are ONE round (10 v2 verdict records, 10 audit verdicts)",
+    "why": "Tally version 2 records each completed verdict while retaining one revision round."
+  }
+}
