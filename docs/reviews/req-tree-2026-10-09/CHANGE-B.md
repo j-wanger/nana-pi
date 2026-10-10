@@ -52,9 +52,10 @@ they end FEAT-028's table after R-291.
 Changed: R-291 (a lane row from increment 1, not yet on main) gains the new outline fields, so no
 separate outline row is needed (Fable): "The committed `docs/requirements-tree.md` shall equal the
 outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading
-its ID, label, purpose, status, parent, row count, row IDs and shared requirements, and ends with an
-index naming each shared requirement, its home feature and every feature that lists it."
-R-292's evidence must cite a mutation pair per clause (once, not retired, homed elsewhere).
+its ID, label, purpose, parent, row count and row IDs, for every feature also its status and shared
+requirements, and ends with an index naming each shared requirement, its home feature and every
+feature that lists it."
+R-292's evidence must cite a mutation pair per clause (exists, once, not retired, homed elsewhere).
 Retired: none. No pre-existing row (one on main) changes. The intro's reserve sentence records the
 consumption (§4, intro edits).
 
@@ -78,9 +79,14 @@ rules); `docs/code-map.md` (regenerated if headers change).
 ID other than R-292–R-294; R-291's text beyond §2; the trace rail; templates or copier files; the ID format; the lane brief
 template (next increment); subgroup or capability statuses; the HTML page.
 
-**Allowlist.** As increment 1's, plus nothing new. **Frozen at this increment's approved commit:**
-`CHANGE-B.md`, `tree-b.json`, `fixed-text-b.md`, `placement-review.md`, `placement-review.json`, and
-every increment-1 frozen file.
+**Allowlist (exact).** `REQUIREMENTS.md` · `scripts/requirements-tree.mjs` ·
+`packages/nana-pack/tests/requirements-tree.test.mjs` · `docs/requirements-tree.md` ·
+`docs/requirements-sections-2026-10-09.md` · `packages/nana-pack/skills/requirements/SKILL.md` ·
+`docs/code-map.md` · in `docs/reviews/req-tree-2026-10-09/`: `move.mjs`, `prove.mjs`,
+`prove-output.txt`, new builder reports. Not `package.json`, not any README.
+**Frozen at this increment's approved commit (seat-owned; the builder runs, never edits):**
+`CHANGE-B.md`, `tree-b.json`, `fixed-text-b.md`, `placement-review.md`, `placement-review.json`,
+`seat-verify-b.sh`, the increment-B build briefs, and every increment-1 frozen file.
 
 ## 4. Design
 
@@ -139,7 +145,8 @@ only the outline diff.
 2. `npm run req:tree`, `npm run map`, `npm run map:check`, `npm run test:locked` → exit 0.
 3. Mutation pairs (code or scratch copies only, red then green): an `Also applies:` entry naming a
    row homed in the same feature, a retired row, an unknown ID, and a duplicate (R-292, four); a
-   feature with no `Status:`, and one with `Status: done` (R-293); a `proposed` feature and a
+   feature with no `Status:`, one with `Status: done`, and `frozen ()`, `retired ()` and a whitespace-only
+   reason (R-293), while all four legal forms are accepted; a `proposed` feature and a
    `retired` feature each holding a row (R-294); an outline missing one shared row, one sharing
    feature, or one status (R-291); proof runs on scratch copies: a moved row left in its old home,
    a wrong `Status:` text, an `Also applies:` line with one ID dropped, and a `tree-b.json` with one
@@ -163,7 +170,7 @@ changes ≤ 6 files and ≤ 600 lines, not counting the re-rendered ledger, outl
 - R-139 (or a new row): pi-watchdog sets `NANA_HANDOFF=off` for every child — the R-137 share to
   FEAT-006 rests on it, and no row states it. Carried in HANDOFF (the Open questions block is
   byte-pinned by the proof).
-- The ID format: four IDs remain after this increment.
+- The ID format: five IDs remain after this increment.
 - Lane brief fields (`Feature:`, `Requirement delta:`, `Tree changes:`) and the land-time structure
   diff, which make the governance rules checkable.
 - Subgroup-level status, if partial freezes like the compaction store's need to show.

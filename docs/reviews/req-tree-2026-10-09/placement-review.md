@@ -182,8 +182,11 @@ Result: 17 moves, 113 shares over 95 requirements in 30 features, 992 rows kept 
 
 ## Consistency resolutions (critic)
 
+The critic's words, kept as written; where a later skeptic refuted one of its additions, a **Final** line says so. Its summary's "2 moves (R-948 and R-945)" became one move (R-948).
+
 - R-484 was moved to FEAT-022 and shared to FEAT-023, but its split twin R-426 (Esc inside the diff window) had no FEAT-022 share. Resolution: share R-426 -> FEAT-022.
 - R-949 (stage-key fixture requests port zero) was moved to FEAT-031, while its twin R-948 (app-listener fixture requests port zero) stayed in FEAT-027. R-945, a test-only budget from the same tranche, stayed in FEAT-026. Resolution: move R-948 and R-945 to FEAT-031. R-946 and R-947 assert product behaviour and stay.
+  - **Final:** R-948 moved to FEAT-031; R-945's move was REFUTED by the critic-additions skeptic and R-945 stays in FEAT-026 (see Refuted). The critic's text above is kept as written.
 - R-623, R-702 and R-831 share FEAT-006 because pi-worker runs the shared watchdog. R-700 (stall kill), R-728 (--retries meaning) and R-846 (argv split) are the same imported code (runWatchdog, parseWatchdogArgv, RETRIES_NOTICE) but had no share. Resolution: share all three with FEAT-006. R-919 (capture-dir cleanup) is housekeeping and gets no share.
 - R-781 says 'every other extension' but was shared only with FEAT-001, FEAT-002 and FEAT-030. nana-writing, nana-notify and nana-lifecycle also call loadConfig. Resolution: add FEAT-005 and FEAT-023. R-083 (no handler throws) is the narrower split parent and stays unshared, following the R-829 no-double-flag precedent.
 - R-578 and R-579 share FEAT-014, but their sibling R-583 (drift printed without failing) did not, although the earlier-tag update test pins it. Resolution: share R-583 -> FEAT-014. R-580 is the no-general-file fallback for nana-pi itself and stays unshared.

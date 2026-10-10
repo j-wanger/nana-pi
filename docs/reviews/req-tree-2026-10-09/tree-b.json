@@ -1771,7 +1771,7 @@
   "R-288": "Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text.",
   "R-289": "No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID.",
   "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup.",
-  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, status, parent, row count, row IDs and shared requirements, and ends with an index naming each shared requirement, its home feature and every feature that lists it.",
+  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs, for every feature also its status and shared requirements, and ends with an index naming each shared requirement, its home feature and every feature that lists it.",
   "R-292": "Every requirement ID on a feature's `Also applies:` line in REQUIREMENTS.md shall name, once, a requirement that is not retired and whose home is another feature.",
   "R-293": "Every feature heading in REQUIREMENTS.md shall be followed, before any table, by a `Status:` line reading `proposed`, `active`, `frozen (<reason>)` or `retired (<successor or reason>)`.",
   "R-294": "A feature whose `Status:` line in REQUIREMENTS.md reads `proposed` or `retired` shall hold no requirement rows."

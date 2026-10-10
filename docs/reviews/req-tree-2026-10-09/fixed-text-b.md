@@ -35,8 +35,10 @@ subgroup IDs are never renumbered or reused.
 A requirement's life. A new behaviour starts as a requirement diff in its home feature, then
 tagged tests, then code. A new row names its shares in that diff. Before changing a row, find it in
 the outline's shared index; a change to a shared row names its home and every feature that lists
-it, and the review reads them all. A share is re-read when its row changes; otherwise it stands
-until the next placement review. Retiring a row removes it from every `Also applies:` line in the
+it, and the review reads them all. A share is re-read in the same change when its row changes,
+when its row moves home, and when either feature changes purpose or status, splits, merges or
+retires; otherwise it stands until the next placement review. A frozen status is resolved in the
+change that follows the ruling it names. Retiring a row removes it from every `Also applies:` line in the
 same change. A split keeps the original ID for the first clause; a merge retires the merged rows
 with "superseded by <survivor>" in their Evidence.
 

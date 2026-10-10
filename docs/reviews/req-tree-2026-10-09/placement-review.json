@@ -1,4 +1,5 @@
 {
+ "erratum": "The critic summary and one consistency resolution propose moving R-948 AND R-945 to FEAT-031. The critic-additions verification (critic_additions_verification) upheld R-948 and REFUTED R-945, which stays in FEAT-026. tree-b.json applies the final decisions.",
  "workflow": {
   "results": [
    {
