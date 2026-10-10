@@ -18,4 +18,4 @@ Every finding was checked against the code and taken. `CHANGE.md` now reads:
 
 Rows now: FEAT-008 R-976, R-977, R-588 reworded, R-978 retired, R-1002–R-1007 and R-1009 added;
 FEAT-007 R-969, R-731, R-970, R-992 reworded, R-1008 and R-1010 added. The product report's rows
-start at R-1011.
+start at R-1011 (superseded: R-1011 went to the land rule in round 2; the report starts at R-1012).
