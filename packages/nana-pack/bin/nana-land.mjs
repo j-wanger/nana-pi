@@ -102,7 +102,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		}
 		const suiteResult = runCommand(suite, tree);
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
-		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `${notReviewedText}suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
 		withReviewLedgerLock(home, ({ rounds, reservations }) => {
 			checkRecords(rounds.filter((r) => r.repo === repo), reservations.filter((r) => r.repo === repo));
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
