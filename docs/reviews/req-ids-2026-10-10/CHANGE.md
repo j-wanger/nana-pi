@@ -37,18 +37,26 @@ Added to FEAT-028, after R-294 — the first four-digit IDs, allocated in order 
 | R-1001 | WHEN a line in REQUIREMENTS.md or REQUIREMENTS-general.md starts at column zero with a pipe, optional spaces and `R-` or `G-` followed by a non-space character, and is not a requirement row, the trace rail shall fail, naming the file and line. |
 
 A **requirement row** is a column-zero line with an opening and a closing pipe, exactly four cells,
-and an ID matching R-1000. A line is the text between newline characters; spaces, tabs and a
-carriage return at its end are ignored, so CRLF ledgers read (build r1 and r2 fixes). The rule is context-free, like the rail's row reading today: a candidate
+and an ID matching R-1000. Both rails read it the same way (build r1–r3 fixes, sol and astra build
+r1–r2): lines split only at LF ("\n"); one byte-order mark at the start of a file is ignored;
+whitespace means ONE explicit list in both rails — the union of JavaScript's and Python's own (tab,
+LF, VT, FF, CR, U+001C–U+001F, space, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029,
+U+202F, U+205F, U+3000, U+FEFF) — and it is ignored around cells, before the ID and after the
+closing pipe, so CRLF ledgers read. A marker's ID list splits on runs of that whitespace and
+commas. The rule is context-free, like the rail's row reading today: a candidate
 inside a fenced example or in an unrelated table counts too (the rail already reads a valid row
 there as a real row). Checked locally on 2026-10-10: every candidate line in nana-pi's ledger
 (1,012), the shared Part G file (22), both template ledgers, aml-desk's (365) and basketball-geek's
 (165) is a valid row, so no existing ledger trips it.
 
-**Compatibility break, declared in full:** the candidate prefix (`|`, optional spaces, `R-` or `G-`
-and a non-space character at column zero) is reserved on EVERY line of the two ledger files. Two
-things that pass today fail after this change, naming the line: a row missing its closing pipe
-(read today by the Python rail, skipped by the TypeScript one), and any non-row line that starts with
-the prefix — a fenced example, an unrelated table, prose. None exists in any ledger checked (§2).
+**Compatibility break, declared in full:** the candidate prefix (`|`, optional whitespace, `R-` or
+`G-` and a non-whitespace character at column zero) is reserved on EVERY line of the two ledger
+files. Three things that pass today fail after this change, naming the line: a row missing its
+closing pipe (read today by the Python rail, skipped by the TypeScript one); a character outside the
+whitespace list after the closing pipe (U+200B, a letter); and any non-row line that starts with
+the prefix — a fenced example, an unrelated table, prose. Residual: a character outside the list
+between the opening pipe and the ID (U+200B) makes the line neither a row nor a candidate in either
+rail. None exists in any ledger checked (§2).
 The template ledgers' ID line says so and tells authors to indent such an example or spell its
 first cell another way.
 

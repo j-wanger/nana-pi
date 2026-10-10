@@ -99,17 +99,97 @@ const pm = py(pyMarkers); out("PY R-1000 and G-1000 markers trace their rows", p
   const pc = py(pyC); out("PY CRLF test file: four-digit marker traces its row", pc.ok === null ? pc.text : `${pc.ok}${pc.ok ? "" : " " + pc.text.slice(0, 120)}`, "true");
 }
 
-// One line definition in both rails (seat, build r2): a line is the text between "\n" characters,
-// and only spaces, tabs and a carriage return are stripped from its end. A row whose cell holds
-// another Unicode line or paragraph separator, a form feed or a lone carriage return is still one
-// row; any other character after the closing pipe (here a no-break space) makes a near-miss.
+// One line definition in both rails (seat, build r2; whitespace list from sol build r2): a line is
+// the text between "\n" characters. A row whose cell holds another Unicode line or paragraph
+// separator, a form feed or a lone carriage return is still one row. Whitespace after the closing
+// pipe is ignored; any other character there (here a letter) makes a near-miss.
 {
   for (const [label, ch] of [["U+2028 line separator", " "], ["U+2029 paragraph separator", " "], ["U+0085 next line", "\u0085"], ["form feed", "\f"], ["lone carriage return", "\r"]]) {
     const L = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work${ch} well. | untested | — |\n| R-1000 | The tool shall accept four digits. | untested | — |\n` });
     both(`${label} inside a cell: the row is read and clean`, L, (r) => `${r.has("R-001")}/${r.has("R-1000")}/${r.ok}${r.ok ? "" : " " + r.text.slice(0, 100)}`, "true/true/true");
   }
-  const N = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work. | untested | — | \n` });
-  both("no-break space after the closing pipe fails", N, at("REQUIREMENTS.md", 5), "true/names REQUIREMENTS.md:5");
+  const N = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work. | untested | — |\u00a0\u3000\n` });
+  both("no-break and ideographic space after the closing pipe: row read and clean", N, (r) => `${r.has("R-001")}/${r.ok}${r.ok ? "" : " " + r.text.slice(0, 100)}`, "true/true");
+  const X = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work. | untested | — |x\n` });
+  both("a letter after the closing pipe fails", X, at("REQUIREMENTS.md", 5), "true/names REQUIREMENTS.md:5");
+}
+
+// Cross-rail parity (sol build r2): both rails give the SAME outcome on the same input — the rows
+// read, the IDs traced, or a failure at the same line. One rule in both: a file's single leading
+// U+FEFF is removed before lines are split; every whitespace test in the row, candidate and marker
+// grammars, cell trimming and line-end stripping uses ONE explicit list, the union of JavaScript's
+// and Python's own: tab, LF, VT, FF, CR, U+001C-U+001F, space, U+0085, U+00A0, U+1680,
+// U+2000-U+200A, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF; a marker's ID list splits on runs
+// of that whitespace and commas. Declared residual pinned here: a character outside the list (here
+// U+200B) between the opening pipe and the ID makes the line neither a row nor a candidate.
+{
+  function tsFull(dir) {
+    try { const r = rail.check(dir, { testRoots: ["tests"] }); return { err: null, rows: [...r.requirements.keys()].sort().join(","), traced: [...r.traced.keys()].sort().join(",") }; }
+    catch (e) { return { err: String(e.message || e) }; }
+  }
+  function pyFull(dir) {
+    if (!UVX) return null;
+    const code = [
+      "import runpy,sys,json; from pathlib import Path; import pytest",
+      "m=runpy.run_path(sys.argv[2])",
+      "try:",
+      "  r=m['check'](Path(sys.argv[1]), test_roots=('tests',))",
+      "  print(json.dumps({'err':None,'rows':','.join(sorted(r[0])),'traced':','.join(sorted(r[1]))}))",
+      "except pytest.UsageError as e:",
+      "  print(json.dumps({'err':str(e)}))",
+    ].join("\n");
+    const p = spawnSync("uvx", ["--with", "pytest", "python", "-c", code, dir, CONFTEST], { encoding: "utf8", cwd: dir });
+    try { return JSON.parse(p.stdout.trim().split("\n").pop()); } catch { return { err: `python run failed: ${(p.stderr || p.stdout).slice(-200)}` }; }
+  }
+  const norm = (o) => {
+    if (o === null) return "SKIP (uvx with pytest unavailable)";
+    if (o.err) { const m = o.err.match(/:(\d+):/); return m ? `fails at line ${m[1]}` : "fails"; }
+    return `rows ${o.rows || "none"}; traced ${o.traced || "none"}`;
+  };
+  const parity = (label, tsDir, pyDir, want) => { out(`TS ${label}`, norm(tsFull(tsDir)), want); out(`PY ${label}`, norm(pyFull(pyDir)), want); };
+  const r001 = "| R-001 | The tool shall work. | untested | — |";
+  const r1000 = "| R-1000 | The tool shall accept four digits. | untested | — |";
+  const g001 = "| G-001 | Every module shall carry a header. | untested | — |";
+  const ledger = (rows, pre = "") => `${pre}# f\n\n${HEAD}\n${rows.join("\n")}\n`;
+  const same = (files) => { const d = project(files); return [d, d]; };
+  const ODD = [["U+0085", "\u0085"], ["U+FEFF", "﻿"], ["no-break space", " "], ["U+2028", " "], ["U+001F", "\u001f"], ["U+3000", "　"]];
+
+  let d;
+  d = same({ "REQUIREMENTS.md": ledger([r001, r1000], "﻿") });
+  parity("BOM before the ledger title", ...d, "rows R-001,R-1000; traced none");
+  d = same({ "REQUIREMENTS.md": `﻿${r1000}\n${r001}\n` });
+  parity("BOM directly before a first-line row", ...d, "rows R-001,R-1000; traced none");
+  d = same({ "REQUIREMENTS.md": ledger([g001, r001]), "REQUIREMENTS-general.md": `﻿# g\n\n${HEAD}\n${g001}\n` });
+  parity("BOM before the general file's title", ...d, "rows G-001,R-001; traced none");
+  for (const [name, ch] of ODD) {
+    d = same({ "REQUIREMENTS.md": ledger([r001, `|${ch}R-1000 | The tool shall accept four digits. | untested | — |`]) });
+    parity(`${name} between the opening pipe and the ID: the row is read`, ...d, "rows R-001,R-1000; traced none");
+    d = same({ "REQUIREMENTS.md": ledger([`| R-1000${ch}| The tool shall accept four digits. | untested | — |`, r001]) });
+    parity(`${name} after the ID: the row is read`, ...d, "rows R-001,R-1000; traced none");
+    d = same({ "REQUIREMENTS.md": ledger([`| R-1000 | The tool shall accept four digits. |${ch}untested | — |`]) });
+    parity(`${name} padding the status cell: the row is read`, ...d, "rows R-1000; traced none");
+    d = same({ "REQUIREMENTS.md": ledger([`| R-1000 | The tool shall accept four digits. | untested | — |${ch}`]) });
+    parity(`${name} after the closing pipe: the row is read`, ...d, "rows R-1000; traced none");
+  }
+  d = same({ "REQUIREMENTS.md": ledger([r001, `|​R-1000 | The tool shall accept four digits. | untested | — |`]) });
+  parity("U+200B (not whitespace) before the ID: not a row in either rail (declared)", ...d, "rows R-001; traced none");
+  d = same({ "REQUIREMENTS.md": ledger([`| R-1000 | The tool shall accept four digits. | untested | — |​`]) });
+  parity("U+200B (not whitespace) after the closing pipe fails at its line", ...d, "fails at line 5");
+
+  const markerCase = (label, list, want, pre = "") => {
+    const t = project({ "REQUIREMENTS.md": ledger([r001, r1000]), "tests/a.test.mjs": `${pre}// req: ${list}\ntest("four", () => {});\n` });
+    const p = project({ "REQUIREMENTS.md": ledger([r001, r1000]), "tests/test_a.py": `${pre}# req: ${list}\ndef test_four():\n    pass\n` });
+    parity(label, t, p, want);
+  };
+  markerCase("BOM before a first-line marker", "R-1000", "rows R-001,R-1000; traced R-1000", "﻿");
+  markerCase("comma-joined marker list", "R-1000,R-001", "rows R-001,R-1000; traced R-001,R-1000");
+  markerCase("comma and space marker list", "R-1000, R-001", "rows R-001,R-1000; traced R-001,R-1000");
+  markerCase("tab-separated marker list", "R-1000\tR-001", "rows R-001,R-1000; traced R-001,R-1000");
+  for (const [name, ch] of [...ODD, ["U+2029", " "]]) {
+    markerCase(`${name} separating a marker list`, `R-1000${ch}R-001`, "rows R-001,R-1000; traced R-001,R-1000");
+    markerCase(`${name} after req:`, `${ch}R-1000`, "rows R-001,R-1000; traced R-1000");
+  }
+  markerCase("U+200B (not whitespace) inside a marker list fails at its line", "R-1000​R-001", "fails at line 1");
 }
 
 // Rejected near-misses, each in REQUIREMENTS.md and in REQUIREMENTS-general.md, at an exact line.
