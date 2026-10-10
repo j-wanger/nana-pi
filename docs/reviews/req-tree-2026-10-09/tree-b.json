@@ -1,0 +1,2146 @@
+{
+ "source": {
+  "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
+  "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
+  "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
+  "note": "Increment B input (frozen at the increment-B approved commit). Derived from tree.json (increment 1, approved 6b9202a) by: the 17 moves in `moves` (placement review of all 1,009 rows, docs/reviews/req-tree-2026-10-09/placement-review.md), each appended to its target table in ID order; R-292–R-295 appended to FEAT-028; per-feature `status` and `also_applies` (113 shares over 95 requirements, replacing the three See-also lines, all nine of which the review upheld); `intro_edits` replaces `intro_edit` and amendment A1 (both edits now apply to the original base intro)."
+ },
+ "purpose": "Help a developer turn project goals into useful software through agent work that remains understandable, bounded, verifiable, and reusable across projects.",
+ "outcomes": [
+  {
+   "label": "Understand what the product enables",
+   "description": "Find a capability, understand why it matters, and reach its relevant obligations without reading the whole ledger.",
+   "provenance": "Proposed outcome derived from the stated navigation problem."
+  },
+  {
+   "label": "Delegate one coherent change",
+   "description": "Distinguish the agreed increment from adjacent discoveries, blockers and future work.",
+   "provenance": "Proposed outcome derived from the stated scope-control problem."
+  },
+  {
+   "label": "Accept a change with useful evidence",
+   "description": "See the behavior changed, the requirement delta, the candidate revision, the checks performed and the remaining uncertainty.",
+   "provenance": "Proposed outcome derived from the control and robustness goals."
+  },
+  {
+   "label": "Reuse the experience across projects",
+   "description": "Adopt the appropriate workflow and controls without an unrelated toolchain migration.",
+   "provenance": "Proposed outcome derived from the stated cross-project goal."
+  },
+  {
+   "label": "Continue without reconstructing history",
+   "description": "Resume the current goal, scope, decisions and evidence with the right context available.",
+   "provenance": "Proposed outcome supported by the existing objective, handoff and knowledge features."
+  }
+ ],
+ "capabilities": [
+  {
+   "id": "CAP-01",
+   "label": "Maintain direction and useful context",
+   "purpose": "Keep the agent aligned with the project and carry useful knowledge between work sessions.",
+   "outcome": "A developer can start or resume work with the relevant goal, decisions, history and knowledge available.",
+   "features": [
+    {
+     "id": "FEAT-001",
+     "label": "Keep goals and priorities in view",
+     "purpose": "Provide the governing project objective and preserve its precedence over background context.",
+     "ids": [
+      "R-001",
+      "R-002",
+      "R-003",
+      "R-004",
+      "R-005",
+      "R-006",
+      "R-007",
+      "R-008",
+      "R-009",
+      "R-010",
+      "R-011",
+      "R-012",
+      "R-013",
+      "R-014",
+      "R-015",
+      "R-016",
+      "R-758",
+      "R-017",
+      "R-018",
+      "R-019",
+      "R-020",
+      "R-641",
+      "R-659"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-021",
+      "R-022",
+      "R-122",
+      "R-191",
+      "R-634",
+      "R-687",
+      "R-781",
+      "R-819"
+     ]
+    },
+    {
+     "id": "FEAT-002",
+     "label": "Resume decisions and next actions",
+     "purpose": "Carry compaction summaries and a clear handoff frontier into later work without presenting past agent output as authority.",
+     "subgroups": [
+      {
+       "id": "SUB-001",
+       "label": "Write and identify a compaction summary",
+       "purpose": "Find the correct store, write the summary atomically and report its origin and any write failure.",
+       "ids": [
+        "R-108",
+        "R-244",
+        "R-109",
+        "R-795",
+        "R-112",
+        "R-796",
+        "R-830",
+        "R-113",
+        "R-797",
+        "R-120",
+        "R-800",
+        "R-801",
+        "R-123"
+       ],
+       "astra_id": "SUB-002-01"
+      },
+      {
+       "id": "SUB-002",
+       "label": "Resume only the appropriate summary",
+       "purpose": "Decide whether a summary belongs to this directory and session, distinguish missing and unreadable state, and respect role exclusions.",
+       "ids": [
+        "R-110",
+        "R-111",
+        "R-114",
+        "R-798",
+        "R-115",
+        "R-116",
+        "R-117",
+        "R-118",
+        "R-119",
+        "R-799",
+        "R-121",
+        "R-137",
+        "R-138",
+        "R-807",
+        "R-140",
+        "R-808",
+        "R-141"
+       ],
+       "astra_id": "SUB-002-02"
+      },
+      {
+       "id": "SUB-003",
+       "label": "Frame recent and stale context",
+       "purpose": "Label summary authority and replace stale content with a readable, correctly bounded pointer.",
+       "ids": [
+        "R-122",
+        "R-124",
+        "R-802",
+        "R-125",
+        "R-126",
+        "R-127",
+        "R-128",
+        "R-803",
+        "R-129",
+        "R-189"
+       ],
+       "astra_id": "SUB-002-03"
+      },
+      {
+       "id": "SUB-004",
+       "label": "Use custom and legacy locations safely",
+       "purpose": "Resolve custom paths and reject unsafe or legacy locations without overwriting their contents.",
+       "ids": [
+        "R-130",
+        "R-131",
+        "R-248",
+        "R-880",
+        "R-132",
+        "R-133",
+        "R-805",
+        "R-134",
+        "R-806",
+        "R-245",
+        "R-135",
+        "R-136",
+        "R-142",
+        "R-828"
+       ],
+       "astra_id": "SUB-002-04"
+      },
+      {
+       "id": "SUB-005",
+       "label": "Keep next steps and open decisions current",
+       "purpose": "Inspect the HANDOFF frontier for oversized or stale entries and preserve unresolved owner questions across sessions.",
+       "ids": [
+        "R-873",
+        "R-874",
+        "R-875",
+        "R-876",
+        "R-877",
+        "R-878",
+        "R-879",
+        "R-682"
+       ],
+       "astra_id": "SUB-002-05"
+      }
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-079",
+      "R-139",
+      "R-185",
+      "R-634",
+      "R-641",
+      "R-781"
+     ]
+    },
+    {
+     "id": "FEAT-003",
+     "label": "Index and connect existing knowledge sources",
+     "purpose": "Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.",
+     "ids": [
+      "R-200",
+      "R-881",
+      "R-201",
+      "R-202",
+      "R-235",
+      "R-203",
+      "R-204",
+      "R-882",
+      "R-205",
+      "R-206",
+      "R-236",
+      "R-207",
+      "R-883",
+      "R-208",
+      "R-209",
+      "R-210",
+      "R-211",
+      "R-884",
+      "R-212",
+      "R-213",
+      "R-214",
+      "R-215",
+      "R-885",
+      "R-216",
+      "R-232",
+      "R-894",
+      "R-240",
+      "R-347",
+      "R-348",
+      "R-386",
+      "R-933",
+      "R-934",
+      "R-935",
+      "R-871",
+      "R-872"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-310"
+     ]
+    },
+    {
+     "id": "FEAT-004",
+     "label": "Retrieve relevant context with provenance",
+     "purpose": "Surface bounded, relevant knowledge pointers at the right moment with source framing and predictable failure behavior.",
+     "ids": [
+      "R-217",
+      "R-218",
+      "R-886",
+      "R-219",
+      "R-887",
+      "R-220",
+      "R-221",
+      "R-888",
+      "R-222",
+      "R-223",
+      "R-889",
+      "R-224",
+      "R-225",
+      "R-226",
+      "R-227",
+      "R-228",
+      "R-229",
+      "R-890",
+      "R-891",
+      "R-230",
+      "R-892",
+      "R-237",
+      "R-897",
+      "R-231",
+      "R-893",
+      "R-238",
+      "R-239",
+      "R-233",
+      "R-234",
+      "R-895",
+      "R-896"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-285",
+      "R-286",
+      "R-973",
+      "R-974"
+     ]
+    },
+    {
+     "id": "FEAT-005",
+     "label": "Communicate decisions clearly",
+     "purpose": "Deliver the preferred writing guidance and check report readability and structure.",
+     "ids": [
+      "R-690",
+      "R-742",
+      "R-743",
+      "R-744",
+      "R-745",
+      "R-746",
+      "R-747",
+      "R-748",
+      "R-749",
+      "R-750",
+      "R-751",
+      "R-752",
+      "R-753",
+      "R-754",
+      "R-755",
+      "R-376"
+     ],
+     "notes_from": [
+      "## 13a. The writing checker (nana-pack)",
+      "## 13b. The writing rule's delivery to pi (nana-pack)"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-641"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-02",
+   "label": "Deliver controlled changes",
+   "purpose": "Give builders, reviewers and the integration step separate responsibilities and concrete records.",
+   "outcome": "A developer can accept a bounded change with understandable review evidence and a controlled integration step.",
+   "features": [
+    {
+     "id": "FEAT-006",
+     "label": "Launch builders with execution limits",
+     "purpose": "Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.",
+     "ids": [
+      "R-732",
+      "R-733",
+      "R-734",
+      "R-735",
+      "R-847",
+      "R-960",
+      "R-961",
+      "R-962",
+      "R-963",
+      "R-965",
+      "R-966",
+      "R-628",
+      "R-286",
+      "R-285"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-137",
+      "R-623",
+      "R-700",
+      "R-702",
+      "R-728",
+      "R-831",
+      "R-846"
+     ]
+    },
+    {
+     "id": "FEAT-007",
+     "label": "Review a specific revision independently",
+     "purpose": "Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.",
+     "subgroups": [
+      {
+       "id": "SUB-006",
+       "label": "Identify and freeze the review target",
+       "purpose": "Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.",
+       "ids": [
+        "R-703",
+        "R-832",
+        "R-704",
+        "R-705",
+        "R-706",
+        "R-833",
+        "R-708",
+        "R-709",
+        "R-710",
+        "R-835",
+        "R-836",
+        "R-712",
+        "R-713",
+        "R-621",
+        "R-624",
+        "R-967",
+        "R-968"
+       ],
+       "astra_id": "SUB-007-01"
+      },
+      {
+       "id": "SUB-007",
+       "label": "Admit rounds and enforce the budget",
+       "purpose": "Count revisions consistently, reserve available rounds, reclaim eligible reservations and record cap overrides.",
+       "ids": [
+        "R-192",
+        "R-707",
+        "R-834",
+        "R-711",
+        "R-850",
+        "R-714",
+        "R-715",
+        "R-837",
+        "R-716",
+        "R-719",
+        "R-840",
+        "R-841",
+        "R-720",
+        "R-842",
+        "R-726",
+        "R-729",
+        "R-971",
+        "R-972"
+       ],
+       "astra_id": "SUB-007-02"
+      },
+      {
+       "id": "SUB-008",
+       "label": "Run and stop an isolated reviewer",
+       "purpose": "Keep reviewer roles separate, suppress unrelated context mutation, apply watchdog and retry rules, and stop child processes cleanly.",
+       "ids": [
+        "R-139",
+        "R-700",
+        "R-246",
+        "R-919",
+        "R-702",
+        "R-831",
+        "R-727",
+        "R-854",
+        "R-851",
+        "R-728",
+        "R-846",
+        "R-623",
+        "R-974",
+        "R-973"
+       ],
+       "astra_id": "SUB-007-03"
+      },
+      {
+       "id": "SUB-009",
+       "label": "Accept and record a valid result",
+       "purpose": "Require the expected completion evidence and a valid reservation while invalidating results for changed review state.",
+       "ids": [
+        "R-701",
+        "R-249",
+        "R-717",
+        "R-838",
+        "R-718",
+        "R-839",
+        "R-969"
+       ],
+       "astra_id": "SUB-007-04"
+      },
+      {
+       "id": "SUB-010",
+       "label": "Protect and inspect review records",
+       "purpose": "Preserve the tally and log contracts, refuse unsafe output destinations and expose recorded rounds without mutation.",
+       "ids": [
+        "R-721",
+        "R-843",
+        "R-853",
+        "R-855",
+        "R-722",
+        "R-723",
+        "R-852",
+        "R-844",
+        "R-724",
+        "R-725",
+        "R-845",
+        "R-730",
+        "R-731",
+        "R-620",
+        "R-622",
+        "R-625",
+        "R-992",
+        "R-970"
+       ],
+       "astra_id": "SUB-007-05"
+      }
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-137",
+      "R-732"
+     ]
+    },
+    {
+     "id": "FEAT-008",
+     "label": "Integrate and clean up reviewed changes",
+     "purpose": "Check merge prerequisites, integrate eligible changes, record the result and remove only safe completed worktrees.",
+     "ids": [
+      "R-975",
+      "R-976",
+      "R-977",
+      "R-978",
+      "R-979",
+      "R-981",
+      "R-588"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-705",
+      "R-708",
+      "R-717",
+      "R-969",
+      "R-992"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-03",
+   "label": "Control trust and tool actions",
+   "purpose": "Make trust decisions, action restrictions and policy changes visible and predictable.",
+   "outcome": "A developer can understand which sources and actions are allowed and can recover from a refusal without silently weakening controls.",
+   "features": [
+    {
+     "id": "FEAT-009",
+     "label": "Decide which project content is trusted",
+     "purpose": "Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.",
+     "ids": [
+      "R-021",
+      "R-022",
+      "R-023",
+      "R-024",
+      "R-025",
+      "R-026",
+      "R-759",
+      "R-027",
+      "R-856",
+      "R-857",
+      "R-760",
+      "R-028",
+      "R-029",
+      "R-030",
+      "R-031",
+      "R-032",
+      "R-761",
+      "R-033",
+      "R-034",
+      "R-074",
+      "R-075",
+      "R-778",
+      "R-242",
+      "R-076",
+      "R-077",
+      "R-078",
+      "R-779",
+      "R-079",
+      "R-670",
+      "R-671",
+      "R-672"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-069",
+      "R-190"
+     ]
+    },
+    {
+     "id": "FEAT-010",
+     "label": "Guard risky commands and protected resources",
+     "purpose": "Inspect supported tool actions, preserve mandatory restrictions and provide actionable approval or refusal behavior.",
+     "ids": [
+      "R-035",
+      "R-036",
+      "R-762",
+      "R-037",
+      "R-038",
+      "R-763",
+      "R-039",
+      "R-764",
+      "R-040",
+      "R-041",
+      "R-042",
+      "R-044",
+      "R-045",
+      "R-766",
+      "R-046",
+      "R-767",
+      "R-047",
+      "R-768",
+      "R-051",
+      "R-052",
+      "R-053",
+      "R-770",
+      "R-054",
+      "R-055",
+      "R-056",
+      "R-771",
+      "R-057",
+      "R-058",
+      "R-630",
+      "R-631",
+      "R-632",
+      "R-633",
+      "R-637",
+      "R-638",
+      "R-639",
+      "R-071",
+      "R-775",
+      "R-072",
+      "R-776",
+      "R-073",
+      "R-777",
+      "R-982",
+      "R-983",
+      "R-984",
+      "R-195"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-033",
+      "R-079",
+      "R-081",
+      "R-183",
+      "R-184",
+      "R-190",
+      "R-774",
+      "R-962"
+     ]
+    },
+    {
+     "id": "FEAT-011",
+     "label": "Keep policy changes safe and recoverable",
+     "purpose": "Load and refresh policy configuration with defined precedence, bounded reading and safe behavior when configuration breaks.",
+     "ids": [
+      "R-043",
+      "R-765",
+      "R-048",
+      "R-769",
+      "R-049",
+      "R-050",
+      "R-634",
+      "R-635",
+      "R-636",
+      "R-059",
+      "R-060",
+      "R-061",
+      "R-062",
+      "R-063",
+      "R-772",
+      "R-064",
+      "R-065",
+      "R-066",
+      "R-067",
+      "R-773",
+      "R-068",
+      "R-069",
+      "R-070",
+      "R-774",
+      "R-080",
+      "R-081",
+      "R-082",
+      "R-780",
+      "R-083",
+      "R-781",
+      "R-865",
+      "R-193",
+      "R-829",
+      "R-196",
+      "R-197",
+      "R-826"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-074",
+      "R-078",
+      "R-188",
+      "R-190",
+      "R-195",
+      "R-778"
+     ]
+    },
+    {
+     "id": "FEAT-012",
+     "label": "Render paths and provenance clearly",
+     "purpose": "Render paths, labels and provenance through the documented normalization and presentation rules.",
+     "ids": [
+      "R-174",
+      "R-175",
+      "R-176",
+      "R-177",
+      "R-178",
+      "R-819",
+      "R-179",
+      "R-820",
+      "R-180",
+      "R-821",
+      "R-181",
+      "R-822",
+      "R-823",
+      "R-182",
+      "R-824",
+      "R-183",
+      "R-184",
+      "R-185",
+      "R-186",
+      "R-187",
+      "R-188"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-224"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-04",
+   "label": "Bring nana to each project and maintain it",
+   "purpose": "Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.",
+   "outcome": "A developer can adopt the same controlled workflow in a new or existing project and maintain or remove it without losing unrelated state.",
+   "features": [
+    {
+     "id": "FEAT-013",
+     "label": "Install and connect harness runtimes",
+     "purpose": "Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.",
+     "subgroups": [
+      {
+       "id": "SUB-011",
+       "label": "Select the active runtime and home",
+       "purpose": "Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.",
+       "ids": [
+        "R-190",
+        "R-191",
+        "R-194",
+        "R-825",
+        "R-199",
+        "R-827",
+        "R-950",
+        "R-951",
+        "R-345",
+        "R-932"
+       ],
+       "astra_id": "SUB-013-01"
+      },
+      {
+       "id": "SUB-012",
+       "label": "Deliver commands, hooks and workflow resources",
+       "purpose": "Install the shared resources and seed missing private or runtime configuration with known resource contracts.",
+       "ids": [
+        "R-985",
+        "R-980",
+        "R-964",
+        "R-736",
+        "R-739",
+        "R-301",
+        "R-357",
+        "R-302",
+        "R-303",
+        "R-306",
+        "R-308",
+        "R-921",
+        "R-309",
+        "R-310",
+        "R-311",
+        "R-687",
+        "R-688",
+        "R-665",
+        "R-589",
+        "R-360",
+        "R-361",
+        "R-363"
+       ],
+       "astra_id": "SUB-013-02"
+      },
+      {
+       "id": "SUB-013",
+       "label": "Connect hooks and packages without duplication",
+       "purpose": "Recognize equivalent hook commands and package registrations while retaining unrelated settings and entries.",
+       "ids": [
+        "R-316",
+        "R-317",
+        "R-922",
+        "R-318",
+        "R-923",
+        "R-319",
+        "R-323",
+        "R-927",
+        "R-324",
+        "R-384",
+        "R-325",
+        "R-326",
+        "R-392",
+        "R-679"
+       ],
+       "astra_id": "SUB-013-03"
+      },
+      {
+       "id": "SUB-014",
+       "label": "Preserve files and preview installation changes",
+       "purpose": "Apply idempotent and atomic writes, report dry runs accurately and refuse unsafe files or conflicting ownership.",
+       "ids": [
+        "R-300",
+        "R-304",
+        "R-381",
+        "R-382",
+        "R-305",
+        "R-307",
+        "R-312",
+        "R-313",
+        "R-314",
+        "R-358",
+        "R-391",
+        "R-315",
+        "R-383",
+        "R-320",
+        "R-924",
+        "R-321",
+        "R-322",
+        "R-925",
+        "R-926",
+        "R-663",
+        "R-353",
+        "R-378",
+        "R-379"
+       ],
+       "astra_id": "SUB-013-04"
+      },
+      {
+       "id": "SUB-015",
+       "label": "Apply the platform's supported installation",
+       "purpose": "Skip unsupported Windows integrations and maintain supported copies and mirrors without overwriting owner content.",
+       "ids": [
+        "R-349",
+        "R-995",
+        "R-936",
+        "R-387",
+        "R-350",
+        "R-351",
+        "R-938",
+        "R-388",
+        "R-939",
+        "R-359",
+        "R-352"
+       ],
+       "astra_id": "SUB-013-05"
+      }
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-004"
+     ]
+    },
+    {
+     "id": "FEAT-014",
+     "label": "Create or adopt a project workspace",
+     "purpose": "Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.",
+     "subgroups": [
+      {
+       "id": "SUB-016",
+       "label": "Recognize projects that need adoption",
+       "purpose": "Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.",
+       "ids": [
+        "R-143",
+        "R-144",
+        "R-145",
+        "R-809",
+        "R-146",
+        "R-147",
+        "R-148",
+        "R-810",
+        "R-149",
+        "R-150",
+        "R-811",
+        "R-151",
+        "R-152",
+        "R-640",
+        "R-645",
+        "R-646",
+        "R-647",
+        "R-153",
+        "R-154",
+        "R-812",
+        "R-155",
+        "R-156",
+        "R-813",
+        "R-157"
+       ],
+       "astra_id": "SUB-014-01"
+      },
+      {
+       "id": "SUB-017",
+       "label": "Seed a minimal project workspace",
+       "purpose": "Create the basic objective, handoff, session log, instructions and starter configuration while respecting the enclosing repository and bounded refresh behavior.",
+       "ids": [
+        "R-327",
+        "R-328",
+        "R-928",
+        "R-329",
+        "R-330",
+        "R-331",
+        "R-332",
+        "R-335",
+        "R-931"
+       ],
+       "astra_id": "SUB-014-02"
+      },
+      {
+       "id": "SUB-018",
+       "label": "Adopt or update shared working structure",
+       "purpose": "Apply the reusable structure and marker-owned instructions from their canonical sources using the documented preservation boundaries.",
+       "ids": [
+        "R-741",
+        "R-849",
+        "R-929",
+        "R-339",
+        "R-986",
+        "R-987",
+        "R-988",
+        "R-591",
+        "R-592"
+       ],
+       "astra_id": "SUB-014-03"
+      },
+      {
+       "id": "SUB-019",
+       "label": "Render language templates",
+       "purpose": "Provide the Python and TypeScript scaffold/adopt outputs with their shared requirement set, working instructions and clean checks.",
+       "ids": [
+        "R-737",
+        "R-738",
+        "R-858",
+        "R-581",
+        "R-582",
+        "R-859",
+        "R-590",
+        "R-683"
+       ],
+       "astra_id": "SUB-014-04"
+      },
+      {
+       "id": "SUB-020",
+       "label": "Preserve existing content and honor opt-outs",
+       "purpose": "Recognize existing filesystem entries, preview changes and honor an explicit decision that a repository is not a nana project.",
+       "ids": [
+        "R-158",
+        "R-333",
+        "R-385",
+        "R-334",
+        "R-338",
+        "R-340"
+       ],
+       "astra_id": "SUB-014-05"
+      },
+      {
+       "id": "SUB-021",
+       "label": "Check readiness and ratify the objective",
+       "purpose": "Report structural readiness and require the owner's objective and current priority before the trust step.",
+       "ids": [
+        "R-336",
+        "R-337",
+        "R-930",
+        "R-989",
+        "R-395",
+        "R-676"
+       ],
+       "astra_id": "SUB-014-06"
+      }
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-345",
+      "R-383",
+      "R-578",
+      "R-579",
+      "R-583",
+      "R-673",
+      "R-674",
+      "R-681",
+      "R-687",
+      "R-740"
+     ]
+    },
+    {
+     "id": "FEAT-015",
+     "label": "Diagnose the active environment",
+     "purpose": "Report what is installed, configured or unhealthy with concrete repair guidance and accurate active-source attribution.",
+     "ids": [
+      "R-952",
+      "R-953",
+      "R-997",
+      "R-998",
+      "R-999",
+      "R-990",
+      "R-991",
+      "R-341",
+      "R-586",
+      "R-342",
+      "R-343",
+      "R-344",
+      "R-346",
+      "R-666",
+      "R-667",
+      "R-937",
+      "R-393",
+      "R-654",
+      "R-673",
+      "R-674",
+      "R-675",
+      "R-362",
+      "R-364",
+      "R-365",
+      "R-366",
+      "R-367",
+      "R-368",
+      "R-369",
+      "R-370",
+      "R-371",
+      "R-372",
+      "R-377",
+      "R-399"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-193",
+      "R-307",
+      "R-347",
+      "R-378",
+      "R-392",
+      "R-589",
+      "R-650",
+      "R-909",
+      "R-959",
+      "R-964",
+      "R-980",
+      "R-985"
+     ]
+    },
+    {
+     "id": "FEAT-016",
+     "label": "Start the local development desk",
+     "purpose": "Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.",
+     "ids": [
+      "R-354",
+      "R-389",
+      "R-355",
+      "R-390",
+      "R-356",
+      "R-396",
+      "R-397",
+      "R-398",
+      "R-650",
+      "R-651",
+      "R-652",
+      "R-677",
+      "R-678",
+      "R-400",
+      "R-464",
+      "R-462",
+      "R-401",
+      "R-468",
+      "R-402",
+      "R-403",
+      "R-469",
+      "R-404",
+      "R-380"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-199"
+     ]
+    },
+    {
+     "id": "FEAT-017",
+     "label": "Inspect durable state and follow restoration steps",
+     "purpose": "Inspect the durable-state manifest, export the documented state and follow its archive and restoration guidance.",
+     "ids": [
+      "R-954",
+      "R-955",
+      "R-956",
+      "R-957",
+      "R-958",
+      "R-959"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-018",
+     "label": "Update or remove managed components safely",
+     "purpose": "Migrate retired artifacts and remove only resources nana owns while preserving foreign or edited state.",
+     "ids": [
+      "R-908",
+      "R-909",
+      "R-804",
+      "R-660",
+      "R-661",
+      "R-662",
+      "R-664",
+      "R-668",
+      "R-669",
+      "R-394",
+      "R-653",
+      "R-900",
+      "R-901",
+      "R-902",
+      "R-903",
+      "R-904",
+      "R-905",
+      "R-906",
+      "R-907"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-378",
+      "R-663"
+     ]
+    },
+    {
+     "id": "FEAT-019",
+     "label": "Release usable templates and report support",
+     "purpose": "Verify template combinations, identify delivered versions and publish accurate release and support information.",
+     "ids": [
+      "R-584",
+      "R-585",
+      "R-587",
+      "R-740",
+      "R-848",
+      "R-684",
+      "R-593",
+      "R-594",
+      "R-595",
+      "R-596",
+      "R-597",
+      "R-686",
+      "R-996"
+     ],
+     "status": "active"
+    }
+   ]
+  },
+  {
+   "id": "CAP-05",
+   "label": "Follow and steer development",
+   "purpose": "Let the developer understand ongoing and historical work and interact with the correct live session.",
+   "outcome": "A developer can see what agents are doing, inspect their changes and direct the intended session without losing context.",
+   "features": [
+    {
+     "id": "FEAT-020",
+     "label": "Find and read previous sessions",
+     "purpose": "Read, title, navigate and display session history while retaining correct branch identity.",
+     "ids": [
+      "R-405",
+      "R-406",
+      "R-407",
+      "R-408",
+      "R-470",
+      "R-409",
+      "R-471",
+      "R-410",
+      "R-472",
+      "R-411",
+      "R-473",
+      "R-412",
+      "R-463",
+      "R-413"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-401",
+      "R-458",
+      "R-459"
+     ]
+    },
+    {
+     "id": "FEAT-021",
+     "label": "Choose and start an agent session",
+     "purpose": "Select a working directory, runtime resources, tools and trust options before launching the appropriate child.",
+     "ids": [
+      "R-198",
+      "R-414",
+      "R-415",
+      "R-475",
+      "R-476",
+      "R-416",
+      "R-477",
+      "R-478",
+      "R-417",
+      "R-418",
+      "R-685"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-404",
+      "R-459",
+      "R-944"
+     ]
+    },
+    {
+     "id": "FEAT-022",
+     "label": "Steer and recover live sessions",
+     "purpose": "Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.",
+     "ids": [
+      "R-164",
+      "R-165",
+      "R-419",
+      "R-479",
+      "R-480",
+      "R-420",
+      "R-481",
+      "R-427",
+      "R-485",
+      "R-486",
+      "R-487",
+      "R-429",
+      "R-430",
+      "R-431",
+      "R-433",
+      "R-434",
+      "R-489",
+      "R-490",
+      "R-435",
+      "R-436",
+      "R-460",
+      "R-942",
+      "R-461",
+      "R-467",
+      "R-484",
+      "R-689"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-426",
+      "R-458",
+      "R-459"
+     ]
+    },
+    {
+     "id": "FEAT-023",
+     "label": "Inspect changes and receive useful notices",
+     "purpose": "Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.",
+     "ids": [
+      "R-642",
+      "R-643",
+      "R-159",
+      "R-160",
+      "R-161",
+      "R-162",
+      "R-163",
+      "R-166",
+      "R-815",
+      "R-167",
+      "R-168",
+      "R-169",
+      "R-170",
+      "R-171",
+      "R-816",
+      "R-172",
+      "R-817",
+      "R-173",
+      "R-818",
+      "R-474",
+      "R-421",
+      "R-422",
+      "R-482",
+      "R-423",
+      "R-424",
+      "R-425",
+      "R-483",
+      "R-426",
+      "R-428",
+      "R-488",
+      "R-814"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-458",
+      "R-484",
+      "R-781",
+      "R-810"
+     ]
+    },
+    {
+     "id": "FEAT-024",
+     "label": "Edit session and project settings safely",
+     "purpose": "Expose supported configuration and context edits while preserving unknown fields and existing files on failure.",
+     "ids": [
+      "R-867",
+      "R-869",
+      "R-455",
+      "R-941",
+      "R-456",
+      "R-466",
+      "R-457"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-458",
+      "R-459"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-06",
+   "label": "Use attributable tool outputs and focused apps",
+   "purpose": "Give tools a consistent presentation contract and connect apps without confusing their origin or authority.",
+   "outcome": "A developer can use focused app surfaces and inspect tool output whose producer and session history remain attributable.",
+   "features": [
+    {
+     "id": "FEAT-025",
+     "label": "Use consistent structured tool output",
+     "purpose": "Validate and render supported cards, tables, charts and actions from the recognized tool carriers.",
+     "ids": [
+      "R-250",
+      "R-266",
+      "R-267",
+      "R-251",
+      "R-268",
+      "R-269",
+      "R-252",
+      "R-270",
+      "R-253",
+      "R-254",
+      "R-271",
+      "R-255",
+      "R-272",
+      "R-260",
+      "R-261",
+      "R-274",
+      "R-275",
+      "R-262",
+      "R-276",
+      "R-277",
+      "R-263",
+      "R-278",
+      "R-279",
+      "R-282",
+      "R-283",
+      "R-284"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-256"
+     ]
+    },
+    {
+     "id": "FEAT-026",
+     "label": "Verify output provenance across session history",
+     "purpose": "Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.",
+     "ids": [
+      "R-256",
+      "R-257",
+      "R-273",
+      "R-258",
+      "R-259",
+      "R-264",
+      "R-280",
+      "R-281",
+      "R-437",
+      "R-438",
+      "R-439",
+      "R-491",
+      "R-440",
+      "R-441",
+      "R-492",
+      "R-442",
+      "R-443",
+      "R-444",
+      "R-445",
+      "R-446",
+      "R-451",
+      "R-945",
+      "R-946",
+      "R-947"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-283",
+      "R-284"
+     ]
+    },
+    {
+     "id": "FEAT-027",
+     "label": "Connect and isolate focused app surfaces",
+     "purpose": "Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.",
+     "ids": [
+      "R-265",
+      "R-432",
+      "R-447",
+      "R-493",
+      "R-465",
+      "R-448",
+      "R-449",
+      "R-494",
+      "R-450",
+      "R-495",
+      "R-496",
+      "R-452",
+      "R-497",
+      "R-498",
+      "R-453",
+      "R-499",
+      "R-940",
+      "R-454",
+      "R-458",
+      "R-459",
+      "R-943",
+      "R-944"
+     ],
+     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "also_applies": [
+      "R-461"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-07",
+   "label": "Keep code and promises checkable",
+   "purpose": "Make requirements, code structure, checks and engineering rules inspectable with explicit limits.",
+   "outcome": "A developer can see which promises a change affects and what evidence supports its behavior and engineering quality.",
+   "features": [
+    {
+     "id": "FEAT-028",
+     "label": "Maintain requirement identity and trace links",
+     "purpose": "Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.",
+     "ids": [
+      "R-756",
+      "R-578",
+      "R-579",
+      "R-580",
+      "R-583",
+      "R-757",
+      "R-681",
+      "R-287",
+      "R-288",
+      "R-289",
+      "R-290",
+      "R-291",
+      "R-292",
+      "R-293",
+      "R-294",
+      "R-295"
+     ],
+     "status": "active",
+     "also_applies": [
+      "G-013",
+      "G-014",
+      "G-015"
+     ]
+    },
+    {
+     "id": "FEAT-029",
+     "label": "Navigate code and investigate impact",
+     "purpose": "Maintain a generated module map and find candidate affected requirements through source and test relationships.",
+     "ids": [
+      "R-860",
+      "R-861",
+      "R-862",
+      "R-863",
+      "R-864",
+      "R-649"
+     ],
+     "notes_from": [
+      "## 13c. The code-map generator (templates)"
+     ],
+     "status": "active",
+     "also_applies": [
+      "G-004",
+      "G-007",
+      "G-008",
+      "G-009",
+      "G-010",
+      "G-011",
+      "G-019"
+     ]
+    },
+    {
+     "id": "FEAT-030",
+     "label": "Get trustworthy feedback after edits",
+     "purpose": "Run matching checks after file edits and communicate failures, timeouts, skipped work and evidence state correctly.",
+     "ids": [
+      "R-084",
+      "R-782",
+      "R-085",
+      "R-086",
+      "R-243",
+      "R-087",
+      "R-088",
+      "R-089",
+      "R-783",
+      "R-090",
+      "R-091",
+      "R-784",
+      "R-785",
+      "R-092",
+      "R-786",
+      "R-093",
+      "R-787",
+      "R-094",
+      "R-095",
+      "R-096",
+      "R-788",
+      "R-097",
+      "R-789",
+      "R-098",
+      "R-099",
+      "R-790",
+      "R-100",
+      "R-866",
+      "R-868",
+      "R-791",
+      "R-101",
+      "R-102",
+      "R-103",
+      "R-792",
+      "R-104",
+      "R-793",
+      "R-247",
+      "R-105",
+      "R-106",
+      "R-794",
+      "R-107",
+      "R-644",
+      "R-993",
+      "R-994"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-079",
+      "R-186",
+      "R-781"
+     ]
+    },
+    {
+     "id": "FEAT-031",
+     "label": "Run checks reliably and without contaminating work",
+     "purpose": "Execute the test suite with appropriate collection, isolation, liveness, output and environmental controls.",
+     "ids": [
+      "R-600",
+      "R-602",
+      "R-619",
+      "R-603",
+      "R-604",
+      "R-605",
+      "R-910",
+      "R-606",
+      "R-911",
+      "R-607",
+      "R-608",
+      "R-648",
+      "R-609",
+      "R-912",
+      "R-915",
+      "R-610",
+      "R-611",
+      "R-612",
+      "R-613",
+      "R-913",
+      "R-614",
+      "R-615",
+      "R-914",
+      "R-616",
+      "R-617",
+      "R-618",
+      "R-626",
+      "R-627",
+      "R-916",
+      "R-917",
+      "R-918",
+      "R-898",
+      "R-899",
+      "R-544",
+      "R-601",
+      "R-948",
+      "R-949"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-032",
+     "label": "Keep instructions and documentation accurate",
+     "purpose": "Check documentation and skill commands against the interfaces and files they claim to describe.",
+     "ids": [
+      "R-870",
+      "R-655",
+      "R-656",
+      "R-658",
+      "R-598",
+      "R-599",
+      "R-629",
+      "R-657",
+      "R-680"
+     ],
+     "status": "active",
+     "also_applies": [
+      "G-012",
+      "G-021",
+      "G-022"
+     ]
+    },
+    {
+     "id": "FEAT-033",
+     "label": "Adopt explicit engineering standards",
+     "purpose": "Keep shared configuration and module-boundary policies in one place and link their applicability to project features.",
+     "ids": [
+      "R-920",
+      "G-001",
+      "G-002",
+      "G-003",
+      "G-004",
+      "G-005",
+      "G-006",
+      "G-007",
+      "G-008",
+      "G-009",
+      "G-010",
+      "G-011",
+      "G-012",
+      "G-013",
+      "G-014",
+      "G-015",
+      "G-016",
+      "G-017",
+      "G-018",
+      "G-019",
+      "G-020",
+      "G-021",
+      "G-022"
+     ],
+     "notes_from": [
+      "# Part G. General engineering requirements (every nana project — nana-pi itself included)"
+     ],
+     "status": "active",
+     "also_applies": [
+      "R-756"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "CAP-08",
+   "label": "Evaluate agent choices with credible evidence",
+   "purpose": "Run controlled studies and interpret results without confusing missing measurement with success.",
+   "outcome": "A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.",
+   "features": [
+    {
+     "id": "FEAT-034",
+     "label": "Define reproducible comparisons",
+     "purpose": "Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.",
+     "ids": [
+      "R-501",
+      "R-502",
+      "R-508",
+      "R-509",
+      "R-510",
+      "R-551",
+      "R-511",
+      "R-552",
+      "R-553",
+      "R-512",
+      "R-513",
+      "R-514",
+      "R-554",
+      "R-532",
+      "R-533",
+      "R-534",
+      "R-573"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-035",
+     "label": "Account for cost and uncertainty",
+     "purpose": "Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.",
+     "ids": [
+      "R-503",
+      "R-504",
+      "R-546",
+      "R-547",
+      "R-505",
+      "R-506",
+      "R-548",
+      "R-549",
+      "R-557",
+      "R-535",
+      "R-550"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-036",
+     "label": "Bound study execution and paid work",
+     "purpose": "Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.",
+     "ids": [
+      "R-500",
+      "R-545",
+      "R-555",
+      "R-515",
+      "R-556",
+      "R-516",
+      "R-517",
+      "R-542",
+      "R-518",
+      "R-541",
+      "R-519",
+      "R-558",
+      "R-520",
+      "R-559",
+      "R-521",
+      "R-560"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-037",
+     "label": "Grade behavior with trustworthy checks",
+     "purpose": "Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.",
+     "ids": [
+      "R-507",
+      "R-543",
+      "R-522",
+      "R-561",
+      "R-562",
+      "R-523",
+      "R-563",
+      "R-524",
+      "R-525",
+      "R-564",
+      "R-565",
+      "R-526",
+      "R-566",
+      "R-527",
+      "R-567",
+      "R-528",
+      "R-529",
+      "R-568",
+      "R-569",
+      "R-530",
+      "R-570",
+      "R-531",
+      "R-571",
+      "R-572"
+     ],
+     "status": "active"
+    },
+    {
+     "id": "FEAT-038",
+     "label": "Interpret workflow experiments and their limits",
+     "purpose": "Analyze review and writing evidence, require stated controls and avoid changing practice beyond what the evidence supports.",
+     "ids": [
+      "R-691",
+      "R-692",
+      "R-693",
+      "R-694",
+      "R-695",
+      "R-696",
+      "R-697",
+      "R-698",
+      "R-536",
+      "R-574",
+      "R-537",
+      "R-575",
+      "R-538",
+      "R-576",
+      "R-539",
+      "R-540",
+      "R-577",
+      "R-699"
+     ],
+     "status": "active"
+    }
+   ]
+  }
+ ],
+ "new_rows": {
+  "R-287": "Every requirement row in REQUIREMENTS.md shall sit in a table whose nearest preceding heading is a feature heading (`## FEAT-nnn · <label>`) or a subgroup heading (`### SUB-nnn · <label>`).",
+  "R-288": "Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text.",
+  "R-289": "No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID.",
+  "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup.",
+  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs.",
+  "R-292": "Every requirement ID on a feature's `Also applies:` line in REQUIREMENTS.md shall name, once, a requirement that is not retired and whose home is another feature.",
+  "R-293": "The committed `docs/requirements-tree.md` shall list every requirement named on any `Also applies:` line, with its home feature and every feature that names it.",
+  "R-294": "Every feature heading in REQUIREMENTS.md shall be followed, before any table, by a `Status:` line reading `proposed`, `active`, `frozen (<reason>)` or `retired (<successor or reason>)`.",
+  "R-295": "A feature whose `Status:` line in REQUIREMENTS.md reads `retired` shall hold no requirement rows."
+ },
+ "to_section_map": [
+  "## 10. pi-review: round cap and stall watchdog"
+ ],
+ "tail": {
+  "heading": "# Open questions and deliberate omissions",
+  "keeps": [
+   "## Open questions",
+   "## Deliberate omissions"
+  ]
+ },
+ "old_sections": [
+  {
+   "heading": "# Part A. The pi extension pack and the repo test runner",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 1. Objective contract",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 2. Trust and the provenance label",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 3. Gate",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 4. Post-edit checks and receipts",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 5. Handoff, compaction and the adoption signal",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 6. Journal and session lifecycle",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 7. Notify",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 8. Display renderer (S1 and S2)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 9. Agent-dir resolution (U2)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 10. pi-review: round cap and stall watchdog",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 11. pi-worker",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 12. Skills contract",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13. The repo test runner (`scripts/test.mjs`)",
+   "package": "repo test runner"
+  },
+  {
+   "heading": "## 13a. The writing checker (nana-pack)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13b. The writing rule's delivery to pi (nana-pack)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13c. The code-map generator (templates)",
+   "package": "templates (code-map generator)"
+  },
+  {
+   "heading": "# Part B. Knowledge pull, stage layer, installer",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 14. Index, sources and builds (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 15. Root discovery by convention (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 16. Pointer rendering (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 17. The shared prompt-time hook CLI (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 18. The pi extension (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 19. Block validation (nana-stage)",
+   "package": "nana-stage"
+  },
+  {
+   "heading": "## 20. Stamping, signing and the ledger (nana-stage)",
+   "package": "nana-stage"
+  },
+  {
+   "heading": "## 21. Installer — what install creates (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 22. settings.json merge semantics (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 23. pi registration identity matching (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 24. `project` — a folder becomes a nana project (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 25. doctor, exit codes and the pi agent dir (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 26. win32 degrade and the desk service (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "# Part C. The desk and the bench",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 27. Desk startup and pi binding",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 28. Session reading, rail and transcript",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 29. Spawning and resource policy",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 30. Live drive and the prompt path",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 31. Files-changed bar and the floating diff",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 32. Reload, skill auto-detect and header surfaces",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 33. The four buffer caps",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 34. Stage generation and the resync door",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 35. Stage signing keys and block provenance",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 36. App listeners, the UI-centric slices and the dashboards",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 37. Config and context writes",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 38. Browser boundary: Host and Origin",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 39. Session lifecycle and teardown",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 40. Bench spend control and the test boundary",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 41. Measurement and accounting",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 42. Identity, ordering and resume",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 43. Pre-flight, budgets and stops",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 44. Interrupt and exactly one record per tuple",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 45. Deterministic grading",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 46. Evidence, fixtures and aggregation",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 47. Catch ledger E1 and the tool-profile verdict",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "# Part G. General engineering requirements (every nana project — nana-pi itself included)",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 48. Configuration and provenance",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 49. Module boundaries",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 50. The code map",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 51. Documentation",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 54. The requirement set",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 52. pi 1.0 subagent and MCP config (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 53. Installer edge-case hardening (nana-setup, pi-1.0-2026-10-04 review lane)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 56. State manifest and restore (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 57. Updating and removal (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 55. Template acceptance and release",
+   "package": "templates (acceptance and release)"
+  }
+ ],
+ "intro_edits": [
+  {
+   "from": "section 13c",
+   "to": "the code-map generator feature (old section 13c)"
+  },
+  {
+   "from": "R-287–R-299 stay the reserve",
+   "to": "R-287–R-295 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-296–R-299 stay the reserve"
+  }
+ ],
+ "moves": [
+  {
+   "id": "R-377",
+   "from": "SUB-014",
+   "to": "FEAT-015"
+  },
+  {
+   "id": "R-399",
+   "from": "FEAT-016",
+   "to": "FEAT-015"
+  },
+  {
+   "id": "R-484",
+   "from": "FEAT-023",
+   "to": "FEAT-022"
+  },
+  {
+   "id": "R-535",
+   "from": "FEAT-038",
+   "to": "FEAT-035"
+  },
+  {
+   "id": "R-550",
+   "from": "FEAT-034",
+   "to": "FEAT-035"
+  },
+  {
+   "id": "R-572",
+   "from": "FEAT-034",
+   "to": "FEAT-037"
+  },
+  {
+   "id": "R-601",
+   "from": "SUB-011",
+   "to": "FEAT-031"
+  },
+  {
+   "id": "R-657",
+   "from": "FEAT-029",
+   "to": "FEAT-032"
+  },
+  {
+   "id": "R-680",
+   "from": "SUB-012",
+   "to": "FEAT-032"
+  },
+  {
+   "id": "R-683",
+   "from": "FEAT-006",
+   "to": "SUB-019"
+  },
+  {
+   "id": "R-689",
+   "from": "FEAT-031",
+   "to": "FEAT-022"
+  },
+  {
+   "id": "R-699",
+   "from": "FEAT-023",
+   "to": "FEAT-038"
+  },
+  {
+   "id": "R-814",
+   "from": "FEAT-022",
+   "to": "FEAT-023"
+  },
+  {
+   "id": "R-948",
+   "from": "FEAT-027",
+   "to": "FEAT-031"
+  },
+  {
+   "id": "R-949",
+   "from": "FEAT-026",
+   "to": "FEAT-031"
+  },
+  {
+   "id": "R-993",
+   "from": "FEAT-031",
+   "to": "FEAT-030"
+  },
+  {
+   "id": "R-994",
+   "from": "FEAT-031",
+   "to": "FEAT-030"
+  }
+ ]
+}
