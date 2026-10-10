@@ -148,7 +148,7 @@ describe("loadRequirements", () => {
 	});
 
 	test("accepts Unicode separators inside a cell and rejects no-break space after a row", () => {
-		for (const separator of ["\u2028", "\u0085"]) {
+		for (const separator of ["\u2028", "\u0085", "\r"]) {
 			const rows = loadRequirements(
 				`${REQS}| R-005 | The system shall keep ${separator} in its cell. | untested | — |\n`,
 			);

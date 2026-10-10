@@ -55,6 +55,12 @@ ID_RE = re.compile(r"^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$")
 ROW_CANDIDATE_RE = re.compile(r"^\|\s*[RG]-\S")
 
 
+def _read_utf8(path: Path) -> str:
+    """Read UTF-8 without universal-newline translation; logical lines split only on LF."""
+    with path.open(encoding="utf-8", newline="") as stream:
+        return stream.read()
+
+
 def _check_near_miss_rows(text: str, filename: str) -> None:
     for number, raw_line in enumerate(text.split("\n"), 1):
         line = raw_line.rstrip(" \t\r")
@@ -147,7 +153,7 @@ def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
     if text is None:
         if not path.exists():
             return {}
-        text = path.read_text(encoding="utf-8")
+        text = _read_utf8(path)
     found: dict[str, Row] = {}
     for raw_line in text.split("\n"):
         line = raw_line.rstrip(" \t\r")
@@ -309,7 +315,7 @@ def scan_dir(directory: Path, call_names: tuple[str, ...] = CALL_NAMES, prefix: 
         if not f.is_file() or "__pycache__" in f.parts:
             continue
         rel = f"{prefix}/{f.relative_to(directory).as_posix()}"
-        for ids, name in scan_source(f.read_text(encoding="utf-8"), rel, call_names):
+        for ids, name in scan_source(_read_utf8(f), rel, call_names):
             for rid in ids:
                 traced.setdefault(rid, []).append(f"{rel}::{name}")
     return traced
@@ -394,12 +400,12 @@ def check(
     -- a repo with several suites passes them all and cites each by its real path.
     """
     reqs_path = root / "REQUIREMENTS.md"
-    project_text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
+    project_text = _read_utf8(reqs_path) if reqs_path.exists() else ""
     _check_near_miss_rows(project_text, "REQUIREMENTS.md")
     general_path = root / GENERAL_REQUIREMENTS_FILE
     text = project_text
     if general_path.exists():
-        general_text = general_path.read_text(encoding="utf-8")
+        general_text = _read_utf8(general_path)
         _check_near_miss_rows(general_text, GENERAL_REQUIREMENTS_FILE)
         load_requirements(general_path, general_text)
         project_cells = _row_cells(project_text)
@@ -448,8 +454,8 @@ def _drift_line(root: Path) -> str | None:
     requirements_path = root / "REQUIREMENTS.md"
     if not general_path.exists() or not requirements_path.exists():
         return None
-    project_cells = _row_cells(requirements_path.read_text(encoding="utf-8"))
-    general_cells = _row_cells(general_path.read_text(encoding="utf-8"))
+    project_cells = _row_cells(_read_utf8(requirements_path))
+    general_cells = _row_cells(_read_utf8(general_path))
     differences = sorted(
         rid
         for rid, cells in project_cells.items()
