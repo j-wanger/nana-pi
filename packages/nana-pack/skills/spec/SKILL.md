@@ -13,7 +13,7 @@ objectives — negative boundaries are the safety rails.
 piece of work, not the project's standing set. The standing, numbered contract —
 `REQUIREMENTS.md`, its `req:` trace rail, the sealed-tunable and code-map rules —
 is the `requirements` skill, and that file evolves and is never thrown away. New
-behaviour starts with a requirement diff there; a spec may cite rows (`R-nnn`) in
+behaviour starts with a requirement diff there; a spec may cite rows (`R-` plus three or four ASCII digits; four-digit IDs never start with zero) in
 its Objective and Exit Criteria, and should, but it never replaces them. If the
 work you are about to spec changes what the product promises, run `requirements`
 first and come back.

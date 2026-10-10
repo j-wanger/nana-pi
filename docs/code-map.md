@@ -637,7 +637,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the summary line, the `ears:` off-form line, plus one problem line per disagreement between a row's status, form or evidence and the markers
 - **effects** — disk (reads REQUIREMENTS.md and the test sources), process (exits non-zero when a row and the suite disagree)
 - **errors** — exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `scripts/requirement-rows.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `scripts/requirement-rows.mjs`, `scripts/requirements-tree.mjs`
 - **callees** — —
 
 ### `scripts/requirements-tree.mjs`
@@ -648,7 +648,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid lifecycle or sharing, nesting, or stale output.
 - **callers** — `packages/nana-pack/tests/requirements-tree.test.mjs`
-- **callees** — —
+- **callees** — `scripts/requirements-trace.mjs`
 
 ### `scripts/template-acceptance.mjs`
 
@@ -1692,7 +1692,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads repository files and creates fixtures under the OS temp directory)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/review-ledger.test.mjs`
 

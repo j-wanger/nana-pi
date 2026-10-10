@@ -42,8 +42,27 @@ export const STATUSES = new Set([
 	"retired",
 ]);
 
-const ID = /^[RG]-\d{3}$/;
-const ROW = /^\|\s*([RG]-\d{3})\s*\|(.*)\|\s*$/;
+export const ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
+const ID_SOURCE = String.raw`[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
+const ROW = new RegExp(String.raw`^\|\s*(${ID_SOURCE})\s*\|(.*)\|\s*$`);
+const ROW_CANDIDATE = /^\|\s*[RG]-\S/;
+
+function assertNoNearMissRows(text: string, file: string): void {
+	for (const [index, line] of text.split("\n").entries()) {
+		if (!ROW_CANDIDATE.test(line)) continue;
+		let cells: string[] = [];
+		if (line.startsWith("|") && line.endsWith("|")) {
+			cells = line
+				.slice(1, -1)
+				.split("|")
+				.map((cell) => cell.trim());
+		}
+		if (cells.length === 4 && ID.test(cells[0] ?? "")) continue;
+		throw new Error(
+			`${file}:${index + 1}: malformed requirement row (expected R-NNN or R-NNNN, four digits never starting with 0; four cells and opening/closing pipes required)`,
+		);
+	}
+}
 const EXTERNAL = /^[a-z][a-z0-9-]*:/;
 const MARKER = /^\s*\/\/\s*req:\s*(.+?)\s*$/;
 /** The statuses that a traced row contradicts. */
@@ -266,7 +285,7 @@ function idsAt(
 		for (const id of (m[1] as string).split(/[\s,]+/).filter(Boolean)) {
 			if (!ID.test(id)) {
 				throw new Error(
-					`${name}:${i + 1}: bad requirement id '${id}' (expected R-NNN or G-NNN)`,
+					`${name}:${i + 1}: bad requirement id '${id}' (expected R-NNN or R-NNNN, four digits never starting with 0)`,
 				);
 			}
 			ids.push(id);
@@ -471,6 +490,8 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	const generalPath = join(root, GENERAL_REQUIREMENTS_FILE);
 	const hasGeneral = existsSync(generalPath);
 	const generalText = hasGeneral ? readFileSync(generalPath, "utf8") : "";
+	assertNoNearMissRows(projectText, "REQUIREMENTS.md");
+	if (hasGeneral) assertNoNearMissRows(generalText, GENERAL_REQUIREMENTS_FILE);
 	let text = projectText;
 	let driftLine: string | undefined;
 	if (hasGeneral) {

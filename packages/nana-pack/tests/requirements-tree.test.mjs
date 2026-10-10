@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
+import { ID } from "../../../scripts/requirements-trace.mjs";
 import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
@@ -34,7 +35,7 @@ check("R-291: committed outline equals a fresh render", map === actual.outline, 
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,012", (() => {
+check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,014", (() => {
   const outlineLines = map.split("\n");
   let leafTotal = 0;
   for (const heading of actual.parsed.headings) {
@@ -48,8 +49,8 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1012;
-})(), "committed IDs differ or leaf total is not 1,012");
+  return leafTotal === 1014;
+})(), "committed IDs differ or leaf total is not 1,014");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
@@ -69,10 +70,11 @@ check("R-291: parent row counts aggregate descendants", actual.parsed.headings.f
 
 // req: R-291
 check("R-291: feature outline carries status and shared IDs", checkOutlineFields(map, actual.parsed).length === 0 && map.includes("Status: active") && map.includes("Also applies: R-") && map.includes("| ID | Home | Also applies to | Count |"), checkOutlineFields(map, actual.parsed).join("; "));
-const sharedRow = actual.outline.split("\n").find((line) => /^\| [RG]-\d{3} \|/.test(line));
+const rowPrefix = new RegExp("^\\| " + ID.source.slice(1, -1) + " \\|");
+const sharedRow = actual.outline.split("\n").find((line) => rowPrefix.test(line));
 // req: R-291
 check("R-291 fixture: outline field check rejects a missing shared-index row", Boolean(sharedRow) && checkOutlineFields(actual.outline.replace(`${sharedRow}\n`, ""), actual.parsed).some((p) => p.includes("index")), "shared index row was not detected");
-const multiListerRow = actual.outline.split("\n").find((line) => /^\| [RG]-\d{3} \|/.test(line) && line.split("|")[3].trim().includes(", "));
+const multiListerRow = actual.outline.split("\n").find((line) => rowPrefix.test(line) && line.split("|")[3].trim().includes(", "));
 // req: R-291
 check("R-291 fixture: field check rejects one sharing feature removed from an index row", Boolean(multiListerRow) && checkOutlineFields(actual.outline.replace(multiListerRow, multiListerRow.replace(/, FEAT-\d{3}/, "")), actual.parsed).some((p) => p.includes("index")), "missing sharing feature was not detected");
 // req: R-292
@@ -148,6 +150,12 @@ check("R-293 fixture: status after a two-column Markdown table is rejected at it
 check("R-292 fixture: duplicate Also applies lines validate each listed ID", checkTree(governance("active", "R-001").replace("Also applies: R-001", "Also applies: R-999\nAlso applies: R-001")).problems.some((p) => p.includes("R-999 does not exist")), "invalid earlier share was ignored");
 // req: R-292
 check("R-292: shared requirement clauses reject invalid IDs", ["R-999", "R-001, R-001"].every((also) => checkTree(governance("active", also)).problems.some((p) => p.includes("Also applies"))) && checkTree(governance("active", "R-001").replace("| R-001 | A shall work. | untested | — |", "| R-001 | A shall work. | retired | — |")).problems.some((p) => p.includes("retired")) && checkTree(governance("active", "R-001").replace("FEAT-002 · Shared", "FEAT-001 · Shared")).problems.some((p) => p.includes("homed")), "a share mutation was accepted");
+const fourDigitTree = `# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · Home\nPurpose: home\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | A shall work. | untested | — |\n| R-1000 | B shall work. | untested | — |\n| R-1001 | C shall work. | untested | — |\n\n## FEAT-002 · Shares\nPurpose: shares\nStatus: active\nAlso applies: R-1000\n`;
+const fourDigitTreeResult = checkTree(fourDigitTree);
+// req: R-1000
+check("R-1000: tree counts four-digit rows and accepts their cross-feature share", fourDigitTreeResult.problems.length === 0 && fourDigitTreeResult.outline.includes("Rows: 3 · IDs: R-999–R-1001") && fourDigitTreeResult.outline.includes("Also applies: R-1000"), fourDigitTreeResult.problems.join("; "));
+// req: R-1000
+check("R-1000: row compression and range expansion cross R-999 to R-1000", compressRowIds(["R-999", "R-1000", "R-1001"]) === "R-999–R-1001" && expandRowIds("R-999–R-1001").join(",") === "R-999,R-1000,R-1001", compressRowIds(["R-999", "R-1000", "R-1001"]));
 for (const [label, status] of [["missing", null], ["unknown", "done"], ["empty frozen", "frozen ()"], ["empty retired", "retired ()"], ["blank reason", "frozen (   )"]]) {
   let text = governance(status ?? "active");
   if (status === null) text = text.replace("Status: active\nAlso applies:", "Also applies:");

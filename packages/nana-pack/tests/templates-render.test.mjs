@@ -164,7 +164,7 @@ const LANGS = {
  */
 function partG(language, dest, mode) {
 	const reqs = fs.readFileSync(path.join(dest, "REQUIREMENTS.md"), "utf-8");
-	const gIds = [...reqs.matchAll(/^\|\s*(G-\d{3})\s*\|/gm)].map((m) => m[1]);
+	const gIds = [...reqs.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|/gm)].map((m) => m[1]);
 	const wantG = Array.from({ length: 22 }, (_, i) => `G-${String(i + 1).padStart(3, "0")}`);
 	const noDupes = gIds.length === new Set(gIds).size;
 	const sorted = [...gIds].sort();
@@ -185,7 +185,7 @@ function partG(language, dest, mode) {
 function sharedPartGRequirementText() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-general.md"), "utf-8");
 	const text = new Map();
-	for (const m of shared.matchAll(/^\|\s*(G-\d{3})\s*\|([^|]+)\|/gm)) text.set(m[1], m[2].trim());
+	for (const m of shared.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|([^|]+)\|/gm)) text.set(m[1], m[2].trim());
 	return text;
 }
 
@@ -193,7 +193,7 @@ function sharedPartGRequirementText() {
 function checkNanaPiPartGMirrorsTheSharedFile() {
 	const nanaPi = fs.readFileSync(path.join(REPO, "REQUIREMENTS.md"), "utf-8");
 	const own = new Map();
-	for (const m of nanaPi.matchAll(/^\|\s*(G-\d{3})\s*\|([^|]+)\|/gm)) own.set(m[1], m[2].trim());
+	for (const m of nanaPi.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|([^|]+)\|/gm)) own.set(m[1], m[2].trim());
 	const shared = sharedPartGRequirementText();
 	const mismatched = [...shared].filter(([id, text]) => own.get(id) !== text).map(([id]) => id);
 	// req: R-756
@@ -608,10 +608,10 @@ if (!version) {
 			check(`${language} adopt: no scaffold starters are written`, present.length === 0, `present: ${present}`);
 
 			const reqs = partG(language, dir, "adopt");
-			check(`${language} adopt: no row claims implemented`, !/^\|\s*[RG]-\d{3}\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "a row claims implemented");
-			const statuses = [...reqs.matchAll(/^\|\s*G-\d{3}\s*\|.*\|\s*(\w+)\s*\|/gm)].map((m) => m[1]);
+			check(`${language} adopt: no row claims implemented`, !/^\|\s*[RG]-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "a row claims implemented");
+			const statuses = [...reqs.matchAll(/^\|\s*G-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|.*\|\s*(\w+)\s*\|/gm)].map((m) => m[1]);
 			check(`${language} adopt: every Part G row starts untested`, statuses.length === 22 && statuses.every((s) => s === "untested"), `got ${statuses}`);
-			check(`${language} adopt: no product row is invented`, !/^\|\s*R-\d{3}\s*\|/m.test(reqs), "an R row was emitted");
+			check(`${language} adopt: no product row is invented`, !/^\|\s*R-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|/m.test(reqs), "an R row was emitted");
 			check(`${language} adopt: the confirm-the-statuses blockquote is gone`, !/ADOPTED rather than scaffolded/.test(reqs), "the old blockquote survives");
 
 			// the self-tests arrive unmarked, so an untested Part G row is not contradicted

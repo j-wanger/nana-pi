@@ -65,7 +65,7 @@ aml-desk C10 call, 2026-10-02, generalised):
   literal at a point of use.
 - **Provenance beside the definition**: the source and date for a measured value, or the word
   `chosen` and the reason for a chosen one. Contract numbers read
-  `contract (design §n, R-nnn)`.
+  `contract (design §n, R-001)`; requirement IDs use three or four ASCII digits, and four-digit IDs never start with zero.
 - **One test pins each sealed value to its row's number**, so a retune fails naming the row —
   and the fix is a requirement diff, not a test edit. Every other assertion imports the name.
 - A value that tunes behaviour counts: threshold, cap, weight, budget, timeout, port, path,

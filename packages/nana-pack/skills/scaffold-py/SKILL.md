@@ -14,7 +14,7 @@ every edit, 500-line module cap, mypy).
 It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
 standard general-engineering block (`Part G` — sealed tunables
 with provenance, the six-tag module header, named exports, injected resources,
-layer direction, the code map, the README contract), the `# req: R-nnn` trace
+layer direction, the code map, the README contract), the `# req: R-` trace (three or four ASCII digits; four-digit IDs never start with zero)
 check in the suite, and `scripts/code_map.py` with `--check` wired into post-edit checks on code edits (`uv run python scripts/code_map.py --check`) plus the README check on README edits. Run `--impact` yourself before touching a mapped module.
 
 ## Steps

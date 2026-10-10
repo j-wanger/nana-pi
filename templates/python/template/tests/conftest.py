@@ -51,7 +51,22 @@ pytest_plugins = ["pytester"]  # for tests/test_requirements_trace.py
 
 STATUSES = frozenset({"implemented", "untested", "planned", "violated", "retired"})
 
-ID_RE = re.compile(r"^[RG]-\d{3}$")
+ID_RE = re.compile(r"^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$")
+ROW_CANDIDATE_RE = re.compile(r"^\|\s*[RG]-\S")
+
+
+def _check_near_miss_rows(text: str, filename: str) -> None:
+    for number, line in enumerate(text.splitlines(), 1):
+        if not ROW_CANDIDATE_RE.match(line):
+            continue
+        cells = [cell.strip() for cell in line[1:-1].split("|")] if line.startswith("|") and line.endswith("|") else []
+        if len(cells) == 4 and ID_RE.fullmatch(cells[0]):
+            continue
+        raise pytest.UsageError(
+            f"{filename}:{number}: malformed requirement row (expected R-NNN or R-NNNN, four digits never starting with 0; four cells and opening/closing pipes required)"
+        )
+
+
 EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
 MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
@@ -134,10 +149,10 @@ def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
         text = path.read_text(encoding="utf-8")
     found: dict[str, Row] = {}
     for line in text.splitlines():
-        if not line.startswith("|"):
+        if not line.startswith("|") or not line.endswith("|"):
             continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if not cells or not ID_RE.match(cells[0]):
+        cells = [c.strip() for c in line[1:-1].split("|")]
+        if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
             raise pytest.UsageError(
@@ -215,10 +230,10 @@ def shall_counts(text: str) -> dict[str, int]:
     existing comparison against it stays exact."""
     counts: dict[str, int] = {}
     for line in text.splitlines():
-        if not line.startswith("|"):
+        if not line.startswith("|") or not line.endswith("|"):
             continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if not cells or not ID_RE.match(cells[0]):
+        cells = [c.strip() for c in line[1:-1].split("|")]
+        if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
             continue  # load_requirements already raises on this shape
@@ -241,7 +256,9 @@ def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
             break
         for rid in m.group(1).split():
             if not ID_RE.match(rid.rstrip(",")):
-                raise pytest.UsageError(f"{name}:{i + 1}: bad requirement id {rid!r} (expected R-NNN or G-NNN)")
+                raise pytest.UsageError(
+                    f"{name}:{i + 1}: bad requirement id {rid!r} (expected R-NNN or R-NNNN, four digits never starting with 0)"
+                )
             ids.append(rid.rstrip(","))
         i += 1
     return ids, i
@@ -347,8 +364,10 @@ def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
     """Return requirement, status and evidence cells for each table row."""
     found: dict[str, tuple[str, str, str]] = {}
     for line in text.splitlines():
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if not cells or not ID_RE.match(cells[0]):
+        if not line.startswith("|") or not line.endswith("|"):
+            continue
+        cells = [cell.strip() for cell in line[1:-1].split("|")]
+        if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
             raise pytest.UsageError(f"{cells[0]} has malformed table cells")
@@ -372,10 +391,12 @@ def check(
     """
     reqs_path = root / "REQUIREMENTS.md"
     project_text = reqs_path.read_text(encoding="utf-8") if reqs_path.exists() else ""
+    _check_near_miss_rows(project_text, "REQUIREMENTS.md")
     general_path = root / GENERAL_REQUIREMENTS_FILE
     text = project_text
     if general_path.exists():
         general_text = general_path.read_text(encoding="utf-8")
+        _check_near_miss_rows(general_text, GENERAL_REQUIREMENTS_FILE)
         load_requirements(general_path, general_text)
         project_cells = _row_cells(project_text)
         general_cells = _row_cells(general_text)

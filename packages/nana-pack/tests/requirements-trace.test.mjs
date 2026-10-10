@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const { CALL_NAMES, EARS_ALLOWANCE, REPO_ROOT, TEST_ROOTS, check: checkEars, checkRepo } = await import(
+const { CALL_NAMES, EARS_ALLOWANCE, REPO_ROOT, TEST_ROOTS, check: checkEars, checkRepo, scanSource } = await import(
 	new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href
 );
 
@@ -153,6 +153,78 @@ check("seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroo
 	earsOffForm.length === EARS_ALLOWANCE,
 	`measured ${earsOffForm.length}, declared ${EARS_ALLOWANCE} — a landing must lower EARS_ALLOWANCE to match (deviation, Open questions #7)`,
 );
+
+// Four-digit identity and raw near-miss fixtures. Every project is created in the OS temp dir.
+const ID_HEAD = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|";
+const idFixture = (ledger, general = null, source = "") => {
+	const dir = tmpDir(join(tmpdir(), "nana-req-ids-"));
+	writeFileSync(join(dir, "REQUIREMENTS.md"), ledger);
+	if (general !== null) writeFileSync(join(dir, "REQUIREMENTS-general.md"), general);
+	mkdirSync(join(dir, "tests"));
+	if (source) writeFileSync(join(dir, "tests", "a.test.mjs"), source);
+	return dir;
+};
+
+const fourDigitRows = idFixture(`# fixture\n${ID_HEAD}\n| R-1000 | The trace rail shall accept four digits. | untested | — |\n| G-1000 | The trace rail shall accept four digits. | untested | — |\n`);
+const fourDigitResult = checkEars(fourDigitRows, { testRoots: ["tests"] });
+// req: R-1000
+check("R-1000: both four-digit row prefixes load", fourDigitResult.requirements.has("R-1000") && fourDigitResult.requirements.has("G-1000") && fourDigitResult.problems.length === 0, fourDigitResult.problems.join(" | "));
+// req: R-1000
+check("R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits", scanSource("// req: R-1000 G-1000\ntest('four', () => {});", "tests/a.test.mjs")[0].ids.join(",") === "R-1000,G-1000" && ["R-0123", "R-10000", "R-１２３"].every((id) => { try { scanSource(`// req: ${id}\ntest('bad', () => {});`, "tests/a.test.mjs"); return false; } catch (error) { return error.message.includes("bad requirement id") && error.message.includes("tests/a.test.mjs:1") && error.message.includes("four digits never starting with 0"); } }), "marker grammar or diagnostic differs");
+
+const badIds = ["R-0123", "R-10000", "R-１２３"];
+for (const id of badIds) {
+	const dir = idFixture(`# fixture\n${ID_HEAD}\n| ${id} | The trace rail shall reject this ID. | untested | — |\n`);
+	let message = "";
+	try { checkEars(dir, { testRoots: ["tests"] }); } catch (error) { message = String(error.message); }
+	// req: R-1000
+	check(`R-1000: invalid row ID ${id} is rejected`, message.includes("REQUIREMENTS.md:4") && message.includes("four digits never starting with 0"), message || "invalid row was silently ignored");
+}
+
+const nearMisses = [
+	["missing closing pipe", "| R-1001 | The trace rail shall reject malformed rows. | untested | —", 5],
+	["fenced example", "```\n| R-squared | example |\n```", 6],
+	["R candidate", "| R-squared | 0.9 |", 5],
+	["G candidate", "| G-squared | 0.9 |", 5],
+];
+for (const [label, row, lineNo] of nearMisses) {
+	for (const filename of ["REQUIREMENTS.md", "REQUIREMENTS-general.md"]) {
+		const main = `# fixture\n${ID_HEAD}\n| G-001 | Every tool shall exist. | untested | — |\n`;
+		const dir = idFixture(filename === "REQUIREMENTS.md" ? `${main}${row}\n` : main, filename === "REQUIREMENTS-general.md" ? `${main}${row}\n` : null);
+		let message = "";
+		try { checkEars(dir, { testRoots: ["tests"] }); } catch (error) { message = String(error.message); }
+		// req: R-1001
+		check(`R-1001: ${label} names ${filename}:${lineNo}`, message.includes(`${filename}:${lineNo}`), message || "candidate was silently ignored");
+	}
+}
+
+const uvxProbe = spawnSync("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { encoding: "utf8" });
+if (uvxProbe.status !== 0) console.log("SKIP Python R-1000/R-1001 fixture rail: uvx with pytest unavailable");
+else {
+	const conf = join(REPO_ROOT, "templates/python/template/tests/conftest.py");
+	const py = (dir) => spawnSync("uvx", ["--with", "pytest", "python", "-c", "import runpy,sys; from pathlib import Path; import pytest; m=runpy.run_path(sys.argv[2]);\ntry:\n r=m['check'](Path(sys.argv[1]),test_roots=())\n print('OK '+','.join(sorted(r[0])))\nexcept pytest.UsageError as e:\n print('ERR '+str(e))", dir, conf], { encoding: "utf8", cwd: dir });
+	const accepted = py(fourDigitRows);
+	// req: R-1000
+	check("R-1000: Python rail reads four-digit R/G rows", accepted.status === 0 && accepted.stdout.includes("OK G-1000,R-1000"), accepted.stderr || accepted.stdout);
+	const pythonInvalidRows = badIds.every((id) => {
+		const dir = idFixture(`# fixture\n${ID_HEAD}\n| ${id} | The trace rail shall reject this ID. | untested | — |\n`);
+		const result = py(dir);
+		return result.status === 0 && result.stdout.includes("ERR REQUIREMENTS.md:4:") && result.stdout.includes("four digits never starting with 0");
+	});
+	// req: R-1000
+	check("R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs", pythonInvalidRows);
+	const markerCode = `import runpy,sys,pytest\nm=runpy.run_path(sys.argv[1])\nassert m['scan_source']('# req: R-1000 G-1000\\ndef test_four():\\n pass\\n','tests/test_a.py')[0][0] == ['R-1000','G-1000']\nfor rid in ['R-0123','R-10000','R-１２３']:\n try: m['scan_source'](f'# req: {rid}\\ndef test_bad():\\n pass\\n','tests/test_a.py')\n except pytest.UsageError as e: assert 'bad requirement id' in str(e) and 'tests/test_a.py:1' in str(e) and 'four digits never starting with 0' in str(e)\n else: raise AssertionError(rid)`;
+	const markerCheck = spawnSync("uvx", ["--with", "pytest", "python", "-c", markerCode, conf], { encoding: "utf8" });
+	// req: R-1000
+	check("R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits", markerCheck.status === 0, markerCheck.stderr || markerCheck.stdout);
+	for (const [label, row, lineNo] of nearMisses) for (const filename of ["REQUIREMENTS.md", "REQUIREMENTS-general.md"]) {
+		const main = `# fixture\n${ID_HEAD}\n| G-001 | Every tool shall exist. | untested | — |\n`;
+		const dir = idFixture(filename === "REQUIREMENTS.md" ? `${main}${row}\n` : main, filename === "REQUIREMENTS-general.md" ? `${main}${row}\n` : null);
+		const result = py(dir);
+		// req: R-1001
+		check(`R-1001: Python ${label} names ${filename}:${lineNo}`, result.status === 0 && result.stdout.includes(`${filename}:${lineNo}`), result.stderr || result.stdout);
+	}
+}
 
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");
 process.exit(fails ? 1 : 0);

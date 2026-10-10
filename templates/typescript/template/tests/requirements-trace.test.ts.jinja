@@ -29,6 +29,7 @@ import {
 	check,
 	EARS_ALLOWANCE_DEFAULT,
 	earsOffForm,
+	ID,
 	loadRequirements,
 	printReport,
 	scanSource,
@@ -136,6 +137,16 @@ describe("shall count parity (shared with the Python rail)", () => {
 });
 
 describe("loadRequirements", () => {
+	test("accepts four-digit R/G IDs and rejects leading-zero, five-digit and non-ASCII IDs", () => {
+		const rows = loadRequirements(
+			`${REQS}| R-1000 | The system shall accept four digits. | untested | — |\n| G-1000 | The system shall accept four digits. | untested | — |\n`,
+		);
+		expect(rows.has("R-1000") && rows.has("G-1000")).toBe(true);
+		for (const id of ["R-0123", "R-10000", "R-１２３"]) {
+			expect(ID.test(id)).toBe(false);
+		}
+	});
+
 	test("reads id, status and whether the evidence is external", () => {
 		const rows = loadRequirements(REQS);
 		expect([...rows.keys()]).toEqual(["R-001", "R-002", "R-003", "G-004"]);
@@ -174,6 +185,20 @@ describe("loadRequirements", () => {
 });
 
 describe("scanSource", () => {
+	test("accepts four-digit marker IDs and rejects leading-zero, five-digit and non-ASCII IDs", () => {
+		expect(
+			scanSource(
+				"// req: R-1000 G-1000\ntest('four', () => {});",
+				"tests/a.test.ts",
+			)[0]?.ids,
+		).toEqual(["R-1000", "G-1000"]);
+		for (const id of ["R-0123", "R-10000", "R-１２３"]) {
+			expect(() =>
+				scanSource(`// req: ${id}\ntest('bad', () => {});`, "tests/a.test.ts"),
+			).toThrow(/bad requirement id.*four digits never starting with 0/);
+		}
+	});
+
 	test("binds a marker to the test call directly below it, stacked markers merged", () => {
 		const src =
 			"// req: R-001 R-002\ntest('first', () => {});\n// req: R-003\n// req: G-004\nit(\"second\", () => {});\n";
@@ -300,6 +325,28 @@ describe("traceProblems", () => {
 });
 
 describe("check over a scratch project", () => {
+	test("fails on raw malformed candidate rows in either ledger with the file and line", () => {
+		const cases = [
+			["REQUIREMENTS.md", "| R-squared | 0.9 |", 2],
+			["REQUIREMENTS-general.md", "| G-squared | 0.9 |", 2],
+			["REQUIREMENTS.md", "```\n| R-squared | example\n```", 3],
+		] as const;
+		for (const [file, row, line] of cases) {
+			const dir = mkdtempSync(join(tmpdir(), "req-trace-near-miss-"));
+			scratch.push(dir);
+			writeFileSync(
+				join(dir, "REQUIREMENTS.md"),
+				file === "REQUIREMENTS.md" ? `# fixture\n${row}\n` : "# fixture\n",
+			);
+			if (file === "REQUIREMENTS-general.md") {
+				writeFileSync(join(dir, file), `# fixture\n${row}\n`);
+			}
+			expect(() => check(dir)).toThrow(
+				new RegExp(`${file}:${line}: malformed requirement row`),
+			);
+		}
+	});
+
 	test("reads the file and scans tests/ end to end", () => {
 		const dir = mkdtempSync(join(tmpdir(), "req-trace-"));
 		scratch.push(dir);

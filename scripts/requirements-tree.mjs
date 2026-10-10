@@ -10,12 +10,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ID } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
-const ROW = /^\|\s*([RG]-\d{3})\s*\|/;
+const ROW = new RegExp(String.raw`^\|\s*(${ID.source.slice(1, -1)})\s*\|`);
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
@@ -194,7 +195,7 @@ export function checkLifecycleAndShares(parsed) {
       const ids = entry.value ? entry.value.split(/,\s*/) : [];
       for (const id of ids) {
         let why = "";
-        if (!/^[RG]-\d{3}$/.test(id) || !rowHome.has(id)) why = "does not exist";
+        if (!ID.test(id) || !rowHome.has(id)) why = "does not exist";
         else if (seen.has(id)) why = "is listed more than once";
         else if (rowStatus.get(id) === "retired") why = "is retired";
         else if (rowHome.get(id) === feature.id) why = "is homed in this feature";
@@ -277,13 +278,18 @@ export function expandRowIds(text) {
   if (text === "—" || text === "") return [];
   const ids = [];
   for (const item of text.split(/,\s*/)) {
-    const range = /^([A-Za-z]+)-(\d{3})–([A-Za-z]+)-(\d{3})$/.exec(item);
+    const range = /^([RG]-(?:[0-9]{3}|[1-9][0-9]{3}))–([RG]-(?:[0-9]{3}|[1-9][0-9]{3}))$/.exec(item);
     if (range) {
-      if (range[1] !== range[3] || Number(range[4]) < Number(range[2])) throw new Error(`invalid row ID range: ${item}`);
-      for (let number = Number(range[2]); number <= Number(range[4]); number++) ids.push(`${range[1]}-${String(number).padStart(3, "0")}`);
+      const start = range[1];
+      const end = range[2];
+      const prefix = start.slice(0, 1);
+      const first = Number(start.slice(2));
+      const last = Number(end.slice(2));
+      if (prefix !== end.slice(0, 1) || last < first) throw new Error(`invalid row ID range: ${item}`);
+      for (let number = first; number <= last; number++) ids.push(`${prefix}-${String(number).padStart(3, "0")}`);
       continue;
     }
-    if (!/^[A-Za-z]+-\d{3}$/.test(item)) throw new Error(`invalid row ID: ${item}`);
+    if (!ID.test(item)) throw new Error(`invalid row ID: ${item}`);
     ids.push(item);
   }
   return ids;

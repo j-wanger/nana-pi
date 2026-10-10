@@ -105,8 +105,8 @@ mkdirSync(nestedRejectFixture, { recursive: true });
 writeFileSync(join(nestedRejectFixture, "conflict.rej"), "fixture");
 // req: R-582
 check("updated trees reject nested conflict files before map regeneration", findRejectFiles(join(root, "nested-reject-fixture")).length === 1);
-const parseG = (text) => new Map([...text.matchAll(/^\|\s*(G-\d{3})\s*\|\s*(.*?)\s*\|\s*(\w+)\s*\|/gm)].map((match) => [match[1], { requirement: match[2], status: match[3] }]));
-const sharedRequirements = new Map([...shared.matchAll(/^\|\s*(G-\d{3})\s*\|\s*(.*?)\s*\|/gm)].map((match) => [match[1], match[2]]));
+const parseG = (text) => new Map([...text.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|\s*(.*?)\s*\|\s*(\w+)\s*\|/gm)].map((match) => [match[1], { requirement: match[2], status: match[3] }]));
+const sharedRequirements = new Map([...shared.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|\s*(.*?)\s*\|/gm)].map((match) => [match[1], match[2]]));
 const pythonJinja = readFileSync(new URL("templates/python/template/REQUIREMENTS-general.md.jinja", sourceRoot), "utf8");
 // req: R-581
 check("Python rendered Jinja includes the shared source", pythonJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
@@ -158,7 +158,7 @@ if (havePytest) {
  const conftestSource = readFileSync(new URL("../../../templates/python/template/tests/conftest.py", import.meta.url), "utf8");
  for (const [shape, malformedTable, expected] of [
   ["duplicate ID", table([["G-017", "The duplicate fixture shall fail."], ["G-017", "The duplicate fixture shall fail again."]]), "duplicate id G-017"],
-  ["wrong cell count", "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-017 | The cell-count fixture shall fail. | untested | — | extra |\n", "cells, expected 4"],
+  ["wrong cell count", "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-017 | The cell-count fixture shall fail. | untested | — | extra |\n", "REQUIREMENTS-general.md:3: malformed requirement row"],
  ]) {
   const fullRun = join(root, `python-full-${shape.replaceAll(" ", "-")}`);
   mkdirSync(join(fullRun, "tests"), { recursive: true });
