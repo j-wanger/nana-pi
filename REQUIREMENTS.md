@@ -762,7 +762,7 @@ Purpose: Skip unsupported Windows integrations and maintain supported copies and
 ## FEAT-014 · Create or adopt a project workspace
 Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
 Status: active
-Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740
+Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740, R-1000, R-1001
 
 ### SUB-016 · Recognize projects that need adoption
 Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
@@ -905,7 +905,7 @@ Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-9
 
 ## FEAT-016 · Start the local development desk
 Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-199
 
 | ID | Requirement | Status | Evidence |
@@ -1000,7 +1000,7 @@ Outcome: A developer can see what agents are doing, inspect their changes and di
 
 ## FEAT-020 · Find and read previous sessions
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-401, R-458, R-459
 
 | ID | Requirement | Status | Evidence |
@@ -1022,7 +1022,7 @@ Also applies: R-401, R-458, R-459
 
 ## FEAT-021 · Choose and start an agent session
 Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-404, R-459, R-944
 
 | ID | Requirement | Status | Evidence |
@@ -1041,7 +1041,7 @@ Also applies: R-404, R-459, R-944
 
 ## FEAT-022 · Steer and recover live sessions
 Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-426, R-458, R-459
 
 | ID | Requirement | Status | Evidence |
@@ -1114,7 +1114,7 @@ Also applies: R-458, R-484, R-781, R-810
 
 ## FEAT-024 · Edit session and project settings safely
 Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-458, R-459
 
 | ID | Requirement | Status | Evidence |
@@ -1167,7 +1167,7 @@ Also applies: R-256
 
 ## FEAT-026 · Verify output provenance across session history
 Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-283, R-284
 
 | ID | Requirement | Status | Evidence |
@@ -1199,7 +1199,7 @@ Also applies: R-283, R-284
 
 ## FEAT-027 · Connect and isolate focused app surfaces
 Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
-Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
 Also applies: R-461
 
 | ID | Requirement | Status | Evidence |

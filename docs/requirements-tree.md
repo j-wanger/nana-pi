@@ -127,7 +127,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   - **FEAT-014 · Create or adopt a project workspace**
     Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
     Status: active
-    Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740
+    Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740, R-1000, R-1001
     Parent: CAP-04 · Rows: 62 · IDs: R-143–R-158, R-327–R-340, R-385, R-395, R-581, R-582, R-590–R-592, R-640, R-645–R-647, R-676, R-683, R-737, R-738, R-741, R-809–R-813, R-849, R-858, R-859, R-928–R-931, R-986–R-989
     - **SUB-016 · Recognize projects that need adoption**
       Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
@@ -154,7 +154,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-04 · Rows: 33 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999
   - **FEAT-016 · Start the local development desk**
     Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-199
     Parent: CAP-04 · Rows: 23 · IDs: R-354–R-356, R-380, R-389, R-390, R-396–R-398, R-400–R-404, R-462, R-464, R-468, R-469, R-650–R-652, R-677, R-678
   - **FEAT-017 · Inspect durable state and follow restoration steps**
@@ -177,17 +177,17 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   Parent: — · Rows: 89 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-401, R-458, R-459
     Parent: CAP-05 · Rows: 14 · IDs: R-405–R-413, R-463, R-470–R-473
   - **FEAT-021 · Choose and start an agent session**
     Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-404, R-459, R-944
     Parent: CAP-05 · Rows: 11 · IDs: R-198, R-414–R-418, R-475–R-478, R-685
   - **FEAT-022 · Steer and recover live sessions**
     Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-426, R-458, R-459
     Parent: CAP-05 · Rows: 26 · IDs: R-164, R-165, R-419, R-420, R-427, R-429–R-431, R-433–R-436, R-460, R-461, R-467, R-479–R-481, R-484–R-487, R-489, R-490, R-689, R-942
   - **FEAT-023 · Inspect changes and receive useful notices**
@@ -197,7 +197,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-05 · Rows: 31 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818
   - **FEAT-024 · Edit session and project settings safely**
     Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-458, R-459
     Parent: CAP-05 · Rows: 7 · IDs: R-455–R-457, R-466, R-867, R-869, R-941
 - **CAP-06 · Use attributable tool outputs and focused apps**
@@ -210,12 +210,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-06 · Rows: 26 · IDs: R-250–R-255, R-260–R-263, R-266–R-272, R-274–R-279, R-282–R-284
   - **FEAT-026 · Verify output provenance across session history**
     Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-283, R-284
     Parent: CAP-06 · Rows: 24 · IDs: R-256–R-259, R-264, R-273, R-280, R-281, R-437–R-446, R-451, R-491, R-492, R-945–R-947
   - **FEAT-027 · Connect and isolate focused app surfaces**
     Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
-    Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+    Status: frozen (Jake 2026-10-10: the desk stays frozen until he reopens it)
     Also applies: R-461
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
 - **CAP-07 · Keep code and promises checkable**
@@ -364,6 +364,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-980 | FEAT-013 | FEAT-015 | 1 |
 | R-985 | FEAT-013 | FEAT-015 | 1 |
 | R-992 | FEAT-007 | FEAT-008 | 1 |
+| R-1000 | FEAT-028 | FEAT-014 | 1 |
+| R-1001 | FEAT-028 | FEAT-014 | 1 |
 | G-004 | FEAT-033 | FEAT-029 | 1 |
 | G-007 | FEAT-033 | FEAT-029 | 1 |
 | G-008 | FEAT-033 | FEAT-029 | 1 |

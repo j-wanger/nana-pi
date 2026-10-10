@@ -10,6 +10,7 @@
 - 2026-10-06 to 10-09: the hardening program, six tranches and forty lanes, complete; CI cuts the template tags — `docs/hardening-plan-2026-10-06.md`, `docs/sessions/2026-10.md`.
 - 2026-10-09: builders lose the automatic knowledge pull (Jake) — `docs/sessions/2026-10.md`.
 - 2026-10-10: the new priority line in the umbrella `OBJECTIVE.md` (sol LAND, 10/10). Rulings: nothing reaches main unless an independent reviewer accepted it; rm runs freely only inside the working directory; Jake requires Windows testing now; the desk stays frozen; the export rule gets an explicit pi carve-out; a study stops when it cannot write its evidence.
+- 2026-10-10: the requirements tree (capabilities, features and subgroups; shared rows; feature lifecycle) and four-digit requirement IDs landed together on Jake's checkpoint-2 acceptance, after sol and astra final reviews — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -28,7 +29,8 @@
 - Knowledge ruling: `review-ledger run` sets no reviewer role; a review-test fixture can loop forever.
 - Tranche 2: an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
-- Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic).
+- Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
+- Review log: it keeps only the first verdict on each revision, and the land helper reads only that one, so a later SEND-BACK cannot stop a merge. Until the land-rule lane fixes it, the seat reads every verdict before a land.
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 
@@ -43,7 +45,7 @@
 3. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The desk usage tally no longer decides anything: Jake ruled the desk on 2026-10-10. The pull reading drops sessions named for pi-worker or pi-review; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
-6. **Queue for the new priority, in order:** land the requirements tree and the four-digit IDs together; build the land rule into `nana-land` (refuse uncovered commits, no free-text exemptions); add a Windows CI runner, fix the conflicting Windows wording, then fix what it finds (a UTM Windows 11 VM is the next test); the install-and-hooks check on both platforms; small fixes: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence, the frozen-status wording.
+6. **Queue for the new priority, in order:** build the land rule into `nana-land` (refuse uncovered commits, no free-text exemptions, keep every reviewer's verdict and refuse unless all are LAND; plan drafted, sol plan review next); the product report as a feature (plan drafted after Fable; rows renumber from R-1005); add a Windows CI runner, fix the conflicting Windows wording, then fix what it finds (a UTM Windows 11 VM is the next test); the install-and-hooks check on both platforms; small fixes: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence; then move the confirmed audit issues into the ledger's open questions and regenerate the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
@@ -53,7 +55,6 @@
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
 - **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
-- **[blocking, since 2026-10-09] Requirements tree and four-digit IDs, checkpoint 2.** The tree passed review; the four-digit IDs land only after their final review passes. Accept them; confirm the seven frozen features; rule on the R-224 share and on sharing the two new ID rows with project setup. Then the seat lands them together. Detail: `docs/reviews/req-tree-2026-10-09/`, `docs/reviews/req-ids-2026-10-10/`.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
