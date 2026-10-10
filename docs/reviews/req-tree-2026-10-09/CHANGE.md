@@ -271,6 +271,14 @@ Jake at checkpoint 2.
    edit. Recommend: visible, not pinned (sol r3 agrees and withdrew its pinning MUST). An agent would edit the manifest too to turn the suite
    green, so the pin adds owner friction without adding control over sessions.
 
+## 7a. Checkpoint 1 — agreed
+
+Jake, 2026-10-09, after reading the outline and the four decisions: "Ok I like this, lets proceed."
+Recorded as: names and grouping as in `outline.md` (no renames); decision 1 = Jake's own words
+(`fixed-text.md` as committed); decisions 2, 3 and 4 accepted as recommended. The commit that adds
+this section is the approved commit: `prove.mjs --approved` names it, and the frozen inputs are read
+from it.
+
 ## 8. Next increments (not authorized by this declaration)
 
 2. The lane brief template gains `Feature:` and `Requirement delta:`; the review item and the
