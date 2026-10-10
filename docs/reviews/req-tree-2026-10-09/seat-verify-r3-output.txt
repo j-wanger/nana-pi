@@ -1,0 +1,8 @@
+real ledger proof exit=0 (want 0)
+proof on new-row attack 'trailing' exit=1 (want 1)
+proof on new-row attack 'fifth' exit=1 (want 1)
+proof on new-row attack 'untested' exit=1 (want 1)
+proof on new-row attack 'noevidence' exit=1 (want 1)
+tree test on real tree exit=0 (want 0)
+tree test with an appended outline line exit=1 (want 1)
+outline restored, worktree clean for it
