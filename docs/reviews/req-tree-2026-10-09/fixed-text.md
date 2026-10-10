@@ -1,0 +1,32 @@
+<!-- The exact text the move inserts after the intro. Seat-written, agreed by Jake at checkpoint 1,
+frozen for the build: prove.mjs compares the ledger against this file at the approved commit.
+Everything between the BEGIN and END markers is inserted verbatim. -->
+<!-- BEGIN -->
+## How this file is organized
+
+The rows are grouped into a tree: capability → feature → subgroup. A capability heading reads
+`# CAP-nn · <label>`, a feature heading `## FEAT-nnn · <label>` and a subgroup heading
+`### SUB-nnn · <label>`. Each heading is followed by a `Purpose:` line saying why that part of the
+product exists; a capability also carries an `Outcome:` line. Every row lives in exactly one
+feature table, or in one subgroup table when its feature is subdivided. Add a new row to the table
+of the feature it serves; a new capability, feature or subgroup takes the next unused ID and a
+`Purpose:` line. Capability, feature and subgroup IDs, like row IDs, are never renumbered or
+reused. R-287 to R-290 pin this structure. The names and purposes started as astra's 2026-10-09
+draft, agreed by Jake; where the old numbered sections went is in
+`docs/requirements-sections-2026-10-09.md`.
+
+## Purpose and outcomes
+
+Purpose: a customized agentic coding experience that can be used for any development project,
+and makes development more controlled, robust and effective (Jake, 2026-10-09). It serves the
+objective in `~/nana-agent-loop/OBJECTIVE.md`: build products with agents, with nana-pi as the
+shared toolkit and experience.
+
+Outcomes (astra's 2026-10-09 draft, agreed by Jake):
+
+1. **Understand what the product enables.** Find a capability, understand why it matters, and reach its relevant obligations without reading the whole ledger.
+2. **Delegate one coherent change.** Distinguish the agreed increment from adjacent discoveries, blockers and future work.
+3. **Accept a change with useful evidence.** See the behavior changed, the requirement delta, the candidate revision, the checks performed and the remaining uncertainty.
+4. **Reuse the experience across projects.** Adopt the appropriate workflow and controls without an unrelated toolchain migration.
+5. **Continue without reconstructing history.** Resume the current goal, scope, decisions and evidence with the right context available.
+<!-- END -->

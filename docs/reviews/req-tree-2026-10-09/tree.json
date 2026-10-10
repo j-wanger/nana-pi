@@ -3,7 +3,7 @@
   "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
-  "note": "The tree the move script reads. Derived from mapping-astra.json (astra's draft, unedited) with the seat's declared deviations: (1) all 22 G rows in FEAT-033, R rows first in astra's order then G-001..G-022; (2) R-286 then R-285 appended to FEAT-006; (3) subgroups renumbered flat SUB-001..SUB-021 in tree order; a feature with subgroups carries no ids of its own (the subgroup lists are its rows, in that order). IDs only, never row text."
+  "note": "The tree the move script reads. Derived from mapping-astra.json (astra's draft, unedited) with the seat's declared deviations: (1) all 22 G rows in FEAT-033, R rows first in astra's order then G-001..G-022; (2) R-286 then R-285 appended to FEAT-006; (3) subgroups renumbered flat SUB-001..SUB-021 in tree order; a feature with subgroups carries no ids of its own (the subgroup lists are its rows, in that order). IDs only, never row text. Round-1 additions (sol r1): FEAT-028 ends with R-287..R-290 (text in new_rows, Status/Evidence builder-written); see_also lines, notes_from destinations (declared, not by majority: §13c's majority home is FEAT-002 because of misfiled frontier rows, but its note is about the code map), the one intro_edit, the §10 note to the section map, and the tail heading that keeps `## Open questions` and `## Deliberate omissions` byte-identical."
  },
  "purpose": "Help a developer turn project goals into useful software through agent work that remains understandable, bounded, verifiable, and reusable across projects.",
  "outcomes": [
@@ -280,6 +280,10 @@
       "R-754",
       "R-755",
       "R-376"
+     ],
+     "notes_from": [
+      "## 13a. The writing checker (nana-pack)",
+      "## 13b. The writing rule's delivery to pi (nana-pack)"
      ]
     }
    ]
@@ -1252,8 +1256,13 @@
       "R-580",
       "R-583",
       "R-757",
-      "R-681"
-     ]
+      "R-681",
+      "R-287",
+      "R-288",
+      "R-289",
+      "R-290"
+     ],
+     "see_also": "See also: G-013, G-014, G-015 (general engineering rows, kept whole in FEAT-033)."
     },
     {
      "id": "FEAT-029",
@@ -1267,6 +1276,10 @@
       "R-864",
       "R-649",
       "R-657"
+     ],
+     "see_also": "See also: G-009, G-010, G-011 (general engineering rows, kept whole in FEAT-033).",
+     "notes_from": [
+      "## 13c. The code-map generator (templates)"
      ]
     },
     {
@@ -1374,7 +1387,8 @@
       "R-598",
       "R-599",
       "R-629"
-     ]
+     ],
+     "see_also": "See also: G-012, G-021, G-022 (general engineering rows, kept whole in FEAT-033)."
     },
     {
      "id": "FEAT-033",
@@ -1404,6 +1418,9 @@
       "G-020",
       "G-021",
       "G-022"
+     ],
+     "notes_from": [
+      "# Part G. General engineering requirements (every nana project — nana-pi itself included)"
      ]
     }
    ]
@@ -1536,5 +1553,25 @@
     }
    ]
   }
- ]
+ ],
+ "new_rows": {
+  "R-287": "Every requirement row in REQUIREMENTS.md shall sit in a table whose nearest preceding heading is a feature heading (`## FEAT-nnn · <label>`) or a subgroup heading (`### SUB-nnn · <label>`).",
+  "R-288": "Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text.",
+  "R-289": "No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID.",
+  "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup."
+ },
+ "intro_edit": {
+  "from": "section 13c",
+  "to": "the code-map generator feature (old section 13c)"
+ },
+ "to_section_map": [
+  "## 10. pi-review: round cap and stall watchdog"
+ ],
+ "tail": {
+  "heading": "# Open questions and deliberate omissions",
+  "keeps": [
+   "## Open questions",
+   "## Deliberate omissions"
+  ]
+ }
 }

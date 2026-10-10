@@ -1,6 +1,6 @@
 # The requirements tree — what Jake agrees before any row moves (checkpoint 1)
 
-*Generated 2026-10-09 from `mapping.json` (astra's draft) and `REQUIREMENTS.md` at 5b68a91, with the seat's three deviations applied: all 22 G rows in FEAT-033; R-285 and R-286 in FEAT-006; subgroups renumbered flat (SUB-001 to SUB-021). Names and purposes are astra's, unedited. Renaming a heading here is a JSON edit; after the move it is a heading edit.*
+*Generated 2026-10-09 from `tree.json` (the checkpoint input) and `REQUIREMENTS.md` at 5b68a91. `tree.json` is astra's draft (`mapping-astra.json`) with the seat's three deviations applied: all 22 G rows in FEAT-033; R-285 and R-286 in FEAT-006; subgroups renumbered flat (SUB-001 to SUB-021). Names and purposes are astra's, unedited. Renaming a heading here is a JSON edit; after the move it is a heading edit.*
 
 ## Purpose (proposed: Jake's own words, 2026-10-09)
 
@@ -47,7 +47,7 @@ Frozen = rows from the old desk and stage sections (desk work is paused until th
 | CAP-06 | FEAT-025 · Use consistent structured tool output | 26 | 9 / 15 / 0 / 2 | frozen 100% |
 | CAP-06 | FEAT-026 · Verify output provenance across session history | 25 | 17 / 6 / 2 / 0 | frozen 100% |
 | CAP-06 | FEAT-027 · Connect and isolate focused app surfaces | 23 | 12 / 11 / 0 / 0 | frozen 100% |
-| CAP-07 | FEAT-028 · Maintain requirement identity and trace links | 7 | 7 / 0 / 0 / 0 | — |
+| CAP-07 | FEAT-028 · Maintain requirement identity and trace links | 7 + 4 new | 7 / 0 / 0 / 0 (the 4 new rows R-287–R-290 land as implemented) | — |
 | CAP-07 | FEAT-029 · Navigate code and investigate impact | 7 | 5 / 0 / 0 / 2 | — |
 | CAP-07 | FEAT-030 · Get trustworthy feedback after edits | 42 | 32 / 3 / 0 / 7 | — |
 | CAP-07 | FEAT-031 · Run checks reliably and without contaminating work | 37 | 29 / 8 / 0 / 0 | frozen 3%, idle 3% |

@@ -1,5 +1,11 @@
 # Review brief — req-tree change declaration, 2026-10-09 (reviewer: gpt-5.6-sol)
 
+**Round 2.** Your round-1 review is `docs/reviews/req-tree-2026-10-09/sol-plan-r1.md`; the seat's
+response is `sol-plan-r1-response.md` beside it. Verify each fix against the revised `CHANGE.md`,
+`tree.json` and `fixed-text.md`. One finding (MUST 3) was partly declined with a reason: if you
+still judge it a MUST, say why the reason fails. Then review the revised plan as a whole; new
+findings are welcome.
+
 You review a PLAN, not code. Nothing is built yet. Jake (the owner) decided to reorganize
 `REQUIREMENTS.md` (1,004 EARS rows) into a capability → feature → subgroup tree drafted by another
 model (astra). He asked the seat to apply a new feature-based process: why first, then the plan,

@@ -51,6 +51,8 @@ Every relaxing literal reading found is already caught by a cited, marked test.
 Additional findings (no proposal counterpart): R-873–R-879 misfiled under 13c; R-642/R-643 under §5 not §7;
 R-389 has no subject; OQ 9 count and plan :61 reserve stale; R-734 lane mode prints SUCCESS on a
 `VERDICT: BLOCKED` report; tranche 4–6 lane corpora (briefs, reports, reviews) are only in session scratch.
+Also (found 2026-10-09 in the req-tree lane): `packages/nana-pack/README.md:156` documents `pi-review … -m gpt-5.6-sol`;
+pi rejects `-m` ("Unknown option: -m"). A README contract violation (G-012 class).
 
 ## The reorganisation itself
 
