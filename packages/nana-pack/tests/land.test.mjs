@@ -168,7 +168,7 @@ check("uncovered integration commits are refused and named", () => {
 	assert.notEqual(out.code, 0); assert.match(out.text, /uncovered commits/); assert(out.text.includes(tip)); assert(out.text.includes(integrationSha)); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
 // req: R-976
-check("main commits outside the reviewed ancestry are excluded from the land set", () => {
+check("main commits outside the reviewed ancestry are not reported as unreviewed", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-already-main-")); const main = repo(root, "main");
 	git(main, "checkout", "-b", "review-branch"); const reviewedSha = commit(main, "reviewed.txt", "reviewed\n", "reviewed");
 	git(main, "checkout", "main"); const landedSha = commit(main, "landed.txt", "landed\n", "previous lane landed");
