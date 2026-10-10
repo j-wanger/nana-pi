@@ -5,7 +5,7 @@ at `1836fa3` (the requirements tree and four-digit IDs) · 2026-10-10. Features:
 Integrate and clean up reviewed changes** (home of the land rows) and **FEAT-007 · Review a specific
 revision independently** (home of the round-record rows; R-969 and R-992 are shared with FEAT-008).
 Order: why → plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan
-review (item `land-rule-plan`) → build → seat verification → sol build review → astra land review →
+review (item `land-rule-plan`; r1 SEND-BACK, answered in `sol-plan-r1-response.md`) → build → seat verification → sol build review → astra land review →
 Jake accepts.*
 
 ## 1. Why
@@ -29,19 +29,25 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 2. There is no way to land without review: `--exempt` and any option other than `--tree`, `--main`,
    `--suite` and `--reviewed` is refused by name before git runs.
 3. A rejection is never masked by the helper's own reading: every completed verdict is kept in the
-   round records; the merge refuses when any completed verdict at a named revision is not LAND —
-   under any item in the repository, and for a working-state snapshot of that commit too; it reads
-   the records again after the suite, immediately before merging; and it refuses while a review of a
-   named revision is still in flight.
-4. The verdict is the one the reviewer ends on: the last `VERDICT:` line, with markdown emphasis,
-   code marks and trailing punctuation removed — so an echoed brief format line
+   round records; the merge refuses when any valid completed verdict at a named revision is not LAND
+   — under any item in the repository, and for a working-state snapshot of that commit too; it
+   refuses while a review of a named revision is in flight; and it takes its final reading after the
+   suite UNDER the review ledger's lock, holding the lock through the merge, so no review starts or
+   completes between that reading and the merge.
+4. The verdict is the one the reviewer ends on: the last `VERDICT:` line, which must hold exactly
+   one verdict word (markdown emphasis, code marks and trailing punctuation aside); a line with
+   alternatives or other text records no valid verdict — so an echoed brief format line
    (`VERDICT: LAND | FIX-FIRST | BLOCK`) can no longer record a LAND.
-5. Nothing is written to main after a land. `nana-land` stops printing the HANDOFF and session
+5. Source and main must be one repository: the merge refuses when `--tree` and `--main` do not share
+   a git common directory, so a separate clone cannot bring a fresh review record. An item name and a
+   SHA are matched in the canonical forms the review ledger records.
+6. Nothing is written to main after a land. `nana-land` stops printing the HANDOFF and session
    archive stubs; the round records (outside git) are the authoritative record of every review; a
    final review's text stays outside the tree; the seat's handoff and session notes go into the
    change BEFORE its final review. The working pattern every nana project reads says so, forbids
    direct commits to main, and names one standard over-cap reason for a confirmation round on a
-   final tip: "confirmation round on the final tip after fixes to named findings".
+   final tip: "confirmation round on the final tip after fixes to named findings or a merge of
+   current main".
 
 ## 2. Requirement delta
 
@@ -55,17 +61,22 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 | R-588 | reworded ("success records" → "success output") | WHEN a land merge succeeds, the land merge command shall print the main checkout's post-merge release status, a release-status failure leaving its exit code and success output unchanged. |
 | R-1002 | added | IF any commit the land merge command would add to main is not an ancestor of, or equal to, a named reviewed revision, THEN the command shall refuse without merging, naming each such commit. |
 | R-1003 | added | The land merge command shall accept only `--tree`, `--main`, `--suite` and `--reviewed`, refusing any other option by name before running git. |
-| R-1004 | added | IF any completed verdict in the source repository's round records, under any item, for a named reviewed revision or a working-state snapshot of that commit, is not LAND, THEN the land merge command shall refuse without merging, naming each such verdict. |
-| R-1005 | added | The land merge command shall read the round records again after the suite passes and immediately before merging, and apply R-976 and R-1004 to that second reading. |
+| R-1004 | added | IF any verified completed verdict in the source repository's round records, under any item, for a named reviewed revision or a working-state snapshot of that commit, is not LAND, THEN the land merge command shall refuse without merging, naming each such verdict. |
+| R-1005 | added | The land merge command shall take a second reading of the round records after the suite passes, under the review ledger's lock, hold that lock through the ff-only merge, and apply R-976, R-1004 and R-1006 to that reading. |
 | R-1006 | added | IF a review of a named reviewed revision is in flight when the land merge command reads the round records, THEN the command shall refuse without merging. |
 | R-1007 | added | WHEN a land merge succeeds, the land merge command shall print no HANDOFF or session-archive text. |
+| R-1009 | added | IF `--tree` and `--main` do not share one git common directory, THEN the land merge command shall refuse before reading any review record. |
 
 **FEAT-007 (home; R-969 is shared with FEAT-008, so the review reads both).**
 
 | ID | Change | Text |
 |---|---|---|
-| R-969 | reworded (first verdict word → the last `VERDICT:` line) | Each completed review shall record the verdict word from the last line of its output that carries `VERDICT:`, with markdown emphasis, code marks and trailing punctuation removed. |
+| R-969 | reworded (first verdict word → the last `VERDICT:` line) | Each completed review shall record as its verdict the word after `VERDICT:` on the last line of its output that carries `VERDICT:`, ignoring markdown emphasis, code marks and trailing punctuation. |
+| R-1010 | added | IF the last line of a completed review's output that carries `VERDICT:` holds more than one word after `VERDICT:`, THEN the review ledger shall record no valid verdict for that review. |
 | R-1008 | added | The round records shall keep every completed verdict on a revision with its item, role and model, while that revision still counts as one round (R-972). |
+| R-731 | reworded (one line per round → per completed verdict) | Ledger storage shall not be bounded overall: the tally grows one line per completed verdict and is read in full at every admission. |
+| R-970 | reworded (one line per round → per recorded verdict) | The review-ledger report command shall print one read-only line per recorded verdict with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. |
+| R-992 | reworded (rounds → round records, one per completed verdict) | The exported readRounds(home, {repo, item}) reader shall return the recorded round records, one per completed verdict, without writing the ledger. |
 
 **Tree changes for Jake (governance: Jake decides shares and purposes; the seat proposes).**
 - Share R-1008 with FEAT-008: the land check reads it.
@@ -77,25 +88,38 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 ## 3. Scope
 
 **In.**
-- `packages/nana-pack/bin/nana-land.mjs` — refuse uncovered commits; remove `--exempt` from the
+- `packages/nana-pack/bin/nana-land.mjs` — refuse a `--tree` outside `--main`'s repository;
+  resolve each `--reviewed` SHA to its full lowercase commit ID and canonicalise each item as
+  admission does before any ledger check; refuse uncovered commits; remove `--exempt` from the
   parser, the error strings, the archive text and `runLand`'s options (the 20 `exempt: "test"` test
   call sites move to reviewed fixtures); the repository-wide non-LAND check (any item, revision or
   `head` equal to the named commit); the second reading after the suite; the in-flight refusal; no
-  HANDOFF or session-archive lines (the `push command` and `release status` lines stay). Keep
-  `usage: nana-land` (pinned by the setup install test).
+  HANDOFF or session-archive lines (the `push command` and `release status` lines stay); the
+  second reading, in-flight check, R-977 rechecks and ff-only merge run inside one exported
+  ledger-lock call from `review-round.mjs` (no reach into its internals). Keep `usage: nana-land`
+  (pinned by the setup install test).
 - `packages/nana-pack/bin/review-round.mjs` — `complete()` appends a round record for every
   completed verdict; its returned and printed round number is the revision's round ordinal, not a
-  record index; `decide()`'s "N completed" text counts revisions; the verdict word per R-969.
+  record index; `decide()`'s "N completed" text counts revisions; the verdict word per R-969; one
+  exported function that runs a caller's step under the ledger lock with the round records and live
+  reservations it read there.
 - `packages/nana-pack/bin/review-ledger.mjs` — `report` shows every verdict on a revision without
   implying extra rounds.
 - Tests: `packages/nana-pack/tests/land.test.mjs` (the uncovered-commit test flips to a refusal with
   no merge and no ref change; the exemption tests flip to unknown-option refusals; a covered tip
   lands; LAND+LAND lands; LAND then SEND-BACK, SEND-BACK then LAND, a non-LAND under another item and
   a non-LAND at a snapshot of the commit each refuse; a verdict recorded during the suite refuses; an
-  in-flight review refuses; no stub lines). `packages/nana-pack/tests/review-ledger.test.mjs` (every
+  in-flight review refuses; a review that starts after the final reading waits for the lock and
+  cannot complete before the merge; an unverified SEND-BACK neither authorises nor refuses; a legacy
+  record with no verdict field beside a verified LAND lands; a clone as `--tree` refuses; an
+  uppercase SHA and a differently cased item land; no stub lines).
+  `packages/nana-pack/tests/review-ledger.test.mjs` (every
   check that counts raw tally lines as rounds — :151, :155, :159, :161, :164, :169, :202, :532,
   :536, :541 — counts distinct revisions; several verdicts on one revision stay one round; the round
-  number printed is the ordinal; the verdict parse cases). Masking tests use real `complete()` calls,
+  number printed is the ordinal; the verdict parse cases: the echoed format line alone records no
+  valid verdict, the format line before a final `VERDICT: SEND-BACK` records SEND-BACK,
+  `**VERDICT:** LAND` and `VERDICT: LAND.` record LAND). `immutable-review.test.mjs` is read, not
+  changed (its items get one verdict each). Masking tests use real `complete()` calls,
   not hand-written tally lines, so reverting `complete()` to first-only turns them red.
 - `packages/nana-pack/README.md` — usage and the rule (:176); the Trust model (:142, :221-227) stops
   claiming every verdict is in the tally today and stops suggesting deleting tally lines without
@@ -107,10 +131,13 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
   exemptions; never commit directly to main; nothing is written after a land; session notes go in
   before the final round; the standard over-cap reason. R-683's pinned phrases stay.
 - `REQUIREMENTS.md` (the rows in §2), regenerated outline and code map.
+- `HANDOFF.md` and the current session archive `docs/sessions/2026-10.md`, written by the seat
+  before the final review for the merged state: the review-log residual line and this lane's queue
+  entry go; the session entry records the lane.
 
 **NOT.** `nana-land cleanup`; other repos' AGENTS.md (they refresh at their next `nana-setup
 project`); checking reviewer independence or review scope in the helper; branch protection or hooks
-on main; making the round records tamper-proof; canonicalising a passed item name or uppercase SHA.
+on main; making the round records tamper-proof.
 
 **Blast radius.** `~/.local/bin/nana-land` and `pi-review` link to the main checkout, so the new
 land rule and the every-verdict records govern every repo's lands and reviews the moment this
@@ -124,16 +151,22 @@ at merge; copier consumers get it at the next template tag, which needs main pus
 
 - Coverage: `rev-list <tip> --not <main> <reviewed revisions…>` must be empty; each `--reviewed
   <sha>=<item>` still needs a verified LAND round for that item and revision (R-976, unchanged).
-- Non-LAND check (R-1004): over the repository's round records, every record whose `revision` or
-  `head` equals a named commit, under any item, must have the verdict LAND; an unverified LAND does
-  not satisfy R-976 and is not itself a refusal.
-- Order: parse options → read records (R-976, R-1004, R-1006) → suite → read records again (R-1005)
-  → recheck checkout (R-977) → ff-only merge. Every refusal happens before any merge or ref update and
+- Non-LAND check (R-1004): over the repository's round records, every VERIFIED record whose
+  `revision` or `head` equals a named commit, under any item, must have the verdict LAND. Unverified
+  records (R-717) neither authorise nor refuse. A record with a `verdict` field of `null` (no valid
+  verdict) refuses; a legacy record with no `verdict` field at all (written before 2026-10-07)
+  neither authorises nor refuses.
+- Order: parse options (R-1003) → same repository (R-1009) → canonical SHAs and items → read records
+  (R-976, R-1004, R-1006) → suite → under the ledger lock: read again (R-976, R-1004, R-1006),
+  recheck checkout (R-977), ff-only merge → release the lock → success output. The lock section holds
+  no suite run, so it stays well inside the ledger's 15-second lock wait: a review that tries to
+  start or complete meanwhile waits rather than failing. Every refusal happens before any merge or ref update and
   names what it found; uncovered commits are listed by short SHA and subject with "get it reviewed (a
   new round on the tip) or drop it".
 - Verdict parse (R-969): scan the output's lines from the end for the first line containing
   `VERDICT:` preceded only by non-word characters (R-701); remove `*`, `_` and backticks from that
-  line; the verdict is the next token, with trailing `.`, `,`, `;` and `:` removed.
+  line; what follows `VERDICT:` must be exactly one word, optionally followed by `.`, `,`, `;` or
+  `:`; anything else records `verdict: null`.
 
 ## 5. Declared residuals (stated in the pack README)
 
@@ -142,16 +175,20 @@ at merge; copier consumers get it at the next template tag, which needs main pus
 - The round records are a plain file: editing or deleting a line changes what the land check reads.
 - A narrow review round counts as a LAND of everything up to its revision.
 - A new commit (amend, rebase, an empty commit) starts with a clean record.
-- A direct commit to main, or a land from a separate clone with its own records, bypasses the
-  helper; the working pattern forbids both.
-- 156 legacy round records carry no verdict; pass the SHA lowercase and the item as recorded.
+- A direct commit to main bypasses the helper; the working pattern forbids it.
+- 156 legacy round records carry no verdict field: they cannot authorise a land, so a revision
+  reviewed only before 2026-10-07 needs a new review.
+- The helper enforces that every recorded verdict is LAND, not that the reviewers were independent;
+  neither the README nor the feature purpose claims otherwise.
 
 ## 6. Verification
 
 `npm run test:locked`; commit; `npm run template:accept`; mutation pairs: restore print-and-land →
 the refusal test fails; re-add `--exempt` to the parser AND to `runLand` → the unknown-option test
-fails; revert `complete()` to first-only → the masking tests fail; drop the second reading → the
-during-suite test fails; take the first `VERDICT:` line → the echoed-format test fails. The seat's
+fails; revert `complete()` to first-only → the masking tests fail; drop the second reading or the
+lock around it → the during-suite and after-final-reading tests fail; take the first `VERDICT:` line
+or accept extra words after it → the echoed-format tests fail; drop the common-directory check → the
+clone test fails. The seat's
 acceptance script runs every case in §3's test list against scratch git repositories with `HOME`
 pointed at a scratch folder (the CLI otherwise writes into the real round records), and the builder
 pastes its last two lines verbatim.
