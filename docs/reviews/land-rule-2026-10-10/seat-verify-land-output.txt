@@ -51,6 +51,8 @@ ok   replaced: a valid LAND revision passes and integration commits are called o
 ok   replaced: runLand requires reviews or a nonblank exemption → runLand requires verified reviews
 ok   replaced: branch switch at merge invocation refuses without landed records → branch switch at merge invocation refuses without a success report
 ok   replaced: suite failure leaves main unchanged and does not print a landed record → suite failure leaves main unchanged and prints no success report
+ok   retired (R-978): whitespace-only exemption is rejected and nonblank reason is trimmed
+ok   retired (R-978): an exemption reason appears in the successful archive record
 ok   replaced: release status failure after merge keeps success code and records → release status failure after merge keeps success code and output
 ok   replaced: …and they are ONE round (1 tally line, 10 audit verdicts) → …and they are ONE round (10 v2 verdict records, 10 audit verdicts)
 seat-verify-tests: 0 gap(s)
