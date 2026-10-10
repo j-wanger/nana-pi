@@ -47,7 +47,7 @@ Frozen = rows from the old desk and stage sections (desk work is paused until th
 | CAP-06 | FEAT-025 · Use consistent structured tool output | 26 | 9 / 15 / 0 / 2 | frozen 100% |
 | CAP-06 | FEAT-026 · Verify output provenance across session history | 25 | 17 / 6 / 2 / 0 | frozen 100% |
 | CAP-06 | FEAT-027 · Connect and isolate focused app surfaces | 23 | 12 / 11 / 0 / 0 | frozen 100% |
-| CAP-07 | FEAT-028 · Maintain requirement identity and trace links | 7 + 4 new | 7 / 0 / 0 / 0 (the 4 new rows R-287–R-290 land as implemented) | — |
+| CAP-07 | FEAT-028 · Maintain requirement identity and trace links | 7 + 5 new | 7 / 0 / 0 / 0 (the 5 new rows R-287–R-291 land as implemented) | — |
 | CAP-07 | FEAT-029 · Navigate code and investigate impact | 7 | 5 / 0 / 0 / 2 | — |
 | CAP-07 | FEAT-030 · Get trustworthy feedback after edits | 42 | 32 / 3 / 0 / 7 | — |
 | CAP-07 | FEAT-031 · Run checks reliably and without contaminating work | 37 | 29 / 8 / 0 / 0 | frozen 3%, idle 3% |

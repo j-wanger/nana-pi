@@ -3,7 +3,7 @@
   "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
-  "note": "The tree the move script reads. Derived from mapping-astra.json (astra's draft, unedited) with the seat's declared deviations: (1) all 22 G rows in FEAT-033, R rows first in astra's order then G-001..G-022; (2) R-286 then R-285 appended to FEAT-006; (3) subgroups renumbered flat SUB-001..SUB-021 in tree order; a feature with subgroups carries no ids of its own (the subgroup lists are its rows, in that order). IDs only, never row text. Round-1 additions (sol r1): FEAT-028 ends with R-287..R-290 (text in new_rows, Status/Evidence builder-written); see_also lines, notes_from destinations (declared, not by majority: §13c's majority home is FEAT-002 because of misfiled frontier rows, but its note is about the code map), the one intro_edit, the §10 note to the section map, and the tail heading that keeps `## Open questions` and `## Deliberate omissions` byte-identical."
+  "note": "The tree the move script reads. Derived from mapping-astra.json (astra's draft, unedited) with the seat's declared deviations: (1) all 22 G rows in FEAT-033, R rows first in astra's order then G-001..G-022; (2) R-286 then R-285 appended to FEAT-006; (3) subgroups renumbered flat SUB-001..SUB-021 in tree order; a feature with subgroups carries no ids of its own (the subgroup lists are its rows, in that order). IDs only, never row text. Round-1 additions (sol r1): FEAT-028 ends with R-287..R-290 (text in new_rows, Status/Evidence builder-written); see_also lines, notes_from destinations (declared, not by majority: §13c's majority home is FEAT-002 because of misfiled frontier rows, but its note is about the code map), the one intro_edit, the §10 note to the section map, and the tail heading that keeps `## Open questions` and `## Deliberate omissions` byte-identical. Round-2 addition: old_sections lists every dropped old heading with its declared package; prove.mjs checks the section map against it. Round-2 addition: R-291 (generated outline current) ends FEAT-028 after R-290."
  },
  "purpose": "Help a developer turn project goals into useful software through agent work that remains understandable, bounded, verifiable, and reusable across projects.",
  "outcomes": [
@@ -1260,7 +1260,8 @@
       "R-287",
       "R-288",
       "R-289",
-      "R-290"
+      "R-290",
+      "R-291"
      ],
      "see_also": "See also: G-013, G-014, G-015 (general engineering rows, kept whole in FEAT-033)."
     },
@@ -1558,7 +1559,8 @@
   "R-287": "Every requirement row in REQUIREMENTS.md shall sit in a table whose nearest preceding heading is a feature heading (`## FEAT-nnn · <label>`) or a subgroup heading (`### SUB-nnn · <label>`).",
   "R-288": "Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text.",
   "R-289": "No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID.",
-  "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup."
+  "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup.",
+  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline that `scripts/requirements-tree.mjs` renders from REQUIREMENTS.md."
  },
  "intro_edit": {
   "from": "section 13c",
@@ -1573,5 +1575,263 @@
    "## Open questions",
    "## Deliberate omissions"
   ]
- }
+ },
+ "old_sections": [
+  {
+   "heading": "# Part A. The pi extension pack and the repo test runner",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 1. Objective contract",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 2. Trust and the provenance label",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 3. Gate",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 4. Post-edit checks and receipts",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 5. Handoff, compaction and the adoption signal",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 6. Journal and session lifecycle",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 7. Notify",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 8. Display renderer (S1 and S2)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 9. Agent-dir resolution (U2)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 10. pi-review: round cap and stall watchdog",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 11. pi-worker",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 12. Skills contract",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13. The repo test runner (`scripts/test.mjs`)",
+   "package": "repo test runner"
+  },
+  {
+   "heading": "## 13a. The writing checker (nana-pack)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13b. The writing rule's delivery to pi (nana-pack)",
+   "package": "nana-pack"
+  },
+  {
+   "heading": "## 13c. The code-map generator (templates)",
+   "package": "templates (code-map generator)"
+  },
+  {
+   "heading": "# Part B. Knowledge pull, stage layer, installer",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 14. Index, sources and builds (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 15. Root discovery by convention (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 16. Pointer rendering (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 17. The shared prompt-time hook CLI (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 18. The pi extension (nana-knowledge)",
+   "package": "nana-knowledge"
+  },
+  {
+   "heading": "## 19. Block validation (nana-stage)",
+   "package": "nana-stage"
+  },
+  {
+   "heading": "## 20. Stamping, signing and the ledger (nana-stage)",
+   "package": "nana-stage"
+  },
+  {
+   "heading": "## 21. Installer — what install creates (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 22. settings.json merge semantics (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 23. pi registration identity matching (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 24. `project` — a folder becomes a nana project (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 25. doctor, exit codes and the pi agent dir (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 26. win32 degrade and the desk service (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "# Part C. The desk and the bench",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 27. Desk startup and pi binding",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 28. Session reading, rail and transcript",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 29. Spawning and resource policy",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 30. Live drive and the prompt path",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 31. Files-changed bar and the floating diff",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 32. Reload, skill auto-detect and header surfaces",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 33. The four buffer caps",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 34. Stage generation and the resync door",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 35. Stage signing keys and block provenance",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 36. App listeners, the UI-centric slices and the dashboards",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 37. Config and context writes",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 38. Browser boundary: Host and Origin",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 39. Session lifecycle and teardown",
+   "package": "apps/desk"
+  },
+  {
+   "heading": "## 40. Bench spend control and the test boundary",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 41. Measurement and accounting",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 42. Identity, ordering and resume",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 43. Pre-flight, budgets and stops",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 44. Interrupt and exactly one record per tuple",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 45. Deterministic grading",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 46. Evidence, fixtures and aggregation",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "## 47. Catch ledger E1 and the tool-profile verdict",
+   "package": "apps/bench"
+  },
+  {
+   "heading": "# Part G. General engineering requirements (every nana project — nana-pi itself included)",
+   "package": "part heading"
+  },
+  {
+   "heading": "## 48. Configuration and provenance",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 49. Module boundaries",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 50. The code map",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 51. Documentation",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 54. The requirement set",
+   "package": "Part G (general engineering; nana-pi copy of the shared file)"
+  },
+  {
+   "heading": "## 52. pi 1.0 subagent and MCP config (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 53. Installer edge-case hardening (nana-setup, pi-1.0-2026-10-04 review lane)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 56. State manifest and restore (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 57. Updating and removal (nana-setup)",
+   "package": "nana-setup"
+  },
+  {
+   "heading": "## 55. Template acceptance and release",
+   "package": "templates (acceptance and release)"
+  }
+ ]
 }
