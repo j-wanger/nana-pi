@@ -147,6 +147,13 @@ describe("loadRequirements", () => {
 		}
 	});
 
+	test("accepts CRLF rows and trailing whitespace without trimming leading spaces", () => {
+		const rows = loadRequirements(
+			`${REQS}| R-001 | The system shall work. | untested | — |  \r\n| R-1000 | The system shall accept four digits. | untested | — |\t\r\n`,
+		);
+		expect([...rows.keys()]).toEqual(["R-001", "R-1000"]);
+	});
+
 	test("reads id, status and whether the evidence is external", () => {
 		const rows = loadRequirements(REQS);
 		expect([...rows.keys()]).toEqual(["R-001", "R-002", "R-003", "G-004"]);
@@ -345,6 +352,41 @@ describe("check over a scratch project", () => {
 				new RegExp(`${file}:${line}: malformed requirement row`),
 			);
 		}
+	});
+
+	test("reads CRLF ledgers and markers, and accepts trailing closing-pipe whitespace", () => {
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-endings-"));
+		scratch.push(dir);
+		mkdirSync(join(dir, "tests"));
+		const head =
+			"| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`# fixture\n${head}| R-001 | The system shall work. | untested | — |   \r\n| R-1000 | The system shall work. | implemented | \`tests/a.test.ts::four\` |\t\r\n`,
+		);
+		writeFileSync(
+			join(dir, "REQUIREMENTS-general.md"),
+			`# fixture\n${head}| G-001 | The system shall work. | untested | — |   \r\n| G-1000 | The system shall work. | untested | — |\t\r\n`,
+		);
+		writeFileSync(
+			join(dir, "tests", "a.test.ts"),
+			"// req: R-1000\r\ntest('four', () => {});\r\n",
+		);
+		expect(check(dir).problems).toEqual([]);
+	});
+
+	test("a CRLF candidate missing its closing pipe fails at its line", () => {
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-ending-invalid-"));
+		scratch.push(dir);
+		const head =
+			"| ID | Requirement | Status | Evidence |\r\n|---|---|---|---|\r\n";
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`# fixture\r\n${head}| R-1000 | The system shall work. | untested | —\r\n`,
+		);
+		expect(() => check(dir)).toThrow(
+			/REQUIREMENTS.md:4: malformed requirement row/,
+		);
 	});
 
 	test("reads the file and scans tests/ end to end", () => {

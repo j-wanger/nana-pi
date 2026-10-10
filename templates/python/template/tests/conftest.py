@@ -56,7 +56,8 @@ ROW_CANDIDATE_RE = re.compile(r"^\|\s*[RG]-\S")
 
 
 def _check_near_miss_rows(text: str, filename: str) -> None:
-    for number, line in enumerate(text.splitlines(), 1):
+    for number, raw_line in enumerate(text.splitlines(), 1):
+        line = raw_line.rstrip()
         if not ROW_CANDIDATE_RE.match(line):
             continue
         cells = [cell.strip() for cell in line[1:-1].split("|")] if line.startswith("|") and line.endswith("|") else []
@@ -148,7 +149,8 @@ def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
             return {}
         text = path.read_text(encoding="utf-8")
     found: dict[str, Row] = {}
-    for line in text.splitlines():
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
         if not line.startswith("|") or not line.endswith("|"):
             continue
         cells = [c.strip() for c in line[1:-1].split("|")]
@@ -229,7 +231,8 @@ def shall_counts(text: str) -> dict[str, int]:
     independent of ``load_requirements()`` so ``Row``'s shape carries no new field and every
     existing comparison against it stays exact."""
     counts: dict[str, int] = {}
-    for line in text.splitlines():
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
         if not line.startswith("|") or not line.endswith("|"):
             continue
         cells = [c.strip() for c in line[1:-1].split("|")]
@@ -272,7 +275,7 @@ def scan_source(source: str, name: str, call_names: tuple[str, ...] = CALL_NAMES
     driven by a table and a helper looks like.
     """
     call_re = CALL_RE if call_names == CALL_NAMES else _call_re(call_names)
-    lines = source.split("\n")
+    lines = [line.rstrip() for line in source.split("\n")]
     found: list[tuple[list[str], str]] = []
     i = 0
     while i < len(lines):
@@ -363,7 +366,8 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
 def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
     """Return requirement, status and evidence cells for each table row."""
     found: dict[str, tuple[str, str, str]] = {}
-    for line in text.splitlines():
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
         if not line.startswith("|") or not line.endswith("|"):
             continue
         cells = [cell.strip() for cell in line[1:-1].split("|")]
@@ -412,7 +416,7 @@ def check(
                 owned[2] if owned else cells[2],
             )
         text = (
-            "\n".join(line for line in project_text.splitlines() if not line.startswith("|"))
+            "\n".join(line.rstrip() for line in project_text.splitlines() if not line.rstrip().startswith("|"))
             + "\n"
             + "\n".join(f"| {rid} | {cells[0]} | {cells[1]} | {cells[2]} |" for rid, cells in merged.items())
         )

@@ -167,6 +167,33 @@ const idFixture = (ledger, general = null, source = "") => {
 
 const fourDigitRows = idFixture(`# fixture\n${ID_HEAD}\n| R-1000 | The trace rail shall accept four digits. | untested | — |\n| G-1000 | The trace rail shall accept four digits. | untested | — |\n`);
 const fourDigitResult = checkEars(fourDigitRows, { testRoots: ["tests"] });
+const endingHead = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
+const crlf = (text) => text.replace(/\n/g, "\r\n");
+const endingRows = idFixture(
+	crlf(`# fixture\n${endingHead}| R-001 | The rail shall accept CRLF. | untested | — |\n| R-1000 | The rail shall accept four digits. | untested | — |\n`),
+	crlf(`# fixture\n${endingHead}| G-001 | The rail shall accept CRLF. | untested | — |\n| G-1000 | The rail shall accept four digits. | untested | — |\n`),
+);
+const endingRowsResult = checkEars(endingRows, { testRoots: ["tests"] });
+// req: R-1000 R-1001
+check("R-1000: CRLF ledger/general rows and trailing spaces/tab are read and clean",
+	endingRowsResult.problems.length === 0 && endingRowsResult.requirements.has("R-001") && endingRowsResult.requirements.has("R-1000") && endingRowsResult.requirements.has("G-001") && endingRowsResult.requirements.has("G-1000"), endingRowsResult.problems.join(" | "));
+const trailingRows = idFixture(`# fixture\n${endingHead}| R-001 | The rail shall accept spaces. | untested | — |   \n| R-1000 | The rail shall accept tabs. | untested | — |\t\n`, `# fixture\n${endingHead}| G-001 | The rail shall accept spaces. | untested | — |   \n| G-1000 | The rail shall accept tabs. | untested | — |\t\n`);
+const trailingResult = checkEars(trailingRows, { testRoots: ["tests"] });
+// req: R-1000 R-1001
+check("R-1000: spaces and tab after closing pipes are read and clean", trailingResult.problems.length === 0 && trailingResult.requirements.has("R-001") && trailingResult.requirements.has("R-1000") && trailingResult.requirements.has("G-001") && trailingResult.requirements.has("G-1000"), trailingResult.problems.join(" | "));
+const missingEnding = idFixture(crlf(`# fixture\n${endingHead}| R-1000 | The rail shall reject a missing pipe. | untested | —\n`));
+let missingEndingError = "";
+try { checkEars(missingEnding, { testRoots: ["tests"] }); } catch (error) { missingEndingError = String(error.message); }
+// req: R-1001
+check("R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4", missingEndingError.includes("REQUIREMENTS.md:4"), missingEndingError || "missing pipe was accepted");
+const crlfMarkerFixture = idFixture(
+	crlf(`# fixture\n${endingHead}| R-1000 | The rail shall trace its CRLF marker. | implemented | sample:tests/a.test.mjs::four |\n`),
+	null,
+	"// req: R-1000\r\ntest('four', () => {});\r\n",
+);
+const crlfMarkerResult = checkEars(crlfMarkerFixture, { testRoots: ["tests"] });
+// req: R-1000 R-1001
+check("R-1000: CRLF test-file marker traces its four-digit row", crlfMarkerResult.problems.length === 0 && crlfMarkerResult.traced.has("R-1000"), crlfMarkerResult.problems.join(" | "));
 // req: R-1000
 check("R-1000: both four-digit row prefixes load", fourDigitResult.requirements.has("R-1000") && fourDigitResult.requirements.has("G-1000") && fourDigitResult.problems.length === 0, fourDigitResult.problems.join(" | "));
 // req: R-1000
@@ -217,6 +244,15 @@ else {
 	const markerCheck = spawnSync("uvx", ["--with", "pytest", "python", "-c", markerCode, conf], { encoding: "utf8" });
 	// req: R-1000
 	check("R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits", markerCheck.status === 0, markerCheck.stderr || markerCheck.stdout);
+	const pythonEndingRows = py(endingRows);
+	// req: R-1000 R-1001
+	check("R-1001: Python CRLF ledger/general rows and trailing spaces/tab are read and clean", pythonEndingRows.status === 0 && pythonEndingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonEndingRows.stderr || pythonEndingRows.stdout);
+	const pythonTrailingRows = py(trailingRows);
+	// req: R-1000 R-1001
+	check("R-1001: Python spaces and tab after closing pipes are read and clean", pythonTrailingRows.status === 0 && pythonTrailingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonTrailingRows.stderr || pythonTrailingRows.stdout);
+	const pythonMissingEnding = py(missingEnding);
+	// req: R-1001
+	check("R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4", pythonMissingEnding.status === 0 && pythonMissingEnding.stdout.includes("ERR REQUIREMENTS.md:4:"), pythonMissingEnding.stderr || pythonMissingEnding.stdout);
 	for (const [label, row, lineNo] of nearMisses) for (const filename of ["REQUIREMENTS.md", "REQUIREMENTS-general.md"]) {
 		const main = `# fixture\n${ID_HEAD}\n| G-001 | Every tool shall exist. | untested | — |\n`;
 		const dir = idFixture(filename === "REQUIREMENTS.md" ? `${main}${row}\n` : main, filename === "REQUIREMENTS-general.md" ? `${main}${row}\n` : null);

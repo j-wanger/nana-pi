@@ -44,11 +44,12 @@ export const STATUSES = new Set([
 
 export const ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
 const ID_SOURCE = String.raw`[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
-const ROW = new RegExp(String.raw`^\|\s*(${ID_SOURCE})\s*\|(.*)\|\s*$`);
+const ROW = new RegExp(`^\\|\\s*(${ID_SOURCE})\\s*\\|(.*)\\|\\s*$`);
 const ROW_CANDIDATE = /^\|\s*[RG]-\S/;
 
 function assertNoNearMissRows(text: string, file: string): void {
-	for (const [index, line] of text.split("\n").entries()) {
+	for (const [index, rawLine] of text.split("\n").entries()) {
+		const line = rawLine.trimEnd();
 		if (!ROW_CANDIDATE.test(line)) continue;
 		let cells: string[] = [];
 		if (line.startsWith("|") && line.endsWith("|")) {
@@ -202,8 +203,8 @@ export interface Marked {
 /** Parse REQUIREMENTS.md into rows by id. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
-	for (const line of text.split("\n")) {
-		const m = ROW.exec(line);
+	for (const rawLine of text.split("\n")) {
+		const m = ROW.exec(rawLine.trimEnd());
 		if (!m) continue;
 		const id = m[1] as string;
 		const cells = (m[2] as string).split("|").map((c) => c.trim());
@@ -243,8 +244,8 @@ export function loadRequirements(text: string): Map<string, Row> {
  */
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
-	for (const line of text.split("\n")) {
-		const m = ROW.exec(line);
+	for (const rawLine of text.split("\n")) {
+		const m = ROW.exec(rawLine.trimEnd());
 		if (!m) continue;
 		const id = m[1] as string;
 		const cells = (m[2] as string).split("|").map((c) => c.trim());
@@ -306,7 +307,7 @@ export function scanSource(
 	callNames: string[] = CALL_NAMES,
 ): Marked[] {
 	const call0 = callNames === CALL_NAMES ? CALL : callRegex(callNames);
-	const lines = source.split("\n");
+	const lines = source.split("\n").map((line) => line.trimEnd());
 	const found: Marked[] = [];
 	let i = 0;
 	while (i < lines.length) {
@@ -497,8 +498,8 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	if (hasGeneral) {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
-			for (const line of source.split("\n")) {
-				const match = ROW.exec(line);
+			for (const rawLine of source.split("\n")) {
+				const match = ROW.exec(rawLine.trimEnd());
 				if (!match) continue;
 				const cells = (match[2] as string)
 					.split("|")
@@ -537,6 +538,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		);
 		text = `${projectText
 			.split("\n")
+			.map((line) => line.trimEnd())
 			.filter((line) => !ROW.test(line))
 			.join("\n")}\n${mergedLines.join("\n")}\n`;
 		if (differences.length)

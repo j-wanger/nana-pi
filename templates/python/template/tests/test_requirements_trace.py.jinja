@@ -156,6 +156,37 @@ def test_four_digit_rows_and_markers_accept_only_the_declared_ascii_grammar(tmp_
             scan_source(f"# req: {rid}\ndef test_bad():\n    pass\n", "tests/test_a.py")
 
 
+def test_crlf_rows_trailing_whitespace_and_markers_are_accepted(tmp_path: Path) -> None:
+    head = "| ID | Requirement | Status | Evidence |\r\n|---|---|---|---|\r\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "# fixture\r\n"
+        + head
+        + "| R-001 | The system shall work. | untested | — |   \r\n| R-1000 | The system shall work. | implemented | sample:tests/test_four.py::test_four |\t\r\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "REQUIREMENTS-general.md").write_text(
+        "# fixture\r\n"
+        + head
+        + "| G-001 | The system shall work. | untested | — |   \r\n| G-1000 | The system shall work. | untested | — |\t\r\n",
+        encoding="utf-8",
+    )
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_four.py").write_text("# req: R-1000\r\ndef test_four():\r\n    pass\r\n", encoding="utf-8")
+    _, _, problems, *_ = check(tmp_path)
+    assert problems == []
+
+
+def test_crlf_row_missing_closing_pipe_fails_at_its_line(tmp_path: Path) -> None:
+    head = "| ID | Requirement | Status | Evidence |\r\n|---|---|---|---|\r\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "# fixture\r\n" + head + "| R-1000 | The system shall work. | untested | —\r\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(pytest.UsageError, match=r"REQUIREMENTS.md:4: malformed requirement row"):
+        check(tmp_path)
+
+
 def test_load_requirements_reads_id_status_and_external_evidence(tmp_path: Path) -> None:
     f = tmp_path / "REQUIREMENTS.md"
     f.write_text(REQS, encoding="utf-8")
