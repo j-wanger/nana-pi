@@ -43,7 +43,7 @@ export const STATUSES = new Set([
 ]);
 
 export const ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
-const ID_SOURCE = String.raw`[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
+const ID_SOURCE = `[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
 const ROW = new RegExp(`^\\|\\s*(${ID_SOURCE})\\s*\\|(.*)\\|\\s*$`);
 const ROW_CANDIDATE = /^\|\s*[RG]-\S/;
 

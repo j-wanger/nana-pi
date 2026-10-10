@@ -149,9 +149,9 @@ describe("loadRequirements", () => {
 
 	test("accepts CRLF rows and trailing whitespace without trimming leading spaces", () => {
 		const rows = loadRequirements(
-			`${REQS}| R-001 | The system shall work. | untested | — |  \r\n| R-1000 | The system shall accept four digits. | untested | — |\t\r\n`,
+			`${REQS}| R-005 | The system shall work. | untested | — |  \r\n| R-1000 | The system shall accept four digits. | untested | — |\t\r\n`,
 		);
-		expect([...rows.keys()]).toEqual(["R-001", "R-1000"]);
+		expect([...rows.keys()]).toEqual(["R-001", "R-002", "R-003", "G-004", "R-005", "R-1000"]);
 	});
 
 	test("reads id, status and whether the evidence is external", () => {
