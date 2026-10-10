@@ -156,6 +156,24 @@ def test_four_digit_rows_and_markers_accept_only_the_declared_ascii_grammar(tmp_
             scan_source(f"# req: {rid}\ndef test_bad():\n    pass\n", "tests/test_a.py")
 
 
+def test_unicode_separators_stay_inside_rows_and_no_break_space_is_rejected(tmp_path: Path) -> None:
+    head = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n"
+    for separator in ("\u2028", "\u0085"):
+        (tmp_path / "REQUIREMENTS.md").write_text(
+            "# fixture\n" + head + f"| R-005 | The system shall keep {separator} inside. | untested | — |\n",
+            encoding="utf-8",
+        )
+        requirements, _, problems, *_ = check(tmp_path)
+        assert "R-005" in requirements
+        assert problems == []
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "# fixture\n" + head + "| R-005 | The system shall reject this. | untested | — |\u00a0\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(pytest.UsageError, match=r"REQUIREMENTS.md:4: malformed requirement row"):
+        check(tmp_path)
+
+
 def test_crlf_rows_trailing_whitespace_and_markers_are_accepted(tmp_path: Path) -> None:
     head = "| ID | Requirement | Status | Evidence |\r\n|---|---|---|---|\r\n"
     (tmp_path / "REQUIREMENTS.md").write_text(

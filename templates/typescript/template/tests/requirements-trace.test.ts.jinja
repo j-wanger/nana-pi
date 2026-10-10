@@ -147,6 +147,24 @@ describe("loadRequirements", () => {
 		}
 	});
 
+	test("accepts Unicode separators inside a cell and rejects no-break space after a row", () => {
+		for (const separator of ["\u2028", "\u0085"]) {
+			const rows = loadRequirements(
+				`${REQS}| R-005 | The system shall keep ${separator} in its cell. | untested | — |\n`,
+			);
+			expect(rows.has("R-005")).toBe(true);
+		}
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-nbsp-"));
+		scratch.push(dir);
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`${REQS}| R-005 | The system shall reject this. | untested | — |\u00a0\n`,
+		);
+		expect(() => check(dir)).toThrow(
+			/REQUIREMENTS.md:8: malformed requirement row/,
+		);
+	});
+
 	test("accepts CRLF rows and trailing whitespace without trimming leading spaces", () => {
 		const rows = loadRequirements(
 			`${REQS}| R-005 | The system shall work. | untested | — |  \r\n| R-1000 | The system shall accept four digits. | untested | — |\t\r\n`,

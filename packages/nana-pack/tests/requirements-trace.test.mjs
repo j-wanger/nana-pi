@@ -175,7 +175,7 @@ const endingRows = idFixture(
 );
 const endingRowsResult = checkEars(endingRows, { testRoots: ["tests"] });
 // req: R-1000 R-1001
-check("R-1000: CRLF ledger/general rows and trailing spaces/tab are read and clean",
+check("R-1000: CRLF ledger and general rows are read and clean",
 	endingRowsResult.problems.length === 0 && endingRowsResult.requirements.has("R-001") && endingRowsResult.requirements.has("R-1000") && endingRowsResult.requirements.has("G-001") && endingRowsResult.requirements.has("G-1000"), endingRowsResult.problems.join(" | "));
 const trailingRows = idFixture(`# fixture\n${endingHead}| R-001 | The rail shall accept spaces. | untested | — |   \n| R-1000 | The rail shall accept tabs. | untested | — |\t\n`, `# fixture\n${endingHead}| G-001 | The rail shall accept spaces. | untested | — |   \n| G-1000 | The rail shall accept tabs. | untested | — |\t\n`);
 const trailingResult = checkEars(trailingRows, { testRoots: ["tests"] });
@@ -210,6 +210,8 @@ for (const id of badIds) {
 
 const nearMisses = [
 	["missing closing pipe", "| R-1001 | The trace rail shall reject malformed rows. | untested | —", 5],
+	["no-break space after closing pipe", "| R-001 | The trace rail shall reject this ending. | untested | — | ", 5],
+	["BOM after closing pipe", "| R-001 | The trace rail shall reject this ending. | untested | — |\uFEFF", 5],
 	["fenced example", "```\n| R-squared | example |\n```", 6],
 	["R candidate", "| R-squared | 0.9 |", 5],
 	["G candidate", "| G-squared | 0.9 |", 5],
@@ -224,6 +226,22 @@ for (const [label, row, lineNo] of nearMisses) {
 		check(`R-1001: ${label} names ${filename}:${lineNo}`, message.includes(`${filename}:${lineNo}`), message || "candidate was silently ignored");
 	}
 }
+
+const unicodeCellFixtures = [["U+2028", " "], ["U+0085", "\u0085"]].map(([label, ch]) => {
+	const row = `| R-001 | The trace rail shall keep ${ch} inside a cell. | untested | — |`;
+	return [label, idFixture(`# fixture\n${ID_HEAD}\n${row}\n`)];
+});
+const unicode2028 = checkEars(unicodeCellFixtures[0][1], { testRoots: ["tests"] });
+// req: R-1001
+check("R-1001: U+2028 inside a cell is read and clean", unicode2028.requirements.has("R-001") && unicode2028.problems.length === 0, unicode2028.problems.join(" | "));
+const unicode0085 = checkEars(unicodeCellFixtures[1][1], { testRoots: ["tests"] });
+// req: R-1001
+check("R-1001: U+0085 inside a cell is read and clean", unicode0085.requirements.has("R-001") && unicode0085.problems.length === 0, unicode0085.problems.join(" | "));
+const nbspRow = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The trace rail shall reject this ending. | untested | — | \n`);
+let nbspMessage = "";
+try { checkEars(nbspRow, { testRoots: ["tests"] }); } catch (error) { nbspMessage = String(error.message); }
+// req: R-1001
+check("R-1001: no-break space after closing pipe names REQUIREMENTS.md:4", nbspMessage.includes("REQUIREMENTS.md:4"), nbspMessage || "near-miss was accepted");
 
 const uvxProbe = spawnSync("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { encoding: "utf8" });
 if (uvxProbe.status !== 0) console.log("SKIP Python R-1000/R-1001 fixture rail: uvx with pytest unavailable");
@@ -244,9 +262,18 @@ else {
 	const markerCheck = spawnSync("uvx", ["--with", "pytest", "python", "-c", markerCode, conf], { encoding: "utf8" });
 	// req: R-1000
 	check("R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits", markerCheck.status === 0, markerCheck.stderr || markerCheck.stdout);
+	const python2028 = py(unicodeCellFixtures[0][1]);
+	// req: R-1001
+	check("R-1001: Python U+2028 inside a cell is read and clean", python2028.status === 0 && python2028.stdout.includes("OK R-001"), python2028.stderr || python2028.stdout);
+	const python0085 = py(unicodeCellFixtures[1][1]);
+	// req: R-1001
+	check("R-1001: Python U+0085 inside a cell is read and clean", python0085.status === 0 && python0085.stdout.includes("OK R-001"), python0085.stderr || python0085.stdout);
+	const pythonNbsp = py(nbspRow);
+	// req: R-1001
+	check("R-1001: Python no-break space after closing pipe names REQUIREMENTS.md:4", pythonNbsp.status === 0 && pythonNbsp.stdout.includes("REQUIREMENTS.md:4"), pythonNbsp.stderr || pythonNbsp.stdout);
 	const pythonEndingRows = py(endingRows);
 	// req: R-1000 R-1001
-	check("R-1001: Python CRLF ledger/general rows and trailing spaces/tab are read and clean", pythonEndingRows.status === 0 && pythonEndingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonEndingRows.stderr || pythonEndingRows.stdout);
+	check("R-1001: Python CRLF ledger and general rows are read and clean", pythonEndingRows.status === 0 && pythonEndingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonEndingRows.stderr || pythonEndingRows.stdout);
 	const pythonTrailingRows = py(trailingRows);
 	// req: R-1000 R-1001
 	check("R-1001: Python spaces and tab after closing pipes are read and clean", pythonTrailingRows.status === 0 && pythonTrailingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonTrailingRows.stderr || pythonTrailingRows.stdout);

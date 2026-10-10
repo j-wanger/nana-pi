@@ -43,7 +43,7 @@ The rail is `tests/requirements-trace.ts`, and it scans `tests/` recursively.
 **ID blocks and grammar:** `R-001` onward are this project's rows; IDs use `R-` or `G-` followed by three ASCII digits or four ASCII digits that never start with zero (`R-1000` follows `R-999`). `G-001` onward are Part G, the
 general engineering requirements in `REQUIREMENTS-general.md`.
 
-A requirement row has four cells and both opening and closing pipes. On every line, `| R-` or `| G-` followed by a non-space character is reserved for a requirement row; indent an example that would use that prefix, for example:
+A requirement row has four cells and both opening and closing pipes. Spaces, tabs and a carriage return after the closing pipe are ignored. On every line, `| R-` or `| G-` followed by a non-space character is reserved for a requirement row; indent an example that would use that prefix, for example:
 
     | R-squared | example | untested | — |
 

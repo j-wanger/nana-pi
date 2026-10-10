@@ -44,12 +44,12 @@ export const STATUSES = new Set([
 
 export const ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
 const ID_SOURCE = `[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
-const ROW = new RegExp(`^\\|\\s*(${ID_SOURCE})\\s*\\|(.*)\\|\\s*$`);
+const ROW = new RegExp(`^\\|\\s*(${ID_SOURCE})\\s*\\|(.*)\\|\\s*$`, "s");
 const ROW_CANDIDATE = /^\|\s*[RG]-\S/;
 
 function assertNoNearMissRows(text: string, file: string): void {
 	for (const [index, rawLine] of text.split("\n").entries()) {
-		const line = rawLine.trimEnd();
+		const line = rawLine.replace(/[ \t\r]+$/, "");
 		if (!ROW_CANDIDATE.test(line)) continue;
 		let cells: string[] = [];
 		if (line.startsWith("|") && line.endsWith("|")) {
@@ -204,7 +204,7 @@ export interface Marked {
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
 	for (const rawLine of text.split("\n")) {
-		const m = ROW.exec(rawLine.trimEnd());
+		const m = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
 		if (!m) continue;
 		const id = m[1] as string;
 		const cells = (m[2] as string).split("|").map((c) => c.trim());
@@ -245,7 +245,7 @@ export function loadRequirements(text: string): Map<string, Row> {
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const rawLine of text.split("\n")) {
-		const m = ROW.exec(rawLine.trimEnd());
+		const m = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
 		if (!m) continue;
 		const id = m[1] as string;
 		const cells = (m[2] as string).split("|").map((c) => c.trim());
@@ -307,7 +307,7 @@ export function scanSource(
 	callNames: string[] = CALL_NAMES,
 ): Marked[] {
 	const call0 = callNames === CALL_NAMES ? CALL : callRegex(callNames);
-	const lines = source.split("\n").map((line) => line.trimEnd());
+	const lines = source.split("\n").map((line) => line.replace(/[ \t\r]+$/, ""));
 	const found: Marked[] = [];
 	let i = 0;
 	while (i < lines.length) {
@@ -499,7 +499,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
 			for (const rawLine of source.split("\n")) {
-				const match = ROW.exec(rawLine.trimEnd());
+				const match = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
 				if (!match) continue;
 				const cells = (match[2] as string)
 					.split("|")
@@ -538,7 +538,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		);
 		text = `${projectText
 			.split("\n")
-			.map((line) => line.trimEnd())
+			.map((line) => line.replace(/[ \t\r]+$/, ""))
 			.filter((line) => !ROW.test(line))
 			.join("\n")}\n${mergedLines.join("\n")}\n`;
 		if (differences.length)
