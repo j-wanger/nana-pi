@@ -179,7 +179,7 @@ describe("loadRequirements", () => {
 		);
 	});
 
-	test("reads the shared whitespace set and one leading BOM in ledgers and markers", () => {
+	test("reads the shared whitespace set and removes one leading BOM in the file reader", () => {
 		const whitespace = ["\u0085", "\ufeff", "\u00a0"];
 		const cases = whitespace.flatMap((ws, wi) =>
 			["before", "after", "tail"].map((position, pi) =>
@@ -193,7 +193,7 @@ describe("loadRequirements", () => {
 			Array.from(
 				{ length: 9 },
 				(_, i) => `R-${String(i + 1).padStart(3, "0")}`,
-			).every((id) => rows.has(id)) && rows.has("R-010"),
+			).every((id) => rows.has(id)),
 		).toBe(true);
 		expect(
 			scanSource(

@@ -219,8 +219,9 @@ export interface Marked {
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
 	for (const rawLine of text.split("\n")) {
-		if (requirementRowId(rawLine) === null) continue;
-		const m = ROW.exec(stripWhitespaceEnd(rawLine));
+		const normalized = stripWhitespaceEnd(rawLine);
+		if (requirementRowId(rawLine) === null && !ROW.test(normalized)) continue;
+		const m = ROW.exec(normalized);
 		if (!m) continue;
 		const id = m[1] as string;
 		const cells = (m[2] as string).split("|").map(trimWhitespace);
