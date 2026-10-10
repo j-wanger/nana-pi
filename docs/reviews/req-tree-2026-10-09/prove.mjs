@@ -91,7 +91,16 @@ for (let i = 0; i < Math.max(a.length, b.length); i++) {
   if (newRowId && b[i]) {
     const expectedCells = a[i].split("|").map((cell) => cell.trim());
     const actualCells = b[i].split("|").map((cell) => cell.trim());
-    if (expectedCells[1] === actualCells[1] && expectedCells[2] === actualCells[2]) continue;
+    const actualLine = b[i];
+    const canonical = actualCells.length === 6
+      && actualLine === `| ${actualCells[1]} | ${actualCells[2]} | ${actualCells[3]} | ${actualCells[4]} |`;
+    const evidence = actualCells[4] ?? "";
+    if (canonical
+      && actualCells[1] === expectedCells[1]
+      && actualCells[2] === expectedCells[2]
+      && actualCells[3] === "implemented"
+      && evidence.length > 0
+      && evidence.includes("packages/nana-pack/tests/requirements-tree.test.mjs::")) continue;
   }
   fail(`ledger line ${i + 1}: ${i >= a.length ? "unexpected extra line" : i >= b.length ? "missing line" : `expected ${JSON.stringify(a[i])}, got ${JSON.stringify(b[i])}`}`); mismatches++;
 }

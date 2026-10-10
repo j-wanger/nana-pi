@@ -28,6 +28,8 @@ check("R-289: real capability, feature and subgroup IDs are unique", actual.prob
 // req: R-290
 check("R-290: real feature and subgroup headings have direct-level parents", actual.problems.every((p) => !p.includes("nested under")), actual.problems.join("\n"));
 // req: R-291
+check("R-291: committed outline equals a fresh render", map === actual.outline, "committed outline differs from renderOutline");
+// req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
 check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,009", (() => {
