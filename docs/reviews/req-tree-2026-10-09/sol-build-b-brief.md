@@ -1,13 +1,13 @@
 # Review brief — req-tree increment B build, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial)
 
-**Round 2.** Your r1 is `sol-build-b-r1.md` (SEND-BACK 6.5/10); the seat's response
-`sol-build-b-r1-response.md`. INPUTS moved to `8c2ec5274662850a6e8173b5ef048aaf5b191548` (seat amendment
-B-A1: one governance sentence, CHANGE-B §8). The fix run used `build-brief-b2.md`; report
-`builder-report-b2.md`. The seat re-ran `seat-verify-b.sh` (now with your r1 attacks):
-`seat-verify-b-output.txt`, every line as wanted, identical to the builder's. The seat read
-`checkOutlineFields`: it derives fields and the index from the parsed ledger with its own code and no
-longer calls `renderOutline`, `outlineFields` or `compressRowIds`. Verify every r1 finding is closed,
-then review the whole build again. Use INPUTS `8c2ec52…` wherever the brief below says INPUTS.
+**Round 3 — the last allowed for this item.** Your reviews: `sol-build-b-r1.md` (SEND-BACK 6.5),
+`sol-build-b-r2.md` (SEND-BACK 8; one MUST: the proof accepted reordered governed rows). The fix run
+used `build-brief-b3.md` (report `builder-report-b3.md`): at each expected position a new row must
+carry the expected ID and Requirement. The seat added your swap attack to `seat-verify-b.sh` and
+re-ran it (`seat-verify-b-output.txt`): every line as wanted. astra is reviewing the same revision in
+parallel for the land ruling. Verify r2's finding is closed, then review the whole build; rank
+honestly — after this round the seat lands with declared residuals, subtracts, or takes it to Jake.
+INPUTS is `8c2ec5274662850a6e8173b5ef048aaf5b191548`.
 
 You reviewed this increment's plan (`sol-plan-b-r1.md`, LAND-WITH-FIXES; fixes in
 `sol-plan-b-r1-response.md`). A pi luna builder built it from `build-brief-b1.md` (and any later

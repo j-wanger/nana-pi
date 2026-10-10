@@ -1,0 +1,23 @@
+[pi-worker] attempt 1/1
+  [pi-worker a1] cpu=0.91s flat=0/90
+  [pi-worker a1] cpu=1.1s flat=0/90
+  [pi-worker a1] cpu=1.14s flat=0/90
+  [pi-worker a1] cpu=1.14s flat=1/90
+  [pi-worker a1] cpu=1.14s flat=2/90
+  [pi-worker a1] cpu=1.14s flat=3/90
+  [pi-worker a1] cpu=1.15s flat=0/90
+  [pi-worker a1] cpu=1.15s flat=1/90
+  [pi-worker a1] cpu=1.15s flat=2/90
+  [pi-worker a1] cpu=1.16s flat=0/90
+  [pi-worker a1] cpu=1.16s flat=1/90
+  [pi-worker a1] cpu=1.16s flat=2/90
+  [pi-worker a1] cpu=1.17s flat=0/90
+  [pi-worker a1] cpu=1.17s flat=1/90
+  [pi-worker a1] cpu=1.17s flat=2/90
+  [pi-worker a1] cpu=1.18s flat=0/90
+  [pi-worker a1] cpu=1.18s flat=1/90
+  [pi-worker a1] cpu=1.18s flat=2/90
+  [pi-worker a1] cpu=1.19s flat=0/90
+  [pi-worker a1] cpu=1.19s flat=1/90
+  [pi-worker a1] cpu=1.38s flat=0/90
+[pi-worker] SUCCESS on attempt 1 (2089 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/build-b3-report.md)
