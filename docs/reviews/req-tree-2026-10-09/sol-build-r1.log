@@ -1,0 +1,15 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "req-tree" (git:/Users/jwang/nana-pi/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (sol @ 26f3e29b073b)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.79s flat=0/30
+  [pi-review a1] cpu=0.88s flat=0/30
+  [pi-review a1] cpu=0.94s flat=0/30
+  [pi-review a1] cpu=1.1s flat=0/30
+  [pi-review a1] cpu=1.57s flat=0/30
+  [pi-review a1] cpu=1.63s flat=0/30
+  [pi-review a1] cpu=1.95s flat=0/30
+  [pi-review a1] cpu=2.02s flat=0/30
+  [pi-review a1] cpu=2.42s flat=0/30
+  [pi-review a1] cpu=2.65s flat=0/30
+  [pi-review a1] cpu=2.72s flat=0/30
+[pi-review] SUCCESS on attempt 1 (4240 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/sol-build-r1.md; round 1)
