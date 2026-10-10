@@ -2,7 +2,7 @@
 
 *Lane `req-tree` · branch `feat/req-tree` · worktree `~/nana-pi-wt/req-tree` · base `5b68a91` · 2026-10-09.
 The first change written in the feature-change format astra proposed and Jake asked the seat to apply.
-Order: why → plan → Fable consult (`fable-consult.md`) → sol review (r1 and r2 adjudicated in `sol-plan-r1-response.md` and `sol-plan-r2-response.md`; Fable's second opinion in `fable-consult-2.md`) → **checkpoint 1: Jake agrees the
+Order: why → plan → Fable consult (`fable-consult.md`) → sol review (r1–r3 adjudicated in `sol-plan-r1-response.md`, `sol-plan-r2-response.md` and `sol-plan-r3-response.md`; Fable's second opinion in `fable-consult-2.md`) → **checkpoint 1: Jake agrees the
 outline and this plan** → build → sol + astra → **checkpoint 2: Jake accepts the result**.*
 
 ## 1. Why
@@ -33,7 +33,7 @@ its own purpose line.
    leaves a heading without purpose text, reuses an ID, or nests a heading wrongly.
 4. `docs/requirements-tree.md`, generated from the ledger, is the permanent outline (every heading,
    its purpose, its row IDs) and the suite fails when it is stale. A regroup, rename or purpose
-   change is then a one-line diff there, not a cut-and-paste buried in a 1,400-line ledger diff.
+   change is then a compact diff there, not a cut-and-paste buried in a 1,400-line ledger diff.
 
 **Where it sits.** CAP-07 "Keep code and promises checkable" → FEAT-028 "Maintain requirement
 identity and trace links"; the first piece of astra's candidate feature "Browse purpose, scope and
@@ -52,7 +52,7 @@ five rows end FEAT-028's table.
 | R-288 | Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text. | implemented |
 | R-289 | No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID. | implemented |
 | R-290 | Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup. | implemented |
-| R-291 | The committed `docs/requirements-tree.md` shall equal the outline that `scripts/requirements-tree.mjs` renders from REQUIREMENTS.md. | implemented |
+| R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs. | implemented |
 
 Deliberately not pinned: a row in the wrong feature (Jake's judgement, not a test); a feature with
 subgroups that also holds its own table (harmless); a feature with no rows yet (allowed, e.g. a
@@ -65,7 +65,7 @@ against it. Instead the structure is locked for visibility: `docs/requirements-t
 generated from the ledger (each capability, feature and subgroup with ID, label, purpose, nesting,
 row count and row IDs as ranges; no statuses, which churn every lane and `req:rows` already
 reports) and the suite fails when it is stale (R-291). Any move, rename or purpose change is a
-one-line diff there. Residual: an agent can regenerate the outline without declaring the change;
+compact diff there. Residual: an agent can regenerate the outline without declaring the change;
 the control is increment 2's declared feature and the structure diff read at review. Whether that
 is the governance Jake wants is decision 4 in section 7.
 
@@ -84,6 +84,9 @@ module needs its header and a regenerated map).
 - `scripts/requirements-tree.mjs` (new, mapped: six-tag header, named exports): parses the ledger's
   headings and tables, checks R-287–R-290, renders the outline; CLI `--write` and `--check`.
   `package.json` gains `"req:tree"` (write). `docs/requirements-tree.md` (new, generated).
+- Root `README.md`: one entry naming `npm run req:tree` and `scripts/requirements-tree.mjs`, beside
+  the existing `req:rows` entry (the README check requires every package script and every file
+  under `scripts/` to be documented).
 - `packages/nana-pack/tests/requirements-tree.test.mjs` (new): pins R-287–R-291 on the real ledger
   and on fixtures (negative cases), importing the script's exports.
 - One paragraph in `packages/nana-pack/skills/requirements/SKILL.md`: in a ledger organized by
@@ -103,13 +106,13 @@ module needs its header and a regenerated map).
   `scripts/requirements-trace.mjs`), any template or copier file, a file split, extra columns.
 - Row kind tags, feature scenarios, boundaries or relationships beyond the `Purpose:` line.
 - An HTML page (HTML pages wait for the writing-trial verdict, 10-18).
-- `AGENTS.md`, `CLAUDE.md`, READMEs, the lane brief template.
+- `AGENTS.md`, `CLAUDE.md`, any README other than that one root entry, the lane brief template.
 
 **Allowlist.** `REQUIREMENTS.md` · `scripts/requirements-tree.mjs` (new) · `package.json` (the one
 script entry) · `docs/requirements-tree.md` (new, generated) ·
 `packages/nana-pack/tests/requirements-tree.test.mjs` (new) ·
 `packages/nana-pack/skills/requirements/SKILL.md` · `docs/requirements-sections-2026-10-09.md` (new)
-· `docs/code-map.md` · new files in `docs/reviews/req-tree-2026-10-09/` (`move.mjs`, `prove.mjs`,
+· `docs/code-map.md` · `README.md` (the one entry) · new files in `docs/reviews/req-tree-2026-10-09/` (`move.mjs`, `prove.mjs`,
 `prove-output.txt`, the builder report).
 **Frozen at checkpoint 1 (seat-owned; the builder must not edit):** `CHANGE.md`, `tree.json`,
 `fixed-text.md`, `mapping-astra.json`, `outline.md`. `prove.mjs` reads `tree.json` and
@@ -226,7 +229,9 @@ Purpose: …
 4. Mutation pairs, each red then green again, in the builder report: a row above the first feature
    heading (R-287); a deleted `Purpose:` line and, separately, an empty one (R-288); a duplicated
    FEAT ID (R-289); a FEAT heading before any CAP heading and, separately, a SUB heading before any
-   FEAT heading (R-290); one hand-edited line in `docs/requirements-tree.md` (R-291). For
+   FEAT heading (R-290); one hand-edited line in `docs/requirements-tree.md` (R-291); and, on
+   fixtures, a renderer that omits or alters each outline field in turn (ID, label, purpose,
+   parent, row count, row IDs) fails R-291's field check. For
    `prove.mjs`: one altered prose byte in place, one extra prose line, one swapped pair of note
    lines, one deleted blank line and one inserted blank line each make it fail.
 
@@ -263,7 +268,7 @@ Jake at checkpoint 2.
 4. **Who governs the tree.** A regroup or rename is an owner act, declared in the lane brief; the
    suite makes it visible in the generated outline, never red. The alternative (sol's) pins names,
    grouping and row membership against a committed manifest, so a regroup also needs a manifest
-   edit. Recommend: visible, not pinned. An agent would edit the manifest too to turn the suite
+   edit. Recommend: visible, not pinned (sol r3 agrees and withdrew its pinning MUST). An agent would edit the manifest too to turn the suite
    green, so the pin adds owner friction without adding control over sessions.
 
 ## 8. Next increments (not authorized by this declaration)
