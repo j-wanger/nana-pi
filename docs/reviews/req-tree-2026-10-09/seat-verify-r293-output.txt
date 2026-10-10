@@ -1,0 +1,2 @@
+real ledger: problems=0 (want 0) 
+ordinary table before Status (FEAT-005): problems=1 (want >0) line 295: FEAT-005 has a missing, late or invalid Status: line

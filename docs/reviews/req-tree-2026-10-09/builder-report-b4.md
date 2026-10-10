@@ -1,0 +1,14 @@
+VERDICT: DONE
+- Commit: `057c10a` — `fix(req-tree): reject status after any markdown table`.
+- Files: `scripts/requirements-tree.mjs`; `packages/nana-pack/tests/requirements-tree.test.mjs`.
+- Rows: none changed; R-293 now compares status position with the first Markdown table of any kind.
+- Test pins R-293: the two-column table before `Status: active` is rejected, naming line 16.
+- Mutation pair: disabled comparison → tagged test failed (exit 1); restored comparison → passed (exit 0).
+- Proof: `node docs/reviews/req-tree-2026-10-09/prove.mjs --approved 6b9202a501a7fe03dfc834ab34cdfc212f6d92ce --inputs 8c2ec5274662850a6e8173b5ef048aaf5b191548 REQUIREMENTS.md docs/requirements-sections-2026-10-09.md` — exit 0; 1,004 base rows, 8 new rows, 1,652 physical lines accounted.
+- `npm run map:check` — exit 0.
+- `npm run test:locked` — exit 0.
+- `bash docs/reviews/req-tree-2026-10-09/seat-verify-b.sh` — exit 0; all checks matched expected results, outline restored.
+- Suite: 132 PASS, 0 FAIL, 1 SKIP; 6,631 passed checks, 5 skipped.
+- Scope: this commit changes only the two listed files; cumulative `9e415db..HEAD` is 37 files, 1,704 insertions, 208 deletions.
+- Not done: the seat verification output is summarized here, not pasted verbatim.
+- Most likely wrong claim: pipe-table recognition assumes a valid delimiter row with the same number of columns as its header.
