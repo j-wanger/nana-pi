@@ -8,7 +8,7 @@ Statuses: `implemented` (a test in this repo asserts it; cited as `<package or a
 
 Trace: `npm test` fails when a status disagrees with the suite. A test declares the rows it evidences with a `// req: R-001` comment directly above its `test(` / `check(` call. An `implemented` row with no marker fails; an `untested`, `planned` or `violated` row that a marker traces fails; a marker naming an unknown id fails; a cited test must exist and carry the marker. The rail also reports the count of rows off EARS form on its own `ears:` line every run and fails naming each off-form row once that count exceeds the declared allowance (G-014/G-015). `EARS_ALLOWANCE` in `scripts/requirements-trace.mjs` is 0 since 2026-10-04 and sealed equal to the measured count (R-757). Sealed tunables: a contract number is defined once in the package's config surface with provenance naming its row and pinned by one test; a retune is a requirement diff first.
 
-ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 and R-628 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 and R-757 consumed batch 0; R-858 and R-859 consumed 2026-10-05 audit fixes A/B; R-860 to R-864 consumed 2026-10-05 for the code-map generator the templates ship, the code-map generator feature (old section 13c) (R-863 and R-864 retired before landing; ids never reused) — rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 (R-943 and R-944 consumed 2026-10-05) · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0 · R-620 to R-699 the hardening program's block (2026-10-06, `docs/hardening-plan-2026-10-06.md`), allocated per lane: R-620–R-629 review ledger · R-630–R-639 gate · R-640–R-649 session start · R-650–R-654 installer overflow · R-655–R-659 docs · R-660–R-699 later tranches; the installer also uses its free R-392 to R-399, the runner R-916 to R-919 and the desk R-945 to R-949 (tranche 1 consumed, 2026-10-07: R-620–R-625, R-630–R-647, R-650–R-659, R-392–R-399, R-916, R-945–R-949; R-626–R-629 unused; tranche 2 allocations: R-660–R-669 retire, R-670–R-679 trust, R-680–R-689 instructions, R-690–R-699 trial, R-865–R-872 pack, R-873–R-879 frontier, R-917–R-919 and R-950–R-952 and R-898–R-899 tests; tranche 2 landed 2026-10-07) · R-960 to R-999 the hardening program's second block (tranche 3 onward, 2026-10-07), allocated per lane: R-960–R-966 launcher · R-967–R-974 review · R-975–R-981 land helper · R-982–R-985 pipe guard · R-986–R-989 the 2.8/2.9 carry · R-990–R-999 later tranches (tranche 3 consumed, 2026-10-08: R-960–R-994 — R-990/R-991 the carry, R-992 the review lane's reader clause, R-993/R-994 the TypeScript syntax check; R-995–R-999 unused) · R-578 to R-599, R-626 to R-629 and R-686 re-declared for tranche 4 (2026-10-08; never assigned before) and consumed: R-578–R-583 Part G, R-584–R-588 release status, R-589–R-592 entry points, R-593–R-597 acceptance and release, R-598/R-599/R-629 skill claims, R-626–R-628 the suite lock, R-686 the CI checkout · R-995 to R-999, R-950 to R-959, R-900 to R-909, R-804, R-871, R-872 and R-687 to R-689 re-declared for tranche 5 (2026-10-08; never assigned before) and consumed except R-689: R-995/R-996 support, R-997–R-999 and R-950–R-953 doctor, R-954–R-959 state manifest, R-900–R-907 uninstall, R-908, R-909, R-804, R-871, R-872, R-687, R-688 Node hooks; R-373–R-375 stay unused · tranche 6 (2026-10-09) re-declared R-239–R-241, R-601, R-648, R-649, R-689 and R-699 (never assigned before): R-239/R-240 knowledge (R-241 reserved for a randomized pull arm), R-601/R-648 the test runner, R-689 the desk RPC contract test, R-649 the map's candidate rows, R-699 desk usage events; R-285 and R-286 consumed 2026-10-09 (Jake's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-291 consumed 2026-10-09 (the requirements tree), R-292–R-299 stay the reserve (tranche 6 consumed, 2026-10-09: R-239, R-240, R-601, R-648, R-649, R-689, R-699; R-241 stays reserved)
+ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/nana-pack`; the second block is the pack's continuation after the first filled) · R-200 to R-249 the knowledge pull · R-250 to R-299 the stage layer · R-300 to R-399 the installer · R-400 to R-499 the desk · R-500 to R-599 the bench · R-600 to R-619 and R-628 the repo test runner · G-001 onward the general engineering requirements every nana project carries. Extracted 2026-10-02 by three read-only passes from CLAUDE.md, HANDOFF.md, the package READMEs, the design docs and every test file; the extraction notes (stale doc claims, judgement calls, what no test pins) are in `docs/requirements-extraction-2026-10-02.md`. · R-373 to R-375 are unused: an installer step Amendment 1 removed before it landed. Continuation blocks declared up front for the EARS-form split (design-ruling.md, ears-form-2026-10-04, §2): R-756 to R-879 the pack's continuation after R-755 (R-756 and R-757 consumed batch 0; R-858 and R-859 consumed 2026-10-05 audit fixes A/B; R-860 to R-864 consumed 2026-10-05 for the code-map generator the templates ship, the code-map generator feature (old section 13c) (R-863 and R-864 retired before landing; ids never reused) — rest unused until a later batch) · R-880 to R-909 the knowledge pull's continuation · R-910 to R-919 the runner's continuation · R-920 to R-939 the installer's continuation, after R-399 · R-940 to R-959 the desk's continuation, after R-499 (R-943 and R-944 consumed 2026-10-05) · G-013 to G-022 (the EARS form check and the Part G split) consumed batch 0 · R-620 to R-699 the hardening program's block (2026-10-06, `docs/hardening-plan-2026-10-06.md`), allocated per lane: R-620–R-629 review ledger · R-630–R-639 gate · R-640–R-649 session start · R-650–R-654 installer overflow · R-655–R-659 docs · R-660–R-699 later tranches; the installer also uses its free R-392 to R-399, the runner R-916 to R-919 and the desk R-945 to R-949 (tranche 1 consumed, 2026-10-07: R-620–R-625, R-630–R-647, R-650–R-659, R-392–R-399, R-916, R-945–R-949; R-626–R-629 unused; tranche 2 allocations: R-660–R-669 retire, R-670–R-679 trust, R-680–R-689 instructions, R-690–R-699 trial, R-865–R-872 pack, R-873–R-879 frontier, R-917–R-919 and R-950–R-952 and R-898–R-899 tests; tranche 2 landed 2026-10-07) · R-960 to R-999 the hardening program's second block (tranche 3 onward, 2026-10-07), allocated per lane: R-960–R-966 launcher · R-967–R-974 review · R-975–R-981 land helper · R-982–R-985 pipe guard · R-986–R-989 the 2.8/2.9 carry · R-990–R-999 later tranches (tranche 3 consumed, 2026-10-08: R-960–R-994 — R-990/R-991 the carry, R-992 the review lane's reader clause, R-993/R-994 the TypeScript syntax check; R-995–R-999 unused) · R-578 to R-599, R-626 to R-629 and R-686 re-declared for tranche 4 (2026-10-08; never assigned before) and consumed: R-578–R-583 Part G, R-584–R-588 release status, R-589–R-592 entry points, R-593–R-597 acceptance and release, R-598/R-599/R-629 skill claims, R-626–R-628 the suite lock, R-686 the CI checkout · R-995 to R-999, R-950 to R-959, R-900 to R-909, R-804, R-871, R-872 and R-687 to R-689 re-declared for tranche 5 (2026-10-08; never assigned before) and consumed except R-689: R-995/R-996 support, R-997–R-999 and R-950–R-953 doctor, R-954–R-959 state manifest, R-900–R-907 uninstall, R-908, R-909, R-804, R-871, R-872, R-687, R-688 Node hooks; R-373–R-375 stay unused · tranche 6 (2026-10-09) re-declared R-239–R-241, R-601, R-648, R-649, R-689 and R-699 (never assigned before): R-239/R-240 knowledge (R-241 reserved for a randomized pull arm), R-601/R-648 the test runner, R-689 the desk RPC contract test, R-649 the map's candidate rows, R-699 desk usage events; R-285 and R-286 consumed 2026-10-09 (Jake's builder knowledge ruling: the worker skip and the pi-worker role), R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-295–R-299 stay the reserve (tranche 6 consumed, 2026-10-09: R-239, R-240, R-601, R-648, R-649, R-689, R-699; R-241 stays reserved)
 
 New behaviour in this repo: requirement diff, then tagged tests, then code.
 
@@ -17,15 +17,45 @@ New behaviour in this repo: requirement diff, then tagged tests, then code.
 The rows are grouped into a tree: capability → feature → subgroup. A capability heading reads
 `# CAP-nn · <label>`, a feature heading `## FEAT-nnn · <label>` and a subgroup heading
 `### SUB-nnn · <label>`. Each heading is followed by a `Purpose:` line saying why that part of the
-product exists; a capability also carries an `Outcome:` line. Every row lives in exactly one
-feature table, or in one subgroup table when its feature is subdivided. Add a new row to the table
-of the feature it serves; a new capability, feature or subgroup takes the next unused ID and a
-`Purpose:` line. Capability, feature and subgroup IDs, like row IDs, are never renumbered or
-reused. R-287 to R-290 check the structure; R-291 keeps the outline current.
-`docs/requirements-tree.md` is the outline of the tree (every heading's ID, label, purpose, parent,
-row count and row IDs), generated by `npm run req:tree`; the suite fails when it is stale, so a
-moved row, a renamed heading or a changed purpose shows there as a compact diff. The names and purposes started as astra's 2026-10-09 draft, agreed by Jake; where the old
-numbered sections went is in `docs/requirements-sections-2026-10-09.md`.
+product exists. A capability also carries an `Outcome:` line, and a feature a `Status:` line.
+Every row lives in exactly one table, its home: under one feature, or under one subgroup when its
+feature is subdivided. A feature that also depends on rows homed elsewhere names them on its
+`Also applies:` line. A row named there is shared, and a change to it has a wide blast radius.
+`docs/requirements-tree.md` is the outline of the tree, generated by `npm run req:tree`. It shows
+every heading with its status, rows and shared rows, and ends with an index of shared rows, most
+listed first. The suite fails when the outline is stale, so any change to the tree shows there as
+a compact diff. Where the old numbered sections went is in
+`docs/requirements-sections-2026-10-09.md`.
+
+## How the tree is governed
+
+Who decides. Jake decides every change to the tree: creating, renaming, moving, splitting,
+merging, freezing, unfreezing or retiring a capability, feature or subgroup; moving a row to
+another home; and adding or removing a share. The seat proposes these changes, and the change
+declaration lists them; the next increment adds a field for them to the lane brief. A builder adds
+or changes rows only in the feature its brief names.
+
+A feature's life. Its `Status:` reads `proposed` (agreed, no rows yet), `active`,
+`frozen (<reason>)` or `retired (<successor or reason>)`. A frozen feature takes no discretionary
+change to its rows or code; the ruling it names lists any exceptions. A proposed or retired
+feature holds no rows. A retired feature keeps its heading and ID. Splitting or merging features
+creates new IDs, and the old feature is retired naming its successors. Capability, feature and
+subgroup IDs are never renumbered or reused.
+
+A requirement's life. A new behaviour starts as a requirement diff in its home feature, then
+tagged tests, then code. A new row names its shares in that diff. Before changing a row, find it in
+the outline's shared index; a change to a shared row names its home and every feature that lists
+it, and the review reads them all. A share is re-read in the same change when its row changes,
+when its row moves home, and when either feature changes purpose or status, splits, merges or
+retires; otherwise it stands until the next placement review. A frozen status is resolved in the
+change that follows the ruling it names. Retiring a row removes it from every `Also applies:` line in the
+same change. A split keeps the original ID for the first clause; a merge retires the merged rows
+with "superseded by <survivor>" in their Evidence.
+
+What checks it. The suite checks the shape: R-287 to R-294 (homes, purposes, IDs, nesting, the
+outline, shares, statuses, empty proposed and retired features). Review alone checks the rest:
+who decided, that the declaration lists every tree change, that a shared row's change names every
+lister, and that frozen features took no discretionary change.
 
 ## Purpose and outcomes
 
@@ -48,6 +78,8 @@ Outcome: A developer can start or resume work with the relevant goal, decisions,
 
 ## FEAT-001 · Keep goals and priorities in view
 Purpose: Provide the governing project objective and preserve its precedence over background context.
+Status: active
+Also applies: R-021, R-022, R-122, R-191, R-634, R-687, R-781, R-819
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -77,6 +109,8 @@ Purpose: Provide the governing project objective and preserve its precedence ove
 
 ## FEAT-002 · Resume decisions and next actions
 Purpose: Carry compaction summaries and a clear handoff frontier into later work without presenting past agent output as authority.
+Status: active
+Also applies: R-079, R-139, R-185, R-634, R-641, R-781
 
 ### SUB-001 · Write and identify a compaction summary
 Purpose: Find the correct store, write the summary atomically and report its origin and any write failure.
@@ -172,6 +206,8 @@ Purpose: Inspect the HANDOFF frontier for oversized or stale entries and preserv
 
 ## FEAT-003 · Index and connect existing knowledge sources
 Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
+Status: active
+Also applies: R-310
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -213,6 +249,8 @@ Purpose: Discover, index and connect existing knowledge sources so relevant mate
 
 ## FEAT-004 · Retrieve relevant context with provenance
 Purpose: Surface bounded, relevant knowledge pointers at the right moment with source framing and predictable failure behavior.
+Status: active
+Also applies: R-285, R-286, R-973, R-974
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -250,6 +288,8 @@ Purpose: Surface bounded, relevant knowledge pointers at the right moment with s
 
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.
+Status: active
+Also applies: R-641
 Note (moved from old §13a on 2026-10-09):
 G-001 and G-002 govern the tunables in `packages/nana-pack/lib/writing-config.mjs`; cited in that module's header, not duplicated here.
 Note (moved from old §13b on 2026-10-09):
@@ -285,6 +325,8 @@ Outcome: A developer can accept a bounded change with understandable review evid
 
 ## FEAT-006 · Launch builders with execution limits
 Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
+Status: active
+Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -300,12 +342,13 @@ Purpose: Launch workers in identified worktrees with the current argument, lock,
 | R-965 | WHEN the worktree has no affirmative pi trust record, lane mode shall print the trust notice before launch without refusing. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::missing trust prints notice before worker attempt`, `packages/nana-pack/tests/worker-lane.test.mjs::affirmative trust record suppresses notice` |
 | R-966 | The pack documentation and working-pattern templates shall describe lane mode and its limits and state that local overrides belong after the marker region. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::working pattern names lane launcher and keeps local overrides after marker region`, `packages/nana-pack/tests/templates-render.test.mjs::pack README documents lane preamble, write gap, ceiling, and trust notice` |
 | R-628 | The canonical builder preamble shall forbid pnpm, npm, and npx install, exec, add, and dlx operations at a worktree root. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::lane preamble forbids the named package-manager operations at a worktree root` |
-| R-683 | The shared templates shall provide generic defaults for worktree, branch, review corpus, launchers, review cap, lineage rule, land checklist, and local override points. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::shared working pattern names generic defaults and local overrides` |
 | R-286 | The pi-worker child shall receive NANA_ROLE=worker. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::every pi-worker child receives NANA_ROLE=worker`; lane mode has set it since tranche 3; non-lane mode added 2026-10-09 under Jake's builder knowledge ruling (the pack README calls a worker a build agent) |
 | R-285 | WHEN NANA_ROLE is worker, the nana-knowledge hook shall suppress knowledge output and pull-log writes. | implemented | `packages/nana-knowledge/tests/hook.test.mjs::worker role skips output and pull-log writes`; Jake ruling 2026-10-09: builder sessions get no automatic pull; the seat and typed pi sessions keep theirs until the 2026-10-23 re-measure |
 
 ## FEAT-007 · Review a specific revision independently
 Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
+Status: active
+Also applies: R-137, R-732
 
 ### SUB-006 · Identify and freeze the review target
 Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
@@ -413,6 +456,8 @@ Purpose: Preserve the tally and log contracts, refuse unsafe output destinations
 
 ## FEAT-008 · Integrate and clean up reviewed changes
 Purpose: Check merge prerequisites, integrate eligible changes, record the result and remove only safe completed worktrees.
+Status: active
+Also applies: R-705, R-708, R-717, R-969, R-992
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -430,6 +475,8 @@ Outcome: A developer can understand which sources and actions are allowed and ca
 
 ## FEAT-009 · Decide which project content is trusted
 Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
+Status: active
+Also applies: R-069, R-190
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -467,6 +514,8 @@ Purpose: Represent explicit project trust, explain untrusted sources and avoid g
 
 ## FEAT-010 · Guard risky commands and protected resources
 Purpose: Inspect supported tool actions, preserve mandatory restrictions and provide actionable approval or refusal behavior.
+Status: active
+Also applies: R-033, R-079, R-081, R-183, R-184, R-190, R-774, R-962
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -518,6 +567,8 @@ Purpose: Inspect supported tool actions, preserve mandatory restrictions and pro
 
 ## FEAT-011 · Keep policy changes safe and recoverable
 Purpose: Load and refresh policy configuration with defined precedence, bounded reading and safe behavior when configuration breaks.
+Status: active
+Also applies: R-074, R-078, R-188, R-190, R-195, R-778
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -560,6 +611,8 @@ Purpose: Load and refresh policy configuration with defined precedence, bounded 
 
 ## FEAT-012 · Render paths and provenance clearly
 Purpose: Render paths, labels and provenance through the documented normalization and presentation rules.
+Status: active
+Also applies: R-224
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -591,6 +644,8 @@ Outcome: A developer can adopt the same controlled workflow in a new or existing
 
 ## FEAT-013 · Install and connect harness runtimes
 Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
+Status: active
+Also applies: R-004
 
 ### SUB-011 · Select the active runtime and home
 Purpose: Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.
@@ -603,7 +658,6 @@ Purpose: Resolve the intended executable and agent locations and provide the mat
 | R-825 | WHEN the active config is present, or no stranded default config exists, no mismatch note or journal line shall be emitted. | untested | astra r1 MUST (narrow overclaim): the existing cites ("(a) no mismatch note once the active dir has a config", "unset: no mismatch note") cover only two of the WHEN's falsifying sub-cases (the active dir gets its own config; PI_CODING_AGENT_DIR unset entirely, so there is no "elsewhere" to be stranded). astra's probe — removing the fs.existsSync(stranded) check from mismatch detection — left the entire cited agent-dir-config suite green, because no fixture exercises a RELOCATED active dir whose default is ALSO absent (the one sub-case that check alone would guard). Downgraded from implemented to untested. |
 | R-199 | nana-setup and the desk shall agree with the resolver on every derived path. | implemented | `packages/nana-pack/tests/agent-dir-parity.test.mjs::[${name}] nana-setup piHome === piAgentDir()` |
 | R-827 | --pi-home shall beat --home and the ambient PI_CODING_AGENT_DIR, with no stray write into the ambient agent dir. | untested | astra r1 MUST (narrow overclaim): the existing cites prove --pi-home's PRECEDENCE (a resolver call, resolveLayout({home, piHome})) and --home's own no-ambient-write guarantee (an actual `install --home` run) — but no fixture ever performs an actual `install --pi-home` and checks what it writes. astra's probe — adding an ambient-directory write specifically during an `install --pi-home` run — left the entire cited agent-dir-parity suite green, since no assertion exercises that path. Downgraded from implemented to untested; the proven half (precedence; --home's own no-ambient-write) is recorded as the evidence for what IS covered, not for this row's stronger claim about --pi-home specifically. |
-| R-601 | The shared locator shall resolve pi exclusively through DESK_PI_ROOT, then npm root -g, then the realpath of pi on PATH, and name each location tried on failure. | implemented | `packages/nana-pack/tests/pi-install.test.mjs::a valid DESK_PI_ROOT package directory is returned`, `packages/nana-pack/tests/pi-install.test.mjs::an invalid DESK_PI_ROOT fails naming the exclusive candidate`, `packages/nana-pack/tests/pi-install.test.mjs::missing pi fails naming npm-root and PATH candidates`, `packages/nana-pack/tests/pi-install.test.mjs::npm root package wins over a distinct package on PATH`, `packages/nana-pack/tests/pi-install.test.mjs::missing pi diagnostic names the concrete npm package candidate`, `packages/nana-pack/tests/pi-install.test.mjs::a PATH-resolved pi reports its resolution source`, `packages/nana-pack/tests/pi-install.test.mjs::npm discovery uses the command processor only on win32`; native Windows execution of the locator is unexecuted. Residual: six named tests use the shared locator; future pi-dependent tests rely on review. |
 | R-950 | The root README shall carry one numbered macOS fresh-machine checklist whose steps name Node, the pinned pi install, this repository clone, nana-setup install, ~/.local/bin on PATH, pi-subagents, the machine objective and doctor, in that order. | implemented | `packages/nana-setup/tests/fresh-machine.test.mjs::fresh-machine checklist has eight ordered actions`, `packages/nana-setup/tests/fresh-machine.test.mjs::checklist objective paths name the resolved pi seed files` |
 | R-951 | Each version named by the fresh-machine checklist shall equal its declared source floor or CI version. | implemented | `packages/nana-setup/tests/fresh-machine.test.mjs::checklist versions match Node, pi CI and pi-subagents sources` |
 | R-345 | IF PI_CODING_AGENT_DIR is an ambient relative path, THEN install, project and project --check shall refuse non-zero naming the resolved dir, the cwd it resolved against and the remedy, writing nothing anywhere. | implemented | `packages/nana-setup/tests/relative-agent-dir.test.mjs::${args.join(" ")}: names the resolved dir`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::the refusal wrote no nana-pack.json anywhere`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::the project refusal created nothing in the target`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::${args.join(" ")}: ambient relative value exits non-zero`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::${args.join(" ")}: says it is specific to the current working directory`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::${args.join(" ")}: gives the remedy`, `packages/nana-setup/tests/relative-agent-dir.test.mjs::${args.join(" ")}: names the resolved dir and the cwd` |
@@ -633,7 +687,6 @@ Purpose: Install the shared resources and seed missing private or runtime config
 | R-688 | Importing hook logic shall never read stdin. | implemented | `packages/nana-setup/tests/hook-producers.test.mjs::importing verifier logic completes with open stdin and empty stderr` |
 | R-665 | WHEN installation processes a managed Claude skill, it shall link the canonical pack source, preserve and report foreign links for the four newly managed names, accept links resolving to the canonical pack directory, skip those names on win32, and retain the pre-lane behavior for `requirements`. | implemented | `packages/nana-setup/tests/install.test.mjs::skill ${name} is a symlink to the pack skill`, `packages/nana-setup/tests/retired-artifacts.test.mjs::recognized Claude skill and empty flag move under dated backups`, `packages/nana-setup/tests/retired-artifacts.test.mjs::foreign newly managed skill link survives end-to-end install`, `packages/nana-setup/tests/retired-artifacts.test.mjs::newly managed skill canonical realpath link is accepted`, `packages/nana-setup/tests/retired-artifacts.test.mjs::win32 install leaves the unrecognized skill owner directory unchanged`, `packages/nana-setup/tests/retired-artifacts.test.mjs::win32 install reports all four new skill rows skipped`, `packages/nana-setup/tests/retired-artifacts.test.mjs::win32 preserves requirements mirror behavior and doctor skips pi-only skills`, `packages/nana-setup/tests/skills-and-standards.test.mjs::win32: requirements backup is a FILE inside the skill dir; new skills stay pi-only` |
 | R-589 | WHEN `nana-setup install` runs, it shall link `~/.local/bin/nana-setup` to this checkout's `packages/nana-setup/bin/nana-setup.mjs` on POSIX and accept an identical existing link, report the link skipped on win32, and have doctor report healthy only when the link resolves to that file. | implemented | `packages/nana-setup/tests/install.test.mjs::nana-setup installed as PATH symlink`, `packages/nana-setup/tests/install.test.mjs::doctor reports healthy nana-setup link`, `packages/nana-setup/tests/install.test.mjs::doctor rejects missing nana-setup link`, `packages/nana-setup/tests/install.test.mjs::doctor rejects wrong nana-setup target`, `packages/nana-setup/tests/install.test.mjs::second install keeps the identical nana-setup link`, `packages/nana-setup/tests/win32-degrade.test.mjs::win32: PATH nana-setup reports skipped (win32)` |
-| R-680 | The shared working instructions shall document every discovered Claude hook and nana-pack or nana-knowledge extension in its runtime matrix contract. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory` |
 | R-360 | In the pi agent dir, extensions/subagent/config.json shall be seeded from the nana-setup seed only when absent and never rewritten afterwards. | implemented | `packages/nana-setup/tests/install.test.mjs::subagent config seeded when absent`, `packages/nana-setup/tests/install.test.mjs::existing subagent config.json byte-identical after install` |
 | R-361 | The subagent seed shall set exactly asyncByDefault true, forceTopLevelAsync true and maxSubagentDepth 1 and no other key. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::subagent seed: exactly the three keys and values` |
 | R-363 | In the pi agent dir, agents/reviewer.md shall be seeded from the nana-setup seed only when absent. | implemented | `packages/nana-setup/tests/install.test.mjs::reviewer agent seeded when absent (full byte match with the seed)`, `packages/nana-setup/tests/install.test.mjs::existing reviewer.md untouched`, `packages/nana-setup/tests/install.test.mjs::reviewer agent: valid frontmatter independently parsed (byte 0 is ---, name/description/tools incl. bash)` |
@@ -684,7 +737,6 @@ Purpose: Apply idempotent and atomic writes, report dry runs accurately and refu
 | R-926 | IF a lock file already exists, THEN --dry-run shall not be blocked by it. | untested | astra r1 2026-10-04 (EARS form batch B gap audit): no record pins "IF a lock file already exists"; 6b worklist. |
 | R-663 | WHEN installation inspects or modifies a manifest artifact or managed skill, it shall verify every source and destination ancestor from its selected root is a real directory before reading, hashing, moving, unlinking, or mirroring it; unsafe paths remain untouched and are reported. | implemented | `packages/nana-setup/tests/retired-artifacts.test.mjs::recognized Claude skill and empty flag move under dated backups`, `packages/nana-setup/tests/retired-artifacts.test.mjs::source symlink ancestors are refused without changing their external target`, `packages/nana-setup/tests/retired-artifacts.test.mjs::backup symlink ancestors are refused without changing their external target`, `packages/nana-setup/tests/retired-artifacts.test.mjs::alternate Claude home scopes retirement away from the default home` |
 | R-353 | A rule or hook symlink pointing at a decoy outside the repo shall be relinked with the decoy untouched and no backup written beside it. | implemented | `packages/nana-setup/tests/skills-and-standards.test.mjs::${spec.tag} rule link ${rule}: the decoy OUTSIDE the repo is untouched`, `packages/nana-setup/tests/skills-and-standards.test.mjs::${spec.tag} rule link: no .bak was written next to the decoys`, `packages/nana-setup/tests/skills-and-standards.test.mjs::posix hook link: the decoy outside the repo is untouched`, `packages/nana-setup/tests/skills-and-standards.test.mjs::${spec.tag} rule link ${rule}: the entry is now the repo's file, not a link to the decoy`, `packages/nana-setup/tests/skills-and-standards.test.mjs::posix hook link: the hook now points into the repo` |
-| R-377 | WHEN readlinkSync fails on a path lstat has already confirmed is a symlink, sharedLinkState shall return "absent" instead of throwing. | implemented | `packages/nana-setup/tests/shared-link-state.test.mjs::deterministic unit check (injected seam): a readlink failure on a confirmed symlink reads 'absent', not a throw`, `packages/nana-setup/tests/shared-link-state.test.mjs::TRUE reproduction (no seam, real fs): the link vanishing between lstat and readlink does not throw`, `packages/nana-setup/tests/shared-link-state.test.mjs::... and the real production call (no injected argument) returns 'absent'` |
 | R-378 | WHILE an explicit --home override is in force, isRealHome shall be false even when that override resolves to the same path as the real home directory. | implemented | `packages/nana-setup/tests/paths.test.mjs::--home set to the home directory's OWN path still forces isRealHome false` |
 | R-379 | WHEN target is a symlink (live or dangling), writeIfChanged shall leave it untouched and report it SKIPPED, making no read whose target is that symlink or its destination and no write through it. | implemented | `packages/nana-setup/tests/fsops.test.mjs::a live symlink in the way is reported SKIPPED, not written`, `packages/nana-setup/tests/fsops.test.mjs::the symlink's target is byte-identical — nothing was written through it`, `packages/nana-setup/tests/fsops.test.mjs::no read targets the live symlink or its destination`, `packages/nana-setup/tests/fsops.test.mjs::the live symlink's destination path is unchanged`, `packages/nana-setup/tests/fsops.test.mjs::a dangling symlink is reported SKIPPED, not written`, `packages/nana-setup/tests/fsops.test.mjs::the dangling link's target was NOT created`, `packages/nana-setup/tests/fsops.test.mjs::no read targets the dangling symlink or its (missing) destination`, `packages/nana-setup/tests/fsops.test.mjs::the dangling symlink's destination path is unchanged` |
 
@@ -707,6 +759,8 @@ Purpose: Skip unsupported Windows integrations and maintain supported copies and
 
 ## FEAT-014 · Create or adopt a project workspace
 Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
+Status: active
+Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740
 
 ### SUB-016 · Recognize projects that need adoption
 Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
@@ -780,6 +834,7 @@ Purpose: Provide the Python and TypeScript scaffold/adopt outputs with their sha
 | R-582 | WHEN a scaffold rendered from an earlier tag is updated to HEAD with `copier update`, its rail shall report no problem and no row off EARS form. | implemented | `packages/nana-pack/tests/templates-update.test.mjs::updated trees reject nested conflict files before map regeneration`, `packages/nana-pack/tests/templates-update.test.mjs::${language} update has no rejection files anywhere before map regeneration`, `packages/nana-pack/tests/templates-update.test.mjs::${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean` |
 | R-859 | AGENTS.md and each rendered template AGENTS.md shall contain a marker-delimited shared working section byte-identical to the shared file, preceded by a complete paragraph. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::AGENTS.md marker-owned section is byte-identical to the shared file`, `packages/nana-pack/tests/templates-render.test.mjs::AGENTS.md shared section follows a complete paragraph`, `packages/nana-pack/tests/templates-render.test.mjs::${language}: rendered AGENTS.md marker region matches shared bytes and follows a paragraph`; reworded 2026-10-06 for marker-owned region. |
 | R-590 | The adopt-py and adopt-ts skills shall each list exactly the files an adopt render into an empty folder writes, mark all five copier-preserved files as written only when absent, and direct adopters to use the valid `allowBuilds` YAML block and inline conflict resolution, never rejected patches; the adopt-ts list names every script pinned by its rendered package manifest. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::${language} adopt: skill file list exactly matches emitted files`, `packages/nana-pack/tests/templates-render.test.mjs::${language} adopt: all copier-preserved files are marked written only when absent`, `packages/nana-pack/tests/templates-render.test.mjs::typescript adopt: every rendered package script is named in adopt-ts`, `packages/nana-pack/tests/templates-render.test.mjs::typescript adopt: workspace build permission is valid YAML`, `packages/nana-pack/tests/templates-render.test.mjs::generated project update guidance is generic with adopted-project qualification` |
+| R-683 | The shared templates shall provide generic defaults for worktree, branch, review corpus, launchers, review cap, lineage rule, land checklist, and local override points. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::shared working pattern names generic defaults and local overrides` |
 
 ### SUB-020 · Preserve existing content and honor opt-outs
 Purpose: Recognize existing filesystem entries, preview changes and honor an explicit decision that a repository is not a nana project.
@@ -807,6 +862,8 @@ Purpose: Report structural readiness and require the owner's objective and curre
 
 ## FEAT-015 · Diagnose the active environment
 Purpose: Report what is installed, configured or unhealthy with concrete repair guidance and accurate active-source attribution.
+Status: active
+Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-985
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -841,9 +898,13 @@ Purpose: Report what is installed, configured or unhealthy with concrete repair 
 | R-370 | doctor shall read ✗ when agents/reviewer.md is absent, naming nana-setup install as the fix. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: absent reads ✗ naming nana-setup install as the fix` |
 | R-371 | doctor shall read ✗ when agents/reviewer.md is present but its body's first line is not the nana marker, instructing a manual repair rather than install. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: unmarked reads ✗ instructing a manual repair, not a bare install`, `packages/nana-setup/tests/doctor-detail.test.mjs::reviewer agent: marker present but NOT on the first body line reads ✗` |
 | R-372 | doctor shall read ✗ naming the server, before checking its exposure, WHERE an mcp.json server entry is present but not a JSON object. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::mcp.json: server entry "memory" as ${label} reads ✗ naming the server, before the exposure check` (null / an array / a number / a string / false, looped) |
+| R-377 | WHEN readlinkSync fails on a path lstat has already confirmed is a symlink, sharedLinkState shall return "absent" instead of throwing. | implemented | `packages/nana-setup/tests/shared-link-state.test.mjs::deterministic unit check (injected seam): a readlink failure on a confirmed symlink reads 'absent', not a throw`, `packages/nana-setup/tests/shared-link-state.test.mjs::TRUE reproduction (no seam, real fs): the link vanishing between lstat and readlink does not throw`, `packages/nana-setup/tests/shared-link-state.test.mjs::... and the real production call (no injected argument) returns 'absent'` |
+| R-399 | Doctor shall report the desk healthy only when launchctl print reports state = running and the node executable read from plist ProgramArguments[0] exists and meets the desk Node floor. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reports healthy only for running service and valid plist Node`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor rejects stopped, missing-node and below-floor desk services`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reads the plist executable rather than the current process` |
 
 ## FEAT-016 · Start the local development desk
 Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-199
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -855,7 +916,6 @@ Purpose: Bind the intended pi runtime and run the local desk with appropriate pl
 | R-396 | The launchd desk PATH shall contain only the resolved node directory, ~/.local/bin, /opt/homebrew/bin, /usr/local/bin, /usr/bin and /bin. | implemented | `packages/nana-setup/tests/desk-service.test.mjs::plist PATH is curated and excludes the installing shell snapshot` |
 | R-397 | An explicit --desk run shall restart an already loaded desk service with launchctl kickstart -k. | implemented | `packages/nana-setup/tests/desk-service.test.mjs::explicit repair restarts an unchanged loaded service with kickstart -k` |
 | R-398 | A failed launchctl bootstrap or kickstart shall make the install CLI exit 1. | implemented | `packages/nana-setup/tests/desk-service.test.mjs::install CLI exits 1 on bootstrap failure`, `packages/nana-setup/tests/desk-service.test.mjs::install CLI exits 1 on kickstart failure` |
-| R-399 | Doctor shall report the desk healthy only when launchctl print reports state = running and the node executable read from plist ProgramArguments[0] exists and meets the desk Node floor. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reports healthy only for running service and valid plist Node`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor rejects stopped, missing-node and below-floor desk services`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reads the plist executable rather than the current process` |
 | R-650 | The desk Node floor shall be 22.19. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::desk Node floor is pinned at 22.19` |
 | R-651 | The desk launchd plist shall use the resolved node executable selected by the installer. | implemented | `packages/nana-setup/tests/desk-service.test.mjs::plist uses the resolved node` |
 | R-652 | First-load launchctl kickstart shall not use -k. | implemented | `packages/nana-setup/tests/desk-service.test.mjs::first-load kickstart is plain` |
@@ -874,6 +934,7 @@ Purpose: Bind the intended pi runtime and run the local desk with appropriate pl
 
 ## FEAT-017 · Inspect durable state and follow restoration steps
 Purpose: Inspect the durable-state manifest, export the documented state and follow its archive and restoration guidance.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -886,6 +947,8 @@ Purpose: Inspect the durable-state manifest, export the documented state and fol
 
 ## FEAT-018 · Update or remove managed components safely
 Purpose: Migrate retired artifacts and remove only resources nana owns while preserving foreign or edited state.
+Status: active
+Also applies: R-378, R-663
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -911,6 +974,7 @@ Purpose: Migrate retired artifacts and remove only resources nana owns while pre
 
 ## FEAT-019 · Release usable templates and report support
 Purpose: Verify template combinations, identify delivered versions and publish accurate release and support information.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -934,6 +998,8 @@ Outcome: A developer can see what agents are doing, inspect their changes and di
 
 ## FEAT-020 · Find and read previous sessions
 Purpose: Read, title, navigate and display session history while retaining correct branch identity.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-401, R-458, R-459
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -954,6 +1020,8 @@ Purpose: Read, title, navigate and display session history while retaining corre
 
 ## FEAT-021 · Choose and start an agent session
 Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-404, R-459, R-944
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -971,10 +1039,11 @@ Purpose: Select a working directory, runtime resources, tools and trust options 
 
 ## FEAT-022 · Steer and recover live sessions
 Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-426, R-458, R-459
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-814 | Every lifecycle handler shall stay registered after the reload-runtime command is added. | implemented | `packages/nana-pack/tests/lifecycle-reload.test.mjs::c: ${ev} handler still registered` |
 | R-164 | Exactly one command shall be registered, named reload-runtime, carrying a description and not colliding with a pi built-in. | implemented | `packages/nana-pack/tests/lifecycle-reload.test.mjs::a: exactly one command is registered`, `packages/nana-pack/tests/lifecycle-reload.test.mjs::a: named reload-runtime`, `packages/nana-pack/tests/lifecycle-reload.test.mjs::a: does not collide with a pi built-in command`, `packages/nana-pack/tests/lifecycle-reload.test.mjs::a: carries a description (desk completion and TUI autocomplete both show it)` |
 | R-165 | WHEN /reload-runtime runs, it shall call ctx.reload() exactly once and return nothing. | implemented | `packages/nana-pack/tests/lifecycle-reload.test.mjs::b: the handler calls ctx.reload() exactly once`, `packages/nana-pack/tests/lifecycle-reload.test.mjs::b: …and returns nothing (terminal — no work on a stale ctx)` |
 | R-419 | WHEN pi has not accepted a prompt within the detach window, the route shall answer pending with its own prompt id. | implemented | `apps/desk/test/prompt-detach.test.mjs::detach: a prompt pi has not accepted in 5 s answers pending`, `apps/desk/test/prompt-detach.test.mjs::detach: …with a promptId of its own`, `apps/desk/test/prompt-detach.test.mjs::settle: exactly one settled event per detached prompt`, `apps/desk/test/prompt-detach.test.mjs::ring: the snapshot keeps 32 of them, not all 35` |
@@ -999,9 +1068,13 @@ Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronou
 | R-942 | The record of a child being torn down, including one whose stdin failed, shall be dropped only on real exit. | untested | split from R-460 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-461 | A malformed request target, a broadcast to a disconnected client and a manifest that parses to a non-object shall each be answered or skipped with the desk still serving. | implemented | `apps/desk/test/crash-paths.test.mjs::GET ${target} → 400, desk survives`, `apps/desk/test/crash-paths.test.mjs::a normal target still routes`, `apps/desk/test/crash-paths.test.mjs::…the bad manifest was logged and skipped`, `apps/desk/test/crash-paths.test.mjs::…and the OTHER app's listener is serving`, `apps/desk/test/crash-paths.test.mjs::…the client is TOLD the event was dropped, not silently starved`, `apps/desk/test/crash-paths.test.mjs::a broadcast with a disconnected client in the fan-out does not kill the desk` |
 | R-467 | A non-object or pathologically deep child event shall be skipped with the desk still serving and its clients told what was dropped. | untested | split 2026-10-02 after sol r3 (clause audit): the cited checks do not reach this clause |
+| R-484 | WHEN no floating diff window is open, Esc shall still abort the running turn. | untested | split from R-426 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-689 | The desk test suite shall drive the installed pi in RPC mode without a model call through the desk resolver and fail when a record field the desk reads is absent or renamed. | implemented | `apps/desk/test/pi-rpc-contract.test.mjs::installed pi RPC contract completes` |
 
 ## FEAT-023 · Inspect changes and receive useful notices
 Purpose: Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.
+Status: active
+Also applies: R-458, R-484, R-781, R-810
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1024,7 +1097,6 @@ Purpose: Show working-tree changes, readable activity and bounded output, and no
 | R-817 | A headless failure shall still be journaled. | implemented | `packages/nana-pack/tests/notify-fallback.test.mjs::c: headless failure is still journalled` |
 | R-173 | Headless notifications shall be opt-in via notify.headless. | untested | split from R-173 2026-10-04 (EARS form batch A2): every fixture in notify-fallback.test.mjs's setup() hardcodes notify.headless:true; no test sets hasUI:false with notify.headless:false to confirm the early-return gate actually suppresses an un-opted-in headless run. astra r1: removing the headless opt-in guard leaves the notifier suite green; retained untested. |
 | R-818 | No terminal escape codes shall be written without an attached UI. | untested | split from R-173 2026-10-04 (EARS form batch A2): no test captures process.stdout for the OSC-777 branch; its ctx.hasUI guard is read but never exercised with hasUI:false. astra r1: removing the OSC write's hasUI guard leaves notify-fallback green (its fixtures select darwin/win32 notifier branches, not headless OSC output); retained untested. |
-| R-699 | The desk shall write a usage line to its stdout only when a browser loads the desk page or an app page, opens a historical transcript, or sends a prompt to a live session, the line carrying only the time, the event name, the surface and the action. | implemented | `apps/desk/test/usage-line.test.mjs::usage triggers are exactly desk open/view/prompt and app open/prompt`, `apps/desk/test/usage-line.test.mjs::each usage record carries exactly the four permitted keys`, `apps/desk/test/usage-line.test.mjs::usage timestamps parse and fall within the request window`, `apps/desk/test/usage-line.test.mjs::usage records expose no request, prompt, cwd or session markers`, `apps/desk/test/usage-line.test.mjs::usage lines are written to stdout only`, `apps/desk/test/usage-line.test.mjs::SSE attach, entries, data, RPC and rejected requests add no usage line` |
 | R-474 | The subagent tool shall render as a readable card with agent, model, task and a per-child activity strip rather than raw JSON. | untested | split from R-413 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-421 | A finished bash card shall show at most 20000 characters of output and of error cut without splitting a surrogate pair and marked truncated. | untested | — |
 | R-422 | The changes bar shall report the working tree against HEAD for a live session, counting untracked files as added, with root-relative posix paths sorted by path and totals that sum the rows returned. | implemented | `apps/desk/test/changes-endpoint.test.mjs::untracked file is ?? and its lines are counted`, `apps/desk/test/changes-endpoint.test.mjs::paths are posix and root-relative`, `apps/desk/test/changes-endpoint.test.mjs::files are sorted by path`, `apps/desk/test/changes-endpoint.test.mjs::totals count the rows we returned`, `apps/desk/test/changes-endpoint.test.mjs::totals sum added/removed`, `apps/desk/test/changes-endpoint.test.mjs::no git on PATH: repo:false with a reason, never a throw`, `apps/desk/test/changes-endpoint.test.mjs::a non-repo cwd answers repo:false, not an error`, `apps/desk/test/changes-endpoint.test.mjs::a vanished cwd says so, and is not blamed on git`, `apps/desk/test/changes-endpoint.test.mjs::route: /changes answers 200 with the file list` |
@@ -1034,12 +1106,14 @@ Purpose: Show working-tree changes, readable activity and bounded output, and no
 | R-425 | An untracked symlink shall be listed and never read in the file list or the diff window. | implemented | `apps/desk/test/changes-endpoint.test.mjs::an untracked symlink is listed but not counted`, `apps/desk/test/changes-endpoint.test.mjs::the file endpoint refuses an untracked symlink inside the root`, `apps/desk/test/changes-endpoint.test.mjs::swap: the diff window refuses a path that became a symlink after the check`, `apps/desk/test/changes-endpoint.test.mjs::swap: …and nothing from the target is in the answer`, `apps/desk/test/changes-endpoint.test.mjs::path rejected: a symlink that resolves outside the root` |
 | R-483 | A path escaping the work tree shall be refused reading nothing. | untested | split from R-425 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-426 | WHEN the floating diff window is open, Esc shall close the floating diff window without aborting the running turn. | untested | — |
-| R-484 | WHEN no floating diff window is open, Esc shall still abort the running turn. | untested | split from R-426 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-428 | WHILE a turn runs the page shall show an activity line naming what the turn is doing with elapsed time. | untested | — |
 | R-488 | WHEN a compaction leaves pi reporting no context percentage the meter shall show the compaction's own estimate marked as an estimate rather than going stale. | untested | split from R-428 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-814 | Every lifecycle handler shall stay registered after the reload-runtime command is added. | implemented | `packages/nana-pack/tests/lifecycle-reload.test.mjs::c: ${ev} handler still registered` |
 
 ## FEAT-024 · Edit session and project settings safely
 Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-458, R-459
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1057,6 +1131,8 @@ Outcome: A developer can use focused app surfaces and inspect tool output whose 
 
 ## FEAT-025 · Use consistent structured tool output
 Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
+Status: active
+Also applies: R-256
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1089,6 +1165,8 @@ Purpose: Validate and render supported cards, tables, charts and actions from th
 
 ## FEAT-026 · Verify output provenance across session history
 Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-283, R-284
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1116,10 +1194,11 @@ Purpose: Stamp and verify tool output, retain session signing lineage and reject
 | R-945 | WHEN the stage-key persistence test exercises a held post-fork confirmation concurrently with a ledger read, it shall use a test-configured confirmation budget above the production default. | implemented | `apps/desk/test/stage-key-persistence.test.mjs::run 3: a ledger read lands mid-fork under the generous test budget and inheritance survives` |
 | R-946 | WHEN the stage-key persistence test delays a post-fork confirmation response by 1000 ms after request receipt, it shall assert that the destination inherits no keys. | implemented | `apps/desk/test/stage-key-persistence.test.mjs::run 3: a confirmation response delayed 1000 ms after request receipt confirms nothing` |
 | R-947 | WHEN the stage-key persistence test starts its default-budget server with an ambient DESK_TEST_CONFIRM_BUDGET_MS, it shall assert that a response delayed by 3000 ms records no destination keys. | implemented | `apps/desk/test/stage-key-persistence.test.mjs::run 3: a late answer confirms nothing — the destination is not recorded at all` |
-| R-949 | WHEN stage-key fixture instances run concurrently, they shall request port zero and verify distinct OS-assigned app-listener ports, with both instances passing. | implemented | `apps/desk/test/stage-key-persistence.test.mjs::concurrent fixture instances request port zero, bind distinct OS-assigned app ports and pass` |
 
 ## FEAT-027 · Connect and isolate focused app surfaces
 Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
+Status: frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)
+Also applies: R-461
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1145,7 +1224,6 @@ Purpose: Load app manifests, route their tools and data, track readiness and enf
 | R-459 | Every state-changing request on every listener shall carry a JSON content type and either no Origin or that listener's own Origin, so a cross-origin or wrongly typed request is refused 403 before the body is read and one app port can never reach another. | implemented | `apps/desk/test/origin-rule.test.mjs::cross-origin text/plain POST /api/spawn → 403`, `apps/desk/test/origin-rule.test.mjs::…and no child was spawned`, `apps/desk/test/origin-rule.test.mjs::same-origin text/plain POST → 403`, `apps/desk/test/origin-rule.test.mjs::no-Origin JSON POST reaches the route`, `apps/desk/test/origin-rule.test.mjs::cross-origin body-less DELETE → 403`, `apps/desk/test/app-listener.test.mjs::cross-origin (port A → port B) POST → 403` |
 | R-943 | WHERE an app manifest's extensions entry exactly matches builtin:<name>, it shall be accepted with no filesystem check; every other entry, including a near-miss such as builtin: or builtin:../x, still needs an existing file. | implemented | added 2026-10-05 (edge-builtin-mcp lane, seat follow-up): `apps/desk/test/app-listener.test.mjs::zeta (a builtin: entry mixed with real file extensions) loads and has a listener`, `apps/desk/test/app-listener.test.mjs::near-miss "builtin:" (empty name) rejected at load, same as a missing file`, `apps/desk/test/app-listener.test.mjs::near-miss "builtin:../x" rejected at load, same as a missing file` |
 | R-944 | WHEN spawnChild narrows a session's resources, a builtin:<name> extensions entry shall be passed through as -e builtin:<name>, never through the project-path refusal. | implemented | added 2026-10-05 (edge-builtin-mcp lane, seat follow-up): `apps/desk/test/app-listener.test.mjs::argv: a builtin:<name> extensions entry rides through as literal -e builtin:mcp, in manifest order`, `apps/desk/test/spawn-and-persist.test.mjs::…argv carries -e builtin:mcp under -na`, `apps/desk/test/spawn-and-persist.test.mjs::…a real project-path extension is STILL refused under the same denial (the exemption is narrow)`, `apps/desk/test/spawn-and-persist.test.mjs::a near-miss (builtin:../x) is refused as a project path, never exempted as a builtin ref`; widened 2026-10-05 (astra r1 SHOULD) from an app session's to a session's — spawnChild is shared with the general desk endpoint POST /api/spawn, where approve:false with no manifest trust makes the project-path refusal live (an app manifest always disables it, so the original app-listener tests alone could not have caught a regression here; astra's mutation calling refuseProject on the builtin branch stayed green on all 75 of those, confirmed reproduced, and goes red on the new general-spawn test) |
-| R-948 | WHEN the app-listener test fixture runs, it shall request port zero for its desk and app listeners and verify their distinct OS-assigned bound ports (production manifests retain explicit stable ports). | implemented | `apps/desk/test/app-listener.test.mjs::app-listener fixture requests port zero and reads distinct bound ports` |
 
 # CAP-07 · Keep code and promises checkable
 Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
@@ -1153,7 +1231,8 @@ Outcome: A developer can see which promises a change affects and what evidence s
 
 ## FEAT-028 · Maintain requirement identity and trace links
 Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
-See also: G-013, G-014, G-015 (general engineering rows, kept whole in FEAT-033).
+Status: active
+Also applies: G-013, G-014, G-015
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1168,11 +1247,15 @@ See also: G-013, G-014, G-015 (general engineering rows, kept whole in FEAT-033)
 | R-288 | Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-288: all real headings have non-empty purposes` |
 | R-289 | No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-289: real capability, feature and subgroup IDs are unique` |
 | R-290 | Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-290: real feature and subgroup headings have direct-level parents` |
-| R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-291: committed outline fields and row IDs match the real ledger` |
+| R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs, for every feature also its status and shared requirements, and ends with an index naming each shared requirement, its home feature and every feature that lists it. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-291: committed outline fields and row IDs match the real ledger` |
+| R-292 | Every requirement ID on a feature's `Also applies:` line in REQUIREMENTS.md shall name, once, a requirement that is not retired and whose home is another feature. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-292: shared requirement clauses reject invalid IDs` |
+| R-293 | Every feature heading in REQUIREMENTS.md shall be followed, before any table, by a `Status:` line reading `proposed`, `active`, `frozen (<reason>)` or `retired (<successor or reason>)`. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-293: feature lifecycle statuses are required and validated` |
+| R-294 | A feature whose `Status:` line in REQUIREMENTS.md reads `proposed` or `retired` shall hold no requirement rows. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-294: proposed and retired features have no rows` |
 
 ## FEAT-029 · Navigate code and investigate impact
 Purpose: Maintain a generated module map and find candidate affected requirements through source and test relationships.
-See also: G-009, G-010, G-011 (general engineering rows, kept whole in FEAT-033).
+Status: active
+Also applies: G-004, G-007, G-008, G-009, G-010, G-011, G-019
 Note (moved from old §13c on 2026-10-09):
 Not a nana-pack module: the generator both project templates ship
 (`templates/typescript/template/scripts/code-map.mjs`, `templates/python/template/scripts/code_map.py`),
@@ -1233,10 +1316,11 @@ cover).
 | R-863 | The TypeScript code-map generator shall accept a match of any of its four import-detection patterns only when the from/import keyword it starts with sits in executable code, never inside a line comment, a block comment, a quoted string, or template-literal text. | retired | retired 2026-10-05 (map-test-links lane, astra r2 round 3, `docs/reviews/map-test-links-2026-10-05/astra-r2.md`): the lexer this row named fixed the class it targeted (comment/string text making a spurious edge — 0 edges changed on nana-pi either way) while itself LOSING real edges in ordinary code (a division misread right after a completed template or object literal; a `//` comment ended by CR or U+2028, not just LF) and still fabricating edges from valid multi-line strings (an escaped CRLF continuation, a raw U+2028, both legal inside a string). A lost edge is worse than the spurious edge it replaced. Subtracted before landing; superseded by R-864's guard, also later retired. Id never reused. |
 | R-864 | WHEN a module names an import whose keyword (from/import) sits on a line whose first non-blank characters are //, or are * with no */ anywhere on that line, the TypeScript code-map generator shall record no import edge for it. | retired | retired 2026-10-05 (map-test-links lane, astra r3, `docs/reviews/map-test-links-2026-10-05/astra-r3.md`): the guard this row named lost real imports — a generator method (`*load() { yield import(...) }`), a leading `*` multiplying an awaited import's property, and a `//` that opens a line only because a multi-line string or a backslash continuation put it there. Each is ordinary, valid JavaScript. Subtracted before landing; the four patterns match raw source again, as on `main`, with no filter in its place (see Open questions). Id never reused. |
 | R-649 | WHEN `npm run req:rows` names a file, nana-pi's rows lister shall print ids marked by direct importing test files and then ids marked only by transitive importing test files; the output states that the list is neither complete nor exact and gives the live untested-row count; files with no marked test-file importer receive an unknown result rather than an empty list. | implemented | `packages/nana-pack/tests/requirement-rows.test.mjs::direct and transitive tiers contain the right marked rows and are disjoint`; `packages/nana-pack/tests/requirement-rows.test.mjs::each file output carries the incomplete and inexact label with the untested count`; `packages/nana-pack/tests/requirement-rows.test.mjs::files without marked test callers print unknown, including an unmapped file`; `packages/nana-pack/tests/requirement-rows.test.mjs::CLI reports a file with no marked test caller as unknown` (mutations: direct-only red; label removal red; empty unknown red) |
-| R-657 | The requirements skill shall give runnable map commands for pnpm, npm and Python without passing a literal separator to pnpm. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::requirements skill documents runner-specific map commands` |
 
 ## FEAT-030 · Get trustworthy feedback after edits
 Purpose: Run matching checks after file edits and communicate failures, timeouts, skipped work and evidence state correctly.
+Status: active
+Also applies: R-079, R-186, R-781
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1282,9 +1366,12 @@ Purpose: Run matching checks after file edits and communicate failures, timeouts
 | R-794 | receipts.dir shall relocate the store. | retired | decision D5, 2026-10-06 |
 | R-107 | The win32 tree-kill branch shall kill a checker's whole tree. | untested | — |
 | R-644 | The post-edit extension shall resolve edited paths through the shared gate path resolver. | implemented | `packages/nana-pack/tests/post-edit-hardening.test.mjs::path: post-edit imports the shared resolver and defines no local resolver`, `packages/nana-pack/tests/post-edit-hardening.test.mjs::path: malformed file URL checker receives the shared resolver result` |
+| R-993 | The TypeScript syntax checker shall accept only TypeScript supported by Node's type stripping, exiting 0 for supported syntax and 1 with the file name and Node diagnostic otherwise. | implemented | `packages/nana-pack/tests/ts-syntax-check.test.mjs::valid TypeScript syntax exits 0`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::invalid TypeScript syntax exits 1 with a filename-qualified Node parser diagnostic`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::TypeScript requiring transformation is rejected with a filename-qualified Node diagnostic` |
+| R-994 | The TypeScript syntax checker shall compile the named file without evaluating its module code. | implemented | `packages/nana-pack/tests/ts-syntax-check.test.mjs::module-level early errors fail compilation with a filename-qualified diagnostic`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::valid module top level is not evaluated` |
 
 ## FEAT-031 · Run checks reliably and without contaminating work
 Purpose: Execute the test suite with appropriate collection, isolation, liveness, output and environmental controls.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1319,16 +1406,17 @@ Purpose: Execute the test suite with appropriate collection, isolation, liveness
 | R-916 | WHEN a test file fails in non-verbose mode, the runner shall print its failing `FAIL` or `not ok` output lines, capped at 20 lines. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::in non-verbose mode a failing file prints its first 20 failing check lines` |
 | R-917 | Each test file shall run with a unique temporary root supplied through TMPDIR and remove every test-created temporary root on process exit, including on failure or timeout. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::each test gets a unique TMPDIR and the runner removes leaked temp contents`, `packages/nana-pack/tests/test-runner.test.mjs::a timed-out file's TMPDIR and leaked contents are removed`, `packages/nana-pack/tests/test-runner.test.mjs::a failing file's TMPDIR and leaked contents are removed`, `packages/nana-pack/tests/test-runner.test.mjs::termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)`, `packages/nana-pack/tests/test-runner.test.mjs::the source check detects direct mkdtemp calls while ignoring only generated leak fixtures`, `packages/nana-pack/tests/test-runner.test.mjs::the shared temp helper removes its registered root when the process exits` |
 | R-918 | The runner shall fail and name tracked repository files whose content or index state changes during a test run, ignoring untracked files. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::tracked mutation fails naming the tracked file while untracked files do not appear`, `packages/nana-pack/tests/test-runner.test.mjs::tracked mutation is detected when the file was already dirty before the run`, `packages/nana-pack/tests/test-runner.test.mjs::staging an already-dirty tracked file is detected without a working-tree change` |
-| R-993 | The TypeScript syntax checker shall accept only TypeScript supported by Node's type stripping, exiting 0 for supported syntax and 1 with the file name and Node diagnostic otherwise. | implemented | `packages/nana-pack/tests/ts-syntax-check.test.mjs::valid TypeScript syntax exits 0`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::invalid TypeScript syntax exits 1 with a filename-qualified Node parser diagnostic`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::TypeScript requiring transformation is rejected with a filename-qualified Node diagnostic` |
-| R-994 | The TypeScript syntax checker shall compile the named file without evaluating its module code. | implemented | `packages/nana-pack/tests/ts-syntax-check.test.mjs::module-level early errors fail compilation with a filename-qualified diagnostic`, `packages/nana-pack/tests/ts-syntax-check.test.mjs::valid module top level is not evaluated` |
 | R-898 | Every committed real-pi E2E harness and probe shall pass a temporary NANA_KNOWLEDGE_HOME to the process that launches pi. | implemented | `apps/desk/test/knowledge-home-isolation.test.mjs::real-pi launchers isolate the knowledge home` |
 | R-899 | The acceptance driver shall remove its temporary knowledge home after the pi child closes on success or failure. | untested | |
-| R-689 | The desk test suite shall drive the installed pi in RPC mode without a model call through the desk resolver and fail when a record field the desk reads is absent or renamed. | implemented | `apps/desk/test/pi-rpc-contract.test.mjs::installed pi RPC contract completes` |
 | R-544 | Every bench test collected by the repo runner shall drive stub children and make zero model calls. | untested | split from R-500 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-601 | The shared locator shall resolve pi exclusively through DESK_PI_ROOT, then npm root -g, then the realpath of pi on PATH, and name each location tried on failure. | implemented | `packages/nana-pack/tests/pi-install.test.mjs::a valid DESK_PI_ROOT package directory is returned`, `packages/nana-pack/tests/pi-install.test.mjs::an invalid DESK_PI_ROOT fails naming the exclusive candidate`, `packages/nana-pack/tests/pi-install.test.mjs::missing pi fails naming npm-root and PATH candidates`, `packages/nana-pack/tests/pi-install.test.mjs::npm root package wins over a distinct package on PATH`, `packages/nana-pack/tests/pi-install.test.mjs::missing pi diagnostic names the concrete npm package candidate`, `packages/nana-pack/tests/pi-install.test.mjs::a PATH-resolved pi reports its resolution source`, `packages/nana-pack/tests/pi-install.test.mjs::npm discovery uses the command processor only on win32`; native Windows execution of the locator is unexecuted. Residual: six named tests use the shared locator; future pi-dependent tests rely on review. |
+| R-948 | WHEN the app-listener test fixture runs, it shall request port zero for its desk and app listeners and verify their distinct OS-assigned bound ports (production manifests retain explicit stable ports). | implemented | `apps/desk/test/app-listener.test.mjs::app-listener fixture requests port zero and reads distinct bound ports` |
+| R-949 | WHEN stage-key fixture instances run concurrently, they shall request port zero and verify distinct OS-assigned app-listener ports, with both instances passing. | implemented | `apps/desk/test/stage-key-persistence.test.mjs::concurrent fixture instances request port zero, bind distinct OS-assigned app ports and pass` |
 
 ## FEAT-032 · Keep instructions and documentation accurate
 Purpose: Check documentation and skill commands against the interfaces and files they claim to describe.
-See also: G-012, G-021, G-022 (general engineering rows, kept whole in FEAT-033).
+Status: active
+Also applies: G-012, G-021, G-022
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1339,9 +1427,13 @@ See also: G-012, G-021, G-022 (general engineering rows, kept whole in FEAT-033)
 | R-598 | Each path a pack skill or the shared working section names shall resolve, from the target root or the skill's own directory, in its declared render targets, with shared-section claims also checked in this checkout. | implemented | `packages/nana-pack/tests/skill-claims.test.mjs::every checkout-target surface has no checkout path problems`, `packages/nana-pack/tests/skill-claims.test.mjs::checkout shared-section claim paths resolve`, `packages/nana-pack/tests/templates-render.test.mjs::python scaffold: all declared skill paths resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript scaffold: all declared skill paths resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::python adopt: all declared skill paths resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript adopt: all declared skill paths resolve independently`, `packages/nana-pack/tests/skill-claims.test.mjs::a checkout copy cannot mask a removed path in its declared target` |
 | R-599 | Each package-script command a pack skill or the shared working section names shall name a script of a declared target and be spelled with its runner, with no literal `--` after a pnpm script. | implemented | `packages/nana-pack/tests/skill-claims.test.mjs::checkout skill package-script claims resolve for every declared checkout surface`, `packages/nana-pack/tests/skill-claims.test.mjs::checkout script spelling rules inspect all skill and shared surfaces`, `packages/nana-pack/tests/templates-render.test.mjs::python scaffold: all declared package-script commands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript scaffold: all declared package-script commands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::python adopt: all declared package-script commands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript adopt: all declared package-script commands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::scaffold-ts: an unknown package script is rejected` |
 | R-629 | Each flag shown with a script path and each flag or first subcommand shown with a declared nana command shall appear in that script's or command's source. | implemented | `packages/nana-pack/tests/skill-claims.test.mjs::checkout skill claim flags and subcommands exist in source for every declared checkout surface`, `packages/nana-pack/tests/templates-render.test.mjs::python scaffold: all declared flags and subcommands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript scaffold: all declared flags and subcommands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::python adopt: all declared flags and subcommands resolve independently`, `packages/nana-pack/tests/templates-render.test.mjs::typescript adopt: all declared flags and subcommands resolve independently`, `packages/nana-pack/tests/skill-claims.test.mjs::a missing nana-command flag is rejected` |
+| R-657 | The requirements skill shall give runnable map commands for pnpm, npm and Python without passing a literal separator to pnpm. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::requirements skill documents runner-specific map commands` |
+| R-680 | The shared working instructions shall document every discovered Claude hook and nana-pack or nana-knowledge extension in its runtime matrix contract. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory` |
 
 ## FEAT-033 · Adopt explicit engineering standards
 Purpose: Keep shared configuration and module-boundary policies in one place and link their applicability to project features.
+Status: active
+Also applies: R-756
 Note (moved from old §Part G on 2026-10-09):
 These rows are the same in every nana project and are **never renumbered or edited
 per project** — nana-pi is not copier-tracked; its cells mirror the shared file under
@@ -1390,13 +1482,13 @@ Outcome: A developer can judge whether an agent, prompt or workflow change impro
 
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-501 | Each profile shall expand to an exact argv with its own isolated environment and a redirected session directory, the accounting sidecar riding only on profiles that declare an extension, loaded last, and contributing no tool names to the allowlist. | implemented | `apps/bench/test/argv.test.mjs::A: exact argv`, `apps/bench/test/argv.test.mjs::A: session dir redirected off ~/.pi/agent`, `apps/bench/test/argv.test.mjs::A: loads NO extension, so the sidecar does not ride along`, `apps/bench/test/argv.test.mjs::C: exactly two -e entries (pi-web-access + the bench sidecar)`, `apps/bench/test/argv.test.mjs::C: the sidecar is the LAST extension loaded`, `apps/bench/test/argv.test.mjs::C: the sidecar contributes no tool names to the allowlist` |
 | R-502 | Profile validation shall reject an extension tool missing from the allowlist, an unknown tool, a bad thinking level, duplicates and an empty list. | implemented | `apps/bench/test/argv.test.mjs::rejects an extension tool missing from --tools`, `apps/bench/test/argv.test.mjs::rejects an unknown tool name`, `apps/bench/test/argv.test.mjs::rejects a bad thinking level`, `apps/bench/test/argv.test.mjs::rejects duplicate tools`, `apps/bench/test/argv.test.mjs::rejects an empty tool list`, `apps/bench/test/argv.test.mjs::declared-but-unset env → needs-key` |
 | R-508 | IF the installed pi is missing a required root export or the overridden package root is wrong, THEN the bench shall fail loudly at startup naming the export or the path tried and the verified version. | implemented | `apps/bench/test/usage.test.mjs::a pi without calculateCost fails LOUDLY at startup`, `apps/bench/test/usage.test.mjs::…naming the missing export`, `apps/bench/test/usage.test.mjs::…and refusing to fall back`, `apps/bench/test/usage.test.mjs::…and naming the version it was verified against`, `apps/bench/test/usage.test.mjs::a wrong BENCH_PI_ROOT fails and names the path tried` |
-| R-550 | IF the installed pi is missing a required root export or the overridden package root is wrong, THEN the bench shall refuse to substitute its own arithmetic. | untested | split from R-508 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-509 | The schedule shall be a seeded randomized block schedule written once and reused verbatim, so a resumed study cannot re-randomize itself. | implemented | `apps/bench/test/plan.test.mjs::same seed → identical schedule`, `apps/bench/test/plan.test.mjs::schedule is persisted and reused verbatim`, `apps/bench/test/plan.test.mjs::block order is randomized per rep` |
 | R-510 | The study fingerprint shall cover study content, task files, pins, the pi version and the seed while excluding machine-local paths and operational keys. | implemented | `apps/bench/test/plan.test.mjs::a changed prompt changes it`, `apps/bench/test/plan.test.mjs::a changed pi version changes it`, `apps/bench/test/plan.test.mjs::a changed fixture pin changes it`, `apps/bench/test/plan.test.mjs::but the SEED is, because it decides the order`, `apps/bench/test/plan.test.mjs::a machine-local agentDir path does NOT change it`, `apps/bench/test/plan.test.mjs::operational key ${k} is not in the fingerprint`, `apps/bench/test/plan.test.mjs::assertFingerprint REFUSES mixed experiments`, `apps/bench/test/plan.test.mjs::a schedule from another fingerprint is REFUSED` |
 | R-551 | A results file or schedule carrying a different fingerprint than the study fingerprint shall be refused rather than mixed. | untested | split from R-510 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
@@ -1409,12 +1501,12 @@ Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment
 | R-554 | No credential material shall enter the fingerprint. | untested | split from R-514 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-532 | Every run, kept or not, shall write its raw stream, stderr, argv and workspace diff under a per-tuple evidence path. | implemented | `apps/bench/test/integration.test.mjs::executeRun: evidence written under raw/<task>/<profile>/rep<N>`, `apps/bench/test/integration.test.mjs::executeRun: argv recorded as evidence`, `apps/bench/test/orchestration-paths.test.mjs::interrupt/child: …with stderr and argv beside it`, `apps/bench/test/orchestration-paths.test.mjs::fixture run: the workspace diff is written as evidence` |
 | R-533 | The workspace diff shall be taken against what the model started from, the pinned fixture with the task's mutations applied. | implemented | `apps/bench/test/orchestration-paths.test.mjs::fixture run: the pinned fixture verified, materialised and mutated`, `apps/bench/test/orchestration-paths.test.mjs::shipped c7: the workspace diff SHOWS the fix rather than being empty`, `apps/bench/test/orchestration-paths.test.mjs::fixture run: the bench asset was copied in AFTER the child exited`, `apps/bench/test/orchestration-paths.test.mjs::fixture run: …and is on disk for the grader, not counted as the model's edit` |
-| R-572 | Grading assets shall be copied in only after the model exits and never counted as its edits. | untested | split from R-533 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-534 | IF the fixture has drifted from its pin THEN the bench run using that fixture shall be a grader error with no paid child spawned. | implemented | `apps/bench/test/orchestration-paths.test.mjs::fixture run: a drifted fixture is a grader error, never a graded run`, `apps/bench/test/orchestration-paths.test.mjs::fixture run: …and no paid child was spawned for it`, `apps/bench/test/study-tasks.test.mjs::pinnedSha ${k} matches the file on disk`, `apps/bench/test/study-tasks.test.mjs::the sidecar's accounting module is pinned, not just the wrapper`, `apps/bench/test/study-tasks.test.mjs::the trusted evaluator is pinned too` |
 | R-573 | Every content pin a study declares shall name a file that exists and match it on disk, the sidecar's accounting module and the trusted evaluator included. | untested | split from R-534 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 
 ## FEAT-035 · Account for cost and uncertainty
 Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1427,9 +1519,12 @@ Purpose: Measure direct and nested work with consistent usage semantics and repo
 | R-548 | Money shall be null with a reason whenever any part went unmeasured or unpriced. | untested | split from R-506 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-549 | Money shall keep the priced part separately as an explicit lower bound. | untested | split from R-506 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-557 | A study carrying any run with unmeasured nested spend shall report itself as not fully accounted. | untested | split from R-518 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-535 | The summary shall compare shared tasks only within a family with no pooled row across workloads, report cache buckets separately, express a ratio to baseline over spend rather than own tokens, and IF any cell is unpriced THEN report the row's money total as unknown with the observed lower bound beside it and labelled as a lower bound. | implemented | `apps/bench/test/aggregate.test.mjs::code family: t3 is EXCLUDED (only B ran it)`, `apps/bench/test/aggregate.test.mjs::families are separated (no pooled row across workloads)`, `apps/bench/test/aggregate.test.mjs::cache buckets are reported, not averaged away`, `apps/bench/test/aggregate.test.mjs::markdown ratio to baseline uses spend, not own tokens`, `apps/bench/test/aggregate.test.mjs::a profile row with any unpriced cell reports totalCost null`, `apps/bench/test/aggregate.test.mjs::markdown gives the observed lower bound beside it`, `apps/bench/test/aggregate.test.mjs::markdown calls the lower bound a lower bound` |
+| R-550 | IF the installed pi is missing a required root export or the overridden package root is wrong, THEN the bench shall refuse to substitute its own arithmetic. | untested | split from R-508 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 
 ## FEAT-036 · Bound study execution and paid work
 Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1452,6 +1547,7 @@ Purpose: Preflight paid work, apply budgets and stop conditions and preserve exa
 
 ## FEAT-037 · Grade behavior with trustworthy checks
 Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1478,9 +1574,11 @@ Purpose: Separate behavioral grading from the code under evaluation and report f
 | R-570 | A pinned live key shall make drift or an empty key a grader error with a snapshot reused on resume instead of refetched. | untested | split from R-530 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-531 | In a composite checker every child shall run with a grader error anywhere dominating an ordinary failure. | implemented | `apps/bench/test/checkers.test.mjs::all: a grader error AFTER an ordinary failure still dominates`, `apps/bench/test/checkers.test.mjs::all: every child runs, so the detail reports all of them`, `apps/bench/test/integration.test.mjs::executeRun: a post-processing failure is a grader error, not a model failure`, `apps/bench/test/aggregate.test.mjs::r2/C: a grader error is excluded from the denominator`, `apps/bench/test/aggregate.test.mjs::r2/C: …but is counted in states`, `apps/bench/test/aggregate.test.mjs::a cell of nothing but grader errors has a null success rate, not 0%` |
 | R-571 | Every grader error shall be recorded undecided and excluded from every success denominator while still appearing in the state counts. | untested | split from R-531 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-572 | Grading assets shall be copied in only after the model exits and never counted as its edits. | untested | split from R-533 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 
 ## FEAT-038 · Interpret workflow experiments and their limits
 Purpose: Analyze review and writing evidence, require stated controls and avoid changing practice beyond what the evidence supports.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -1492,7 +1590,6 @@ Purpose: Analyze review and writing evidence, require stated controls and avoid 
 | R-696 | WHEN a verified private corpus manifest is given, the extractor shall verify every listed file's SHA-256 and recompute its baseline measurements from those files. | implemented | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::private corpus input verifies hashes and scores the exact preserved text` |
 | R-697 | In after mode, the writing-trial extractor shall include reports and checker calls by their own EDT timestamps after the first canonical rule attachment, regardless of session-start date, and not later than an optional inclusive timestamp cutoff. | implemented | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::after includes only report-sized messages after canonical rule attachment, including pre-window sessions`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs::after reports obey their own date boundary and repeated attachments retain post-first-attachment calls`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs::after cutoff is inclusive at the exact message timestamp`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs::after JSON labels checker invocations and exposes session verdict separately from message audit` |
 | R-698 | The writing-trial extractor shall group structured decision paragraphs into ordered decisions and score the five required parts for each decision. | implemented | `packages/nana-pack/tests/writing-trial-extractor.test.mjs::redacted decision golden corpus groups boundaries and preserves ordered rubric parts` |
-| R-535 | The summary shall compare shared tasks only within a family with no pooled row across workloads, report cache buckets separately, express a ratio to baseline over spend rather than own tokens, and IF any cell is unpriced THEN report the row's money total as unknown with the observed lower bound beside it and labelled as a lower bound. | implemented | `apps/bench/test/aggregate.test.mjs::code family: t3 is EXCLUDED (only B ran it)`, `apps/bench/test/aggregate.test.mjs::families are separated (no pooled row across workloads)`, `apps/bench/test/aggregate.test.mjs::cache buckets are reported, not averaged away`, `apps/bench/test/aggregate.test.mjs::markdown ratio to baseline uses spend, not own tokens`, `apps/bench/test/aggregate.test.mjs::a profile row with any unpriced cell reports totalCost null`, `apps/bench/test/aggregate.test.mjs::markdown gives the observed lower bound beside it`, `apps/bench/test/aggregate.test.mjs::markdown calls the lower bound a lower bound` |
 | R-536 | Extraction from the review corpus shall be deterministic across runs with unique row ids and no silent drop, every top-level item being a row or logged as skipped. | implemented | `apps/bench/test/catch-ledger.test.mjs::extraction is deterministic (two runs byte-identical)`, `apps/bench/test/catch-ledger.test.mjs::row ids unique`, `apps/bench/test/catch-ledger.test.mjs::no silent drop: every top-level item is a row or logged`, `apps/bench/test/catch-ledger.test.mjs::seeded sample is order-independent and deterministic`, `apps/bench/test/catch-ledger.test.mjs::κ rejects unequal vectors` |
 | R-574 | Agreement over the review corpus shall be computed as Cohen's kappa over equal-length rater vectors from a seeded order-independent sample. | untested | split from R-536 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-537 | A judge that is unavailable, exits nonzero, returns non-JSON, reports an error or silently answers on another model shall fail closed with nothing labelled. | implemented | `apps/bench/test/catch-ledger.test.mjs::judge missing → throws 'unavailable'`, `apps/bench/test/catch-ledger.test.mjs::judge exit 1 → throws`, `apps/bench/test/catch-ledger.test.mjs::judge non-JSON → throws`, `apps/bench/test/catch-ledger.test.mjs::judge is_error → throws`, `apps/bench/test/catch-ledger.test.mjs::judge silently on another model → throws`, `apps/bench/test/catch-ledger.test.mjs::CLI: judge unavailable → exit non-zero, nothing labelled`, `apps/bench/test/catch-ledger.test.mjs::labels: unverifiable quote forces 'unmatched' and keeps the raw claim` |
@@ -1502,6 +1599,7 @@ Purpose: Analyze review and writing evidence, require stated controls and avoid 
 | R-539 | A seeded-defect control and a clean-patch control shall both be run before any claim from the catch ledger is treated as settled. | planned | neither control has been run; P1 is recorded UNRESOLVED and P3 is recorded as never quotable operationally in the study's own RESULTS headline |
 | R-540 | pi's default tool profile shall stand until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict. | untested | — |
 | R-577 | The web-access extension shall stay uninstalled until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict. | untested | split from R-540 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
+| R-699 | The desk shall write a usage line to its stdout only when a browser loads the desk page or an app page, opens a historical transcript, or sends a prompt to a live session, the line carrying only the time, the event name, the surface and the action. | implemented | `apps/desk/test/usage-line.test.mjs::usage triggers are exactly desk open/view/prompt and app open/prompt`, `apps/desk/test/usage-line.test.mjs::each usage record carries exactly the four permitted keys`, `apps/desk/test/usage-line.test.mjs::usage timestamps parse and fall within the request window`, `apps/desk/test/usage-line.test.mjs::usage records expose no request, prompt, cwd or session markers`, `apps/desk/test/usage-line.test.mjs::usage lines are written to stdout only`, `apps/desk/test/usage-line.test.mjs::SSE attach, entries, data, RPC and rejected requests add no usage line` |
 
 # Open questions and deliberate omissions
 

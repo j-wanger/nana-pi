@@ -14,13 +14,24 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../../..");
-const APPROVED = "6b9202a501a7fe03dfc834ab34cdfc212f6d92ce";
-const gitShow = (path) => execFileSync("git", ["show", `${APPROVED}:${path}`], { cwd: ROOT, encoding: "utf8" });
-const base = gitShow("REQUIREMENTS.md");
-const tree = JSON.parse(gitShow("docs/reviews/req-tree-2026-10-09/tree.json"));
-const fixedSource = gitShow("docs/reviews/req-tree-2026-10-09/fixed-text.md");
+const BASE = "6b9202a501a7fe03dfc834ab34cdfc212f6d92ce";
+const INPUTS = "9e415db252464d47515f83a7b793569163a79a22";
+const gitShow = (sha, path) => execFileSync("git", ["show", `${sha}:${path}`], { cwd: ROOT, encoding: "utf8" });
+const base = gitShow(BASE, "REQUIREMENTS.md");
+const tree = JSON.parse(gitShow(INPUTS, "docs/reviews/req-tree-2026-10-09/tree-b.json"));
+const fixedSource = gitShow(INPUTS, "docs/reviews/req-tree-2026-10-09/fixed-text-b.md");
 const fixed = fixedSource.split("<!-- BEGIN -->\n")[1].split("\n<!-- END -->")[0];
 const lines = base.replace(/\n$/, "").split("\n");
+const evidenceTitle = {
+  "R-287": "R-287: every real requirement row is in a feature or subgroup table",
+  "R-288": "R-288: all real headings have non-empty purposes",
+  "R-289": "R-289: real capability, feature and subgroup IDs are unique",
+  "R-290": "R-290: real feature and subgroup headings have direct-level parents",
+  "R-291": "R-291: committed outline fields and row IDs match the real ledger",
+  "R-292": "R-292: shared requirement clauses reject invalid IDs",
+  "R-293": "R-293: feature lifecycle statuses are required and validated",
+  "R-294": "R-294: proposed and retired features have no rows",
+};
 const rowRe = /^\|\s*([RG]-\d{3})\s*\|/;
 const rows = new Map();
 const sourceSection = new Map();
@@ -55,14 +66,20 @@ function paragraphs(heading) {
 }
 const introEnd = lines.indexOf("# Part A. The pi extension pack and the repo test runner");
 if (introEnd < 0) throw new Error("missing Part A boundary");
-const intro = lines.slice(0, introEnd).join("\n").replace(tree.intro_edit.from, tree.intro_edit.to).replace(/\n+$/, "");
+let intro = lines.slice(0, introEnd).join("\n");
+for (const edit of tree.intro_edits) {
+  if (intro.split(edit.from).length !== 2) throw new Error(`intro edit source is not unique: ${edit.from}`);
+  intro = intro.replace(edit.from, edit.to);
+}
+intro = intro.replace(/\n+$/, "");
 const blocks = [intro, fixed];
 const placements = new Map();
 const newRows = tree.new_rows;
 function emitHeading(node, level) {
   const header = [`${"#".repeat(level)} ${node.id} · ${node.label}`, `Purpose: ${node.purpose}`];
   if (node.outcome) header.push(`Outcome: ${node.outcome}`);
-  if (node.see_also) header.push(node.see_also);
+  if (node.status) header.push(`Status: ${node.status}`);
+  if (node.also_applies?.length) header.push(`Also applies: ${node.also_applies.join(", ")}`);
   for (const old of node.notes_from ?? []) {
     const note = paragraphs(old);
     const sectionNumber = old.match(/^#{1,2} (?:Part )?(\d+[a-z]?)/i)?.[1];
@@ -78,7 +95,7 @@ function emitHeading(node, level) {
   for (const id of node.ids ?? []) {
     if (placements.has(id)) throw new Error(`${id} placed more than once`);
     placements.set(id, node.id);
-    if (newRows[id]) table.push(`| ${id} | ${newRows[id]} | untested | — |`);
+    if (newRows[id]) table.push(`| ${id} | ${newRows[id]} | implemented | \`packages/nana-pack/tests/requirements-tree.test.mjs::${evidenceTitle[id]}\` |`);
     else {
       const line = rows.get(id);
       if (!line) throw new Error(`${id} absent from approved base`);
@@ -123,4 +140,4 @@ const oldTen = tree.to_section_map[0];
 const note = paragraphs(oldTen).join("\n\n");
 mapLines.push("", `Note from ${oldTen}`, "", note, "");
 writeFileSync(resolve(ROOT, "docs/requirements-sections-2026-10-09.md"), mapLines.join("\n"));
-console.log(`move: ${rows.size} base rows placed once; ${Object.keys(newRows).length} new rows; approved ${APPROVED}`);
+console.log(`move: ${rows.size} base rows placed once; ${Object.keys(newRows).length} new rows; BASE ${BASE}; INPUTS ${INPUTS}`);

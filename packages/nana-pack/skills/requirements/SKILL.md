@@ -123,7 +123,7 @@ source, and every script the project ships is named somewhere in the README. It 
 suite and on every README edit. **When the README names a command that no longer exists, fix
 the README or fix the command — never the check.**
 
-In this ledger, add each new row to the table of the feature it serves. A new capability, feature or subgroup takes an unused ID and a non-empty `Purpose:` line; the general-engineering (G) rows stay together in one feature. Keep the `## Open questions` heading for unresolved owner decisions.
+In this ledger, add each new row to the table of the feature it serves and name its shares in the requirement diff. Features carry lifecycle `Status:` lines and cross-feature `Also applies:` links. Before changing a row, find it in the outline's shared-requirements index. Jake decides tree changes; declare them. A new capability, feature or subgroup takes an unused ID and a non-empty `Purpose:` line; the general-engineering (G) rows stay together in one feature. Keep the `## Open questions` heading for unresolved owner decisions.
 
 ## 5. Audit mode — an existing project with no rows yet
 

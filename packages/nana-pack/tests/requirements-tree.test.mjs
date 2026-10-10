@@ -34,12 +34,12 @@ check("R-291: committed outline equals a fresh render", map === actual.outline, 
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,009", (() => {
+check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,012", (() => {
   const outlineLines = map.split("\n");
   let leafTotal = 0;
   for (const heading of actual.parsed.headings) {
     const titleIndex = outlineLines.findIndex((value) => value.includes(`**${heading.id} · `));
-    const line = outlineLines[titleIndex + 2];
+    const line = outlineLines[titleIndex + (heading.id.startsWith("FEAT-") ? 4 : 2)];
     const ids = expandRowIds(line?.match(/IDs: (.+)$/)?.[1] ?? "");
     const children = actual.parsed.headings.some((candidate) => candidate.parent === heading);
     const source = children
@@ -48,8 +48,8 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1009;
-})(), "committed IDs differ or leaf total is not 1,009");
+  return leafTotal === 1012;
+})(), "committed IDs differ or leaf total is not 1,012");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
@@ -63,11 +63,22 @@ check("R-291: parent row counts aggregate descendants", actual.parsed.headings.f
   const descendantRows = actual.parsed.headings.filter((child) => child === h || isDescendant(child, h)).flatMap((child) => child.rows);
   const lines = map.split("\n");
   const index = lines.findIndex((value) => value.includes(`**${h.id} · `));
-  const line = lines[index + 2];
+  const line = lines[index + (h.id.startsWith("FEAT-") ? 4 : 2)];
   return Number(line?.match(/Rows: (\d+)/)?.[1]) === descendantRows.length && expandRowIds(line?.match(/IDs: (.+)$/)?.[1] ?? "").length === descendantRows.length;
 }), "parent count differs from its descendants");
 
-const fixture = (body) => `# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\n\n${body}\n`;
+// req: R-291
+check("R-291: feature outline carries status and shared IDs", checkOutlineFields(map, actual.parsed).length === 0 && map.includes("Status: active") && map.includes("Also applies: R-") && map.includes("| ID | Home | Also applies to | Count |"), checkOutlineFields(map, actual.parsed).join("; "));
+const sharedRow = actual.outline.split("\n").find((line) => /^\| [RG]-\d{3} \|/.test(line));
+// req: R-291
+check("R-291 fixture: outline field check rejects a missing shared-index row", Boolean(sharedRow) && checkOutlineFields(actual.outline.replace(`${sharedRow}\n`, ""), actual.parsed).some((p) => p.includes("index")), "shared index row was not detected");
+// req: R-292
+check("R-292: real shared IDs exist once, are live, and belong to another feature", actual.problems.every((p) => !p.includes("Also applies")), actual.problems.join("; "));
+// req: R-293
+check("R-293: every real feature has a valid status", actual.parsed.headings.filter((h) => h.id?.startsWith("FEAT-")).every((h) => ["active", "frozen", "retired", "proposed"].includes(h.status?.split(" ")[0])), actual.problems.join("; "));
+// req: R-294
+check("R-294: proposed and retired real features hold no rows", actual.problems.every((p) => !p.includes("holds rows")), actual.problems.join("; "));
+const fixture = (body) => `# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n\n${body}\n`;
 const cases = [
   ["row outside feature", "# CAP-01 · A\nPurpose: cap\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | A shall work. | untested | — |", (r) => r.problems.some((p) => p.includes("R-999"))],
   ["row under ordinary heading", "### Ordinary heading\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-999 | A shall work. | untested | — |", (r) => r.problems.some((p) => p.includes("R-999"))],
@@ -110,6 +121,33 @@ for (const [name, body, predicate] of cases) {
     check(`R-290 fixture: ${name} fails`, predicate(result), result.problems.join("; "));
   }
 }
+const governance = (status = "active", also = "R-001") => `# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · Home\nPurpose: home\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n## FEAT-002 · Shared\nPurpose: shared\nStatus: ${status}\nAlso applies: ${also}\n`;
+for (const [label, text] of [
+  ["unknown ID", governance("active", "R-999")],
+  ["duplicate ID", governance("active", "R-001, R-001")],
+  ["retired ID", governance("active", "R-001") .replace("| R-001 | A shall work. | untested | — |", "| R-001 | A shall work. | retired | — |")],
+  ["same-home ID", governance("active", "R-001").replace("FEAT-002 · Shared", "FEAT-001 · Shared")],
+]) {
+  const result = checkTree(text);
+  check(`R-292 fixture: rejects ${label}`, result.problems.some((p) => p.includes("Also applies")), result.problems.join("; "));
+}
+// req: R-292
+check("R-292: shared requirement clauses reject invalid IDs", ["R-999", "R-001, R-001"].every((also) => checkTree(governance("active", also)).problems.some((p) => p.includes("Also applies"))) && checkTree(governance("active", "R-001").replace("| R-001 | A shall work. | untested | — |", "| R-001 | A shall work. | retired | — |")).problems.some((p) => p.includes("retired")) && checkTree(governance("active", "R-001").replace("FEAT-002 · Shared", "FEAT-001 · Shared")).problems.some((p) => p.includes("homed")), "a share mutation was accepted");
+for (const [label, status] of [["missing", null], ["unknown", "done"], ["empty frozen", "frozen ()"], ["empty retired", "retired ()"], ["blank reason", "frozen (   )"]]) {
+  let text = governance(status ?? "active");
+  if (status === null) text = text.replace("Status: active\nAlso applies:", "Also applies:");
+  const result = checkTree(text);
+  check(`R-293 fixture: rejects ${label} status`, result.problems.some((p) => p.includes("Status")), result.problems.join("; "));
+}
+// req: R-293
+check("R-293: feature lifecycle statuses are required and validated", ["active", "done", "frozen ()", "retired ()", "frozen (   )"].slice(1).every((status) => checkTree(governance(status, "")).problems.some((p) => p.includes("Status"))) && ["proposed", "active", "frozen (reason)", "retired (FEAT-002)"].every((status) => !checkTree(governance(status, "")).problems.some((p) => p.includes("invalid Status"))), "invalid or legal lifecycle status mishandled");
+check("R-293 fixture: accepts four lifecycle forms", ["proposed", "active", "frozen (reason)", "retired (FEAT-002)"].every((status) => !checkTree(governance(status, "")).problems.some((p) => p.includes("invalid Status"))), "legal status rejected");
+for (const status of ["proposed", "retired (FEAT-002)"]) {
+  const result = checkTree(governance(status, "").replace("Status: " + status + "\nAlso applies: \n", "Status: " + status + "\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | B shall work. | untested | — |\nAlso applies: \n"));
+  check(`R-294 fixture: ${status} feature cannot hold rows`, result.problems.some((p) => p.includes("holds rows")), result.problems.join("; "));
+}
+// req: R-294
+check("R-294: proposed and retired features have no rows", ["proposed", "retired (FEAT-002)"].every((status) => checkTree(governance(status, "").replace(`Status: ${status}\nAlso applies: \n`, `Status: ${status}\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | B shall work. | untested | — |\nAlso applies: \n`)).problems.some((p) => p.includes("holds rows"))), "a proposed or retired feature held a row");
 // req: R-291
 check("R-291: row ID compression retains and separates prefixes", compressRowIds(["G-001", "G-002", "G-003", "R-001", "R-002", "R-003"]) === "G-001–G-003, R-001–R-003", compressRowIds(["G-001", "G-002", "G-003", "R-001", "R-002", "R-003"]));
 for (const ids of [
@@ -123,6 +161,8 @@ for (const ids of [
 const sample = fixture("| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n| G-001 | B shall work. | untested | — |");
 const parsedSample = parseLedger(sample);
 const original = renderOutline(parsedSample);
+// req: R-291
+check("R-291 fixture: outline field check rejects missing status and shared index data", checkOutlineFields(original.replace("  Status: active\n", ""), parsedSample).some((p) => p.includes("status")) && checkOutlineFields(original.replace("| ID | Home | Also applies to | Count |", "| ID | Home | Count |"), parsedSample).some((p) => p.includes("index")), checkOutlineFields(original, parsedSample).join("; "));
 for (const [field, mutate] of [
   ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
   ["label", (s) => s.replace("FEAT-001 · B", "FEAT-001 · Changed")],

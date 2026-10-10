@@ -642,11 +642,11 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `scripts/requirements-tree.mjs`
 
-- **purpose** — Validate the capability and feature structure of REQUIREMENTS.md and render its compact, status-free outline.
+- **purpose** — Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
 - **inputs** — REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md.
 - **outputs** — Parsed headings and tables, structural problem lists, and rendered outline Markdown.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
-- **errors** — Named structural problems for misplaced rows, missing purpose lines, duplicate IDs, invalid nesting or stale output.
+- **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid lifecycle or sharing, nesting, or stale output.
 - **callers** — `packages/nana-pack/tests/requirements-tree.test.mjs`
 - **callees** — —
 

@@ -1,1 +1,1 @@
-prove: 1004 base rows preserved once; 5 new rows; 125 ledger blocks and 1554 physical lines accounted; 64 old headings mapped
+prove: 1004 BASE rows preserved once; 8 new rows; 125 ledger blocks and 1652 physical lines accounted; 64 old headings mapped
