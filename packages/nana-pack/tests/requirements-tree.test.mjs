@@ -15,7 +15,7 @@ import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowI
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
 const root = new URL("../../../", import.meta.url);
-const ledger = readFileSync(new URL("REQUIREMENTS.md", root), "utf8");
+const ledger = readFileSync(process.env.REQ_TREE_LEDGER_PATH ?? new URL("REQUIREMENTS.md", root), "utf8");
 const map = readFileSync(new URL("docs/requirements-tree.md", root), "utf8");
 const actual = checkTree(ledger);
 const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |`)) ?? "";
@@ -23,6 +23,8 @@ const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |
 check("R-287: every real requirement row is in a feature or subgroup table", actual.problems.every((p) => !p.includes("not in a feature or subgroup table")) && row("R-287").startsWith("| R-287 | Every requirement row in REQUIREMENTS.md shall sit in a table"), actual.problems.join("; "));
 // req: R-288
 check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 67 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
+// req: R-288
+check("R-288: real ledger has no structural problems", actual.problems.length === 0, actual.problems.join("; "));
 // req: R-289
 check("R-289: real capability, feature and subgroup IDs are unique", actual.problems.every((p) => !p.includes("duplicate heading ID")), actual.problems.join("\n"));
 // req: R-290

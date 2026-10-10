@@ -14,11 +14,11 @@ import { resolve } from "node:path";
 function fail(message) { console.error(message); process.exitCode = 1; }
 function git(sha, path) { return execFileSync("git", ["show", `${sha}:${path}`], { encoding: "utf8" }); }
 const args = process.argv.slice(2);
-if (args.length !== 4 || args[0] !== "--approved") {
-  console.error("Usage: prove.mjs --approved <sha> <after-ledger> <section-map>");
+if (args.length !== 6 || args[0] !== "--approved" || args[2] !== "--amendment") {
+  console.error("Usage: prove.mjs --approved <sha> --amendment <sha> <after-ledger> <section-map>");
   process.exit(2);
 }
-const [, sha, afterPath, mapPath] = args;
+const [, sha, , amendmentSha, afterPath, mapPath] = args;
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const base = git(sha, "REQUIREMENTS.md");
 const tree = JSON.parse(git(sha, "docs/reviews/req-tree-2026-10-09/tree.json"));
@@ -38,7 +38,15 @@ const placement = new Map();
 const clean = (s) => s.replace(/\n+$/, "");
 const partA = source.indexOf("# Part A. The pi extension pack and the repo test runner");
 if (partA < 0) throw Error("approved base has no Part A");
-expected.push(clean(source.slice(0, partA).join("\n").replace(tree.intro_edit.from, tree.intro_edit.to)), fixed);
+const replaceOnce = (text, from, to, label) => {
+  const at = text.indexOf(from);
+  if (at < 0 || text.indexOf(from, at + from.length) >= 0) throw Error(`${label} is absent or not unique`);
+  return `${text.slice(0, at)}${to}${text.slice(at + from.length)}`;
+};
+let intro = replaceOnce(clean(source.slice(0, partA).join("\n")), tree.intro_edit.from, tree.intro_edit.to, "frozen intro edit");
+const amendment = JSON.parse(git(amendmentSha, "docs/reviews/req-tree-2026-10-09/amendment-A1.json"));
+intro = replaceOnce(intro, amendment.from, amendment.to, "approved amendment");
+expected.push(intro, fixed);
 function textParagraphs(heading) {
   const start = source.indexOf(heading);
   if (start < 0) throw Error(`approved base missing ${heading}`);
@@ -86,7 +94,6 @@ const have = readFileSync(resolve(root, afterPath), "utf8");
 const a = want.split("\n"); const b = have.split("\n");
 let mismatches = 0;
 for (let i = 0; i < Math.max(a.length, b.length); i++) {
-  if (a[i] === b[i]) continue;
   const newRowId = /^\|\s*(R-28[7-9]|R-29[01])\s*\|/.exec(a[i] ?? "")?.[1];
   if (newRowId && b[i]) {
     const expectedCells = a[i].split("|").map((cell) => cell.trim());
@@ -102,6 +109,7 @@ for (let i = 0; i < Math.max(a.length, b.length); i++) {
       && evidence.length > 0
       && evidence.includes("packages/nana-pack/tests/requirements-tree.test.mjs::")) continue;
   }
+  if (a[i] === b[i]) continue;
   fail(`ledger line ${i + 1}: ${i >= a.length ? "unexpected extra line" : i >= b.length ? "missing line" : `expected ${JSON.stringify(a[i])}, got ${JSON.stringify(b[i])}`}`); mismatches++;
 }
 
