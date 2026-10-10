@@ -13,69 +13,92 @@ import { fileURLToPath } from "node:url";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
-const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?)\s*#*\s*|[ \t]*)$/;
+const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
+const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const ROW = /^\|\s*([RG]-\d{3})\s*\|/;
 const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
+const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+function scanBlocks(lines) {
+  const opaque = Array(lines.length).fill(false);
+  const headingsByLine = new Map();
+  let fence = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (fence) {
+      opaque[i] = true;
+      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
+      continue;
+    }
+    const opener = FENCE.exec(line);
+    if (opener) { opaque[i] = true; fence = { char: opener[1][0], length: opener[1].length }; continue; }
+    const atx = ATX.exec(line);
+    if (atx) {
+      const structural = HEADING.exec(line);
+      headingsByLine.set(i, structural
+        ? { level: atx[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", parent: null, rows: [], markdownHeading: true }
+        : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", parent: null, rows: [], markdownHeading: true });
+      continue;
+    }
+    if (SETEXT.test(line) && i > 0 && lines[i - 1].trim() && !ATX.test(lines[i - 1]) && !SETEXT.test(lines[i - 1]) && lines[i - 1] !== TABLE_HEADER && !ROW.test(lines[i - 1])) {
+      const prior = headingsByLine.get(i - 1);
+      if (!prior) headingsByLine.set(i - 1, { level: line.trimStart()[0] === "=" ? 1 : 2, id: null, label: lines[i - 1].trim(), line: i, purpose: "", parent: null, rows: [], markdownHeading: true });
+    }
+  }
+  return { opaque, headingsByLine };
+}
 
 export function parseLedger(text) {
   const lines = text.split("\n");
-  const headings = [];
+  const { opaque, headingsByLine } = scanBlocks(lines);
+  const headings = [...headingsByLine.values()].filter((h) => h.id);
+  const allHeadings = [...headingsByLine.values()];
   const tables = [];
-  const allHeadings = [];
-  let current = null;
-  let table = null;
+  const rowsInTables = new Set();
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const markdown = ATX.exec(line);
-    if (markdown) {
-      current = null;
-      table = null;
-      const structural = HEADING.exec(line);
-      const h = structural
-        ? { level: structural[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", parent: null, rows: [], markdownHeading: true }
-        : { level: markdown[1].length, id: null, label: markdown[2] ?? "", line: i + 1, purpose: "", parent: null, rows: [], markdownHeading: true };
-      allHeadings.push(h);
-      if (structural) { headings.push(h); current = h; }
-      continue;
+    if (opaque[i] || lines[i] !== TABLE_HEADER || opaque[i + 1] || !TABLE_DELIMITER.test(lines[i + 1] ?? "")) continue;
+    const heading = [...headingsByLine].filter(([lineNo]) => lineNo < i).at(-1)?.[1] ?? null;
+    const table = { heading: heading?.id ? heading : null, line: i + 1, rows: [], rowLines: [] };
+    for (let j = i + 2; j < lines.length && !opaque[j]; j++) {
+      const row = ROW.exec(lines[j]);
+      if (!row) break;
+      table.rows.push(row[1]); table.rowLines.push(j + 1); rowsInTables.add(j + 1);
+      if (heading?.id) heading.rows.push(row[1]);
     }
-    if (current && /^Purpose:/.test(line)) current.purpose = line.slice("Purpose:".length).trim();
-    if (line === TABLE_HEADER) {
-      table = { heading: current, line: i + 1, rows: [] };
-      tables.push(table);
-      continue;
+    tables.push(table);
+  }
+  for (let i = 0; i < lines.length; i++) {
+    const heading = headingsByLine.get(i);
+    if (heading?.id && !opaque[i]) {
+      for (let j = i + 1; j < lines.length && !headingsByLine.has(j); j++) {
+        if (!opaque[j] && /^Purpose:/.test(lines[j])) { heading.purpose = lines[j].slice("Purpose:".length).trim(); break; }
+      }
     }
-    const row = ROW.exec(line);
-    if (row && table) { table.rows.push(row[1]); if (table.heading) table.heading.rows.push(row[1]); }
   }
   const stack = [];
-  for (const h of allHeadings) {
+  for (const h of allHeadings.sort((a, b) => a.line - b.line)) {
     while (stack.length && stack.at(-1).level >= h.level) stack.pop();
     h.parent = stack.at(-1) ?? null;
     stack.push(h);
   }
-  return { lines, headings, tables, allHeadings };
+  return { lines, headings, tables, allHeadings, opaque, headingsByLine, rowsInTables };
 }
 
 export function checkRowsUnderFeatures(parsed) {
   const problems = [];
   let nearest = null;
-  let table = null;
   for (let i = 0; i < parsed.lines.length; i++) {
-    const line = parsed.lines[i];
-    const markdown = ATX.exec(line);
-    if (markdown) {
-      nearest = null;
-      table = null;
-      const heading = HEADING.exec(line);
-      if (heading) nearest = { level: heading[1].length, id: heading[2], line: i + 1 };
-    }
-    if (line === TABLE_HEADER) {
-      table = parsed.tables.find((candidate) => candidate.line === i + 1) ?? null;
-      continue;
-    }
-    const row = ROW.exec(line);
-    if (row && (!nearest || !/^FEAT-|^SUB-/.test(nearest.id) || !table || table.heading?.id !== nearest.id || !table.rows.includes(row[1])))
+    if (parsed.opaque[i]) continue;
+    const heading = parsed.headingsByLine.get(i);
+    if (heading) nearest = heading.id ? { id: heading.id } : null;
+    const row = ROW.exec(parsed.lines[i]);
+    if (row && (!parsed.rowsInTables.has(i + 1) || !nearest || !/^(FEAT|SUB)-/.test(nearest.id)))
       problems.push(`line ${i + 1}: ${row[1]} is not in a feature or subgroup table`);
+  }
+  for (let i = 0; i < parsed.lines.length; i++) {
+    if (parsed.opaque[i] && ROW.test(parsed.lines[i])) problems.push(`line ${i + 1}: ${ROW.exec(parsed.lines[i])[1]} is not in a feature or subgroup table`);
   }
   return problems;
 }
@@ -84,9 +107,8 @@ export function checkPurposes(parsed) {
   for (const h of parsed.headings) {
     let found = false;
     for (let i = h.line; i < parsed.lines.length; i++) {
-      const line = parsed.lines[i];
-      if (ATX.test(line) || line === TABLE_HEADER) break;
-      if (/^Purpose:\s*\S/.test(line)) { found = true; break; }
+      if (parsed.headingsByLine.has(i) || parsed.tables.some((table) => table.line === i + 1)) break;
+      if (!parsed.opaque[i] && /^Purpose:\s*\S/.test(parsed.lines[i])) { found = true; break; }
     }
     if (!found) problems.push(`line ${h.line}: ${h.id} has no non-empty Purpose: line before its table or next heading`);
   }
@@ -130,6 +152,7 @@ export function compressRowIds(ids) {
       const start = `${prefix}-${String(nums[i]).padStart(3, "0")}`;
       const end = `${prefix}-${String(nums[j]).padStart(3, "0")}`;
       compressed.push(j - i >= 2 ? `${start}–${end}` : start);
+      if (j - i === 1) compressed.push(end);
       i = j + 1;
     }
   }
@@ -144,12 +167,12 @@ function descendants(parsed, heading) {
 }
 function outlineFields(parsed, h) {
   const children = parsed.headings.some((candidate) => candidate.parent === h);
-  const rows = descendants(parsed, h).flatMap((candidate) => candidate.rows);
+  const rows = children ? descendants(parsed, h).flatMap((candidate) => candidate.rows) : h.rows;
   return {
     prefix: "  ".repeat(h.level - 1),
     parent: h.parent?.id ?? "—",
     rows: rows.length,
-    ids: children ? "listed below" : compressRowIds(h.rows),
+    ids: compressRowIds(rows),
   };
 }
 export function renderOutline(parsed) {
@@ -162,20 +185,44 @@ export function renderOutline(parsed) {
   }
   return `${out.join("\n")}\n`;
 }
+export function expandRowIds(text) {
+  if (text === "—" || text === "") return [];
+  const ids = [];
+  for (const item of text.split(/,\s*/)) {
+    const range = /^([A-Za-z]+)-(\d{3})–([A-Za-z]+)-(\d{3})$/.exec(item);
+    if (range) {
+      if (range[1] !== range[3] || Number(range[4]) < Number(range[2])) throw new Error(`invalid row ID range: ${item}`);
+      for (let number = Number(range[2]); number <= Number(range[4]); number++) ids.push(`${range[1]}-${String(number).padStart(3, "0")}`);
+      continue;
+    }
+    if (!/^[A-Za-z]+-\d{3}$/.test(item)) throw new Error(`invalid row ID: ${item}`);
+    ids.push(item);
+  }
+  return ids;
+}
 export function checkOutlineFields(outline, parsed) {
   const problems = [];
   const lines = outline.split("\n");
+  const sorted = (ids) => [...ids].sort();
   for (const h of parsed.headings) {
-    const { prefix, parent, rows, ids } = outlineFields(parsed, h);
-    const expected = [
-      ["ID", `${prefix}- **${h.id} · ${h.label}**`],
-      ["label", `${prefix}- **${h.id} · ${h.label}**`],
-      ["purpose", `${prefix}  Purpose: ${h.purpose}`],
-      ["parent", `${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`],
-      ["row count", `${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`],
-      ["row IDs", `${prefix}  Parent: ${parent} · Rows: ${rows} · IDs: ${ids}`],
-    ];
-    for (const [field, line] of expected) if (!lines.includes(line)) problems.push(`${h.id}: outline field ${field} is missing or altered`);
+    const titleIndex = lines.findIndex((line) => line.includes(`**${h.id} · `));
+    if (titleIndex < 0) { problems.push(`${h.id}: outline field ID is missing`); continue; }
+    const title = /^\s*- \*\*([A-Z]+-\d+) · (.*?)\*\*$/.exec(lines[titleIndex]);
+    const purpose = /^\s+Purpose: (.*)$/.exec(lines[titleIndex + 1] ?? "");
+    const details = /^\s+Parent: (.*?) · Rows: (\d+) · IDs: (.*)$/.exec(lines[titleIndex + 2] ?? "");
+    if (!title || title[1] !== h.id) problems.push(`${h.id}: outline field ID is missing or altered`);
+    if (!title || title[2] !== h.label) problems.push(`${h.id}: outline field label is missing or altered`);
+    if (!purpose || purpose[1] !== h.purpose) problems.push(`${h.id}: outline field purpose is missing or altered`);
+    if (!details) { problems.push(`${h.id}: outline metadata is missing or altered`); continue; }
+    const parent = h.parent?.id ?? "—";
+    if (details[1] !== parent) problems.push(`${h.id}: outline field parent is missing or altered`);
+    const children = parsed.headings.some((candidate) => candidate.parent === h);
+    const rows = children ? descendants(parsed, h).flatMap((candidate) => candidate.rows) : h.rows;
+    if (Number(details[2]) !== (children ? rows.length : rows.length)) problems.push(`${h.id}: outline field row count is missing or altered`);
+    let expanded;
+    try { expanded = expandRowIds(details[3]); } catch { expanded = []; }
+    if (sorted(expanded).join(",") !== sorted(rows).join(",")) problems.push(`${h.id}: outline field row IDs are missing or altered`);
+    if (expanded.length !== Number(details[2])) problems.push(`${h.id}: outline row count differs from expanded IDs`);
   }
   return problems;
 }
