@@ -43,20 +43,29 @@ export const STATUSES = new Set([
 ]);
 
 export const ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/;
+export const WHITESPACE =
+	"\t\n\v\f\r\u001c\u001d\u001e\u001f \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
+const WS_CLASS = [...WHITESPACE]
+	.map((char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`)
+	.join("");
+const WS = `[${WS_CLASS}]`;
+const trimWhitespace = (value: string): string =>
+	value.replace(new RegExp(`^${WS}+|${WS}+$`, "gu"), "");
+const stripWhitespaceEnd = (value: string): string =>
+	value.replace(new RegExp(`${WS}+$`, "gu"), "");
+const withoutLeadingBom = (text: string): string =>
+	text.startsWith("\ufeff") ? text.slice(1) : text;
 const ID_SOURCE = `[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
-const ROW = new RegExp(`^\\|\\s*(${ID_SOURCE})\\s*\\|(.*)\\|\\s*$`, "s");
-const ROW_CANDIDATE = /^\|\s*[RG]-\S/;
+const ROW = new RegExp(`^\\|${WS}*(${ID_SOURCE})${WS}*\\|(.*)\\|${WS}*$`, "s");
+const ROW_CANDIDATE = new RegExp(`^\\|${WS}*[RG]-[^${WS_CLASS}]`);
 
 function assertNoNearMissRows(text: string, file: string): void {
 	for (const [index, rawLine] of text.split("\n").entries()) {
-		const line = rawLine.replace(/[ \t\r]+$/, "");
+		const line = stripWhitespaceEnd(rawLine);
 		if (!ROW_CANDIDATE.test(line)) continue;
 		let cells: string[] = [];
 		if (line.startsWith("|") && line.endsWith("|")) {
-			cells = line
-				.slice(1, -1)
-				.split("|")
-				.map((cell) => cell.trim());
+			cells = line.slice(1, -1).split("|").map(trimWhitespace);
 		}
 		if (cells.length === 4 && ID.test(cells[0] ?? "")) continue;
 		throw new Error(
@@ -65,7 +74,7 @@ function assertNoNearMissRows(text: string, file: string): void {
 	}
 }
 const EXTERNAL = /^[a-z][a-z0-9-]*:/;
-const MARKER = /^\s*\/\/\s*req:\s*(.+?)\s*$/;
+const MARKER = new RegExp(`^${WS}*\\/\\/${WS}*req:${WS}*(.+?)${WS}*$`, "s");
 /** The statuses that a traced row contradicts. */
 const STALE = new Set(["untested", "planned", "violated"]);
 
@@ -191,7 +200,8 @@ function isLocal(cite: string): boolean {
 	const at = cite.indexOf("::");
 	if (at === -1) return false;
 	const head = cite.slice(0, at);
-	if (EXTERNAL.test(head) || cite.slice(at + 2).trim() === "") return false;
+	if (EXTERNAL.test(head) || trimWhitespace(cite.slice(at + 2)) === "")
+		return false;
 	return head.includes("/") && TEST_EXTENSIONS.some((e) => head.endsWith(e));
 }
 
@@ -203,11 +213,11 @@ export interface Marked {
 /** Parse REQUIREMENTS.md into rows by id. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
-	for (const rawLine of text.split("\n")) {
-		const m = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
+	for (const rawLine of withoutLeadingBom(text).split("\n")) {
+		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
-		const cells = (m[2] as string).split("|").map((c) => c.trim());
+		const cells = (m[2] as string).split("|").map(trimWhitespace);
 		if (cells.length !== 3) {
 			throw new Error(
 				`${id} has ${cells.length + 1} cells, expected 4 (a '|' inside a cell?)`,
@@ -225,7 +235,7 @@ export function loadRequirements(text: string): Map<string, Row> {
 				? [...evidence.matchAll(/`([^`]+)`/g)].map((c) => c[1] as string)
 				: evidence.split(",")
 		)
-			.map((c) => c.trim())
+			.map(trimWhitespace)
 			.filter((c) => c !== "" && c !== "—");
 		rows.set(id, {
 			status,
@@ -244,11 +254,11 @@ export function loadRequirements(text: string): Map<string, Row> {
  */
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
-	for (const rawLine of text.split("\n")) {
-		const m = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
+	for (const rawLine of withoutLeadingBom(text).split("\n")) {
+		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
-		const cells = (m[2] as string).split("|").map((c) => c.trim());
+		const cells = (m[2] as string).split("|").map(trimWhitespace);
 		if (cells.length !== 3) continue; // loadRequirements already throws on this shape
 		const requirement = cells[0] as string;
 		counts.set(id, (maskCodeSpans(requirement).match(SHALL) ?? []).length);
@@ -283,7 +293,9 @@ function idsAt(
 	while (i < lines.length) {
 		const m = MARKER.exec(lines[i] as string);
 		if (!m) break;
-		for (const id of (m[1] as string).split(/[\s,]+/).filter(Boolean)) {
+		for (const id of (m[1] as string)
+			.split(new RegExp(`[${WS_CLASS},]+`, "u"))
+			.filter(Boolean)) {
 			if (!ID.test(id)) {
 				throw new Error(
 					`${name}:${i + 1}: bad requirement id '${id}' (expected R-NNN or R-NNNN, four digits never starting with 0)`,
@@ -307,7 +319,7 @@ export function scanSource(
 	callNames: string[] = CALL_NAMES,
 ): Marked[] {
 	const call0 = callNames === CALL_NAMES ? CALL : callRegex(callNames);
-	const lines = source.split("\n").map((line) => line.replace(/[ \t\r]+$/, ""));
+	const lines = withoutLeadingBom(source).split("\n").map(stripWhitespaceEnd);
 	const found: Marked[] = [];
 	let i = 0;
 	while (i < lines.length) {
@@ -487,10 +499,14 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	const testRoots = options.testRoots ?? TEST_ROOTS;
 	const callNames = options.callNames ?? CALL_NAMES;
 	const earsAllowance = options.earsAllowance ?? EARS_ALLOWANCE_DEFAULT;
-	const projectText = readFileSync(join(root, "REQUIREMENTS.md"), "utf8");
+	const projectText = withoutLeadingBom(
+		readFileSync(join(root, "REQUIREMENTS.md"), "utf8"),
+	);
 	const generalPath = join(root, GENERAL_REQUIREMENTS_FILE);
 	const hasGeneral = existsSync(generalPath);
-	const generalText = hasGeneral ? readFileSync(generalPath, "utf8") : "";
+	const generalText = hasGeneral
+		? withoutLeadingBom(readFileSync(generalPath, "utf8"))
+		: "";
 	assertNoNearMissRows(projectText, "REQUIREMENTS.md");
 	if (hasGeneral) assertNoNearMissRows(generalText, GENERAL_REQUIREMENTS_FILE);
 	let text = projectText;
@@ -498,12 +514,10 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	if (hasGeneral) {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
-			for (const rawLine of source.split("\n")) {
-				const match = ROW.exec(rawLine.replace(/[ \t\r]+$/, ""));
+			for (const rawLine of withoutLeadingBom(source).split("\n")) {
+				const match = ROW.exec(stripWhitespaceEnd(rawLine));
 				if (!match) continue;
-				const cells = (match[2] as string)
-					.split("|")
-					.map((cell) => cell.trim());
+				const cells = (match[2] as string).split("|").map(trimWhitespace);
 				if (cells.length !== 3)
 					throw new Error(`${match[1]} has malformed table cells`);
 				if (found.has(match[1] as string))
@@ -538,7 +552,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		);
 		text = `${projectText
 			.split("\n")
-			.map((line) => line.replace(/[ \t\r]+$/, ""))
+			.map(stripWhitespaceEnd)
 			.filter((line) => !ROW.test(line))
 			.join("\n")}\n${mergedLines.join("\n")}\n`;
 		if (differences.length)

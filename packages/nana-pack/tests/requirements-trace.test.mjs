@@ -210,8 +210,7 @@ for (const id of badIds) {
 
 const nearMisses = [
 	["missing closing pipe", "| R-1001 | The trace rail shall reject malformed rows. | untested | —", 5],
-	["no-break space after closing pipe", "| R-001 | The trace rail shall reject this ending. | untested | — | ", 5],
-	["BOM after closing pipe", "| R-001 | The trace rail shall reject this ending. | untested | — |\uFEFF", 5],
+	["zero-width space after closing pipe", "| R-001 | The trace rail shall reject this ending. | untested | — |\u200b", 5],
 	["fenced example", "```\n| R-squared | example |\n```", 6],
 	["R candidate", "| R-squared | 0.9 |", 5],
 	["G candidate", "| G-squared | 0.9 |", 5],
@@ -237,11 +236,37 @@ check("R-1001: U+2028 inside a cell is read and clean", unicode2028.requirements
 const unicode0085 = checkEars(unicodeCellFixtures[1][1], { testRoots: ["tests"] });
 // req: R-1001
 check("R-1001: U+0085 inside a cell is read and clean", unicode0085.requirements.has("R-001") && unicode0085.problems.length === 0, unicode0085.problems.join(" | "));
-const nbspRow = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The trace rail shall reject this ending. | untested | — | \n`);
+const nbspRow = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The trace rail shall reject this ending. | untested | — |\u200b\n`);
 let nbspMessage = "";
 try { checkEars(nbspRow, { testRoots: ["tests"] }); } catch (error) { nbspMessage = String(error.message); }
 // req: R-1001
-check("R-1001: no-break space after closing pipe names REQUIREMENTS.md:4", nbspMessage.includes("REQUIREMENTS.md:4"), nbspMessage || "near-miss was accepted");
+check("R-1001: U+200B after closing pipe names REQUIREMENTS.md:4", nbspMessage.includes("REQUIREMENTS.md:4"), nbspMessage || "near-miss was accepted");
+
+const parityWhitespace = ["\u0085", "\ufeff", "\u00a0"];
+const parityIds = Array.from({ length: 9 }, (_, i) => `R-${String(i + 1).padStart(3, "0")}`);
+const parityRows = idFixture(`# fixture\n${ID_HEAD}\n${parityWhitespace.flatMap((ws, wi) => ["before", "after", "tail"].map((position, pi) => {
+	const id = parityIds[wi * 3 + pi];
+	const prefix = position === "before" ? `|${ws}${id}` : `| ${id}${position === "after" ? ws : ""}`;
+	const status = id === "R-001" ? `${ws}untested${ws}` : " untested ";
+	return `${prefix} | The trace rail shall read whitespace. | ${status} | — |${position === "tail" ? ws : ""}`;
+})).join("\n")}\n`);
+const parityBomRow = idFixture(`\ufeff| R-010 | The rail shall read a BOM. | untested | — |\n`);
+const parityMarkers = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n| R-1000 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n| G-1000 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n` , null, "\ufeff// req: R-1000,R-001\u2028G-1000\ntest('marker parity', () => {});\n");
+const parityRowsResult = checkEars(parityRows, { testRoots: ["tests"] });
+const parityBomResult = checkEars(parityBomRow, { testRoots: ["tests"] });
+writeFileSync(join(parityMarkers, "tests", "test_marker.py"), "\ufeff# req: R-1000,R-001\u2028G-1000\ndef test_marker_parity():\n    pass\n");
+const parityMarkerResult = checkEars(parityMarkers, { testRoots: ["tests"] });
+// req: R-1000 R-1001
+check("R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read", parityRowsResult.problems.length === 0 && parityIds.every((id) => parityRowsResult.requirements.has(id)), parityRowsResult.problems.join(" | "));
+// req: R-1000 R-1001
+check("R-1001: a leading BOM before the first row is ignored", parityBomResult.requirements.has("R-010") && parityBomResult.problems.length === 0, parityBomResult.problems.join(" | "));
+// req: R-1000
+check("R-1000: a BOM and comma or U+2028 separated first-line marker list traces", parityMarkerResult.problems.length === 0 && ["R-1000", "R-001", "G-1000"].every((id) => parityMarkerResult.traced.has(id)), parityMarkerResult.problems.join(" | "));
+const zeroWidthTail = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The rail shall reject zero width. | untested | — |\u200b\n`);
+let zeroWidthError = "";
+try { checkEars(zeroWidthTail, { testRoots: ["tests"] }); } catch (error) { zeroWidthError = String(error.message); }
+// req: R-1001
+check("R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4", zeroWidthError.includes("REQUIREMENTS.md:4"), zeroWidthError || "near-miss was accepted");
 
 const uvxProbe = spawnSync("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { encoding: "utf8" });
 if (uvxProbe.status !== 0) console.log("SKIP Python R-1000/R-1001 fixture rail: uvx with pytest unavailable");
@@ -262,6 +287,19 @@ else {
 	const markerCheck = spawnSync("uvx", ["--with", "pytest", "python", "-c", markerCode, conf], { encoding: "utf8" });
 	// req: R-1000
 	check("R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits", markerCheck.status === 0, markerCheck.stderr || markerCheck.stdout);
+	const pythonParityRows = py(parityRows);
+	// req: R-1000 R-1001
+	check("R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe", pythonParityRows.status === 0 && pythonParityRows.stdout.includes(`OK ${parityIds.join(",")}`), pythonParityRows.stderr || pythonParityRows.stdout);
+	const pythonBomRow = py(parityBomRow);
+	// req: R-1001
+	check("R-1001: Python ignores a leading BOM before the first row", pythonBomRow.status === 0 && pythonBomRow.stdout.includes("OK R-010"), pythonBomRow.stderr || pythonBomRow.stdout);
+	const pythonMarkerCode = "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1]),test_roots=('tests',)); print(sorted(r[1]))";
+	const pythonMarkerParity = spawnSync("uvx", ["--with", "pytest", "python", "-c", pythonMarkerCode, parityMarkers, conf], { encoding: "utf8" });
+	// req: R-1000
+	check("R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators", pythonMarkerParity.status === 0 && pythonMarkerParity.stdout.includes("['G-1000', 'R-001', 'R-1000']"), pythonMarkerParity.stderr || pythonMarkerParity.stdout);
+	const pythonZeroWidth = py(zeroWidthTail);
+	// req: R-1001
+	check("R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4", pythonZeroWidth.status === 0 && pythonZeroWidth.stdout.includes("REQUIREMENTS.md:4"), pythonZeroWidth.stderr || pythonZeroWidth.stdout);
 	const python2028 = py(unicodeCellFixtures[0][1]);
 	// req: R-1001
 	check("R-1001: Python U+2028 inside a cell is read and clean", python2028.status === 0 && python2028.stdout.includes("OK R-001"), python2028.stderr || python2028.stdout);
@@ -270,7 +308,7 @@ else {
 	check("R-1001: Python U+0085 inside a cell is read and clean", python0085.status === 0 && python0085.stdout.includes("OK R-001"), python0085.stderr || python0085.stdout);
 	const pythonNbsp = py(nbspRow);
 	// req: R-1001
-	check("R-1001: Python no-break space after closing pipe names REQUIREMENTS.md:4", pythonNbsp.status === 0 && pythonNbsp.stdout.includes("REQUIREMENTS.md:4"), pythonNbsp.stderr || pythonNbsp.stdout);
+	check("R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4", pythonNbsp.status === 0 && pythonNbsp.stdout.includes("REQUIREMENTS.md:4"), pythonNbsp.stderr || pythonNbsp.stdout);
 	const pythonEndingRows = py(endingRows);
 	// req: R-1000 R-1001
 	check("R-1001: Python CRLF ledger and general rows are read and clean", pythonEndingRows.status === 0 && pythonEndingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonEndingRows.stderr || pythonEndingRows.stdout);

@@ -128,6 +128,20 @@ function fixtureShallCount(requirementText: string): number {
 	return shallCounts(table).get("R-999") ?? -1;
 }
 
+function whitespaceFixtureRow(
+	ws: string,
+	index: number,
+	position: string,
+): string {
+	const id = `R-${String(index + 1).padStart(3, "0")}`;
+	const prefix =
+		position === "before"
+			? `|${ws}${id}`
+			: `| ${id}${position === "after" ? ws : ""}`;
+	const status = id === "R-001" ? `${ws}untested${ws}` : "untested";
+	return `${prefix} | The system shall read it. | ${status} | — |${position === "tail" ? ws : ""}`;
+}
+
 describe("shall count parity (shared with the Python rail)", () => {
 	test("both rails give the same count on every fixture", () => {
 		for (const [text, expected] of PARITY_FIXTURES) {
@@ -147,7 +161,7 @@ describe("loadRequirements", () => {
 		}
 	});
 
-	test("accepts Unicode separators inside a cell and rejects no-break space after a row", () => {
+	test("accepts Unicode separators inside a cell and rejects non-whitespace after a row", () => {
 		for (const separator of ["\u2028", "\u0085", "\r"]) {
 			const rows = loadRequirements(
 				`${REQS}| R-005 | The system shall keep ${separator} in its cell. | untested | — |\n`,
@@ -158,10 +172,49 @@ describe("loadRequirements", () => {
 		scratch.push(dir);
 		writeFileSync(
 			join(dir, "REQUIREMENTS.md"),
-			`${REQS}| R-005 | The system shall reject this. | untested | — |\u00a0\n`,
+			`${REQS}| R-005 | The system shall reject this. | untested | — |\u200b\n`,
 		);
 		expect(() => check(dir)).toThrow(
 			/REQUIREMENTS.md:8: malformed requirement row/,
+		);
+	});
+
+	test("reads the shared whitespace set and one leading BOM in ledgers and markers", () => {
+		const whitespace = ["\u0085", "\ufeff", "\u00a0"];
+		const cases = whitespace.flatMap((ws, wi) =>
+			["before", "after", "tail"].map((position, pi) =>
+				whitespaceFixtureRow(ws, wi * 3 + pi, position),
+			),
+		);
+		const rows = loadRequirements(
+			`\ufeff| R-010 | The system shall read a BOM row. | untested | — |\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n${cases.join("\n")}\n`,
+		);
+		expect(
+			Array.from(
+				{ length: 9 },
+				(_, i) => `R-${String(i + 1).padStart(3, "0")}`,
+			).every((id) => rows.has(id)),
+		).toBe(true);
+		expect(
+			scanSource(
+				"\ufeff// req: R-1000,R-001\u2028G-1000\ntest('shared marker list', () => {});",
+				"tests/a.test.ts",
+			)[0]?.ids,
+		).toEqual(["R-1000", "R-001", "G-1000"]);
+		const dir = mkdtempSync(join(tmpdir(), "req-trace-bom-row-"));
+		scratch.push(dir);
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			"\ufeff| R-010 | The system shall read it. | untested | — |\n",
+		);
+		mkdirSync(join(dir, "tests"));
+		expect(check(dir).requirements.has("R-010")).toBe(true);
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
+			`| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-010 | The system shall reject it. | untested | — |\u200b\n`,
+		);
+		expect(() => check(dir)).toThrow(
+			/REQUIREMENTS.md:3: malformed requirement row/,
 		);
 	});
 

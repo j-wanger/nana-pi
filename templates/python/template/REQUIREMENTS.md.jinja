@@ -45,7 +45,7 @@ and only reports on a partial one.
 **ID blocks and grammar:** `R-001` onward are this project's rows; IDs use `R-` or `G-` followed by three ASCII digits or four ASCII digits that never start with zero (`R-1000` follows `R-999`). `G-001` onward are Part G, the
 general engineering requirements in `REQUIREMENTS-general.md`.
 
-A requirement row has four cells and both opening and closing pipes. Spaces, tabs and a carriage return after the closing pipe are ignored. On every line, `| R-` or `| G-` followed by a non-space character is reserved for a requirement row; indent an example that would use that prefix, for example:
+A requirement row has four cells and both opening and closing pipes. Lines split only at LF (`"\n"`); one byte-order mark at a file's start is ignored. Whitespace (tab, LF, VT, FF, CR, U+001C–U+001F, space, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF) around cells and after the closing pipe is ignored. Any other character after the closing pipe fails, naming the line. On every line, `| R-` or `| G-` followed by a non-whitespace character is reserved for a requirement row; indent an example that would use that prefix, for example:
 
     | R-squared | example | untested | — |
 

@@ -52,21 +52,41 @@ pytest_plugins = ["pytester"]  # for tests/test_requirements_trace.py
 STATUSES = frozenset({"implemented", "untested", "planned", "violated", "retired"})
 
 ID_RE = re.compile(r"^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$")
-ROW_CANDIDATE_RE = re.compile(r"^\|\s*[RG]-\S")
+WHITESPACE = "\t\n\v\f\r\u001c\u001d\u001e\u001f \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_WS_CLASS = "".join(re.escape(char) for char in WHITESPACE)
+_WS_TRIM = re.compile(f"^[{_WS_CLASS}]+|[{_WS_CLASS}]+$")
+_WS_RTRIM = re.compile(f"[{_WS_CLASS}]+$")
+ROW_CANDIDATE_RE = re.compile(f"^\\|[{_WS_CLASS}]*[RG]-[^{_WS_CLASS}]")
+
+
+def _trim_whitespace(value: str) -> str:
+    return _WS_TRIM.sub("", value)
+
+
+def _rstrip_whitespace(value: str) -> str:
+    return _WS_RTRIM.sub("", value)
+
+
+def _without_leading_bom(text: str) -> str:
+    return text[1:] if text.startswith("\ufeff") else text
 
 
 def _read_utf8(path: Path) -> str:
     """Read UTF-8 without universal-newline translation; logical lines split only on LF."""
     with path.open(encoding="utf-8", newline="") as stream:
-        return stream.read()
+        return _without_leading_bom(stream.read())
 
 
 def _check_near_miss_rows(text: str, filename: str) -> None:
-    for number, raw_line in enumerate(text.split("\n"), 1):
-        line = raw_line.rstrip(" \t\r")
+    for number, raw_line in enumerate(_without_leading_bom(text).split("\n"), 1):
+        line = _rstrip_whitespace(raw_line)
         if not ROW_CANDIDATE_RE.match(line):
             continue
-        cells = [cell.strip() for cell in line[1:-1].split("|")] if line.startswith("|") and line.endswith("|") else []
+        cells = (
+            [_trim_whitespace(cell) for cell in line[1:-1].split("|")]
+            if line.startswith("|") and line.endswith("|")
+            else []
+        )
         if len(cells) == 4 and ID_RE.fullmatch(cells[0]):
             continue
         raise pytest.UsageError(
@@ -75,7 +95,7 @@ def _check_near_miss_rows(text: str, filename: str) -> None:
 
 
 EXTERNAL_RE = re.compile(r"^[a-z][a-z0-9-]*:")
-MARKER_RE = re.compile(r"^\s*#\s*req:\s*(.+?)\s*$")
+MARKER_RE = re.compile(f"^[{_WS_CLASS}]*#[{_WS_CLASS}]*req:[{_WS_CLASS}]*(.+?)[{_WS_CLASS}]*$", re.DOTALL)
 DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test[A-Za-z0-9_]*)\s*\(")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 #: A `shall`, case-insensitive, not preceded or followed by an ASCII letter, digit or
@@ -139,13 +159,13 @@ class Row:
 
 def _cites(evidence: str) -> list[str]:
     raw = BACKTICK_RE.findall(evidence) if "`" in evidence else evidence.split(",")
-    return [c.strip() for c in raw if c.strip() and c.strip() != "—"]
+    return [clean for c in raw if (clean := _trim_whitespace(c)) and clean != "—"]
 
 
 def _is_local(cite: str) -> bool:
     """A well-formed citation of a test in THIS repo: ``tests/<file>::<test name>``."""
     head, sep, name = cite.partition("::")
-    return bool(sep) and head.startswith("tests/") and bool(name.strip()) and head != "tests/"
+    return bool(sep) and head.startswith("tests/") and bool(_trim_whitespace(name)) and head != "tests/"
 
 
 def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
@@ -155,11 +175,11 @@ def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
             return {}
         text = _read_utf8(path)
     found: dict[str, Row] = {}
-    for raw_line in text.split("\n"):
-        line = raw_line.rstrip(" \t\r")
+    for raw_line in _without_leading_bom(text).split("\n"):
+        line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
-        cells = [c.strip() for c in line[1:-1].split("|")]
+        cells = [_trim_whitespace(c) for c in line[1:-1].split("|")]
         if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
@@ -237,11 +257,11 @@ def shall_counts(text: str) -> dict[str, int]:
     independent of ``load_requirements()`` so ``Row``'s shape carries no new field and every
     existing comparison against it stays exact."""
     counts: dict[str, int] = {}
-    for raw_line in text.split("\n"):
-        line = raw_line.rstrip(" \t\r")
+    for raw_line in _without_leading_bom(text).split("\n"):
+        line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
-        cells = [c.strip() for c in line[1:-1].split("|")]
+        cells = [_trim_whitespace(c) for c in line[1:-1].split("|")]
         if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
@@ -263,12 +283,14 @@ def _ids_at(lines: list[str], start: int, name: str) -> tuple[list[str], int]:
         m = MARKER_RE.match(lines[i])
         if not m:
             break
-        for rid in m.group(1).split():
-            if not ID_RE.match(rid.rstrip(",")):
+        for rid in re.split(f"[{_WS_CLASS},]+", m.group(1)):
+            if not rid:
+                continue
+            if not ID_RE.match(rid):
                 raise pytest.UsageError(
                     f"{name}:{i + 1}: bad requirement id {rid!r} (expected R-NNN or R-NNNN, four digits never starting with 0)"
                 )
-            ids.append(rid.rstrip(","))
+            ids.append(rid)
         i += 1
     return ids, i
 
@@ -281,7 +303,7 @@ def scan_source(source: str, name: str, call_names: tuple[str, ...] = CALL_NAMES
     driven by a table and a helper looks like.
     """
     call_re = CALL_RE if call_names == CALL_NAMES else _call_re(call_names)
-    lines = [line.rstrip(" \t\r") for line in source.split("\n")]
+    lines = [_rstrip_whitespace(line) for line in _without_leading_bom(source).split("\n")]
     found: list[tuple[list[str], str]] = []
     i = 0
     while i < len(lines):
@@ -372,11 +394,11 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
 def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
     """Return requirement, status and evidence cells for each table row."""
     found: dict[str, tuple[str, str, str]] = {}
-    for raw_line in text.split("\n"):
-        line = raw_line.rstrip(" \t\r")
+    for raw_line in _without_leading_bom(text).split("\n"):
+        line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
-        cells = [cell.strip() for cell in line[1:-1].split("|")]
+        cells = [_trim_whitespace(cell) for cell in line[1:-1].split("|")]
         if not cells or not ID_RE.fullmatch(cells[0]):
             continue
         if len(cells) != 4:
@@ -423,7 +445,9 @@ def check(
             )
         text = (
             "\n".join(
-                line.rstrip(" \t\r") for line in project_text.split("\n") if not line.rstrip(" \t\r").startswith("|")
+                _rstrip_whitespace(line)
+                for line in _without_leading_bom(project_text).split("\n")
+                if not _rstrip_whitespace(line).startswith("|")
             )
             + "\n"
             + "\n".join(f"| {rid} | {cells[0]} | {cells[1]} | {cells[2]} |" for rid, cells in merged.items())
