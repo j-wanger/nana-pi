@@ -108,6 +108,8 @@ for (let i = 0; i < Math.max(a.length, b.length); i++) {
       && actualCells[3] === "implemented"
       && evidence.length > 0
       && evidence.includes("packages/nana-pack/tests/requirements-tree.test.mjs::")) continue;
+    fail(`ledger line ${i + 1}: ${newRowId} is not canonical implemented evidence`); mismatches++;
+    continue;
   }
   if (a[i] === b[i]) continue;
   fail(`ledger line ${i + 1}: ${i >= a.length ? "unexpected extra line" : i >= b.length ? "missing line" : `expected ${JSON.stringify(a[i])}, got ${JSON.stringify(b[i])}`}`); mismatches++;
