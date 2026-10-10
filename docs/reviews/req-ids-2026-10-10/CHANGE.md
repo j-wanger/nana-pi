@@ -37,7 +37,8 @@ Added to FEAT-028, after R-294 — the first four-digit IDs, allocated in order 
 | R-1001 | WHEN a line in REQUIREMENTS.md or REQUIREMENTS-general.md starts at column zero with a pipe, optional spaces and `R-` or `G-` followed by a non-space character, and is not a requirement row, the trace rail shall fail, naming the file and line. |
 
 A **requirement row** is a column-zero line with an opening and a closing pipe, exactly four cells,
-and an ID matching R-1000. The rule is context-free, like the rail's row reading today: a candidate
+and an ID matching R-1000. A line is the text between newline characters; spaces, tabs and a
+carriage return at its end are ignored, so CRLF ledgers read (build r1 and r2 fixes). The rule is context-free, like the rail's row reading today: a candidate
 inside a fenced example or in an unrelated table counts too (the rail already reads a valid row
 there as a real row). Checked locally on 2026-10-10: every candidate line in nana-pi's ledger
 (1,012), the shared Part G file (22), both template ledgers, aml-desk's (365) and basketball-geek's

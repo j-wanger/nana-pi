@@ -99,6 +99,19 @@ const pm = py(pyMarkers); out("PY R-1000 and G-1000 markers trace their rows", p
   const pc = py(pyC); out("PY CRLF test file: four-digit marker traces its row", pc.ok === null ? pc.text : `${pc.ok}${pc.ok ? "" : " " + pc.text.slice(0, 120)}`, "true");
 }
 
+// One line definition in both rails (seat, build r2): a line is the text between "\n" characters,
+// and only spaces, tabs and a carriage return are stripped from its end. A row whose cell holds
+// another Unicode line or paragraph separator, a form feed or a lone carriage return is still one
+// row; any other character after the closing pipe (here a no-break space) makes a near-miss.
+{
+  for (const [label, ch] of [["U+2028 line separator", " "], ["U+2029 paragraph separator", " "], ["U+0085 next line", "\u0085"], ["form feed", "\f"], ["lone carriage return", "\r"]]) {
+    const L = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work${ch} well. | untested | — |\n| R-1000 | The tool shall accept four digits. | untested | — |\n` });
+    both(`${label} inside a cell: the row is read and clean`, L, (r) => `${r.has("R-001")}/${r.has("R-1000")}/${r.ok}${r.ok ? "" : " " + r.text.slice(0, 100)}`, "true/true/true");
+  }
+  const N = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-001 | The tool shall work. | untested | — | \n` });
+  both("no-break space after the closing pipe fails", N, at("REQUIREMENTS.md", 5), "true/names REQUIREMENTS.md:5");
+}
+
 // Rejected near-misses, each in REQUIREMENTS.md and in REQUIREMENTS-general.md, at an exact line.
 const bad = [
   ["leading zero", "| R-0123 | The tool shall do a thing. | untested | — |"],
