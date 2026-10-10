@@ -61,7 +61,7 @@ three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
 all three run inside `npm test` as well. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
-nor exact. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
+nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
 `packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in `~/aml-desk`
 (2026-10-01/02) before it was promoted here.
