@@ -21,7 +21,8 @@ not committed. Change nothing else; the seat has since applied Jake's two tree c
    `docs/reviews/land-rule-2026-10-10/test-title-map.json` (`{"<old>": {"replacedBy": "<new>",
    "why": "…"}}`). Only the two R-978 exemption tests may be retired (`{"<old>": {"retired": true,
    "why": "R-978 retired"}}`). `node docs/reviews/land-rule-2026-10-10/seat-verify-tests.mjs` must
-   print `0 gap(s)`; it prints 36 now.
+   print `0 gap(s)`; it prints 37 now (the 36 land tests, and the renamed review-ledger test
+   "…and they are ONE round (1 tally line, 10 audit verdicts)", which needs its map entry).
 2. **One or more focused tests per new row**, in `land.test.mjs` or `review-ledger.test.mjs`, each
    pinning that row's clause: R-1002 (uncovered commit refused and named), R-1003 (allowlist), R-1004
    (any item; snapshot `head`; empty verdict refuses; legacy and unverified neither), R-1005 (an
