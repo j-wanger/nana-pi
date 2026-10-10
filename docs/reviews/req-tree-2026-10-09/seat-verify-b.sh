@@ -5,7 +5,7 @@
 set -u
 W=$(git rev-parse --show-toplevel)
 BASE=6b9202a501a7fe03dfc834ab34cdfc212f6d92ce
-INPUTS=$(git -C "$W" log -1 --format=%H -- docs/reviews/req-tree-2026-10-09/tree-b.json)
+INPUTS=$(git -C "$W" log -1 --format=%H -- docs/reviews/req-tree-2026-10-09/tree-b.json docs/reviews/req-tree-2026-10-09/fixed-text-b.md)
 T=$(mktemp -d)
 OUT="$W/docs/requirements-tree.md"
 cp "$OUT" "$T/outline.bak"
@@ -62,6 +62,10 @@ k=next(i for i in range(tgt_hdr,len(a)) if a[i].startswith('|---'))
 a.insert(k+1,row); save('proof-old-home',a)
 a=list(L); a[si]='Status: active (typo)' if L[si]=='Status: active' else 'Status: active'; save('proof-status',a)
 a=list(L); parts=L[ai].split(', '); a[ai]=', '.join(parts[:-1]) if len(parts)>1 else 'Also applies: '; save('proof-also-drop',a)
+a=list(L); a.insert(si,'Status: done'); save('dup-status',a)
+a=list(L); a.insert(ai,'Also applies: R-298'); save('dup-also',a)
+f2=idx(lambda l:l.startswith('## FEAT-002 · '))
+a=list(L); a[f2:f2]=['## FEAT-999 · Undeclared','Purpose: not in the approved tree','Status: proposed','']; save('undeclared-heading',a)
 EOF
 
 CHECK() { node --input-type=module -e "
@@ -70,7 +74,7 @@ const { checkTree } = await import('$W/scripts/requirements-tree.mjs');
 const r = checkTree(readFileSync('$1','utf8'));
 console.log(r.problems.length);" 2>/dev/null || echo ERR; }
 echo "checkTree real ledger problems=$(CHECK REQUIREMENTS.md) (want 0)"
-for m in r292-own-home r292-retired r292-unknown r292-duplicate r293-missing r293-done r293-frozen-empty r293-retired-empty r293-whitespace r294-proposed r294-retired; do
+for m in r292-own-home r292-retired r292-unknown r292-duplicate r293-missing r293-done r293-frozen-empty r293-retired-empty r293-whitespace r294-proposed r294-retired dup-status dup-also; do
   echo "checkTree $m problems=$(CHECK $T/$m.md) (want >0)"
 done
 echo "checkTree four legal status forms problems=$(CHECK $T/legal.md) (want 0)"
@@ -88,6 +92,16 @@ json.dump(t,open(p,'w'),indent=1,ensure_ascii=False)
 EOF
 git -c user.email=s@x -c user.name=seat commit -qam scratch && git rev-parse HEAD > "$T/mut.sha" )
 MUT=$(cat "$T/mut.sha" 2>/dev/null)
+( cd "$T/clone" && git checkout -q "$INPUTS" && python3 - <<'PYEOF'
+import json
+p='docs/reviews/req-tree-2026-10-09/tree-b.json'; t=json.load(open(p))
+fs=t['capabilities'][0]['features']
+fs.insert(1,{'id':'FEAT-999','label':'Undeclared','purpose':'not in the approved tree','status':'proposed','ids':[]})
+json.dump(t,open(p,'w'),indent=1,ensure_ascii=False)
+PYEOF
+git -c user.email=s@x -c user.name=seat commit -qam scratch2 && git rev-parse HEAD > "$T/mut2.sha" )
+MUT2=$(cat "$T/mut2.sha" 2>/dev/null)
+( cd "$T/clone" && cp "$T/undeclared-heading.md" "$T/clone/REQUIREMENTS.md" && cp "$W/docs/requirements-sections-2026-10-09.md" "$T/clone/docs/requirements-sections-2026-10-09.md" && node "$W/docs/reviews/req-tree-2026-10-09/prove.mjs" --approved $BASE --inputs "$MUT2" REQUIREMENTS.md docs/requirements-sections-2026-10-09.md >/dev/null 2>&1; echo "proof with an undeclared heading in both tree-b and ledger exit=$? (want 1)" )
 ( cd "$T/clone" && cp "$W/REQUIREMENTS.md" "$T/clone/REQUIREMENTS.md" && cp "$W/docs/requirements-sections-2026-10-09.md" "$T/clone/docs/requirements-sections-2026-10-09.md" && node "$W/docs/reviews/req-tree-2026-10-09/prove.mjs" --approved $BASE --inputs "$MUT" REQUIREMENTS.md docs/requirements-sections-2026-10-09.md >/dev/null 2>&1; echo "proof with a tree-b label changed exit=$? (want 1)" )
 
 # Outline mutations: the tree test must fail (restored by the trap).
@@ -107,5 +121,14 @@ p=sys.argv[1]; t=open(p).read(); i=t.find('Status: '); j=t.find('\n',i); t=t[:i]
 open(p,'w').write(t)
 EOF
 echo "tree test with one status deleted exit=$(TEST) (want 1)"
+cp "$T/outline.bak" "$OUT"
+python3 - "$OUT" <<'PYEOF'
+import sys,re
+p=sys.argv[1]; L=open(p).read().split('\n')
+i=next(i for i,l in enumerate(L) if re.match(r'^\|\s*[RG]-\d{3}\s*\|',l) and ', ' in l.split('|')[3])
+c=L[i].split('|'); fs=c[3].strip().split(', '); c[3]=' '+', '.join(fs[1:])+' '; L[i]='|'.join(c)
+open(p,'w').write('\n'.join(L))
+PYEOF
+echo "tree test with one sharing feature removed from an index row exit=$(TEST) (want 1)"
 cp "$T/outline.bak" "$OUT"
 echo "outline restored: $(git -C "$W" diff --quiet -- docs/requirements-tree.md && echo yes || echo NO)"

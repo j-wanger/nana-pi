@@ -84,9 +84,12 @@ template (next increment); subgroup or capability statuses; the HTML page.
 `docs/requirements-sections-2026-10-09.md` · `packages/nana-pack/skills/requirements/SKILL.md` ·
 `docs/code-map.md` · in `docs/reviews/req-tree-2026-10-09/`: `move.mjs`, `prove.mjs`,
 `prove-output.txt`, new builder reports. Not `package.json`, not any README.
-**Frozen at this increment's approved commit (seat-owned; the builder runs, never edits):**
-`CHANGE-B.md`, `tree-b.json`, `fixed-text-b.md`, `placement-review.md`, `placement-review.json`,
-`seat-verify-b.sh`, the increment-B build briefs, and every increment-1 frozen file.
+**Frozen (seat-owned; the builder runs, never edits):** `CHANGE-B.md`, `tree-b.json`,
+`fixed-text-b.md`, `placement-review.md`, `placement-review.json`, `seat-verify-b.sh` — at the
+latest commit that touches `tree-b.json` or `fixed-text-b.md` (the INPUTS commit; seat amendments
+move it, see §8) — plus each build brief once committed, and every increment-1 frozen file.
+**Review records** in the review folder (briefs, reports, logs, seat outputs, reviews and
+responses) are seat-written records, outside the builder's allowlist and inside the lane.
 
 ## 4. Design
 
@@ -174,3 +177,12 @@ changes ≤ 6 files and ≤ 600 lines, not counting the re-rendered ledger, outl
 - Lane brief fields (`Feature:`, `Requirement delta:`, `Tree changes:`) and the land-time structure
   diff, which make the governance rules checkable.
 - Subgroup-level status, if partial freezes like the compaction store's need to show.
+
+## 8. Seat amendments after review
+
+- **B-A1 (after sol build-b r1, MUST 4):** `fixed-text-b.md` said the outline shows "every heading
+  with its status"; only features have statuses. Now: "every heading with its rows, and every
+  feature with its status and shared rows". `seat-verify-b.sh` now takes INPUTS as the latest commit
+  touching `tree-b.json` or `fixed-text-b.md`, and gains sol r1's attacks (an undeclared heading added
+  to both a scratch `tree-b.json` and the ledger; duplicate `Status:` and `Also applies:` lines; one
+  sharing feature removed from an index row). The allowlist note above now names the review records.
