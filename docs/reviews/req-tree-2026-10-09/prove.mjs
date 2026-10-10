@@ -157,7 +157,11 @@ let differences = 0;
 for (let i = 0; i < Math.max(wantLines.length, haveLines.length); i++) {
   if (wantLines[i] === haveLines[i]) continue;
   const match = /^\|\s*(R-28[7-9]|R-29[0-4])\s*\|/.exec(wantLines[i] ?? "");
-  if (match) continue;
+  if (match) {
+    const expectedCells = wantLines[i].split("|").map((cell) => cell.trim());
+    const actualCells = (haveLines[i] ?? "").split("|").map((cell) => cell.trim());
+    if (actualCells.length === 6 && actualCells[1] === expectedCells[1] && actualCells[2] === expectedCells[2]) continue;
+  }
   fail(`ledger line ${i + 1}: ${i >= wantLines.length ? "unexpected extra line" : i >= haveLines.length ? "missing line" : `expected ${JSON.stringify(wantLines[i])}, got ${JSON.stringify(haveLines[i])}`}`);
   differences++;
 }
