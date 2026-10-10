@@ -396,4 +396,40 @@ check("successful merge without copier reports only the origin release clause", 
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*not a template source.*origin/i); assert.doesNotMatch(out.text, /template commits?/i);
 });
+// req: R-1003
+check("unknown land options, including either exemption placement, are named before git runs", () => {
+	for (const args of [
+		["merge", "--tree", "/tmp/tree", "--main", "/tmp/main", "--suite", "true", "--exempt", "reason", "--reviewed", "abc=item"],
+		["merge", "--tree", "/tmp/tree", "--main", "/tmp/main", "--suite", "true", "--reviewed", "abc=item", "--exempt", "reason"],
+		["merge", "--tree", "/tmp/tree", "--main", "/tmp/main", "--suite", "true", "--reviewed", "abc=item", "--mystery", "x"],
+	]) {
+		assert.throws(() => parseLandArgs(args), (error) => {
+			const rejected = args[args.indexOf("--exempt") >= 0 ? args.indexOf("--exempt") : args.indexOf("--mystery")];
+			assert.match(error.message, new RegExp(rejected)); return true;
+		});
+	}
+});
+// req: R-1007
+check("successful land output keeps push and release status but has no archive stubs", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-output-shape-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [] });
+	assert.equal(out.code, 0, out.text); assert.match(out.text, /push command:/); assert.match(out.text, /release status:/);
+	assert.doesNotMatch(out.text, /HANDOFF|session archive/i);
+});
+// req: R-1009
+check("a separate clone is refused before reviewed-SHA resolution or ledger reading", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-clone-order-")); const main = repo(root, "main");
+	const clone = path.join(root, "clone"); git(root, "clone", main, clone);
+	const reviewed = "a".repeat(40); const calls = []; let ledgerRead = false;
+	const runGit = (cwd, args) => {
+		calls.push({ cwd, args });
+		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
+		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
+	};
+	const out = executeLand({ tree: clone, main, suite: "true", reviewed: [`${reviewed}=item`], runGit,
+		readLedger: () => { ledgerRead = true; return []; } });
+	assert.notEqual(out.code, 0); assert.match(out.text, /share one git repository/); assert.equal(ledgerRead, false);
+	assert.equal(calls.some(({ args }) => args[0] === "cat-file" || (args[0] === "rev-parse" && args.includes(reviewed))), false);
+});
 process.exit(failures ? 1 : 0);
