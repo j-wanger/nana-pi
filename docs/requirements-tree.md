@@ -4,13 +4,13 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 167 · IDs: listed below
   - **FEAT-001 · Keep goals and priorities in view**
     Purpose: Provide the governing project objective and preserve its precedence over background context.
     Parent: CAP-01 · Rows: 23 · IDs: R-001–R-020, R-641, R-659, R-758
   - **FEAT-002 · Resume decisions and next actions**
     Purpose: Carry compaction summaries and a clear handoff frontier into later work without presenting past agent output as authority.
-    Parent: CAP-01 · Rows: 0 · IDs: —
+    Parent: CAP-01 · Rows: 62 · IDs: listed below
     - **SUB-001 · Write and identify a compaction summary**
       Purpose: Find the correct store, write the summary atomically and report its origin and any write failure.
       Parent: FEAT-002 · Rows: 13 · IDs: R-108, R-112, R-120, R-123, R-244, R-795–R-797, R-800, R-830
@@ -37,13 +37,13 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-01 · Rows: 16 · IDs: R-376, R-690, R-742–R-755
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 96 · IDs: listed below
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
     Parent: CAP-02 · Rows: 15 · IDs: R-285, R-628, R-683, R-732–R-735, R-847, R-960–R-963, R-965
   - **FEAT-007 · Review a specific revision independently**
     Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
-    Parent: CAP-02 · Rows: 0 · IDs: —
+    Parent: CAP-02 · Rows: 74 · IDs: listed below
     - **SUB-006 · Identify and freeze the review target**
       Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
       Parent: FEAT-007 · Rows: 17 · IDs: R-621, R-624, R-703–R-706, R-708–R-710, R-712, R-832, R-835, R-967
@@ -64,7 +64,7 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-02 · Rows: 7 · IDs: R-588, R-975–R-979, R-981
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 133 · IDs: listed below
   - **FEAT-009 · Decide which project content is trusted**
     Purpose: Represent explicit project trust, explain untrusted sources and avoid gaining trust from incidental files.
     Parent: CAP-03 · Rows: 31 · IDs: R-021–R-034, R-074–R-079, R-242, R-670–R-672, R-759–R-761, R-778, R-856
@@ -79,10 +79,10 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-03 · Rows: 21 · IDs: R-174–R-188, R-819–R-824
 - **CAP-04 · Bring nana to each project and maintain it**
   Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 237 · IDs: listed below
   - **FEAT-013 · Install and connect harness runtimes**
     Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
-    Parent: CAP-04 · Rows: 0 · IDs: —
+    Parent: CAP-04 · Rows: 83 · IDs: listed below
     - **SUB-011 · Select the active runtime and home**
       Purpose: Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.
       Parent: FEAT-013 · Rows: 11 · IDs: R-190, R-194, R-199, R-345, R-601, R-825, R-827, R-932, R-950
@@ -100,7 +100,7 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
       Parent: FEAT-013 · Rows: 11 · IDs: R-349–R-352, R-359, R-387, R-936, R-938, R-995
   - **FEAT-014 · Create or adopt a project workspace**
     Purpose: Seed and update the project working structure and templates, expose adoption needs and obtain the actual owner objective.
-    Parent: CAP-04 · Rows: 0 · IDs: —
+    Parent: CAP-04 · Rows: 61 · IDs: listed below
     - **SUB-016 · Recognize projects that need adoption**
       Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
       Parent: FEAT-014 · Rows: 24 · IDs: R-143–R-157, R-640, R-645–R-647, R-809–R-813
@@ -136,7 +136,7 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-04 · Rows: 13 · IDs: R-584, R-587, R-593–R-597, R-684, R-686, R-740, R-848, R-996
 - **CAP-05 · Follow and steer development**
   Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 89 · IDs: listed below
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
     Parent: CAP-05 · Rows: 14 · IDs: R-405–R-413, R-463, R-470–R-473
@@ -154,7 +154,7 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-05 · Rows: 7 · IDs: R-455–R-457, R-466, R-867, R-869, R-941
 - **CAP-06 · Use attributable tool outputs and focused apps**
   Purpose: Give tools a consistent presentation contract and connect apps without confusing their origin or authority.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 74 · IDs: listed below
   - **FEAT-025 · Use consistent structured tool output**
     Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
     Parent: CAP-06 · Rows: 26 · IDs: R-250–R-255, R-260–R-263, R-266–R-272, R-274–R-279, R-282–R-284
@@ -166,7 +166,7 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-06 · Rows: 23 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-465, R-493–R-499, R-940, R-943, R-948
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 128 · IDs: listed below
   - **FEAT-028 · Maintain requirement identity and trace links**
     Purpose: Keep stable requirement records and syntactic test links, while making the checker's limited guarantees explicit.
     Parent: CAP-07 · Rows: 12 · IDs: R-287–R-291, R-578–R-580, R-583, R-681, R-756
@@ -184,10 +184,10 @@ Generated from `REQUIREMENTS.md`; requirement statuses are intentionally omitted
     Parent: CAP-07 · Rows: 7 · IDs: R-598, R-629, R-655, R-658, R-870
   - **FEAT-033 · Adopt explicit engineering standards**
     Purpose: Keep shared configuration and module-boundary policies in one place and link their applicability to project features.
-    Parent: CAP-07 · Rows: 23 · IDs: R-001–R-022, R-920
+    Parent: CAP-07 · Rows: 23 · IDs: R-920, G-001–G-022
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 0 · IDs: —
+  Parent: — · Rows: 85 · IDs: listed below
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Parent: CAP-08 · Rows: 19 · IDs: R-501, R-508–R-514, R-532–R-534, R-550–R-554, R-572
