@@ -27,16 +27,18 @@ const repo = (root, name) => {
 };
 const commit = (dir, file, data, message) => { writeFileSync(path.join(dir, file), data); git(dir, "add", file); git(dir, "commit", "-m", message); return git(dir, "rev-parse", "HEAD"); };
 const tree = (dir, branch) => { git(dir, "worktree", "add", "-b", branch, path.join(path.dirname(dir), branch)); return path.join(path.dirname(dir), branch); };
-const reviewTip = (feature, home, item = "item") => {
-	const revision = git(feature, "rev-parse", "HEAD");
+const recordReview = (feature, home, item, verdict = "LAND") => {
 	const admission = admit(["--item", item, "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
 	assert.equal(admission.ok, true, admission.message);
-	const result = complete(admission.res, "VERDICT: LAND", { home });
+	return complete(admission.res, `VERDICT: ${verdict}`, { home });
+};
+const reviewTip = (feature, home, item = "item") => {
+	const revision = git(feature, "rev-parse", "HEAD");
+	const result = recordReview(feature, home, item);
 	assert.equal(result.ok, true, result.message);
 	return revision;
 };
-const runLand = (options) => {
-	const { exempt: _obsolete, ...safe } = options;
+const runLand = (safe) => {
 	if ((!safe.reviewed || safe.reviewed.length === 0) && safe.tree && safe.main) {
 		const root = path.dirname(safe.tree);
 		const home = safe.home ?? path.join(root, "home");
@@ -54,27 +56,27 @@ check("merge preflight refuses a non-main checkout", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-main-")); const main = repo(root, "main");
 	git(main, "checkout", "-b", "other");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [], exempt: "test" }); assert.notEqual(out.code, 0); assert.match(out.text, /main/i);
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [] }); assert.notEqual(out.code, 0); assert.match(out.text, /main/i);
 });
 // req: R-975
 check("tracked main changes refuse before running the suite", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-dirty-main-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); writeFileSync(path.join(main, "base.txt"), "dirty\n");
-	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [], exempt: "test" });
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /main checkout has tracked changes/i);
 });
 // req: R-975
 check("tracked source changes refuse before running the suite", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-dirty-source-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); writeFileSync(path.join(feature, "base.txt"), "dirty\n");
-	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [], exempt: "test" });
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /tracked changes/i);
 });
 // req: R-975
 check("suite-time main branch switch refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-branch-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		git(main, "checkout", "-b", "other"); return { status: 0, stdout: "", stderr: "" };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /branch main/i); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
@@ -83,7 +85,7 @@ check("suite-time main branch switch refuses before merge", () => {
 check("suite-time main tracked changes refuse before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-main-dirty-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		writeFileSync(path.join(main, "base.txt"), "changed in suite\n"); return { status: 0, stdout: "", stderr: "" };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /main checkout has tracked changes/i);
@@ -92,7 +94,7 @@ check("suite-time main tracked changes refuse before merge", () => {
 check("suite-time source tracked changes refuse before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-source-dirty-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		writeFileSync(path.join(feature, "base.txt"), "changed in suite\n"); return { status: 0, stdout: "", stderr: "" };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /source tree has tracked changes/i);
@@ -102,7 +104,7 @@ check("suite-time source tracked changes refuse before merge", () => {
 check("suite-time source revision change refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-tip-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		commit(feature, "during-suite.txt", "changed\n", "during suite"); return { status: 0, stdout: "", stderr: "" };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /source tip changed/i);
@@ -113,7 +115,7 @@ check("suite-time main divergence refuses before merge", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-race-main-tip-")); const main = repo(root, "main");
 	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		commit(main, "parallel.txt", "parallel\n", "parallel"); return { status: 0, stdout: "", stderr: "" };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /HEAD.*captured|main checkout/i);
@@ -123,11 +125,10 @@ check("suite-time main divergence refuses before merge", () => {
 check("non-fast-forward source tip refuses before running the suite", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-no-ff-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); commit(main, "parallel.txt", "parallel\n", "parallel");
-	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [], exempt: "test" });
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /ancestor/i);
 });
 // req: R-976
-// req: R-1004
 check("a reviewed SHA must be ancestor of the source tip and match a LAND record", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-review-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
@@ -207,7 +208,7 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [`${sha}+snap:abc=item`] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /plain commit/i);
 });
-// req: R-1011
+// req: R-976
 // req: R-1003
 // req: R-1006
 check("runLand requires verified reviews", () => {
@@ -220,6 +221,72 @@ check("runLand requires verified reviews", () => {
 	}
 	assert.equal(suiteRan, false); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
+// req: R-1004
+check("a verified SEND-BACK for another item at the commit refuses land", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-send-back-other-item-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home, "item"); assert.equal(recordReview(feature, home, "another-item", "SEND-BACK").ok, true);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /non-LAND verdict/i); assert.match(out.text, /another-item\/.*SEND-BACK/);
+});
+// req: R-1004
+check("a verified SEND-BACK at a working-state snapshot refuses land", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-send-back-snapshot-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home, "item"); writeFileSync(path.join(feature, "untracked.txt"), "present during review\n");
+	assert.equal(recordReview(feature, home, "snapshot-review", "SEND-BACK").ok, true);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /non-LAND verdict/i); assert.match(out.text, /snapshot-review\/.*SEND-BACK/);
+});
+// req: R-1004
+check("an explicit empty verdict beside LAND refuses land", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-empty-verdict-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home, "item"); const empty = admit(["--item", "empty-review", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
+	assert.equal(empty.ok, true, empty.message); assert.equal(complete(empty.res, "VERDICT: ", { home }).ok, true);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /non-LAND verdict/i); assert.match(out.text, /empty-review\/.*empty/);
+});
+// req: R-1004
+check("a legacy round without verdict does not block a version-2 LAND", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-legacy-no-verdict-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	const revision = reviewTip(feature, home); const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir"));
+	const tally = path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl");
+	writeFileSync(tally, `${JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "legacy", revision, role: "reviewer" })}\n${readFileSync(tally, "utf8")}`);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.equal(out.code, 0, out.text);
+});
+// req: R-1004
+check("an unverified SEND-BACK beside LAND does not block land", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-unverified-send-back-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home, "item"); writeFileSync(path.join(feature, "base.txt"), "changed mid-review\n");
+	const admission = admit(["--item", "unverified", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
+	assert.equal(admission.ok, true, admission.message); writeFileSync(path.join(feature, "base.txt"), "base\n");
+	assert.equal(complete(admission.res, "VERDICT: SEND-BACK", { home }).ok, false);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.equal(out.code, 0, out.text);
+});
+// req: R-1011
+check("a version-1 LAND alone refuses on the first tally reading", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-v1-first-read-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	mkdirSync(path.join(home, ".pi", "agent"), { recursive: true }); const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir"));
+	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), `${JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision: sha, verdict: "LAND" })}\n`);
+	const out = runLand({ tree: feature, main, suite: "true", reviewed: [`${sha}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /version-2 LAND/i);
+});
+// req: R-1011
+check("a version-1-only second tally reading refuses after the suite", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-v1-second-read-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	const revision = reviewTip(feature, home); const common = path.resolve(feature, git(feature, "rev-parse", "--git-common-dir")); let suiteRan = false;
+	const tally = path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl");
+	const out = runLand({ tree: feature, main, suite: "injected", reviewed: [`${sha}=item`], home,
+		runCommand: () => { suiteRan = true; writeFileSync(tally, `${JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision, verdict: "LAND" })}\n`); return { status: 0 }; } });
+	assert.equal(suiteRan, true); assert.notEqual(out.code, 0); assert.match(out.text, /version-2 LAND/i); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
+});
 // req: R-977
 // req: R-1007
 check("successful land updates main checkout files and leaves tracked state clean", () => {
@@ -230,7 +297,7 @@ check("successful land updates main checkout files and leaves tracked state clea
 	git(feature, "rm", "remove.txt"); git(feature, "add", "base.txt", "added.txt"); git(feature, "commit", "-m", "change files");
 	const tip = git(feature, "rev-parse", "HEAD"); const calls = [];
 	const runGit = (cwd, args) => { calls.push({ cwd, args }); try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; } catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: "" }; } };
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runGit, runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text);
 	assert.equal(calls.filter(({ cwd, args }) => cwd === main && args[0] === "merge" && args[1] === "--ff-only").length, 1);
 	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge --ff-only ${tip}`));
@@ -243,7 +310,7 @@ check("untracked collision refuses land without changing main", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-collision-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "collision.txt", "landed\n", "add collision");
 	writeFileSync(path.join(main, "collision.txt"), "untracked stays\n"); const before = git(main, "rev-parse", "HEAD");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
 	assert.notEqual(out.code, 0); assert.match(out.text, /refused|failed/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
 	assert.equal(git(main, "rev-parse", "HEAD"), before); assert.equal(git(main, "rev-parse", "refs/heads/main"), before);
 	assert.equal(readFileSync(path.join(main, "collision.txt"), "utf8"), "untracked stays\n"); assert.notEqual(tip, before);
@@ -261,7 +328,7 @@ check("branch switch at merge invocation refuses without a success report", () =
 		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
 		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
 	};
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runGit, runCommand: () => ({ status: 0 }) });
 	assert(calls.some(({ cwd, args }) => cwd === main && args[0] === "merge"), "switch injection must run immediately before merge");
 	assert.notEqual(out.code, 0); assert.match(out.text, /branch main/i); assert.doesNotMatch(out.text, /HANDOFF Landed:|Session archive stub:|push command:/);
 	assert.equal(git(main, "rev-parse", "refs/heads/main"), initialMain); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "other")); assert.notEqual(tip, initialMain);
@@ -272,7 +339,7 @@ check("main advancing during suite refuses before merge", () => {
 	const initialMain = git(main, "rev-parse", "refs/heads/main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
 	let advancedMain;
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => {
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => {
 		commit(main, "parallel.txt", "parallel\n", "parallel"); advancedMain = git(main, "rev-parse", "refs/heads/main"); return { status: 0 };
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /HEAD.*captured|main checkout/i);
@@ -282,21 +349,21 @@ check("main advancing during suite refuses before merge", () => {
 check("suite command runs in the source tree", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-suite-cwd-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); let suiteCwd = null;
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: (_command, cwd) => { suiteCwd = cwd; return { status: 0, stdout: "", stderr: "" }; } });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: (_command, cwd) => { suiteCwd = cwd; return { status: 0, stdout: "", stderr: "" }; } });
 	assert.equal(out.code, 0, out.text); assert.equal(suiteCwd, feature);
 });
 // req: R-977
 check("suite failure leaves main unchanged and prints no success report", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-suite-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); const before = git(main, "rev-parse", "HEAD");
-	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(7)'", reviewed: [], exempt: "test failure" });
+	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(7)'", reviewed: [] });
 	assert.notEqual(out.code, 0); assert.equal(git(main, "rev-parse", "HEAD"), before); assert.doesNotMatch(out.text, /Landed:/);
 });
 // req: R-977
 check("a suite killed by signal refuses and names a nonzero exit", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-signal-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "unused", reviewed: [], exempt: "test", runCommand: () => ({ status: null, signal: "SIGTERM", stdout: "", stderr: "" }) });
+	const out = runLand({ tree: feature, main, suite: "unused", reviewed: [], runCommand: () => ({ status: null, signal: "SIGTERM", stdout: "", stderr: "" }) });
 	assert.notEqual(out.code, 0); assert.match(out.text, /exit SIGTERM/); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
 // req: R-979
@@ -364,7 +431,7 @@ check("successful merge prints post-merge release status and divergence", () => 
 	git(main, "add", "copier.yml", "templates"); git(main, "commit", "-m", "template base"); git(main, "tag", "v0.1.0");
 	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
 	const feature = tree(main, "integration"); commit(feature, "templates/new", "new\n", "template change");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*1 template commit.*v0\.1\.0.*main 1 ahead.*origin/i);
 });
 // req: R-588
@@ -379,12 +446,12 @@ check("release status failure after merge keeps success code and output", () => 
 			return { status: 0, stdout, stderr: "" };
 		} catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
 	};
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runGit, runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runGit, runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text); assert.equal(git(main, "rev-parse", "HEAD"), tip);
 	assert.match(out.text, /release status: .*unavailable/i); assert.match(out.text, /push command:/); assert.doesNotMatch(out.text, /Session archive stub:|HANDOFF Landed:/);
 	const throwingRoot = tmpDir(path.join(os.tmpdir(), "land-release-throw-")); const throwingMain = repo(throwingRoot, "main");
 	const throwingFeature = tree(throwingMain, "integration"); const throwingTip = commit(throwingFeature, "next.txt", "next\n", "next");
-	const guarded = runLand({ tree: throwingFeature, main: throwingMain, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }), readReleaseStatus: () => { throw new Error("injected status reader failure"); } });
+	const guarded = runLand({ tree: throwingFeature, main: throwingMain, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }), readReleaseStatus: () => { throw new Error("injected status reader failure"); } });
 	assert.equal(guarded.code, 0, guarded.text); assert.equal(git(throwingMain, "rev-parse", "HEAD"), throwingTip);
 	assert.match(guarded.text, /release status: .*unavailable/i); assert.match(guarded.text, /push command:/); assert.doesNotMatch(guarded.text, /Session archive stub:|HANDOFF Landed:/);
 });
@@ -393,7 +460,7 @@ check("successful merge without copier reports only the origin release clause", 
 	const root = tmpDir(path.join(os.tmpdir(), "land-release-no-copier-")); const main = repo(root, "main");
 	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
 	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], exempt: "test", runCommand: () => ({ status: 0 }) });
+	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*not a template source.*origin/i); assert.doesNotMatch(out.text, /template commits?/i);
 });
 // req: R-1003
