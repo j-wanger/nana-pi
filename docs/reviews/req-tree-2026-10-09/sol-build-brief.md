@@ -1,5 +1,18 @@
 # Review brief — req-tree build, 2026-10-09 (reviewer: gpt-5.6-sol; roles: scope + adversarial)
 
+**Round 2.** Your round-1 build review is `sol-build-r1.md` (SEND-BACK 5/10). The builder's fix run
+used `build-brief-3.md`; its report is `builder-report-3.md`. Verify each r1 finding is closed, then
+review the build as a whole again; new findings are welcome.
+
+Seat notes for round 2 (seat's own scratch run, `checkTree` on altered copies of the ledger):
+your three attacks (row under the closing heading; level-4 heading before CAP-01's purpose;
+unrelated level-1 heading between CAP-01 and FEAT-001) are now red; a level-6 heading after a FEAT
+heading is red; the real ledger is green. A SETEXT heading (a text line underlined with `===`) is
+NOT recognized as a boundary. The ledger uses ATX headings only; the seat proposes recording that
+as a declared residual rather than a fix — say if you disagree. FEAT-033 now reads
+`R-920, G-001–G-022`; parents show aggregate counts (`CAP-01 · Rows: 167 · IDs: listed below`).
+The proof still exits 0 on the unchanged ledger.
+
 You reviewed this lane's PLAN three times (item `req-tree-plan`; your reviews are
 `docs/reviews/req-tree-2026-10-09/sol-plan-r{1,2,3}.md`). Jake agreed it at checkpoint 1 (CHANGE §7a;
 approved commit `6b9202a501a7fe03dfc834ab34cdfc212f6d92ce`). A pi luna builder has now built it in two
