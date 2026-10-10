@@ -186,3 +186,5 @@ changes ≤ 6 files and ≤ 600 lines, not counting the re-rendered ledger, outl
   touching `tree-b.json` or `fixed-text-b.md`, and gains sol r1's attacks (an undeclared heading added
   to both a scratch `tree-b.json` and the ledger; duplicate `Status:` and `Also applies:` lines; one
   sharing feature removed from an index row). The allowlist note above now names the review records.
+- **B-A2 (after sol build-b r2):** `seat-verify-b.sh` gains sol r2's attack: R-292 and R-293
+  swapped in the ledger must make the proof exit 1. INPUTS unchanged.

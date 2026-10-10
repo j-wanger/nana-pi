@@ -66,6 +66,8 @@ a=list(L); a.insert(si,'Status: done'); save('dup-status',a)
 a=list(L); a.insert(ai,'Also applies: R-298'); save('dup-also',a)
 f2=idx(lambda l:l.startswith('## FEAT-002 · '))
 a=list(L); a[f2:f2]=['## FEAT-999 · Undeclared','Purpose: not in the approved tree','Status: proposed','']; save('undeclared-heading',a)
+i2=idx(lambda l:l.startswith('| R-292 |')); i3=idx(lambda l:l.startswith('| R-293 |'))
+a=list(L); a[i2],a[i3]=a[i3],a[i2]; save('proof-new-rows-swapped',a)
 EOF
 
 CHECK() { node --input-type=module -e "
@@ -78,7 +80,7 @@ for m in r292-own-home r292-retired r292-unknown r292-duplicate r293-missing r29
   echo "checkTree $m problems=$(CHECK $T/$m.md) (want >0)"
 done
 echo "checkTree four legal status forms problems=$(CHECK $T/legal.md) (want 0)"
-for m in proof-old-home proof-status proof-also-drop; do
+for m in proof-old-home proof-status proof-also-drop proof-new-rows-swapped; do
   echo "proof $m exit=$(PROVE $T/$m.md $INPUTS) (want 1)"
 done
 
