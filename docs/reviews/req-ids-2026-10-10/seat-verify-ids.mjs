@@ -82,7 +82,8 @@ const bad = [
   ["non-ASCII digits", "| R-１２３ | The tool shall do a thing. | untested | — |"],
   ["missing closing pipe", "| R-1001 | The tool shall do a thing. | untested | —"],
   ["fenced example", "```\n| R-01 | example | untested | — |\n```"],
-  ["unrelated table", "| R-squared | 0.9 |"],
+  ["unrelated table (R-)", "| R-squared | 0.9 |"],
+  ["unrelated table (G-)", "| G-squared | 0.9 |"],
 ];
 for (const [label, text] of bad) {
   const pre = `# f\n\n${HEAD}\n${GROW}\n`; // the bad line is line 6 (line 7 inside a fence)
@@ -100,7 +101,11 @@ for (const [label, id] of [["leading-zero", "R-0123"], ["five-digit", "R-10000"]
     "tests/a.test.mjs": `// req: ${id}\ntest("bad", () => {});\n`,
     "tests/test_a.py": `# req: ${id}\ndef test_bad():\n    pass\n`,
   });
-  both(`${label} marker refused`, M, (r) => !r.ok, "true");
+  const file = (lang) => (lang === "TS" ? "tests/a.test.mjs" : "tests/test_a.py");
+  const tsr = ts(M), pyr = py(M);
+  const proves = (r, lang) => `${!r.ok}/${/bad requirement id/.test(r.text) && new RegExp(`${file(lang).replace(".", "\\.")}:1\\b`).test(r.text) ? "bad requirement id at " + file(lang) + ":1" : "other failure"}`;
+  out(`TS ${label} marker refused`, proves(tsr, "TS"), "true/bad requirement id at tests/a.test.mjs:1");
+  out(`PY ${label} marker refused`, pyr.ok === null ? pyr.text : proves(pyr, "PY"), "true/bad requirement id at tests/test_a.py:1");
 }
 
 // The tree checker sees four-digit rows and renders a range across R-999 to R-1001.

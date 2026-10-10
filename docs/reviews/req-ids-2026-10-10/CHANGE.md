@@ -3,7 +3,7 @@
 *Lane `req-ids` · branch `feat/req-ids` · worktree `~/nana-pi-wt/req-ids` · based on `feat/req-tree`
 at `c4332ec` (the requirements tree: reviewed, waiting for Jake's acceptance; this lane lands after
 it) · 2026-10-10. Feature: **FEAT-028 · Maintain requirement identity and trace links** (CAP-07).
-Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1 and r2 adjudicated in `sol-plan-r1-response.md` and `sol-plan-r2-response.md`) → build (pi luna) → seat
+Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1–r3 adjudicated in `sol-plan-r1-response.md`, `sol-plan-r2-response.md` and `sol-plan-r3-response.md`) → build (pi luna) → seat
 verification → sol build review (item `req-ids`) → astra land review → Jake accepts.*
 
 ## 1. Why
@@ -73,7 +73,7 @@ problem list. Declared residual; the tree outline already orders numerically.
   matches any Unicode digit); the requirement-row definition above (closing pipe required in both);
   the near-miss reader over each RAW file before the Part G merge, naming `<file>:<line>`; error text
   naming the format; the TypeScript rail exports `ID`.
-- Their self-tests, shipped to rendered projects unmarked:
+- Their self-tests, shipped to rendered projects (unmarked in adoption mode, marked in scaffold mode):
   `templates/typescript/template/tests/requirements-trace.test.ts.jinja`,
   `templates/python/template/tests/test_requirements_trace.py.jinja` — the matrix in §5.
 - Both template ledgers' ID line: after `R-999` the next ID is `R-1000`; four digits never start with
@@ -150,14 +150,18 @@ reviewed.
    accepted — `R-1000` and `G-1000` rows; `R-1000` and `G-1000` in markers; a four-digit row traced
    by its marker. Rejected, each naming its exact file and line — a leading-zero ID (`R-0123`), a
    five-digit ID, non-ASCII digits (`R-１２３`), a missing closing pipe, a candidate inside a fenced
-   example, a candidate in an unrelated table; each in `REQUIREMENTS.md` AND in
-   `REQUIREMENTS-general.md` (with a general file present). Markers refused in both languages: a
-   leading-zero, a five-digit and a non-ASCII-digit ID. The tree checker: four-digit rows placed,
+   example, an `R-` candidate in an unrelated table (`| R-squared |`) and a `G-` one
+   (`| G-squared |`); each in `REQUIREMENTS.md` AND in `REQUIREMENTS-general.md` (with a general
+   file present). Markers refused in both languages — a leading-zero, a five-digit and a
+   non-ASCII-digit ID — each with the `bad requirement id` diagnostic naming the marker's
+   `<file>:<line>` (so a marker accepted as an ID but naming no row cannot pass for the wrong
+   reason). The tree checker: four-digit rows placed,
    counted and rendered, and another feature's `Also applies: R-1000` accepted.
    Mutation pairs (code or scratch copies, red then green): the ID pattern back to three digits; `\d`
    instead of `[0-9]` in Python (the non-ASCII fixture goes green wrongly → red test); the near-miss
-   reader removed, or run on merged text only (the general-file fixtures fail); the G branch
-   disabled; the tree checker's own `\d{3}` restored.
+   reader removed, or run on merged text only (the general-file fixtures fail); the ID grammar's G
+   branch disabled; the near-miss candidate's G branch disabled (`[RG]` → `R`: the `| G-squared |`
+   fixtures fail); the tree checker's own `\d{3}` restored.
 5. The seat's script `seat-verify-ids.mjs`, pasted verbatim. It compares every result with what is
    wanted and exits 1 on any mismatch; a Python run skipped for want of `uvx` counts as a mismatch,
    because both rows claim both rails.
