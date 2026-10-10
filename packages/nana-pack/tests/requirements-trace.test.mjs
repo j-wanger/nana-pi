@@ -251,9 +251,13 @@ const parityRows = idFixture(`# fixture\n${ID_HEAD}\n${parityWhitespace.flatMap(
 	return `${prefix} | The trace rail shall read whitespace. | ${status} | — |${position === "tail" ? ws : ""}`;
 })).join("\n")}\n`);
 const parityBomRow = idFixture(`\ufeff| R-010 | The rail shall read a BOM. | untested | — |\n`);
+const doubleBomRow = idFixture(`\ufeff\ufeff| R-1000 | The rail shall read one BOM. | untested | — |\n`);
 const parityMarkers = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n| R-1000 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n| G-1000 | The rail shall trace markers. | implemented | sample:tests/a.test.mjs::marker parity |\n` , null, "\ufeff// req: R-1000,R-001\u2028G-1000\ntest('marker parity', () => {});\n");
 const parityRowsResult = checkEars(parityRows, { testRoots: ["tests"] });
 const parityBomResult = checkEars(parityBomRow, { testRoots: ["tests"] });
+const doubleBomResult = checkEars(doubleBomRow, { testRoots: ["tests"] });
+// req: R-1000 R-1001
+check("R-1000: both rails remove exactly one BOM from a double-BOM first-line row", !doubleBomResult.requirements.has("R-1000") && doubleBomResult.problems.length === 0, doubleBomResult.problems.join(" | "));
 writeFileSync(join(parityMarkers, "tests", "test_marker.py"), "\ufeff# req: R-1000,R-001\u2028G-1000\ndef test_marker_parity():\n    pass\n");
 const parityMarkerResult = checkEars(parityMarkers, { testRoots: ["tests"] });
 // req: R-1000 R-1001
@@ -293,6 +297,9 @@ else {
 	const pythonBomRow = py(parityBomRow);
 	// req: R-1001
 	check("R-1001: Python ignores a leading BOM before the first row", pythonBomRow.status === 0 && pythonBomRow.stdout.includes("OK R-010"), pythonBomRow.stderr || pythonBomRow.stdout);
+	const pythonDoubleBomRow = py(doubleBomRow);
+	// req: R-1000
+	check("R-1000: Python leaves the second BOM before a double-BOM first-line row", pythonDoubleBomRow.status === 0 && pythonDoubleBomRow.stdout.trim() === "OK", pythonDoubleBomRow.stderr || pythonDoubleBomRow.stdout);
 	const pythonMarkerCode = "import runpy,sys; from pathlib import Path; m=runpy.run_path(sys.argv[2]); r=m['check'](Path(sys.argv[1]),test_roots=('tests',)); print(sorted(r[1]))";
 	const pythonMarkerParity = spawnSync("uvx", ["--with", "pytest", "python", "-c", pythonMarkerCode, parityMarkers, conf], { encoding: "utf8" });
 	// req: R-1000

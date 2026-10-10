@@ -211,6 +211,11 @@ describe("loadRequirements", () => {
 		expect(check(dir).requirements.has("R-010")).toBe(true);
 		writeFileSync(
 			join(dir, "REQUIREMENTS.md"),
+			"\ufeff\ufeff| R-1000 | The system shall remove one BOM. | untested | — |\n",
+		);
+		expect(check(dir).requirements.has("R-1000")).toBe(false);
+		writeFileSync(
+			join(dir, "REQUIREMENTS.md"),
 			`| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-010 | The system shall reject it. | untested | — |\u200b\n`,
 		);
 		expect(() => check(dir)).toThrow(

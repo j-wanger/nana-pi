@@ -18,11 +18,11 @@ import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { check, ID, scanSource } from "../templates/typescript/template/tests/requirements-trace.ts";
+import { check, ID, WHITESPACE, scanSource } from "../templates/typescript/template/tests/requirements-trace.ts";
 
 // Re-exported so the repo-level test's EARS fixtures (G-014/G-015) can call the generic
 // rail directly, over a scratch dir, rather than only through checkRepo() below.
-export { check, ID, scanSource };
+export { check, ID, WHITESPACE, scanSource };
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(

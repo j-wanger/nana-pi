@@ -78,7 +78,7 @@ def _read_utf8(path: Path) -> str:
 
 
 def _check_near_miss_rows(text: str, filename: str) -> None:
-    for number, raw_line in enumerate(_without_leading_bom(text).split("\n"), 1):
+    for number, raw_line in enumerate(text.split("\n"), 1):
         line = _rstrip_whitespace(raw_line)
         if not ROW_CANDIDATE_RE.match(line):
             continue
@@ -175,7 +175,7 @@ def load_requirements(path: Path, text: str | None = None) -> dict[str, Row]:
             return {}
         text = _read_utf8(path)
     found: dict[str, Row] = {}
-    for raw_line in _without_leading_bom(text).split("\n"):
+    for raw_line in text.split("\n"):
         line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
@@ -257,7 +257,7 @@ def shall_counts(text: str) -> dict[str, int]:
     independent of ``load_requirements()`` so ``Row``'s shape carries no new field and every
     existing comparison against it stays exact."""
     counts: dict[str, int] = {}
-    for raw_line in _without_leading_bom(text).split("\n"):
+    for raw_line in text.split("\n"):
         line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
@@ -337,7 +337,9 @@ def scan_dir(directory: Path, call_names: tuple[str, ...] = CALL_NAMES, prefix: 
         if not f.is_file() or "__pycache__" in f.parts:
             continue
         rel = f"{prefix}/{f.relative_to(directory).as_posix()}"
-        for ids, name in scan_source(_read_utf8(f), rel, call_names):
+        with f.open(encoding="utf-8", newline="") as source:
+            source_text = source.read()
+        for ids, name in scan_source(source_text, rel, call_names):
             for rid in ids:
                 traced.setdefault(rid, []).append(f"{rel}::{name}")
     return traced
@@ -394,7 +396,7 @@ def summary(requirements: dict[str, Row], traced: dict[str, list[str]]) -> str:
 def _row_cells(text: str) -> dict[str, tuple[str, str, str]]:
     """Return requirement, status and evidence cells for each table row."""
     found: dict[str, tuple[str, str, str]] = {}
-    for raw_line in _without_leading_bom(text).split("\n"):
+    for raw_line in text.split("\n"):
         line = _rstrip_whitespace(raw_line)
         if not line.startswith("|") or not line.endswith("|"):
             continue
@@ -446,7 +448,7 @@ def check(
         text = (
             "\n".join(
                 _rstrip_whitespace(line)
-                for line in _without_leading_bom(project_text).split("\n")
+                for line in project_text.split("\n")
                 if not _rstrip_whitespace(line).startswith("|")
             )
             + "\n"

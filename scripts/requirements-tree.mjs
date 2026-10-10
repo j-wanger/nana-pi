@@ -10,13 +10,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ID } from "./requirements-trace.mjs";
+import { ID, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
-const ROW = new RegExp(String.raw`^\|\s*(${ID.source.slice(1, -1)})\s*\|`);
+const WS_CLASS = `[${WHITESPACE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}]`;
+const ROW = new RegExp(`^\\|${WS_CLASS}*(${ID.source.slice(1, -1)})${WS_CLASS}*\\|`);
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
@@ -59,7 +60,7 @@ function scanBlocks(lines) {
 }
 
 export function parseLedger(text) {
-  const lines = text.split("\n");
+  const lines = (text.startsWith("\ufeff") ? text.slice(1) : text).split("\n");
   const { opaque, headingsByLine } = scanBlocks(lines);
   const headings = [...headingsByLine.values()].filter((h) => h.id);
   const allHeadings = [...headingsByLine.values()];

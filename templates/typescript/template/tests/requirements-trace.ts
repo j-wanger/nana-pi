@@ -213,7 +213,7 @@ export interface Marked {
 /** Parse REQUIREMENTS.md into rows by id. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
-	for (const rawLine of withoutLeadingBom(text).split("\n")) {
+	for (const rawLine of text.split("\n")) {
 		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
@@ -254,7 +254,7 @@ export function loadRequirements(text: string): Map<string, Row> {
  */
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
-	for (const rawLine of withoutLeadingBom(text).split("\n")) {
+	for (const rawLine of text.split("\n")) {
 		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
@@ -514,7 +514,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 	if (hasGeneral) {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
-			for (const rawLine of withoutLeadingBom(source).split("\n")) {
+			for (const rawLine of source.split("\n")) {
 				const match = ROW.exec(stripWhitespaceEnd(rawLine));
 				if (!match) continue;
 				const cells = (match[2] as string).split("|").map(trimWhitespace);

@@ -156,6 +156,14 @@ const fourDigitTreeResult = checkTree(fourDigitTree);
 check("R-1000: tree counts four-digit rows and accepts their cross-feature share", fourDigitTreeResult.problems.length === 0 && fourDigitTreeResult.outline.includes("Rows: 3 · IDs: R-999–R-1001") && fourDigitTreeResult.outline.includes("Also applies: R-1000"), fourDigitTreeResult.problems.join("; "));
 // req: R-1000
 check("R-1000: row compression and range expansion cross R-999 to R-1000", compressRowIds(["R-999", "R-1000", "R-1001"]) === "R-999–R-1001" && expandRowIds("R-999–R-1001").join(",") === "R-999,R-1000,R-1001", compressRowIds(["R-999", "R-1000", "R-1001"]));
+const whitespaceInside = checkTree(fixture("| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n|\u0085R-1000\u001f | A shall work. | untested | — |"));
+// req: R-287
+check("R-287 fixture: U+0085 and U+001F rows load only inside a feature", whitespaceInside.parsed.tables.some((table) => table.rows.includes("R-1000")) && whitespaceInside.problems.length === 0 && whitespaceInside.outline.includes("Rows: 1 · IDs: R-1000"), whitespaceInside.problems.join("; "));
+const whitespaceOutside = checkTree(`# CAP-01 · A\nPurpose: cap\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n|\u0085R-1000\u001f | A shall work. | untested | — |`);
+// req: R-287
+check("R-287 fixture: U+0085 and U+001F rows outside a feature are refused", whitespaceOutside.problems.some((problem) => problem.includes("R-1000 is not in a feature or subgroup table")), whitespaceOutside.problems.join("; "));
+// req: R-287 R-291
+check("R-291 fixture: a leading BOM before the first heading is read", parseLedger("\ufeff# CAP-01 · A\nPurpose: cap\n").headings.some((heading) => heading.id === "CAP-01"));
 for (const [label, status] of [["missing", null], ["unknown", "done"], ["empty frozen", "frozen ()"], ["empty retired", "retired ()"], ["blank reason", "frozen (   )"]]) {
   let text = governance(status ?? "active");
   if (status === null) text = text.replace("Status: active\nAlso applies:", "Also applies:");

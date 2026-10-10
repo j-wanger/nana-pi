@@ -191,6 +191,11 @@ def test_shared_whitespace_and_one_leading_bom_are_read(tmp_path: Path) -> None:
     tests = tmp_path / "tests"
     tests.mkdir()
     assert {f"R-{i:03d}" for i in range(1, 10)} | {"R-010"} <= set(check(tmp_path)[0])
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "\ufeff\ufeff| R-1000 | The system shall remove one BOM. | untested | — |\n",
+        encoding="utf-8",
+    )
+    assert "R-1000" not in check(tmp_path)[0]
     assert scan_source("\ufeff# req: R-1000,R-001\u2028G-1000\ndef test_marker():\n    pass\n", "tests/test_a.py")[0][
         0
     ] == [
