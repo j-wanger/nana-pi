@@ -261,6 +261,20 @@ for (const [name, ch] of [["U+0085", "\u0085"], ["U+001F", "\u001f"], ["U+FEFF",
   out("tree: one BOM before the first heading: problems / rows", `${tb.problems.length} / ${/Rows: 3 ·/.test(tb.outline.split("\n").find((l) => l.includes("Parent: CAP-01")) || "")}`, "0 / true");
 }
 
+// The tree counts a line as a row only when the rail does (sol build r4): it calls the rail's own
+// row test, so a malformed candidate is never counted or rendered, and the rail fails it by line.
+for (const [label, bad] of [
+  ["a candidate missing its closing pipe", "| R-1000 | The tool shall b. | untested | —"],
+  ["U+0085 around the ID, missing its closing pipe", "|\u0085R-1000\u001f| The tool shall b. | untested | —"],
+  ["a letter after the closing pipe", "| R-1000 | The tool shall b. | untested | — |x"],
+  ["five cells", "| R-1000 | The tool shall b. | untested | — | extra |"],
+]) {
+  const malformed = ledger.replace("| R-1000 | The tool shall b. | untested | — |", bad);
+  const tm = tree.checkTree(malformed);
+  out(`tree: ${label} is not counted`, /Rows: 2 ·/.test(tm.outline.split("\n").find((l) => l.includes("Parent: CAP-01")) || ""), "true");
+  both(`rail: ${label} in a feature table fails`, project({ "REQUIREMENTS.md": malformed }), at("REQUIREMENTS.md", 12), "true/names REQUIREMENTS.md:12");
+}
+
 // nana-pi's own ledger: every candidate line is a valid row (the new rule finds nothing to fail).
 const lines = readFileSync(join(W, "REQUIREMENTS.md"), "utf8").split("\n");
 const cand = lines.filter((l) => /^\|\s*[RG]-\S/.test(l));

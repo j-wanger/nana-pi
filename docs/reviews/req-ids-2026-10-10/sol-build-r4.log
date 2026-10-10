@@ -1,0 +1,13 @@
+pi-review: item "req-ids" (git:/Users/jwang/nana-pi/.git): 3 round(s) used (3 completed, 0 review(s) in flight); admitted as round 4/3 (sol @ 6a74cfd88ee6) — OVER CAP, override recorded: confirmation round on the final tip after fixes to named findings
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.84s flat=0/5
+  [pi-review a1] cpu=1s flat=0/5
+  [pi-review a1] cpu=1.13s flat=0/5
+  [pi-review a1] cpu=1.14s flat=0/5
+  [pi-review a1] cpu=1.17s flat=0/5
+  [pi-review a1] cpu=1.17s flat=1/5
+  [pi-review a1] cpu=1.27s flat=0/5
+  [pi-review a1] cpu=1.28s flat=0/5
+  [pi-review a1] cpu=1.62s flat=0/5
+  [pi-review a1] cpu=1.71s flat=0/5
+[pi-review] SUCCESS on attempt 1 (2133 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/ids-sol-r4.md; round 4)
