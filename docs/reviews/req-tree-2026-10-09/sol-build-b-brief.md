@@ -1,10 +1,19 @@
 # Review brief — req-tree increment B build, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial)
 
+**Round 2.** Your r1 is `sol-build-b-r1.md` (SEND-BACK 6.5/10); the seat's response
+`sol-build-b-r1-response.md`. INPUTS moved to `8c2ec5274662850a6e8173b5ef048aaf5b191548` (seat amendment
+B-A1: one governance sentence, CHANGE-B §8). The fix run used `build-brief-b2.md`; report
+`builder-report-b2.md`. The seat re-ran `seat-verify-b.sh` (now with your r1 attacks):
+`seat-verify-b-output.txt`, every line as wanted, identical to the builder's. The seat read
+`checkOutlineFields`: it derives fields and the index from the parsed ledger with its own code and no
+longer calls `renderOutline`, `outlineFields` or `compressRowIds`. Verify every r1 finding is closed,
+then review the whole build again. Use INPUTS `8c2ec52…` wherever the brief below says INPUTS.
+
 You reviewed this increment's plan (`sol-plan-b-r1.md`, LAND-WITH-FIXES; fixes in
 `sol-plan-b-r1-response.md`). A pi luna builder built it from `build-brief-b1.md` (and any later
 `build-brief-b*.md`). Review `git diff 9e415db..HEAD` in full (the ledger diff is a re-render: judge
 it through the proof and sampling). Inputs: BASE `6b9202a501a7fe03dfc834ab34cdfc212f6d92ce` (original
-ledger), INPUTS `9e415db252464d47515f83a7b793569163a79a22` (`tree-b.json`, `fixed-text-b.md`).
+ledger), INPUTS `8c2ec5274662850a6e8173b5ef048aaf5b191548` (`tree-b.json`, `fixed-text-b.md`).
 
 ## Attack
 1. **Bytes.** Run `node docs/reviews/req-tree-2026-10-09/prove.mjs --approved <BASE> --inputs <INPUTS> REQUIREMENTS.md docs/requirements-sections-2026-10-09.md`.
