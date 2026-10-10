@@ -70,7 +70,10 @@ export function parseLedger(text) {
     const table = { heading: heading?.id ? heading : null, line: i + 1, rows: [], rowLines: [] };
     for (let j = i + 2; j < lines.length && !opaque[j]; j++) {
       const rowId = requirementRowId(lines[j]);
-      if (!rowId) break;
+      if (!rowId) {
+        if (lines[j].startsWith("|")) continue;
+        break;
+      }
       table.rows.push(rowId); table.rowLines.push(j + 1); rowsInTables.add(j + 1);
       if (heading?.id) heading.rows.push(rowId);
     }
