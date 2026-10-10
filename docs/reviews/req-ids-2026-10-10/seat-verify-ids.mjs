@@ -2,6 +2,7 @@
 // with `node docs/reviews/req-ids-2026-10-10/seat-verify-ids.mjs` and pastes the output verbatim).
 // Every fixture lives in the OS temp dir. Each line ends with what is wanted. Both rails are driven
 // directly: TypeScript through nana-pi's shim, Python through the template conftest under uvx.
+// It exits 1 on any mismatch; a skipped Python run counts as a mismatch (both rows claim both rails).
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -45,7 +46,13 @@ function py(dir) {
   try { const j = JSON.parse(p.stdout.trim().split("\n").pop()); return { ok: j.ok, text: j.text, has: (id) => j.ids.includes(id) }; }
   catch { return { ok: false, text: `python run failed: ${(p.stderr || p.stdout).slice(-300)}`, has: () => false }; }
 }
-const out = (label, got, want) => console.log(`${label}: ${got} (want ${want})`);
+let mismatches = 0;
+const out = (label, got, want) => {
+  const g = String(got), w = String(want);
+  const pass = w === ">0" ? Number(g) > 0 : g === w;
+  if (!pass) mismatches++;
+  console.log(`${pass ? "ok  " : "MISS"} ${label}: ${g} (want ${w})`);
+};
 const both = (label, dir, fn, want) => {
   out(`TS ${label}`, fn(ts(dir)), want);
   const p = py(dir); out(`PY ${label}`, p.ok === null ? p.text : fn(p), want);
@@ -86,13 +93,15 @@ for (const [label, text] of bad) {
   both(`near-miss in REQUIREMENTS-general.md (${label}) fails`, inGeneral, at("REQUIREMENTS-general.md", line), `true/names REQUIREMENTS-general.md:${line}`);
 }
 
-// Rejected marker: a leading-zero four-digit ID.
-const M = project({
-  "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-1000 | The tool shall accept four digits. | untested | — |\n`,
-  "tests/a.test.mjs": `// req: R-0123\ntest("bad", () => {});\n`,
-  "tests/test_a.py": `# req: R-0123\ndef test_bad():\n    pass\n`,
-});
-both("leading-zero marker refused", M, (r) => !r.ok, "true");
+// Rejected markers: leading zero, five digits, non-ASCII digits — in both languages.
+for (const [label, id] of [["leading-zero", "R-0123"], ["five-digit", "R-10000"], ["non-ASCII-digit", "R-１２３"]]) {
+  const M = project({
+    "REQUIREMENTS.md": `# f\n\n${HEAD}\n| R-1000 | The tool shall accept four digits. | untested | — |\n`,
+    "tests/a.test.mjs": `// req: ${id}\ntest("bad", () => {});\n`,
+    "tests/test_a.py": `# req: ${id}\ndef test_bad():\n    pass\n`,
+  });
+  both(`${label} marker refused`, M, (r) => !r.ok, "true");
+}
 
 // The tree checker sees four-digit rows and renders a range across R-999 to R-1001.
 const ledger = [
@@ -107,12 +116,18 @@ const t = tree.checkTree(ledger);
 out("tree checker four-digit rows: problems", t.problems.length, "0");
 out("tree checker counts all three rows in the feature", /Rows: 3 ·/.test(t.outline.split("\n").find((l) => l.includes("Parent: CAP-01")) || ""), "true");
 out("tree outline range across R-999 to R-1001", /R-999–R-1001/.test(t.outline), "true");
+const shared = ledger + ["## FEAT-002 · G", "Purpose: g", "Status: active", "Also applies: R-1000", "",
+  HEAD, "| R-998 | The tool shall d. | untested | — |", ""].join("\n");
+const ts2 = tree.checkTree(shared);
+out("tree checker accepts Also applies: R-1000 from another feature", ts2.problems.length, "0");
 
 // nana-pi's own ledger: every candidate line is a valid row (the new rule finds nothing to fail).
 const lines = readFileSync(join(W, "REQUIREMENTS.md"), "utf8").split("\n");
 const cand = lines.filter((l) => /^\|\s*[RG]-\S/.test(l));
 const valid = cand.filter((l) => /^\|\s*[RG]-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|(?:[^|]*\|){3}\s*$/.test(l));
-out("real ledger: candidate lines that are valid rows", `${valid.length} of ${cand.length}`, "all of them");
+out("real ledger: candidate lines that are valid rows", valid.length === cand.length ? "all of them" : `${valid.length} of ${cand.length}`, "all of them");
 
 for (const d of roots) rmSync(d, { recursive: true, force: true });
-console.log(`python rail: ${UVX ? "exercised" : "SKIPPED (uvx with pytest unavailable)"}`);
+console.log(`python rail: ${UVX ? "exercised" : "SKIPPED (uvx with pytest unavailable) — counted as mismatches"}`);
+console.log(`seat-verify-ids: ${mismatches} mismatch(es)`);
+process.exit(mismatches ? 1 : 0);

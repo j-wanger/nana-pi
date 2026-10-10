@@ -3,7 +3,7 @@
 *Lane `req-ids` · branch `feat/req-ids` · worktree `~/nana-pi-wt/req-ids` · based on `feat/req-tree`
 at `c4332ec` (the requirements tree: reviewed, waiting for Jake's acceptance; this lane lands after
 it) · 2026-10-10. Feature: **FEAT-028 · Maintain requirement identity and trace links** (CAP-07).
-Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1 adjudicated in `sol-plan-r1-response.md`) → build (pi luna) → seat
+Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1 and r2 adjudicated in `sol-plan-r1-response.md` and `sol-plan-r2-response.md`) → build (pi luna) → seat
 verification → sol build review (item `req-ids`) → astra land review → Jake accepts.*
 
 ## 1. Why
@@ -43,10 +43,13 @@ there as a real row). Checked locally on 2026-10-10: every candidate line in nan
 (1,012), the shared Part G file (22), both template ledgers, aml-desk's (365) and basketball-geek's
 (165) is a valid row, so no existing ledger trips it.
 
-**Compatibility break, declared:** a row missing its closing pipe is read today by the Python rail
-and skipped by the TypeScript one; after this change both fail it, naming the line. A Python project
-holding such a row fails at its next template update until the pipe is added. The template ledgers'
-ID line says so.
+**Compatibility break, declared in full:** the candidate prefix (`|`, optional spaces, `R-` or `G-`
+and a non-space character at column zero) is reserved on EVERY line of the two ledger files. Two
+things that pass today fail after this change, naming the line: a row missing its closing pipe
+(read today by the Python rail, skipped by the TypeScript one), and any non-row line that starts with
+the prefix — a fenced example, an unrelated table, prose. None exists in any ledger checked (§2).
+The template ledgers' ID line says so and tells authors to indent such an example or spell its
+first cell another way.
 
 Changed: none of the existing rows. The ledger intro's ID paragraph records the new allocation, and
 open question 9 is marked closed (§4). Retired: none.
@@ -74,14 +77,17 @@ problem list. Declared residual; the tree outline already orders numerically.
   `templates/typescript/template/tests/requirements-trace.test.ts.jinja`,
   `templates/python/template/tests/test_requirements_trace.py.jinja` — the matrix in §5.
 - Both template ledgers' ID line: after `R-999` the next ID is `R-1000`; four digits never start with
-  zero; a row needs its closing pipe.
+  zero; a row needs its closing pipe; a line starting `| R-` or `| G-` is always read as a row, so
+  indent an example that would.
 - Wording that describes the grammar as three digits: `README.md:49`, `packages/nana-pack/skills/scaffold-py/SKILL.md:17`,
   `packages/nana-pack/skills/scaffold-ts/SKILL.md:18`, `packages/nana-pack/skills/spec/SKILL.md:16`,
   `packages/nana-pack/skills/requirements/SKILL.md:68` — "R-nnn" becomes wording that allows three
   or four digits; examples like `R-001` stay.
 - nana-pi: `scripts/requirements-trace.mjs` (re-export `ID`); `scripts/requirements-tree.mjs` (build
-  its row-prefix pattern from the rail's `ID`, keeping a prefix match; the range parser and both
-  compressors accept four digits, including a range crossing `R-999` to `R-1000`).
+  its row-prefix pattern from the rail's `ID`, keeping a prefix match; the `Also applies:` share
+  validator (:197) uses `ID` too, so `Also applies: R-1000` is valid when R-1000 is a row elsewhere;
+  the range parser and both compressors accept four digits, including a range crossing `R-999` to
+  `R-1000`).
 - Tests that carry their own three-digit patterns (sol r1: these would silently weaken, since R-1000
   allows `G-1000`): `packages/nana-pack/tests/templates-render.test.mjs` (:167, :188, :196, :611,
   :612, :614), `packages/nana-pack/tests/templates-update.test.mjs` (:108, :109),
@@ -123,12 +129,16 @@ number." Open question 9 is prefixed "(closed 2026-10-10: four-digit IDs, R-1000
 **Template release.** The rail is template-owned: after the merge, CI's release job cuts the next
 patch tag. Rendered projects pick it up with `uvx copier update`.
 
-**Stacked base and landing (sol r1, and Jake's 2026-10-10 land rule).** The lane is based on the tree
-branch at `c4332ec`. Jake ruled that nothing reaches main unless an independent reviewer accepted
-it. So the tree lands at its reviewed revision `eeeca20` (astra LAND), and this lane's final review
-covers `git diff eeeca20..<tip>` — including the tree's last review record (`c4332ec`). If the
-tree branch changes before it lands, this lane rebases onto the accepted tree tip, regenerates,
-reruns every check and gets the changed diff reviewed.
+**Stacked base and landing (sol r1–r2, and Jake's 2026-10-10 land rule).** The lane's parent is the
+tree branch's tip `c4332ec`, whose only commit after the tree's last review (`eeeca20`, astra LAND)
+is that review's own record. Jake ruled that nothing reaches main unless an independent reviewer
+accepted it, and a review cannot accept its own record. So the tree lands at `eeeca20`, and that
+record commit lands WITH this lane: this lane's final review covers `git diff eeeca20..<tip>`, the
+record included. (sol r2 proposed landing the tree at `c4332ec`; that would land an unreviewed
+commit, so the seat declines it with this reason.) The same pattern holds for this lane: its own
+final review record rides the next change. If the tree branch changes before it lands, this lane
+rebases onto the accepted tree tip, regenerates, reruns every check and gets the changed diff
+reviewed.
 
 ## 5. Verification (doneWhen, from the worktree)
 
@@ -141,12 +151,16 @@ reruns every check and gets the changed diff reviewed.
    by its marker. Rejected, each naming its exact file and line — a leading-zero ID (`R-0123`), a
    five-digit ID, non-ASCII digits (`R-１２３`), a missing closing pipe, a candidate inside a fenced
    example, a candidate in an unrelated table; each in `REQUIREMENTS.md` AND in
-   `REQUIREMENTS-general.md` (with a general file present); a leading-zero marker refused.
+   `REQUIREMENTS-general.md` (with a general file present). Markers refused in both languages: a
+   leading-zero, a five-digit and a non-ASCII-digit ID. The tree checker: four-digit rows placed,
+   counted and rendered, and another feature's `Also applies: R-1000` accepted.
    Mutation pairs (code or scratch copies, red then green): the ID pattern back to three digits; `\d`
    instead of `[0-9]` in Python (the non-ASCII fixture goes green wrongly → red test); the near-miss
    reader removed, or run on merged text only (the general-file fixtures fail); the G branch
    disabled; the tree checker's own `\d{3}` restored.
-5. The seat's script `seat-verify-ids.mjs`, pasted verbatim.
+5. The seat's script `seat-verify-ids.mjs`, pasted verbatim. It compares every result with what is
+   wanted and exits 1 on any mismatch; a Python run skipped for want of `uvx` counts as a mismatch,
+   because both rows claim both rails.
 
 ## 6. Checkpoint 2 (Jake, about 10 minutes)
 

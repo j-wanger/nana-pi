@@ -1,6 +1,6 @@
 # Review brief — four-digit requirement IDs, plan, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial + compatibility)
 
-**Round 2.** Your r1 is `sol-plan-r1.md` (SEND-BACK 6/10); the seat's response is `sol-plan-r1-response.md`. Verify each fix in the revised `CHANGE.md`, and judge `seat-verify-ids.mjs` (the seat's acceptance script; run it — on today's code its four-digit and near-miss lines are expected to fail). Then review the plan as a whole; new findings welcome.
+**Round 3 — the last allowed for this item.** Your reviews: `sol-plan-r1.md` (SEND-BACK 6), `sol-plan-r2.md` (SEND-BACK 7). Responses: `sol-plan-r1-response.md`, `sol-plan-r2-response.md` (r2 MUST 3 declined with Jake's land rule as the reason; argue it only if the reason fails). Verify each fix in `CHANGE.md` and in `seat-verify-ids.mjs` (it now exits 1 on any mismatch; on today's code it must fail). Then review the plan as a whole.
 
 You review a PLAN. Jake asked: "ok lets first update the requirements id range to be 4 digits." Do
 not re-argue whether. Read `docs/reviews/req-ids-2026-10-10/CHANGE.md` (the plan) and
