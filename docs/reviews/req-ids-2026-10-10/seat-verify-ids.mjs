@@ -75,6 +75,30 @@ const pyMarkers = project({
 });
 const pm = py(pyMarkers); out("PY R-1000 and G-1000 markers trace their rows", pm.ok === null ? pm.text : `${pm.ok}${pm.ok ? "" : " " + pm.text.slice(0, 140)}`, "true");
 
+// Accepted line endings (sol and astra build r1): CRLF ledgers and test files, and spaces or a tab
+// after the closing pipe, for three- and four-digit IDs, in both files and both rails.
+{
+  const rows = ["| R-001 | The tool shall work. | untested | — |", "| R-1000 | The tool shall accept four digits. | untested | — |"];
+  const g = "| G-001 | Every module shall carry a header. | untested | — |";
+  const crlf = (s) => s.replace(/\n/g, "\r\n");
+  const C1 = project({ "REQUIREMENTS.md": crlf(`# f\n\n${HEAD}\n${g}\n${rows.join("\n")}\n`), "REQUIREMENTS-general.md": crlf(`# g\n\n${HEAD}\n${g}\n`) });
+  both("CRLF ledger and general file: rows read and clean", C1, (r) => `${r.has("R-001")}/${r.has("R-1000")}/${r.ok}${r.ok ? "" : " " + r.text.slice(0, 100)}`, "true/true/true");
+  const C2 = project({ "REQUIREMENTS.md": `# f\n\n${HEAD}\n${g}  \n${rows[0]}   \n${rows[1]}\t\n`, "REQUIREMENTS-general.md": `# g\n\n${HEAD}\n${g} \t\n` });
+  both("spaces or a tab after the closing pipe: rows read and clean", C2, (r) => `${r.has("R-001")}/${r.has("R-1000")}/${r.ok}${r.ok ? "" : " " + r.text.slice(0, 100)}`, "true/true/true");
+  const C3 = project({ "REQUIREMENTS.md": crlf(`# f\n\n${HEAD}\n| R-1000 | The tool shall accept four digits. | untested | —\n`) });
+  both("CRLF row missing its closing pipe still fails", C3, at("REQUIREMENTS.md", 5), "true/names REQUIREMENTS.md:5");
+  const tsC = project({
+    "REQUIREMENTS.md": crlf(`# f\n\n${HEAD}\n| R-1000 | The tool shall accept four digits. | implemented | \`tests/a.test.mjs::four digit\` |\n`),
+    "tests/a.test.mjs": crlf(`// req: R-1000\ntest("four digit", () => {});\n`),
+  });
+  out("TS CRLF test file: four-digit marker traces its row", ((r) => `${r.ok}${r.ok ? "" : " " + r.text.slice(0, 120)}`)(ts(tsC)), "true");
+  const pyC = project({
+    "REQUIREMENTS.md": crlf(`# f\n\n${HEAD}\n| R-1000 | The tool shall accept four digits. | implemented | \`tests/test_a.py::test_four_digit\` |\n`),
+    "tests/test_a.py": crlf(`# req: R-1000\ndef test_four_digit():\n    pass\n`),
+  });
+  const pc = py(pyC); out("PY CRLF test file: four-digit marker traces its row", pc.ok === null ? pc.text : `${pc.ok}${pc.ok ? "" : " " + pc.text.slice(0, 120)}`, "true");
+}
+
 // Rejected near-misses, each in REQUIREMENTS.md and in REQUIREMENTS-general.md, at an exact line.
 const bad = [
   ["leading zero", "| R-0123 | The tool shall do a thing. | untested | — |"],

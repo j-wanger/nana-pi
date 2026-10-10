@@ -9,7 +9,7 @@
 - 2026-09-18 to 10-05: setup and the per-repo objective, the 09-28 rulings, self-hosted requirements, pi 1.0, the writing trial, the edge desk on pi MCP, the code map seeing tests — `docs/sessions/2026-09.md`, `docs/sessions/2026-10.md`.
 - 2026-10-06 to 10-09: the hardening program, six tranches and forty lanes, complete; CI cuts the template tags — `docs/hardening-plan-2026-10-06.md`, `docs/sessions/2026-10.md`.
 - 2026-10-09: builders lose the automatic knowledge pull (Jake) — `docs/sessions/2026-10.md`.
-- 2026-10-10: the new priority line in the umbrella `OBJECTIVE.md` (sol LAND, 10/10). Rulings: nothing reaches main unless an independent reviewer accepted it; rm runs freely only inside the working directory; Windows is tested now; the desk stays frozen; the export rule gets an explicit pi carve-out; a study stops when it cannot write its evidence.
+- 2026-10-10: the new priority line in the umbrella `OBJECTIVE.md` (sol LAND, 10/10). Rulings: nothing reaches main unless an independent reviewer accepted it; rm runs freely only inside the working directory; Jake requires Windows testing now; the desk stays frozen; the export rule gets an explicit pi carve-out; a study stops when it cannot write its evidence.
 
 ## Carried residuals (live; one line each)
 
@@ -53,7 +53,7 @@
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
 - **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 10–12 wait for you, including the three code-map questions; 9 closed with four-digit IDs. Six rows read `violated`: R-542 (fix queued) and five desk rows (declared while the desk is frozen).
-- **[blocking, since 2026-10-09] Requirements tree and four-digit IDs, checkpoint 2.** Both passed review. Accept them; confirm the seven frozen features; rule on the R-224 share and on sharing the two new ID rows with project setup. Then the seat lands them together. Detail: `docs/reviews/req-tree-2026-10-09/`, `docs/reviews/req-ids-2026-10-10/`.
+- **[blocking, since 2026-10-09] Requirements tree and four-digit IDs, checkpoint 2.** The tree passed review; the four-digit IDs land only after their final review passes. Accept them; confirm the seven frozen features; rule on the R-224 share and on sharing the two new ID rows with project setup. Then the seat lands them together. Detail: `docs/reviews/req-tree-2026-10-09/`, `docs/reviews/req-ids-2026-10-10/`.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
 - **[optional, since 2026-10-08] edge-screener.** Its land branch is now named `p87-setup` (local commit). Moving `main` to it and publishing are yours.
