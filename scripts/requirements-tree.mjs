@@ -10,14 +10,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ID, WHITESPACE } from "./requirements-trace.mjs";
+import { ID, requirementRowId } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
-const WS_CLASS = `[${WHITESPACE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}]`;
-const ROW = new RegExp(`^\\|${WS_CLASS}*(${ID.source.slice(1, -1)})${WS_CLASS}*\\|`);
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
@@ -51,7 +49,7 @@ function scanBlocks(lines) {
         : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], firstMarkdownTableLine: null, parent: null, rows: [], markdownHeading: true });
       continue;
     }
-    if (SETEXT.test(line) && i > 0 && lines[i - 1].trim() && !ATX.test(lines[i - 1]) && !SETEXT.test(lines[i - 1]) && lines[i - 1] !== TABLE_HEADER && !ROW.test(lines[i - 1])) {
+    if (SETEXT.test(line) && i > 0 && lines[i - 1].trim() && !ATX.test(lines[i - 1]) && !SETEXT.test(lines[i - 1]) && lines[i - 1] !== TABLE_HEADER && requirementRowId(lines[i - 1]) === null) {
       const prior = headingsByLine.get(i - 1);
       if (!prior) headingsByLine.set(i - 1, { level: line.trimStart()[0] === "=" ? 1 : 2, id: null, label: lines[i - 1].trim(), line: i, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true });
     }
@@ -71,10 +69,10 @@ export function parseLedger(text) {
     const heading = [...headingsByLine].filter(([lineNo]) => lineNo < i).at(-1)?.[1] ?? null;
     const table = { heading: heading?.id ? heading : null, line: i + 1, rows: [], rowLines: [] };
     for (let j = i + 2; j < lines.length && !opaque[j]; j++) {
-      const row = ROW.exec(lines[j]);
-      if (!row) break;
-      table.rows.push(row[1]); table.rowLines.push(j + 1); rowsInTables.add(j + 1);
-      if (heading?.id) heading.rows.push(row[1]);
+      const rowId = requirementRowId(lines[j]);
+      if (!rowId) break;
+      table.rows.push(rowId); table.rowLines.push(j + 1); rowsInTables.add(j + 1);
+      if (heading?.id) heading.rows.push(rowId);
     }
     tables.push(table);
   }
@@ -123,12 +121,13 @@ export function checkRowsUnderFeatures(parsed) {
     if (parsed.opaque[i]) continue;
     const heading = parsed.headingsByLine.get(i);
     if (heading) nearest = heading.id ? { id: heading.id } : null;
-    const row = ROW.exec(parsed.lines[i]);
-    if (row && (!parsed.rowsInTables.has(i + 1) || !nearest || !/^(FEAT|SUB)-/.test(nearest.id)))
-      problems.push(`line ${i + 1}: ${row[1]} is not in a feature or subgroup table`);
+    const rowId = requirementRowId(parsed.lines[i]);
+    if (rowId && (!parsed.rowsInTables.has(i + 1) || !nearest || !/^(FEAT|SUB)-/.test(nearest.id)))
+      problems.push(`line ${i + 1}: ${rowId} is not in a feature or subgroup table`);
   }
   for (let i = 0; i < parsed.lines.length; i++) {
-    if (parsed.opaque[i] && ROW.test(parsed.lines[i])) problems.push(`line ${i + 1}: ${ROW.exec(parsed.lines[i])[1]} is not in a feature or subgroup table`);
+    const rowId = parsed.opaque[i] ? requirementRowId(parsed.lines[i]) : null;
+    if (rowId) problems.push(`line ${i + 1}: ${rowId} is not in a feature or subgroup table`);
   }
   return problems;
 }

@@ -161,7 +161,17 @@ const whitespaceInside = checkTree(fixture("| ID | Requirement | Status | Eviden
 check("R-287 fixture: U+0085 and U+001F rows load only inside a feature", whitespaceInside.parsed.tables.some((table) => table.rows.includes("R-1000")) && whitespaceInside.problems.length === 0 && whitespaceInside.outline.includes("Rows: 1 · IDs: R-1000"), whitespaceInside.problems.join("; "));
 const whitespaceOutside = checkTree(`# CAP-01 · A\nPurpose: cap\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n|\u0085R-1000\u001f | A shall work. | untested | — |`);
 // req: R-287
-check("R-287 fixture: U+0085 and U+001F rows outside a feature are refused", whitespaceOutside.problems.some((problem) => problem.includes("R-1000 is not in a feature or subgroup table")), whitespaceOutside.problems.join("; "));
+check("R-287 fixture: whitespace-variant row outside a feature is refused", whitespaceOutside.problems.some((problem) => problem.includes("R-1000 is not in a feature or subgroup table")), whitespaceOutside.problems.join("; "));
+const malformedCandidates = [
+  "| R-1000 | A shall work. | untested | —",
+  "| R-1000 | A shall work. | untested | — |x",
+  "| R-1000 | A shall work. | untested | — | extra |",
+];
+// req: R-287
+check("R-287 fixture: malformed requirement candidates are omitted from the outline", malformedCandidates.every((candidate) => {
+  const result = checkTree(fixture(`| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n${candidate}`));
+  return !result.parsed.tables.some((table) => table.rows.includes("R-1000")) && !result.outline.includes("R-1000");
+}), "a malformed candidate was counted or rendered");
 // req: R-287 R-291
 check("R-291 fixture: a leading BOM before the first heading is read", parseLedger("\ufeff# CAP-01 · A\nPurpose: cap\n").headings.some((heading) => heading.id === "CAP-01"));
 for (const [label, status] of [["missing", null], ["unknown", "done"], ["empty frozen", "frozen ()"], ["empty retired", "retired ()"], ["blank reason", "frozen (   )"]]) {

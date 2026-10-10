@@ -193,7 +193,7 @@ describe("loadRequirements", () => {
 			Array.from(
 				{ length: 9 },
 				(_, i) => `R-${String(i + 1).padStart(3, "0")}`,
-			).every((id) => rows.has(id)),
+			).every((id) => rows.has(id)) && rows.has("R-010"),
 		).toBe(true);
 		expect(
 			scanSource(

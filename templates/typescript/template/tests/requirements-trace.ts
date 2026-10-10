@@ -59,15 +59,20 @@ const ID_SOURCE = `[RG]-(?:[0-9]{3}|[1-9][0-9]{3})`;
 const ROW = new RegExp(`^\\|${WS}*(${ID_SOURCE})${WS}*\\|(.*)\\|${WS}*$`, "s");
 const ROW_CANDIDATE = new RegExp(`^\\|${WS}*[RG]-[^${WS_CLASS}]`);
 
+/** Return the ID only when a line is a complete four-cell requirement row. */
+export function requirementRowId(line: string): string | null {
+	const normalized = stripWhitespaceEnd(line);
+	if (!normalized.startsWith("|") || !normalized.endsWith("|")) return null;
+	const cells = normalized.slice(1, -1).split("|").map(trimWhitespace);
+	const id = cells[0] ?? "";
+	return cells.length === 4 && ID.test(id) ? id : null;
+}
+
 function assertNoNearMissRows(text: string, file: string): void {
 	for (const [index, rawLine] of text.split("\n").entries()) {
 		const line = stripWhitespaceEnd(rawLine);
 		if (!ROW_CANDIDATE.test(line)) continue;
-		let cells: string[] = [];
-		if (line.startsWith("|") && line.endsWith("|")) {
-			cells = line.slice(1, -1).split("|").map(trimWhitespace);
-		}
-		if (cells.length === 4 && ID.test(cells[0] ?? "")) continue;
+		if (requirementRowId(line) !== null) continue;
 		throw new Error(
 			`${file}:${index + 1}: malformed requirement row (expected R-NNN or R-NNNN, four digits never starting with 0; four cells and opening/closing pipes required)`,
 		);
@@ -210,10 +215,11 @@ export interface Marked {
 	title: string;
 }
 
-/** Parse REQUIREMENTS.md into rows by id. Throws on a malformed table. */
+/** Parse already-normalized REQUIREMENTS.md text (the file reader removed its leading BOM) into rows by ID. Throws on a malformed table. */
 export function loadRequirements(text: string): Map<string, Row> {
 	const rows = new Map<string, Row>();
 	for (const rawLine of text.split("\n")) {
+		if (requirementRowId(rawLine) === null) continue;
 		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
@@ -248,13 +254,15 @@ export function loadRequirements(text: string): Map<string, Row> {
 }
 
 /**
- * Every row's `shall` count in its Requirement cell, read straight from the table text —
- * independent of `loadRequirements()` so `Row`'s shape carries no new field and every
+ * Every row's `shall` count in its Requirement cell, read from already-normalized text
+ * (the file reader removed its leading BOM) straight from the table text — independent of
+ * `loadRequirements()` so `Row`'s shape carries no new field and every
  * existing comparison against it stays exact.
  */
 export function shallCounts(text: string): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const rawLine of text.split("\n")) {
+		if (requirementRowId(rawLine) === null) continue;
 		const m = ROW.exec(stripWhitespaceEnd(rawLine));
 		if (!m) continue;
 		const id = m[1] as string;
@@ -515,6 +523,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		const rowCells = (source: string): Map<string, string[]> => {
 			const found = new Map<string, string[]>();
 			for (const rawLine of source.split("\n")) {
+				if (requirementRowId(rawLine) === null) continue;
 				const match = ROW.exec(stripWhitespaceEnd(rawLine));
 				if (!match) continue;
 				const cells = (match[2] as string).split("|").map(trimWhitespace);
@@ -553,7 +562,7 @@ export function check(root: string, options: CheckOptions = {}): CheckResult {
 		text = `${projectText
 			.split("\n")
 			.map(stripWhitespaceEnd)
-			.filter((line) => !ROW.test(line))
+			.filter((line) => requirementRowId(line) === null)
 			.join("\n")}\n${mergedLines.join("\n")}\n`;
 		if (differences.length)
 			driftLine = `part g: ${differences.length} cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): ${differences.sort().join(", ")}`;
