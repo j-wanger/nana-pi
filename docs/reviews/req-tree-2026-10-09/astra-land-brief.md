@@ -1,5 +1,15 @@
 # Land review — req-tree, 2026-10-09 (reviewer: gpt-6-astra; role: land ruler)
 
+**Round 5 (second land round, over the cap).** Your r4 review is `astra-land-r4.md` (SEND-BACK 7/10:
+the tree faithful; two verification holes; a stale reserve sentence). Fix runs: `build-brief-6.md`
+and `build-brief-7.md` (report 6 claimed the placeholder bypass closed; the seat's re-run refuted it,
+`seat-verify-r4-output-before-fix.txt`; run 7 closed it). The reserve sentence is corrected under the
+seat's Amendment A1 (`amendment-A1.md`/`.json`): `prove.mjs` now takes `--amendment
+48c92146f5c57be7d666cc9d90034b7196b39377` and accepts exactly that second intro edit. Seat re-run
+after the fix: `seat-verify-r4-output.txt` (every line as wanted). Verify r4's findings are closed,
+judge Amendment A1, then give the land ruling. The proof command is now
+`node docs/reviews/req-tree-2026-10-09/prove.mjs --approved 6b9202a501a7fe03dfc834ab34cdfc212f6d92ce --amendment 48c92146f5c57be7d666cc9d90034b7196b39377 REQUIREMENTS.md docs/requirements-sections-2026-10-09.md`.
+
 You drafted this tree in a separate session with Jake (8 capabilities, 38 features, 21 subgroups;
 `docs/reviews/req-tree-2026-10-09/mapping-astra.json` is your draft, unedited). Jake decided to
 implement it and agreed the plan at checkpoint 1 (`CHANGE.md` §7a; approved commit
