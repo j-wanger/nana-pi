@@ -49,7 +49,7 @@
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
 - **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Six rows read `violated`: R-542 and five desk rows. Only 13 IDs remain; decide question 9 before the next program.
-- **[blocking, since 2026-10-09] Requirements tree, checkpoint 1.** The plan passed sol on the third round. Agree the outline and four decisions; then the build starts on its lane. Detail: `docs/reviews/req-tree-2026-10-09/`.
+- **[blocking, since 2026-10-09] Requirements tree, checkpoint 2.** The build passed review (astra: land, 9 of 10). Accept it, or name what to rename or move; then the seat lands it. Detail: `docs/reviews/req-tree-2026-10-09/`.
 - **[optional, since 2026-10-09] Unreviewed fixes on main.** Fixes after a "land with fixes" review skip a second review. Block them, allow named kinds, or reword the working pattern? Decide at 10-20.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.
