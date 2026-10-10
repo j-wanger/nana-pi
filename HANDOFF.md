@@ -28,6 +28,7 @@
 - Tranche 2: an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Desk residuals live in `apps/desk/README.md` Known limits.
+- Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 
 ## Where things stand
 
@@ -48,8 +49,8 @@
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
 - **[optional, since 2026-10-04] pi 1.0 screen-only parts.** FleetView and stopping a run in the TUI have had no feel check.
 - **[optional, since 2026-09-29] The process is unfelt.** The session-start block, the provenance label and the review cost are surfaces you meet every session; judge them by use.
-- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Six rows read `violated`: R-542 and five desk rows. Only 13 IDs remain; decide question 9 before the next program.
-- **[blocking, since 2026-10-09] Requirements tree, checkpoint 2.** The build passed review (astra: land, 9 of 10). Accept it, or name what to rename or move; then the seat lands it. Detail: `docs/reviews/req-tree-2026-10-09/`.
+- **[optional, since 2026-10-02] REQUIREMENTS decisions.** Open questions 1, 3, 6, 6b and 9–12 wait for you, including the three code-map questions. Six rows read `violated`: R-542 and five desk rows. Only five IDs remain after the requirements tree; decide question 9 before any change that adds rows.
+- **[blocking, since 2026-10-09] Requirements tree, checkpoint 2.** Both parts passed review: the tree, and the placement review, shared rows and lifecycle rules. Accept both, confirm the seven frozen features, and rule on one share; then the seat lands them. Detail: `docs/reviews/req-tree-2026-10-09/`.
 - **[optional, since 2026-10-09] Unreviewed fixes on main.** Fixes after a "land with fixes" review skip a second review. Block them, allow named kinds, or reword the working pattern? Decide at 10-20.
 - **[optional, since 2026-10-08] Codex re-imports legacy skills.** The Codex app copies `~/.claude/skills` into `~/.agents/skills` nightly; install retires them again. Switch off its Claude-skill import, or let the seat retire the legacy dev and wiki skills (plan D2, step c).
 - **[optional, since 2026-10-08] aml-desk work from the umbrella folder.** An aml-desk session runs from `~/nana-agent-loop`, so it gets the umbrella objective and writes aml-desk facts to the umbrella's memory; starting it in `~/aml-desk` fixes both.

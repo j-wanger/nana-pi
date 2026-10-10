@@ -1,0 +1,40 @@
+pi-review: note — --retries 2 = 2 re-attempt(s) after the first (3 attempt(s) total); before T2b it meant 2 attempt(s) total
+pi-review: item "req-tree-b" (git:/Users/jwang/nana-pi/.git): 2 round(s) used (2 completed, 0 review(s) in flight); admitted as round 3/3 (sol @ 997107053b27)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.9s flat=0/30
+  [pi-review a1] cpu=0.99s flat=0/30
+  [pi-review a1] cpu=1.31s flat=0/30
+  [pi-review a1] cpu=1.88s flat=0/30
+  [pi-review a1] cpu=2.09s flat=0/30
+  [pi-review a1] cpu=2.1s flat=0/30
+  [pi-review a1] cpu=2.1s flat=1/30
+  [pi-review a1] cpu=2.11s flat=0/30
+  [pi-review a1] cpu=2.11s flat=1/30
+  [pi-review a1] cpu=2.11s flat=2/30
+  [pi-review a1] cpu=2.11s flat=3/30
+  [pi-review a1] cpu=2.11s flat=4/30
+  [pi-review a1] cpu=2.11s flat=5/30
+  [pi-review a1] cpu=2.12s flat=0/30
+  [pi-review a1] cpu=2.12s flat=1/30
+  [pi-review a1] cpu=2.12s flat=2/30
+  [pi-review a1] cpu=2.12s flat=3/30
+  [pi-review a1] cpu=2.12s flat=4/30
+  [pi-review a1] cpu=2.13s flat=0/30
+  [pi-review a1] cpu=2.13s flat=1/30
+  [pi-review a1] cpu=2.13s flat=2/30
+  [pi-review a1] cpu=2.13s flat=3/30
+  [pi-review a1] cpu=2.13s flat=4/30
+  [pi-review a1] cpu=2.13s flat=5/30
+  [pi-review a1] cpu=2.14s flat=0/30
+  [pi-review a1] cpu=2.14s flat=1/30
+  [pi-review a1] cpu=2.14s flat=2/30
+  [pi-review a1] cpu=2.14s flat=3/30
+  [pi-review a1] cpu=2.15s flat=0/30
+  [pi-review a1] cpu=2.15s flat=1/30
+  [pi-review a1] cpu=2.15s flat=2/30
+  [pi-review a1] cpu=2.15s flat=3/30
+  [pi-review a1] cpu=2.16s flat=0/30
+  [pi-review a1] cpu=2.22s flat=0/30
+  [pi-review a1] cpu=2.27s flat=0/30
+  [pi-review a1] cpu=2.37s flat=0/30
+[pi-review] SUCCESS on attempt 1 (2672 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/sol-build-b-r3.md; round 3)
