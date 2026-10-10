@@ -159,6 +159,10 @@ const pm = py(pyMarkers); out("PY R-1000 and G-1000 markers trace their rows", p
   parity("BOM before the ledger title", ...d, "rows R-001,R-1000; traced none");
   d = same({ "REQUIREMENTS.md": `﻿${r1000}\n${r001}\n` });
   parity("BOM directly before a first-line row", ...d, "rows R-001,R-1000; traced none");
+  d = same({ "REQUIREMENTS.md": `\ufeff\ufeff| R-0123 | The tool shall work. | untested | — |\n${r001}\n` });
+  parity("two BOMs before a first-line row: one is removed, the line is not a row in either rail (declared)", ...d, "rows R-001; traced none");
+  d = same({ "REQUIREMENTS.md": `\ufeff\ufeff${r1000}\n${r001}\n` });
+  parity("two BOMs before a valid first-line row: not a row in either rail (declared)", ...d, "rows R-001; traced none");
   d = same({ "REQUIREMENTS.md": ledger([g001, r001]), "REQUIREMENTS-general.md": `﻿# g\n\n${HEAD}\n${g001}\n` });
   parity("BOM before the general file's title", ...d, "rows G-001,R-001; traced none");
   for (const [name, ch] of ODD) {
@@ -242,6 +246,20 @@ const shared = ledger + ["## FEAT-002 · G", "Purpose: g", "Status: active", "Al
   HEAD, "| R-998 | The tool shall d. | untested | — |", ""].join("\n");
 const ts2 = tree.checkTree(shared);
 out("tree checker accepts Also applies: R-1000 from another feature", ts2.problems.length, "0");
+
+// The tree checker reads rows with the rail's whitespace list and its one-BOM rule (sol and astra
+// build r3): a row the rail loads is counted and placed by the tree, never silently dropped.
+for (const [name, ch] of [["U+0085", "\u0085"], ["U+001F", "\u001f"], ["U+FEFF", "\ufeff"], ["no-break space", "\u00a0"], ["U+2028", "\u2028"], ["U+3000", "\u3000"]]) {
+  const inFeature = ledger.replace("| R-1000 | The tool shall b.", `|${ch}R-1000${ch}| The tool shall b.`);
+  const tw = tree.checkTree(inFeature);
+  out(`tree: ${name} around the ID inside a feature: problems / rows`, `${tw.problems.length} / ${/Rows: 3 ·/.test(tw.outline.split("\n").find((l) => l.includes("Parent: CAP-01")) || "")}`, "0 / true");
+  const outside = ["# CAP-01 · C", "Purpose: c", "Outcome: o", "", HEAD, `|${ch}R-1000 | The tool shall b. | untested | — |`, ""].join("\n");
+  out(`tree: ${name} before the ID outside any feature is refused`, tree.checkTree(outside).problems.length > 0, "true");
+}
+{
+  const tb = tree.checkTree(`\ufeff${ledger}`);
+  out("tree: one BOM before the first heading: problems / rows", `${tb.problems.length} / ${/Rows: 3 ·/.test(tb.outline.split("\n").find((l) => l.includes("Parent: CAP-01")) || "")}`, "0 / true");
+}
 
 // nana-pi's own ledger: every candidate line is a valid row (the new rule finds nothing to fail).
 const lines = readFileSync(join(W, "REQUIREMENTS.md"), "utf8").split("\n");

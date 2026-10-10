@@ -41,10 +41,10 @@
 ## Next
 
 1. **Hardening program: complete, 2026-10-09.** The seat still owes the fresh-machine rehearsal (plan 5.4). Waiting for idle sessions: the aml-desk ruling line and AGENTS refresh, the basketball-geek dormant line (plan 4.7). Detail: `docs/hardening-plan-2026-10-06.md` and the 2026-10 session archive.
-2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML land pages start on adopt or drop, not on extend.
+2. **Writing trial verdict, 2026-10-18** (a 20-report proxy is unverified). The seat runs the after-measure (baseline 0/32 strict) and sends the verdict; Jake rules adopt, extend once, or drop. HTML pages no longer wait for it: Jake lifted that hold on 2026-10-10.
 3. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The desk usage tally no longer decides anything: Jake ruled the desk on 2026-10-10. The pull reading drops sessions named for pi-worker or pi-review; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
-5. **Karpathy's other formats.** The code-drawn blast-radius diagram is unblocked. The review-timeline diagram waits with the HTML pages.
+5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order:** build the land rule into `nana-land` (refuse uncovered commits, no free-text exemptions, keep every reviewer's verdict and refuse unless all are LAND; plan drafted, sol plan review next); the product report as a feature (plan drafted after Fable; rows renumber from R-1005); add a Windows CI runner, fix the conflicting Windows wording, then fix what it finds (a UTM Windows 11 VM is the next test); the install-and-hooks check on both platforms; small fixes: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence; then move the confirmed audit issues into the ledger's open questions and regenerate the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
