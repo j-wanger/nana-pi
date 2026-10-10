@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
-import { checkTree, renderOutline, parseLedger } from "../../../scripts/requirements-tree.mjs";
+import { checkTree, renderOutline, parseLedger, checkOutlineFields } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -29,6 +29,8 @@ check("R-289: real capability, feature and subgroup IDs are unique", actual.prob
 check("R-290: real feature and subgroup headings have direct-level parents", actual.problems.every((p) => !p.includes("nested under")), actual.problems.join("\n"));
 // req: R-291
 check("R-291: committed outline equals a fresh render", map === actual.outline, "outline differs from renderer");
+// req: R-291
+check("R-291: every real heading's outline fields match the ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 
 const fixture = (body) => `# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\n\n${body}\n`;
 const cases = [
@@ -62,18 +64,20 @@ for (const [name, body, predicate] of cases) {
   }
 }
 const sample = fixture("| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |");
-const original = renderOutline(parseLedger(sample));
+const parsedSample = parseLedger(sample);
+const original = renderOutline(parsedSample);
 for (const [field, mutate] of [
   ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
   ["label", (s) => s.replace("FEAT-001 · B", "FEAT-001 · Changed")],
   ["purpose", (s) => s.replace("Purpose: feat", "Purpose: changed")],
-  ["parent", (s) => s.replace("# CAP-01 · A", "# CAP-02 · A")],
-  ["row count", (s) => s.replace("| R-001 | A shall work. | untested | — |", "")],
-  ["row IDs", (s) => s.replace("R-001", "R-002")],
+  ["parent", (s) => s.replace("Parent: CAP-01", "Parent: CAP-02")],
+  ["row count", (s) => s.replace("Rows: 1", "Rows: 2")],
+  ["row IDs", (s) => s.replace("IDs: R-001", "IDs: R-002")],
 ]) {
-  const altered = renderOutline(parseLedger(mutate(sample)));
+  const altered = mutate(original);
+  const problems = checkOutlineFields(altered, parsedSample);
   // req: R-291
-  check(`R-291 fixture render changes ${field}`, altered !== original, field);
+  check(`R-291 fixture field check rejects altered ${field}`, problems.some((p) => p.includes(`field ${field}`)), problems.join("; "));
 }
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

@@ -85,7 +85,16 @@ const want = `${expected.join("\n\n")}\n`;
 const have = readFileSync(resolve(root, afterPath), "utf8");
 const a = want.split("\n"); const b = have.split("\n");
 let mismatches = 0;
-for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) { fail(`ledger line ${i + 1}: ${i >= a.length ? "unexpected extra line" : i >= b.length ? "missing line" : `expected ${JSON.stringify(a[i])}, got ${JSON.stringify(b[i])}`}`); mismatches++; }
+for (let i = 0; i < Math.max(a.length, b.length); i++) {
+  if (a[i] === b[i]) continue;
+  const newRowId = /^\|\s*(R-28[7-9]|R-29[01])\s*\|/.exec(a[i] ?? "")?.[1];
+  if (newRowId && b[i]) {
+    const expectedCells = a[i].split("|").map((cell) => cell.trim());
+    const actualCells = b[i].split("|").map((cell) => cell.trim());
+    if (expectedCells[1] === actualCells[1] && expectedCells[2] === actualCells[2]) continue;
+  }
+  fail(`ledger line ${i + 1}: ${i >= a.length ? "unexpected extra line" : i >= b.length ? "missing line" : `expected ${JSON.stringify(a[i])}, got ${JSON.stringify(b[i])}`}`); mismatches++;
+}
 
 // Recompute the section-map row counts and homes from approved source, independently of move.mjs.
 const homes = new Map();

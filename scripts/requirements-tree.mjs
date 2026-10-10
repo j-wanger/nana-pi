@@ -90,7 +90,7 @@ export function checkNesting(parsed) {
   }
   return problems;
 }
-function compress(ids) {
+export function compressRowIds(ids) {
   const nums = ids.map((id) => Number(id.slice(2))).sort((a,b) => a-b);
   const groups = [];
   for (let i = 0; i < nums.length;) { let j = i; while (j + 1 < nums.length && nums[j+1] === nums[j]+1) j++; groups.push(j-i >= 2 ? `R-${String(nums[i]).padStart(3,"0")}–R-${String(nums[j]).padStart(3,"0")}` : `R-${String(nums[i]).padStart(3,"0")}`); i = j+1; }
@@ -103,9 +103,25 @@ export function renderOutline(parsed) {
     const parent = h.parent?.id ?? "—";
     out.push(`${"  ".repeat(depth)}- **${h.id} · ${h.label}**`);
     out.push(`${"  ".repeat(depth+1)}Purpose: ${h.purpose}`);
-    out.push(`${"  ".repeat(depth+1)}Parent: ${parent} · Rows: ${h.rows.length} · IDs: ${compress(h.rows)}`);
+    out.push(`${"  ".repeat(depth+1)}Parent: ${parent} · Rows: ${h.rows.length} · IDs: ${compressRowIds(h.rows)}`);
   }
   return `${out.join("\n")}\n`;
+}
+export function checkOutlineFields(outline, parsed) {
+  const problems = [];
+  for (const h of parsed.headings) {
+    const prefix = "  ".repeat(h.level - 1);
+    const expected = [
+      ["ID", `${prefix}- **${h.id} · ${h.label}**`],
+      ["label", `${prefix}- **${h.id} · ${h.label}**`],
+      ["purpose", `${prefix}  Purpose: ${h.purpose}`],
+      ["parent", `${prefix}  Parent: ${h.parent?.id ?? "—"} · Rows: ${h.rows.length} · IDs: ${compressRowIds(h.rows)}`],
+      ["row count", `${prefix}  Parent: ${h.parent?.id ?? "—"} · Rows: ${h.rows.length} · IDs: ${compressRowIds(h.rows)}`],
+      ["row IDs", `${prefix}  Parent: ${h.parent?.id ?? "—"} · Rows: ${h.rows.length} · IDs: ${compressRowIds(h.rows)}`],
+    ];
+    for (const [field, line] of expected) if (!outline.split("\n").includes(line)) problems.push(`${h.id}: outline field ${field} is missing or altered`);
+  }
+  return problems;
 }
 export function checkTree(text) {
   const parsed = parseLedger(text);

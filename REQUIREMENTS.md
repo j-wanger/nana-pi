@@ -12,7 +12,6 @@ ID blocks: R-001 to R-199 and R-700 to R-755 the pi extension pack (`packages/na
 
 New behaviour in this repo: requirement diff, then tagged tests, then code.
 
-
 ## How this file is organized
 
 The rows are grouped into a tree: capability → feature → subgroup. A capability heading reads
@@ -1169,7 +1168,7 @@ See also: G-013, G-014, G-015 (general engineering rows, kept whole in FEAT-033)
 | R-288 | Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-288: all real headings have non-empty purposes` |
 | R-289 | No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-289: real capability, feature and subgroup IDs are unique` |
 | R-290 | Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-290: real feature and subgroup headings have direct-level parents` |
-| R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-291: committed outline equals a fresh render` |
+| R-291 | The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-291: committed outline equals a fresh render`; field assertions also reject a missing or altered value for each listed field |
 
 ## FEAT-029 · Navigate code and investigate impact
 Purpose: Maintain a generated module map and find candidate affected requirements through source and test relationships.

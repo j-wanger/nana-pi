@@ -55,7 +55,7 @@ function paragraphs(heading) {
 }
 const introEnd = lines.indexOf("# Part A. The pi extension pack and the repo test runner");
 if (introEnd < 0) throw new Error("missing Part A boundary");
-const intro = lines.slice(0, introEnd).join("\n").replace(tree.intro_edit.from, tree.intro_edit.to);
+const intro = lines.slice(0, introEnd).join("\n").replace(tree.intro_edit.from, tree.intro_edit.to).replace(/\n+$/, "");
 const blocks = [intro, fixed];
 const placements = new Map();
 const newRows = tree.new_rows;
