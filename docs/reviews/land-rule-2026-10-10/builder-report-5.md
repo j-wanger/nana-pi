@@ -1,0 +1,15 @@
+VERDICT: DONE
+- Commit `ebd6524` — `REQUIREMENTS.md`, `packages/nana-pack/tests/land.test.mjs`.
+- **A:** R-975, R-976, R-977, R-979 and R-588 now cite the exact launch tests; cited tests carry markers.
+- **B:** R-1004 covers all five requested cases; R-1011 covers both tally readings. Each cites only its new tests.
+- **C:** Removed the wrapper pass-through and all `exempt:` keys. The R-1003 parser test uses `parseLandArgs`.
+- Mutation pairs: R-1004 disabled verdict rejection → three refusal tests red; restored → green.
+- R-1011 authorization mutation → first-reading test red; bypassed second check → second-reading test red; restored → green.
+- `node packages/nana-pack/tests/land.test.mjs` — exit 0.
+- `npm run req:tree` — exit 0; `npm run map:check` — exit 0.
+- `npm run test:locked` — exit 0.
+- Suite: 133 files; 132 PASS, 0 FAIL, 1 SKIP, 0 WARN; 6,697 checks passed, 5 skipped.
+- Both seat scripts — exit 0; output ends `seat-verify-tests: 0 gap(s)`.
+- No second commit: the generated seat output matched the already tracked file, leaving no diff to commit.
+- Scope: this commit changes two files; cumulative launch-base diff covers 23 files. Worktree clean.
+- Not done: nothing else from this brief.
