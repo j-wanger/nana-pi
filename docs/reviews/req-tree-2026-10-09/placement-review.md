@@ -4,7 +4,7 @@ Jake, 2026-10-10: "Do one review on all 1009 placements." Method: a Claude workf
 
 Criteria: a row's HOME is the feature whose purpose it most directly serves (the user-visible capability that breaks if the row is violated), not the module its code lives in; a move needs a concrete reason. A row is SHARED with another feature only when it directly constrains that feature (a change to the row must be reviewed with that feature). G rows stay in FEAT-033 by declared design.
 
-Result: 17 moves, 113 shares over 95 requirements in 30 features, 991 rows kept where astra placed them.
+Result: 17 moves, 113 shares over 95 requirements in 30 features, 992 rows kept where astra placed them.
 
 ## Moves
 

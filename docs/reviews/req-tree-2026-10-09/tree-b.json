@@ -3,7 +3,7 @@
   "author": "astra (gpt-6-astra), separate session with Jake, 2026-10-09",
   "built_at": "e9ecc90b6dca046ade24463b67b293c228172105",
   "ledger_blob": "3500b86e09f1d2dd87ca339493439dc0b2063a80",
-  "note": "Increment B input (frozen at the increment-B approved commit). Derived from tree.json (increment 1, approved 6b9202a) by: the 17 moves in `moves` (placement review of all 1,009 rows, docs/reviews/req-tree-2026-10-09/placement-review.md), each appended to its target table in ID order; R-292–R-295 appended to FEAT-028; per-feature `status` and `also_applies` (113 shares over 95 requirements, replacing the three See-also lines, all nine of which the review upheld); `intro_edits` replaces `intro_edit` and amendment A1 (both edits now apply to the original base intro)."
+  "note": "Increment B input (frozen at the increment-B approved commit). Derived from tree.json (increment 1, approved 6b9202a) by: the 17 moves in `moves` (placement review of all 1,009 rows, docs/reviews/req-tree-2026-10-09/placement-review.md), each appended to its target table in ID order; R-292–R-294 appended to FEAT-028 (after Fable's consult: R-291's text gains status and the shared index, so no separate outline row); per-feature `status` and `also_applies` (113 shares over 95 requirements, replacing the three See-also lines, all nine of which the review upheld); `intro_edits` replaces `intro_edit` and amendment A1 (both edits now apply to the original base intro). Fable consult B: frozen reason matches D4's wording; FEAT-025 (nana-stage only) stays active; seven features frozen."
  },
  "purpose": "Help a developer turn project goals into useful software through agent work that remains understandable, bounded, verifiable, and reusable across projects.",
  "outcomes": [
@@ -1059,7 +1059,7 @@
       "R-404",
       "R-380"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-199"
      ]
@@ -1158,7 +1158,7 @@
       "R-463",
       "R-413"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-401",
       "R-458",
@@ -1182,7 +1182,7 @@
       "R-418",
       "R-685"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-404",
       "R-459",
@@ -1221,7 +1221,7 @@
       "R-484",
       "R-689"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-426",
       "R-458",
@@ -1286,7 +1286,7 @@
       "R-466",
       "R-457"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-458",
       "R-459"
@@ -1332,7 +1332,7 @@
       "R-283",
       "R-284"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "active",
      "also_applies": [
       "R-256"
      ]
@@ -1367,7 +1367,7 @@
       "R-946",
       "R-947"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-283",
       "R-284"
@@ -1401,7 +1401,7 @@
       "R-943",
       "R-944"
      ],
-     "status": "frozen (D4: desk work paused until the 2026-10-23 usage ruling)",
+     "status": "frozen (D4: discretionary desk hardening frozen until the 2026-10-23 usage ruling)",
      "also_applies": [
       "R-461"
      ]
@@ -1433,8 +1433,7 @@
       "R-291",
       "R-292",
       "R-293",
-      "R-294",
-      "R-295"
+      "R-294"
      ],
      "status": "active",
      "also_applies": [
@@ -1772,11 +1771,10 @@
   "R-288": "Every capability, feature and subgroup heading in REQUIREMENTS.md shall be followed, before any table or heading, by a `Purpose:` line with non-empty text.",
   "R-289": "No two capability, feature or subgroup headings in REQUIREMENTS.md shall carry the same ID.",
   "R-290": "Every feature heading and subgroup heading in REQUIREMENTS.md shall sit under a heading of the level directly above its own: a capability above a feature, a feature above a subgroup.",
-  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, parent, row count and row IDs.",
+  "R-291": "The committed `docs/requirements-tree.md` shall equal the outline rendered from REQUIREMENTS.md, which lists for every capability, feature and subgroup heading its ID, label, purpose, status, parent, row count, row IDs and shared requirements, and ends with an index naming each shared requirement, its home feature and every feature that lists it.",
   "R-292": "Every requirement ID on a feature's `Also applies:` line in REQUIREMENTS.md shall name, once, a requirement that is not retired and whose home is another feature.",
-  "R-293": "The committed `docs/requirements-tree.md` shall list every requirement named on any `Also applies:` line, with its home feature and every feature that names it.",
-  "R-294": "Every feature heading in REQUIREMENTS.md shall be followed, before any table, by a `Status:` line reading `proposed`, `active`, `frozen (<reason>)` or `retired (<successor or reason>)`.",
-  "R-295": "A feature whose `Status:` line in REQUIREMENTS.md reads `retired` shall hold no requirement rows."
+  "R-293": "Every feature heading in REQUIREMENTS.md shall be followed, before any table, by a `Status:` line reading `proposed`, `active`, `frozen (<reason>)` or `retired (<successor or reason>)`.",
+  "R-294": "A feature whose `Status:` line in REQUIREMENTS.md reads `proposed` or `retired` shall hold no requirement rows."
  },
  "to_section_map": [
   "## 10. pi-review: round cap and stall watchdog"
@@ -2053,7 +2051,7 @@
   },
   {
    "from": "R-287–R-299 stay the reserve",
-   "to": "R-287–R-295 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-296–R-299 stay the reserve"
+   "to": "R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the requirements tree), R-295–R-299 stay the reserve"
   }
  ],
  "moves": [
