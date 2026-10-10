@@ -1,0 +1,27 @@
+[pi-worker] attempt 1/1
+  [pi-worker a1] cpu=0.91s flat=0/90
+  [pi-worker a1] cpu=1.46s flat=0/90
+  [pi-worker a1] cpu=1.92s flat=0/90
+  [pi-worker a1] cpu=2.31s flat=0/90
+  [pi-worker a1] cpu=2.32s flat=0/90
+  [pi-worker a1] cpu=2.32s flat=1/90
+  [pi-worker a1] cpu=2.33s flat=0/90
+  [pi-worker a1] cpu=2.33s flat=1/90
+  [pi-worker a1] cpu=2.33s flat=2/90
+  [pi-worker a1] cpu=2.33s flat=3/90
+  [pi-worker a1] cpu=2.34s flat=0/90
+  [pi-worker a1] cpu=2.34s flat=1/90
+  [pi-worker a1] cpu=2.34s flat=2/90
+  [pi-worker a1] cpu=2.34s flat=3/90
+  [pi-worker a1] cpu=2.35s flat=0/90
+  [pi-worker a1] cpu=2.35s flat=1/90
+  [pi-worker a1] cpu=2.35s flat=2/90
+  [pi-worker a1] cpu=2.35s flat=3/90
+  [pi-worker a1] cpu=2.36s flat=0/90
+  [pi-worker a1] cpu=2.36s flat=1/90
+  [pi-worker a1] cpu=2.36s flat=2/90
+  [pi-worker a1] cpu=2.37s flat=0/90
+  [pi-worker a1] cpu=2.51s flat=0/90
+  [pi-worker a1] cpu=2.73s flat=0/90
+  [pi-worker a1] cpu=2.92s flat=0/90
+[pi-worker] SUCCESS on attempt 1 (1239 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/build-report-6.md)
