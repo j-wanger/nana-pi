@@ -14,10 +14,10 @@ three; report only when the checklist is complete.
   verified SEND-BACK at a working-state snapshot of the commit (a review run with an untracked file
   present, `head` = the commit) refuses; an explicit empty verdict (`VERDICT: LAND | FIX-FIRST |
   BLOCK`) beside a LAND refuses; a legacy line with no `verdict` field beside a version-2 LAND lands;
-  an unverified SEND-BACK beside a version-2 LAND lands. R-1011: a version-1 LAND alone refuses; and
-  a version-1 LAND that the first reading would accept... cannot exist, so instead: with a version-2
-  LAND present at the first reading, replace it before the second reading (an injected `runCommand`
-  suite that rewrites the tally to only a version-1 LAND) — the land refuses. R-1004 and R-1011 cite
+  an unverified SEND-BACK beside a version-2 LAND lands. R-1011: a version-1 LAND alone refuses at the
+  first reading; and with a version-2 LAND present at the first reading, an injected `runCommand`
+  suite rewrites the scratch tally so only a version-1 LAND remains — the land refuses at the second
+  reading. R-1004 and R-1011 cite
   only these tests.
 - [ ] **C. No `exempt` left in the tests.** Remove the `exempt: _obsolete` pass-through in the
   `runLand` wrapper and every `exempt:` key at the call sites (grep finds them); a test that still
