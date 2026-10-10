@@ -3,7 +3,7 @@
 *Lane `req-ids` · branch `feat/req-ids` · worktree `~/nana-pi-wt/req-ids` · based on `feat/req-tree`
 at `c4332ec` (the requirements tree: reviewed, waiting for Jake's acceptance; this lane lands after
 it) · 2026-10-10. Feature: **FEAT-028 · Maintain requirement identity and trace links** (CAP-07).
-Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`) → build (pi luna) → seat
+Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `req-ids-plan`; r1 adjudicated in `sol-plan-r1-response.md`) → build (pi luna) → seat
 verification → sol build review (item `req-ids`) → astra land review → Jake accepts.*
 
 ## 1. Why
@@ -33,8 +33,20 @@ Added to FEAT-028, after R-294 — the first four-digit IDs, allocated in order 
 
 | ID | Requirement (final) |
 |---|---|
-| R-1000 | The trace rail shall accept as a requirement ID an `R` or a `G`, a hyphen, and either three digits or four digits that do not start with zero, in REQUIREMENTS.md rows and in `req:` markers. |
-| R-1001 | WHEN a line in REQUIREMENTS.md or REQUIREMENTS-general.md starts with a pipe and an `R-` or `G-` token followed by digits but the trace rail cannot read it as a requirement row, the rail shall fail, naming the file and line. |
+| R-1000 | The trace rail shall accept as a requirement ID an `R` or a `G`, a hyphen, and either three ASCII digits or four ASCII digits that do not start with zero, in REQUIREMENTS.md rows and in `req:` markers. |
+| R-1001 | WHEN a line in REQUIREMENTS.md or REQUIREMENTS-general.md starts at column zero with a pipe, optional spaces and `R-` or `G-` followed by a non-space character, and is not a requirement row, the trace rail shall fail, naming the file and line. |
+
+A **requirement row** is a column-zero line with an opening and a closing pipe, exactly four cells,
+and an ID matching R-1000. The rule is context-free, like the rail's row reading today: a candidate
+inside a fenced example or in an unrelated table counts too (the rail already reads a valid row
+there as a real row). Checked locally on 2026-10-10: every candidate line in nana-pi's ledger
+(1,012), the shared Part G file (22), both template ledgers, aml-desk's (365) and basketball-geek's
+(165) is a valid row, so no existing ledger trips it.
+
+**Compatibility break, declared:** a row missing its closing pipe is read today by the Python rail
+and skipped by the TypeScript one; after this change both fail it, naming the line. A Python project
+holding such a row fails at its next template update until the pipe is added. The template ledgers'
+ID line says so.
 
 Changed: none of the existing rows. The ledger intro's ID paragraph records the new allocation, and
 open question 9 is marked closed (§4). Retired: none.
@@ -43,9 +55,9 @@ Existing obligations that still apply: the rail's marker, cite and status checks
 (form); R-287–R-294 (the tree checker must see every row the rail sees); R-756 (Part G mirror);
 R-649 (`req:rows`); the template acceptance gate for template changes.
 
-Proposed share (Jake decides): R-1000 also applies to FEAT-014 "Create or adopt a project workspace":
-the template ledger's ID sentence and every rendered project's rail follow it. R-1001 is not shared
-(project setup never writes a near-miss line).
+Proposed shares (Jake decides): R-1000 and R-1001 also apply to FEAT-014 "Create or adopt a project
+workspace": both ship in every rendered project's rail and govern how it reads its own ledger
+(sol r1: excluding R-1001 was inconsistent).
 
 Not a row (Fable: cosmetic): the rails sort ID lists as text, so `R-1000` prints before `R-200` in a
 problem list. Declared residual; the tree outline already orders numerically.
@@ -53,49 +65,55 @@ problem list. Declared residual; the tree outline already orders numerically.
 ## 3. Scope
 
 **In.**
-- The rail, both languages: `templates/typescript/template/tests/requirements-trace.ts` (the ID and
-  ROW grammar; the near-miss reader; error text naming the format; export `ID` so nana-pi's tools
-  build on one grammar) and `templates/python/template/tests/conftest.py` (the same).
-- Their self-tests, which ship to rendered projects unmarked:
+- The rail, both languages: `templates/typescript/template/tests/requirements-trace.ts` and
+  `templates/python/template/tests/conftest.py` — the grammar with ASCII `[0-9]` (Python's `\d`
+  matches any Unicode digit); the requirement-row definition above (closing pipe required in both);
+  the near-miss reader over each RAW file before the Part G merge, naming `<file>:<line>`; error text
+  naming the format; the TypeScript rail exports `ID`.
+- Their self-tests, shipped to rendered projects unmarked:
   `templates/typescript/template/tests/requirements-trace.test.ts.jinja`,
-  `templates/python/template/tests/test_requirements_trace.py.jinja` — four-digit acceptance,
-  leading-zero rejection, a five-digit ID, a missing closing pipe; each near-miss case with a
-  `REQUIREMENTS-general.md` beside the project ledger, as every rendered project has.
-- One sentence in both template ledgers' "ID blocks" line: after `R-999` the next ID is `R-1000`.
+  `templates/python/template/tests/test_requirements_trace.py.jinja` — the matrix in §5.
+- Both template ledgers' ID line: after `R-999` the next ID is `R-1000`; four digits never start with
+  zero; a row needs its closing pipe.
+- Wording that describes the grammar as three digits: `README.md:49`, `packages/nana-pack/skills/scaffold-py/SKILL.md:17`,
+  `packages/nana-pack/skills/scaffold-ts/SKILL.md:18`, `packages/nana-pack/skills/spec/SKILL.md:16`,
+  `packages/nana-pack/skills/requirements/SKILL.md:68` — "R-nnn" becomes wording that allows three
+  or four digits; examples like `R-001` stay.
 - nana-pi: `scripts/requirements-trace.mjs` (re-export `ID`); `scripts/requirements-tree.mjs` (build
-  its row-prefix pattern from the rail's `ID` instead of its own `\d{3}` copy, keeping it a prefix
-  match; the outline range parser and both compressors accept four digits, including a range that
-  crosses `R-999` to `R-1000`); `packages/nana-pack/tests/requirements-trace.test.mjs` (pins R-1000
-  and R-1001 on the TypeScript rail through the shim, with general-file fixtures, and on the Python
-  rail with `uvx pytest` against the template conftest, skip-gated when `uvx` is absent, the way
-  `templates-update.test.mjs` already runs rendered Python); `packages/nana-pack/tests/requirements-tree.test.mjs`
-  (a four-digit row is placed, checked and rendered).
+  its row-prefix pattern from the rail's `ID`, keeping a prefix match; the range parser and both
+  compressors accept four digits, including a range crossing `R-999` to `R-1000`).
+- Tests that carry their own three-digit patterns (sol r1: these would silently weaken, since R-1000
+  allows `G-1000`): `packages/nana-pack/tests/templates-render.test.mjs` (:167, :188, :196, :611,
+  :612, :614), `packages/nana-pack/tests/templates-update.test.mjs` (:108, :109),
+  `packages/nana-pack/tests/requirements-tree.test.mjs` (:72, :75) — use the rail's exported `ID` or
+  the same ASCII pattern. `requirement-rows.test.mjs:80` stays (it reads only R-001–R-019 on purpose).
+- `packages/nana-pack/tests/requirements-trace.test.mjs`: pins R-1000 and R-1001 through the shim on
+  the TypeScript rail AND on the Python rail (`uvx pytest` against the template conftest, skip-gated
+  when `uvx` is absent, as `templates-update.test.mjs` runs rendered Python).
 - `REQUIREMENTS.md`: the two rows in FEAT-028; the intro's ID paragraph; open question 9 closed.
 - Regenerated: `docs/requirements-tree.md`, `docs/code-map.md` if a header changes.
 
 **NOT.** Renumbering any ID; any other row's cells; the tree structure (no new feature, no move);
-the share (Jake's call at checkpoint 2, applied in a follow-up); the rails' text sorting; tests whose
-fixtures can never hold a four-digit ID (`templates-render`, `templates-update`, `requirement-rows`);
+the shares (Jake's call at checkpoint 2, applied in a follow-up); the rails' text sorting;
 `aml-desk`'s and `basketball-geek`'s rails (other repos); indented row lines (a declared limitation);
-five-digit IDs; skills and READMEs whose `R-nnn` wording stays true.
+five-digit IDs. **Frozen exceptions** (historical lane tools, never rerun on new ledgers, records
+not rewritten): `docs/reviews/ears-form-2026-10-04/apply-batch.mjs`, and `move.mjs`, `prove.mjs`,
+`seat-attacks.mjs`, `seat-verify-b.sh` under `docs/reviews/req-tree-2026-10-09/`.
 
 **Allowlist.** The files named under In, plus builder reports in `docs/reviews/req-ids-2026-10-10/`.
 Seat-owned: this declaration, `fable-consult.md`, `seat-verify-ids.mjs`, `HANDOFF.md`, session archives.
 
 ## 4. Design
 
-**Grammar.** `ID = /^[RG]-(?:\d{3}|[1-9]\d{3})$/`; a row is `| <ID> | … |` with exactly four cells
+**Grammar.** `ID = /^[RG]-(?:[0-9]{3}|[1-9][0-9]{3})$/` (ASCII digits in both languages); a row is `| <ID> | … |` with exactly four cells
 as today. The rail exports `ID`; nana-pi's tree checker builds its own row-PREFIX pattern from it
 (the tree uses a prefix match to recognize row-shaped lines), so the two can never drift. Python
 uses the same pattern.
 
 **Near-miss rows (R-1001).** Each rail reads every ledger file it loads — `REQUIREMENTS.md`, and
-`REQUIREMENTS-general.md` where present — as RAW text, before the Part G merge, and reports any line
-matching `^\|\s*[RG]-\d+` that its row parser does not accept (bad digits, a leading zero, five
-digits, a missing closing pipe), naming `<file>:<line>`. Today the TypeScript rail skips such lines
-silently and the Python rail reads a missing-pipe row; a wrong cell count already throws in both and
-stays as it is. Fable's sweep found no such line in nana-pi's ledger, the shared Part G file, or
-the aml-desk and basketball-geek ledgers, so no existing ledger trips it.
+`REQUIREMENTS-general.md` where present — as RAW text, before the Part G merge. A line matching
+`^\|\s*[RG]-\S` that is not a requirement row (as defined in §2) is a problem naming
+`<file>:<line>`. A wrong cell count already throws in both rails and stays as it is.
 
 **Ledger edits.** Intro ID paragraph: "…, R-287–R-294 consumed 2026-10-09 and 2026-10-10 (the
 requirements tree), R-295–R-299 stay unused; from 2026-10-10 new rows take four-digit IDs in order
@@ -105,17 +123,29 @@ number." Open question 9 is prefixed "(closed 2026-10-10: four-digit IDs, R-1000
 **Template release.** The rail is template-owned: after the merge, CI's release job cuts the next
 patch tag. Rendered projects pick it up with `uvx copier update`.
 
+**Stacked base and landing (sol r1, and Jake's 2026-10-10 land rule).** The lane is based on the tree
+branch at `c4332ec`. Jake ruled that nothing reaches main unless an independent reviewer accepted
+it. So the tree lands at its reviewed revision `eeeca20` (astra LAND), and this lane's final review
+covers `git diff eeeca20..<tip>` — including the tree's last review record (`c4332ec`). If the
+tree branch changes before it lands, this lane rebases onto the accepted tree tip, regenerates,
+reruns every check and gets the changed diff reviewed.
+
 ## 5. Verification (doneWhen, from the worktree)
 
 1. `npm run req:tree`, `npm run map`, `npm run map:check`.
 2. `npm run test:locked` → exit 0.
 3. Commit, then `npm run template:accept` → exit 0 (renders both languages and runs their suites).
-4. Mutation pairs (code or scratch copies, red then green): the rail's ID pattern back to three
-   digits → the four-digit fixtures fail, TypeScript and Python (R-1000); a leading-zero four-digit
-   ID accepted → its rejection fixture fails (R-1000); the near-miss reader removed, or run only on
-   the merged text → the five-digit, leading-zero and missing-pipe fixtures fail, including the one
-   with a general file present (R-1001); the tree checker's own `\d{3}` restored → its four-digit
-   test fails.
+4. The test matrix, in BOTH rails (TypeScript fixtures through nana-pi's shim and the template
+   self-test; Python through the template self-test and nana-pi's skip-gated pytest run):
+   accepted — `R-1000` and `G-1000` rows; `R-1000` and `G-1000` in markers; a four-digit row traced
+   by its marker. Rejected, each naming its exact file and line — a leading-zero ID (`R-0123`), a
+   five-digit ID, non-ASCII digits (`R-１２３`), a missing closing pipe, a candidate inside a fenced
+   example, a candidate in an unrelated table; each in `REQUIREMENTS.md` AND in
+   `REQUIREMENTS-general.md` (with a general file present); a leading-zero marker refused.
+   Mutation pairs (code or scratch copies, red then green): the ID pattern back to three digits; `\d`
+   instead of `[0-9]` in Python (the non-ASCII fixture goes green wrongly → red test); the near-miss
+   reader removed, or run on merged text only (the general-file fixtures fail); the G branch
+   disabled; the tree checker's own `\d{3}` restored.
 5. The seat's script `seat-verify-ids.mjs`, pasted verbatim.
 
 ## 6. Checkpoint 2 (Jake, about 10 minutes)

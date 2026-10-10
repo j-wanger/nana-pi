@@ -1,5 +1,7 @@
 # Review brief — four-digit requirement IDs, plan, 2026-10-10 (reviewer: gpt-5.6-sol; roles: scope + adversarial + compatibility)
 
+**Round 2.** Your r1 is `sol-plan-r1.md` (SEND-BACK 6/10); the seat's response is `sol-plan-r1-response.md`. Verify each fix in the revised `CHANGE.md`, and judge `seat-verify-ids.mjs` (the seat's acceptance script; run it — on today's code its four-digit and near-miss lines are expected to fail). Then review the plan as a whole; new findings welcome.
+
 You review a PLAN. Jake asked: "ok lets first update the requirements id range to be 4 digits." Do
 not re-argue whether. Read `docs/reviews/req-ids-2026-10-10/CHANGE.md` (the plan) and
 `fable-consult.md` beside it (the seat's adversarial consult and what changed). This worktree is
