@@ -138,6 +138,12 @@ for (const [label, text] of [
 const duplicateStatus = checkTree(governance("active", "").replace("Purpose: shared\nStatus: active", "Purpose: shared\nStatus: done\nStatus: active"));
 // req: R-293
 check("R-293 fixture: duplicate status lines are named and rejected", duplicateStatus.problems.some((p) => /line \d+: FEAT-002 has duplicate Status: line/.test(p)), duplicateStatus.problems.join("; "));
+const statusAfterOrdinaryTable = checkTree(governance("active", "").replace(
+  "Purpose: shared\nStatus: active",
+  "Purpose: shared\n| Detail | Value |\n|---|---|\n| state | active |\nStatus: active",
+));
+// req: R-293
+check("R-293 fixture: status after a two-column Markdown table is rejected at its line", statusAfterOrdinaryTable.problems.some((p) => p.includes("line 16: FEAT-002 has a missing, late or invalid Status: line")), statusAfterOrdinaryTable.problems.join("; "));
 // req: R-292
 check("R-292 fixture: duplicate Also applies lines validate each listed ID", checkTree(governance("active", "R-001").replace("Also applies: R-001", "Also applies: R-999\nAlso applies: R-001")).problems.some((p) => p.includes("R-999 does not exist")), "invalid earlier share was ignored");
 // req: R-292

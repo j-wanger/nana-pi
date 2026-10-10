@@ -19,6 +19,12 @@ const ROW = /^\|\s*([RG]-\d{3})\s*\|/;
 const STATUS = /^(?:proposed|active|frozen \(\S(?:.*\S)?\)|retired \(\S(?:.*\S)?\))$/;
 const TABLE_HEADER = "| ID | Requirement | Status | Evidence |";
 const TABLE_DELIMITER = /^\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$/;
+const MARKDOWN_TABLE_DELIMITER_CELL = /^:?-+:?$/;
+function markdownTableCells(line) {
+  if (!line.includes("|")) return null;
+  const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+  return cells.length >= 2 ? cells : null;
+}
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
 function scanBlocks(lines) {
@@ -39,8 +45,8 @@ function scanBlocks(lines) {
     if (atx) {
       const structural = HEADING.exec(line);
       headingsByLine.set(i, structural
-        ? { level: atx[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true }
-        : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], parent: null, rows: [], markdownHeading: true });
+        ? { level: atx[1].length, id: structural[2], label: structural[3], line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], firstMarkdownTableLine: null, parent: null, rows: [], markdownHeading: true }
+        : { level: atx[1].length, id: null, label: line.slice(atx[0].length).trim().replace(/\s+#+\s*$/, ""), line: i + 1, purpose: "", status: null, statusLine: null, statusLines: [], alsoApplies: [], alsoAppliesLines: [], firstMarkdownTableLine: null, parent: null, rows: [], markdownHeading: true });
       continue;
     }
     if (SETEXT.test(line) && i > 0 && lines[i - 1].trim() && !ATX.test(lines[i - 1]) && !SETEXT.test(lines[i - 1]) && lines[i - 1] !== TABLE_HEADER && !ROW.test(lines[i - 1])) {
@@ -94,6 +100,16 @@ export function parseLedger(text) {
     while (stack.length && stack.at(-1).level >= h.level) stack.pop();
     h.parent = stack.at(-1) ?? null;
     stack.push(h);
+  }
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (opaque[i] || opaque[i + 1]) continue;
+    const headerCells = markdownTableCells(lines[i]);
+    const delimiterCells = markdownTableCells(lines[i + 1]);
+    if (!headerCells || headerCells.length !== delimiterCells?.length || !delimiterCells.every((cell) => MARKDOWN_TABLE_DELIMITER_CELL.test(cell))) continue;
+    const owner = [...headingsByLine].filter(([lineNo]) => lineNo < i).at(-1)?.[1];
+    let feature = owner;
+    while (feature && !feature.id?.startsWith("FEAT-")) feature = feature.parent;
+    if (feature?.id?.startsWith("FEAT-") && feature.firstMarkdownTableLine === null) feature.firstMarkdownTableLine = i + 1;
   }
   return { lines, headings, tables, allHeadings, opaque, headingsByLine, rowsInTables };
 }
@@ -165,9 +181,10 @@ export function checkLifecycleAndShares(parsed) {
   for (const feature of features) {
     const status = feature.status;
     const featureTable = parsed.tables.find((table) => table.heading === feature || table.heading?.parent === feature);
+    const firstTableLine = feature.firstMarkdownTableLine ?? featureTable?.line ?? null;
     if (feature.statusLines.length > 1) for (const entry of feature.statusLines) problems.push(`line ${entry.line}: ${feature.id} has duplicate Status: line`);
     if (feature.alsoAppliesLines.length > 1) for (const entry of feature.alsoAppliesLines) problems.push(`line ${entry.line}: ${feature.id} has duplicate Also applies: line`);
-    if (!status || !STATUS.test(status) || (featureTable && feature.statusLine >= featureTable.line)) problems.push(`line ${feature.line}: ${feature.id} has a missing, late or invalid Status: line`);
+    if (!status || !STATUS.test(status) || (firstTableLine !== null && feature.statusLine >= firstTableLine)) problems.push(`line ${feature.statusLine ?? feature.line}: ${feature.id} has a missing, late or invalid Status: line`);
     if (status && /^(?:proposed|retired\b)/.test(status)) {
       const ids = parsed.headings.filter((h) => h === feature || h.parent === feature || h.parent?.parent === feature).flatMap((h) => h.rows);
       if (ids.length) problems.push(`${feature.id} has Status ${status} but holds rows`);
