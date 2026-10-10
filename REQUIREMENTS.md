@@ -459,9 +459,9 @@ Purpose: Preserve the tally and log contracts, refuse unsafe output destinations
 | R-970 | The review-ledger report command shall print one read-only line per recorded verdict with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. | implemented | `packages/nana-pack/tests/review-ledger.test.mjs::report records metadata, omits unused override reasons, and reports real over-cap reason read-only`, `packages/nana-pack/tests/review-ledger.test.mjs::legacy rounds print - for every unavailable report field` |
 
 ## FEAT-008 · Integrate and clean up reviewed changes
-Purpose: Check merge prerequisites, integrate eligible changes, record the result and remove only safe completed worktrees.
+Purpose: Check merge prerequisites, integrate only changes every reviewer accepted, and remove only safe completed worktrees.
 Status: active
-Also applies: R-705, R-708, R-717, R-969, R-992
+Also applies: R-705, R-708, R-717, R-969, R-992, R-1008
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|

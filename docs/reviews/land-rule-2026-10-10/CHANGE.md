@@ -89,8 +89,13 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 | R-970 | reworded (one line per round → per recorded verdict) | The review-ledger report command shall print one read-only line per recorded verdict with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. |
 | R-992 | reworded (rounds → round records, one per completed verdict) | The exported readRounds(home, {repo, item}) reader shall return the recorded round records, one per completed verdict, without writing the ledger. |
 
-**Tree changes for Jake — checkpoint 1, decided BEFORE the build (governance: Jake decides shares
-and purposes; the seat proposes; the builder brief carries them only once accepted).**
+**Tree changes for Jake — checkpoint 1 (governance: Jake decides shares and purposes; the seat
+proposes). Jake, 2026-10-10: "Yes to both." The seat applied both after build 1, regenerated the
+outline, and re-read FEAT-008's other five shares against the new purpose: R-705 (one review scope per
+repository — the repository-wide check and R-1009 rely on it), R-708 (snapshot revisions record their
+head — R-1004 and R-1006 match on it), R-717 (a changed-tree verdict is not valid — unverified records
+neither authorise nor refuse), R-969 (the verdict word) and R-992 (the reader the land uses) all still
+apply.**
 - Share R-1008 with FEAT-008: the land check reads it.
 - FEAT-008 Purpose: "Check merge prerequisites, integrate only changes every reviewer accepted, and
   remove only safe completed worktrees." (today: "…integrate eligible changes, record the result

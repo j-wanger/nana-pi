@@ -74,9 +74,9 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
       Purpose: Preserve the tally and log contracts, refuse unsafe output destinations and expose recorded rounds without mutation.
       Parent: FEAT-007 · Rows: 19 · IDs: R-620, R-622, R-625, R-721–R-725, R-730, R-731, R-843–R-845, R-852, R-853, R-855, R-970, R-992, R-1008
   - **FEAT-008 · Integrate and clean up reviewed changes**
-    Purpose: Check merge prerequisites, integrate eligible changes, record the result and remove only safe completed worktrees.
+    Purpose: Check merge prerequisites, integrate only changes every reviewer accepted, and remove only safe completed worktrees.
     Status: active
-    Also applies: R-705, R-708, R-717, R-969, R-992
+    Also applies: R-705, R-708, R-717, R-969, R-992, R-1008
     Parent: CAP-02 · Rows: 15 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
@@ -366,6 +366,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-992 | FEAT-007 | FEAT-008 | 1 |
 | R-1000 | FEAT-028 | FEAT-014 | 1 |
 | R-1001 | FEAT-028 | FEAT-014 | 1 |
+| R-1008 | FEAT-007 | FEAT-008 | 1 |
 | G-004 | FEAT-033 | FEAT-029 | 1 |
 | G-007 | FEAT-033 | FEAT-029 | 1 |
 | G-008 | FEAT-033 | FEAT-029 | 1 |
