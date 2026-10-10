@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 244 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 245 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1524,12 +1524,22 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
 
+### `packages/nana-pack/tests/land-rule.test.mjs`
+
+- **purpose** — Exercises the land-rule acceptance matrix against disposable Git repositories and a scratch review home.
+- **inputs** — The frozen seat acceptance script and the land/review CLIs in this repository.
+- **outputs** — One PASS/FAIL result for the complete land-rule contract matrix.
+- **effects** — disk (OS temporary directory only), process (spawns the acceptance script and its scratch CLIs).
+- **errors** — A nonzero acceptance result or a missing success summary fails this test.
+- **callers** — —
+- **callees** — —
+
 ### `packages/nana-pack/tests/land.test.mjs`
 
-- **purpose** — Pins the land helper's review checks, suite-before-merge order and safe cleanup.
+- **purpose** — Pins land CLI options, post-merge release reporting and safe cleanup on disposable repositories.
 - **inputs** — nana-land.mjs and isolated temporary git repositories.
 - **outputs** — PASS/FAIL lines and a nonzero exit when a land contract fails.
-- **effects** — disk (temporary test repositories).
+- **effects** — disk (OS temporary test repositories and review ledgers), process (git).
 - **errors** — Failed checks exit nonzero; unexpected exceptions fail the process.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`

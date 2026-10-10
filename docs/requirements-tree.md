@@ -47,7 +47,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-01 · Rows: 16 · IDs: R-376, R-690, R-742–R-755
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
-  Parent: — · Rows: 95 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992
+  Parent: — · Rows: 105 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits; semantic change scope is a separate proposed feature.
     Status: active
@@ -57,7 +57,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
     Status: active
     Also applies: R-137, R-732
-    Parent: CAP-02 · Rows: 74 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992
+    Parent: CAP-02 · Rows: 76 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010
     - **SUB-006 · Identify and freeze the review target**
       Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
       Parent: FEAT-007 · Rows: 17 · IDs: R-621, R-624, R-703–R-706, R-708–R-710, R-712, R-713, R-832, R-833, R-835, R-836, R-967, R-968
@@ -69,15 +69,15 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
       Parent: FEAT-007 · Rows: 14 · IDs: R-139, R-246, R-623, R-700, R-702, R-727, R-728, R-831, R-846, R-851, R-854, R-919, R-973, R-974
     - **SUB-009 · Accept and record a valid result**
       Purpose: Require the expected completion evidence and a valid reservation while invalidating results for changed review state.
-      Parent: FEAT-007 · Rows: 7 · IDs: R-249, R-701, R-717, R-718, R-838, R-839, R-969
+      Parent: FEAT-007 · Rows: 8 · IDs: R-249, R-701, R-717, R-718, R-838, R-839, R-969, R-1010
     - **SUB-010 · Protect and inspect review records**
       Purpose: Preserve the tally and log contracts, refuse unsafe output destinations and expose recorded rounds without mutation.
-      Parent: FEAT-007 · Rows: 18 · IDs: R-620, R-622, R-625, R-721–R-725, R-730, R-731, R-843–R-845, R-852, R-853, R-855, R-970, R-992
+      Parent: FEAT-007 · Rows: 19 · IDs: R-620, R-622, R-625, R-721–R-725, R-730, R-731, R-843–R-845, R-852, R-853, R-855, R-970, R-992, R-1008
   - **FEAT-008 · Integrate and clean up reviewed changes**
     Purpose: Check merge prerequisites, integrate eligible changes, record the result and remove only safe completed worktrees.
     Status: active
     Also applies: R-705, R-708, R-717, R-969, R-992
-    Parent: CAP-02 · Rows: 7 · IDs: R-588, R-975–R-979, R-981
+    Parent: CAP-02 · Rows: 15 · IDs: R-588, R-975–R-979, R-981, R-1002–R-1007, R-1009, R-1011
 - **CAP-03 · Control trust and tool actions**
   Purpose: Make trust decisions, action restrictions and policy changes visible and predictable.
   Parent: — · Rows: 133 · IDs: R-021–R-083, R-174–R-188, R-193, R-195–R-197, R-242, R-630–R-639, R-670–R-672, R-759–R-781, R-819–R-824, R-826, R-829, R-856, R-857, R-865, R-982–R-984

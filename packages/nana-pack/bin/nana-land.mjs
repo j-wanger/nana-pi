@@ -12,7 +12,7 @@ import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readRounds } from "./review-round.mjs";
+import { canonicalItem, readRounds, withReviewLedgerLock } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
@@ -41,7 +41,7 @@ export function parseLandArgs(args) {
 	const options = { mode, lane: positional, reviewed: [] };
 	for (let i = mode === "cleanup" ? 2 : 1; i < args.length; i++) {
 		const key = args[i];
-		if (!["--tree", "--main", "--suite", "--reviewed", "--exempt"].includes(key)) throw new Error(`unknown option ${key}`);
+		if (!["--tree", "--main", "--suite", "--reviewed"].includes(key)) throw new Error(`unknown option ${key}`);
 		const value = args[++i];
 		if (!value || value.startsWith("--")) throw new Error(`${key} needs a value`);
 		if (key === "--reviewed") options.reviewed.push(value);
@@ -50,12 +50,7 @@ export function parseLandArgs(args) {
 	if (!options.main) throw new Error("--main is required");
 	if (mode === "merge" && (!options.tree || !options.suite)) throw new Error("merge requires --tree and --suite");
 	if (mode === "cleanup" && (!options.lane || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(options.lane))) throw new Error("cleanup needs a safe lane name");
-	if (options.exempt !== undefined) {
-		options.exempt = options.exempt.trim();
-		if (!options.exempt) throw new Error("--exempt needs a nonblank reason");
-	}
-	if (options.exempt && options.reviewed.length) throw new Error("--exempt and --reviewed cannot be combined");
-	if (mode === "merge" && !options.exempt && !options.reviewed.length) throw new Error("merge requires --reviewed or --exempt");
+	if (mode === "merge" && !options.reviewed.length) throw new Error("merge requires --reviewed");
 	return options;
 }
 
@@ -68,46 +63,55 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; runGit and runCommand are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, readReleaseStatus = releaseStatus, now = new Date() }) {
+export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, readReleaseStatus = releaseStatus, now = new Date() }) {
 	try {
-		if (exempt !== undefined) {
-			exempt = typeof exempt === "string" ? exempt.trim() : "";
-			if (!exempt) throw new Error("--exempt needs a nonblank reason");
-			if (reviewed.length) throw new Error("--exempt and --reviewed cannot be combined");
-		} else if (!reviewed.length) throw new Error("merge requires --reviewed or --exempt");
 		tree = path.resolve(tree); main = path.resolve(main);
+		const treeCommon = git(runGit, tree, "rev-parse", "--git-common-dir");
+		const mainCommon = git(runGit, main, "rev-parse", "--git-common-dir");
+		if (realpathSync(path.resolve(tree, treeCommon)) !== realpathSync(path.resolve(main, mainCommon))) throw new Error("--tree and --main must share one git repository");
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main");
 		assertCleanTracked(runGit, main, "main checkout");
 		assertCleanTracked(runGit, tree, "source tree");
 		const capturedMain = git(runGit, main, "rev-parse", "refs/heads/main");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
 		if (!isAncestor(runGit, capturedMain, tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
-		const reviewRefs = [];
-		if (!exempt) {
-			for (const { sha, item } of reviewedPairs(reviewed)) {
-				if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);
-				if (sha.includes("+snap:")) throw new Error(`review revision ${sha} is a snapshot, not a plain commit`);
-				const type = git(runGit, tree, "cat-file", "-t", sha);
-				if (type !== "commit") throw new Error(`review revision ${sha} is not a commit`);
-				if (!isAncestor(runGit, sha, tip, tree)) throw new Error(`review revision ${sha} is not an ancestor of source tip`);
-				const common = git(runGit, tree, "rev-parse", "--git-common-dir");
-				const repo = `git:${realpathSync(path.resolve(tree, common))}`;
-				const rounds = readLedger(home, { repo, item });
-				if (!rounds.some((round) => round.revision === sha && round.verdict === "LAND" && round.unverified !== true)) throw new Error(`no verified LAND review for item ${item} at revision ${sha}`);
-				reviewRefs.push(sha);
+		const repo = `git:${realpathSync(path.resolve(tree, treeCommon))}`;
+		const refs = reviewedPairs(reviewed).map(({ sha, item }) => {
+			if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);
+			const canonicalSha = git(runGit, tree, "rev-parse", "--verify", `${sha}^{commit}`).toLowerCase();
+			const canonical = canonicalItem(item);
+			if (!isAncestor(runGit, canonicalSha, tip, tree)) throw new Error(`review revision ${canonicalSha} is not an ancestor of source tip`);
+			return { sha: canonicalSha, item: canonical };
+		});
+		const reviewRefs = refs.map((r) => r.sha);
+		const firstRead = withReviewLedgerLock(home, ({ rounds, reservations }) => ({ rounds: rounds.filter((r) => r.repo === repo), reservations: reservations.filter((r) => r.repo === repo) }));
+		const checkRecords = (rounds, reservations) => {
+			for (const { sha, item } of refs) {
+				if (!rounds.some((r) => r.v === 2 && r.revision === sha && r.item === item && r.verdict === "LAND" && r.unverified !== true)) throw new Error(`no verified version-2 LAND review for item ${item} at revision ${sha}`);
+				const bad = rounds.filter((r) => r.unverified !== true && (r.revision === sha || r.head === sha) && Object.hasOwn(r, "verdict") && r.verdict !== "LAND");
+				if (bad.length) throw new Error(`non-LAND verdict record(s) for ${sha}: ${bad.map((r) => `${r.item}/${r.revision}/${r.verdict ?? "empty"}`).join(", ")}`);
+				const inflight = reservations.filter((r) => r.revision === sha || String(r.revision).split("+snap:")[0] === sha);
+				if (inflight.length) throw new Error(`review in flight for ${sha}`);
 			}
+		};
+		checkRecords(firstRead.rounds, firstRead.reservations);
+		const unreviewed = git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean);
+		if (unreviewed.length) {
+			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
+			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
-		const unreviewed = reviewRefs.length ? git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean) : [];
-		const notReviewedText = unreviewed.length ? `not reviewed: ${unreviewed.join(", ")}\n` : "";
 		const suiteResult = runCommand(suite, tree);
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `${notReviewedText}suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
-		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
-		assertCleanTracked(runGit, main, "main checkout");
-		if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
-		assertCleanTracked(runGit, tree, "source tree");
-		if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
-		git(runGit, main, "merge", "--ff-only", tip);
+		withReviewLedgerLock(home, ({ rounds, reservations }) => {
+			checkRecords(rounds.filter((r) => r.repo === repo), reservations.filter((r) => r.repo === repo));
+			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
+			assertCleanTracked(runGit, main, "main checkout");
+			if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
+			assertCleanTracked(runGit, tree, "source tree");
+			if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
+			git(runGit, main, "merge", "--ff-only", tip);
+		});
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
 		if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
 		assertCleanTracked(runGit, main, "main checkout after merge");
@@ -115,9 +119,7 @@ export function runLand({ tree, main, suite, reviewed = [], exempt, home = os.ho
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		const date = now.toISOString().slice(0, 10);
-		const archive = `Session archive stub: ${date} — lane ${path.basename(tree)}${reviewRefs.length ? ` — reviewed ${reviewRefs.map((r) => r.slice(0, 12)).join(", ")}` : ""}${exempt ? ` — exempt: ${exempt}` : ""}.`;
-		return { code: 0, text: `${notReviewedText}push command: git push\n${archive}\nHANDOFF Landed: ${date} — ${path.basename(tree)} — landed ${tip.slice(0, 12)}.\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

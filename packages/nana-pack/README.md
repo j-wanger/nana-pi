@@ -129,17 +129,14 @@ counted in a user-scope ledger — never from the output file name, and the same
   (`--over-cap --retries` is refused). Every override is written to the audit log with a
   timestamp at admission — also when that review then fails.
 - **Ledger** (`~/.pi/agent/` — always; `PI_CODING_AGENT_DIR` does not move it, so a shell variable cannot reset the tally):
-  - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: one line per round
-    earned, `{"v":1,"ts":…,"kind":"round","repo":…,"item":…,"revision":…,"head":…,"snapshot":…,"role":…,"launcher":…}`.
+  - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: version-1 legacy records remain readable, and every newly completed verdict appends one version-2 record with `ts`, `kind:"round"`, `repo`, `item`, `revision`, `head`, `snapshot`, `role`, and launcher metadata. Repeated verdicts on one revision remain one round for the cap.
     Optional fields include `override` (the admission reason), `unverified` (tree drift at completion), `completedAs` (the observed later revision), and `completedError` (why that revision could not be derived). Legacy `path:` repository keys remain readable but new admissions require a git tree. The cap reads only this and the live reservations. A malformed line **refuses** admission
     with `file:line` — a corrupted record never grants a free review.
   - `review-ledger.jsonl` — the verbose audit log (every verdict and override). Before **every**
     append (a verdict, or an override at admission — including one whose review then fails), a log
     past 1 MiB is renamed to `.jsonl.1`, replacing the previous one, so the audit is bounded at about
     2 MiB. Rotation never touches the tally, so it cannot reset a cap.
-  - **Storage is NOT bounded overall.** The tally grows by one line per round earned, forever
-    (O(items + overridden revisions)), and is read in full at every admission. Only the audit is
-    bounded. Prune an item's tally lines by hand if it matters (see Trust model).
+  - **Storage is NOT bounded overall.** The tally grows by one line per completed verdict, forever, and is read in full at every admission. Only the audit is bounded. Removing tally lines removes verdict evidence used by the land check; do not prune them casually (see Trust model).
   - Every ledger path must be a regular file: a symlink (or directory) is refused before a review
     runs, and files are opened `O_NOFOLLOW`.
 - **Atomic:** an in-flight review holds a reservation (`review-ledger.reservations/<id>.json`)
@@ -167,13 +164,13 @@ node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role
 `review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
 (exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
 
-`review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded round:
+`review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded verdict:
 item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
 launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
 
 ### Land helper: `bin/nana-land.mjs`
 
-`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` requires a verified `LAND` review-ledger round for each named item and revision; drifted, unverified rounds do not authorize a merge. `--exempt "<reason>"` requires a nonblank reason, replaces reviews, and appears in the success record. The helper requires a clean source tree and clean tracked state in the checkout on `main`, checks fast-forward ancestry, and runs the suite in the source tree. Immediately before merging it rechecks both clean states, that the checkout is still on `main` at its captured HEAD, and that the source tip is unchanged. It then runs one `git merge --ff-only <tip>`; afterwards it requires the checkout still on `main`, main ref equal to the tip, and clean tracked state before it verifies containment and prints push, archive, and HANDOFF stubs. It never pushes or edits those records. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, though the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. Integration commits outside reviewed ancestry are reported exactly, not blocked. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
+`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` accepts only those four options; there are no exemptions. Source and main must share one Git repository; the source tree must be clean, and the main checkout must have clean tracked state and be on `main`. Every commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified version-2 LAND record for its canonical item and SHA. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. After the suite, the helper rereads records under the ledger lock, rechecks checkout state, and holds the lock through its ff-only merge. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. It does not defend against a branch switch in the instant between the final branch check and merge; a detected switch prevents the success report. Git refuses an untracked collision with a landed path. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
 
 `nana-land cleanup <lane> --main <main-checkout>` is a separate operation: it requires the checkout on `main`, then removes only a clean worktree whose `feat/<lane>` branch is contained in `main`, without force. Run through `nana-setup install` to link `nana-land` on PATH; `nana-setup doctor` reports whether the link is valid. The main checkout may have untracked files, but git can still refuse a colliding fast-forward.
 
@@ -216,15 +213,19 @@ and stale checkouts from dead reviews are reclaimed at startup.
 Any number of reviews, by any roles, on one revision is one round. A land ruling on the revision the
 last round reviewed consumes nothing; a land review of a new revision is a round like any other.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
-write it can exhaust an item (three fabricated round lines) or extend one (delete lines); anyone
-can also run a launcher by hand and never touch it. `NANA_ROLE=reviewer` is a context-isolation
-convenience, not a security boundary: a worker or user can spoof or clear it. What the ledger buys
-is that every counted round, completed verdict and override is recorded — a bypass must be explicit. Not every admission is: an ordinary
+write it can exhaust an item (three fabricated round lines) or extend one (delete lines); deleting
+verdict records also changes what the land check reads. Anyone can run a launcher by hand and never
+touch it. `NANA_ROLE=reviewer` is a context-isolation convenience, not a security boundary: a worker
+or user can spoof or clear it. What the ledger buys is that every completed verdict and override is
+recorded — a bypass must be explicit. The land helper checks every recorded verdict but does not
+prove reviewer independence or review scope; those remain conventions. Not every admission is: an ordinary
 (non-override) admission whose review fails leaves **no durable record** once its reservation is
-returned. **Budget is not enforced here:** these wrappers do not read, pass or enforce
+returned. During deployment, stop all old land and review processes: an already-loaded old completion
+can append only to the audit log before the first version-2 row exists. **Budget is not enforced here:** these wrappers do not read, pass or enforce
 `--max-budget-usd` (or any spend limit); budget control is external — the caller's own flags and
-the provider's limits. **Repair:** to reset an item, delete its
-lines from `review-ledger.rounds.jsonl` (and any stale file under `review-ledger.reservations/`);
+the provider's limits. **Repair:** to reset an item, remove its
+lines from `review-ledger.rounds.jsonl` only with the understanding that this erases the verdict history
+used by the land check (and clear stale files under `review-ledger.reservations/`);
 to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
 
 ### Migration (callers outside this repo — document only)

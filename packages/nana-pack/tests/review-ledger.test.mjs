@@ -43,7 +43,7 @@ const freshHome = (name) => {
 };
 const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${stubs}:${process.env.PATH}`, ...extra });
 const jsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse) : []);
-const roundsOf = (item) => jsonl(tallyFile).filter((r) => r.item === item);
+const roundsOf = (item) => [...new Map(jsonl(tallyFile).filter((r) => r.item === item).map((r) => [r.revision, r])).values()];
 const verdictsOf = (item) => jsonl(auditFile).filter((r) => r.kind === "verdict" && r.item === item);
 
 let fails = 0;
@@ -131,7 +131,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("tally holds exactly 3 rounds, audit exactly 3 verdicts", roundsOf("four").length === 3 && verdictsOf("four").length === 3);
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
-		rec.v === 1 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
+		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync(path.join(A.d, ".git"))}` &&
 		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", JSON.stringify(rec));
 	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
 	// req: R-971
@@ -148,11 +148,11 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("ten verdicts under ten roles on one revision all admitted", ten.every((s) => s === 0), JSON.stringify(ten));
 	// req: R-972
 	// req: R-729
-	check("…and they are ONE round (1 tally line, 10 audit verdicts)", roundsOf("rev").length === 1 && verdictsOf("rev").length === 10);
+	check("…and they are ONE round (10 v2 verdict records, 10 audit verdicts)", roundsOf("rev").length === 1 && jsonl(tallyFile).filter((r) => r.item === "rev").length === 10 && jsonl(tallyFile).filter((r) => r.item === "rev").every((r) => r.v === 2) && verdictsOf("rev").length === 10);
 	const tallyBeforeRead = fs.readFileSync(tallyFile, "utf8");
 	// req: R-969 R-992
 	check("completed round records verdict and readRounds filters without mutation", roundsOf("rev")[0]?.verdict === "LAND" &&
-		mod.readRounds(home, { item: "rev", repo: roundsOf("rev")[0]?.repo }).length === 1 && mod.readRounds(home, { item: "missing" }).length === 0 &&
+		mod.readRounds(home, { item: "rev", repo: roundsOf("rev")[0]?.repo }).length === 10 && mod.readRounds(home, { item: "missing" }).length === 0 &&
 		fs.readFileSync(tallyFile, "utf8") === tallyBeforeRead, JSON.stringify({ row: roundsOf("rev")[0], read: mod.readRounds(home, { item: "rev" }) }));
 	A.at(1);
 	const two = [ledgerRun(["--item", "rev", "--role", "sol"]).status, ledgerRun(["--item", "rev", "--role", "sol"]).status];
@@ -173,6 +173,26 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const unres = ledgerRun(["--item", "rev2", "--revision", "no-such-rev"]);
 	check("unresolvable --revision inside git refused", unres.status === 1 && /not a commit/.test(unres.stderr), unres.stderr);
 }
+
+// req: R-969 R-1010 R-1008
+check("complete records the raw last verdict line and rejects malformed suffixes", () => {
+	freshHome("verdict-raw"); A.at(0);
+	const cases = [
+		["VERDICT: LAND", "LAND"], ["# VERDICT: LAND", "LAND"], ["**VERDICT:** LAND", "LAND"],
+		["VERDICT: LAND.", "LAND"], ["VERDICT: LAND (9/10)", "LAND"], ["VERDICT: LAND — 9/10", "LAND"],
+		["**VERDICT: LAND — 9/10.**", "LAND"], ["VERDICT: LAND  ", "LAND"], ["VERDICT: LAND-WITH-FIXES", "LAND-WITH-FIXES"],
+		["VERDICT: LAND | FIX-FIRST | BLOCK", null], ["VERDICT: LAND (fixes pending)", null],
+		["VERDICT: LAND — Fixes: none.", null], ["VERDICT: LAND, with fixes", null], ["VERDICT: L_A_N_D", null],
+		["VERDICT: L*A*N*D", null], ["VERDICT: `LAND", null], ["VERDICT: LAND!", null], ["VERDICT: LAND...", null],
+		["VERDICT: LAND\r\nVERDICT: SEND-BACK", "SEND-BACK"],
+	];
+	for (const [text, expected] of cases) {
+		const command = [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`];
+		const result = ledgerRun(["--item", "raw-verdict"], { cmd: command });
+		const got = jsonl(tallyFile).at(-1)?.verdict ?? null;
+		check(`raw verdict ${JSON.stringify(text)}`, result.status === 0 && got === expected, `${result.stderr} got=${got}`);
+	}
+});
 
 // 3. identity: canonical slug, repository scope, worktrees share
 {
@@ -843,6 +863,7 @@ if (process.platform !== "win32") {
 		cmd: [process.execPath, "-e", "console.log('VERDICT: LAND')", "--", "--provider", "anthropic", "--model", "claude-test-1"],
 	});
 	const current = roundsOf("report-item")[0];
+	const second = ledgerRun(["--item", "report-item", "--role", "astra"], { cmd: [process.execPath, "-e", "console.log('VERDICT: SEND-BACK')"] });
 	const before = fs.readFileSync(tallyFile, "utf8");
 	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
 	const repoReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--repo", A.d, "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
@@ -857,8 +878,8 @@ if (process.platform !== "win32") {
 		launch.status === 0 && current.provider === "anthropic" && current.model === "claude-test-1" &&
 		Date.parse(current.startedAt) <= Date.parse(current.endedAt) && Number.isFinite(current.durationMs) && current.attempts === 1 &&
 		current.role === "sol" && current.overCap === null &&
-		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| -\n$/.test(report.stdout) &&
-		report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && reportTally === before &&
+		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| -\nreport-item \| [a-f0-9]{12} \| astra \| - \| \d+ms \| 1 \| SEND-BACK \| -\n$/.test(report.stdout) &&
+		second.status === 0 && report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && reportTally === before &&
 		overCap.status === 0 && overCapRow?.overCap === "approved exception" && /\| approved_exception\n$/.test(overCapReport.stdout),
 		JSON.stringify({ current, report: report.stdout, repoReport: repoReport.stdout, overCapRow, overCapReport: overCapReport.stdout }));
 	const legacy = { v: 1, kind: "round", repo: current.repo, item: "legacy-report", revision: A.shas[1], role: "reviewer" };

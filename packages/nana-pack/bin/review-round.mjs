@@ -358,7 +358,7 @@ function readTally(p) {
   return lines.map((l, i) => {
     let r = null;
     try { r = JSON.parse(l); } catch {}
-    const ok = r && typeof r === 'object' && r.v === 1 && r.kind === 'round' &&
+    const ok = r && typeof r === 'object' && (r.v === 1 || r.v === 2) && r.kind === 'round' &&
       [r.repo, r.item, r.revision].every((x) => typeof x === 'string' && x);
     if (!ok) {
       throw new Error(`${p.tally}:${i + 1}: malformed record ${JSON.stringify(l.slice(0, 80))} — admission refused. ` +
@@ -366,6 +366,12 @@ function readTally(p) {
     }
     return r;
   });
+}
+
+/** Run a caller step while holding the ledger lock, with the complete tally and live reservations read there. */
+export function withReviewLedgerLock(home, step) {
+  const p = ledgerPaths(home);
+  return withLock(p, () => step({ rounds: readTally(p), reservations: liveReservations(p, false) }));
 }
 
 /** Stale = owner dead, or not renewed within reservationStaleMs(), or dated in the future. */
@@ -402,11 +408,16 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
   return rows.filter((r) => (repo === undefined || r.repo === repo) && (item === undefined || r.item === item));
 }
 
-/** Return the first token following VERDICT: on its first matching line. */
+/** Match the raw last verdict line; malformed suffixes are recorded as an empty verdict. */
 function verdictWord(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
-  return text.match(/^[^\w\r\n]*VERDICT:\s*(\S+)/m)?.[1] ?? null;
+  const line = text.split(/\r?\n/).reverse().find((x) => /^[^\w\r\n]*VERDICT:/.test(x));
+  if (line === undefined) return null;
+  const marks = '[*_`]*';
+  const score = `(?:\\s+${marks}(?:\\(\\d+(?:\\.\\d+)?/\\d+\\)|[—–-]\\s*\\d+(?:\\.\\d+)?/\\d+)${marks})?`;
+  const match = new RegExp(`^[^\\w\\r\\n]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`).exec(line);
+  return match?.[1] ?? null;
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
@@ -417,9 +428,10 @@ function decide(p, key, revision, overCap, prune) {
   if (lstatOrNull(p.resDir) && !lstatSync(p.resDir).isDirectory()) throw new Error(`${p.resDir} is not a directory — refused`);
   const rounds = readTally(p).filter((r) => sameItem(r, key));
   const reserved = liveReservations(p, prune).filter((r) => sameItem(r, key));
+  const completedRevisions = [...new Set(rounds.map((r) => r.revision))];
   const revs = [...new Set([...rounds, ...reserved].map((r) => r.revision))];
   const used = revs.length;
-  const where = `item "${key.item}" (${key.repo}): ${used} round(s) used (${rounds.length} completed, ` +
+  const where = `item "${key.item}" (${key.repo}): ${used} round(s) used (${completedRevisions.length} completed, ` +
     `${reserved.length} review(s) in flight)`;
   if (revs.includes(revision)) {
     return { verdict: 'allow', round: revs.indexOf(revision) + 1, used, where, again: true };
@@ -596,22 +608,21 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
       // audit rotation first (only the verbose log rotates), so a refusal there writes nothing
       rotateAudit(p);
       const rounds = readTally(p).filter((x) => sameItem(x, held));
-      let idx = rounds.findIndex((x) => x.revision === held.revision);
+      const revisionOrder = [...new Set(rounds.map((x) => x.revision))];
+      const existingOrdinal = revisionOrder.indexOf(held.revision);
+      const round = existingOrdinal >= 0 ? existingOrdinal + 1 : revisionOrder.length + 1;
       const endedAt = new Date().toISOString();
       const metadata = { provider: held.provider ?? null, model: held.model ?? null, startedAt: held.startedAt ?? null, endedAt, attempts, durationMs: held.startedAt ? Math.max(0, Date.parse(endedAt) - Date.parse(held.startedAt)) : null };
       const drift = stable ? {} : { unverified: true, completedAs: now, completedError: why || undefined };
-      if (idx < 0) {
-        appendChecked(p.tally, { kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
-        idx = rounds.length;
-      }
+      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
       appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: verdictWord(out), ...metadata, ...drift });
       unlinkSync(f);
       if (!stable) {
-        return { ok: false, round: idx + 1, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
-          `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${idx + 1} ` +
+        return { ok: false, round, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
+          `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${round} ` +
           `was consumed for the admitted revision. Re-review the current state (output kept at ${out ?? held.out})` };
       }
-      return { ok: true, round: idx + 1 };
+      return { ok: true, round };
     });
   } catch (e) {
     return { ok: false, message: failMessage(e) };
