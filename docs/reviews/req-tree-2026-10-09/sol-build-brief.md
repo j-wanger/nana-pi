@@ -1,17 +1,20 @@
 # Review brief — req-tree build, 2026-10-09 (reviewer: gpt-5.6-sol; roles: scope + adversarial)
 
-**Round 2.** Your round-1 build review is `sol-build-r1.md` (SEND-BACK 5/10). The builder's fix run
-used `build-brief-3.md`; its report is `builder-report-3.md`. Verify each r1 finding is closed, then
-review the build as a whole again; new findings are welcome.
+**Round 3 — the last allowed for this item.** Your build reviews are `sol-build-r1.md` (SEND-BACK
+5/10) and `sol-build-r2.md` (SEND-BACK 5/10). The fix runs used `build-brief-3.md` and
+`build-brief-4.md`; reports `builder-report-3.md` and `builder-report-4.md`. Verify every r1 and r2
+finding is closed, then review the build as a whole. If something still blocks, rank it honestly:
+after this round the seat lands with declared residuals, subtracts, or takes it to the owner.
 
-Seat notes for round 2 (seat's own scratch run, `checkTree` on altered copies of the ledger):
-your three attacks (row under the closing heading; level-4 heading before CAP-01's purpose;
-unrelated level-1 heading between CAP-01 and FEAT-001) are now red; a level-6 heading after a FEAT
-heading is red; the real ledger is green. A SETEXT heading (a text line underlined with `===`) is
-NOT recognized as a boundary. The ledger uses ATX headings only; the seat proposes recording that
-as a declared residual rather than a fix — say if you disagree. FEAT-033 now reads
-`R-920, G-001–G-022`; parents show aggregate counts (`CAP-01 · Rows: 167 · IDs: listed below`).
-The proof still exits 0 on the unchanged ledger.
+Seat notes for round 3 (the seat's own battery, `seat-attacks.mjs`, output in
+`seat-attacks-output.txt`; it imports `checkTree` and alters scratch copies only): every r1/r2
+attack is red (row under the closing heading, after prose, after a blank line, header without
+delimiter, row in a fence, SETEXT after FEAT-001 / before CAP-01's purpose / between CAP-01 and
+FEAT-001, indented ATX, level-4 before a purpose, duplicate SUB id); a fenced ATX line and a
+thematic break after a blank stay green; the real ledger is green. The seat's own expander counts
+1,009 IDs in the committed outline, none missing, none extra. The proof still exits 0. Declared
+residual from the builder: HTML blocks/comments, link reference definitions and indented code are
+not modeled; the ledger uses none.
 
 You reviewed this lane's PLAN three times (item `req-tree-plan`; your reviews are
 `docs/reviews/req-tree-2026-10-09/sol-plan-r{1,2,3}.md`). Jake agreed it at checkpoint 1 (CHANGE §7a;

@@ -1,0 +1,15 @@
+GREEN real ledger (expect GREEN)  
+RED   row under closing ordinary heading 1 line 1553: R-291 is not in a feature or subgroup table
+RED   row after prose inside FEAT-028 table 1 line 1172: R-291 is not in a feature or subgroup table
+RED   row after blank line following a table 1 line 1172: R-291 is not in a feature or subgroup table
+RED   header without delimiter 23 line 53: R-001 is not in a feature or subgroup table
+RED   row inside fenced block 1 line 1172: R-291 is not in a feature or subgroup table
+RED   setext H1 after FEAT-001 then table 27 line 57: R-001 is not in a feature or subgroup table
+RED   setext between CAP-01 and its Purpose 1 line 45: CAP-01 has no non-empty Purpose: line before its table or next heading
+RED   setext H1 between CAP-01 and FEAT-001 5 line 52: FEAT-001 must be nested under the directly preceding heading level
+RED   indented ATX h1 between CAP-01 and FEAT-001 5 line 51: FEAT-001 must be nested under the directly preceding heading level
+RED   h4 before CAP-01 purpose 1 line 45: CAP-01 has no non-empty Purpose: line before its table or next heading
+GREEN fenced ATX line is NOT a boundary (expect GREEN)  
+GREEN thematic break after blank is NOT a heading (expect GREEN)  
+RED   duplicate SUB id 1 line 100: duplicate heading ID SUB-001
+outline IDs 1009 / ledger 1009; missing 0 ; extra 0 
