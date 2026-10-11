@@ -3,11 +3,12 @@
  * @purpose Pins Windows command discovery, quoting, refusal and missing-command rules on every platform.
  * @inputs pure helper/config modules and injected Windows paths.
  * @outputs named PASS/FAIL checks and a nonzero exit on any mismatch.
- * @effects none
+ * @effects process (Windows-only cmd.exe and where probes).
  * @errors assertion mismatches set the process exit code.
  */
 import { findOnPath, winCommand, cmdCouldNotRun } from "../lib/win-command.mjs";
 import { INTERNAL_COMMANDS } from "../lib/win-command-config.mjs";
+import { spawnSync } from "node:child_process";
 
 let fails = 0;
 let checks = 0;
@@ -59,5 +60,15 @@ for (const [cmd, expected] of cmdCases) {
 }
 // req: R-1038
 check("sealed cmd internal command vocabulary", INTERNAL_COMMANDS, "assoc break call cd chdir cls color copy date del dir dpath echo endlocal erase exit for ftype goto if keys md mkdir mklink move path pause popd prompt pushd rd rem ren rename rmdir set setlocal shift start time title type ver verify vol".split(" "));
+if (process.platform === "win32") {
+  for (const name of INTERNAL_COMMANDS) {
+    const where = spawnSync("where", [name], { encoding: "utf8", windowsHide: true });
+    // req: R-1038
+    check(`Windows where confirms internal ${name} is not external`, where.status !== 0, true);
+    const cmd = spawnSync("cmd.exe", ["/d", "/c", `${name} /?`], { encoding: "utf8", windowsHide: true });
+    // req: R-1038
+    check(`Windows cmd confirms internal ${name} runs`, cmd.status === 0, true);
+  }
+} else console.log("SKIP Windows sealed-command integration: each name via where and cmd /d /c");
 console.log(`win-command: ${checks} checks, ${fails} failure(s)`);
 process.exitCode = fails ? 1 : 0;

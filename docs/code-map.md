@@ -1839,7 +1839,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **purpose** — Pins Windows command discovery, quoting, refusal and missing-command rules on every platform.
 - **inputs** — pure helper/config modules and injected Windows paths.
 - **outputs** — named PASS/FAIL checks and a nonzero exit on any mismatch.
-- **effects** — none
+- **effects** — process (Windows-only cmd.exe and where probes).
 - **errors** — assertion mismatches set the process exit code.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/win-command-config.mjs`, `packages/nana-pack/lib/win-command.mjs`
