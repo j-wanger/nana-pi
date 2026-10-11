@@ -8,8 +8,8 @@ exported row reader and a capability `outcome` field — code only, no row chang
 (the HANDOFF ask tag moves into a shared lib that `nana-frontier` imports — code only). Order: why →
 plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan review (item
 `product-report-plan`; r1 and r2 SEND-BACK, answered in `sol-plan-r1-response.md` and
-`sol-plan-r2-response.md`; r3 LAND-WITH-FIXES 9/10) → Jake's decision on the expanded share line →
-build → seat verification → sol build review →
+`sol-plan-r2-response.md`; r3 LAND-WITH-FIXES 9/10) → Jake's decision on the expanded share line
+(2026-10-11: "Yes") → build → seat verification → sol build review →
 astra land review → Jake accepts.*
 
 ## 1. Why
@@ -79,8 +79,9 @@ grammar, the HANDOFF ask tag and the ID grammar, so a change to any of them must
 sol plan r2: the report also consumes, through `checkTree`, row homes, purposes, unique heading IDs,
 nesting and empty proposed or retired features — R-287, R-288, R-289, R-290 and R-294 — so the
 proposed line grows to `Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000`
-(R-291, the committed outline, is not consumed). Jake re-decides the expanded line before the build;
-the builder adds the line he approves with FEAT-039.
+(R-291, the committed outline, is not consumed). Jake, 2026-10-11, approved the expanded line: "Yes".
+The builder adds `Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000` with
+FEAT-039.
 
 ## 3. Scope
 
