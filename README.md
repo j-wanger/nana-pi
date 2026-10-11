@@ -22,7 +22,7 @@ Sibling repo to `~/nana-agent-loop`.
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
-  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking, and the first hosted run remains unproven until the seat records it. Generated CI
+  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
@@ -207,7 +207,7 @@ node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 
 Run the rendered projects' native checks with `npm run template:accept -- [--src <repo>] [--ref <rev>]`.
 
-Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`). Release runs acceptance before creating a tag. CI runs release after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking. The first hosted run remains unproven until the seat records it.
+Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/template-release.mjs`). Release runs acceptance before creating a tag. CI runs release after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking.
 
 ### Updating and partial adoption
 

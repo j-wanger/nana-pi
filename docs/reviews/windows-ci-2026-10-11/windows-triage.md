@@ -212,8 +212,8 @@
 
 - Category: product-bug · Area: desk (frozen)
 - Evidence: Same failure, 'cannot tie ... executable: C:\npm\prefix\pi.cmd ... --version did not answer', thrown at apps/desk/pi-session.mjs:305. It is reached from module-level test line 64 `resolvePiPackage(resolvePiBin())`. Root cause is the same as app-listener: the .cmd shim is not walkable, execFileSync on a .cmd needs a shell (pi-session.mjs:158-172), and the candidates use POSIX lib/node_modules (:206, :222). Latent blockers: SERVER `.pathname` at line 59; the shebang stub `pi` at lines 88/137, never picked because resolvePiBin wants pi.cmd. There is also a signals-processes layer. The SIGTERM-deaf stub (lines 92-101) and the 'escalates to SIGKILL' check (line 316) assume POSIX signals. On Windows every kill is TerminateProcess, and the desk launches pi through cmd.exe with shell:true (server.mjs:474-485), so the desk's kill reaches cmd.exe and can orphan the node grandchild (INFERRED).
-- User impact: Yes for a Windows desk user: the desk will not start. Once that is fixed, closing a session may leave an orphaned pi node process (INFERRED). No for either terminal seat.
-- Fix: Fix pi-session.mjs as in app-listener. Then make desk teardown on win32 kill the process tree (`taskkill /T /F /PID`) and gate the SIGTERM-deaf cases to POSIX. Use fileURLToPath for SERVER and a pi.cmd stub.
+- User impact: Yes for a Windows desk user: the desk will not start. No for either terminal seat.
+- Fix: Fix pi-session.mjs as in app-listener; use fileURLToPath for SERVER and a pi.cmd stub. (astra land r1: the orphan-process diagnosis is withdrawn — `apps/desk/server.mjs:628–639` already kills the process tree on win32.)
 
 ### `apps/desk/test/host-rule.test.mjs`
 
