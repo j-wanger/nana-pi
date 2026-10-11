@@ -1,0 +1,15 @@
+VERDICT: DONE
+- [x] A — R-976 rejects annotated tag object IDs; regression test cites R-976.
+- [x] B — README states the CHANGE §5 residuals.
+- [x] C — Removed unused `readLedger` and `now` parameters and the obsolete injection.
+- [x] D — Post-merge checks and release status run outside the ledger lock; R-1005 still pins the locked checks and merge.
+- Commits: `4f23f6e` code/docs; `62ecf45` verification outputs.
+- Files: `packages/nana-pack/README.md`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/tests/land.test.mjs`, both seat output files.
+- Rows: no requirement rows changed; existing R-976 and R-1005 tests cover the fixes.
+- Mutation proof: tag regression failed before the code fix, passed after; frozen runner reported 14/15 red.
+- Mutation exception: its “second reading outside the injected lock” anchor was absent after D’s change; runner was not edited.
+- Commands: `req:tree` 0; `map:check` 0; `readme:check` 0; `test:locked` 0; both seat verifiers 0; mutation runner 0.
+- Suite: 133 files; 132 PASS, 0 FAIL, 1 SKIP; 6,706 checks passed, 5 skipped.
+- Seat output: `seat-verify-land: 0 mismatch(es)`; `seat-verify-tests: 0 gap(s)`.
+- Scope from launch HEAD: 5 files changed, 34 insertions, 16 deletions; worktree clean.
+- Not done: the skipped mutation pair could not run because its frozen anchor no longer exists.
