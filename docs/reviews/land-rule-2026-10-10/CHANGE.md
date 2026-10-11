@@ -232,8 +232,10 @@ at merge; copier consumers get it at the next template tag, which needs main pus
   `review-ledger run` does not return its reservation when completion fails; the reservation is
   reclaimed when its process dies (unchanged).
 - A review whose final non-blank line is not a bare verdict line — a sign-off after it, prose before
-  the label, a score written with a hyphen, an en dash or a decimal — records an empty verdict and
-  must be re-run; every brief asks for the bare verdict line last.
+  the label, a score written with a hyphen, an en dash or a decimal — records an empty verdict. That
+  record stays on the revision and refuses it for good (astra land r4): re-running the review does
+  not clear it; the fix is a new commit and a fresh review. Every brief asks for the bare verdict line
+  last.
 - The helper enforces that every recorded verdict is LAND, not that the reviewers were independent;
   neither the README nor the feature purpose claims otherwise.
 

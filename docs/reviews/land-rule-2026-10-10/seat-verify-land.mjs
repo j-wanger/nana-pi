@@ -284,6 +284,9 @@ await inFlight("a review of a snapshot of the commit still in flight is refused"
     ["an arrow prefix", "\u2192 VERDICT: LAND\n", "null"],
     ["a blockquote and list prefix", "> - **VERDICT:** LAND\n", "LAND"],
     ["prose after the final verdict line", "VERDICT: LAND\nThanks for the clean build.\n", "null"],
+    ["a score after a hyphen", "VERDICT: LAND - 9/10\n", "null"],
+    ["a score after an en dash", "VERDICT: LAND \u2013 9/10\n", "null"],
+    ["a decimal score", "VERDICT: LAND (9.5/10)\n", "null"],
   ];
   finals.forEach(([label, text, want], i) => {
     review(r.tree, `parse-final-${i}`, "sol", text);
