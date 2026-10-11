@@ -192,8 +192,15 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   as Node saw it. Post-edit: the existing R-105 test passes; `node -e "process.exit(1)"` is a failed
   check; `type nana-missing-file.txt` (an internal command exiting 1) and `dir/Z` (an invalid
   attached switch) are failed checks. Each name in
-  the sealed set is not found by `findOnPath` and `cmd /d /c "<name> /?"` exits 0; a name that fails
-  this is removed from the set in a later round with the run as evidence.
+  the sealed set is pinned on the Windows leg by two locale-independent probes: `where.exe` run with
+  PATH set to `%SystemRoot%\System32;%SystemRoot%` finds no file of that name, and
+  `cmd /d /c "<name> /?"` writes help text to stdout and nothing to stderr; a control name that does
+  not exist must give the opposite (empty stdout, non-empty stderr). **Seat amendment after the first
+  Windows run (2026-10-11, CI run 38166757684):** the earlier probe — `where` on the inherited PATH and
+  "`/?` exits 0" — failed for every name: on the hosted runner Git's `date.exe`, `dir.exe` and
+  `echo.exe` sit on PATH (cmd.exe still runs its internal command first), and no internal command's
+  `/?` exited 0. The names were right; the probe was wrong. A name that fails the new probe is removed
+  from the set in a later round with the run as evidence.
 - **Mutation pairs** (break the code, never an assertion): bare `pi` spawn on win32 → the injected
   registration case fails; drop PATHEXT → the `.cmd` lookup case fails; search the working folder for
   pi → its case fails; drop the quoting → the space case fails; drop a refused character → its case
