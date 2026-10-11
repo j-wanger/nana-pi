@@ -11,6 +11,7 @@
 - 2026-10-09: builders lose the automatic knowledge pull (Jake) — `docs/sessions/2026-10.md`.
 - 2026-10-10: the new priority line in the umbrella `OBJECTIVE.md` (sol LAND, 10/10). Rulings: nothing reaches main unless an independent reviewer accepted it; rm runs freely only inside the working directory; Jake requires Windows testing now; the desk stays frozen; the export rule gets an explicit pi carve-out; a study stops when it cannot write its evidence.
 - 2026-10-10: the requirements tree (capabilities, features and subgroups; shared rows; feature lifecycle) and four-digit requirement IDs landed together on Jake's checkpoint-2 acceptance, after sol and astra final reviews — `docs/sessions/2026-10.md`.
+- 2026-10-10: the land rule — `nana-land` refuses any commit no review covers and any revision with a verdict other than LAND, keeps every reviewer's verdict, and has no exemption; landed on Jake's checkpoint-2 acceptance after sol and astra reviews — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -30,7 +31,7 @@
 - Tranche 2: an install re-run reports the four linked skills as "skipped"; doctor prints Node's SQLite warning; the trial rubric scores only decisions the extractor finds. Full list: the 2026-10-07 session entry.
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
-- Review log: it keeps only the first verdict on each revision, and the land helper reads only that one, so a later SEND-BACK cannot stop a merge. Until the land-rule lane fixes it, the seat reads every verdict before a land.
+- Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 
@@ -45,10 +46,11 @@
 3. **2026-10-23 readings:** the 6.6 compaction replay and the seat's knowledge pull; the store stays frozen until then. The desk usage tally no longer decides anything: Jake ruled the desk on 2026-10-10. The pull reading drops sessions named for pi-worker or pi-review; Jake then rules. If it stops, `nana-knowledge query` needs its own index refresh.
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
-6. **Queue for the new priority, in order:** build the land rule into `nana-land` (refuse uncovered commits, no free-text exemptions, keep every reviewer's verdict and refuse unless all are LAND; plan drafted, sol plan review next); the product report as a feature (plan drafted after Fable; rows renumber from R-1005); add a Windows CI runner, fix the conflicting Windows wording, then fix what it finds (a UTM Windows 11 VM is the next test); the install-and-hooks check on both platforms; small fixes: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence; then move the confirmed audit issues into the ledger's open questions and regenerate the product report.
+6. **Queue for the new priority, in order:** the product report as a feature (plan drafted after Fable; its rows start at R-1012); add a Windows CI runner, fix the conflicting Windows wording, then fix what it finds (a UTM Windows 11 VM is the next test); the install-and-hooks check on both platforms; small fixes: the G-005 pi default-export carve-out, rm inside the working directory, the study stop on unwritable evidence; then move the confirmed audit issues into the ledger's open questions and regenerate the product report.
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
+- **[optional, since 2026-10-10] Push main.** Main holds the requirements tree, the four-digit IDs and the land rule, none pushed. Pushing starts CI and its template tag, which carries the new working-pattern text to copier projects.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
