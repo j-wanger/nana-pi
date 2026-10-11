@@ -62,6 +62,7 @@ import { homedir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
+import { VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
 export const REVIEW_ROUND_CAP = 3;
@@ -408,16 +409,37 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
   return rows.filter((r) => (repo === undefined || r.repo === repo) && (item === undefined || r.item === item));
 }
 
-/** Match only the final non-blank physical line; malformed suffixes record an empty verdict. */
+/** Read a verdict from the selected final or plain first line; detection folds but acceptance stays raw. */
 function verdictWord(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
-  const line = text.split(/\r?\n/).reverse().find((x) => x.trim() !== '');
-  if (line === undefined) return null;
+  if (text.startsWith('\uFEFF')) text = text.slice(1);
+  const lines = text.split(/\r?\n/);
+  const nonblank = lines.filter((line) => line.trim() !== '');
+  if (nonblank.length === 0) return null;
+  const first = nonblank[0];
+  const final = nonblank.at(-1);
+  const canon = (line) => [...line.normalize('NFKC').replace(/\p{Default_Ignorable_Code_Point}/gu, '')]
+    .map((char) => VERDICT_LOOKALIKE_FOLD[char] ?? char).join('').toLowerCase();
+  const carries = (line) => /(?<![a-z0-9_])verdict:/.test(canon(line));
   const marks = '[*_`]*';
-  const score = `(?:\\s+${marks}(?:\\(\\d+/\\d+\\)|—\\s*\\d+/\\d+)${marks})?`;
-  const match = new RegExp(`^[\\s#>_*\\x60-]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`).exec(line);
-  return match?.[1] ?? null;
+  const score = `(?:\\s+${marks}(?:\\(\\d+/\\d+\\)|—\\s*\\d+/\\d+|\\d+/\\d+)${marks})?`;
+  const finalGrammar = new RegExp(`^[\\s#>_*\\x60-]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`);
+  const firstGrammar = /^VERDICT: ([A-Z]+(?:-[A-Z]+)*)(?: \(\d+\/\d+\)| — \d+\/\d+| \d+\/\d+)?\.?\s*$/;
+
+  if (carries(final)) {
+    const selected = finalGrammar.exec(final)?.[1] ?? null;
+    if (!selected) return null;
+    if (first !== final && carries(first)) {
+      const firstWord = finalGrammar.exec(first)?.[1] ?? null;
+      if (firstWord !== selected) return null;
+    }
+    return selected;
+  }
+
+  const selected = firstGrammar.exec(first)?.[1] ?? null;
+  if (!selected || nonblank.slice(1).some((line) => canon(line).includes('verdict'))) return null;
+  return selected;
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 

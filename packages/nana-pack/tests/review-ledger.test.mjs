@@ -194,7 +194,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	}
 	const text = "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n";
 	const final = ledgerRun(["--item", "corpus-final"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
+	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === null;
 	const quoted = "Example from the review:\n    VERDICT: LAND\n    Correction: VERDICT: SEND-BACK\nMore findings.\nVERDICT: SEND-BACK\n";
 	const quotedResult = ledgerRun(["--item", "corpus-quoted"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(quoted)})`] });
 	const quotedPassed = quotedResult.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
@@ -204,7 +204,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 
 {
 	freshHome("verdict-malformed"); A.at(0);
-	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND...", "VERDICT: LAND - 9/10", "VERDICT: LAND – 9/10", "VERDICT: LAND (9.5/10)", "VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", "VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", "VERDICT: LAND\nΕERDICT: SEND-BACK", "拒否: VERDICT: LAND", "→ VERDICT: LAND", "VERDICT: LAND\nprose after verdict"];
+	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND...", "VERDICT: LAND - 9/10", "VERDICT: LAND – 9/10", "VERDICT: LAND (9.5/10)", "VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", "VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", "VERDICT: LAND\nVΕRDICT: SEND-BACK", "拒否: VERDICT: LAND", "→ VERDICT: LAND", "VERDICT: LAND\nprose after verdict"];
 	let empty = true;
 	const problems = [];
 	for (const [i, text] of malformed.entries()) {
@@ -215,6 +215,51 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	}
 	// req: R-1010
 	check("complete records an empty verdict for malformed verdict suffixes", empty, problems.join("; "));
+}
+
+{
+	freshHome("verdict-position"); A.at(0);
+	const run = (item, text) => {
+		const result = ledgerRun(["--item", item], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
+		return result.status === 0 ? jsonl(tallyFile).at(-1)?.verdict : `exit:${result.status}`;
+	};
+	const accepted = [
+		["plain", "VERDICT: LAND\nnotes", "LAND"],
+		["bare-score", "VERDICT: LAND 9/10\nnotes", "LAND"],
+		["paren-score", "VERDICT: LAND (9/10)\nnotes", "LAND"],
+		["dash-score", "VERDICT: LAND — 9/10\nnotes", "LAND"],
+		["bom", "\uFEFFVERDICT: LAND\nnotes", "LAND"],
+		["agree", "VERDICT: LAND 9/10\nnotes\nVERDICT: LAND", "LAND"],
+		["crlf", "VERDICT: LAND\r\nnotes\r\n", "LAND"],
+		["tab", "VERDICT: LAND\t", "LAND"],
+		["no-final-newline", "VERDICT: LAND\nnotes", "LAND"],
+		["misspelled-epsilon", "VERDICT: LAND\nΕERDICT: SEND-BACK", "LAND"],
+	];
+	let acceptedOk = true;
+	for (const [item, text, expected] of accepted) acceptedOk &&= run(`position-${item}`, text) === expected;
+	// req: R-969
+	check("complete extracts plain first-line verdicts, supported scores, BOM and line endings", acceptedOk);
+	const refused = [
+		["quoted", "`VERDICT: LAND`\nnotes"],
+		["marked", "# VERDICT: LAND\nnotes"],
+		["correction", "VERDICT: LAND\nThe verdict is SEND-BACK."],
+		["disagree", "VERDICT: SEND-BACK 4/10 — blockers remain\nnotes\nVERDICT: LAND"],
+		["malformed-before-final", "VERDICT: SEND-BACK!\nnotes\nVERDICT: LAND"],
+		["invisible-other-line", "VERDICT: LAND\nV\u200BERDICT: SEND-BACK"],
+		["bounded-token", "VERDICT: LAND\nXVERDICT: SEND-BACK"],
+		["zwsp-first-conflict", "V\u200BERDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
+		["greek-first-conflict", "VΕRDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
+		["cyrillic-first-conflict", "VЕRDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
+		["lowercase-first-conflict", "verdict: send-back\nnotes\nVERDICT: LAND"],
+		["cgj-later", "VERDICT: LAND\nV\u034FERDICT: SEND-BACK"],
+	];
+	const refusedFailures = [];
+	for (const [item, text] of refused) {
+		const got = run(`position-${item}`, text);
+		if (got !== null) refusedFailures.push(`${item}: ${got}`);
+	}
+	// req: R-1010
+	check("complete refuses marks, corrections, conflicting verdicts, invisible characters and bounded-token lookalikes", refusedFailures.length === 0, refusedFailures.join(", "));
 }
 
 {
