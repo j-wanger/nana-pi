@@ -270,6 +270,11 @@ await inFlight("a review of a snapshot of the commit still in flight is refused"
   out("verdict word of a CRLF review", String(records(r.key, "parse-crlf")[0]?.verdict), "LAND");
   review(r.tree, "parse-echo", "sol", "Format: VERDICT: LAND | FIX-FIRST | BLOCK\nVERDICT: LAND | FIX-FIRST | BLOCK\nFindings.\nVERDICT: SEND-BACK\n");
   out("an echoed format line before a final SEND-BACK records SEND-BACK", String(records(r.key, "parse-echo")[0]?.verdict), "SEND-BACK");
+  // sol build r2: a later prose-prefixed verdict line must not let an earlier clean LAND stand.
+  review(r.tree, "parse-correction", "sol", "Findings.\nVERDICT: LAND\nCorrection: VERDICT: SEND-BACK\n");
+  out("a later prose-prefixed VERDICT line records an empty verdict, never the earlier LAND", String(records(r.key, "parse-correction")[0]?.verdict), "null");
+  review(r.tree, "parse-quoted", "sol", "Example from the review:\n    VERDICT: LAND\n    Correction: VERDICT: SEND-BACK\nMore findings.\nVERDICT: SEND-BACK\n");
+  out("quoted verdict lines before a final SEND-BACK record SEND-BACK", String(records(r.key, "parse-quoted")[0]?.verdict), "SEND-BACK");
 }
 
 // ── Version 2 and the old code (R-1008, R-1011) ──
