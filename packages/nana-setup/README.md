@@ -367,7 +367,7 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` â
 
 ## Platforms
 
-Support: macOS tested; Linux runs in hosted CI, where the suite leg is non-blocking, with no recorded machine install; the pack runs on native Windows but is untested, and on Windows there is no Claude Code hook except the knowledge pull, none of its PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows there is no Claude Code hook except the knowledge pull, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 
 On native Windows, nana-setup wires no Claude Code hook except the knowledge pull. Installer copies and skipped PATH commands are implementation details, not a claim of supported parity.
 On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there.
