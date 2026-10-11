@@ -379,6 +379,15 @@ async function render(r, hash) {
     walk(st.root, (n) => { if (n.tag === "a" && /^#FEAT-\d{3}$/.test(n.attrs.href ?? "")) links.push(n.attrs.href); });
     out("render #features: each feature links to its detail", ["#FEAT-001", "#FEAT-002"].every((h) => links.includes(h)), "true");
   }
+  // Round 8: one title per detail view; list fields as list items; no joined ".;" text.
+  {
+    const st = stubDocument(); mod.renderInto(st.document, views["#FEAT-001"].model, { hash: "#FEAT-001" });
+    const heads = []; const items = [];
+    walk(st.root, (n) => { if (/^h[1-6]$/.test(n.tag ?? "")) { let t = ""; walk(n, (x) => { if (x.kind === "text") t += x._text; }); heads.push(t); } if (n.tag === "li") { let t = ""; walk(n, (x) => { if (x.kind === "text") t += x._text; }); items.push(t); } });
+    out("render #FEAT-001: the feature title appears once", heads.filter((h) => h.includes("FEAT-001") && h.includes("Quokka feature")).length, 1);
+    out("render #FEAT-001: gaps, risks and decisions are list items", ["A gap.", "A risk.", "A decision."].every((t) => items.includes(t)), "true");
+    out("render: no list joined into prose (no \".;\")", Object.entries(views).filter(([, v]) => v.text.includes(".;")).map(([h]) => h || "(none)").join(",") || "none", "none");
+  }
   const ff = views["#features"].text;
   out("render #features lists every feature with its state", ff.includes("FEAT-001") && ff.includes("FEAT-002") && /unassessed/i.test(ff), "true");
 }
