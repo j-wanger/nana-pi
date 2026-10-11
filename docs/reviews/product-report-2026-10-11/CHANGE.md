@@ -7,7 +7,8 @@ row; Jake confirmed its name and home on 2026-10-10); FEAT-028 (its tree-checker
 exported row reader and a capability `outcome` field — code only, no row changes); FEAT-002 SUB-005
 (the HANDOFF ask tag moves into a shared lib that `nana-frontier` imports — code only). Order: why →
 plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan review (item
-`product-report-plan`; r1 SEND-BACK, answered in `sol-plan-r1-response.md`) → Jake's tree decisions
+`product-report-plan`; r1 and r2 SEND-BACK, answered in `sol-plan-r1-response.md` and
+`sol-plan-r2-response.md`) → Jake's tree decisions
 (decided) → build → seat verification → sol build review →
 astra land review → Jake accepts.*
 
@@ -34,9 +35,9 @@ date.
    assessment as current or out of date and names each added, removed or changed row.
 4. Refreshing works from either seat with any model: the command writes evidence packets for
    out-of-date features; a model writes candidates into the store; the suite refuses a store that
-   cites a row outside its stamp, carries a digit in prose, breaks the schema, carries a stamp that
-   differs from the ledger at its commit, or rates a feature `solid` while one of its own stamped rows
-   was untested or violated. Staleness is never a suite failure — it is
+   carries a digit in prose, breaks the schema, carries a stamp that differs from the ledger at its
+   commit, or rates a feature `solid` while one of its own stamped rows was planned, untested or
+   violated. Staleness is never a suite failure — it is
    what the page shows — so no other lane has to edit the store.
 5. The seat publishes: from Claude Code, a republish to the same link; from pi, open the file.
 
@@ -55,17 +56,17 @@ date.
 | R-1020 | Each stored assessment shall carry a stamp of the commit it was written against, its feature's purpose and status, and for each row it covers — the feature's own rows and the rows shared into it, each marked own or shared — the row's status and a SHA-256 over its ID, requirement text and status. |
 | R-1021 | WHEN a stored assessment's stamped row set, any stamped row's own-or-shared mark or fingerprint, or its feature's stamped purpose or status differs from the current ledger, the product report shall mark the assessment out of date and name each added, removed or changed row. |
 | R-1022 | Fingerprints shall be equal for a ledger with LF line endings and the same ledger with CRLF line endings or trailing whitespace, read through the report's own parse. |
-| R-1023 | The suite shall fail when a stored assessment cites a row outside the rows it was stamped against. |
-| R-1024 | The suite shall fail when a prose field of a stored assessment holds an ASCII digit. |
-| R-1025 | The suite shall fail when a stored assessment is rated `solid` while one of its feature's own stamped rows had status untested or violated. |
-| R-1026 | IF the tree checker reports problems for the ledger, THEN the report command shall refuse, naming them, and write no page. |
-| R-1027 | The suite shall fail when a stored assessment's stamp differs from what the ledger at its stamped commit, read with `git show`, gives for its feature: the row set, each row's own-or-shared mark, status and fingerprint, and the feature's purpose and status. |
-| R-1028 | The suite shall fail when the assessment store breaks its declared schema: only the declared fields, each prose field a string or a list of strings, and a rating of `solid`, `mostly solid`, `partial` or `weak`. |
-| R-1029 | The product report shall show a feature that has no stored assessment as unassessed. |
-| R-1030 | WHEN run with `--packets <dir>`, the report command shall write one packet per out-of-date or unassessed feature, holding the feature's current purpose and status, its own and shared rows with text, status and evidence, its current assessment and its stale differences, byte-identical across runs at one commit. |
-| R-1031 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. |
+| R-1023 | The suite shall fail when a prose field of a stored assessment holds an ASCII digit. |
+| R-1024 | The suite shall fail when a stored assessment is rated `solid` while one of its feature's own stamped rows had status planned, untested or violated. |
+| R-1025 | IF the tree checker reports problems for the ledger, THEN the report command shall refuse, naming them, and write no page. |
+| R-1026 | The suite shall fail when a stored assessment's stamp differs from what the ledger at its stamped commit, read with `git show`, gives for its feature: the row set, each row's own-or-shared mark, status and fingerprint, and the feature's purpose and status. |
+| R-1027 | The suite shall fail when the assessment store breaks its declared schema (§3): exact keys and types at every level, full commit hashes, valid feature and row IDs, the status, mark and rating enums, SHA-256 hex fingerprints, ISO dates, one assessment per feature and each row once per stamp. |
+| R-1028 | The product report shall show a feature that has no stored assessment as unassessed. |
+| R-1029 | WHEN run with `--packets <dir>` on an empty or absent directory, the report command shall write exactly one versioned JSON packet per out-of-date or unassessed feature — its current purpose and status, its own and shared rows with text, status and evidence, its current assessment and its stale differences — byte-identical across runs at one commit, and refuse a non-empty directory. |
+| R-1030 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. |
 
-(R-1024 checks digits only: every capability, feature, subgroup and requirement ID holds a digit, so
+(Dropped in r2: the draft's "cites a row outside its stamp" — the schema has no row citations, and
+R-1026 already verifies the whole stamped set. R-1023 checks digits only: every capability, feature, subgroup and requirement ID holds a digit, so
 a separate ID clause could never fail on its own — sol plan r1. R-1014–R-1018 replace the draft's two bundled rows: capabilities have a purpose and an outcome but no
 status or shares; the draft's "every open question" is dropped — the open questions are free text with
 no grammar, and HANDOFF's "Open for Jake" already carries the ask about them.)
@@ -75,16 +76,20 @@ active` with `Purpose: Rebuild one report of the product, its features, their re
 decisions waiting on Jake, from the repo at any commit from its first build on.` Proposed share line:
 `Also applies: R-292, R-293, R-878, R-1000` — the report reads the share grammar, the feature status
 grammar, the HANDOFF ask tag and the ID grammar, so a change to any of them must re-read the report.
-The builder adds this line with FEAT-039.
+sol plan r2: the report also consumes, through `checkTree`, row homes, purposes, unique heading IDs,
+nesting and empty proposed or retired features — R-287, R-288, R-289, R-290 and R-294 — so the
+proposed line grows to `Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000`
+(R-291, the committed outline, is not consumed). Jake re-decides the expanded line before the build;
+the builder adds the line he approves with FEAT-039.
 
 ## 3. Scope
 
 **In.**
 - `scripts/product-report.mjs` (mapped module, six-tag header): normalise the ledger text (LF line
   endings; trailing whitespace stripped per line with the rail's `WHITESPACE`) BEFORE parsing; run the
-  tree checker (refuse on problems, R-1026); read headings through `parseLedger` and cells through the
+  tree checker (refuse on problems, R-1025); read headings through `parseLedger` and cells through the
   new exported row reader; read HANDOFF entries through the shared ask lib (refuse on a parse error,
-  R-1031); compute counts, shares in and out, violated rows; check stamps; render; `--out <file>`
+  R-1030); compute counts, shares in and out, violated rows; check stamps; render; `--out <file>`
   (default `docs/product-report/out/nana-pi-product-ledger.html`, gitignored), `--packets <dir>`, and
   an injectable repository root and git runner for tests (G-006).
 - `scripts/requirements-tree.mjs` (FEAT-028): export one row reader (each row's ID, requirement text,
@@ -92,23 +97,32 @@ The builder adds this line with FEAT-039.
   and use it in `checkLifecycleAndShares` instead of its private cell read; record each capability's
   `Outcome:` as `outcome`; export the descendant walk the report needs. R-291's outline stays byte for
   byte.
-- `packages/nana-pack/lib/handoff-asks.mjs` (FEAT-002 SUB-005; new, six-tag header): the ask tag
-  pattern and ONE entry parser for the "Open for Jake" section returning every entry with its kind,
-  since-date, title, full body and line, or a named parse error; `nana-frontier.mjs` consumes that
-  parser and keeps its own checks (the date must not be in the future — a wall-clock check the report
-  never uses). Frontier's existing tests (they spawn the CLI) keep pinning its behaviour.
+- `packages/nana-pack/lib/handoff-asks.mjs` (FEAT-002 SUB-005; new, six-tag header): ONE section and
+  entry splitter for "Open for Jake" returning every raw entry (all its lines, start line) plus two
+  independent results per entry — the tag result (frontier's existing rule: a case-insensitive
+  `[blocking|optional|parked, since YYYY-MM-DD]` anywhere in the entry, continuation lines included)
+  and the title result (the report's grammar: the entry's first line is `- **[<kind>, since
+  <date>] <Title>.**`, the body is everything after the closing `**`). `nana-frontier.mjs` applies
+  only its existing tag and date rules to the raw entries, so its output is unchanged by construction;
+  golden before-and-after fixtures pin its full output, including an entry with a valid tag but no
+  parseable title and an entry whose tag sits on a continuation line. The report refuses on a title
+  or tag failure (R-1030).
 - The page template at `scripts/product-report/template.html`, read from disk by the module: a
   complete HTML document meeting the artifact page contract (title, colour
   tokens with both dark-mode selectors, a phone-width layout, Google Fonts only); every fact computed;
   data embedded as JSON with `<` escaped and inserted with a function replacer (no `$` patterns);
   text inserted through DOM text nodes, with `**…**` and backtick spans built as `b` and `code`
   elements from text; the hash route guarded with an own-property check.
-- `docs/product-report/assessments.json` under a closed schema: `{ "features": [ { "id",
-  "what_it_does", "maturity", "maturity_reason", "gaps": [], "risks": [], "decisions": [],
-  "next_step", "written_by", "checked_by", "date", "stamp": { "commit", "purpose", "status", "rows":
-  [ { "id", "mark": "own"|"shared", "status", "sha256" } ] } } ] }`; the prose fields are
-  `what_it_does`, `maturity_reason`, `gaps`, `risks`, `decisions` and `next_step`; the prototype's
-  `corrections` and product-level `synth` are dropped (the synthesis had no stamp and would go stale).
+- `docs/product-report/assessments.json` under a closed, recursive schema (R-1027): top level exactly
+  `{ "version": 1, "features": [...] }`; each feature exactly `id` (a FEAT ID), `what_it_does`,
+  `maturity` (`solid` | `mostly solid` | `partial` | `weak`), `maturity_reason`, `gaps`, `risks`,
+  `decisions` (lists of non-empty strings), `next_step`, `written_by`, `checked_by` (non-empty strings),
+  `date` (ISO `YYYY-MM-DD`) and `stamp`; the stamp exactly `commit` (40 lowercase hex), `purpose`,
+  `status` (the feature status grammar) and `rows`; each row exactly `id` (the rail's ID grammar),
+  `mark` (`own` | `shared`), `status` (`implemented` | `untested` | `violated` | `planned` | `retired`)
+  and `sha256` (64 lowercase hex); feature IDs unique in the store; row IDs unique within a stamp.
+  The prose fields are `what_it_does`, `maturity_reason`, `gaps`, `risks`, `decisions` and
+  `next_step`. The prototype's `corrections` and product-level `synth` are dropped (the synthesis had no stamp and would go stale).
   It holds the prototype's 38 assessments, stamped against `c4332ec` —
   the ledger they were written against (the fact-check matched their counts there) — so every feature
   that drifted since shows out of date on day one. Prose loses its digits and IDs. FEAT-011 and
@@ -120,7 +134,7 @@ The builder adds this line with FEAT-039.
   (what the report is, `npm run report`, the script, how each seat publishes; no backticked output
   path unless declared in `readme-check.config.json`); `REQUIREMENTS.md` (FEAT-039 and its rows, landing
   `implemented` with their `// req:` markers in the same commit); `requirements-tree.test.mjs`'s real-
-  ledger literals (67 → 68 headings, 1,024 → 1,044 rows); regenerated outline and code map;
+  ledger literals (67 → 68 headings, 1,024 → 1,043 rows); regenerated outline and code map;
   `.gitignore` (the output folder).
 
 **NOT.** Committing the generated page; capability summary prose; machine-local state; the
@@ -140,7 +154,7 @@ module-type warning Node prints when a script imports the TypeScript rail.
   normalised row. Stale when the covered set (own + shared) changed, any per-row hash changed, or the
   feature's purpose or status changed; the page names added, removed and changed rows. Evidence is
   excluded (it churns on test renames) — declared residual.
-- **The suite is the gate, and it checks stamps, not the live ledger:** R-1023–R-1025 read the
+- **The suite is the gate, and it checks stamps, not the live ledger:** R-1023–R-1024 read the
   stamped rows, so a lane that changes a row elsewhere never fails this feature's test; the change
   shows as out of date on the page instead.
 - **Numbers and the writing rule:** the page's numbers are computed and shown beside the prose; the
@@ -155,8 +169,15 @@ module-type warning Node prints when a script imports the TypeScript rail.
 - **R-1019 is pinned in two halves:** hostile ledger text (`</script>`, `<img onerror>`) leaves exactly
   one parseable data script in the page; and the renderer, run against an injected document stub,
   builds every text through text nodes and never assigns to an HTML sink.
-- **R-1027 needs history:** CI already checks out with `fetch-depth: 0`, so `git show <stamp commit>`
-  works there; a stamp commit missing from the clone makes the suite fail, never skip.
+- **R-1026 is pinned against real history:** a temporary repository with two ledger commits; the
+  test stamps against the first while the second is checked out, and a spy on the injected git runner
+  must see `git show <full-hash>:REQUIREMENTS.md`; an unknown commit must make the suite fail with a
+  message naming the commit and saying "fetch full history". CI checks out with `fetch-depth: 0`; a
+  shallow clone or source archive fails this check by design (declared in the README).
+- **Packets:** `--packets <dir>` refuses a non-empty directory and writes exactly the current set, so no
+  stale packet survives; the default lives in the gitignored output folder; each packet is versioned
+  JSON whose `assessment` field has the store's schema, so a model's candidate can be pasted back and
+  checked by the same test.
 
 ## 5. Checkpoint 1 (Jake, decided 2026-10-10)
 
@@ -172,7 +193,9 @@ lifted. Checkpoint 1b (the share line in §2): Jake, 2026-10-11, "Yes".
 without normalising → the CRLF fingerprint test fails; drop a share from the stamp check → a share
 added marks nothing stale; skip the digit or ID check → its test passes a bad store; check the live
 ledger instead of the stamp → a lane edit fails the suite; trust the stored stamp instead of
-rebuilding it → a forged status passes; ignore the own-or-shared mark → a row moving home stays
+rebuilding it, or read the checked-out ledger instead of `git show` → the two-commit test fails;
+allow a second assessment for one feature or a repeated stamp row → its schema test fails; drop
+`planned` from the solid check → its test fails; ignore the own-or-shared mark → a row moving home stays
 current; drop the ask body → its test fails; skip a malformed ask instead of refusing → its test
 fails; insert text as HTML → a `</script>` in a ledger cell runs; drop the own-property guard →
 `#constructor` throws; hardcode the commit or the clean flag → the temporary-repository tests fail); the seat's acceptance script
