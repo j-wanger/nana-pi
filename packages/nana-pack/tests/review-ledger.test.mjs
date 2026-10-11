@@ -47,7 +47,14 @@ const roundsOf = (item) => [...new Map(jsonl(tallyFile).filter((r) => r.item ===
 const verdictsOf = (item) => jsonl(auditFile).filter((r) => r.kind === "verdict" && r.item === item);
 
 let fails = 0;
-const check = (n, ok, info = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : info); if (!ok) fails++; };
+const check = (n, ok, info = "") => {
+	if (typeof ok === "function") {
+		ok = false;
+		info = "check takes a boolean, got a function";
+	}
+	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : info);
+	if (!ok) fails++;
+};
 
 // a git repository with n commits; at(i) detaches HEAD at commit i
 const gitIn = (cwd, ...a) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd, encoding: "utf8" }).stdout.trim();
@@ -175,33 +182,40 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 }
 
 // req: R-969
-check("complete records the LAND corpus forms and final SEND-BACK", () => {
+{
 	freshHome("verdict-corpus"); A.at(0);
 	const accepted = ["VERDICT: LAND", "# VERDICT: LAND", "**VERDICT:** LAND", "VERDICT: LAND.", "VERDICT: LAND (9/10)", "VERDICT: LAND — 9/10", "**VERDICT: LAND — 9/10.**", "VERDICT: LAND  ", "VERDICT: LAND-WITH-FIXES", "VERDICT: LAND\r\n"];
 	let ok = true;
+	const problems = [];
 	for (const [i, text] of accepted.entries()) {
 		const result = ledgerRun(["--item", `corpus-${i}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		ok &&= result.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "LAND";
+		const passed = result.status === 0 && jsonl(tallyFile).at(-1)?.verdict === (text.includes("LAND-WITH-FIXES") ? "LAND-WITH-FIXES" : "LAND");
+		if (!passed) problems.push(`${JSON.stringify(text)}: ${result.status} ${result.stderr}`);
+		ok &&= passed;
 	}
 	const text = "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n";
 	const final = ledgerRun(["--item", "corpus-final"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-	check("accepted LAND forms and echoed-format-followed-by-SEND-BACK record the final word", ok && final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK");
-});
+	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
+	check("complete records the LAND corpus forms and final SEND-BACK", ok && finalPassed, problems.join("; ") || final.stderr || JSON.stringify(jsonl(tallyFile).at(-1)));
+}
 
 // req: R-1010
-check("complete records an empty verdict for malformed verdict suffixes", () => {
+{
 	freshHome("verdict-malformed"); A.at(0);
-	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: `LAND", "VERDICT: LAND!", "VERDICT: LAND..."];
+	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND..."];
 	let empty = true;
+	const problems = [];
 	for (const [i, text] of malformed.entries()) {
 		const result = ledgerRun(["--item", `malformed-${i}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		empty &&= result.status === 0 && jsonl(tallyFile).at(-1)?.verdict === null;
+		const passed = result.status === 0 && jsonl(tallyFile).at(-1)?.verdict === null;
+		if (!passed) problems.push(`${JSON.stringify(text)}: ${result.status} ${result.stderr} ${JSON.stringify(jsonl(tallyFile).at(-1))}`);
+		empty &&= passed;
 	}
-	check("echoed format, explanatory suffixes and embedded or trailing marks record empty", empty);
-});
+	check("complete records an empty verdict for malformed verdict suffixes", empty, problems.join("; "));
+}
 
 // req: R-1008
-check("complete appends every verdict at v2 and returns the revision ordinal", () => {
+{
 	freshHome("verdict-ordinal"); A.at(0);
 	const first = [];
 	for (const [role, model] of [["sol", "model-a"], ["astra", "model-b"], ["sol", "model-c"]]) {
@@ -213,22 +227,23 @@ check("complete appends every verdict at v2 and returns the revision ordinal", (
 	const second = mod.admit(["--item", "ordinal", "--role", "reviewer"], { home, cwd: A.d, launcher: "test", model: "model-d" });
 	const secondComplete = mod.complete(second.res, "VERDICT: LAND", { home });
 	const rows = jsonl(tallyFile).filter((r) => r.item === "ordinal");
-	check("three v2 verdict records retain item, role and model on revision one; revision two returns ordinal two",
+	check("complete appends every verdict at v2 and returns the revision ordinal",
 		first.every((x) => x.admitted.ok && x.completed.ok && x.completed.round === 1) && second.ok && secondComplete.ok && secondComplete.round === 2 && rows.length === 4 &&
 		rows.every((r) => r.v === 2 && r.item === "ordinal" && r.role && r.model) && rows.slice(0, 3).every((r) => r.revision === A.shas[0]) && rows[3].revision === A.shas[1]);
-});
+}
 
 // req: R-970
-check("report prints one line per verdict on a revision", () => {
+{
 	freshHome("report-verdicts"); A.at(0);
+	let completed = true;
 	for (const verdict of ["LAND", "SEND-BACK"]) {
 		const admitted = mod.admit(["--item", "report-two", "--role", "reviewer"], { home, cwd: A.d, launcher: "test", model: "model-report" });
-		assert.equal(admitted.ok, true, admitted.message); assert.equal(mod.complete(admitted.res, `VERDICT: ${verdict}`, { home }).ok, true);
+		completed &&= admitted.ok && mod.complete(admitted.res, `VERDICT: ${verdict}`, { home }).ok;
 	}
 	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-two", "--repo", A.d], { cwd: A.d, env: env(), encoding: "utf8" });
 	const lines = report.stdout.trim().split(/\r?\n/);
-	check("report emits two rows for two verdicts on one revision", report.status === 0 && lines.length === 2 && lines.every((line) => line.includes("report-two") && line.includes("model-report")) && lines[0].includes("LAND") && lines[1].includes("SEND-BACK"));
-});
+	check("report prints one line per verdict on a revision", completed && report.status === 0 && lines.length === 2 && lines.every((line) => line.includes("report-two") && line.includes("model-report")) && lines[0].includes("LAND") && lines[1].includes("SEND-BACK"), report.stderr || report.stdout);
+}
 
 // 3. identity: canonical slug, repository scope, worktrees share
 {
