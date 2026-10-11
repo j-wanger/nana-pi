@@ -31,7 +31,8 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 // refusal each get their own text, distinct from ✓.
 // Drives the REAL registered handler with a fake ctx that records UI calls.
 // Run: node --experimental-strip-types <this file>
-const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+const postEditModule = await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href);
+const ext = postEditModule.default;
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
@@ -79,6 +80,11 @@ const last = (a) => a.at(-1);
 const PASS_CMD = 'node -e "process.exit(0)"';
 const SLOW_PASS_CMD = 'node -e "setTimeout(()=>process.exit(0),100)"';
 const FAIL_CMD = 'node -e "process.exit(1)"';
+
+for (const [command, expected] of [["missing-tool x", "error"], ["ECHO", "checks_failed"], ["dir/Z", "checks_failed"], ["%ComSpec% /c exit 1", "checks_failed"], ["@node -e x", "checks_failed"]]) {
+	// req: R-1038
+	check(`win32 launch classification ${command}`, postEditModule.classifyPostEdit({ code: 1 }, false, false, command, "C:\\cwd", { PATH: "C:\\bin", PATHEXT: ".CMD" }, "win32", (file) => file.toLowerCase() === "c:\\cwd\\check.cmd") === expected);
+}
 
 // Compatibility: legacy receipt settings parse but no longer produce receipt files or affect post-edit results.
 {
@@ -137,6 +143,16 @@ const FAIL_CMD = 'node -e "process.exit(1)"';
 	check("missing executable is reported as an error, never passed", result?.content?.at(-1)?.text?.includes("could not run") && statuses.at(-1)?.text === "[error]post-edit ✗ 1/1 · missing-executable.txt");
 	fs.rmSync(td, { recursive: true, force: true });
 }
+
+if (process.platform === "win32") {
+	for (const [command, title] of [["node -e \"process.exit(1)\"", "node ordinary exit 1 remains failed"], ["type nana-missing-file.txt", "type missing file remains failed"], ["dir/Z", "dir invalid switch remains failed"]]) {
+		const { td, statuses, fire } = setup([{ match: "\\.txt$", run: command }]);
+		const file = path.join(td, "win-command.txt"); fs.writeFileSync(file, "x"); await fire(file);
+		// req: R-1038
+		check(`Windows integration: ${title}`, statuses.at(-1)?.text === "[error]post-edit ✗ 1/1 · win-command.txt");
+		fs.rmSync(td, { recursive: true, force: true });
+	}
+} else console.log("SKIP Windows post-edit integration: node exit 1, type missing file, dir/Z");
 
 // (a) all checks pass → a ✓ chip naming the count and the file, under the "dim" color.
 {

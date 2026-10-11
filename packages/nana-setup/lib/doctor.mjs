@@ -28,6 +28,8 @@ import { hasHook, desiredHooks, knowledgeHookHealthy, commandInvokes } from "./s
 import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
+import { findOnPath, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { DEFAULT_PATHEXT, PI_EXTENSIONS } from "../../nana-pack/lib/win-command-config.mjs";
 
 const OK = "ok";
 const FAIL = "fail";
@@ -305,12 +307,29 @@ export function diagnose(layout, opts = {}) {
 		);
 	}
 
-	if (win) add(NOTE, "pi executable", "skipped (win32)");
-	else {
-		const probe = spawnSync("pi", ["--version"], { encoding: "utf8" });
-		const version = probe.status === 0 ? (probe.stdout || "").trim().split(/\r?\n/)[0] : "";
+	{
+		const piOpts = opts.pi ?? {};
+		const piPlatform = piOpts.platform ?? platform;
+		const piEnv = piOpts.env ?? process.env;
+		const piSpawn = piOpts.spawn ?? spawnSync;
+		const piExists = piOpts.exists;
+		const isWin = (typeof piPlatform === "function" ? piPlatform() : piPlatform) === "win32";
+		const extensionKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "pathext");
+		const rawExtensions = extensionKey ? piEnv[extensionKey] : DEFAULT_PATHEXT;
+		const lookupEnv = { ...piEnv, [extensionKey ?? "PATHEXT"]: String(rawExtensions).split(";").filter((ext) => PI_EXTENSIONS.includes(ext.toLowerCase())).join(";") };
+		const executable = isWin ? findOnPath("pi", { env: lookupEnv, cwd: process.cwd(), exists: piExists }) : "pi";
+		let probe;
+		let refusal;
+		if (!executable) probe = { error: new Error("pi not found on PATH") };
+		else {
+			const comspecKey = Object.keys(piEnv).find((key) => key.toLowerCase() === "comspec");
+			const invocation = isWin ? winCommand(executable, ["--version"], { comspec: comspecKey ? piEnv[comspecKey] : undefined }) : { command: executable, args: ["--version"], options: {} };
+			refusal = invocation.refused;
+			if (!refusal) probe = piSpawn(invocation.command, invocation.args, { ...invocation.options, encoding: "utf8" });
+		}
+		const version = !refusal && probe?.status === 0 ? (probe.stdout || "").split(/\r?\n/)[0] : "";
 		const valid = /^v?\d+\.\d+\.\d+/.test(version);
-		const detail = valid ? version : `${probe.error ? "pi not found on PATH" : probe.status !== 0 ? `pi --version exited ${probe.status}` : "pi --version printed no version"} — install: ${PI_INSTALL_HINT}`;
+		const detail = valid ? version : refusal ? `pi launch refused: ${refusal} — install: ${PI_INSTALL_HINT}` : probe?.error ? `pi not found or could not start — install: ${PI_INSTALL_HINT}` : probe?.status !== 0 ? `pi --version exited ${probe?.status} — install: ${PI_INSTALL_HINT}` : `pi --version printed no version — install: ${PI_INSTALL_HINT}`;
 		add(valid ? OK : layout.isRealHome ? FAIL : NOTE, "pi executable", detail);
 	}
 

@@ -1,0 +1,6 @@
+{
+  "win32 skips pi executable probe": {
+    "replacedBy": "win32 pi executable probe uses injected ComSpec launcher",
+    "why": "Windows doctor no longer skips the pi executable probe; the replacement pins the injected Windows launch behavior."
+  }
+}

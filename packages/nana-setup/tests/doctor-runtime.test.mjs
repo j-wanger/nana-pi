@@ -49,16 +49,24 @@ try {
 	// req: R-952
 	check("pi executable rejects output without a version", piRow()?.status === "fail" && piRow().detail.includes("printed no version"));
 	fs.unlinkSync(valid);
-	// req: R-952
+	// req: R-1037
 	check("missing pi names the shared install hint", piRow()?.status === "fail" && piRow().detail.includes(PI_INSTALL_HINT));
-	// req: R-952
-	check("install missing-pi detail imports the same hint and never reaches install", stepPiRegister(layout, {}).at(-1)?.detail.includes(PI_INSTALL_HINT));
+	// req: R-1037
+	check("install missing-pi detail imports the same hint and never reaches install", stepPiRegister(layout, {}, { platform: () => "darwin" }).at(-1)?.detail.includes(PI_INSTALL_HINT));
 	const override = resolveLayout({ home });
 	// req: R-952
 	check("missing pi under override is informational", diagnose(override, { projectDir: home }).find((item) => item.label === "pi executable")?.status === "note");
 	process.env.NANA_SETUP_PLATFORM = "win32";
-	// req: R-952
-	check("win32 skips pi executable probe", diagnose(layout, { projectDir: home }).find((item) => item.label === "pi executable")?.detail === "skipped (win32)");
+	// req: R-952 R-1034
+	check("win32 pi executable probe uses injected ComSpec launcher", (() => { const calls = []; const row = diagnose(layout, { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\bin", ComSpec: "C:\\Windows\\cmd.exe" }, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.cmd", spawn: (command, args) => { calls.push({ command, args }); return { status: 0, stdout: "2.3.4\n", stderr: "warning" }; } } }).find((item) => item.label === "pi executable"); return row?.status === "ok" && row.detail === "2.3.4" && calls[0]?.command === "C:\\Windows\\cmd.exe"; })());
+	for (const [label, result] of [["nonzero", { status: 1, stdout: "2.3.4" }], ["empty", { status: 0, stdout: "" }], ["malformed", { status: 0, stdout: "version unknown" }], ["stderr only", { status: 0, stdout: "", stderr: "2.3.4" }], ["spawn failure", { error: new Error("denied") }]]) {
+		// req: R-952
+		check(`win32 pi version ${label} is not OK`, diagnose(layout, { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\bin", PATHEXT: ".CMD" }, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.cmd", spawn: () => result } }).find((item) => item.label === "pi executable")?.status === "fail");
+	}
+	// req: R-1035
+	check("win32 refused pi shim is fail on real home", diagnose(layout, { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", spawn: () => { throw new Error("must not spawn"); } } }).find((item) => item.label === "pi executable")?.status === "fail" && diagnose(layout, { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", spawn: () => { throw new Error("must not spawn"); } } }).find((item) => item.label === "pi executable")?.detail.includes("%"));
+	// req: R-1035
+	check("win32 refused pi shim is note under home override", diagnose(resolveLayout({ home }), { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", spawn: () => { throw new Error("must not spawn"); } } }).find((item) => item.label === "pi executable")?.status === "note");
 	process.env.NANA_SETUP_PLATFORM = "darwin";
 
 	const realBin = path.join(home, "real-bin");

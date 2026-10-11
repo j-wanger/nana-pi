@@ -600,7 +600,11 @@ is user-scope only** — project config never contributes to it, trusted or not.
   successes stay out of its context and are reported by the status chip instead. Each failure
   is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the
   last 2000 chars kept and a truncation stated); the edited path is `promptPath`-rendered. `{file}` is
-  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.
+  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort. On Windows, a
+  failed check is reclassified as `error` only when it exits 1 and begins with a simple literal
+  command name absent from the working folder, PATH and the sealed cmd.exe internal-command list.
+  This check is conservative: commands later in a compound expression and names outside its internal
+  vocabulary may remain ordinary `checks_failed` or be reported as `error`; neither result passes.
 - **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
   pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
   `tool_result` handler, so two edits to one file in a single assistant message could race a
