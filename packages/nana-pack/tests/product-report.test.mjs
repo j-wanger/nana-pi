@@ -130,6 +130,15 @@ try {
     check("rendered #issues view shows every violated row and evidence", model.violated.every((row) => issues.text.includes(row.id) && issues.text.includes(row.requirement) && issues.text.includes(row.evidence)));
     // req: R-1018
     check("rendered decisions view shows every ask kind, since-date, title and full body", model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
+    // req: R-1018
+    check("rendered decisions view preserves every full ask body", model.asks.length > 0 && model.asks.every((ask) => normalizeWords(ask.body).length > 0 && carries(decisions.text, ask.body)));
+    const routeSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
+    const prototypeHashesRenderDecisions = ["#constructor", "#__proto__", "#hasOwnProperty"].every((hash) => {
+      const view = render(hash);
+      return model.asks.length > 0 && model.asks.every((ask) => carries(view.text, ask.body)) && view.nodes.some((node) => /^h[1-6]$/.test(node.tag) && /decision/i.test(node.textContent));
+    });
+    // req: R-1019
+    check("unknown prototype hashes render Decisions", prototypeHashesRenderDecisions && /Object\.prototype\.hasOwnProperty\.call\(views, hash\)/.test(routeSource));
     check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
     check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
     // req: R-1042
@@ -274,6 +283,21 @@ try {
     check("rejects digits in every assessment prose field", digitCases.every(Boolean), JSON.stringify(digitCases));
     // req: R-1024
     check("rejects solid ratings with unready own rows", problems.some((problem) => /solid/i.test(problem)), JSON.stringify(problems));
+    const plannedRoot = fixture("solid-planned-own-row");
+    const plannedLedgerPath = path.join(plannedRoot.root, "REQUIREMENTS.md");
+    const plannedLedger = fs.readFileSync(plannedLedgerPath, "utf8");
+    const parsed = parseLedger(plannedLedger);
+    const plannedFeature = parsed.headings.find((heading) => heading.id === "FEAT-039");
+    const plannedRow = readRequirementRows(parsed).find((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === plannedFeature) return true; return false; });
+    const oldRow = `| ${plannedRow.id} | ${plannedRow.requirement} | ${plannedRow.status} | ${plannedRow.evidence} |`;
+    fs.writeFileSync(plannedLedgerPath, plannedLedger.replace(oldRow, oldRow.replace(`| ${plannedRow.status} |`, "| planned |")));
+    plannedRoot.git(["add", "REQUIREMENTS.md"]); plannedRoot.git(["commit", "-qm", "planned own row"]);
+    const plannedAssessment = makeAssessment(plannedRoot.root, plannedRoot.git(["rev-parse", "HEAD"]).stdout.trim(), "FEAT-039");
+    plannedAssessment.maturity = "solid";
+    const plannedStore = writeStore(plannedRoot.root, [plannedAssessment]);
+    const plannedProblems = validateStore({ root: plannedRoot.root, storePath: plannedStore });
+    // req: R-1024
+    check("rejects solid ratings with planned own rows", plannedProblems.some((problem) => /solid/i.test(problem)), JSON.stringify(plannedProblems));
   }
   {
     const { root, git } = fixture("store-normalization");
@@ -305,10 +329,13 @@ try {
     const roundTripPath = writeStore(root, [staleAssessmentCandidate, unassessedCandidate]);
     // req: R-1029
     check("writes deterministic stale and unassessed packets with HEAD stamps and a validating round trip", names.includes("FEAT-039.json") && packet.version === 1 && Object.keys(packet).sort().join(",") === "assessment,differences,feature,rows,stamp,version" && Object.keys(packet.feature).sort().join(",") === "id,label,purpose,status" && packet.feature.purpose.includes("requirements") && packet.rows.every((row) => Object.keys(row).sort().join(",") === "evidence,id,mark,requirement,status") && JSON.stringify(packet.rows) === JSON.stringify(expectedPacketRows) && packet.assessment?.id === "FEAT-039" && packet.stamp.commit === git(["rev-parse", "HEAD"]).stdout.trim() && packet.stamp.rows.length === packet.rows.length && packet.differences.purpose?.was && packet.differences.purpose?.now && unassessed.assessment === null && unassessed.differences.added.length === 0 && unassessed.rows.some((row) => row.mark === "shared") && currentFeatureHasNoPacket && fs.readFileSync(path.join(firstDir, "FEAT-039.json")).equals(fs.readFileSync(path.join(secondDir, "FEAT-039.json"))) && validateStore({ root, storePath: roundTripPath }).length === 0);
+    const packetSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
+    const earlyRefusal = packetSource.indexOf("if (initialEntries.length)");
+    const buildAfterRefusal = packetSource.indexOf("const model = await buildReport", earlyRefusal);
     const refusalDir = path.join(temp, "packets-nonempty"); fs.mkdirSync(refusalDir); fs.writeFileSync(path.join(refusalDir, "keep"), "untouched");
     let refused = false; try { await generatePackets({ root, dir: refusalDir }); } catch { refused = true; }
     // req: R-1029
-    check("refuses non-empty packet directories without writing", refused && fs.readFileSync(path.join(refusalDir, "keep"), "utf8") === "untouched" && fs.readdirSync(refusalDir).join(",") === "keep");
+    check("refuses non-empty packet directories without writing", refused && fs.readFileSync(path.join(refusalDir, "keep"), "utf8") === "untouched" && fs.readdirSync(refusalDir).join(",") === "keep" && earlyRefusal >= 0 && buildAfterRefusal > earlyRefusal);
     check("accepts an empty packet directory", await generatePackets({ root, dir: path.join(temp, "packets-empty") }).then(() => true, () => false));
   }
   {
@@ -335,6 +362,27 @@ try {
     // req: R-1021
     check("outdated feature names purpose and status changes and carries full difference shape", feature?.assessmentState === "out of date" && feature.differences.purpose?.was && feature.differences.purpose?.now && feature.differences.status?.was === "active" && feature.differences.status?.now === "frozen (fixture)" && Array.isArray(feature.differences.added) && Array.isArray(feature.differences.removed) && Array.isArray(feature.differences.changed));
     check("stale feature preserves the assessment", feature?.assessment?.id === "FEAT-039" && fs.existsSync(storePath));
+    const moved = fixture("moved-home-shared");
+    const oldCommit = moved.git(["rev-parse", "HEAD"]).stdout.trim();
+    writeStore(moved.root, [makeAssessment(moved.root, oldCommit, "FEAT-039")]);
+    const oldLedger = fs.readFileSync(path.join(moved.root, "REQUIREMENTS.md"), "utf8");
+    const oldParsed = parseLedger(oldLedger);
+    const targetFeature = oldParsed.headings.find((heading) => heading.id === "FEAT-039");
+    const ownRow = readRequirementRows(oldParsed).find((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === targetFeature) return true; return false; });
+    const movedLine = `| ${ownRow.id} | ${ownRow.requirement} | ${ownRow.status} | ${ownRow.evidence} |`;
+    const homeLine = oldParsed.lines.findIndex((line) => line === movedLine);
+    const newHomeTable = oldParsed.tables.find((table) => { for (let heading = table.heading; heading; heading = heading.parent) if (heading.id === "FEAT-002") return true; return false; });
+    const updatedLines = [...oldParsed.lines];
+    updatedLines.splice(homeLine, 1);
+    updatedLines.splice(newHomeTable.rowLines.at(-1), 0, movedLine);
+    const appliesLine = updatedLines.findIndex((line) => line.startsWith("Also applies: R-287,"));
+    updatedLines[appliesLine] += `, ${ownRow.id}`;
+    fs.writeFileSync(path.join(moved.root, "REQUIREMENTS.md"), updatedLines.join("\n"));
+    moved.git(["add", "REQUIREMENTS.md"]); moved.git(["commit", "-qm", "move row home and share it back"]);
+    const movedReport = await buildReport({ root: moved.root });
+    const movedFeature = movedReport.model.features.find((item) => item.id === "FEAT-039");
+    // req: R-1021
+    check("row moved home and shared back is named as changed", movedFeature?.assessmentState === "out of date" && movedFeature.differences.changed.includes(ownRow.id), JSON.stringify({ state: movedFeature?.assessmentState, id: ownRow.id, changed: movedFeature?.differences.changed, added: movedFeature?.differences.added, removed: movedFeature?.differences.removed }));
   }
   {
     // req: R-1027
