@@ -9,7 +9,9 @@ final SEND-BACK" (R-969), "complete records an empty verdict for malformed verdi
 prints one line per verdict on a revision" (R-970). Those rows cite tests that check nothing.
 
 - [ ] **A.** Rewrite the four so their bodies run and their assertions are real `check(…, boolean)`
-  calls, keeping each title and its `// req:` marker.
+  calls, keeping each title and its `// req:` marker. A failing assertion must print a FAIL line that
+  contains that title (the mutation runner matches it): one boolean `check` per title, or inner checks
+  whose titles begin with it.
 - [ ] **B. Fix the class.** Make this file's `check` refuse a function argument — it records a FAIL
   naming the title ("check takes a boolean, got a function") — so the mistake cannot pass again.
 - [ ] **C.** `python3 docs/reviews/land-rule-2026-10-10/seat-mutate.py` (frozen; it applies each
