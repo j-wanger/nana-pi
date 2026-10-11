@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nana pi product ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:#f4f2ec;--fg:#20231f;--panel:#fff;--line:#d8d7cf;--accent:#326b58}html[data-theme="dark"]{--bg:#171b19;--fg:#e6e9e4;--panel:#222825;--line:#434a45;--accent:#86c4a3} @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171b19;--fg:#e6e9e4;--panel:#222825;--line:#434a45;--accent:#86c4a3}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 'DM Sans',sans-serif}main{max-width:1100px;margin:auto;padding:2rem 1.25rem}h1,h2{line-height:1.2}h1{color:var(--accent)}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.25rem;font:13px/1.5 'DM Mono',monospace}@media(max-width:600px){main{padding:1rem .75rem}pre{padding:.75rem;font-size:12px}}
+</style>
+</head>
+<body><main id="report"></main>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("report-data").textContent);
+  const root = document.getElementById("report");
+  const title = document.createElement("h1");
+  title.appendChild(document.createTextNode("Nana pi product ledger"));
+  root.appendChild(title);
+  const stamp = document.createElement("p");
+  stamp.appendChild(document.createTextNode(`Commit ${data.commit} · ${data.date} · Working tree: ${data.clean ? "clean" : "dirty"}`));
+  root.appendChild(stamp);
+  const content = document.createElement("pre");
+  content.appendChild(document.createTextNode(JSON.stringify(data, null, 2)));
+  root.appendChild(content);
+})();
+</script>
+</body>
+</html>

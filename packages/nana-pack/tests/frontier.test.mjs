@@ -30,7 +30,7 @@ const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "
   const golden = JSON.parse(fs.readFileSync(path.join(HERE, "fixtures/frontier-baseline.json"), "utf8"));
   const dir = tmpDir(path.join(os.tmpdir(), "frontier-baseline-"));
   const inputs = {
-    current: fs.readFileSync(path.resolve(HERE, "../../../HANDOFF.md"), "utf8"),
+    current: fs.readFileSync(path.join(HERE, "fixtures/frontier/handoff-current-2026-10-11.md"), "utf8"),
     noTitle: "## Open for Jake\n- [optional, since 2026-10-10] no grammar here\n",
     continuation: "## Open for Jake\n- decision\n[optional, since 2026-10-10]\n",
     missing: "## Open for Jake\n- decision with no tag\n",

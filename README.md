@@ -238,6 +238,10 @@ Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/templa
 Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.
 
+## Product report
+
+The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>` and `--out <file>`. Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input, and requires full git history.
+
 ## Tests
 
 On a shared machine, run the full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.

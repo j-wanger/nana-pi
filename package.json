@@ -14,6 +14,7 @@
 		"req:rows": "node scripts/requirement-rows.mjs",
 		"req:tree": "node scripts/requirements-tree.mjs --write",
 		"readme:check": "node scripts/readme-check.mjs",
+		"report": "node scripts/product-report.mjs",
 		"template:accept": "node scripts/template-acceptance.mjs",
 		"release": "node scripts/template-release.mjs"
 	},
