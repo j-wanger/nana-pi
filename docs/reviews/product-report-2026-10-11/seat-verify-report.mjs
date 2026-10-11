@@ -128,6 +128,66 @@ function report(root, outFile = join(ROOT, `page-${++n}.html`)) {
   out("a CRLF ledger with trailing spaces: the report runs and shows its rows", `${a.code}/${(a.page ?? "").includes("The tool shall wombat three.")}`, "0/true");
 }
 
+// ── Round 3: the assessment store (R-1020, R-1022, R-1023, R-1024, R-1026, R-1027) ──
+// The seat computes fingerprints itself (SHA-256 over the JSON array [id, requirement, status]) and
+// calls the lane's exported `validateStore({ root, storePath, gitRunner })`, which returns a list of
+// problem strings (empty when the store is valid).
+const { createHash } = await import("node:crypto");
+const mod = await import(new URL(`file://${SCRIPT}`).href);
+const sha = (id, req, status) => createHash("sha256").update(JSON.stringify([id, req, status])).digest("hex");
+function stampFor(commit, { mark1000 = "own", status1 = "implemented" } = {}) {
+  return {
+    commit, purpose: "Quokkafeat purpose words.", status: "active",
+    rows: [
+      { id: "R-001", mark: "own", status: status1, sha256: sha("R-001", "The tool shall quokka one.", status1) },
+      { id: "R-002", mark: "own", status: "violated", sha256: sha("R-002", "The tool shall quokka two.", "violated") },
+      { id: "R-1000", mark: mark1000, status: "untested", sha256: sha("R-1000", "The tool shall quokka four digits.", "untested") },
+    ],
+  };
+}
+function assessment(commit, over = {}) {
+  return { id: "FEAT-001", what_it_does: "It keeps quokkas in order.", maturity: "partial", maturity_reason: "Some rows are not tested yet.", gaps: ["A gap."], risks: ["A risk."], decisions: ["A decision."], next_step: "Test the rest.", written_by: "seat", checked_by: "seat", date: "2026-10-11", stamp: stampFor(commit), ...over };
+}
+function storeRepo(storeFor) {
+  const r = repo({ "REQUIREMENTS.md": LEDGER, "HANDOFF.md": HANDOFF });
+  const commit = git(r, "rev-parse", "HEAD");
+  const store = storeFor(commit);
+  mkdirSync(join(r, "docs/product-report"), { recursive: true });
+  writeFileSync(join(r, "docs/product-report/assessments.json"), `${JSON.stringify(store, null, 2)}\n`);
+  return { r, commit };
+}
+const problems = (r) => {
+  try { const p = mod.validateStore({ root: r, storePath: join(r, "docs/product-report/assessments.json") }); return Array.isArray(p) ? p : [`not a list: ${typeof p}`]; }
+  catch (e) { return [`threw: ${e.message}`]; }
+};
+{
+  const { r } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  out("a store stamped from the ledger at its commit is valid", problems(r).join(" | ") || "none", "none");
+}
+for (const [label, make, pattern] of [
+  ["a forged row status in the stamp", (c) => { const a = assessment(c); a.stamp.rows[0].status = "untested"; return { version: 1, features: [a] }; }, /R-001/],
+  ["a stamp commit the clone lacks", () => ({ version: 1, features: [assessment("0".repeat(40))] }), /0{40}.*fetch full history|fetch full history.*0{40}/i],
+  ["a digit in prose", (c) => ({ version: 1, features: [assessment(c, { next_step: "Test the other 2." })] }), /digit|next_step/i],
+  ["solid with an untested own row", (c) => ({ version: 1, features: [assessment(c, { maturity: "solid" })] }), /solid/i],
+  ["a second assessment for one feature", (c) => ({ version: 1, features: [assessment(c), assessment(c)] }), /FEAT-001|duplicate/i],
+  ["a row twice in one stamp", (c) => { const a = assessment(c); a.stamp.rows.push(a.stamp.rows[0]); return { version: 1, features: [a] }; }, /R-001|duplicate/i],
+  ["an unknown field", (c) => ({ version: 1, features: [assessment(c, { extra: "x" })] }), /extra|unknown|field/i],
+  ["a rating outside the enum", (c) => ({ version: 1, features: [assessment(c, { maturity: "great" })] }), /great|rating|maturity/i],
+  ["an own row marked shared (mark mismatch)", (c) => { const a = assessment(c); a.stamp.rows[2].mark = "shared"; return { version: 1, features: [a] }; }, /R-1000|mark/i],
+]) {
+  const { r } = storeRepo(make);
+  const p = problems(r);
+  out(`store check refuses ${label}`, `${p.length > 0}/${pattern.test(p.join(" | "))}`, "true/true");
+}
+{
+  // R-1022: a stamp computed from LF text validates against the same ledger committed with CRLF and trailing spaces.
+  const r = repo({ "REQUIREMENTS.md": LEDGER.split("\n").map((l) => `${l}  `).join("\r\n"), "HANDOFF.md": HANDOFF });
+  const commit = git(r, "rev-parse", "HEAD");
+  mkdirSync(join(r, "docs/product-report"), { recursive: true });
+  writeFileSync(join(r, "docs/product-report/assessments.json"), `${JSON.stringify({ version: 1, features: [assessment(commit)] }, null, 2)}\n`);
+  out("fingerprints are equal for a CRLF, trailing-space ledger", problems(r).join(" | ") || "none", "none");
+}
+
 console.log(`seat-verify-report: ${mismatches} mismatch(es)`);
 rmSync(ROOT, { recursive: true, force: true });
 process.exitCode = mismatches ? 1 : 0;
