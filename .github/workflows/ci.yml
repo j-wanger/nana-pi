@@ -25,6 +25,10 @@ jobs:
     env:
       NANA_TEST_REQUIRE_COPIER: "1"
     steps:
+      # Measurement (windows-ci lane): keep LF line endings on the Windows checkout to see how many
+      # failures the runner's default CRLF conversion causes. The lane decides the lasting fix.
+      - if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
