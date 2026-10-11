@@ -13,7 +13,7 @@ three:
   opens half-way down. The page bootstrap (not the renderer) scrolls to the top after each
   `hashchange` render.
 
-The seat's acceptance script (frozen) has three new cases that fail at launch
+The seat's acceptance script (frozen) has three new cases; two fail at launch (the fixture lists hold one entry, so the ".;" case guards the real page)
 (`seat-verify-report-r8-launch.txt`); it must print `0 mismatch(es)`. Mutation pairs (break the code):
 render the title twice → its case; join the list again → the list and ".;" cases. Then
 `npm run map:check`, `npm run readme:check`, `npm run test:locked` (summary line), `npm run report`
