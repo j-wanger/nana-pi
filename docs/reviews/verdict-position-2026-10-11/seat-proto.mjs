@@ -3,7 +3,9 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 const FOLD = { 'Ε':'E','Е':'E','Τ':'T','Т':'T','С':'C','Ϲ':'C','І':'I','Ι':'I','Ӏ':'I','Ѵ':'V','Ꭰ':'D','Ꭱ':'R','ε':'e','е':'e','τ':'t','т':'t','с':'c','і':'i','ι':'i','ѵ':'v','ԁ':'d','г':'r' };
 const DI = /\p{Default_Ignorable_Code_Point}/gu;
-export const canon = (s) => [...s.normalize('NFKC').replace(DI, '')].map((c) => FOLD[c] ?? c).join('').toLowerCase();
+const fold = (s) => [...s].map((c) => FOLD[c] ?? c).join('');
+// astra land r1: fold before AND after NFKC (NFKC turns the table's own U+03F9 into a sigma).
+export const canon = (s) => fold(fold(s.replace(DI, '')).normalize('NFKC').replace(DI, '')).toLowerCase();
 const carries = (l) => /(?<![a-z0-9_])verdict:/.test(canon(l));
 const M = '[*_`]*';
 const GEN = new RegExp(`^[\\s#>_*\\x60-]*VERDICT:${M}\\s+${M}([A-Z]+(?:-[A-Z]+)*)${M}(?:\\s+${M}(?:\\(\\d+/\\d+\\)|—\\s*\\d+/\\d+|\\d+/\\d+)${M})?[.,;:]?${M}\\s*$`);

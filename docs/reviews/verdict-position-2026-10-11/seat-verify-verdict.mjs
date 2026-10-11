@@ -65,6 +65,8 @@ const cases = [
   // sol build r1: a non-plain first line carrying the label, above an agreeing final LAND → empty
   ["`VERDICT: LAND`\nbody\nVERDICT: LAND", null], ["# VERDICT: LAND\nbody\nVERDICT: LAND", null],
   ["  VERDICT: LAND\nbody\nVERDICT: LAND", null], ["**VERDICT: LAND**\nbody\nVERDICT: LAND", null],
+  // astra land r1: the table's own U+03F9 (lunate sigma, a C look-alike) in both branches → empty
+  ["VERDI\u03F9T: SEND-BACK\nnotes\nVERDICT: LAND", null], ["VERDICT: LAND\nVERDI\u03F9T: SEND-BACK", null],
   // malformed final lines stay empty
   ["VERDICT: LAND (fixes pending)", null], ["VERDICT: LAND — Fixes: none.", null], ["VERDICT: LAND!", null], ["→ VERDICT: LAND", null],
   ["VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", null], ["VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", null],
@@ -77,6 +79,17 @@ for (const [text, want] of cases) {
   if (!ok) bad++;
   console.log(`${ok ? "ok  " : "MISS"} ${JSON.stringify(text).slice(0, 90)} → ${got} (want ${want})`);
 }
+// astra land r1: every configured look-alike, alone in a later label, must void a first-line LAND.
+try {
+  const { VERDICT_LOOKALIKE_FOLD: F } = await import(path.join(repoRoot, "packages/nana-pack/lib/verdict-config.mjs"));
+  for (const [k, v] of Object.entries(F)) {
+    const word = "VERDICT".replace(v.toUpperCase(), k);
+    if (word === "VERDICT") continue; // a target letter that VERDICT does not contain
+    const got = real(`VERDICT: LAND\n${word}: SEND-BACK`);
+    if (got !== null) bad++;
+    console.log(`${got === null ? "ok  " : "MISS"} table entry U+${k.codePointAt(0).toString(16).toUpperCase()} → ${v} voids a first-line LAND → ${got}`);
+  }
+} catch (e) { bad++; console.log(`MISS verdict-config loads: ${e.message}`); }
 console.log(`cases: ${cases.length - bad}/${cases.length}`);
 
 // Part 2: corpus — real parser vs the seat prototype on every corpus file.

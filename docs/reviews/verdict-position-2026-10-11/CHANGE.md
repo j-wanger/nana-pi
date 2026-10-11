@@ -95,6 +95,11 @@ correctly. A per-repo setting for the verdict position (subtraction: both positi
 - `canon(line)` = NFKC normalisation, then remove every Unicode default-ignorable code point
   (`/\p{Default_Ignorable_Code_Point}/gu` — category Cf such as U+200B and U+FEFF, and also U+034F,
   variation selectors and Hangul fillers; sol plan r3), then fold the look-alike table, then lower-case.
+  **Seat amendment after astra land r1:** fold the table BEFORE and AFTER NFKC (remove default-ignorables,
+  fold, NFKC, remove default-ignorables, fold, lower-case). NFKC rewrites the table's own `Ϲ` (U+03F9,
+  a C look-alike) to `Σ`, which the table does not fold, so `VERDIϹT: SEND-BACK` above a final LAND
+  recorded LAND. A suite test pins the invariant for the whole table: every key's canonical form is its
+  target letter.
   `carries(line)` = `canon(line)` contains `verdict:` not preceded by a letter, digit or underscore.
   Detection always uses `canon`; acceptance always matches the RAW line against a grammar. A disguised
   label is found by `carries` and then fails the grammar, so it can only produce an empty verdict.
