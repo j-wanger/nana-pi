@@ -50,17 +50,51 @@ function featureStamp(parsed, feature, commit) {
   };
 }
 
-export function renderInto(document, model) {
+export function renderInto(document, model, { hash = "" } = {}) {
   const root = document.getElementById("report");
-  const heading = document.createElement("h1");
-  heading.appendChild(document.createTextNode("Nana pi product ledger"));
-  root.appendChild(heading);
-  const stamp = document.createElement("p");
-  stamp.appendChild(document.createTextNode(`Commit ${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`));
-  root.appendChild(stamp);
-  const content = document.createElement("pre");
-  content.appendChild(document.createTextNode(JSON.stringify(model, null, 2)));
-  root.appendChild(content);
+  const views = { "": "decisions", "#decisions": "decisions", "#product": "product", "#features": "features", "#shared": "shared", "#issues": "issues", "#requirements": "requirements" };
+  const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] : Object.prototype.hasOwnProperty.call(Object.fromEntries(model.features.map((feature) => [`#${feature.id}`, feature])), hash) ? "detail" : "decisions";
+  const feature = view === "detail" ? model.features.find((item) => `#${item.id}` === hash) : null;
+  const el = (tag, text, parent) => { const node = document.createElement(tag); if (text !== undefined) node.appendChild(document.createTextNode(String(text ?? ""))); if (parent) parent.appendChild(node); return node; };
+  const text = (parent, value) => {
+    const source = String(value ?? "");
+    const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g;
+    let cursor = 0; let match;
+    while ((match = pattern.exec(source))) {
+      if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index)));
+      const bold = match[0].startsWith("**");
+      const node = document.createElement(bold ? "b" : "code");
+      node.appendChild(document.createTextNode(match[0].slice(bold ? 2 : 1, bold ? -2 : -1)));
+      parent.appendChild(node); cursor = pattern.lastIndex;
+    }
+    if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
+  };
+  const paragraph = (parent, label, value) => { const p = el("p", undefined, parent); if (label) { text(p, `${label}: `); } text(p, value); return p; };
+  const counts = (parent, item) => paragraph(parent, "Counts", Object.entries(item.counts ?? {}).map(([key, value]) => `${key} ${value}`).join(" · "));
+  const row = (parent, item) => { const section = el("article", undefined, parent); el("h3", `${item.id} · ${item.status}`, section); if (item.mark) paragraph(section, "Row type", item.mark); paragraph(section, "Requirement", item.requirement); paragraph(section, "Evidence", item.evidence); return section; };
+  root.replaceChildren();
+  const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
+  el("h1", "Nana pi product ledger", root);
+  paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
+  const nav = el("nav", undefined, root);
+  for (const [label, target] of [["Decisions", "#decisions"], ["Product", "#product"], ["Features", "#features"], ["Shared", "#shared"], ["Issues", "#issues"], ["Requirements", "#requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); }
+  el("h2", title, root);
+  if (view === "decisions") for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
+  if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { paragraph(card, "Feature", `${item.id} · ${item.label}`); counts(card, item); } } }
+  if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); el("h3", `${item.id} · ${item.label}`, card); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); counts(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); paragraph(card, "Shared by", item.sharedBy.join(", ") || "None"); }
+  if (view === "detail" && feature) { paragraph(root, "Purpose", feature.purpose); paragraph(root, "Status", feature.status); counts(root, feature); paragraph(root, "Shared by", feature.sharedBy.join(", ") || "None"); el("h3", "Requirements", root); for (const item of feature.rows) row(root, item); paragraph(root, "Assessment state", feature.assessmentState); if (feature.assessment) { const assessment = feature.assessment; for (const key of ["what_it_does", "maturity_reason", "gaps", "risks", "decisions", "next_step", "maturity"]) paragraph(root, key, Array.isArray(assessment[key]) ? assessment[key].join("; ") : assessment[key]); } const d = feature.differences; for (const key of ["added", "removed", "changed"]) paragraph(root, `${key} differences`, d[key].join(", ") || "None"); for (const key of ["purpose", "status"]) if (d[key]) paragraph(root, `${key} difference`, `was ${d[key].was}; now ${d[key].now}`); }
+  if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); paragraph(card, "Home feature", home?.id ?? "Unknown"); paragraph(card, "Receiving feature", receiving.id); }
+  if (view === "issues") for (const item of model.violated) row(root, item);
+  if (view === "requirements") {
+    const search = el("input", undefined, root); search.setAttribute("type", "search"); search.setAttribute("aria-label", "Search requirements");
+    const status = el("select", undefined, root); status.setAttribute("aria-label", "Filter by status"); const featureFilter = el("select", undefined, root); featureFilter.setAttribute("aria-label", "Filter by feature");
+    const addOption = (select, value) => { const option = el("option", value || "All", select); option.setAttribute("value", value); };
+    addOption(status, ""); for (const value of ["implemented", "untested", "violated", "planned", "retired"]) addOption(status, value);
+    addOption(featureFilter, ""); for (const item of model.features) addOption(featureFilter, item.id);
+    const list = el("div", undefined, root); const all = []; for (const item of model.features) for (const r of item.rows) if (!all.some((entry) => entry.id === r.id)) all.push({ ...r, featureId: item.id });
+    const update = () => { list.replaceChildren(); for (const item of all) if ((!search.value || `${item.id} ${item.requirement} ${item.evidence}`.toLowerCase().includes(search.value.toLowerCase())) && (!status.value || item.status === status.value) && (!featureFilter.value || item.featureId === featureFilter.value)) row(list, item); };
+    search.addEventListener("input", update); status.addEventListener("change", update); featureFilter.addEventListener("change", update); update();
+  }
   return root;
 }
 
@@ -210,6 +244,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
 export async function generatePackets({ root = REPO_ROOT, dir, gitRunner = (args, options) => spawnSync("git", args, options) } = {}) {
   if (!dir) throw new Error("packet directory is required");
   const target = path.isAbsolute(dir) ? dir : path.resolve(root, dir);
+  const head = git(gitRunner, root, ["rev-parse", "HEAD"]);
+  const headLedgerText = `${git(gitRunner, root, ["show", `${head}:REQUIREMENTS.md`] )}\n`;
+  const workingLedgerText = await readFile(path.join(root, "REQUIREMENTS.md"), "utf8");
+  if (normalise(workingLedgerText) !== normalise(headLedgerText)) throw new Error("working-tree REQUIREMENTS.md differs from HEAD; commit REQUIREMENTS.md first");
   await mkdir(target, { recursive: true });
   const initialEntries = await readdir(target);
   if (initialEntries.length) throw new Error(`packet directory is not empty: ${target}`);
@@ -243,7 +281,7 @@ export async function generatePackets({ root = REPO_ROOT, dir, gitRunner = (args
 export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner } = {}) {
   const { model, template } = await buildReport({ root, ...(gitRunner ? { gitRunner } : {}) });
   const payload = JSON.stringify(model).replaceAll("<", "\\u003c");
-  const html = template.replace("__REPORT_DATA__", payload);
+  const html = template.replace("__REPORT_DATA__", () => payload).replace("__RENDERER__", () => String(renderInto));
   const target = path.isAbsolute(out) ? out : path.resolve(root, out);
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, html, "utf8");

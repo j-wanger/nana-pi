@@ -1,0 +1,6 @@
+{
+  "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,024": {
+    "replacedBy": "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,043",
+    "why": "The requirements tree and four-digit ID migration increased the measured ledger row count from 1,024 to 1,043; the assertion now pins the current committed ledger size."
+  }
+}

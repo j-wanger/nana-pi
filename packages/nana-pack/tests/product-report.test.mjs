@@ -82,15 +82,38 @@ try {
     check("git runner failures refuse report generation", refused && !fs.existsSync(out));
   }
   {
-    const { root } = fixture("content"); const out = path.join(temp, "content.html");
-    await generateReport({ root, out }); const html = fs.readFileSync(out, "utf8");
-    const data = JSON.parse(html.match(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/)[1]);
-    const expectedAsks = splitOpenForJake(fs.readFileSync(path.join(root, "HANDOFF.md"), "utf8")).map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body }));
-    const sourceRows = readRequirementRows(parseLedger(fs.readFileSync(path.join(root, "REQUIREMENTS.md"), "utf8")));
-    const featureRows = data.features.flatMap((feature) => feature.rows.map((row) => row.id));
-    const expectedViolations = sourceRows.filter((row) => row.status === "violated").map((row) => row.id);
-    // req: R-1014 R-1015 R-1016 R-1017 R-1018 R-1028
-    check("report includes complete capabilities, features, rows, violations, full asks and unassessed slots", data.capabilities.length > 0 && data.capabilities.every((capability) => capability.purpose && typeof capability.outcome === "string" && Array.isArray(capability.features)) && data.features.length > 0 && data.features.every((feature) => feature.purpose && feature.status && feature.assessmentState === "unassessed" && Object.values(feature.counts).reduce((sum, count) => sum + count, 0) === feature.rows.length) && sourceRows.every((row) => featureRows.includes(row.id)) && JSON.stringify(data.violated.map((row) => row.id)) === JSON.stringify(expectedViolations) && JSON.stringify(data.asks) === JSON.stringify(expectedAsks) && data.asks.every((ask) => ask.title && ask.kind && ask.since && ask.body.length > 0));
+    const { root } = fixture("content");
+    const model = (await buildReport({ root }));
+    model.asks[0].body += " **bold span** and `code span`";
+    const render = (hash = "") => {
+      const nodes = [];
+      const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
+      const make = (tag) => { const node = { tag, children: [], attrs: {}, value: "", appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener() {} }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); nodes.push(node); return node; };
+      const document = { getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+      renderInto(document, model, { hash });
+      const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
+      return { text: flatten(rootNode).map((node) => typeof node.text === "string" ? node.text : "").join(" "), nodes: flatten(rootNode) };
+    };
+    const product = render("#product"); const features = render("#features"); const detail = render("#FEAT-039");
+    const requirements = render("#requirements"); const issues = render("#issues"); const decisions = render();
+    // req: R-1014
+    check("rendered #product view shows every capability, purpose, outcome and feature", model.capabilities.every((cap) => product.text.includes(cap.purpose) && product.text.includes(cap.outcome) && cap.features.every((id) => product.text.includes(id))), product.text.slice(0, 250));
+    // req: R-1015
+    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("Assessment state"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+    const plain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
+    const allRows = [...new Map(model.features.flatMap((feature) => feature.rows.map((row) => [row.id, row]))).values()];
+    const requirementText = requirements.text.replace(/\s+/g, " ");
+    const normalizeWords = (value) => String(value ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").split(/\s+/).filter(Boolean);
+    const requirementWords = new Set(normalizeWords(requirementText));
+    const carries = (source, value) => { const available = source === requirementText ? requirementWords : new Set(normalizeWords(source)); return normalizeWords(value).every((word) => available.has(word)); };
+    // req: R-1016
+    check("rendered #requirements view shows every row text, status and evidence", allRows.every((row) => requirementText.includes(row.id) && carries(requirementText, row.requirement) && requirementText.includes(row.status) && (row.evidence === "—" || carries(requirementText, row.evidence))) && allRows.length === requirements.nodes.filter((node) => node.tag === "article").length);
+    // req: R-1017
+    check("rendered #issues view shows every violated row and evidence", model.violated.every((row) => issues.text.includes(row.id) && issues.text.includes(row.requirement) && issues.text.includes(row.evidence)));
+    // req: R-1018
+    check("rendered decisions view shows every ask kind, since-date, title and full body", model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
+    check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
+    check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
   }
   {
     const { root } = fixture("hostile");
@@ -106,16 +129,12 @@ try {
     check("hostile ledger markup remains inert data", dataScripts.length === 1 && !html.includes("<img src=x onerror=alert(1)>"));
   }
   {
-    const nodes = [];
-    const root = { children: [], appendChild(node) { this.children.push(node); } };
-    const document = {
-      getElementById: () => root,
-      createElement: (tag) => ({ tag, children: [], appendChild(node) { this.children.push(node); } }),
-      createTextNode: (text) => { const node = { text }; nodes.push(node); return node; },
-    };
-    renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, asks: [ { title: "<img onerror=alert(1)>" } ] });
+    const root = { children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...nodes) { this.children = nodes; } };
+    const made = [];
+    const document = { getElementById: () => root, createElement: (tag) => { const node = { tag, children: [], appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute() {}, addEventListener() {} }; made.push(node); return node; }, createTextNode: (text) => ({ text: String(text) }) };
+    renderInto(document, { commit: "a".repeat(40), date: "2026-10-11T00:00:00Z", clean: true, capabilities: [], features: [], violated: [], asks: [{ kind: "optional", since: "2026-10-10", title: "<img onerror=alert(1)>", body: "<script>bad</script>" }] });
     // req: R-1019
-    check("renderer inserts all dynamic strings only through text nodes", nodes.length === 3 && nodes.every((node) => typeof node.text === "string") && nodes[2].text.includes("<img onerror=alert(1)>") && root.children.every((node) => !("innerHTML" in node)));
+    check("renderer inserts all dynamic strings only through text nodes", made.every((node) => !("innerHTML" in node) && !("outerHTML" in node)) && root.children.length > 0 && !made.some((node) => node.tag === "script"));
   }
   {
     const { root } = fixture("crlf");
@@ -273,6 +292,14 @@ try {
     check("accepts an empty packet directory", await generatePackets({ root, dir: path.join(temp, "packets-empty") }).then(() => true, () => false));
   }
   {
+    const { root } = fixture("dirty-packet-ledger");
+    fs.appendFileSync(path.join(root, "REQUIREMENTS.md"), "\\n<!-- uncommitted ledger change -->\\n");
+    const target = path.join(temp, "dirty-packets"); let message = "";
+    try { await generatePackets({ root, dir: target }); } catch (error) { message = error.message; }
+    // req: R-1029
+    check("packets refuse while REQUIREMENTS.md differs from HEAD without writing", /commit REQUIREMENTS\.md first/.test(message) && !fs.existsSync(target));
+  }
+  {
     const { root, git } = fixture("staleness");
     const commit = git(["rev-parse", "HEAD"]).stdout.trim();
     const storePath = writeStore(root, [makeAssessment(root, commit, "FEAT-039")]);
@@ -283,6 +310,7 @@ try {
     git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "later ledger"]);
     const report = await (await import("../../../scripts/product-report.mjs")).buildReport({ root });
     const feature = report.model.features.find((item) => item.id === "FEAT-039");
+    // req: R-1028
     check("unassessed feature state is explicit", report.model.features.find((item) => item.id === "FEAT-002")?.assessmentState === "unassessed");
     // req: R-1021
     check("outdated feature names purpose and status changes and carries full difference shape", feature?.assessmentState === "out of date" && feature.differences.purpose?.was && feature.differences.purpose?.now && feature.differences.status?.was === "active" && feature.differences.status?.now === "frozen (fixture)" && Array.isArray(feature.differences.added) && Array.isArray(feature.differences.removed) && Array.isArray(feature.differences.changed));
