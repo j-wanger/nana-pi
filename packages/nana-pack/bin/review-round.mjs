@@ -408,15 +408,15 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
   return rows.filter((r) => (repo === undefined || r.repo === repo) && (item === undefined || r.item === item));
 }
 
-/** Match the raw last verdict line; malformed suffixes are recorded as an empty verdict. */
+/** Match only the final non-blank physical line; malformed suffixes record an empty verdict. */
 function verdictWord(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
-  const line = text.split(/\r?\n/).reverse().find((x) => /(?<![\p{L}\p{N}_])VERDICT:/u.test(x));
+  const line = text.split(/\r?\n/).reverse().find((x) => x.trim() !== '');
   if (line === undefined) return null;
   const marks = '[*_`]*';
-  const score = `(?:\\s+${marks}(?:\\(\\d+(?:\\.\\d+)?/\\d+\\)|[—–-]\\s*\\d+(?:\\.\\d+)?/\\d+)${marks})?`;
-  const match = new RegExp(`^[^\\w\\r\\n]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`).exec(line);
+  const score = `(?:\\s+${marks}(?:\\(\\d+/\\d+\\)|—\\s*\\d+/\\d+)${marks})?`;
+  const match = new RegExp(`^[\\s#>_*\\x60-]*VERDICT:${marks}\\s+${marks}([A-Z]+(?:-[A-Z]+)*)${marks}${score}[.,;:]?${marks}\\s*$`).exec(line);
   return match?.[1] ?? null;
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
