@@ -369,6 +369,16 @@ async function render(r, hash) {
   const page = report(r).page ?? "";
   out("the page inlines the tested renderer's source", page.includes(String(mod.renderInto)), "true");
   out("render: views differ (the decisions view does not carry every row's text)", !views[""].text.includes("The tool shall quokka four digits.") && views["#product"].text !== views["#requirements"].text, "true");
+  // Round 7: the page a reader meets — assessment first, human labels, linked features.
+  const f1Text = views["#FEAT-001"].text;
+  const at = (t) => f1Text.indexOf(t);
+  out("render #FEAT-001: the assessment comes before the requirement rows", at("It keeps quokkas in order.") >= 0 && at("It keeps quokkas in order.") < at("The tool shall quokka one."), "true");
+  out("render: no raw store field names in any view", Object.entries(views).filter(([, v]) => /what_it_does|maturity_reason|next_step|written_by|checked_by/.test(v.text)).map(([h]) => h || "(none)").join(",") || "none", "none");
+  {
+    const links = []; const st = stubDocument(); mod.renderInto(st.document, views["#features"].model, { hash: "#features" });
+    walk(st.root, (n) => { if (n.tag === "a" && /^#FEAT-\d{3}$/.test(n.attrs.href ?? "")) links.push(n.attrs.href); });
+    out("render #features: each feature links to its detail", ["#FEAT-001", "#FEAT-002"].every((h) => links.includes(h)), "true");
+  }
   const ff = views["#features"].text;
   out("render #features lists every feature with its state", ff.includes("FEAT-001") && ff.includes("FEAT-002") && /unassessed/i.test(ff), "true");
 }
