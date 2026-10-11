@@ -9,12 +9,11 @@ red  common-directory check dropped (R-1009) → land.test.mjs :: a separate clo
 red  reviewed SHA resolved before the common-directory check (R-1009) → land.test.mjs :: a separate clone is refused (exit 1)
 red  version-1 LAND authorises (R-1011) → land.test.mjs :: a version-1 LAND alone refuses (exit 1)
 red  empty verdict treated as absent (R-1004) → land.test.mjs :: an explicit empty verdict beside LAND refuses land (exit 1)
-SKIP parenthesised score rejected (R-969): anchor found 0 times
+red  parenthesised score rejected (R-969) → review-ledger.test.mjs :: complete records the LAND corpus forms (exit 1)
 red  snapshot head ignored (R-1004) → land.test.mjs :: a verified SEND-BACK at a working-state snapshot refuses land (exit 1)
 red  other items ignored (R-1004) → land.test.mjs :: a verified SEND-BACK for another item at the commit refuses land (exit 1)
-SKIP only line-leading VERDICT lines considered (R-969, sol build r2): anchor found 0 times
+red  last line carrying VERDICT: instead of the final non-blank line (R-969, sol build r3) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
+red  ASCII-only prefix check (R-969, sol build r3) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
 red  snapshot reservations ignored (R-1006) → land.test.mjs :: an in-flight snapshot review of the reviewed tip refuses (exit 1)
-WORKTREE DIRTY:
-M docs/reviews/land-rule-2026-10-10/seat-mutate-output.txt
- M docs/reviews/land-rule-2026-10-10/seat-verify-land-output.txt
-mutations: 14/16 red
+worktree clean
+mutations: 17/17 red
