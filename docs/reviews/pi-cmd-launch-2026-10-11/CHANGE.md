@@ -4,8 +4,8 @@
 `main` at `0110601` (Windows in CI) · 2026-10-11. Features: SUB-013 "Connect hooks and packages
 without duplication" (R-323, R-392; new rows below), FEAT-015 "Diagnose the active environment" (R-952),
 and the post-edit feature holding R-105. Order: why → plan → sol plan review (item
-`pi-cmd-launch-plan`; r1 SEND-BACK 4/10 — version 2 replaced the npm-root design; r2 SEND-BACK 6/10
-answered here) →
+`pi-cmd-launch-plan`; r1 SEND-BACK 4/10 — version 2 replaced the npm-root design; r2 SEND-BACK 6/10 and
+r3 SEND-BACK 7/10 answered here; r4 is over the cap) →
 build → a CI run with the Windows leg → seat verification → sol build review → astra land review →
 Jake accepts.*
 
@@ -62,14 +62,14 @@ smaller argument rule: refuse instead of escaping.
 
 | ID | Change | Text (draft) |
 |---|---|---|
-| R-1033 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall locate pi as the first existing non-directory `pi<ext>` found by taking the directories of PATH in order and, within each, the extensions of PATHEXT in order that are `.com`, `.exe`, `.bat` or `.cmd`, without searching the working directory. |
-| R-1034 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall run a located pi ending in `.cmd` or `.bat` as the ComSpec interpreter with the arguments `/d /v:off /s /c` and one quoted command line in which the pi path and every argument are each wrapped in double quotes. |
-| R-1039 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall run a located pi ending in `.exe` or `.com` directly with its arguments as an argument array, applying no R-1035 refusal. |
-| R-1035 | added (SUB-013) | IF the platform is win32 and the located pi ends in `.cmd` or `.bat` and its path or any argument contains a double quote, `%`, `!`, a carriage return, a line feed or NUL, or an argument ends in a backslash, THEN the installer shall report the pi packages step as a problem without running pi. |
+| R-1033 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall locate pi as the first existing non-directory `pi<ext>` found by taking the directories of PATH in order and, within each, the extensions of PATHEXT in order that are, compared without regard to case, `.com`, `.exe`, `.bat` or `.cmd`, without searching the working directory. |
+| R-1034 | added (SUB-013) | WHERE the platform is win32, unless R-1035 refuses it, the installer and doctor shall run a located pi ending (in any case) in `.cmd` or `.bat` as the ComSpec interpreter with the arguments `/d /v:off /s /c` and one quoted command line in which the pi path and every argument are each wrapped in double quotes. |
+| R-1039 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall run a located pi ending (in any case) in `.exe` or `.com` directly with its arguments as an argument array, applying no R-1035 refusal. |
+| R-1035 | added (SUB-013) | IF the platform is win32 and the located pi ends (in any case) in `.cmd` or `.bat` and its path or any argument contains a double quote, `%`, `!`, a carriage return, a line feed or NUL, or an argument ends in a backslash, THEN the installer shall report the pi packages step as a problem, and doctor shall report pi as not OK naming the refused character, without running pi. |
 | R-1036 | added (SUB-013) | IF pi is found but its `--version` probe cannot start or exits non-zero, THEN the installer shall report the pi packages step as a problem, so that install exits non-zero. |
 | R-952 | reworded and split (FEAT-015) | Doctor shall report pi as OK only when `pi --version` — run as R-1033, R-1034 and R-1039 describe on win32 — exits 0 and the first line of its standard output starts with a dotted version (`v` optional, then three dot-separated numbers), whatever it writes to standard error. ("WHERE the platform is not win32" dropped; the install-hint clause moves to R-1037.) |
 | R-1037 | added (FEAT-015, split from R-952) | Doctor's missing-pi detail shall use the exported install hint that install's missing-pi detail also uses. |
-| R-1038 | added (post-edit feature, beside R-105) | IF the platform is win32 and a post-edit command exits with status 1 and its first whitespace-delimited word consists only of ASCII letters, digits, `_`, `-`, `.`, `\`, `/` and `:`, is not in the configured internal-command set, and names no existing non-directory file — as written or with a PATHEXT extension — at that path when it holds a separator, or in the working folder or a PATH directory when it does not, THEN post-edit shall classify the check as error. |
+| R-1038 | added (post-edit feature, beside R-105) | IF the platform is win32 and a post-edit command exits with status 1 and its first word — the text after any leading spaces and tabs, up to the next space or tab — is non-empty, consists only of ASCII letters, digits, `_`, `-`, `.`, `\`, `/` and `:`, neither equals nor starts with a name in the configured internal-command set followed by `/`, `\`, `.` or `:` (compared without regard to case), and names no existing non-directory file — as written or with a PATHEXT extension — at that path when it holds a separator, or in the working folder or a PATH directory when it does not, THEN post-edit shall classify the check as error. |
 | R-105 | unchanged | A missing executable shall be classified error, never passed. Its test must pass on the Windows leg. |
 
 R-323 and R-392 keep their text and tests; the registration tests gain the injected win32 cases.
@@ -92,10 +92,13 @@ R-323 and R-392 keep their text and tests; the registration tests gain the injec
     `/c` strips only the first and last quote, `/v:off` disables delayed expansion so `!` handling
     never depends on the machine's defaults.
   - `cmdCouldNotRun(command, { env, cwd, exists })` — the R-1038 predicate, deliberately
-    conservative (sol plan r2): it does NOT try to parse as cmd.exe does. It takes the text up to the
-    first whitespace; if that word holds any character outside ASCII letters, digits, `_ - . \ / :`
-    (so `%`, `!`, `^`, `@`, quotes, `&`, `,`, `;`, `=`, parentheses) it returns false. Otherwise it
-    returns true only when the word, compared case-insensitively, is not in the internal-command set,
+    conservative (sol plan r2, r3): it does NOT try to parse as cmd.exe does. It skips leading spaces
+    and tabs and takes the text up to the next space or tab; an empty word returns false; a word
+    holding any character outside ASCII letters, digits, `_ - . \ / :` (so `%`, `!`, `^`, `@`,
+    quotes, `&`, `,`, `;`, `=`, parentheses) returns false; a word that equals an internal-command
+    name, or starts with one followed by `/`, `\`, `.` or `:` (cmd.exe's attached syntax: `dir/Z`,
+    `cd\path`, `cd..`, `echo.text`), returns false — all compared without regard to case. Otherwise it
+    returns true only when
     and nothing exists as written or with a PATHEXT extension: at the path relative to the working
     folder when the word holds `\`, `/` or `:`, else in the working folder then each PATH folder.
 - **Configuration** `packages/nana-pack/lib/win-command-config.mjs`: the default PATHEXT
@@ -112,7 +115,11 @@ R-323 and R-392 keep their text and tests; the registration tests gain the injec
   SKIPPED with the hint; found → `--version` through `winCommand`, then `pi install <dir>` the same
   way with `PI_CODING_AGENT_DIR` overriding the inherited environment. POSIX: unchanged lookup, but
   a probe error other than ENOENT, or a non-zero `--version`, is a PROBLEM (R-1036).
-- **Doctor** (`lib/doctor.mjs:308`): the same helpers on win32 instead of "skipped (win32)"; the
+- **Extensions are compared without regard to case** everywhere (`pi.CMD`, `PI.EXE`; PATHEXT is
+  normally upper case).
+- **Doctor** (`lib/doctor.mjs:308`): the same helpers on win32 instead of "skipped (win32)"; a
+  refusal (R-1035) is reported like any other not-OK result — FAIL on the real home, NOTE otherwise,
+  the existing rule — with the refused character named; the
   existing version rule is kept and now stated in R-952 — exit 0 and the first stdout line starts
   with a dotted version; stderr is ignored; non-zero, empty, malformed, stderr-only and
   spawn-failure results are not OK.
@@ -159,6 +166,9 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   character and a trailing backslash; `cmdCouldNotRun` → true for `missing-tool x`, `.\missing-tool`
   and `C:\nowhere\tool.exe`; → false for a name found in the working folder, one found on PATH,
   `.\check` when `check.cmd` exists, `ECHO` and `type missing.txt` (internal commands, any case),
+  `dir/Z`, `cd\nowhere`, `cd..`, `echo.text` (attached syntax), a blank command;
+  → true for `   missing-tool` (leading spaces skipped); `pi.CMD` and `PI.EXE` found and launched
+  the `.cmd` and the direct way respectively;
   `%ComSpec% /c exit 1`, `@node -e "process.exit(1)"`, `^ruff check`, `"C:\nowhere\tool.exe"`,
   `ruff,check` and `missing-tool&&x`. A separate test pins the sealed internal-command set exactly,
   naming R-1038.
@@ -166,17 +176,21 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   `.cmd` → the recorded call is ComSpec with the quoted line and `PI_CODING_AGENT_DIR` set; not found
   → SKIPPED with the hint; spawn error and non-zero `--version` → PROBLEM and `installExitCode` 1;
   a refused character with a `.cmd` pi → PROBLEM and no spawn; the same character with an `.exe` pi →
-  spawned with the argument array; doctor: version, version on stdout plus text on stderr (OK),
+  spawned with the argument array; doctor: a refused `.cmd` pi → not OK naming the character, no
+  spawn; version, version on stdout plus text on stderr (OK),
   non-zero, empty, malformed, stderr-only, spawn failure, not found.
 - **Real cmd.exe on the Windows leg only** (skipped and counted elsewhere). Registration through a
   REAL npm-generated shim (sol plan r2): a local fake pi package (no network) whose bin prints
   `9.9.9` for `--version` and otherwise writes `JSON.stringify(process.argv.slice(2))` to a log, is
   installed with `npm install -g --prefix "<temp folder with a space>"`, so npm writes its own
   `pi.cmd` that forwards `%*`; PATH is set to that prefix; a fixture manifest root sits under a folder
-  named with a space and the accepted metacharacters `&`, `(`, `)`, `^` and `;`; real
+  named with a space and the accepted metacharacters `&`, `(`, `)`, `^` and `;`; the prefix is
+  PREPENDED to the inherited PATH (sol plan r3: npm's shim falls back to `node` on PATH); the test
+  first asserts that `findOnPath("pi")` returns the temporary prefix's `pi.cmd`, then runs real
   `stepPiRegister` with that `manifestRoot` → the log holds EXACTLY `["install", "<that folder>\…\nana-pack"]`
   as Node saw it. Post-edit: the existing R-105 test passes; `node -e "process.exit(1)"` is a failed
-  check; `type nana-missing-file.txt` (an internal command exiting 1) is a failed check. Each name in
+  check; `type nana-missing-file.txt` (an internal command exiting 1) and `dir/Z` (an invalid
+  attached switch) are failed checks. Each name in
   the sealed set is not found by `findOnPath` and `cmd /d /c "<name> /?"` exits 0; a name that fails
   this is removed from the set in a later round with the run as evidence.
 - **Mutation pairs** (break the code, never an assertion): bare `pi` spawn on win32 → the injected
@@ -185,6 +199,8 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   fails; apply the refusal to `.exe` → the `.exe` case fails; leave found-but-failing as SKIPPED → the
   PROBLEM case fails; drop `cmdCouldNotRun` → the missing-name case fails on every leg; treat internal
   commands as missing → the `ECHO` case fails; let `%`, `@` or `^` words through → their cases fail;
-  drop PATHEXT for separator paths → the `.\check` case fails.
+  drop PATHEXT for separator paths → the `.\check` case fails; drop the attached-syntax rule → the
+  `dir/Z` case fails; compare extensions with case → the `pi.CMD` case fails; let doctor run a
+  refused `.cmd` pi → the doctor refusal case fails.
 - `npm run test:locked` (macOS) and a CI run on this branch's draft pull request with the three files
   green on the Windows leg. Pushing the branch needs Jake's approval.
