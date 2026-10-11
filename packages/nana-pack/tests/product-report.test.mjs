@@ -103,12 +103,12 @@ try {
     check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
     const detailText = detail.text;
     const featureHeadings = detail.nodes.filter((node) => /^h[1-6]$/.test(node.tag) && node.textContent.includes("FEAT-039") && node.textContent.includes(model.features.find((item) => item.id === "FEAT-039").label));
-    // req: R-1031
+    // req: R-1040
     check("feature detail shows its title once", featureHeadings.length === 1);
     const detailListItems = detail.nodes.filter((node) => node.tag === "li");
-    // req: R-1032
+    // req: R-1041
     check("assessment lists render separate text-only list items", detail.nodes.filter((node) => node.tag === "ul").length === 3 && ["A missing check.", "Another gap."].every((value) => detailListItems.some((item) => item.textContent === value)) && detailListItems.some((item) => item.children.some((child) => child.tag === "b")) && detailListItems.some((item) => item.children.some((child) => child.tag === "code")));
-    // req: R-1032
+    // req: R-1041
     check("assessment lists do not join entries into punctuation", !detail.text.includes(".;"));
     // req: R-1015
     check("feature detail places human-labelled assessment before counts, shares and rows", detail.nodes.some((node) => node.attrs?.class?.includes("state-") && node.textContent === model.features.find((item) => item.id === "FEAT-039").assessmentState) && detailText.indexOf("What it does") < detailText.indexOf("Counts") && detailText.indexOf("Counts") < detailText.indexOf("Shared by") && detailText.indexOf("Shared by") < detailText.lastIndexOf("Requirements"));
@@ -132,7 +132,7 @@ try {
     check("rendered decisions view shows every ask kind, since-date, title and full body", model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
     check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
     check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
-    // req: R-1033
+    // req: R-1042
     check("hashchange bootstrap scrolls to top after rendering", /addEventListener\("hashchange",\s*\(\)\s*=>\s*\{\s*renderInto\(document, data, \{ hash: location\.hash \}\);\s*window\.scrollTo\(0, 0\);\s*\}\)/.test(model.template));
   }
   {
