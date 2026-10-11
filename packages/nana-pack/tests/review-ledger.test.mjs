@@ -204,7 +204,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 
 {
 	freshHome("verdict-malformed"); A.at(0);
-	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND...", "VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", "VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", "VERDICT: LAND\nΕERDICT: SEND-BACK", "拒否: VERDICT: LAND", "→ VERDICT: LAND", "VERDICT: LAND\nprose after verdict"];
+	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND...", "VERDICT: LAND - 9/10", "VERDICT: LAND – 9/10", "VERDICT: LAND (9.5/10)", "VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", "VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", "VERDICT: LAND\nΕERDICT: SEND-BACK", "拒否: VERDICT: LAND", "→ VERDICT: LAND", "VERDICT: LAND\nprose after verdict"];
 	let empty = true;
 	const problems = [];
 	for (const [i, text] of malformed.entries()) {
