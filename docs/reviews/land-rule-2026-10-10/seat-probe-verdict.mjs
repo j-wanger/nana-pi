@@ -6,6 +6,9 @@ const verdictWord = new Function("existsSync", "readFileSync", `${body}; return 
 const cases = [
   ["VERDICT: LAND", "LAND"], ["**VERDICT:** LAND", "LAND"], ["VERDICT: **LAND**", "LAND"], ["VERDICT: LAND.", "LAND"],
   ["> - VERDICT: LAND — 9/10.", "LAND"], ["# VERDICT: LAND (9/10)", "LAND"], ["VERDICT:\tLAND", "LAND"], ["VERDICT: LAND —9/10", "LAND"],
+  ["VERDICT: LAND.**", "LAND"], ["VERDICT: LAND (9/10).**", "LAND"], ["VERDICT: **LAND.**", "LAND"], ["VERDICT: **LAND**.", "LAND"],
+  ["VERDICT:\u00a0LAND", "LAND"], ["VERDICT: LAND\u00a0(9/10)", "LAND"], ["VERDICT: LAND —\u00a09/10", "LAND"], ["VERDICT:** LAND", "LAND"],
+  ["VERDICT: LAND **(9/10)**", "LAND"], ["VERDICT: LAND.\u00a0\u00a0", "LAND"], ["VERDICT: LAND .", null], ["VERDICT: LAND.,", null],
   ["VERDICT: #LAND#", null], ["VERDICT: >LAND>", null], ["VERDICT: -LAND-", null], ["VERDICT:LAND", null], ["VERDICT: LAND(9/10)", null],
   ["VERDICT: L_A_N_D", null], ["VERDICT: LAND - 9/10", null], ["VERDICT: LAND (9.5/10)", null], ["Note: VERDICT: LAND", null],
 ];

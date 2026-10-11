@@ -1,0 +1,5 @@
+pi-review: item "land-rule" (git:/Users/jwang/nana-pi/.git): 7 round(s) used (6 completed, 1 review(s) in flight); admitted as round 7/3 (revision already counted — no new round) (astra @ 857d3042dbf3)
+[pi-review] attempt 1/3
+  [pi-review a1] cpu=0.82s flat=0/40
+  [pi-review a1] cpu=1.04s flat=0/40
+[pi-review] SUCCESS on attempt 1 (1162 chars → /private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/landrule-astra-r7.md; round 7)
