@@ -84,6 +84,7 @@ try {
   {
     const { root } = fixture("content");
     const model = (await buildReport({ root }));
+    model.features.find((item) => item.id === "FEAT-039").assessment = { what_it_does: "Keeps requirements together.", maturity: "partial", maturity_reason: "Some checks remain open.", gaps: ["A missing check."], risks: ["A stale result."], decisions: ["A future choice."], next_step: "Run the full suite.", written_by: "seat", checked_by: "reviewer", date: "2026-10-11" };
     model.asks[0].body += " **bold span** and `code span`";
     const render = (hash = "") => {
       const nodes = [];
@@ -99,7 +100,16 @@ try {
     // req: R-1014
     check("rendered #product view shows every capability, purpose, outcome and feature", model.capabilities.every((cap) => product.text.includes(cap.purpose) && product.text.includes(cap.outcome) && cap.features.every((id) => product.text.includes(id))), product.text.slice(0, 250));
     // req: R-1015
-    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("Assessment state"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+    const detailText = detail.text;
+    // req: R-1015
+    check("feature detail places human-labelled assessment before counts, shares and rows", detail.nodes.some((node) => node.attrs?.class?.includes("state-") && node.textContent === model.features.find((item) => item.id === "FEAT-039").assessmentState) && detailText.indexOf("What it does") < detailText.indexOf("Counts") && detailText.indexOf("Counts") < detailText.indexOf("Shared by") && detailText.indexOf("Shared by") < detailText.lastIndexOf("Requirements"));
+    // req: R-1015
+    check("feature IDs link to their detail views in product, features, shared and detail views", [product, features, render("#shared"), detail].every((view) => view.nodes.filter((node) => node.tag === "a" && /^FEAT-/.test(node.textContent ?? "")).every((node) => node.attrs.href === `#${node.textContent.split(" · ")[0]}`)) && model.features.every((item) => features.nodes.some((node) => node.tag === "a" && node.attrs.href === `#${item.id}`)));
+    // req: R-1015
+    check("feature detail shows status counts and a stacked bar", detail.nodes.some((node) => node.attrs?.class === "status-bar") && Object.keys(model.features.find((item) => item.id === "FEAT-039").counts).every((status) => detail.text.includes(status)));
+    // req: R-1015
+    check("rendered views never expose raw assessment store keys", [product, features, detail, render("#shared"), requirements, issues, decisions].every((view) => !/what_it_does|maturity_reason/.test(view.text)));
     const plain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
     const allRows = [...new Map(model.features.flatMap((feature) => feature.rows.map((row) => [row.id, row]))).values()];
     const requirementText = requirements.text.replace(/\s+/g, " ");
@@ -107,7 +117,7 @@ try {
     const requirementWords = new Set(normalizeWords(requirementText));
     const carries = (source, value) => { const available = source === requirementText ? requirementWords : new Set(normalizeWords(source)); return normalizeWords(value).every((word) => available.has(word)); };
     // req: R-1016
-    check("rendered #requirements view shows every row text, status and evidence", allRows.every((row) => requirementText.includes(row.id) && carries(requirementText, row.requirement) && requirementText.includes(row.status) && (row.evidence === "—" || carries(requirementText, row.evidence))) && allRows.length === requirements.nodes.filter((node) => node.tag === "article").length);
+    check("rendered #requirements view shows every row text, status and evidence", allRows.every((row) => requirementText.includes(row.id) && carries(requirementText, row.requirement) && requirementText.includes(row.status) && (row.evidence === "—" || carries(requirementText, row.evidence))) && allRows.length === requirements.nodes.filter((node) => node.tag === "article").length && requirements.nodes.filter((node) => node.tag === "article").every((card) => card.children.some((node) => node.attrs.class === "row-heading") && card.children.some((node) => node.attrs.class === "row-evidence")));
     // req: R-1017
     check("rendered #issues view shows every violated row and evidence", model.violated.every((row) => issues.text.includes(row.id) && issues.text.includes(row.requirement) && issues.text.includes(row.evidence)));
     // req: R-1018

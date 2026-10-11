@@ -55,42 +55,56 @@ export function renderInto(document, model, { hash = "" } = {}) {
   const views = { "": "decisions", "#decisions": "decisions", "#product": "product", "#features": "features", "#shared": "shared", "#issues": "issues", "#requirements": "requirements" };
   const view = Object.prototype.hasOwnProperty.call(views, hash) ? views[hash] : Object.prototype.hasOwnProperty.call(Object.fromEntries(model.features.map((feature) => [`#${feature.id}`, feature])), hash) ? "detail" : "decisions";
   const feature = view === "detail" ? model.features.find((item) => `#${item.id}` === hash) : null;
-  const el = (tag, text, parent) => { const node = document.createElement(tag); if (text !== undefined) node.appendChild(document.createTextNode(String(text ?? ""))); if (parent) parent.appendChild(node); return node; };
+  const el = (tag, value, parent) => { const node = document.createElement(tag); if (value !== undefined) node.appendChild(document.createTextNode(String(value ?? ""))); if (parent) parent.appendChild(node); return node; };
   const text = (parent, value) => {
-    const source = String(value ?? "");
-    const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g;
-    let cursor = 0; let match;
-    while ((match = pattern.exec(source))) {
-      if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index)));
-      const bold = match[0].startsWith("**");
-      const node = document.createElement(bold ? "b" : "code");
-      node.appendChild(document.createTextNode(match[0].slice(bold ? 2 : 1, bold ? -2 : -1)));
-      parent.appendChild(node); cursor = pattern.lastIndex;
-    }
+    const source = String(value ?? ""); const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g; let cursor = 0; let match;
+    while ((match = pattern.exec(source))) { if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index))); const bold = match[0].startsWith("**"); const node = document.createElement(bold ? "b" : "code"); node.appendChild(document.createTextNode(match[0].slice(bold ? 2 : 1, bold ? -2 : -1))); parent.appendChild(node); cursor = pattern.lastIndex; }
     if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
   };
-  const paragraph = (parent, label, value) => { const p = el("p", undefined, parent); if (label) { text(p, `${label}: `); } text(p, value); return p; };
-  const counts = (parent, item) => paragraph(parent, "Counts", Object.entries(item.counts ?? {}).map(([key, value]) => `${key} ${value}`).join(" · "));
-  const row = (parent, item) => { const section = el("article", undefined, parent); el("h3", `${item.id} · ${item.status}`, section); if (item.mark) paragraph(section, "Row type", item.mark); paragraph(section, "Requirement", item.requirement); paragraph(section, "Evidence", item.evidence); return section; };
+  const cls = (node, value) => node.setAttribute("class", value);
+  const paragraph = (parent, label, value, className) => { const p = el("p", undefined, parent); if (className) cls(p, className); if (label) text(p, `${label}: `); text(p, value); return p; };
+  const featureLink = (parent, id, label = id) => { const a = el("a", label, parent); a.setAttribute("href", `#${id}`); return a; };
+  const countBar = (parent, item) => {
+    const wrap = el("div", undefined, parent); cls(wrap, "counts"); const bar = el("div", undefined, wrap); cls(bar, "status-bar"); bar.setAttribute("role", "img"); bar.setAttribute("aria-label", "Requirement status counts");
+    for (const status of ["implemented", "untested", "planned", "violated", "retired"]) { const amount = item.counts?.[status] ?? 0; const segment = el("span", undefined, bar); cls(segment, `status-segment status-${status}`); segment.setAttribute("style", `flex-grow:${amount}`); segment.setAttribute("aria-hidden", "true"); }
+    paragraph(wrap, "Counts", ["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts?.[status] ?? 0}`).join(" · "), "count-label"); return wrap;
+  };
+  const row = (parent, item) => { const card = el("article", undefined, parent); cls(card, "requirement-card"); const heading = el("h3", undefined, card); cls(heading, "row-heading"); text(heading, `${item.id} `); const pill = el("span", item.status, heading); cls(pill, `status-pill status-${item.status}`); if (item.mark) paragraph(card, "Row type", item.mark); paragraph(card, "", item.requirement, "row-text"); paragraph(card, "", item.evidence, "row-evidence"); return card; };
   root.replaceChildren();
   const title = view === "detail" ? `${feature.id} · ${feature.label}` : ({ decisions: "Decisions", product: "Product", features: "Features", shared: "Shared", issues: "Issues", requirements: "Requirements" })[view];
-  el("h1", "Nana pi product ledger", root);
-  paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
-  const nav = el("nav", undefined, root);
-  for (const [label, target] of [["Decisions", "#decisions"], ["Product", "#product"], ["Features", "#features"], ["Shared", "#shared"], ["Issues", "#issues"], ["Requirements", "#requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); }
+  el("h1", "Nana pi product ledger", root); paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
+  const nav = el("nav", undefined, root); cls(nav, "tabs");
+  for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
   el("h2", title, root);
   if (view === "decisions") for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
-  if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { paragraph(card, "Feature", `${item.id} · ${item.label}`); counts(card, item); } } }
-  if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); el("h3", `${item.id} · ${item.label}`, card); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); counts(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); paragraph(card, "Shared by", item.sharedBy.join(", ") || "None"); }
-  if (view === "detail" && feature) { paragraph(root, "Purpose", feature.purpose); paragraph(root, "Status", feature.status); counts(root, feature); paragraph(root, "Shared by", feature.sharedBy.join(", ") || "None"); el("h3", "Requirements", root); for (const item of feature.rows) row(root, item); paragraph(root, "Assessment state", feature.assessmentState); if (feature.assessment) { const assessment = feature.assessment; for (const key of ["what_it_does", "maturity_reason", "gaps", "risks", "decisions", "next_step", "maturity"]) paragraph(root, key, Array.isArray(assessment[key]) ? assessment[key].join("; ") : assessment[key]); } const d = feature.differences; for (const key of ["added", "removed", "changed"]) paragraph(root, `${key} differences`, d[key].join(", ") || "None"); for (const key of ["purpose", "status"]) if (d[key]) paragraph(root, `${key} difference`, `was ${d[key].was}; now ${d[key].now}`); }
-  if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); paragraph(card, "Home feature", home?.id ?? "Unknown"); paragraph(card, "Receiving feature", receiving.id); }
+  if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } } }
+  if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
+  if (view === "detail" && feature) {
+    const heading = el("h2", `${feature.id} · ${feature.label}`, root); const status = el("span", feature.status, heading); cls(status, "feature-status");
+    paragraph(root, "Purpose", feature.purpose); const badge = el("p", feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
+    if (feature.assessment) {
+      const assessment = feature.assessment; paragraph(root, "What it does", assessment.what_it_does);
+      paragraph(root, "Maturity", `${assessment.maturity} — ${assessment.maturity_reason}`);
+      for (const [key, label] of [["gaps", "Gaps"], ["risks", "Risks"], ["decisions", "Decisions"]]) paragraph(root, label, assessment[key].join("; "));
+      paragraph(root, "Next step", assessment.next_step); paragraph(root, "Written by", `${assessment.written_by} · checked by ${assessment.checked_by} · ${assessment.date}`);
+    }
+    const differences = feature.differences ?? { added: [], removed: [], changed: [], purpose: null, status: null };
+    if (feature.assessmentState === "out of date") {
+      for (const key of ["added", "removed", "changed"]) if (differences[key]?.length) paragraph(root, `${key[0].toUpperCase()}${key.slice(1)} rows`, differences[key].join(", "));
+      for (const key of ["purpose", "status"]) if (differences[key]) paragraph(root, key === "purpose" ? "Purpose" : "Status", `was ${differences[key].was} → now ${differences[key].now}`);
+    }
+    countBar(root, feature);
+    const sharedBy = el("p", undefined, root); text(sharedBy, "Shared by: "); if (feature.sharedBy.length) feature.sharedBy.forEach((id, index) => { if (index) text(sharedBy, ", "); featureLink(sharedBy, id); }); else text(sharedBy, "None");
+    paragraph(root, "Shared rows", feature.shared.join(", ") || "None");
+    el("h3", "Requirements", root); for (const item of feature.rows) row(root, item);
+  }
+  if (view === "shared") for (const receiving of model.features) for (const id of receiving.shared) { const home = model.features.find((candidate) => candidate.rows.some((r) => r.id === id && r.mark === "own")); const item = receiving.rows.find((r) => r.id === id); const card = el("article", undefined, root); el("h3", id, card); paragraph(card, "Requirement", item?.requirement); const homeLine = el("p", undefined, card); text(homeLine, "Home feature: "); home ? featureLink(homeLine, home.id) : text(homeLine, "Unknown"); const receivingLine = el("p", undefined, card); text(receivingLine, "Receiving feature: "); featureLink(receivingLine, receiving.id); }
   if (view === "issues") for (const item of model.violated) row(root, item);
   if (view === "requirements") {
     const search = el("input", undefined, root); search.setAttribute("type", "search"); search.setAttribute("aria-label", "Search requirements");
     const status = el("select", undefined, root); status.setAttribute("aria-label", "Filter by status"); const featureFilter = el("select", undefined, root); featureFilter.setAttribute("aria-label", "Filter by feature");
     const addOption = (select, value) => { const option = el("option", value || "All", select); option.setAttribute("value", value); };
-    addOption(status, ""); for (const value of ["implemented", "untested", "violated", "planned", "retired"]) addOption(status, value);
-    addOption(featureFilter, ""); for (const item of model.features) addOption(featureFilter, item.id);
+    addOption(status, ""); for (const value of ["implemented", "untested", "violated", "planned", "retired"]) addOption(status, value); addOption(featureFilter, ""); for (const item of model.features) addOption(featureFilter, item.id);
     const list = el("div", undefined, root); const all = []; for (const item of model.features) for (const r of item.rows) if (!all.some((entry) => entry.id === r.id)) all.push({ ...r, featureId: item.id });
     const update = () => { list.replaceChildren(); for (const item of all) if ((!search.value || `${item.id} ${item.requirement} ${item.evidence}`.toLowerCase().includes(search.value.toLowerCase())) && (!status.value || item.status === status.value) && (!featureFilter.value || item.featureId === featureFilter.value)) row(list, item); };
     search.addEventListener("input", update); status.addEventListener("change", update); featureFilter.addEventListener("change", update); update();

@@ -31,7 +31,7 @@ ok   store check refuses an unknown field: true/true (want true/true)
 ok   store check refuses a rating outside the enum: true/true (want true/true)
 ok   store check refuses an own row marked shared (mark mismatch): true/true (want true/true)
 ok   fingerprints are equal for a CRLF, trailing-space ledger: none (want none)
-(node:62976) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:57023) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/product-report/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
@@ -106,6 +106,9 @@ ok   render #__proto__ falls back to the decisions view: true (want true)
 ok   render #nonsense falls back to the decisions view: true (want true)
 ok   the page inlines the tested renderer's source: true (want true)
 ok   render: views differ (the decisions view does not carry every row's text): true (want true)
+ok   render #FEAT-001: the assessment comes before the requirement rows: true (want true)
+ok   render: no raw store field names in any view: none (want none)
+ok   render #features: each feature links to its detail: true (want true)
 ok   render #features lists every feature with its state: true (want true)
 ok   render: a stale feature says out of date and names the changed row: true (want true)
 ok   packets: refused while REQUIREMENTS.md differs from HEAD: true/0 (want true/0)
