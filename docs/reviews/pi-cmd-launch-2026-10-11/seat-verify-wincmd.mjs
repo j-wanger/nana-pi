@@ -29,7 +29,7 @@ const doc = await load("packages/nana-setup/lib/doctor.mjs");
 const paths = await load("packages/nana-setup/lib/paths.mjs");
 for (const [name, m] of [["win-command", wc], ["win-command-config", cfg], ["steps", steps], ["doctor", doc]]) if (m.__error) out(`module ${name} loads`, m.__error, "loaded");
 // Every pinned export must exist: a renamed export must not silently skip a section.
-for (const [label, v] of [["win-command findOnPath", wc.findOnPath], ["win-command winCommand", wc.winCommand], ["win-command cmdCouldNotRun", wc.cmdCouldNotRun],
+for (const [label, v] of [["win-command findOnPath", wc.findOnPath], ["win-command findPi", wc.findPi], ["win-command winCommand", wc.winCommand], ["win-command cmdCouldNotRun", wc.cmdCouldNotRun],
   ["steps stepPiRegister", steps.stepPiRegister], ["steps installExitCode", steps.installExitCode], ["doctor diagnose", doc.diagnose]]) out(`export ${label} is a function`, typeof v, "function");
 
 // A case-insensitive file set, as an NTFS folder behaves.
@@ -56,7 +56,7 @@ if (wc.findOnPath) {
   out("working folder searched first when asked", f("tool", { Path: "C:\\b", PATHEXT: PX }, fileSet("C:\\proj\\tool.bat", "C:\\b\\tool.exe"), { searchCwd: true }), "c:\\proj\\tool.bat");
   out("a directory named pi.cmd is skipped", f("pi", { Path: "C:\\a;C:\\b", PATHEXT: PX }, (p) => /^c:\\b\\pi\.cmd$/i.test(p)), "c:\\b\\pi.cmd");
   out("unset PATHEXT uses the default", f("pi", { Path: "C:\\a" }, fileSet("C:\\a\\pi.bat")), "c:\\a\\pi.bat");
-  out(".JS and .PS1 in PATHEXT are skipped for pi", f("pi", { Path: "C:\\a", PATHEXT: ".JS;.PS1;.CMD" }, fileSet("C:\\a\\pi.js", "C:\\a\\pi.ps1", "C:\\a\\pi.cmd")), "c:\\a\\pi.cmd");
+  out(".JS and .PS1 in PATHEXT are skipped for pi", norm(safe(() => wc.findPi({ env: { Path: "C:\\a", PATHEXT: ".JS;.PS1;.CMD" }, cwd: "C:\\proj", exists: fileSet("C:\\a\\pi.js", "C:\\a\\pi.ps1", "C:\\a\\pi.cmd") }))), "c:\\a\\pi.cmd");
   out("upper-case pi.CMD found", f("pi", { Path: "C:\\a", PATHEXT: PX }, fileSet("C:\\a\\pi.CMD")), "c:\\a\\pi.cmd");
   out("nothing found → null", f("pi", { Path: "C:\\a", PATHEXT: PX }, fileSet()), null);
 }

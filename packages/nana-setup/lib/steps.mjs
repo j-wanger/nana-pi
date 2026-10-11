@@ -36,8 +36,7 @@ import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, see
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeKnowledgeHook, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
-import { findOnPath, winCommand } from "../../nana-pack/lib/win-command.mjs";
-import { DEFAULT_PATHEXT, PI_EXTENSIONS } from "../../nana-pack/lib/win-command-config.mjs";
+import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 
 export class SetupError extends Error {}
 
@@ -72,12 +71,6 @@ export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "
 export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
-function piLookupEnv(env) {
-	const key = Object.keys(env).find((item) => item.toLowerCase() === "pathext");
-	const raw = key ? env[key] : DEFAULT_PATHEXT;
-	const filtered = String(raw).split(";").filter((ext) => PI_EXTENSIONS.includes(ext.toLowerCase())).join(";");
-	return { ...env, [key ?? "PATHEXT"]: filtered };
-}
 const skip = (label) => ({ label, status: SKIPPED, detail: "skipped (win32)" });
 
 /** lstat that never throws — the link itself, never what it points at. */
@@ -990,7 +983,7 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 	if (o.dryRun) return [{ label: "pi packages", status: CREATED, detail: `would add per-package entries for ${state.missing.join(", ")}` }];
 	if (!layout.isRealHome) return [{ label: "pi packages", status: SKIPPED, detail: "not registered (--home override in play)" }];
 	const win32 = (typeof getPlatform === "function" ? getPlatform() : getPlatform) === "win32";
-	const pi = win32 ? findOnPath("pi", { env: piLookupEnv(env), cwd: process.cwd(), exists }) : "pi";
+	const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";
 	if (!pi) return [{ label: "pi packages", status: SKIPPED, detail: `pi is not on PATH — \`${PI_INSTALL_HINT}\`, then re-run` }];
 	const launch = (args, install = false) => {
 		const comspecKey = Object.keys(env).find((key) => key.toLowerCase() === "comspec");

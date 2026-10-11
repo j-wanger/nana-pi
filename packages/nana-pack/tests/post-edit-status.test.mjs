@@ -81,9 +81,9 @@ const PASS_CMD = 'node -e "process.exit(0)"';
 const SLOW_PASS_CMD = 'node -e "setTimeout(()=>process.exit(0),100)"';
 const FAIL_CMD = 'node -e "process.exit(1)"';
 
-for (const [command, expected] of [["missing-tool x", "error"], ["ECHO", "checks_failed"], ["dir/Z", "checks_failed"], ["%ComSpec% /c exit 1", "checks_failed"], ["@node -e x", "checks_failed"]]) {
+for (const [command, expected] of [["missing-tool x", "error"], ["ruff check", "checks_failed"], ["ECHO", "checks_failed"], ["dir/Z", "checks_failed"], ["%ComSpec% /c exit 1", "checks_failed"], ["@node -e x", "checks_failed"]]) {
 	// req: R-1038
-	check(`win32 launch classification ${command}`, postEditModule.classifyPostEdit({ code: 1 }, false, false, command, "C:\\cwd", { PATH: "C:\\bin", PATHEXT: ".CMD" }, "win32", (file) => file.toLowerCase() === "c:\\cwd\\check.cmd") === expected);
+	check(`win32 launch classification ${command}`, postEditModule.classifyPostEdit({ code: 1 }, false, false, command, "C:\\cwd", { PATH: "C:\\bin", PATHEXT: ".PY;.CMD" }, "win32", (file) => ["c:\\cwd\\check.cmd", "c:\\bin\\ruff.py"].includes(file.toLowerCase())) === expected);
 }
 
 // Compatibility: legacy receipt settings parse but no longer produce receipt files or affect post-edit results.

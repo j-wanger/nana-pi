@@ -18,18 +18,19 @@ function envValue(env, key) {
 function defaultExists(file) {
   try { return !fs.lstatSync(file).isDirectory(); } catch { return false; }
 }
-function extensions(env) {
-  return String(envValue(env, "PATHEXT") ?? DEFAULT_PATHEXT).split(";").map((e) => e.trim()).filter((e) => PI_EXTENSIONS.includes(e.toLowerCase()));
+function extensions(env, allowedExtensions) {
+  const parsed = String(envValue(env, "PATHEXT") ?? DEFAULT_PATHEXT).split(";").map((e) => e.trim()).filter(Boolean);
+  return allowedExtensions ? parsed.filter((e) => allowedExtensions.includes(e.toLowerCase())) : parsed;
 }
 function winAbsolute(file, cwd) {
   return path.win32.resolve(cwd || process.cwd(), file);
 }
 
-export function findOnPath(name, { env = process.env, cwd = process.cwd(), searchCwd = false, exists = defaultExists } = {}) {
+export function findOnPath(name, { env = process.env, cwd = process.cwd(), searchCwd = false, exists = defaultExists, allowedExtensions } = {}) {
   const pathValue = envValue(env, "PATH") ?? "";
   const dirs = String(pathValue).split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
   if (searchCwd && cwd) dirs.unshift(cwd);
-  const pats = extensions(env);
+  const pats = extensions(env, allowedExtensions);
   const nameExt = path.win32.extname(name);
   const candidates = nameExt && pats.some((e) => e.toLowerCase() === nameExt.toLowerCase())
     ? [name]
@@ -39,6 +40,10 @@ export function findOnPath(name, { env = process.env, cwd = process.cwd(), searc
     if (exists(full)) return full;
   }
   return null;
+}
+
+export function findPi({ env = process.env, cwd = process.cwd(), exists = defaultExists } = {}) {
+  return findOnPath("pi", { env, cwd, exists, allowedExtensions: PI_EXTENSIONS });
 }
 
 const refusedChars = [["\"", "double quote"], ["%", "%"], ["!", "!"], ["\r", "carriage return"], ["\n", "line feed"], ["\0", "NUL"]];

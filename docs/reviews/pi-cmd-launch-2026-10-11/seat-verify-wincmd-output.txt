@@ -1,4 +1,5 @@
 ok   export win-command findOnPath is a function
+ok   export win-command findPi is a function
 ok   export win-command winCommand is a function
 ok   export win-command cmdCouldNotRun is a function
 ok   export steps stepPiRegister is a function
@@ -84,5 +85,5 @@ ok   doctor win32: spawn error → fail on the real home
 ok   doctor win32: not found → fail with the shared hint
 ok   doctor win32: refused .cmd on the real home → fail naming %, no spawn
 ok   doctor win32: refused .cmd under --home → note naming %, no spawn
-cases: 86/86
+cases: 87/87
 seat-verify-wincmd: 0 mismatch(es)

@@ -6,7 +6,7 @@
  * @effects process (Windows-only cmd.exe and where probes).
  * @errors assertion mismatches set the process exit code.
  */
-import { findOnPath, winCommand, cmdCouldNotRun } from "../lib/win-command.mjs";
+import { findOnPath, findPi, winCommand, cmdCouldNotRun } from "../lib/win-command.mjs";
 import { INTERNAL_COMMANDS } from "../lib/win-command-config.mjs";
 import { spawnSync } from "node:child_process";
 
@@ -30,7 +30,9 @@ check("working directory is excluded unless requested", [findOnPath("pi", { env:
 // req: R-1033
 check("directories do not satisfy lookup", findOnPath("pi", { env: { PATH: "C:\\dir", PATHEXT: ".CMD" }, exists: () => false }), null);
 // req: R-1033
-check("existing extension and unsupported PATHEXT entries", [findOnPath("pi.CMD", { env, exists }), findOnPath("pi", { env: { PATH: "C:\\one", PATHEXT: ".JS;.PS1" }, exists })], ["C:\\one\\pi.CMD", null]);
+check("existing extension and unsupported PATHEXT entries",  [findOnPath("pi.CMD", { env, exists }), findOnPath("tool", { env: { PATH: "C:\\bin", PATHEXT: ".PY;.CMD" }, exists: (p) => p.toLowerCase() === "c:\\bin\\tool.py" }), findPi({ env: { PATH: "C:\\bin", PATHEXT: ".JS;.PS1;.CMD" }, exists: (p) => /\\.js$|\\.ps1$/i.test(p) || p.toLowerCase() === "c:\\bin\\pi.cmd" })], ["C:\\one\\pi.CMD", "C:\\bin\\tool.py", "C:\\bin\\pi.cmd"]);
+// req: R-1033
+check("findPi excludes non-pi PATHEXT extensions", findPi({ env: { PATH: "C:\\bin", PATHEXT: ".JS;.PS1" }, exists: () => true }), null);
 // req: R-1034
 check("uppercase pi.CMD selects cmd launch", winCommand("C:\\one\\pi.CMD", [], {}).command, "cmd.exe");
 // req: R-1039
@@ -50,13 +52,13 @@ check("cmd trailing backslash refused", Boolean(winCommand("C:\\bin\\pi.cmd", ["
 check("unsupported extension refused", Boolean(winCommand("pi.ps1", [], {}).refused), true);
 const cmdCases = [
   ["missing-tool x", true], [".\\missing-tool", true], ["C:\\nowhere\\tool.exe", true],
-  ["tool x", false], ["check x", false], [".\\check", false], ["ECHO", false], ["type missing.txt", false],
+  ["tool x", false], ["check x", false], [".\\check", false], ["ruff check", false], ["ECHO", false], ["type missing.txt", false],
   ["dir/Z", false], ["cd\\nowhere", false], ["cd..", false], ["echo.text", false], ["", false], ["   missing-tool", true],
   ["%ComSpec% /c exit 1", false], ["@node -e x", false], ["^ruff check", false], ['"C:\\nowhere\\tool.exe"', false], ["ruff,check", false], ["missing-tool&&x", false],
 ];
 for (const [cmd, expected] of cmdCases) {
   // req: R-1038
-  check(`cmdCouldNotRun ${JSON.stringify(cmd)}`, cmdCouldNotRun(cmd, { env: { PATH: "C:\\bin", PATHEXT: ".CMD;.EXE" }, cwd: "C:\\cwd", exists: (p) => ["c:\\cwd\\check.cmd", "c:\\bin\\tool.cmd"].includes(p.toLowerCase()) }), expected);
+  check(`cmdCouldNotRun ${JSON.stringify(cmd)}`, cmdCouldNotRun(cmd, { env: { PATH: "C:\\bin", PATHEXT: ".PY;.CMD;.EXE" }, cwd: "C:\\cwd", exists: (p) => ["c:\\cwd\\check.cmd", "c:\\bin\\tool.cmd", "c:\\bin\\ruff.py"].includes(p.toLowerCase()) }), expected);
 }
 // req: R-1038
 check("sealed cmd internal command vocabulary", INTERNAL_COMMANDS, "assoc break call cd chdir cls color copy date del dir dpath echo endlocal erase exit for ftype goto if keys md mkdir mklink move path pause popd prompt pushd rd rem ren rename rmdir set setlocal shift start time title type ver verify vol".split(" "));

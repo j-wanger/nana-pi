@@ -1,0 +1,19 @@
+ANCHOR bare pi spawn on win32: found 0 times in packages/nana-setup/lib/steps.mjs
+red  drop PATHEXT in the lookup → win-command.test.mjs: FAIL PATH keys ignore case, quoted and empty entries skip, PATHEXT order applies within fo
+red  search the working folder for pi → win-command.test.mjs: exit 1
+red  drop the argument quoting → win-command.test.mjs: exit 1
+red  drop the % refusal → win-command.test.mjs: exit 1
+red  refuse % for .exe too → win-command.test.mjs: exit 1
+red  drop /v:off → win-command.test.mjs: exit 1
+red  compare extensions with case → win-command.test.mjs: exit 1
+red  treat internal commands as missing → win-command.test.mjs: exit 1
+red  let %, @ and ^ words through → win-command.test.mjs: exit 1
+red  drop PATHEXT for separator paths → win-command.test.mjs: exit 1
+red  drop the attached-syntax rule → win-command.test.mjs: exit 1
+red  found-but-failing pi is skipped → pi-registration.test.mjs: exit 1
+red  posix: any probe error is a skip → pi-registration.test.mjs: FAIL install reports all extension directories registered 
+red  doctor runs a refused .cmd pi → doctor-runtime.test.mjs: exit 1
+red  doctor: a refusal is only a note → doctor-runtime.test.mjs: FAIL pi executable failure is a real-home failure 
+red  post-edit: drop the win32 missing-command rule → post-edit-status.test.mjs: FAIL win32 launch classification missing-tool x
+worktree clean
+mutations: 16/17 red

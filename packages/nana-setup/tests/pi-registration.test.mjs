@@ -24,7 +24,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
-const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister, PI_INSTALL_HINT } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister, installExitCode, PI_INSTALL_HINT } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -257,6 +257,24 @@ if (process.platform !== "win32") {
 				JSON.stringify(entries),
 			);
 	}
+}
+
+// Injected POSIX launcher cases are portable; the recording spawn never invokes pi.
+{
+	const fixture = tmpDir(path.join(os.tmpdir(), "nana-posix-pi-manifest-"));
+	tmps.push(fixture);
+	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"] } }));
+	const fakeLayout = { piHome: "/Users/fake/.pi/agent", isRealHome: true };
+	const injected = { platform: () => "darwin", manifestRoot: fixture };
+	const missing = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }) });
+	// req: R-1036
+	check("darwin missing pi is skipped with install hint", missing[0]?.status === "skipped" && missing[0].detail.includes(PI_INSTALL_HINT));
+	const denied = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
+	// req: R-1036
+	check("darwin found pi with EACCES is a problem and fails install", denied[0]?.status === "problem" && installExitCode(denied) === 1);
+	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 2, stderr: "bad version" }) });
+	// req: R-1036
+	check("darwin found pi with nonzero version probe is a problem", failed[0]?.status === "problem");
 }
 
 // Injected win32 launcher cases are portable; the recording spawn never invokes pi.
