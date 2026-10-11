@@ -85,7 +85,7 @@ R-323 and R-392 keep their text and tests; the registration tests gain the injec
     true only when that word is not an internal command and `findOnPath(word, { searchCwd: true })`,
     or the path itself when it holds a separator, finds nothing.
 - **Configuration** `packages/nana-pack/lib/win-command-config.mjs`: the default PATHEXT
-  (`.COM;.EXE;.BAT;.CMD`, chosen: Windows' long-standing default and cross-spawn's) and the list of
+  (`.COM;.EXE;.BAT;.CMD`, chosen: the four extensions Windows sets by default; used only when PATHEXT is unset) and the list of
   cmd.exe internal command names (chosen; each one pinned on the Windows leg, below), each with its
   provenance. No inline vocabulary at the point of use.
 - **`stepPiRegister`** (`packages/nana-setup/lib/steps.mjs`) gains an injectable
