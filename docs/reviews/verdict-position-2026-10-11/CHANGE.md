@@ -65,9 +65,14 @@ the verdict word (`~/game-world/docs/reviews/design-2026-09-06/round-9.md:17`).
 **In.** `verdictWord` in `packages/nana-pack/bin/review-round.mjs`; the new
 `packages/nana-pack/lib/verdict-config.mjs` holding the look-alike fold table; its tests in
 `packages/nana-pack/tests/review-ledger.test.mjs`. Every existing R-969/R-1010 case keeps its
-expectation EXCEPT one, changed on purpose: `VERDICT: LAND` followed by a prose line with no verdict
-word now records LAND (a plain first-line verdict with notes — yokai's shape). Kept: the look-alike
-final label after a first-line LAND stays EMPTY (the folded body now mentions "verdict"). New cases:
+expectation EXCEPT two (seat check after plan r4: every existing case run through `seat-proto.mjs`;
+an earlier draft named a different case here and was wrong). (1) `VERDICT: LAND | FIX-FIRST | BLOCK`
+above a final `VERDICT: SEND-BACK` now records EMPTY, not SEND-BACK: the first line carries the label
+and is not a verdict line with the same word (§4); both outcomes refuse a land. (2) `VERDICT: LAND`
+above `ΕERDICT: SEND-BACK` (Greek capital Epsilon, then `ERDICT`) now records LAND: it folds to
+`eerdict`, which is not the word. The test keeps that string with the new expectation and gains the
+true look-alike `VΕRDICT: SEND-BACK` (Epsilon in the E position), which stays empty. A misspelled
+label is a declared residual (§4). New cases:
 first-line plain with and without bare, parenthesised and dash scores; a backtick-quoted or marked
 first line → empty; a first line plus a prose correction mentioning "verdict" → empty; first and last
 agreeing → the word; disagreeing → empty; a malformed first-line rejection followed by a clean final
@@ -108,7 +113,7 @@ correctly. A per-repo setting for the verdict position (subtraction: both positi
   imports it (no inline vocabulary).
 - Declared residuals: a reviewer who writes a plain first-line LAND and then rejects in prose without
   the word "verdict" is read as LAND — the same limit the final-line rule has for prose above the
-  verdict. A look-alike outside the fold table is not caught. When the final line is selected, a
+  verdict. A look-alike outside the fold table, or a misspelled label such as `EERDICT:`, is not caught. When the final line is selected, a
   verdict line in the MIDDLE is not read (unchanged from the land rule). Ordinary notes that use the
   word "verdict" after a first-line verdict are refused on purpose (sol plan r3 note); the pinned
   yokai-world set has none. The default-ignorable set is the one in the running Node's Unicode tables.
