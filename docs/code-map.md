@@ -5,7 +5,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 244 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 246 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -902,7 +902,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads the named HANDOFF)
 - **errors** — unreadable input and malformed options or dates are reported; errors exit nonzero only in strict mode
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/frontier-config.mjs`
+- **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`
 
 ### `packages/nana-pack/bin/nana-land.mjs`
 
@@ -1152,6 +1152,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — none
 - **errors** — none — an unbalanced quote or an unsegmentable construct sets segmentable:false, and an internal failure comes back as the non-floor danger `unparseable segment`
 - **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/gate-paths.ts`
+- **callees** — —
+
+### `packages/nana-pack/lib/handoff-asks.mjs`
+
+- **purpose** — Splits HANDOFF's Open for Jake section into raw entries with independent tag and title parses.
+- **inputs** — HANDOFF Markdown text.
+- **outputs** — Ordered ask entries with source lines, frontier tags, and report titles and bodies.
+- **effects** — none
+- **errors** — None; absent sections and unparseable tags or titles yield empty results.
+- **callers** — `packages/nana-pack/bin/nana-frontier.mjs`, `packages/nana-pack/tests/handoff-asks.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/objective.ts`
@@ -1463,6 +1473,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+
+### `packages/nana-pack/tests/handoff-asks.test.mjs`
+
+- **purpose** — Pins Open for Jake entry splitting and the independent frontier-tag and report-title grammars.
+- **inputs** — handoff-asks.mjs and temporary HANDOFF text.
+- **outputs** — named PASS/FAIL checks and a nonzero exit when an assertion fails.
+- **effects** — disk (writes fixtures under the OS temp directory).
+- **errors** — failed assertions are reported and cause exit 1.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/handoff-asks.mjs`
 
 ### `packages/nana-pack/tests/handoff-staleness.test.mjs`
 

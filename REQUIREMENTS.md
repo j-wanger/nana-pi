@@ -1490,6 +1490,33 @@ declared `exempt` with their reasons. Generated and checked by `npm run map` /
 | G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0). 2026-10-09 (seat, plan 6.7): only stale inline package-script claims are pinned — `readme-check.test.mjs`'s inline-command check went red under two code mutations in the template checker — while stale paths, flags and files have no failing check, so the row stays untested (sol, wave-0 review) |
 
+## FEAT-039 · See the product and its decisions in one report
+Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.
+Status: active
+Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-1012 | WHEN the working tree is unchanged between them, two runs of the report command at the same commit shall write byte-identical product reports. | planned | — |
+| R-1013 | The product report shall state the full commit hash and commit date it was built from and whether the working tree was clean. | planned | — |
+| R-1014 | The product report shall show every capability in REQUIREMENTS.md with its purpose, its outcome and its features. | planned | — |
+| R-1015 | The product report shall show every feature with its purpose, its status, its requirement counts by status, the requirements shared into it and the features that list its requirements. | planned | — |
+| R-1016 | The product report shall show every requirement row under its feature or subgroup with its requirement text, status and evidence. | planned | — |
+| R-1017 | The product report shall list every requirement whose status is violated. | planned | — |
+| R-1018 | The product report shall list every entry in HANDOFF.md's "Open for Jake" section with its kind, its since-date, its title and its full body. | planned | — |
+| R-1019 | The product report shall insert ledger, HANDOFF and assessment text into the page only as text nodes, never parsed as HTML or run as script. | planned | — |
+| R-1020 | Each stored assessment shall carry a stamp of the commit it was written against, its feature's purpose and status, and for each row it covers — the feature's own rows and the rows shared into it, each marked own or shared — the row's status and a SHA-256 over its ID, requirement text and status. | planned | — |
+| R-1021 | WHEN a stored assessment's stamped row set, any stamped row's own-or-shared mark or fingerprint, or its feature's stamped purpose or status differs from the current ledger, the product report shall mark the assessment out of date and name each added, removed or changed row and any changed purpose or status. | planned | — |
+| R-1022 | Fingerprints shall be equal for a ledger with LF line endings and the same ledger with CRLF line endings or trailing whitespace, read through the report's own parse. | planned | — |
+| R-1023 | The suite shall fail when a prose field of a stored assessment holds an ASCII digit. | planned | — |
+| R-1024 | The suite shall fail when a stored assessment is rated `solid` while one of its feature's own stamped rows had status planned, untested or violated. | planned | — |
+| R-1025 | IF the tree checker reports problems for the ledger, THEN the report command shall refuse, naming them, and write no page. | planned | — |
+| R-1026 | The suite shall fail when a stored assessment's stamp differs from what the ledger at its stamped commit, read with `git show`, gives for its feature: the row set, each row's own-or-shared mark, status and fingerprint, and the feature's purpose and status. | planned | — |
+| R-1027 | The suite shall fail when the assessment store breaks its declared schema (§3): exact keys and types at every level, full commit hashes, valid feature and row IDs, the status, mark and rating enums, SHA-256 hex fingerprints, ISO dates, one assessment per feature and each row once per stamp. | planned | — |
+| R-1028 | The product report shall show a feature that has no stored assessment as unassessed. | planned | — |
+| R-1029 | WHEN run with `--packets <dir>` on an empty or absent directory, the report command shall write exactly one versioned JSON packet per out-of-date or unassessed feature — its current purpose and status, its own and shared rows with text, status and evidence, its current assessment and its stale differences — byte-identical across runs at one commit, and refuse a non-empty directory. | planned | — |
+| R-1030 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. | planned | — |
+
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.

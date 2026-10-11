@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
 import { ID } from "../../../scripts/requirements-trace.mjs";
-import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds } from "../../../scripts/requirements-tree.mjs";
+import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -23,7 +23,7 @@ const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |
 // req: R-287
 check("R-287: every real requirement row is in a feature or subgroup table", actual.problems.every((p) => !p.includes("not in a feature or subgroup table")) && row("R-287").startsWith("| R-287 | Every requirement row in REQUIREMENTS.md shall sit in a table"), actual.problems.join("; "));
 // req: R-288
-check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 67 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
+check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 68 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
 // req: R-288
 check("R-288: real ledger has no structural problems", actual.problems.length === 0, actual.problems.join("; "));
 // req: R-289
@@ -35,7 +35,7 @@ check("R-291: committed outline equals a fresh render", map === actual.outline, 
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,024", (() => {
+check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,043", (() => {
   const outlineLines = map.split("\n");
   let leafTotal = 0;
   for (const heading of actual.parsed.headings) {
@@ -49,14 +49,25 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1024;
-})(), "committed IDs differ or leaf total is not 1,024");
+  return leafTotal === 1043;
+})(), "committed IDs differ or leaf total is not 1,043");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
   return false;
 }
 const feat033 = actual.parsed.headings.find((h) => h.id === "FEAT-033");
+const parsedForReader = parseLedger(`# CAP-01 · Cap\nPurpose: capability\nOutcome: a visible outcome\n\n## FEAT-001 · Home\nPurpose: feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-001 | A requirement text. | implemented | test cite |\n| R-1000 | A four-digit requirement. | planned | — |\n`);
+const rowsForReader = readRequirementRows(parsedForReader);
+// req: R-287
+check("row reader returns text, G and four-digit rows in document order", rowsForReader.length === 2 && rowsForReader[0].id === "G-001" && rowsForReader[0].requirement === "A requirement text." && rowsForReader[0].status === "implemented" && rowsForReader[0].evidence === "test cite" && rowsForReader[0].line === 10 && rowsForReader[1].id === "R-1000", JSON.stringify(rowsForReader));
+// req: R-288
+check("capability Outcome is recorded", parsedForReader.headings[0].outcome === "a visible outcome", parsedForReader.headings[0].outcome);
+// req: R-287
+check("row reader returns its owning heading and descendant walk reaches it", rowsForReader[0].heading.id === "FEAT-001" && descendants(parsedForReader, parsedForReader.headings[0]).some((heading) => heading.id === "FEAT-001"), "owning heading or descendant walk differs");
+const sharedRowsParsed = parseLedger(`# CAP-01 · Cap\nPurpose: cap\n\n## FEAT-001 · Home\nPurpose: home\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shared row. | untested | — |\n\n## FEAT-002 · Consumer\nPurpose: consumer\nStatus: active\nAlso applies: R-001\n`);
+// req: R-292
+check("shared row reader retains its owning home heading", readRequirementRows(sharedRowsParsed).find((row) => row.id === "R-001")?.heading.id === "FEAT-001", "shared owner lost");
 // req: R-291
 check("R-291: FEAT-033 preserves G row IDs", feat033.rows.includes("G-001") && !feat033.rows.includes("R-001") && map.includes("G-001–G-022") && !map.includes("R-001–R-022"), feat033.rows.join(", "));
 // req: R-291
