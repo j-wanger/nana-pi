@@ -12,8 +12,7 @@ red  empty verdict treated as absent (R-1004) → land.test.mjs :: an explicit e
 red  parenthesised score rejected (R-969) → review-ledger.test.mjs :: complete records the LAND corpus forms (exit 1)
 red  snapshot head ignored (R-1004) → land.test.mjs :: a verified SEND-BACK at a working-state snapshot refuses land (exit 1)
 red  other items ignored (R-1004) → land.test.mjs :: a verified SEND-BACK for another item at the commit refuses land (exit 1)
+red  only line-leading VERDICT lines considered (R-969, sol build r2) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
 red  snapshot reservations ignored (R-1006) → land.test.mjs :: an in-flight snapshot review of the reviewed tip refuses (exit 1)
-WORKTREE DIRTY:
-M docs/reviews/land-rule-2026-10-10/seat-mutate-output.txt
- M docs/reviews/land-rule-2026-10-10/seat-verify-land-output.txt
-mutations: 15/15 red
+worktree clean
+mutations: 16/16 red
