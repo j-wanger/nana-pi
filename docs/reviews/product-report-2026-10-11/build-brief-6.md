@@ -50,7 +50,7 @@ raw HTML). This round fixes the page and the evidence. Do every item before you 
   `docs/reviews/product-report-2026-10-11/test-title-map.json` with the new title and the reason;
   `seat-verify-tests.mjs` must print `0 gap(s)`.
 
-The seat's acceptance script (frozen) now holds 28 rendered-page and packet cases; 8 fail at launch
+The seat's acceptance script (frozen) now holds 38 rendered-page and packet cases; 8 fail at launch
 (`seat-verify-report-r6-launch.txt`) — the page view cases pass at launch only because the JSON dump
 contains every word, which the dump cases refuse. It must print `0 mismatch(es)`.
 
