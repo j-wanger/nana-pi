@@ -235,6 +235,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		["crlf", "VERDICT: LAND\r\nnotes\r\n", "LAND"],
 		["tab", "VERDICT: LAND\t", "LAND"],
 		["no-final-newline", "VERDICT: LAND\nnotes", "LAND"],
+		["final-bare-score", "body\nVERDICT: LAND 9/10", "LAND"],
 		["misspelled-epsilon", "VERDICT: LAND\nΕERDICT: SEND-BACK", "LAND"],
 	];
 	let acceptedOk = true;
@@ -263,6 +264,8 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		["cgj-later", "VERDICT: LAND\nV\u034FERDICT: SEND-BACK"],
 		["lunate-sigma-first-conflict", "VERDI\u03F9T: SEND-BACK\nnotes\nVERDICT: LAND"],
 		["lunate-sigma-later-conflict", "VERDICT: LAND\nVERDI\u03F9T: SEND-BACK"],
+		["mathematical-greek-epsilon-later", "VERDICT: LAND\nV𝚬RDICT: SEND-BACK"],
+		["mathematical-greek-epsilon-first-conflict", "V𝚬RDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
 	];
 	const refusedFailures = [];
 	for (const [item, text] of refused) {

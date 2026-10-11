@@ -59,6 +59,8 @@ ok   "  VERDICT: LAND\nbody\nVERDICT: LAND" → null (want null)
 ok   "**VERDICT: LAND**\nbody\nVERDICT: LAND" → null (want null)
 ok   "VERDIϹT: SEND-BACK\nnotes\nVERDICT: LAND" → null (want null)
 ok   "VERDICT: LAND\nVERDIϹT: SEND-BACK" → null (want null)
+ok   "VERDICT: LAND\nV𝚬RDICT: SEND-BACK" → null (want null)
+ok   "V𝚬RDICT: SEND-BACK\nnotes\nVERDICT: LAND" → null (want null)
 ok   "VERDICT: LAND (fixes pending)" → null (want null)
 ok   "VERDICT: LAND — Fixes: none." → null (want null)
 ok   "VERDICT: LAND!" → null (want null)
@@ -90,6 +92,6 @@ ok   table entry U+3B9 → i voids a first-line LAND → null
 ok   table entry U+475 → v voids a first-line LAND → null
 ok   table entry U+501 → d voids a first-line LAND → null
 ok   table entry U+433 → r voids a first-line LAND → null
-cases: 70/70
-corpus: 414 files, {"word":404,"empty":10}, 0 mismatch(es) with the prototype
+cases: 72/72
+corpus: 338 files, {"word":330,"empty":8}, 0 mismatch(es) with the prototype
 seat-verify-verdict: 0 mismatch(es)
