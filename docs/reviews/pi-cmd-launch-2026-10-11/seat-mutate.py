@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Seat mutation runner for lane pi-cmd-launch (frozen). Each mutation breaks the CODE, runs the named
+"""Seat mutation runner for lane pi-cmd-launch (frozen; the seat updated one anchor after build 3, which
+replaced the pi lookup with findPi). Each mutation breaks the CODE, runs the named
 test file, and expects at least one FAIL line in it (or a non-zero exit); the file is restored with
 `git checkout` after each. Run from the repo root (macOS: Windows-only cases are skipped there, so every
 mutation here must be caught by a cross-platform case)."""
@@ -13,7 +14,8 @@ T_PR = "packages/nana-setup/tests/pi-registration.test.mjs"
 T_DR = "packages/nana-setup/tests/doctor-runtime.test.mjs"
 T_PE = "packages/nana-pack/tests/post-edit-status.test.mjs"
 M = [
-  ("bare pi spawn on win32", ST, 'const pi = win32 ? findOnPath("pi", { env: piLookupEnv(env), cwd: process.cwd(), exists }) : "pi";', 'const pi = "pi";', T_PR),
+  ("bare pi spawn on win32", ST, 'const pi = win32 ? findPi({ env, cwd: process.cwd(), exists }) : "pi";', 'const pi = "pi";', T_PR),
+  ("findPi allows every PATHEXT extension", WC, 'return findOnPath("pi", { env, cwd, exists, allowedExtensions: PI_EXTENSIONS });', 'return findOnPath("pi", { env, cwd, exists });', T_WC),
   ("drop PATHEXT in the lookup", WC, "const candidates = nameExt && pats.some", "const candidates = [name]; const _unused = nameExt && pats.some", T_WC),
   ("search the working folder for pi", WC, "if (searchCwd && cwd) dirs.unshift(cwd);", "if (cwd) dirs.unshift(cwd);", T_WC),
   ("drop the argument quoting", WC, 'const line = [file, ...args].map((arg) => `"${arg}"`).join(" ");', 'const line = [file, ...args].join(" ");', T_WC),
