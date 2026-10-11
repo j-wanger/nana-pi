@@ -10,7 +10,7 @@ M = [
  ("--exempt back in the parser (R-1003)", LAND, '["--tree", "--main", "--suite", "--reviewed"]', '["--tree", "--main", "--suite", "--reviewed", "--exempt"]', LT, "unknown land options"),
  ("complete() first-only (R-1008)", RR, "      appendChecked(p.tally, { v: 2,", "      if (existingOrdinal < 0) appendChecked(p.tally, { v: 2,", RT, "complete appends every verdict at v2"),
  ("second reading dropped (R-1005)", LAND, "checkRecords(rounds.filter((r) => r.repo === repo), reservations.filter((r) => r.repo === repo));", "void 0;", LT, "a verified SEND-BACK written by the suite refuses before merge"),
- ("second reading outside the injected lock (R-1005)", LAND, "let releaseLine;\n\t\tlockReviews(home, ", "let releaseLine;\n\t\twithReviewLedgerLock(home, ", LT, "final review reading, rechecks and ff-only merge run inside one ledger lock"),
+ ("second reading outside the injected lock (R-1005)", LAND, "\t\tlockReviews(home, ({ rounds, reservations }) => {\n\t\t\tcheckRecords(", "\t\twithReviewLedgerLock(home, ({ rounds, reservations }) => {\n\t\t\tcheckRecords(", LT, "final review reading, rechecks and ff-only merge run inside one ledger lock"),
  ("first VERDICT line taken (R-969)", RR, "text.split(/\\r?\\n/).reverse().find(", "text.split(/\\r?\\n/).find(", RT, "complete records the LAND corpus forms and final SEND-BACK"),
  ("extra words accepted (R-1010)", RR, "[.,;:]?${marks}\\\\s*$`", "[.,;:]?${marks}.*$`", RT, "complete records an empty verdict for malformed verdict suffixes"),
  ("common-directory check dropped (R-1009)", LAND, 'throw new Error("--tree and --main must share one git repository");', 'void 0;', LT, "a separate clone is refused"),
