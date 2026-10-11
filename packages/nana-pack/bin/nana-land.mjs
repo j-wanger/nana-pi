@@ -63,7 +63,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; runGit and runCommand are injectable for controlled callers and tests. */
-export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, readReleaseStatus = releaseStatus, now = new Date() }) {
+export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, readLedger = readRounds, withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, now = new Date() }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const treeCommon = git(runGit, tree, "rev-parse", "--git-common-dir");
@@ -84,7 +84,7 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			return { sha: canonicalSha, item: canonical };
 		});
 		const reviewRefs = refs.map((r) => r.sha);
-		const firstRead = withReviewLedgerLock(home, ({ rounds, reservations }) => ({ rounds: rounds.filter((r) => r.repo === repo), reservations: reservations.filter((r) => r.repo === repo) }));
+		const firstRead = lockReviews(home, ({ rounds, reservations }) => ({ rounds: rounds.filter((r) => r.repo === repo), reservations: reservations.filter((r) => r.repo === repo) }));
 		const checkRecords = (rounds, reservations) => {
 			for (const { sha, item } of refs) {
 				if (!rounds.some((r) => r.v === 2 && r.revision === sha && r.item === item && r.verdict === "LAND" && r.unverified !== true)) throw new Error(`no verified version-2 LAND review for item ${item} at revision ${sha}`);
@@ -103,7 +103,8 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 		const suiteResult = runCommand(suite, tree);
 		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
 		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
-		withReviewLedgerLock(home, ({ rounds, reservations }) => {
+		let releaseLine;
+		lockReviews(home, ({ rounds, reservations }) => {
 			checkRecords(rounds.filter((r) => r.repo === repo), reservations.filter((r) => r.repo === repo));
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
 			assertCleanTracked(runGit, main, "main checkout");
@@ -111,14 +112,13 @@ export function runLand({ tree, main, suite, reviewed = [], home = os.homedir(),
 			assertCleanTracked(runGit, tree, "source tree");
 			if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
 			git(runGit, main, "merge", "--ff-only", tip);
+			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
+			if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
+			assertCleanTracked(runGit, main, "main checkout after merge");
+			if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
+			try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
+			catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
 		});
-		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
-		if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
-		assertCleanTracked(runGit, main, "main checkout after merge");
-		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
-		let releaseLine;
-		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
-		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
 		return { code: 0, text: `push command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }

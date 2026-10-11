@@ -13,7 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
 import { parseLandArgs, runLand as executeLand, runCleanup } from "../bin/nana-land.mjs";
-import { admit, complete } from "../bin/review-round.mjs";
+import { admit, complete, withReviewLedgerLock } from "../bin/review-round.mjs";
 
 let failures = 0;
 const check = (title, fn) => {
@@ -99,6 +99,42 @@ check("suite-time source tracked changes refuse before merge", () => {
 	} });
 	assert.notEqual(out.code, 0); assert.match(out.text, /source tree has tracked changes/i);
 });
+// req: R-1005
+check("final review reading, rechecks and ff-only merge run inside one ledger lock", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-final-lock-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); const events = []; let lockCalls = 0;
+	const runGit = (cwd, args) => {
+		if (events.includes("suite")) events.push(`git:${args.join(" ")}`);
+		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
+		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
+	};
+	const lock = (ledgerHome, step) => {
+		lockCalls++;
+		return withReviewLedgerLock(ledgerHome, (records) => { events.push("lock-enter", "locked-reading"); const result = step(records); events.push("lock-exit"); return result; });
+	};
+	const out = executeLand({ tree: feature, main, suite: "injected", reviewed: [`${tip}=item`], home, runGit, withReviewLedgerLock: lock,
+		runCommand: () => { events.push("suite"); return { status: 0 }; } });
+	const suiteAt = events.indexOf("suite"), exitAt = events.lastIndexOf("lock-exit");
+	assert.equal(out.code, 0, out.text); assert.equal(lockCalls, 2);
+	assert(events.slice(suiteAt + 1, exitAt).includes("locked-reading"));
+	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("merge --ff-only")));
+	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("branch --show-current")));
+	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("rev-parse HEAD")));
+	assert.equal(events.slice(exitAt + 1).filter((event) => event.startsWith("git:")).length, 0);
+	assert.deepEqual(events.slice(exitAt + 1), []);
+});
+
+// req: R-1005
+check("a verified SEND-BACK written by the suite refuses before merge", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-final-send-back-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); const before = git(main, "rev-parse", "HEAD");
+	const out = executeLand({ tree: feature, main, suite: "injected", reviewed: [`${tip}=item`], home,
+		runCommand: () => { assert.equal(recordReview(feature, home, "late-review", "SEND-BACK").ok, true); return { status: 0 }; } });
+	assert.notEqual(out.code, 0); assert.match(out.text, /non-LAND verdict/); assert.equal(git(main, "rev-parse", "HEAD"), before);
+});
+
 // req: R-975
 // req: R-1005
 check("suite-time source revision change refuses before merge", () => {
@@ -210,7 +246,6 @@ check("snapshot review revisions are never accepted as plain reviewed commits", 
 });
 // req: R-976
 // req: R-1003
-// req: R-1006
 check("runLand requires verified reviews", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-required-review-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); let suiteRan = false;
@@ -221,6 +256,38 @@ check("runLand requires verified reviews", () => {
 	}
 	assert.equal(suiteRan, false); assert.equal(git(main, "rev-parse", "HEAD"), git(main, "rev-parse", "main"));
 });
+// req: R-1006
+check("an in-flight review of the reviewed tip refuses without merging", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-inflight-tip-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); const held = admit(["--item", "pending", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs", pid: process.pid });
+	assert.equal(held.ok, true, held.message); assert.equal(held.res.pid, process.pid); assert.equal(held.res.revision, tip);
+	const before = git(main, "rev-parse", "HEAD"); const out = executeLand({ tree: feature, main, suite: "true", reviewed: [`${tip}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /review in flight/); assert.equal(git(main, "rev-parse", "HEAD"), before);
+});
+
+// req: R-1006
+check("an in-flight snapshot review of the reviewed tip refuses without merging", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-inflight-snapshot-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); writeFileSync(path.join(feature, "untracked-inflight.txt"), "snapshot state\\n");
+	const held = admit(["--item", "pending-snapshot", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs", pid: process.pid });
+	assert.equal(held.ok, true, held.message); assert.equal(held.res.pid, process.pid); assert.match(held.res.revision, new RegExp(`^${tip}\\+snap:`));
+	const before = git(main, "rev-parse", "HEAD"); const out = executeLand({ tree: feature, main, suite: "true", reviewed: [`${tip}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /review in flight/); assert.equal(git(main, "rev-parse", "HEAD"), before);
+});
+
+// req: R-1006
+check("an in-flight review of a different commit does not block land", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-inflight-other-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const prior = git(feature, "rev-parse", "HEAD"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); git(feature, "checkout", "--detach", prior);
+	const held = admit(["--item", "pending-other", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs", pid: process.pid });
+	assert.equal(held.ok, true, held.message); assert.notEqual(held.res.revision, tip); git(feature, "checkout", "integration");
+	const out = executeLand({ tree: feature, main, suite: "true", reviewed: [`${tip}=item`], home });
+	assert.equal(out.code, 0, out.text); assert.equal(git(main, "rev-parse", "HEAD"), tip);
+});
+
 // req: R-1004
 check("a verified SEND-BACK for another item at the commit refuses land", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-send-back-other-item-")); const main = repo(root, "main");
