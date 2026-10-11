@@ -8,8 +8,8 @@ exported row reader and a capability `outcome` field — code only, no row chang
 (the HANDOFF ask tag moves into a shared lib that `nana-frontier` imports — code only). Order: why →
 plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan review (item
 `product-report-plan`; r1 and r2 SEND-BACK, answered in `sol-plan-r1-response.md` and
-`sol-plan-r2-response.md`) → Jake's tree decisions
-(decided) → build → seat verification → sol build review →
+`sol-plan-r2-response.md`; r3 LAND-WITH-FIXES 9/10) → Jake's decision on the expanded share line →
+build → seat verification → sol build review →
 astra land review → Jake accepts.*
 
 ## 1. Why
@@ -54,7 +54,7 @@ date.
 | R-1018 | The product report shall list every entry in HANDOFF.md's "Open for Jake" section with its kind, its since-date, its title and its full body. |
 | R-1019 | The product report shall insert ledger, HANDOFF and assessment text into the page only as text nodes, never parsed as HTML or run as script. |
 | R-1020 | Each stored assessment shall carry a stamp of the commit it was written against, its feature's purpose and status, and for each row it covers — the feature's own rows and the rows shared into it, each marked own or shared — the row's status and a SHA-256 over its ID, requirement text and status. |
-| R-1021 | WHEN a stored assessment's stamped row set, any stamped row's own-or-shared mark or fingerprint, or its feature's stamped purpose or status differs from the current ledger, the product report shall mark the assessment out of date and name each added, removed or changed row. |
+| R-1021 | WHEN a stored assessment's stamped row set, any stamped row's own-or-shared mark or fingerprint, or its feature's stamped purpose or status differs from the current ledger, the product report shall mark the assessment out of date and name each added, removed or changed row and any changed purpose or status. |
 | R-1022 | Fingerprints shall be equal for a ledger with LF line endings and the same ledger with CRLF line endings or trailing whitespace, read through the report's own parse. |
 | R-1023 | The suite shall fail when a prose field of a stored assessment holds an ASCII digit. |
 | R-1024 | The suite shall fail when a stored assessment is rated `solid` while one of its feature's own stamped rows had status planned, untested or violated. |
@@ -123,8 +123,10 @@ the builder adds the line he approves with FEAT-039.
   and `sha256` (64 lowercase hex); feature IDs unique in the store; row IDs unique within a stamp.
   The prose fields are `what_it_does`, `maturity_reason`, `gaps`, `risks`, `decisions` and
   `next_step`. The prototype's `corrections` and product-level `synth` are dropped (the synthesis had no stamp and would go stale).
-  It holds the prototype's 38 assessments, stamped against `c4332ec` —
-  the ledger they were written against (the fact-check matched their counts there) — so every feature
+  It holds the prototype's 38 assessments, stamped against `c4332ec` — INFERRED as the ledger they
+  were written against: the prototype recorded no commit, and three of its counts match the ledger
+  there and nowhere later (fact-check); each assessment records this as migration provenance
+  (`"date"` and a `checked_by` note naming the inference) — so every feature
   that drifted since shows out of date on day one. Prose loses its digits and IDs. FEAT-011 and
   FEAT-015 drop from `solid` (each had untested own rows at `c4332ec`). Provenance fields `written_by`,
   `checked_by`, `date`.
@@ -175,9 +177,15 @@ module-type warning Node prints when a script imports the TypeScript rail.
   message naming the commit and saying "fetch full history". CI checks out with `fetch-depth: 0`; a
   shallow clone or source archive fails this check by design (declared in the README).
 - **Packets:** `--packets <dir>` refuses a non-empty directory and writes exactly the current set, so no
-  stale packet survives; the default lives in the gitignored output folder; each packet is versioned
-  JSON whose `assessment` field has the store's schema, so a model's candidate can be pasted back and
-  checked by the same test.
+  stale packet survives; the default lives in the gitignored output folder. Each packet is exactly
+  `{ "version": 1, "feature": { "id", "label", "purpose", "status" }, "rows": [ { "id", "mark",
+  "requirement", "status", "evidence" } ], "assessment": null | <assessment object>, "differences":
+  { "added": [], "removed": [], "changed": [], "purpose": null | { "was", "now" }, "status": null |
+  { "was", "now" } } }`; `assessment` is `null` for an unassessed feature and otherwise has the
+  store's schema, so a model's candidate can be pasted back and checked by the same test. Tests pin
+  both a stale and an unassessed packet.
+- **Fingerprint serialisation:** SHA-256 over the JSON array `[id, requirement, status]` of the
+  normalised row (no delimiter ambiguity). Dates in the store must be real calendar dates.
 
 ## 5. Checkpoint 1 (Jake, decided 2026-10-10)
 
@@ -191,7 +199,7 @@ lifted. Checkpoint 1b (the share line in §2): Jake, 2026-10-11, "Yes".
 
 `npm run report` twice → identical bytes; `npm run test:locked`; mutation pairs per row (parse
 without normalising → the CRLF fingerprint test fails; drop a share from the stamp check → a share
-added marks nothing stale; skip the digit or ID check → its test passes a bad store; check the live
+added marks nothing stale; skip the digit check → its test passes a bad store; check the live
 ledger instead of the stamp → a lane edit fails the suite; trust the stored stamp instead of
 rebuilding it, or read the checked-out ledger instead of `git show` → the two-commit test fails;
 allow a second assessment for one feature or a repeated stamp row → its schema test fails; drop
