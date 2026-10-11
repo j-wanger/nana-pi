@@ -188,6 +188,53 @@ for (const [label, make, pattern] of [
   out("fingerprints are equal for a CRLF, trailing-space ledger", problems(r).join(" | ") || "none", "none");
 }
 
+// ── Round 4: staleness on the page (R-1021) and the real store (migration) ──
+// `buildReport({ root })` returns a model whose `features` each carry `assessmentState`
+// ("current" | "out of date" | "unassessed") and `differences`
+// ({ added, removed, changed, purpose, status }) as CHANGE §4 declares.
+async function stateAfter(change) {
+  const { r } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  if (change) { change(r); git(r, "add", "."); git(r, "commit", "-qm", "change"); }
+  const model = await mod.buildReport({ root: r });
+  const f = (model.features ?? []).find((x) => x.id === "FEAT-001");
+  return f ? { state: f.assessmentState, d: f.differences ?? {} } : { state: "missing feature", d: {} };
+}
+const edit = (r, from, to) => writeFileSync(join(r, "REQUIREMENTS.md"), readFileSync(join(r, "REQUIREMENTS.md"), "utf8").replace(from, to));
+{
+  const s = await stateAfter(null);
+  out("an untouched stamped assessment is current", s.state, "current");
+}
+for (const [label, change, check] of [
+  ["a row's text changes", (r) => edit(r, "The tool shall quokka one.", "The tool shall quokka one, carefully."), (s) => (s.d.changed ?? []).includes("R-001")],
+  ["a row's status changes", (r) => edit(r, "| R-1000 | The tool shall quokka four digits. | untested |", "| R-1000 | The tool shall quokka four digits. | implemented |"), (s) => (s.d.changed ?? []).includes("R-1000")],
+  ["a row is added to the feature", (r) => edit(r, "| R-1000 | The tool shall quokka four digits. | untested | — |", "| R-1000 | The tool shall quokka four digits. | untested | — |\n| R-004 | The tool shall quokka more. | untested | — |"), (s) => (s.d.added ?? []).includes("R-004")],
+  ["a row is shared into the feature", (r) => edit(r, "Purpose: Quokkafeat purpose words.\nStatus: active", "Purpose: Quokkafeat purpose words.\nStatus: active\nAlso applies: R-003"), (s) => (s.d.added ?? []).includes("R-003")],
+  ["the feature's purpose changes", (r) => edit(r, "Purpose: Quokkafeat purpose words.", "Purpose: Quokkafeat purpose, reworded."), (s) => Boolean(s.d.purpose)],
+  ["the feature's status changes", (r) => edit(r, "## FEAT-001 · Quokka feature\nPurpose: Quokkafeat purpose words.\nStatus: active", "## FEAT-001 · Quokka feature\nPurpose: Quokkafeat purpose words.\nStatus: frozen (seat fixture)"), (s) => Boolean(s.d.status)],
+  ["a row moves home and is shared back", (r) => {
+    edit(r, "| R-1000 | The tool shall quokka four digits. | untested | — |\n", "");
+    edit(r, "| R-003 | The tool shall wombat three. | planned | — |", "| R-003 | The tool shall wombat three. | planned | — |\n| R-1000 | The tool shall quokka four digits. | untested | — |");
+    edit(r, "Purpose: Quokkafeat purpose words.\nStatus: active", "Purpose: Quokkafeat purpose words.\nStatus: active\nAlso applies: R-1000");
+  }, (s) => (s.d.changed ?? []).includes("R-1000")],
+]) {
+  const s = await stateAfter(change);
+  out(`out of date when ${label}, and it is named`, `${s.state}/${check(s)}`, "out of date/true");
+}
+{
+  const r = repo({ "REQUIREMENTS.md": LEDGER, "HANDOFF.md": HANDOFF });
+  const model = await mod.buildReport({ root: r });
+  out("a feature with no assessment is unassessed", (model.features ?? []).find((x) => x.id === "FEAT-002")?.assessmentState, "unassessed");
+}
+{
+  const realStore = join(W, "docs/product-report/assessments.json");
+  out("the real store exists after migration", existsSync(realStore), "true");
+  const p = existsSync(realStore) ? mod.validateStore({ root: W }) : ["missing"];
+  out("the real store validates against the ledger history", p.join(" | ") || "none", "none");
+  const store = existsSync(realStore) ? JSON.parse(readFileSync(realStore, "utf8")) : { features: [] };
+  out("the real store holds the 38 migrated assessments", store.features?.length, "38");
+  out("every migrated assessment is stamped at c4332ec", (store.features ?? []).length > 0 && store.features.every((f) => f.stamp?.commit === "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67"), "true");
+}
+
 console.log(`seat-verify-report: ${mismatches} mismatch(es)`);
 rmSync(ROOT, { recursive: true, force: true });
 process.exitCode = mismatches ? 1 : 0;
