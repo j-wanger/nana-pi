@@ -613,10 +613,10 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/product-report.mjs`
 
 - **purpose** — Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
-- **inputs** — REQUIREMENTS.md, HANDOFF.md, the HTML template, an optional repository root, output path, and injected git runner.
-- **outputs** — A complete product ledger HTML file or an exported report model and renderer.
-- **effects** — disk (reads sources and template, writes the report), process (queries git and reports CLI errors).
-- **errors** — Refuses malformed ledgers or asks, git failures, and output failures with named diagnostics.
+- **inputs** — REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output path, and injected git runner.
+- **outputs** — A complete product ledger HTML file, an exported report model and renderer, or assessment-store problem strings.
+- **effects** — disk (reads sources and store, writes the report), process (queries git and reports CLI errors).
+- **errors** — Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
 - **callers** — `packages/nana-pack/tests/product-report.test.mjs`
 - **callees** — `packages/nana-pack/lib/handoff-asks.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 
