@@ -5,7 +5,7 @@
 without duplication" (R-323, R-392; new rows below), FEAT-015 "Diagnose the active environment" (R-952),
 and the post-edit feature holding R-105. Order: why → plan → sol plan review (item
 `pi-cmd-launch-plan`; r1 SEND-BACK 4/10 — version 2 replaced the npm-root design; r2 SEND-BACK 6/10 and
-r3 SEND-BACK 7/10 answered here; r4 is over the cap) →
+r3 SEND-BACK 7/10 and r4 SEND-BACK 8/10 (over the cap) answered here) →
 build → a CI run with the Windows leg → seat verification → sol build review → astra land review →
 Jake accepts.*
 
@@ -65,7 +65,7 @@ smaller argument rule: refuse instead of escaping.
 | R-1033 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall locate pi as the first existing non-directory `pi<ext>` found by taking the directories of PATH in order and, within each, the extensions of PATHEXT in order that are, compared without regard to case, `.com`, `.exe`, `.bat` or `.cmd`, without searching the working directory. |
 | R-1034 | added (SUB-013) | WHERE the platform is win32, unless R-1035 refuses it, the installer and doctor shall run a located pi ending (in any case) in `.cmd` or `.bat` as the ComSpec interpreter with the arguments `/d /v:off /s /c` and one quoted command line in which the pi path and every argument are each wrapped in double quotes. |
 | R-1039 | added (SUB-013) | WHERE the platform is win32, the installer and doctor shall run a located pi ending (in any case) in `.exe` or `.com` directly with its arguments as an argument array, applying no R-1035 refusal. |
-| R-1035 | added (SUB-013) | IF the platform is win32 and the located pi ends (in any case) in `.cmd` or `.bat` and its path or any argument contains a double quote, `%`, `!`, a carriage return, a line feed or NUL, or an argument ends in a backslash, THEN the installer shall report the pi packages step as a problem, and doctor shall report pi as not OK naming the refused character, without running pi. |
+| R-1035 | added (SUB-013) | IF the platform is win32 and the located pi ends (in any case) in `.cmd` or `.bat` and its path or any argument contains a double quote, `%`, `!`, a carriage return, a line feed or NUL, or an argument ends in a backslash, THEN the installer shall report the pi packages step as a problem, and doctor shall report pi as FAIL on the real home and as NOTE under a `--home` override, naming the refused character, without running pi. |
 | R-1036 | added (SUB-013) | IF pi is found but its `--version` probe cannot start or exits non-zero, THEN the installer shall report the pi packages step as a problem, so that install exits non-zero. |
 | R-952 | reworded and split (FEAT-015) | Doctor shall report pi as OK only when `pi --version` — run as R-1033, R-1034 and R-1039 describe on win32 — exits 0 and the first line of its standard output starts with a dotted version (`v` optional, then three dot-separated numbers), whatever it writes to standard error. ("WHERE the platform is not win32" dropped; the install-hint clause moves to R-1037.) |
 | R-1037 | added (FEAT-015, split from R-952) | Doctor's missing-pi detail shall use the exported install hint that install's missing-pi detail also uses. |
@@ -176,14 +176,15 @@ rules themselves (R-323, R-392 unchanged); escaping instead of refusing.
   `.cmd` → the recorded call is ComSpec with the quoted line and `PI_CODING_AGENT_DIR` set; not found
   → SKIPPED with the hint; spawn error and non-zero `--version` → PROBLEM and `installExitCode` 1;
   a refused character with a `.cmd` pi → PROBLEM and no spawn; the same character with an `.exe` pi →
-  spawned with the argument array; doctor: a refused `.cmd` pi → not OK naming the character, no
-  spawn; version, version on stdout plus text on stderr (OK),
+  spawned with the argument array; doctor with a refused `.cmd` pi, once on the real home (FAIL,
+  doctor exits non-zero) and once under a `--home` override (NOTE) — each names the character and
+  spawns nothing; version, version on stdout plus text on stderr (OK),
   non-zero, empty, malformed, stderr-only, spawn failure, not found.
 - **Real cmd.exe on the Windows leg only** (skipped and counted elsewhere). Registration through a
   REAL npm-generated shim (sol plan r2): a local fake pi package (no network) whose bin prints
   `9.9.9` for `--version` and otherwise writes `JSON.stringify(process.argv.slice(2))` to a log, is
   installed with `npm install -g --prefix "<temp folder with a space>"`, so npm writes its own
-  `pi.cmd` that forwards `%*`; PATH is set to that prefix; a fixture manifest root sits under a folder
+  `pi.cmd` that forwards `%*`;  a fixture manifest root sits under a folder
   named with a space and the accepted metacharacters `&`, `(`, `)`, `^` and `;`; the prefix is
   PREPENDED to the inherited PATH (sol plan r3: npm's shim falls back to `node` on PATH); the test
   first asserts that `findOnPath("pi")` returns the temporary prefix's `pi.cmd`, then runs real
