@@ -17,7 +17,7 @@ export function verdict(text) {
     const w = GEN.exec(F)?.[1] ?? null;
     if (!w) return { w: null, why: 'final malformed' };
     if (L.length > 1 && carries(S)) {
-      const ws = GEN.exec(S)?.[1] ?? null;
+      const ws = PLAIN.exec(S)?.[1] ?? null; // sol build r1: the first line is always held to the plain grammar
       return ws === w ? { w, why: 'first+final agree' } : { w: null, why: 'first disagrees' };
     }
     return { w, why: 'final line' };

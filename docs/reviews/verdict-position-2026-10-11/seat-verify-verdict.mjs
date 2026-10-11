@@ -62,6 +62,9 @@ const cases = [
   ["ＶＥＲＤＩＣＴ: SEND-BACK\nbody\nVERDICT: LAND", null], ["verdict: send-back\nbody\nVERDICT: LAND", null],
   ["VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n", null],
   ["The verdict-format change is safe.\nbody\nVERDICT: LAND", "LAND"],
+  // sol build r1: a non-plain first line carrying the label, above an agreeing final LAND → empty
+  ["`VERDICT: LAND`\nbody\nVERDICT: LAND", null], ["# VERDICT: LAND\nbody\nVERDICT: LAND", null],
+  ["  VERDICT: LAND\nbody\nVERDICT: LAND", null], ["**VERDICT: LAND**\nbody\nVERDICT: LAND", null],
   // malformed final lines stay empty
   ["VERDICT: LAND (fixes pending)", null], ["VERDICT: LAND — Fixes: none.", null], ["VERDICT: LAND!", null], ["→ VERDICT: LAND", null],
   ["VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", null], ["VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", null],

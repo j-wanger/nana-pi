@@ -100,7 +100,12 @@ correctly. A per-repo setting for the verdict position (subtraction: both positi
   label is found by `carries` and then fails the grammar, so it can only produce an empty verdict.
 - `F` = final non-blank line, `S` = first non-blank line.
 - If `carries(F)`: `F` must be a verdict line, else empty; if `S` (a different line) also
-  `carries`, it must be a verdict line with the SAME word, else empty — so a malformed or
+  `carries`, it must be a PLAIN verdict line (the first-line grammar, as R-969 says of the first
+  line) with the SAME word, else empty. (Seat amendment after sol build r1: the plan said "a verdict
+  line", and the build checked `S` with the final-line grammar, so a quoted, marked, indented or bold
+  first line above a final LAND recorded LAND, against R-969's text. A scan of every repo's reviews
+  found no real review whose first line carries the label in a non-plain form above a final verdict;
+  the only three are builder reports, refused either way.) — so a malformed or
   disagreeing first-line verdict cannot be overridden by a clean final LAND (sol plan r2:
   `VERDICT: SEND-BACK 4/10 — blockers remain` … `VERDICT: LAND` → empty); else `F`'s word.
 - Else: `S` must match the PLAIN first-line form, and no other line's `canon` may contain "verdict";
