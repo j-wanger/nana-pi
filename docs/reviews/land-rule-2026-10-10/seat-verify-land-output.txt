@@ -23,6 +23,7 @@ ok   a review of the commit still in flight is refused: refused/main unchanged (
 ok   a review of a snapshot of the commit still in flight is refused: refused/main unchanged (want refused/main unchanged)
 ok   a separate clone as --tree is refused: refused/main unchanged/true (want refused/main unchanged/true)
 ok   an uppercase SHA and a differently cased item land: 0/true (want 0/true)
+ok   an annotated tag object named as the reviewed revision is refused (plain commits only): true/refused/main unchanged (want true/refused/main unchanged)
 ok   verdict word of "VERDICT: LAND": LAND (want LAND)
 ok   verdict word of "# VERDICT: LAND": LAND (want LAND)
 ok   verdict word of "**VERDICT:** LAND": LAND (want LAND)
