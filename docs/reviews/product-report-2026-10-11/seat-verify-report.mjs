@@ -5,7 +5,7 @@
 // MISS. CHANGE.md is the contract. Round 2 scope: the page, refusals, determinism, the commit stamp
 // and hostile text; stamps, schema and packets are added in later rounds.
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -233,6 +233,66 @@ for (const [label, change, check] of [
   const store = existsSync(realStore) ? JSON.parse(readFileSync(realStore, "utf8")) : { features: [] };
   out("the real store holds the 38 migrated assessments", store.features?.length, "38");
   out("every migrated assessment is stamped at c4332ec", (store.features ?? []).length > 0 && store.features.every((f) => f.stamp?.commit === "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67"), "true");
+}
+
+// ── Round 5: packets (R-1029) ──
+// `node scripts/product-report.mjs --root <repo> --packets <dir>` writes one `<feature id>.json` per
+// out-of-date or unassessed feature in CHANGE §4's packet shape, and refuses a non-empty directory.
+// An unassessed feature's packet has `assessment: null` and empty differences. Each packet carries
+// `stamp`: the feature's stamp at HEAD, so a candidate (prose + packet.stamp) validates clean.
+function packets(root, dir) {
+  const p = spawnSync("node", [SCRIPT, "--root", root, "--packets", dir], { cwd: W, env, encoding: "utf8" });
+  const files = existsSync(dir) ? readdirSync(dir).sort() : [];
+  return { code: p.status, text: `${p.stdout}${p.stderr}`, files, read: (f) => readFileSync(join(dir, f), "utf8") };
+}
+const keys = (o) => (o && typeof o === "object" ? Object.keys(o).sort().join(",") : String(o));
+const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
+{
+  const { r, commit } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  edit(r, "The tool shall quokka one.", "The tool shall quokka one, carefully."); git(r, "add", "."); git(r, "commit", "-qm", "change");
+  const dir = join(ROOT, `packets-${++n}`);
+  const a = packets(r, dir);
+  out("packets: runs on an absent directory", a.code, 0);
+  out("packets: exactly one per out-of-date or unassessed feature", a.files.join(","), "FEAT-001.json,FEAT-002.json");
+  const p1 = a.files.includes("FEAT-001.json") ? parse(a.read("FEAT-001.json")) : null;
+  const p2 = a.files.includes("FEAT-002.json") ? parse(a.read("FEAT-002.json")) : null;
+  out("packet: top-level keys", keys(p1), "assessment,differences,feature,rows,stamp,version");
+  out("packet: version", p1?.version, 1);
+  out("packet: feature keys", keys(p1?.feature), "id,label,purpose,status");
+  out("packet: feature purpose and status are current", `${p1?.feature?.purpose}/${p1?.feature?.status}`, "Quokkafeat purpose words./active");
+  out("packet: row keys", keys(p1?.rows?.[0]), "evidence,id,mark,requirement,status");
+  out("packet: own rows of a stale feature", (p1?.rows ?? []).map((x) => `${x.id}:${x.mark}`).sort().join(","), "R-001:own,R-002:own,R-1000:own");
+  out("packet: row text is current", (p1?.rows ?? []).find((x) => x.id === "R-001")?.requirement, "The tool shall quokka one, carefully.");
+  out("packet: row evidence is carried", (p1?.rows ?? []).find((x) => x.id === "R-002")?.evidence, "Violatedrow evidence words.");
+  out("packet: the stored assessment is carried with its old stamp", `${p1?.assessment?.id}/${p1?.assessment?.stamp?.commit === commit}`, "FEAT-001/true");
+  out("packet: differences keys", keys(p1?.differences), "added,changed,purpose,removed,status");
+  out("packet: the changed row is named", (p1?.differences?.changed ?? []).includes("R-001"), "true");
+  out("packet: an unassessed feature has a null assessment", p2 ? p2.assessment === null : "no packet", "true");
+  out("packet: an unassessed feature carries own and shared rows", (p2?.rows ?? []).map((x) => `${x.id}:${x.mark}`).sort().join(","), "R-001:shared,R-003:own");
+  out("packet: an unassessed feature has empty differences", JSON.stringify(p2?.differences), JSON.stringify({ added: [], removed: [], changed: [], purpose: null, status: null }));
+  const head = git(r, "rev-parse", "HEAD");
+  out("packet: the ready stamp is at HEAD", `${p1?.stamp?.commit === head}/${p2?.stamp?.commit === head}`, "true/true");
+  // Round trip: a model's candidates (the packet's prose fields + packet.stamp) validate clean.
+  const prose = { what_it_does: "It keeps quokkas in order.", maturity: "partial", maturity_reason: "Some rows are not tested yet.", gaps: ["A gap."], risks: ["A risk."], decisions: ["A decision."], next_step: "Test the rest.", written_by: "seat", checked_by: "seat", date: "2026-10-11" };
+  const candidates = { version: 1, features: [{ id: "FEAT-001", ...prose, stamp: p1?.stamp }, { id: "FEAT-002", ...prose, stamp: p2?.stamp }] };
+  writeFileSync(join(r, "docs/product-report/assessments.json"), `${JSON.stringify(candidates, null, 2)}\n`);
+  out("packet round trip: candidates stamped from packets validate", problems(r).join(" | ") || "none", "none");
+  git(r, "checkout", "--", "docs/product-report/assessments.json");
+  const dir2 = join(ROOT, `packets-${++n}`);
+  mkdirSync(dir2);
+  const b = packets(r, dir2);
+  out("packets: runs on an empty directory", b.code, 0);
+  out("packets: byte-identical across runs at one commit", a.files.length > 0 && a.files.every((f) => b.files.includes(f) && a.read(f) === b.read(f)), "true");
+  const before = a.files.map((f) => a.read(f)).join("\u0000");
+  const c = packets(r, dir);
+  out("packets: a non-empty directory is refused", c.code !== 0, "true");
+  out("packets: a refused run leaves the directory as it was", c.files.join(",") === a.files.join(",") && c.files.map((f) => c.read(f)).join("\u0000") === before, "true");
+}
+{
+  const { r } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  const dir = join(ROOT, `packets-${++n}`);
+  const a = packets(r, dir);
+  out("packets: a current feature gets no packet", a.files.join(","), "FEAT-002.json");
 }
 
 console.log(`seat-verify-report: ${mismatches} mismatch(es)`);

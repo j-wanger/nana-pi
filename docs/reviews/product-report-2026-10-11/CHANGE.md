@@ -62,7 +62,7 @@ date.
 | R-1026 | The suite shall fail when a stored assessment's stamp differs from what the ledger at its stamped commit, read with `git show`, gives for its feature: the row set, each row's own-or-shared mark, status and fingerprint, and the feature's purpose and status. |
 | R-1027 | The suite shall fail when the assessment store breaks its declared schema (§3): exact keys and types at every level, full commit hashes, valid feature and row IDs, the status, mark and rating enums, SHA-256 hex fingerprints, ISO dates, one assessment per feature and each row once per stamp. |
 | R-1028 | The product report shall show a feature that has no stored assessment as unassessed. |
-| R-1029 | WHEN run with `--packets <dir>` on an empty or absent directory, the report command shall write exactly one versioned JSON packet per out-of-date or unassessed feature — its current purpose and status, its own and shared rows with text, status and evidence, its current assessment and its stale differences — byte-identical across runs at one commit, and refuse a non-empty directory. |
+| R-1029 | WHEN run with `--packets <dir>` on an empty or absent directory, the report command shall write exactly one versioned JSON packet per out-of-date or unassessed feature — its current purpose and status, its own and shared rows with text, status and evidence, its current assessment, its stale differences and a ready stamp for the current commit computed as R-1026 rebuilds stamps — byte-identical across runs at one commit, and refuse a non-empty directory. |
 | R-1030 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. |
 
 (Dropped in r2: the draft's "cites a row outside its stamp" — the schema has no row citations, and
@@ -182,9 +182,15 @@ module-type warning Node prints when a script imports the TypeScript rail.
   `{ "version": 1, "feature": { "id", "label", "purpose", "status" }, "rows": [ { "id", "mark",
   "requirement", "status", "evidence" } ], "assessment": null | <assessment object>, "differences":
   { "added": [], "removed": [], "changed": [], "purpose": null | { "was", "now" }, "status": null |
-  { "was", "now" } } }`; `assessment` is `null` for an unassessed feature and otherwise has the
-  store's schema, so a model's candidate can be pasted back and checked by the same test. Tests pin
-  both a stale and an unassessed packet.
+  { "was", "now" } }, "stamp": <stamp object> }`; `assessment` is `null` for an unassessed feature
+  and otherwise has the store's schema, so a model's candidate can be pasted back and checked by the
+  same test. Each file is named `<feature id>.json`; an unassessed feature's `differences` are empty.
+  **Seat amendment, build round 5 (2026-10-11):** `stamp` is the stamp of the feature at the current
+  commit (`HEAD`), built from `git show HEAD:REQUIREMENTS.md` by the same code `validateStore` uses to
+  rebuild stamps. Without it no model could write a valid candidate (a stamp holds SHA-256
+  fingerprints), so outcome 4 was unreachable; the plan had no stamping path. A candidate is the
+  packet's prose fields plus `"stamp": packet.stamp`. Tests pin both a stale and an unassessed
+  packet, and a round trip: a store built from each packet's candidate validates clean.
 - **Fingerprint serialisation:** SHA-256 over the JSON array `[id, requirement, status]` of the
   normalised row (no delimiter ambiguity). Dates in the store must be real calendar dates.
 
