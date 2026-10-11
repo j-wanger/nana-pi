@@ -1,0 +1,12 @@
+VERDICT: DONE
+- [x] A — R-1005: final reading, rechecks, and merge lock coverage; suite-written SEND-BACK refuses.
+- [x] B — R-1006: live tip and snapshot reservations refuse; a different-commit reservation does not.
+- [x] C — ledger rows have separate tests; R-731 remains `untested`.
+- Commit: `b20b888` — `land-rule: pin final lock, in-flight reviews and ledger rows`.
+- Files: `REQUIREMENTS.md`, `packages/nana-pack/bin/nana-land.mjs`, and both land/review-ledger test files.
+- Rows: R-1005, R-1006, R-1008, R-969, R-1010, R-970 citations updated; R-731 unchanged.
+- Mutation pairs: remove final recheck → SEND-BACK and version-1 second-reading tests fail; bypass in-flight check → tip and snapshot tests fail; null verdict parser → extraction tests fail.
+- Commands: `npm run req:tree` (0), `npm run map:check` (0), both focused tests (0), both seat scripts (0).
+- `npm run test:locked` (0): **133 files: 132 PASS, 0 FAIL, 1 SKIP, 0 WARN · checks: 6705 pass, 0 fail, 5 skip · 593.6s**.
+- Seat output: `docs/reviews/land-rule-2026-10-10/seat-verify-land-output.txt`; 0 mismatches and 0 gaps. No second commit was needed.
+- Not done: no changes beyond the brief; R-731 stays untested because unbounded storage has no test.
