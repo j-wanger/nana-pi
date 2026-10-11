@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Seat mutation runner for lane verdict-position (frozen). Each mutation breaks the CODE in
+"""Seat mutation runner for lane verdict-position (frozen; anchors updated by the seat after build 3,
+which moved the canonical form to fold before and after NFKC). Each mutation breaks the CODE in
 packages/nana-pack/bin/review-round.mjs, runs review-ledger.test.mjs, and expects the named check to
 FAIL; the file is restored with `git checkout` after each. Run from the repo root."""
 import subprocess, sys
@@ -13,9 +14,12 @@ M = [
   ("final-only: no first-line branch", "const selected = firstGrammar.exec(first)?.[1] ?? null;", "const selected = null;", EXTRACT),
   ("drop the other-line guard", "if (!selected || nonblank.slice(1).some((line) => canon(line).includes('verdict'))) return null;", "if (!selected) return null;", REFUSE),
   ("drop the look-alike fold", ".map((char) => VERDICT_LOOKALIKE_FOLD[char] ?? char)", ".map((char) => char)", REFUSE),
-  ("drop default-ignorable removal", ".replace(/\\p{Default_Ignorable_Code_Point}/gu, '')", "", REFUSE),
-  ("remove only category Cf", "\\p{Default_Ignorable_Code_Point}", "\\p{Cf}", REFUSE),
-  ("drop NFKC", "line.normalize('NFKC')", "line", REFUSE),
+  ("drop default-ignorable removal (both places)", ".replace(/\\p{Default_Ignorable_Code_Point}/gu, '')", "", REFUSE, 2),
+  ("remove only category Cf (both places)", "\\p{Default_Ignorable_Code_Point}", "\\p{Cf}", REFUSE, 2),
+  ("drop NFKC", "\n    .normalize('NFKC').replace(", "\n    .replace(", REFUSE),
+  ("fold only after NFKC (astra land r1)", "fold(fold(line.replace(", "fold((line.replace(", REFUSE),
+  ("fold only before NFKC", "const canon = (line) => fold(fold(", "const canon = (line) => (fold(", REFUSE),
+  ("final-line grammar for the first line (sol build r1)", "const firstWord = firstGrammar.exec(first)?.[1] ?? null;", "const firstWord = finalGrammar.exec(first)?.[1] ?? null;", REFUSE),
   ("raw first-line detection in the final branch", "if (first !== final && carries(first)) {", "if (first !== final && /VERDICT:/.test(first)) {", REFUSE),
   ("drop the first/final agreement", "if (firstWord !== selected) return null;", "", REFUSE),
   ("allow marks on the first line", "const firstGrammar = /^VERDICT: ", "const firstGrammar = /^[\\s#>*_`-]*VERDICT: ", REFUSE),
@@ -27,9 +31,11 @@ M = [
 ]
 src = open(F, encoding="utf-8").read()
 red = 0
-for name, a, b, title in M:
-    if src.count(a) != 1:
-        print(f"ANCHOR {name}: found {src.count(a)} times"); continue
+for entry in M:
+    name, a, b, title = entry[:4]
+    want = entry[4] if len(entry) > 4 else 1
+    if src.count(a) != want:
+        print(f"ANCHOR {name}: found {src.count(a)} times, want {want}"); continue
     open(F, "w", encoding="utf-8").write(src.replace(a, b))
     r = subprocess.run(["node", T], capture_output=True, text=True, timeout=600)
     failed = any(l.startswith("FAIL") and title in l for l in r.stdout.splitlines())

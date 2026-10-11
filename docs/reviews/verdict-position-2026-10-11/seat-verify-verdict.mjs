@@ -67,6 +67,8 @@ const cases = [
   ["  VERDICT: LAND\nbody\nVERDICT: LAND", null], ["**VERDICT: LAND**\nbody\nVERDICT: LAND", null],
   // astra land r1: the table's own U+03F9 (lunate sigma, a C look-alike) in both branches → empty
   ["VERDI\u03F9T: SEND-BACK\nnotes\nVERDICT: LAND", null], ["VERDICT: LAND\nVERDI\u03F9T: SEND-BACK", null],
+  // seat mutation run after build 3: a mathematical Greek capital that NFKC turns into a table letter
+  ["VERDICT: LAND\nV\u{1D6AC}RDICT: SEND-BACK", null], ["V\u{1D6AC}RDICT: SEND-BACK\nnotes\nVERDICT: LAND", null],
   // malformed final lines stay empty
   ["VERDICT: LAND (fixes pending)", null], ["VERDICT: LAND — Fixes: none.", null], ["VERDICT: LAND!", null], ["→ VERDICT: LAND", null],
   ["VERDICT: LAND\nCorrection: VERDICT: SEND-BACK", null], ["VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```", null],
