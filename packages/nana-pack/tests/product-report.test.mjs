@@ -90,7 +90,7 @@ try {
     const featureRows = data.features.flatMap((feature) => feature.rows.map((row) => row.id));
     const expectedViolations = sourceRows.filter((row) => row.status === "violated").map((row) => row.id);
     // req: R-1014 R-1015 R-1016 R-1017 R-1018 R-1028
-    check("report includes complete capabilities, features, rows, violations, full asks and unassessed slots", data.capabilities.length > 0 && data.capabilities.every((capability) => capability.purpose && typeof capability.outcome === "string" && Array.isArray(capability.features)) && data.features.length > 0 && data.features.every((feature) => feature.purpose && feature.status && feature.assessment === "unassessed" && Object.values(feature.counts).reduce((sum, count) => sum + count, 0) === feature.rows.length) && sourceRows.every((row) => featureRows.includes(row.id)) && JSON.stringify(data.violated.map((row) => row.id)) === JSON.stringify(expectedViolations) && JSON.stringify(data.asks) === JSON.stringify(expectedAsks) && data.asks.every((ask) => ask.title && ask.kind && ask.since && ask.body.length > 0));
+    check("report includes complete capabilities, features, rows, violations, full asks and unassessed slots", data.capabilities.length > 0 && data.capabilities.every((capability) => capability.purpose && typeof capability.outcome === "string" && Array.isArray(capability.features)) && data.features.length > 0 && data.features.every((feature) => feature.purpose && feature.status && feature.assessmentState === "unassessed" && Object.values(feature.counts).reduce((sum, count) => sum + count, 0) === feature.rows.length) && sourceRows.every((row) => featureRows.includes(row.id)) && JSON.stringify(data.violated.map((row) => row.id)) === JSON.stringify(expectedViolations) && JSON.stringify(data.asks) === JSON.stringify(expectedAsks) && data.asks.every((ask) => ask.title && ask.kind && ask.since && ask.body.length > 0));
   }
   {
     const { root } = fixture("hostile");
@@ -245,6 +245,22 @@ try {
     const storePath = writeStore(root, [makeAssessment(root, commit)]);
     // req: R-1020 R-1022
     check("fingerprints ignore CRLF and trailing whitespace", validateStore({ root, storePath }).length === 0, JSON.stringify(validateStore({ root, storePath })));
+  }
+  {
+    const { root, git } = fixture("staleness");
+    const commit = git(["rev-parse", "HEAD"]).stdout.trim();
+    const storePath = writeStore(root, [makeAssessment(root, commit, "FEAT-039")]);
+    const baseline = await (await import("../../../scripts/product-report.mjs")).buildReport({ root });
+    check("stamped assessment is current while its ledger matches", baseline.model.features.find((feature) => feature.id === "FEAT-039")?.assessmentState === "current");
+    const ledgerPath = path.join(root, "REQUIREMENTS.md");
+    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.").replace("## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.\nStatus: active", "## FEAT-039 · See the product and its decisions in one report\nPurpose: Rebuild one report of the product, its features, their requirements and decisions waiting on Jake, from the repo at any commit from its first build on.\nStatus: frozen (fixture)"));
+    git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "later ledger"]);
+    const report = await (await import("../../../scripts/product-report.mjs")).buildReport({ root });
+    const feature = report.model.features.find((item) => item.id === "FEAT-039");
+    check("unassessed feature state is explicit", report.model.features.find((item) => item.id === "FEAT-002")?.assessmentState === "unassessed");
+    // req: R-1021
+    check("outdated feature names purpose and status changes and carries full difference shape", feature?.assessmentState === "out of date" && feature.differences.purpose?.was && feature.differences.purpose?.now && feature.differences.status?.was === "active" && feature.differences.status?.now === "frozen (fixture)" && Array.isArray(feature.differences.added) && Array.isArray(feature.differences.removed) && Array.isArray(feature.differences.changed));
+    check("stale feature preserves the assessment", feature?.assessment?.id === "FEAT-039" && fs.existsSync(storePath));
   }
   {
     // req: R-1027

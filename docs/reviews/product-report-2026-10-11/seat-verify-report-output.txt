@@ -31,8 +31,21 @@ ok   store check refuses an unknown field: true/true (want true/true)
 ok   store check refuses a rating outside the enum: true/true (want true/true)
 ok   store check refuses an own row marked shared (mark mismatch): true/true (want true/true)
 ok   fingerprints are equal for a CRLF, trailing-space ledger: none (want none)
-seat-verify-report: 0 mismatch(es)
-(node:1496) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:8507) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/product-report/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
+ok   an untouched stamped assessment is current: current (want current)
+ok   out of date when a row's text changes, and it is named: out of date/true (want out of date/true)
+ok   out of date when a row's status changes, and it is named: out of date/true (want out of date/true)
+ok   out of date when a row is added to the feature, and it is named: out of date/true (want out of date/true)
+ok   out of date when a row is shared into the feature, and it is named: out of date/true (want out of date/true)
+ok   out of date when the feature's purpose changes, and it is named: out of date/true (want out of date/true)
+ok   out of date when the feature's status changes, and it is named: out of date/true (want out of date/true)
+ok   out of date when a row moves home and is shared back, and it is named: out of date/true (want out of date/true)
+ok   a feature with no assessment is unassessed: unassessed (want unassessed)
+ok   the real store exists after migration: true (want true)
+ok   the real store validates against the ledger history: none (want none)
+ok   the real store holds the 38 migrated assessments: 38 (want 38)
+ok   every migrated assessment is stamped at c4332ec: true (want true)
+seat-verify-report: 0 mismatch(es)

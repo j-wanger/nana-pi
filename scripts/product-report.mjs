@@ -158,6 +158,15 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error(`git rev-parse returned an invalid full commit hash: ${commit}`);
   const date = git(gitRunner, root, ["log", "-1", "--format=%cI"]);
   const dirty = git(gitRunner, root, ["status", "--porcelain", "--untracked-files=normal"]) !== "";
+  const storePath = path.join(root, "docs/product-report/assessments.json");
+  let storedFeatures = [];
+  try {
+    const store = JSON.parse(await readFile(storePath, "utf8"));
+    if (Array.isArray(store?.features)) storedFeatures = store.features;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw new Error(`${storePath}: ${error.message}`);
+  }
+  const assessments = new Map(storedFeatures.map((assessment) => [assessment.id, assessment]));
   const features = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-")).map((feature) => {
     const ownHeadings = descendants(parsed, feature);
     const ownRows = rows.filter((row) => ownHeadings.includes(row.heading));
@@ -165,12 +174,28 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const allRows = [...ownRows, ...sharedRows];
     const counts = Object.fromEntries(["implemented", "untested", "planned", "violated", "retired"].map((status) => [status, allRows.filter((row) => row.status === status).length]));
     const outgoing = parsed.headings.filter((candidate) => candidate.id.startsWith("FEAT-") && candidate.alsoApplies.some((id) => ownRows.some((row) => row.id === id))).map((candidate) => candidate.id);
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, assessment: "unassessed", counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared" })) };
+    const assessment = assessments.get(feature.id) ?? null;
+    const stamped = new Map((assessment?.stamp?.rows ?? []).map((row) => [row.id, row]));
+    const current = new Map(allRows.map((row) => [row.id, { row, mark: ownRows.includes(row) ? "own" : "shared" }]));
+    const added = [...current.keys()].filter((id) => !stamped.has(id));
+    const removed = [...stamped.keys()].filter((id) => !current.has(id));
+    const changed = [...current].filter(([id, value]) => {
+      const old = stamped.get(id);
+      return old && (old.mark !== value.mark || old.sha256 !== fingerprint(value.row));
+    }).map(([id]) => id);
+    const differences = {
+      added, removed, changed,
+      purpose: assessment?.stamp?.purpose !== undefined && assessment.stamp.purpose !== feature.purpose ? { was: assessment.stamp.purpose, now: feature.purpose } : null,
+      status: assessment?.stamp?.status !== undefined && assessment.stamp.status !== feature.status ? { was: assessment.stamp.status, now: feature.status } : null,
+    };
+    const stale = added.length || removed.length || changed.length || differences.purpose || differences.status;
+    const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, assessmentState, assessment, differences, counts, shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared" })) };
   });
   const capabilities = parsed.headings.filter((heading) => heading.id.startsWith("CAP-")).map((capability) => ({ id: capability.id, label: capability.label, purpose: capability.purpose, outcome: capability.outcome, features: features.filter((feature) => descendants(parsed, capability).some((heading) => heading.id === feature.id)).map((feature) => feature.id) }));
   const violated = rows.filter((row) => row.status === "violated");
   const model = { commit, date, clean: !dirty, capabilities, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, evidence: row.evidence })), asks: asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })) };
-  return { model, template: await readFile(TEMPLATE, "utf8") };
+  return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
 export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner } = {}) {
