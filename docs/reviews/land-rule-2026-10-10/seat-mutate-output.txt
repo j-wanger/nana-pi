@@ -2,8 +2,8 @@ red  print-and-land restored (R-1002) → land.test.mjs :: uncovered integration
 red  --exempt back in the parser (R-1003) → land.test.mjs :: unknown land options (exit 1)
 red  complete() first-only (R-1008) → review-ledger.test.mjs :: complete appends every verdict at v2 (exit 5)
 red  second reading dropped (R-1005) → land.test.mjs :: a verified SEND-BACK written by the suite refuses before merge (exit 1)
-SKIP second reading outside the injected lock (R-1005): anchor found 0 times
-red  first VERDICT line taken (R-969) → review-ledger.test.mjs :: complete records the LAND corpus forms and final SEND-BACK (exit 1)
+red  second reading outside the injected lock (R-1005) → land.test.mjs :: final review reading, rechecks and ff-only merge run inside one ledger lock (exit 1)
+red  first VERDICT line taken (R-969) → review-ledger.test.mjs :: complete records the LAND corpus forms and final SEND-BACK (exit 2)
 red  extra words accepted (R-1010) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
 red  common-directory check dropped (R-1009) → land.test.mjs :: a separate clone is refused (exit 1)
 red  reviewed SHA resolved before the common-directory check (R-1009) → land.test.mjs :: a separate clone is refused (exit 1)
@@ -13,5 +13,7 @@ red  parenthesised score rejected (R-969) → review-ledger.test.mjs :: complete
 red  snapshot head ignored (R-1004) → land.test.mjs :: a verified SEND-BACK at a working-state snapshot refuses land (exit 1)
 red  other items ignored (R-1004) → land.test.mjs :: a verified SEND-BACK for another item at the commit refuses land (exit 1)
 red  snapshot reservations ignored (R-1006) → land.test.mjs :: an in-flight snapshot review of the reviewed tip refuses (exit 1)
-worktree clean
-mutations: 14/15 red
+WORKTREE DIRTY:
+M docs/reviews/land-rule-2026-10-10/seat-mutate-output.txt
+ M docs/reviews/land-rule-2026-10-10/seat-verify-land-output.txt
+mutations: 15/15 red
