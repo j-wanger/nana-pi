@@ -275,6 +275,20 @@ await inFlight("a review of a snapshot of the commit still in flight is refused"
   out("a later prose-prefixed VERDICT line records an empty verdict, never the earlier LAND", String(records(r.key, "parse-correction")[0]?.verdict), "null");
   review(r.tree, "parse-quoted", "sol", "Example from the review:\n    VERDICT: LAND\n    Correction: VERDICT: SEND-BACK\nMore findings.\nVERDICT: SEND-BACK\n");
   out("quoted verdict lines before a final SEND-BACK record SEND-BACK", String(records(r.key, "parse-quoted")[0]?.verdict), "SEND-BACK");
+  // sol build r3: only the final non-blank line counts, and only markdown marks may precede the label.
+  const finals = [
+    ["a fenced example after the final SEND-BACK", "VERDICT: SEND-BACK\n\n```text\nVERDICT: LAND\n```\n", "null"],
+    ["a look-alike label (Greek E) on the final line after a LAND", "VERDICT: LAND\nV\u0395RDICT: SEND-BACK\n", "null"],
+    ["trailing blank and whitespace-only lines after the verdict", "Findings.\nVERDICT: LAND\n\n   \n\t\n", "LAND"],
+    ["a CJK prose prefix", "\u62d2\u5426: VERDICT: LAND\n", "null"],
+    ["an arrow prefix", "\u2192 VERDICT: LAND\n", "null"],
+    ["a blockquote and list prefix", "> - **VERDICT:** LAND\n", "LAND"],
+    ["prose after the final verdict line", "VERDICT: LAND\nThanks for the clean build.\n", "null"],
+  ];
+  finals.forEach(([label, text, want], i) => {
+    review(r.tree, `parse-final-${i}`, "sol", text);
+    out(`verdict word: ${label}`, String(records(r.key, `parse-final-${i}`)[0]?.verdict), want);
+  });
 }
 
 // ── Version 2 and the old code (R-1008, R-1011) ──
