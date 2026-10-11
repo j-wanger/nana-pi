@@ -295,6 +295,99 @@ const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
   out("packets: a current feature gets no packet", a.files.join(","), "FEAT-002.json");
 }
 
+// ── Round 6: the rendered page (R-1014–R-1019) ──
+// The renderer is `renderInto(document, model, { hash })` exported by scripts/product-report.mjs; the
+// page inlines the SAME source. It renders the view the hash names ("" → decisions; "#decisions",
+// "#product", "#features", "#shared", "#issues", "#requirements"; "#FEAT-xxx" → that feature's
+// detail; anything else → decisions) into document.getElementById("report"), using only:
+// document.createElement/createTextNode/getElementById, node.appendChild/append/replaceChildren/
+// setAttribute/addEventListener, and plain property assignment (textContent, value, checked, hidden).
+const SINKS = ["innerHTML", "outerHTML", "srcdoc"];
+function stubDocument() {
+  const violations = [];
+  const make = (kind, tag, text) => {
+    const node = { kind, tag, children: [], attrs: {}, listeners: [], _text: text ?? "" };
+    node.appendChild = (c) => { node.children.push(typeof c === "string" ? make("text", null, c) : c); return c; };
+    node.append = (...cs) => { for (const c of cs.flat(Infinity)) if (c !== null && c !== undefined && c !== false) node.appendChild(typeof c === "object" ? c : String(c)); };
+    node.replaceChildren = (...cs) => { node.children = []; node.append(...cs); };
+    node.setAttribute = (k, v) => { node.attrs[k] = String(v); };
+    node.getAttribute = (k) => node.attrs[k] ?? null;
+    node.removeAttribute = (k) => { delete node.attrs[k]; };
+    node.addEventListener = (type, fn) => { node.listeners.push(type); };
+    Object.defineProperty(node, "textContent", { get: () => text_(node), set: (v) => { node.children = [make("text", null, String(v))]; } });
+    for (const sink of SINKS) Object.defineProperty(node, sink, { get: () => "", set: () => violations.push(sink) });
+    Object.defineProperty(node, "insertAdjacentHTML", { value: () => violations.push("insertAdjacentHTML") });
+    return node;
+  };
+  const text_ = (node) => node.kind === "text" ? node._text : node.children.map(text_).join("");
+  const root = make("el", "main");
+  const document = {
+    createElement: (tag) => make("el", String(tag).toLowerCase()),
+    createTextNode: (t) => make("text", null, String(t)),
+    getElementById: (id) => (id === "report" ? root : null),
+    write: () => violations.push("document.write"),
+  };
+  return { document, root, violations, text: () => text_(root) };
+}
+const walk = (node, fn) => { fn(node); for (const c of node.children ?? []) walk(c, fn); };
+async function render(r, hash) {
+  const model = (await mod.buildReport({ root: r })).model;
+  const stub = stubDocument();
+  let error = null;
+  try { mod.renderInto(stub.document, model, { hash }); } catch (e) { error = e.message; }
+  const longest = (() => { let m = 0; walk(stub.root, (n) => { if (n.kind === "text") m = Math.max(m, n._text.length); }); return m; })();
+  const tags = (tag) => { const out = []; walk(stub.root, (n) => { if (n.tag === tag) out.push(n); }); return out.map((n) => { let t = ""; walk(n, (x) => { if (x.kind === "text") t += x._text; }); return t; }); };
+  return { error, text: stub.text(), violations: stub.violations, longest, tags, model };
+}
+{
+  const spanLedger = LEDGER.replace("| R-003 | The tool shall wombat three. | planned | — |", "| R-003 | The tool shall wombat `three-code` and **three-bold**. | planned | — |");
+  const { r } = (() => { const r = repo({ "REQUIREMENTS.md": spanLedger, "HANDOFF.md": HANDOFF }); const commit = git(r, "rev-parse", "HEAD"); mkdirSync(join(r, "docs/product-report"), { recursive: true }); writeFileSync(join(r, "docs/product-report/assessments.json"), `${JSON.stringify({ version: 1, features: [assessment(commit)] }, null, 2)}\n`); git(r, "add", "."); git(r, "commit", "-qm", "store"); return { r }; })();
+  const views = {};
+  for (const hash of ["", "#decisions", "#product", "#features", "#shared", "#issues", "#requirements", "#FEAT-001", "#FEAT-002", "#constructor", "#__proto__", "#nonsense"]) views[hash] = await render(r, hash);
+  out("render: every view renders without throwing", Object.entries(views).filter(([, v]) => v.error).map(([h, v]) => `${h || "(none)"}: ${v.error}`).join(" | ") || "none", "none");
+  out("render: no HTML sink is ever used", [...new Set(Object.values(views).flatMap((v) => v.violations))].join(",") || "none", "none");
+  out("render: no view is a raw JSON dump (longest text node under 600 characters)", Object.entries(views).filter(([, v]) => v.longest >= 600).map(([h, v]) => `${h}:${v.longest}`).join(",") || "none", "none");
+  out("render: no view shows the model's JSON keys", Object.entries(views).filter(([, v]) => /"assessmentState"|"features":|"capabilities":/.test(v.text)).map(([h]) => h || "(none)").join(",") || "none", "none");
+  const d = views[""].text;
+  for (const [label, token] of [["an ask's kind", "optional"], ["an ask's since-date", "2026-10-10"], ["an ask's title", "Narwhal title"], ["an ask's full body", "Narwhalbody words that hold the decision"], ["a second ask", "Ocelot title"]]) out(`render default (decisions) shows ${label}`, d.includes(token), "true");
+  const p = views["#product"].text;
+  for (const [label, token] of [["capability purpose", "Zebracap purpose words"], ["capability outcome", "Zebracap outcome words"], ["its features", "Quokka feature"], ["its second feature", "Wombat feature"]]) out(`render #product shows ${label}`, p.includes(token), "true");
+  const f1 = views["#FEAT-001"].text;
+  for (const [label, token] of [["feature purpose", "Quokkafeat purpose words"], ["feature status", "active"], ["a row's text", "The tool shall quokka one."], ["a four-digit row", "R-1000"], ["a row's evidence", "Violatedrow evidence words"], ["the assessment prose", "It keeps quokkas in order."], ["the assessment's rating", "partial"], ["the assessment state", "current"]]) out(`render #FEAT-001 shows ${label}`, f1.includes(token), "true");
+  const f2 = views["#FEAT-002"].text;
+  out("render #FEAT-002 shows its own row", f2.includes("R-003"), "true");
+  out("render #FEAT-002 shows the shared-in row", f2.includes("R-001"), "true");
+  out("render #FEAT-002 says it is unassessed", /unassessed/i.test(f2), "true");
+  out("render: backtick span becomes a code element", views["#FEAT-002"].tags("code").includes("three-code"), "true");
+  out("render: bold span becomes a b element", views["#FEAT-002"].tags("b").includes("three-bold"), "true");
+  out("render: no literal backticks or asterisks around spans", /`three-code`|\*\*three-bold\*\*/.test(f2), "false");
+  out("render #issues lists the violated row", views["#issues"].text.includes("R-002") && views["#issues"].text.includes("The tool shall quokka two."), "true");
+  const q = views["#requirements"].text;
+  out("render #requirements lists every row", ["R-001", "R-002", "R-1000", "R-003"].every((id) => q.includes(id)), "true");
+  out("render #shared names the share", views["#shared"].text.includes("R-001") && views["#shared"].text.includes("FEAT-002"), "true");
+  for (const h of ["#constructor", "#__proto__", "#nonsense"]) out(`render ${h} falls back to the decisions view`, views[h].text === views[""].text, "true");
+  const page = report(r).page ?? "";
+  out("the page inlines the tested renderer's source", page.includes(String(mod.renderInto)), "true");
+  out("render: views differ (the decisions view does not carry every row's text)", !views[""].text.includes("The tool shall quokka four digits.") && views["#product"].text !== views["#requirements"].text, "true");
+  const ff = views["#features"].text;
+  out("render #features lists every feature with its state", ff.includes("FEAT-001") && ff.includes("FEAT-002") && /unassessed/i.test(ff), "true");
+}
+{
+  // Stale state and its named differences reach the page.
+  const { r } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  edit(r, "The tool shall quokka one.", "The tool shall quokka one, carefully."); git(r, "add", "."); git(r, "commit", "-qm", "change");
+  const v = await render(r, "#FEAT-001");
+  out("render: a stale feature says out of date and names the changed row", /out of date/i.test(v.text) && v.text.includes("R-001"), "true");
+}
+{
+  // Packets refuse a ledger that differs from HEAD (rows and stamp must describe one ledger).
+  const { r } = storeRepo((c) => ({ version: 1, features: [assessment(c)] }));
+  edit(r, "The tool shall quokka one.", "The tool shall quokka one, uncommitted.");
+  const dir = join(ROOT, `packets-${++n}`);
+  const a = packets(r, dir);
+  out("packets: refused while REQUIREMENTS.md differs from HEAD", `${a.code !== 0}/${a.files.length}`, "true/0");
+}
+
 console.log(`seat-verify-report: ${mismatches} mismatch(es)`);
 rmSync(ROOT, { recursive: true, force: true });
 process.exitCode = mismatches ? 1 : 0;
