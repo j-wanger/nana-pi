@@ -251,6 +251,9 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		["greek-first-conflict", "VΕRDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
 		["cyrillic-first-conflict", "VЕRDICT: SEND-BACK\nnotes\nVERDICT: LAND"],
 		["lowercase-first-conflict", "verdict: send-back\nnotes\nVERDICT: LAND"],
+		["fullwidth-later", "VERDICT: LAND\nＶＥＲＤＩＣＴ: SEND-BACK"],
+		["fullwidth-first-conflict", "ＶＥＲＤＩＣＴ: SEND-BACK\nnotes\nVERDICT: LAND"],
+		["mathematical-bold-later", "VERDICT: LAND\n𝐕𝐄𝐑𝐃𝐈𝐂𝐓: SEND-BACK"],
 		["cgj-later", "VERDICT: LAND\nV\u034FERDICT: SEND-BACK"],
 	];
 	const refusedFailures = [];
