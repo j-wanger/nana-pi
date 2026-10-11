@@ -16,6 +16,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERDICT_LOOKALIKE_FOLD } from "../lib/verdict-config.mjs";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const PI_REVIEW = path.join(bin, "pi-review.mjs");
@@ -230,6 +231,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		["dash-score", "VERDICT: LAND — 9/10\nnotes", "LAND"],
 		["bom", "\uFEFFVERDICT: LAND\nnotes", "LAND"],
 		["agree", "VERDICT: LAND 9/10\nnotes\nVERDICT: LAND", "LAND"],
+		["middle-verdict-ignored", "notes\nVERDICT: SEND-BACK\nVERDICT: LAND", "LAND"],
 		["crlf", "VERDICT: LAND\r\nnotes\r\n", "LAND"],
 		["tab", "VERDICT: LAND\t", "LAND"],
 		["no-final-newline", "VERDICT: LAND\nnotes", "LAND"],
@@ -242,6 +244,10 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const refused = [
 		["quoted", "`VERDICT: LAND`\nnotes"],
 		["marked", "# VERDICT: LAND\nnotes"],
+		["quoted-agreeing-final", "`VERDICT: LAND`\nbody\nVERDICT: LAND"],
+		["hash-agreeing-final", "# VERDICT: LAND\nbody\nVERDICT: LAND"],
+		["indented-agreeing-final", "  VERDICT: LAND\nbody\nVERDICT: LAND"],
+		["bold-agreeing-final", "**VERDICT: LAND**\nbody\nVERDICT: LAND"],
 		["correction", "VERDICT: LAND\nThe verdict is SEND-BACK."],
 		["disagree", "VERDICT: SEND-BACK 4/10 — blockers remain\nnotes\nVERDICT: LAND"],
 		["malformed-before-final", "VERDICT: SEND-BACK!\nnotes\nVERDICT: LAND"],
@@ -255,14 +261,27 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		["fullwidth-first-conflict", "ＶＥＲＤＩＣＴ: SEND-BACK\nnotes\nVERDICT: LAND"],
 		["mathematical-bold-later", "VERDICT: LAND\n𝐕𝐄𝐑𝐃𝐈𝐂𝐓: SEND-BACK"],
 		["cgj-later", "VERDICT: LAND\nV\u034FERDICT: SEND-BACK"],
+		["lunate-sigma-first-conflict", "VERDI\u03F9T: SEND-BACK\nnotes\nVERDICT: LAND"],
+		["lunate-sigma-later-conflict", "VERDICT: LAND\nVERDI\u03F9T: SEND-BACK"],
 	];
 	const refusedFailures = [];
 	for (const [item, text] of refused) {
 		const got = run(`position-${item}`, text);
 		if (got !== null) refusedFailures.push(`${item}: ${got}`);
 	}
-	// req: R-1010
+	// req: R-969 R-1010
 	check("complete refuses marks, corrections, conflicting verdicts, invisible characters and bounded-token lookalikes", refusedFailures.length === 0, refusedFailures.join(", "));
+	const canon = (text) => text.replace(/\p{Default_Ignorable_Code_Point}/gu, "")
+		.replace(/[\s\S]/gu, (char) => VERDICT_LOOKALIKE_FOLD[char] ?? char)
+		.normalize("NFKC")
+		.replace(/\p{Default_Ignorable_Code_Point}/gu, "")
+		.replace(/[\s\S]/gu, (char) => VERDICT_LOOKALIKE_FOLD[char] ?? char)
+		.toLowerCase();
+	const tableInvariant = Object.entries(VERDICT_LOOKALIKE_FOLD)
+		.every(([key, target]) => canon(key) === target.toLowerCase());
+	// req: R-969 R-1010
+	check("every configured verdict look-alike canonicalizes to its target", tableInvariant,
+		Object.entries(VERDICT_LOOKALIKE_FOLD).filter(([key, target]) => canon(key) !== target.toLowerCase()).map(([key, target]) => `${key}→${target}: ${canon(key)}`).join(", "));
 }
 
 {

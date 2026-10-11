@@ -7,8 +7,8 @@
  * @errors none
  */
 /**
- * Chosen: 2026-10-11. Reason: detect the Greek and Cyrillic capitals and small letters
- * that visually resemble letters in VERDICT, while keeping acceptance on the raw line.
+ * Chosen: 2026-10-11. Reason: detect selected visual look-alikes that resemble letters in
+ * VERDICT, while keeping acceptance on the raw line.
  */
 export const VERDICT_LOOKALIKE_FOLD = Object.freeze({
   'Ε': 'E', 'Е': 'E', 'Τ': 'T', 'Т': 'T', 'С': 'C', 'Ϲ': 'C', 'І': 'I', 'Ι': 'I', 'Ӏ': 'I', 'Ѵ': 'V', 'Ꭰ': 'D', 'Ꭱ': 'R',

@@ -419,8 +419,9 @@ function verdictWord(out) {
   if (nonblank.length === 0) return null;
   const first = nonblank[0];
   const final = nonblank.at(-1);
-  const canon = (line) => [...line.normalize('NFKC').replace(/\p{Default_Ignorable_Code_Point}/gu, '')]
-    .map((char) => VERDICT_LOOKALIKE_FOLD[char] ?? char).join('').toLowerCase();
+  const fold = (line) => [...line].map((char) => VERDICT_LOOKALIKE_FOLD[char] ?? char).join('');
+  const canon = (line) => fold(fold(line.replace(/\p{Default_Ignorable_Code_Point}/gu, ''))
+    .normalize('NFKC').replace(/\p{Default_Ignorable_Code_Point}/gu, '')).toLowerCase();
   const carries = (line) => /(?<![a-z0-9_])verdict:/.test(canon(line));
   const marks = '[*_`]*';
   const score = `(?:\\s+${marks}(?:\\(\\d+/\\d+\\)|—\\s*\\d+/\\d+|\\d+/\\d+)${marks})?`;
@@ -431,7 +432,7 @@ function verdictWord(out) {
     const selected = finalGrammar.exec(final)?.[1] ?? null;
     if (!selected) return null;
     if (first !== final && carries(first)) {
-      const firstWord = finalGrammar.exec(first)?.[1] ?? null;
+      const firstWord = firstGrammar.exec(first)?.[1] ?? null;
       if (firstWord !== selected) return null;
     }
     return selected;

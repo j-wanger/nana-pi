@@ -53,6 +53,12 @@ ok   "ＶＥＲＤＩＣＴ: SEND-BACK\nbody\nVERDICT: LAND" → null (want null
 ok   "verdict: send-back\nbody\nVERDICT: LAND" → null (want null)
 ok   "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n" → null (want null)
 ok   "The verdict-format change is safe.\nbody\nVERDICT: LAND" → LAND (want LAND)
+ok   "`VERDICT: LAND`\nbody\nVERDICT: LAND" → null (want null)
+ok   "# VERDICT: LAND\nbody\nVERDICT: LAND" → null (want null)
+ok   "  VERDICT: LAND\nbody\nVERDICT: LAND" → null (want null)
+ok   "**VERDICT: LAND**\nbody\nVERDICT: LAND" → null (want null)
+ok   "VERDIϹT: SEND-BACK\nnotes\nVERDICT: LAND" → null (want null)
+ok   "VERDICT: LAND\nVERDIϹT: SEND-BACK" → null (want null)
 ok   "VERDICT: LAND (fixes pending)" → null (want null)
 ok   "VERDICT: LAND — Fixes: none." → null (want null)
 ok   "VERDICT: LAND!" → null (want null)
@@ -62,6 +68,28 @@ ok   "VERDICT: SEND-BACK\n```\nVERDICT: LAND\n```" → null (want null)
 ok   "VERDICT: LAND\nprose after verdict" → null (want null)
 ok   "" → null (want null)
 ok   "no verdict at all\nnone" → null (want null)
-cases: 64/64
+ok   table entry U+395 → E voids a first-line LAND → null
+ok   table entry U+415 → E voids a first-line LAND → null
+ok   table entry U+3A4 → T voids a first-line LAND → null
+ok   table entry U+422 → T voids a first-line LAND → null
+ok   table entry U+421 → C voids a first-line LAND → null
+ok   table entry U+3F9 → C voids a first-line LAND → null
+ok   table entry U+406 → I voids a first-line LAND → null
+ok   table entry U+399 → I voids a first-line LAND → null
+ok   table entry U+4C0 → I voids a first-line LAND → null
+ok   table entry U+474 → V voids a first-line LAND → null
+ok   table entry U+13A0 → D voids a first-line LAND → null
+ok   table entry U+13A1 → R voids a first-line LAND → null
+ok   table entry U+3B5 → e voids a first-line LAND → null
+ok   table entry U+435 → e voids a first-line LAND → null
+ok   table entry U+3C4 → t voids a first-line LAND → null
+ok   table entry U+442 → t voids a first-line LAND → null
+ok   table entry U+441 → c voids a first-line LAND → null
+ok   table entry U+456 → i voids a first-line LAND → null
+ok   table entry U+3B9 → i voids a first-line LAND → null
+ok   table entry U+475 → v voids a first-line LAND → null
+ok   table entry U+501 → d voids a first-line LAND → null
+ok   table entry U+433 → r voids a first-line LAND → null
+cases: 70/70
 corpus: 414 files, {"word":404,"empty":10}, 0 mismatch(es) with the prototype
 seat-verify-verdict: 0 mismatch(es)

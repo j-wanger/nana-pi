@@ -1201,7 +1201,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — VERDICT_LOOKALIKE_FOLD
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/review-round.mjs`
+- **callers** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/writing-check.mjs`
@@ -1712,7 +1712,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi and git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/lib/verdict-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/review-round.test.mjs`
 
