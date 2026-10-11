@@ -63,6 +63,7 @@ export function renderInto(document, model, { hash = "" } = {}) {
   };
   const cls = (node, value) => node.setAttribute("class", value);
   const paragraph = (parent, label, value, className) => { const p = el("p", undefined, parent); if (className) cls(p, className); if (label) text(p, `${label}: `); text(p, value); return p; };
+  const textList = (parent, label, values) => { paragraph(parent, label, ""); const list = el("ul", undefined, parent); for (const value of values) { const item = el("li", undefined, list); text(item, value); } return list; };
   const featureLink = (parent, id, label = id) => { const a = el("a", label, parent); a.setAttribute("href", `#${id}`); return a; };
   const countBar = (parent, item) => {
     const wrap = el("div", undefined, parent); cls(wrap, "counts"); const bar = el("div", undefined, wrap); cls(bar, "status-bar"); bar.setAttribute("role", "img"); bar.setAttribute("aria-label", "Requirement status counts");
@@ -75,17 +76,17 @@ export function renderInto(document, model, { hash = "" } = {}) {
   el("h1", "Nana pi product ledger", root); paragraph(root, "Commit", `${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`);
   const nav = el("nav", undefined, root); cls(nav, "tabs");
   for (const [label, target, key] of [["Decisions", "#decisions", "decisions"], ["Product", "#product", "product"], ["Features", "#features", "features"], ["Shared", "#shared", "shared"], ["Issues", "#issues", "issues"], ["Requirements", "#requirements", "requirements"]]) { const link = el("a", label, nav); link.setAttribute("href", target); if (view === key || (view === "detail" && key === "features")) link.setAttribute("aria-current", "page"); }
-  el("h2", title, root);
+  const viewHeading = el("h2", title, root);
   if (view === "decisions") for (const ask of model.asks) { const card = el("article", undefined, root); el("h3", ask.title, card); paragraph(card, "Kind", ask.kind); paragraph(card, "Since", ask.since); paragraph(card, "Ask", ask.body); }
   if (view === "product") for (const cap of model.capabilities) { const card = el("article", undefined, root); el("h3", `${cap.id} · ${cap.label}`, card); paragraph(card, "Purpose", cap.purpose); paragraph(card, "Outcome", cap.outcome); for (const id of cap.features) { const item = model.features.find((f) => f.id === id); if (item) { const line = el("p", undefined, card); text(line, "Feature: "); featureLink(line, item.id, `${item.id} · ${item.label}`); countBar(card, item); } } }
   if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
-    const heading = el("h2", `${feature.id} · ${feature.label}`, root); const status = el("span", feature.status, heading); cls(status, "feature-status");
+    const status = el("span", feature.status, viewHeading); cls(status, "feature-status");
     paragraph(root, "Purpose", feature.purpose); const badge = el("p", feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
     if (feature.assessment) {
       const assessment = feature.assessment; paragraph(root, "What it does", assessment.what_it_does);
       paragraph(root, "Maturity", `${assessment.maturity} — ${assessment.maturity_reason}`);
-      for (const [key, label] of [["gaps", "Gaps"], ["risks", "Risks"], ["decisions", "Decisions"]]) paragraph(root, label, assessment[key].join("; "));
+      for (const [key, label] of [["gaps", "Gaps"], ["risks", "Risks"], ["decisions", "Decisions"]]) textList(root, label, assessment[key]);
       paragraph(root, "Next step", assessment.next_step); paragraph(root, "Written by", `${assessment.written_by} · checked by ${assessment.checked_by} · ${assessment.date}`);
     }
     const differences = feature.differences ?? { added: [], removed: [], changed: [], purpose: null, status: null };

@@ -17,7 +17,7 @@
 const renderInto = (__RENDERER__);
 const data = JSON.parse(document.getElementById("report-data").textContent);
 renderInto(document, data, { hash: location.hash });
-addEventListener("hashchange", () => renderInto(document, data, { hash: location.hash }));
+addEventListener("hashchange", () => { renderInto(document, data, { hash: location.hash }); window.scrollTo(0, 0); });
 </script>
 </body>
 </html>

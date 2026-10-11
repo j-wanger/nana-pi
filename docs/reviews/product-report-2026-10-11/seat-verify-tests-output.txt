@@ -1,2 +1,2 @@
-ok   replaced: R-291: every real heading's committed IDs survive expansion and leaf counts total 1,024 → R-291: every real heading's committed IDs survive expansion and leaf counts total 1,043
+ok   replaced: R-291: every real heading's committed IDs survive expansion and leaf counts total 1,024 → R-291: every real heading's committed IDs survive expansion and leaf counts total 1,046
 seat-verify-tests: 0 gap(s)
