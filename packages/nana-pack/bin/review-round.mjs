@@ -412,7 +412,7 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
 function verdictWord(out) {
   let text = String(out ?? '');
   try { if (existsSync(text)) text = readFileSync(text, 'utf8'); } catch { /* retain non-path input */ }
-  const line = text.split(/\r?\n/).reverse().find((x) => /^[^\w\r\n]*VERDICT:/.test(x));
+  const line = text.split(/\r?\n/).reverse().find((x) => /(?<![\p{L}\p{N}_])VERDICT:/u.test(x));
   if (line === undefined) return null;
   const marks = '[*_`]*';
   const score = `(?:\\s+${marks}(?:\\(\\d+(?:\\.\\d+)?/\\d+\\)|[—–-]\\s*\\d+(?:\\.\\d+)?/\\d+)${marks})?`;

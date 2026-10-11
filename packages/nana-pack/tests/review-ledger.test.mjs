@@ -195,13 +195,16 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const text = "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n";
 	const final = ledgerRun(["--item", "corpus-final"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
 	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
+	const quoted = "Example from the review:\n    VERDICT: LAND\n    Correction: VERDICT: SEND-BACK\nMore findings.\nVERDICT: SEND-BACK\n";
+	const quotedResult = ledgerRun(["--item", "corpus-quoted"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(quoted)})`] });
+	const quotedPassed = quotedResult.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
 	// req: R-969
-	check("complete records the LAND corpus forms and final SEND-BACK", ok && finalPassed, problems.join("; ") || final.stderr || JSON.stringify(jsonl(tallyFile).at(-1)));
+	check("complete records the LAND corpus forms and final SEND-BACK", ok && finalPassed && quotedPassed, problems.join("; ") || final.stderr || quotedResult.stderr || JSON.stringify(jsonl(tallyFile).at(-1)));
 }
 
 {
 	freshHome("verdict-malformed"); A.at(0);
-	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND..."];
+	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND...", "VERDICT: LAND\nCorrection: VERDICT: SEND-BACK"];
 	let empty = true;
 	const problems = [];
 	for (const [i, text] of malformed.entries()) {
