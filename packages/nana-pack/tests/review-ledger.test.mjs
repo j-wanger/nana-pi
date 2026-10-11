@@ -181,7 +181,6 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	check("unresolvable --revision inside git refused", unres.status === 1 && /not a commit/.test(unres.stderr), unres.stderr);
 }
 
-// req: R-969
 {
 	freshHome("verdict-corpus"); A.at(0);
 	const accepted = ["VERDICT: LAND", "# VERDICT: LAND", "**VERDICT:** LAND", "VERDICT: LAND.", "VERDICT: LAND (9/10)", "VERDICT: LAND — 9/10", "**VERDICT: LAND — 9/10.**", "VERDICT: LAND  ", "VERDICT: LAND-WITH-FIXES", "VERDICT: LAND\r\n"];
@@ -196,10 +195,10 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const text = "VERDICT: LAND | FIX-FIRST | BLOCK\r\nVERDICT: SEND-BACK\r\n";
 	const final = ledgerRun(["--item", "corpus-final"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
 	const finalPassed = final.status === 0 && jsonl(tallyFile).at(-1)?.verdict === "SEND-BACK";
+	// req: R-969
 	check("complete records the LAND corpus forms and final SEND-BACK", ok && finalPassed, problems.join("; ") || final.stderr || JSON.stringify(jsonl(tallyFile).at(-1)));
 }
 
-// req: R-1010
 {
 	freshHome("verdict-malformed"); A.at(0);
 	const malformed = ["VERDICT: LAND | FIX-FIRST | BLOCK", "VERDICT: LAND (fixes pending)", "VERDICT: LAND — Fixes: none.", "VERDICT: LAND, with fixes", "VERDICT: L_A_N_D", "VERDICT: L*A*N*D", "VERDICT: LA`ND", "VERDICT: LAND!", "VERDICT: LAND..."];
@@ -211,10 +210,10 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 		if (!passed) problems.push(`${JSON.stringify(text)}: ${result.status} ${result.stderr} ${JSON.stringify(jsonl(tallyFile).at(-1))}`);
 		empty &&= passed;
 	}
+	// req: R-1010
 	check("complete records an empty verdict for malformed verdict suffixes", empty, problems.join("; "));
 }
 
-// req: R-1008
 {
 	freshHome("verdict-ordinal"); A.at(0);
 	const first = [];
@@ -227,12 +226,12 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	const second = mod.admit(["--item", "ordinal", "--role", "reviewer"], { home, cwd: A.d, launcher: "test", model: "model-d" });
 	const secondComplete = mod.complete(second.res, "VERDICT: LAND", { home });
 	const rows = jsonl(tallyFile).filter((r) => r.item === "ordinal");
+	// req: R-1008
 	check("complete appends every verdict at v2 and returns the revision ordinal",
 		first.every((x) => x.admitted.ok && x.completed.ok && x.completed.round === 1) && second.ok && secondComplete.ok && secondComplete.round === 2 && rows.length === 4 &&
 		rows.every((r) => r.v === 2 && r.item === "ordinal" && r.role && r.model) && rows.slice(0, 3).every((r) => r.revision === A.shas[0]) && rows[3].revision === A.shas[1]);
 }
 
-// req: R-970
 {
 	freshHome("report-verdicts"); A.at(0);
 	let completed = true;
@@ -242,6 +241,7 @@ const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["-
 	}
 	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-two", "--repo", A.d], { cwd: A.d, env: env(), encoding: "utf8" });
 	const lines = report.stdout.trim().split(/\r?\n/);
+	// req: R-970
 	check("report prints one line per verdict on a revision", completed && report.status === 0 && lines.length === 2 && lines.every((line) => line.includes("report-two") && line.includes("model-report")) && lines[0].includes("LAND") && lines[1].includes("SEND-BACK"), report.stderr || report.stdout);
 }
 
