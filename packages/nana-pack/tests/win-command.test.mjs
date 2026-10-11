@@ -61,14 +61,24 @@ for (const [cmd, expected] of cmdCases) {
 // req: R-1038
 check("sealed cmd internal command vocabulary", INTERNAL_COMMANDS, "assoc break call cd chdir cls color copy date del dir dpath echo endlocal erase exit for ftype goto if keys md mkdir mklink move path pause popd prompt pushd rd rem ren rename rmdir set setlocal shift start time title type ver verify vol".split(" "));
 if (process.platform === "win32") {
+  const systemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT;
+  const systemPath = `${systemRoot}\\System32;${systemRoot}`;
+  const probeEnv = { ...process.env, PATH: systemPath };
+  const firstLine = (value) => String(value ?? "").split(/\r?\n/, 1)[0];
+  const diagnostic = (where, cmd) => `where status=${where.status} stdout=${JSON.stringify(firstLine(where.stdout))} stderr=${JSON.stringify(firstLine(where.stderr))}; cmd status=${cmd.status} stdout=${JSON.stringify(firstLine(cmd.stdout))} stderr=${JSON.stringify(firstLine(cmd.stderr))}`;
   for (const name of INTERNAL_COMMANDS) {
-    const where = spawnSync("where", [name], { encoding: "utf8", windowsHide: true });
+    const where = spawnSync(`${systemRoot}\\System32\\where.exe`, [name], { encoding: "utf8", windowsHide: true, env: probeEnv });
+    const cmd = spawnSync(`${systemRoot}\\System32\\cmd.exe`, ["/d", "/c", `${name} /?`], { encoding: "utf8", windowsHide: true, env: probeEnv });
+    const ok = where.status !== 0 && !where.stdout.trim() && !where.stderr.trim() && cmd.stdout.trim().length > 0 && !cmd.stderr.trim();
     // req: R-1038
-    check(`Windows where confirms internal ${name} is not external`, where.status !== 0, true);
-    const cmd = spawnSync("cmd.exe", ["/d", "/c", `${name} /?`], { encoding: "utf8", windowsHide: true });
-    // req: R-1038
-    check(`Windows cmd confirms internal ${name} runs`, cmd.status === 0, true);
+    check(`Windows internal command probe ${name}`, ok ? true : diagnostic(where, cmd), true);
   }
-} else console.log("SKIP Windows sealed-command integration: each name via where and cmd /d /c");
+  const absent = "nana-no-such-command-xyz";
+  const where = spawnSync(`${systemRoot}\\System32\\where.exe`, [absent], { encoding: "utf8", windowsHide: true, env: probeEnv });
+  const cmd = spawnSync(`${systemRoot}\\System32\\cmd.exe`, ["/d", "/c", `${absent} /?`], { encoding: "utf8", windowsHide: true, env: probeEnv });
+  const controlOk = !cmd.stdout.trim() && cmd.stderr.trim().length > 0;
+  // req: R-1038
+  check("Windows internal-command probe control nana-no-such-command-xyz", controlOk ? true : diagnostic(where, cmd), true);
+} else console.log("SKIP Windows sealed-command integration: checks System32 where.exe and cmd.exe probes");
 console.log(`win-command: ${checks} checks, ${fails} failure(s)`);
 process.exitCode = fails ? 1 : 0;

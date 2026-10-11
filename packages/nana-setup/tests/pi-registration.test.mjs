@@ -154,7 +154,7 @@ function piHomeWith(packages) {
 	// req: R-679
 	check("fixture manifest root checkout identity covers its extension directories", rootCoverage.present && rootCoverage.match === path.relative(agent, repo), JSON.stringify(rootCoverage));
 }
-{
+if (process.platform !== "win32") {
 	const home = piHomeWith(null);
 	const agent = path.join(home, ".pi", "agent");
 	const knowledge = path.relative(agent, path.join(repo, "packages", "nana-knowledge"));
@@ -179,7 +179,7 @@ function piHomeWith(packages) {
 		// req: R-323
 		check("install adds only the missing per-package entry, never a root entry", calls.length === 2 && calls[1] === `install ${path.join(repo, "packages", "nana-pack")}` && !calls.some((line) => line === `install ${repo}`), `${JSON.stringify(calls)} ${JSON.stringify(installed)}`);
 	} finally { process.env.PATH = savedPath; }
-}
+} else console.log("SKIP POSIX-only fake-pi registration test: it uses a #!/bin/sh executable and colon-separated PATH");
 
 /* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
 {
