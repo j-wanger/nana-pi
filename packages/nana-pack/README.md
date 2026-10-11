@@ -174,6 +174,8 @@ launch/end timestamps are recorded in the tally; old rows show `-` where fields 
 
 `nana-land cleanup <lane> --main <main-checkout>` is a separate operation: it requires the checkout on `main`, then removes only a clean worktree whose `feat/<lane>` branch is contained in `main`, without force. Run through `nana-setup install` to link `nana-land` on PATH; `nana-setup doctor` reports whether the link is valid. The main checkout may have untracked files, but git can still refuse a colliding fast-forward.
 
+**Limits to plan for:** deploy with no land, review, or worker process running. While a land holds the ledger lock, another review that waits past the 15-second limit is refused at admission or its completed verdict goes unrecorded; keep its output and re-run it. A new commit—including an amend, rebase result, or empty commit—starts with a clean verdict record and needs its own review. A narrow review counts as a LAND for the whole ancestry up to its revision. A direct commit to `main` bypasses this helper; the working pattern forbids direct commits to `main`.
+
 ### Workers: `bin/pi-worker.mjs`
 
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,

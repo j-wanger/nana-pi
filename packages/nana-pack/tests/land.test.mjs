@@ -114,15 +114,19 @@ check("final review reading, rechecks and ff-only merge run inside one ledger lo
 		return withReviewLedgerLock(ledgerHome, (records) => { events.push("lock-enter", "locked-reading"); const result = step(records); events.push("lock-exit"); return result; });
 	};
 	const out = executeLand({ tree: feature, main, suite: "injected", reviewed: [`${tip}=item`], home, runGit, withReviewLedgerLock: lock,
-		runCommand: () => { events.push("suite"); return { status: 0 }; } });
+		runCommand: () => { events.push("suite"); return { status: 0 }; },
+		readReleaseStatus: () => { events.push("release-status"); return { line: "ready" }; } });
 	const suiteAt = events.indexOf("suite"), exitAt = events.lastIndexOf("lock-exit");
 	assert.equal(out.code, 0, out.text); assert.equal(lockCalls, 2);
 	assert(events.slice(suiteAt + 1, exitAt).includes("locked-reading"));
 	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("merge --ff-only")));
 	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("branch --show-current")));
 	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("rev-parse HEAD")));
-	assert.equal(events.slice(exitAt + 1).filter((event) => event.startsWith("git:")).length, 0);
-	assert.deepEqual(events.slice(exitAt + 1), []);
+	assert(events.slice(exitAt + 1).some((event) => event.includes("branch --show-current")));
+	assert(events.slice(exitAt + 1).some((event) => event.includes("refs/heads/main")));
+	assert(events.slice(exitAt + 1).some((event) => event.includes("merge-base --is-ancestor")));
+	assert(events.slice(exitAt + 1).includes("release-status"));
+	assert.equal(events.slice(exitAt + 1).some((event) => event.includes("merge --ff-only")), false);
 });
 
 // req: R-1005
@@ -236,6 +240,15 @@ check("a LAND commit outside the source tip ancestry is refused", () => {
 	writeFileSync(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl"), JSON.stringify({ v: 1, kind: "round", repo: `git:${common}`, item: "item", revision: unrelated, verdict: "LAND" }) + "\n");
 	const out = runLand({ tree: feature, main, suite: "node -e 'process.exit(0)'", reviewed: [`${unrelated}=item`], home });
 	assert.notEqual(out.code, 0); assert.match(out.text, /not an ancestor/i); assert.notEqual(unrelated, tip);
+});
+// req: R-976
+check("annotated tag object IDs are not accepted as reviewed commits (R-976)", () => {
+	const root = tmpDir(path.join(os.tmpdir(), "land-tag-object-")); const main = repo(root, "main");
+	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
+	reviewTip(feature, home); git(feature, "tag", "-a", "reviewed-tag", "-m", "tag");
+	const tagObject = git(feature, "rev-parse", "refs/tags/reviewed-tag"); const before = git(main, "rev-parse", "HEAD");
+	const out = executeLand({ tree: feature, main, suite: "true", reviewed: [`${tagObject}=item`], home });
+	assert.notEqual(out.code, 0); assert.match(out.text, /plain commit/i); assert.equal(git(main, "rev-parse", "HEAD"), before); assert.notEqual(tagObject, sha);
 });
 // req: R-976
 check("snapshot review revisions are never accepted as plain reviewed commits", () => {
@@ -555,15 +568,14 @@ check("successful land output keeps push and release status but has no archive s
 check("a separate clone is refused before reviewed-SHA resolution or ledger reading", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-clone-order-")); const main = repo(root, "main");
 	const clone = path.join(root, "clone"); git(root, "clone", main, clone);
-	const reviewed = "a".repeat(40); const calls = []; let ledgerRead = false;
+	const reviewed = "a".repeat(40); const calls = [];
 	const runGit = (cwd, args) => {
 		calls.push({ cwd, args });
 		try { return { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), stderr: "" }; }
 		catch (error) { return { status: error.status ?? 1, stdout: error.stdout?.toString() ?? "", stderr: error.stderr?.toString() ?? "" }; }
 	};
-	const out = executeLand({ tree: clone, main, suite: "true", reviewed: [`${reviewed}=item`], runGit,
-		readLedger: () => { ledgerRead = true; return []; } });
-	assert.notEqual(out.code, 0); assert.match(out.text, /share one git repository/); assert.equal(ledgerRead, false);
+	const out = executeLand({ tree: clone, main, suite: "true", reviewed: [`${reviewed}=item`], runGit });
+	assert.notEqual(out.code, 0); assert.match(out.text, /share one git repository/);
 	assert.equal(calls.some(({ args }) => args[0] === "cat-file" || (args[0] === "rev-parse" && args.includes(reviewed))), false);
 });
 process.exit(failures ? 1 : 0);
