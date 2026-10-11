@@ -82,8 +82,8 @@ SEND-BACK only in the audit log at 19:18:37Z; the seat held the merge by reading
 
 | ID | Change | Text |
 |---|---|---|
-| R-969 | reworded (first verdict word → the last `VERDICT:` line) · SUB-009 | Each completed review shall record as its verdict the verdict word — capital letters and hyphens — after `VERDICT:` on the last line of its output that carries `VERDICT:`, allowing one score written `(n/m)` or `— n/m`, one trailing `.`, `,`, `;` or `:`, whitespace, and markdown emphasis or code marks only around the label, the word, the score or the line. |
-| R-1010 | added · SUB-009 | IF that last `VERDICT:` line holds anything after `VERDICT:` that R-969 does not allow, including a mark inside the verdict word or score, THEN the review ledger shall record an empty verdict for that review. |
+| R-969 | reworded (first verdict word → the final non-blank line; sol build r2–r3) · SUB-009 | Each completed review shall record as its verdict the verdict word — capital letters and hyphens — after `VERDICT:` on the final non-blank line of its output, allowing before the label only whitespace and the marks `#`, `>`, `-`, `*`, `_` and backtick, and after the word one score written `(n/m)` or `— n/m`, one trailing `.`, `,`, `;` or `:`, whitespace, and the marks `*`, `_` and backtick. |
+| R-1010 | added · SUB-009 | IF the final non-blank line of a completed review's output is not a verdict line that R-969 allows, THEN the review ledger shall record an empty verdict for that review. |
 | R-1008 | added · SUB-010 | The round records shall keep every completed verdict on a revision, each record written at tally version 2 with its item, role and model, while that revision still counts as one round (R-972). |
 | R-731 | reworded (one line per round → per completed verdict) | Ledger storage shall not be bounded overall: the tally grows one line per completed verdict and is read in full at every admission. |
 | R-970 | reworded (one line per round → per recorded verdict) | The review-ledger report command shall print one read-only line per recorded verdict with item, short revision, role, model, duration, attempts, verdict and over-cap reason, using - for unavailable legacy fields. |
@@ -202,16 +202,13 @@ at merge; copier consumers get it at the next template tag, which needs main pus
   completion is not recorded with its output kept, and it is re-run (§5). Every refusal happens before any merge or ref update and
   names what it found; uncovered commits are listed by short SHA and subject with "get it reviewed (a
   new round on the tip) or drop it".
-- Verdict parse (R-969, R-1010): scan the output's lines from the end for the first line containing
-  `VERDICT:` preceded only by non-word characters (R-701). Match that RAW line — no characters are
-  deleted first — against one pattern, with `M` = `[*_\`]*` (wrapper marks): `VERDICT:`, `M`,
-  whitespace, `M`, the word `[A-Z]+(?:-[A-Z]+)*`, `M`, then optionally one score (whitespace, `M`,
-  `(n/m)` or a dash `—`, `–` or `-`, whitespace and `n/m`, `M`), where `n/m` is
-  `\d+(?:\.\d+)?/\d+`; then optionally one of `.`, `,`, `;` or `:`, `M`, and only whitespace to the
-  end of the line. Anything else, including `L_A_N_D`, `L*A*N*D` or a backtick inside the word,
-  records `verdict: null`. Prose after the verdict word
-  (`LAND — Fixes: none.`, seen once in the corpus) records an empty verdict and needs a re-run;
-  every brief asks for the bare verdict line.
+- Verdict parse (R-969, R-1010): take the output's final non-blank line (sol build r3: an earlier
+  "last line carrying the label" rule let a fenced example after the final verdict, or a look-alike
+  label, leave an earlier LAND standing). Match that RAW line against one pattern built from explicit
+  character sets (no `\w`): only whitespace and `#`, `>`, `-`, `*`, `_`, backtick before `VERDICT:`;
+  the word `[A-Z]+(?:-[A-Z]+)*`; optionally one score `(n/m)` or `— n/m` with whole numbers and an em
+  dash; optionally one `.`, `,`, `;` or `:`; `*`, `_` or backtick marks around the parts; whitespace to
+  the end. Anything else records `verdict: null`.
 
 ## 5. Declared residuals (stated in the pack README)
 
@@ -234,6 +231,9 @@ at merge; copier consumers get it at the next template tag, which needs main pus
   admission is refused, or its completion goes unrecorded with its output kept, and it is re-run.
   `review-ledger run` does not return its reservation when completion fails; the reservation is
   reclaimed when its process dies (unchanged).
+- A review whose final non-blank line is not a bare verdict line — a sign-off after it, prose before
+  the label, a score written with a hyphen, an en dash or a decimal — records an empty verdict and
+  must be re-run; every brief asks for the bare verdict line last.
 - The helper enforces that every recorded verdict is LAND, not that the reviewers were independent;
   neither the README nor the feature purpose claims otherwise.
 

@@ -1,0 +1,11 @@
+VERDICT: DONE
+- Commits: `83a761e` (requirements, parser, tests); `cb41445` (seat evidence).
+- Files: `REQUIREMENTS.md`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, and both seat output files under `docs/reviews/land-rule-2026-10-10/`.
+- Rows: R-969 now requires the final non-blank line and exact allowed marks; R-1010 requires an empty verdict when that line is invalid. R-701 unchanged.
+- Tests cover fenced examples, look-alike labels, trailing blank lines, Unicode prefixes, markdown prefixes, and trailing prose; existing corpus passes.
+- Mutation pairs: 14/16 red; 2 SKIP because parser anchors changed. Runner left unchanged; code restored.
+- `npm run req:tree` exit 0; `npm run map:check` exit 0; focused review-ledger test exit 0.
+- `npm run test:locked` exit 0 — **133 files: 132 PASS, 0 FAIL, 1 SKIP; checks: 6706 pass, 0 fail, 5 skip, 0 WARN.**
+- Seat acceptance scripts: `seat-verify-land.mjs` and `seat-verify-tests.mjs`, both exit 0.
+- Mutation script exit 0; last line: `mutations: 14/16 red`
+- Worktree clean. Not done: no mutation runner changes; the two skipped pairs require no action under the brief.

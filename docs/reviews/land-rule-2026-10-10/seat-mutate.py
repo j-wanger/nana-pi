@@ -1,5 +1,5 @@
 # Seat mutation pairs for the land-rule lane (frozen). Run from the worktree root: each mutation is applied,
-# its named test must FAIL by title, and the file is restored with git checkout. Prints N/16 red.
+# its named test must FAIL by title, and the file is restored with git checkout. Prints N/17 red.
 import subprocess, sys
 import os
 W=os.getcwd()
@@ -17,10 +17,11 @@ M = [
  ("reviewed SHA resolved before the common-directory check (R-1009)", LAND, "\t\tconst treeCommon = git(runGit, tree, \"rev-parse\", \"--git-common-dir\");", "\t\tfor (const p of reviewedPairs(reviewed)) { try { git(runGit, tree, \"cat-file\", \"-t\", p.sha); } catch {} }\n\t\tconst treeCommon = git(runGit, tree, \"rev-parse\", \"--git-common-dir\");", LT, "a separate clone is refused"),
  ("version-1 LAND authorises (R-1011)", LAND, "r.v === 2 && r.revision === sha", "r.revision === sha", LT, "a version-1 LAND alone refuses"),
  ("empty verdict treated as absent (R-1004)", LAND, 'Object.hasOwn(r, "verdict") && r.verdict !== "LAND"', 'r.verdict != null && r.verdict !== "LAND"', LT, "an explicit empty verdict beside LAND refuses land"),
- ("parenthesised score rejected (R-969)", RR, "(?:\\\\(\\\\d+(?:\\\\.\\\\d+)?/\\\\d+\\\\)|", "(?:", RT, "complete records the LAND corpus forms"),
+ ("parenthesised score rejected (R-969)", RR, "(?:\\\\(\\\\d+/\\\\d+\\\\)|", "(?:", RT, "complete records the LAND corpus forms"),
  ("snapshot head ignored (R-1004)", LAND, "(r.revision === sha || r.head === sha)", "(r.revision === sha)", LT, "a verified SEND-BACK at a working-state snapshot refuses land"),
  ("other items ignored (R-1004)", LAND, "rounds.filter((r) => r.unverified !== true && (r.revision", "rounds.filter((r) => r.item === item && r.unverified !== true && (r.revision", LT, "a verified SEND-BACK for another item at the commit refuses land"),
- ("only line-leading VERDICT lines considered (R-969, sol build r2)", RR, "find((x) => /(?<![\\p{L}\\p{N}_])VERDICT:/u.test(x))", "find((x) => /^[^\\w\\r\\n]*VERDICT:/.test(x))", RT, "complete records an empty verdict for malformed verdict suffixes"),
+ ("last line carrying VERDICT: instead of the final non-blank line (R-969, sol build r3)", RR, "find((x) => x.trim() !== '')", "find((x) => /(?<![\\p{L}\\p{N}_])VERDICT:/u.test(x))", RT, "complete records an empty verdict for malformed verdict suffixes"),
+ ("ASCII-only prefix check (R-969, sol build r3)", RR, "^[\\\\s#>_*\\\\x60-]*VERDICT:", "^[^\\\\w\\\\r\\\\n]*VERDICT:", RT, "complete records an empty verdict for malformed verdict suffixes"),
  ("snapshot reservations ignored (R-1006)", LAND, 'String(r.revision).split("+snap:")[0] === sha', 'false', LT, "an in-flight snapshot review of the reviewed tip refuses"),
 ]
 fails=0
