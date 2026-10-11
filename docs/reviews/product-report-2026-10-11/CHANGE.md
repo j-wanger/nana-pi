@@ -1,10 +1,10 @@
 # Change declaration — the product report as a feature
 
 *Lane `product-report` · branch `feat/product-report` · worktree `~/nana-pi-wt/product-report`, based
-on the four-digit ID lane once its final review passes (it needs the tree and four-digit IDs) ·
-2026-10-10. Feature: **new — FEAT-039 · See the product and its decisions in one report**, under
-CAP-07 "Keep code and promises checkable" (a tree change Jake asked for; he confirms name and home).
-Order: why → plan → Fable consult (`fable-consult.md`) → sol plan review (item `product-report-plan`)
+on `main` at `0818b72` (the tree, four-digit IDs and the land rule) · 2026-10-11. Feature: **new — FEAT-039 · See the product and its decisions in one report**, under
+CAP-07 "Keep code and promises checkable" (a tree change Jake asked for; he confirmed its name and home on 2026-10-10).
+Order: why → plan → Fable consult (`fable-consult.md`) → seat fact-check (`factcheck.md`) → sol plan
+review (item `product-report-plan`)
 → build → seat verification → sol build review → astra land review → Jake accepts.*
 
 ## 1. Why
@@ -34,16 +34,16 @@ are out of date.
 
 | ID | Requirement (draft) |
 |---|---|
-| R-1002 | Two runs of `npm run report` at the same commit shall write byte-identical product reports. |
-| R-1003 | The product report shall state the commit it was built from and whether the working tree was clean. |
-| R-1004 | The product report shall show, for every capability and feature in REQUIREMENTS.md, its purpose and status, its requirement counts by status, its shared requirements in and out, and every requirement with its status and evidence. |
-| R-1005 | The product report shall list every violated requirement, every open question in REQUIREMENTS.md and every ask in HANDOFF.md's "Open for Jake" section. |
-| R-1006 | The product report shall render every ledger and HANDOFF text as text, never as markup or script. |
-| R-1007 | Each stored assessment shall carry a fingerprint per row it was written against — the feature's rows and its shared rows, each over ID, requirement text and status — and the product report shall mark the assessment out of date, naming the changed rows, when any differs. |
-| R-1008 | Fingerprints shall be equal for a ledger with LF line endings and the same ledger with CRLF line endings or trailing whitespace. |
-| R-1009 | The suite shall fail when a stored assessment cites a row outside its feature's rows and shared rows. |
-| R-1010 | The suite shall fail when a stored assessment's prose holds a requirement or feature ID or a numeral. |
-| R-1011 | The suite shall fail when a stored assessment rates `solid` a feature with an untested or violated row. |
+| R-1012 | Two runs of `npm run report` at the same commit shall write byte-identical product reports. |
+| R-1013 | The product report shall state the commit it was built from and whether the working tree was clean. |
+| R-1014 | The product report shall show, for every capability and feature in REQUIREMENTS.md, its purpose and status, its requirement counts by status, its shared requirements in and out, and every requirement with its status and evidence. |
+| R-1015 | The product report shall list every violated requirement, every open question in REQUIREMENTS.md and every ask in HANDOFF.md's "Open for Jake" section. |
+| R-1016 | The product report shall render every ledger and HANDOFF text as text, never as markup or script. |
+| R-1017 | Each stored assessment shall carry a fingerprint per row it was written against — the feature's rows and its shared rows, each over ID, requirement text and status — and the product report shall mark the assessment out of date, naming the changed rows, when any differs. |
+| R-1018 | Fingerprints shall be equal for a ledger with LF line endings and the same ledger with CRLF line endings or trailing whitespace. |
+| R-1019 | The suite shall fail when a stored assessment cites a row outside its feature's rows and shared rows. |
+| R-1020 | The suite shall fail when a stored assessment's prose holds a requirement or feature ID or a numeral. |
+| R-1021 | The suite shall fail when a stored assessment rates `solid` a feature with an untested or violated row. |
 
 Tree change (Jake's request): FEAT-039 under CAP-07 — `Purpose: Rebuild one report of the product,
 its features, their requirements and the decisions waiting on Jake, from the repo at any commit.` —
@@ -80,14 +80,13 @@ a publish step inside the script; the tree checker's own CRLF gap (the Windows l
 - **Output:** `docs/product-report/out/nana-pi-product-ledger.html`, gitignored — a stable path the
   seat republishes from.
 
-## 5. Decisions for Jake (checkpoint 1)
+## 5. Checkpoint 1 (Jake, decided 2026-10-10)
 
-1. Queue position (it sits outside today's appetite).
-2. Name and home of the new feature.
-3. The audit issues: a separate small lane into Open questions, or leave them out.
-4. The 2026-10-05 hold on HTML decision pages until the writing trial ends (10-18): does this ask
-   lift it for this page?
-
+Jake: "agreed on all your recommendations, and yes lift the hold for html". So: (1) the report is
+queued after the land rule (done); (2) the new feature is FEAT-039 "See the product and its
+decisions in one report" under CAP-07; (3) the confirmed audit issues go to the ledger's open
+questions in a separate small lane, not into this report; (4) the 2026-10-05 hold on HTML pages is
+lifted.
 ## 6. Verification (doneWhen)
 
 `npm run report` twice → identical bytes; `npm run test:locked`; mutation pairs per row (a changed
