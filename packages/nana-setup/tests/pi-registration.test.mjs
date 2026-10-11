@@ -298,7 +298,11 @@ if (process.platform === "win32") {
 	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions"] } }));
 	fs.writeFileSync(path.join(pkg, "package.json"), JSON.stringify({ name: "fake-pi-for-nana", version: "1.0.0", bin: { pi: "cli.cjs" } }));
 	fs.writeFileSync(path.join(pkg, "cli.cjs"), `#!/usr/bin/env node\nconst fs=require('node:fs'); const a=process.argv.slice(2); if(a[0]==='--version') console.log('9.9.9'); else fs.writeFileSync(${JSON.stringify(log)}, JSON.stringify(a));\n`);
-	const installed = spawnSync("npm.cmd", ["install", "--global", "--prefix", prefix, pkg], { encoding: "utf8", shell: true });
+	// Invoke npm's JS CLI directly so spaces in the fixture prefix remain argv boundaries on Windows.
+	const npmCli = process.env.npm_execpath;
+	const installed = npmCli
+		? spawnSync(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, pkg], { encoding: "utf8" })
+		: { status: 1, stderr: "npm_execpath is not set" };
 	check("Windows fixture npm installed the local shim", installed.status === 0, installed.stderr);
 	const env = { ...process.env, PATH: `${prefix};${process.env.PATH ?? ""}` };
 	const selected = findOnPath("pi", { env, cwd: prefix });

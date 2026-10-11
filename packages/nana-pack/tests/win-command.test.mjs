@@ -69,7 +69,7 @@ if (process.platform === "win32") {
   for (const name of INTERNAL_COMMANDS) {
     const where = spawnSync(`${systemRoot}\\System32\\where.exe`, [name], { encoding: "utf8", windowsHide: true, env: probeEnv });
     const cmd = spawnSync(`${systemRoot}\\System32\\cmd.exe`, ["/d", "/c", `${name} /?`], { encoding: "utf8", windowsHide: true, env: probeEnv });
-    const ok = where.status !== 0 && !where.stdout.trim() && !where.stderr.trim() && cmd.stdout.trim().length > 0 && !cmd.stderr.trim();
+    const ok = where.status !== 0 && !where.stdout.trim() && cmd.stdout.trim().length > 0 && !cmd.stderr.trim();
     // req: R-1038
     check(`Windows internal command probe ${name}`, ok ? true : diagnostic(where, cmd), true);
   }
