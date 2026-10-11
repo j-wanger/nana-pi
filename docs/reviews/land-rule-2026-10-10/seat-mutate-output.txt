@@ -15,5 +15,7 @@ red  other items ignored (R-1004) → land.test.mjs :: a verified SEND-BACK for 
 red  last line carrying VERDICT: instead of the final non-blank line (R-969, sol build r3) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
 red  ASCII-only prefix check (R-969, sol build r3) → review-ledger.test.mjs :: complete records an empty verdict for malformed verdict suffixes (exit 1)
 red  snapshot reservations ignored (R-1006) → land.test.mjs :: an in-flight snapshot review of the reviewed tip refuses (exit 1)
-worktree clean
+WORKTREE DIRTY:
+M docs/reviews/land-rule-2026-10-10/seat-mutate-output.txt
+ M docs/reviews/land-rule-2026-10-10/seat-verify-land-output.txt
 mutations: 17/17 red
