@@ -239,6 +239,17 @@ await inFlight("a review of a snapshot of the commit still in flight is refused"
   out("an uppercase SHA and a differently cased item land", `${l.code}/${mainAt(r) === c1}`, "0/true");
 }
 
+{
+  const r = repo();
+  const c1 = commit(r.tree, "a.txt", "a\n", "a");
+  review(r.tree, "it", "sol", "VERDICT: LAND\n");
+  git(r.tree, "tag", "-a", "reviewed-tag", "-m", "a tag object", c1);
+  const tagObject = git(r.tree, "rev-parse", "reviewed-tag");
+  const before = mainAt(r);
+  const l = land(r, [`${tagObject}=it`]);
+  out("an annotated tag object named as the reviewed revision is refused (plain commits only)", `${tagObject !== c1}/${refused(r, before, l)}`, "true/refused/main unchanged");
+}
+
 // ── The verdict word (R-969, R-1010) ──
 {
   const r = repo();
