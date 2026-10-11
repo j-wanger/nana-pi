@@ -15,12 +15,12 @@ let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
 const workflow = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../.github/workflows/ci.yml"), "utf8");
 // req: R-597
-check("root CI runs the suite on macOS and nonblocking Ubuntu and gates tag release", () => {
+check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
   assert(workflow.includes("on:\n  push:\n    branches: [main]\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
   assert.match(workflow, /^  suite:\n    strategy:/m);
-  assert.match(workflow, /os: \[macos-latest, ubuntu-latest\]/);
-  assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os == 'ubuntu-latest' \}\}/m);
+  assert.match(workflow, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
+  assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
   assert.match(workflow, /^      - run: npm test/m);
   assert.match(workflow, /^  release:\n    needs: suite\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
   assert.match(workflow, /^    permissions:\n      contents: write/m);
@@ -52,6 +52,32 @@ check("suite job requires copier on every matrix leg", () => {
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
   assert.match(suite, /^    env:\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
   assert.doesNotMatch(release, /^      NANA_TEST_REQUIRE_COPIER:/m);
+});
+// req: R-1031
+check("suite runs on Windows with bash and the pinned toolchain", () => {
+  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  assert.match(suite, /^    defaults:\n      run:\n        shell: bash$/m);
+  assert.match(suite, /windows-latest/);
+  assert.match(suite, /^    env:\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
+  const setup = [
+    "uses: actions/checkout@v4",
+    "uses: actions/setup-node@v4",
+    "node-version: 22",
+    "uses: astral-sh/setup-uv@v5",
+    "uses: pnpm/action-setup@v4",
+    "version: 11",
+    "run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}",
+    "pi --version",
+    "run: npm test",
+  ];
+  const positions = setup.map((step) => suite.indexOf(step));
+  assert(positions.every((position) => position >= 0), "Windows suite must include all pinned setup and test steps");
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b), "suite setup, version check, and npm test must stay ordered");
+});
+// req: R-1032
+check("Windows suite failure does not block release", () => {
+  assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
+  assert.match(workflow, /^  release:\n    needs: suite\n/m);
 });
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {
