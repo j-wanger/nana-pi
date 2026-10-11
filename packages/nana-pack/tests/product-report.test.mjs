@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { generateReport, renderInto, validateStore } from "../../../scripts/product-report.mjs";
+import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
 import { splitOpenForJake } from "../lib/handoff-asks.mjs";
 import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 
@@ -245,6 +245,32 @@ try {
     const storePath = writeStore(root, [makeAssessment(root, commit)]);
     // req: R-1020 R-1022
     check("fingerprints ignore CRLF and trailing whitespace", validateStore({ root, storePath }).length === 0, JSON.stringify(validateStore({ root, storePath })));
+  }
+  {
+    const { root, git } = fixture("packets");
+    const initialCommit = git(["rev-parse", "HEAD"]).stdout.trim();
+    const storePath = writeStore(root, [makeAssessment(root, initialCommit, "FEAT-039"), makeAssessment(root, initialCommit, "FEAT-002")]);
+    const ledgerPath = path.join(root, "REQUIREMENTS.md");
+    fs.writeFileSync(ledgerPath, fs.readFileSync(ledgerPath, "utf8").replace("Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on Jake, from the repo at any commit from its first build on.", "Purpose: Rebuild one report of the product, its features, requirements and decisions waiting on Jake, from the repo at any commit from its first build on."));
+    git(["add", "REQUIREMENTS.md"]); git(["commit", "-qm", "change feature purpose"]);
+    const firstDir = path.join(temp, "packets-first");
+    const secondDir = path.join(temp, "packets-second");
+    await generatePackets({ root, dir: firstDir }); await generatePackets({ root, dir: secondDir });
+    const names = fs.readdirSync(firstDir).sort();
+    const packet = JSON.parse(fs.readFileSync(path.join(firstDir, "FEAT-039.json"), "utf8"));
+    const unassessed = JSON.parse(fs.readFileSync(path.join(firstDir, "FEAT-001.json"), "utf8"));
+    const currentFeatureHasNoPacket = !names.includes("FEAT-002.json");
+    const expectedPacketRows = (await buildReport({ root })).features.find((feature) => feature.id === "FEAT-039").rows.map(({ id, mark, requirement, status, evidence }) => ({ id, mark, requirement, status, evidence }));
+    const staleAssessmentCandidate = { ...packet.assessment, stamp: packet.stamp };
+    const unassessedCandidate = { id: unassessed.feature.id, what_it_does: "Current prose without digits.", maturity: "partial", maturity_reason: "Some checks remain open.", gaps: ["A missing check."], risks: ["A stale result."], decisions: ["A future choice."], next_step: "Run the full suite.", written_by: "seat", checked_by: "reviewer", date: "2026-10-11", stamp: unassessed.stamp };
+    const roundTripPath = writeStore(root, [staleAssessmentCandidate, unassessedCandidate]);
+    // req: R-1029
+    check("writes deterministic stale and unassessed packets with HEAD stamps and a validating round trip", names.includes("FEAT-039.json") && packet.version === 1 && Object.keys(packet).sort().join(",") === "assessment,differences,feature,rows,stamp,version" && Object.keys(packet.feature).sort().join(",") === "id,label,purpose,status" && packet.feature.purpose.includes("requirements") && packet.rows.every((row) => Object.keys(row).sort().join(",") === "evidence,id,mark,requirement,status") && JSON.stringify(packet.rows) === JSON.stringify(expectedPacketRows) && packet.assessment?.id === "FEAT-039" && packet.stamp.commit === git(["rev-parse", "HEAD"]).stdout.trim() && packet.stamp.rows.length === packet.rows.length && packet.differences.purpose?.was && packet.differences.purpose?.now && unassessed.assessment === null && unassessed.differences.added.length === 0 && unassessed.rows.some((row) => row.mark === "shared") && currentFeatureHasNoPacket && fs.readFileSync(path.join(firstDir, "FEAT-039.json")).equals(fs.readFileSync(path.join(secondDir, "FEAT-039.json"))) && validateStore({ root, storePath: roundTripPath }).length === 0);
+    const refusalDir = path.join(temp, "packets-nonempty"); fs.mkdirSync(refusalDir); fs.writeFileSync(path.join(refusalDir, "keep"), "untouched");
+    let refused = false; try { await generatePackets({ root, dir: refusalDir }); } catch { refused = true; }
+    // req: R-1029
+    check("refuses non-empty packet directories without writing", refused && fs.readFileSync(path.join(refusalDir, "keep"), "utf8") === "untouched" && fs.readdirSync(refusalDir).join(",") === "keep");
+    check("accepts an empty packet directory", await generatePackets({ root, dir: path.join(temp, "packets-empty") }).then(() => true, () => false));
   }
   {
     const { root, git } = fixture("staleness");

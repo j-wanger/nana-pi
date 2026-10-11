@@ -240,7 +240,7 @@ Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm
 
 ## Product report
 
-The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>` and `--out <file>`. Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input, and requires full git history.
+The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input, and requires full git history.
 
 ## Tests
 

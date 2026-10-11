@@ -2,15 +2,15 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output path, and injected git runner.
- * @outputs A complete product ledger HTML file, an exported report model and renderer, or assessment-store problem strings.
- * @effects disk (reads sources and store, writes the report), process (queries git and reports CLI errors).
+ * @inputs REQUIREMENTS.md, HANDOFF.md, an optional assessment store, the HTML template, repository root, output or packet directory, and injected git runner.
+ * @outputs A complete product ledger HTML file, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
+ * @effects disk (reads sources and store, writes the report or packets), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, git failures, and output failures with named diagnostics.
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTree, descendants, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
@@ -36,6 +36,18 @@ function git(gitRunner, root, args) {
   const result = gitRunner(args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
   if (result?.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result?.stderr?.trim() || "unknown git error"}`);
   return result.stdout.trim();
+}
+
+function featureStamp(parsed, feature, commit) {
+  const rows = readRequirementRows(parsed);
+  const ownHeadings = descendants(parsed, feature);
+  const ownRows = rows.filter((row) => ownHeadings.includes(row.heading));
+  const sharedRows = feature.alsoApplies.map((id) => rows.find((row) => row.id === id)).filter(Boolean);
+  return {
+    commit, purpose: feature.purpose, status: feature.status,
+    rows: [...ownRows.map((row) => ({ ...row, mark: "own" })), ...sharedRows.map((row) => ({ ...row, mark: "shared" }))]
+      .map((row) => ({ id: row.id, mark: row.mark, status: row.status, sha256: fingerprint(row) })),
+  };
 }
 
 export function renderInto(document, model) {
@@ -123,17 +135,14 @@ export function validateStore({ root = REPO_ROOT, storePath, gitRunner = (args, 
     if (treeProblems.length) { problem(`${target}: ledger at ${stamp.commit} has tree problems: ${treeProblems.join("; ")}`); continue; }
     const feature = parsed.headings.find((heading) => heading.id === assessment.id && heading.id.startsWith("FEAT-"));
     if (!feature) { problem(`${target}: ${assessment.id} is absent at commit ${stamp.commit}`); continue; }
-    const allRows = readRequirementRows(parsed);
-    const ownHeadings = descendants(parsed, feature);
-    const ownRows = allRows.filter((row) => ownHeadings.includes(row.heading));
-    const sharedRows = feature.alsoApplies.map((id) => allRows.find((row) => row.id === id)).filter(Boolean);
-    const expected = [...ownRows.map((row) => ({ ...row, mark: "own" })), ...sharedRows.map((row) => ({ ...row, mark: "shared" }))];
+    const expectedStamp = featureStamp(parsed, feature, stamp.commit);
+    const expected = expectedStamp.rows;
     const actualById = new Map(stamp.rows.filter((row) => row && typeof row.id === "string").map((row) => [row.id, row]));
     const expectedById = new Map(expected.map((row) => [row.id, row]));
     for (const row of expected) {
       const actual = actualById.get(row.id);
       if (!actual) problem(`${target}: ${assessment.id} stamp is missing row ${row.id}`);
-      else if (actual.mark !== row.mark || actual.status !== row.status || actual.sha256 !== fingerprint(row)) problem(`${target}: ${assessment.id} stamp differs for row ${row.id}`);
+      else if (actual.mark !== row.mark || actual.status !== row.status || actual.sha256 !== row.sha256) problem(`${target}: ${assessment.id} stamp differs for row ${row.id}`);
     }
     for (const row of stamp.rows) if (!expectedById.has(row?.id)) problem(`${target}: ${assessment.id} stamp has unexpected row ${row?.id}`);
     if (stamp.purpose !== feature.purpose) problem(`${target}: ${assessment.id} stamped purpose differs at commit ${stamp.commit}`);
@@ -198,6 +207,39 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
+export async function generatePackets({ root = REPO_ROOT, dir, gitRunner = (args, options) => spawnSync("git", args, options) } = {}) {
+  if (!dir) throw new Error("packet directory is required");
+  const target = path.isAbsolute(dir) ? dir : path.resolve(root, dir);
+  await mkdir(target, { recursive: true });
+  const initialEntries = await readdir(target);
+  if (initialEntries.length) throw new Error(`packet directory is not empty: ${target}`);
+  const model = await buildReport({ root, gitRunner });
+  const commit = git(gitRunner, root, ["rev-parse", "HEAD"]);
+  const headLedger = git(gitRunner, root, ["show", `${commit}:REQUIREMENTS.md`]);
+  const { parsed, problems } = checkTree(normalise(headLedger));
+  if (problems.length) throw new Error(`requirements tree checker problems at HEAD:\n${problems.join("\n")}`);
+  const featuresById = new Map(parsed.headings.filter((heading) => heading.id.startsWith("FEAT-")).map((feature) => [feature.id, feature]));
+  const packets = model.features.filter((feature) => feature.assessmentState !== "current").map((feature) => {
+    const headFeature = featuresById.get(feature.id);
+    if (!headFeature) throw new Error(`${feature.id} is absent from REQUIREMENTS.md at HEAD`);
+    return {
+      filename: `${feature.id}.json`,
+      packet: {
+        version: 1,
+        feature: { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status },
+        rows: feature.rows.map(({ id, mark, requirement, status, evidence }) => ({ id, mark, requirement, status, evidence })),
+        assessment: feature.assessment,
+        differences: feature.assessment ? feature.differences : { added: [], removed: [], changed: [], purpose: null, status: null },
+        stamp: featureStamp(parsed, headFeature, commit),
+      },
+    };
+  });
+  const entriesAfterBuild = await readdir(target);
+  if (entriesAfterBuild.length) throw new Error(`packet directory is not empty: ${target}`);
+  for (const { filename, packet } of packets) await writeFile(path.join(target, filename), `${JSON.stringify(packet, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+  return packets.map(({ filename }) => path.join(target, filename));
+}
+
 export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner } = {}) {
   const { model, template } = await buildReport({ root, ...(gitRunner ? { gitRunner } : {}) });
   const payload = JSON.stringify(model).replaceAll("<", "\\u003c");
@@ -209,13 +251,15 @@ export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitR
 }
 
 export function main(argv = process.argv.slice(2)) {
-  let root = REPO_ROOT; let out = DEFAULT_OUT;
+  let root = REPO_ROOT; let out = DEFAULT_OUT; let packets;
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
     if (flag === "--root" && argv[index + 1]) root = path.resolve(argv[++index]);
     else if (flag === "--out" && argv[index + 1]) out = argv[++index];
-    else { console.error("Usage: product-report.mjs [--root <dir>] [--out <file>]"); return 2; }
+    else if (flag === "--packets" && argv[index + 1]) packets = argv[++index];
+    else { console.error("Usage: product-report.mjs [--root <dir>] [--out <file>] [--packets <dir>]"); return 2; }
   }
+  if (packets) return generatePackets({ root, dir: packets }).then((files) => { console.log(`Wrote ${files.length} packet(s)`); return 0; }).catch((error) => { console.error(error.message); return 1; });
   return generateReport({ root, out }).then((file) => { console.log(`Wrote ${file}`); return 0; }).catch((error) => { console.error(error.message); return 1; });
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await main();
