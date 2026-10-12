@@ -194,7 +194,10 @@ for (const w of win32Wanted) {
 {
 	const h2 = freshHome();
 	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
-	const healthyLegacy = { type: "command", command: `node ${shq(path.join(repo, "packages/nana-knowledge/bin/nana-knowledge.ts"))} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
+	// Today's real win32 knowledge target: the root in its own native separators, the suffix in
+	// forward slashes — the exact mixed string desiredHooks() itself builds (CHANGE.md §3), not
+	// path.join's fully-backslashed result, which the win32-legacy recognizer would not match.
+	const healthyLegacy = { type: "command", command: `node ${shq(`${repo}/packages/nana-knowledge/bin/nana-knowledge.ts`)} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
 	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [healthyLegacy] }] } }, null, 2) + "\n");
 	const r = run(["install", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
 	// req: R-1059

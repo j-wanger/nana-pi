@@ -22,7 +22,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { commandInvokes, desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -348,8 +348,9 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	check("model key survives", after.model === "fable");
 	const preTool = after.hooks.PreToolUse.flatMap((group) => group.hooks);
+	const verifierSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
 	// req: R-985
-	check("PreToolUse preserves the foreign hook and appends the Node verifier hook", preTool[0].command === original.hooks.PreToolUse[0].hooks[0].command && preTool.some((entry) => entry.command.endsWith("/verifier-pipe.mjs'")));
+	check("PreToolUse preserves the foreign hook and appends the Node verifier hook", preTool[0].command === original.hooks.PreToolUse[0].hooks[0].command && preTool.some((entry) => entryInvokes(entry, verifierSpec, platform())));
 	// req: R-660
 	check("exact nana context invocation is removed", !JSON.stringify(after).includes('"command": "bash ~/.claude/hooks/context-size-check.sh"'), JSON.stringify(after));
 	// req: R-660
@@ -418,9 +419,25 @@ const run = (args, home) => spawnSync(process.execPath, [cli, ...args, "--home",
 	const r = run(["install"], home);
 	const text = fs.readFileSync(file, "utf8");
 	const after = JSON.parse(text);
-	const commands = after.hooks.UserPromptSubmit[0].hooks.map((hook) => hook.command);
+	const entries = after.hooks.UserPromptSubmit[0].hooks;
+	const commands = entries.map((hook) => hook.command);
+	const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
+	// "ours" means it structurally invokes nana-knowledge.ts AND its target resolves inside this
+	// checkout — the unknown hand-written entry invokes a script of the same NAME elsewhere, so
+	// entryInvokes alone cannot tell them apart.
+	const isOurs = (hook) => {
+		if (!entryInvokes(hook, knowledgeSpec, platform())) return false;
+		const target = hookTargets({ hooks: { UserPromptSubmit: [{ hooks: [hook] }] } }, "UserPromptSubmit", knowledgeSpec, platform())[0];
+		if (!target) return false;
+		try {
+			const real = fs.realpathSync(target);
+			const root = fs.realpathSync(repo);
+			return real === root || real.startsWith(root + path.sep);
+		} catch { return false; }
+	};
+	const ownEntries = entries.filter(isOurs);
 	// req: R-394
-	check("install replaces its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && commands.filter((command) => command.includes(path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")) && command.includes(" hook")).length === 1 && commands[0].includes(path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")), JSON.stringify(commands));
+	check("install replaces its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && ownEntries.length === 1 && ownEntries[0] === entries[0], JSON.stringify(commands));
 	// req: R-653
 	check("install preserves customized knowledge hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
 }
