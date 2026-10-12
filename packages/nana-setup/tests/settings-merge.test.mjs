@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, hasHook, mergeHooks, serialize, shq, tokenize, validateShape, mergeKnowledgeHook, migrateLegacyHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -153,7 +153,9 @@ check("five active hook entries are wanted", wanted.length === 5);
 
 /* --- a recognized stale knowledge hook is atomically migrated, unknown entries survive -- */
 {
-	const desired = "NODE_NO_WARNINGS=1 node '/repo/packages/nana-knowledge/bin/nana-knowledge.ts' hook";
+	const wantedKnowledge = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const desired = wantedKnowledge.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
+	check("fixture: the desired knowledge command matches today's shape", desired === "NODE_NO_WARNINGS=1 node '/repo/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
 	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
 	const original = { hooks: { UserPromptSubmit: [{ hooks: [
 		{ type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" },
@@ -161,16 +163,120 @@ check("five active hook entries are wanted", wanted.length === 5);
 		customized,
 		{ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" },
 	] }] } };
-	const result = mergeKnowledgeHook(original, { repoRoot: "/repo", desiredCommand: desired });
+	const result = mergeRepoHooks(original, { repoRoot: "/repo", wanted: wantedKnowledge });
+	const row = result["UserPromptSubmit knowledge pull"];
 	// req: R-394
-	check("recognized stale absolute knowledge command is replaced in place with no duplicate", result.replaced && !result.added && original.hooks.UserPromptSubmit[0].hooks[0].command === desired && original.hooks.UserPromptSubmit[0].hooks.length === 4);
+	check("recognized stale absolute knowledge command is replaced in place with no duplicate", row.found && row.replaced && original.hooks.UserPromptSubmit[0].hooks[0].command === desired && original.hooks.UserPromptSubmit[0].hooks.length === 4);
 	// req: R-653
 	check("unrecognized hand-written node hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify({ type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" }));
 	// req: R-653
 	check("unrecognized customized knowledge hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
 	// req: R-653
 	check("unrecognized echo entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[3]) === JSON.stringify({ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" }));
-	check("absolute knowledge hook target outside repository is not accepted as healthy", !result.staleValid);
+	check("absolute knowledge hook target outside repository is not accepted as healthy", row.replaced);
+}
+
+/* --- win32 exec form: desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget ------- */
+{
+	// (R-1050, R-1051) every win32 entry is exec form, unquoted and unescaped, from the checkout.
+	const weird = "/Users/Jane Doe/nana pi $x `y %z% o'q";
+	const w32 = desiredHooks({ hooksDir: "/unused", repoRoot: weird, platform: "win32" });
+	// req: R-1050
+	check("win32 desiredHooks: every entry is exec form with no shell key", w32.every((w) => w.entry.command === "node" && Array.isArray(w.entry.args) && !("shell" in w.entry)));
+	// req: R-1051
+	check("win32 desiredHooks: the four hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
+	// req: R-1050
+	check("win32 desiredHooks: only the knowledge entry adds `hook`", w32.filter((w) => w.entry.args.length > 1).length === 1 && w32.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.args[1] === "hook");
+	// req: R-1050
+	check("win32 desiredHooks: the knowledge target is the checkout's own nana-knowledge CLI", w32.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.args[0] === `${weird}/packages/nana-knowledge/bin/nana-knowledge.ts`);
+	// req: R-1053
+	check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
+	// req: R-1053
+	check("win32 desiredHooks: the verifier group's matcher is WIN_VERIFIER_MATCHER", w32.find((w) => w.label === "PreToolUse verifier pipe").matcher === WIN_VERIFIER_MATCHER);
+	// req: R-1060
+	check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
+}
+{
+	// (R-1061) POSIX desiredHooks is byte-identical to today's, with or without an explicit non-win32 platform.
+	const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+	const eq = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+	const fixture = [
+		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: { interpreters: ["node"], script: "nana-objective.mjs" }, entry: { type: "command", command: "node '/h/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" } },
+		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
+		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
+		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
+		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] }, entry: { type: "command", command: "NODE_NO_WARNINGS=1 node '/r/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" } },
+	];
+	// req: R-1061
+	check("POSIX desiredHooks deep-equals today's fixture", eq(desiredHooks({ hooksDir: "/h", repoRoot: "/r", platform: "darwin" }), fixture));
+	// req: R-1061
+	check("desiredHooks with no platform deep-equals the same fixture", eq(desiredHooks({ hooksDir: "/h", repoRoot: "/r" }), fixture));
+}
+{
+	const objSpec = spec("SessionStart objective");
+	const knowledgeSpec = spec("UserPromptSubmit knowledge pull");
+	// req: R-1050
+	check("entryInvokes: win32 recognizes an exec-form entry", entryInvokes({ command: "node", args: ["/h/nana-objective.mjs"] }, objSpec, "win32"));
+	// req: R-1050
+	check("entryInvokes: win32 a non-array args reads as not installed", !entryInvokes({ command: "node", args: "/h/nana-objective.mjs" }, objSpec, "win32"));
+	check("entryInvokes: win32 a non-string args element reads as not installed", !entryInvokes({ command: "node", args: [123] }, objSpec, "win32"));
+	// req: R-1050
+	check("entryInvokes: win32 an exec command of NODE_NO_WARNINGS=1 with node in args reads as not installed", !entryInvokes({ command: "NODE_NO_WARNINGS=1", args: ["node", "/r/packages/nana-knowledge/bin/nana-knowledge.ts", "hook"] }, knowledgeSpec, "win32"));
+	// req: R-1061
+	check("entryInvokes: POSIX reads a copied Windows exec fragment as not installed", !entryInvokes({ command: "node", args: ["C:\\Users\\jake\\nana-pi/packages/nana-setup/claude/hooks/nana-objective.mjs"] }, objSpec, undefined));
+	// req: R-1061
+	check("entryInvokes: an entry carrying args with a shell-form command reads as commandInvokes reads its command (POSIX)", entryInvokes({ command: "node '/h/nana-objective.mjs'", args: ["whatever", "ignored"] }, objSpec, undefined) === commandInvokes("node '/h/nana-objective.mjs'", objSpec));
+}
+{
+	const settings = { hooks: { SessionStart: [{ hooks: [{ type: "command", command: "node", args: ["/h/nana-objective.mjs"], timeout: 5 }] }] } };
+	// req: R-1051
+	check("hasHook on win32 finds an exec-form entry under the expected event and matcher", hasHook(settings, "SessionStart", spec("SessionStart objective"), undefined, "win32"));
+	check("hasHook on win32 does not find it under a different matcher", !hasHook(settings, "SessionStart", spec("SessionStart objective"), "Bash", "win32"));
+}
+{
+	const stale = { hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "node", args: ["/missing/packages/nana-knowledge/bin/nana-knowledge.ts", "hook"], timeout: 5 }] }] } };
+	// req: R-1055
+	check("hookTargets reads an exec-form target on win32", hookTargets(stale, "UserPromptSubmit", spec("UserPromptSubmit knowledge pull"), "win32").length === 1);
+}
+{
+	const wantedWin = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
+	const objWin = wantedWin.find((w) => w.label === "SessionStart objective");
+	const wantedPosix = desiredHooks({ hooksDir: "/h", repoRoot: "/repo" });
+	const knowledgeWin = wantedWin.find((w) => w.label === "UserPromptSubmit knowledge pull");
+	const knowledgePosix = wantedPosix.find((w) => w.label === "UserPromptSubmit knowledge pull");
+	const objPosix = wantedPosix.find((w) => w.label === "SessionStart objective");
+	// req: R-1056
+	check("installerTarget accepts the POSIX knowledge form on every platform", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgeWin, "win32")?.form === "posix" && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined)?.form === "posix");
+	// req: R-1056
+	check("installerTarget accepts the earlier win32 knowledge form", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgeWin, "win32")?.form === "win32-legacy");
+	// req: R-1050
+	// req: R-1056
+	check("installerTarget accepts the R-1050 exec form", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32")?.form === "win32-exec");
+	// req: R-923
+	check("installerTarget rejects an extra args element", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5 }, objWin, "win32") === null);
+	// req: R-923
+	check("installerTarget rejects a relative path", installerTarget({ command: "node", args: ["packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32") === null);
+	// req: R-1056
+	// req: R-653
+	check("installerTarget on win32 rejects a shell form carrying args", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5 }, knowledgeWin, "win32") === null);
+	// req: R-1061
+	// req: R-653
+	check("installerTarget on POSIX rejects the two win32-only forms", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined) === null && installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objPosix, undefined) === null);
+}
+{
+	const wantedWin32 = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
+	const settings = { hooks: {} };
+	for (const w of wantedWin32) {
+		settings.hooks[w.event] ??= [];
+		let group = settings.hooks[w.event].find((g) => g.matcher === w.matcher);
+		if (!group) { group = { ...(w.matcher ? { matcher: w.matcher } : {}), hooks: [] }; settings.hooks[w.event].push(group); }
+		group.hooks.push(w.entry);
+	}
+	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
+	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
+	// req: R-1050
+	check("forced-win32 removeInstallerHooks removes exactly the five entries", removed.length === 5, JSON.stringify(removed));
+	check("forced-win32 removeInstallerHooks keeps the entry whose args differ", settings.hooks.SessionStart[0].hooks.length === 1 && settings.hooks.SessionStart[0].hooks[0].args.includes("--extra"), JSON.stringify(settings.hooks.SessionStart));
 }
 
 /* --- exact legacy SessionStart entries migrate in place -------------------------------- */
@@ -205,7 +311,9 @@ check("five active hook entries are wanted", wanted.length === 5);
 {
 	const s = { hooks: { SessionStart: [{ hooks: [{ type: "command", command: "echo nana-objective.sh.disabled" }] }] } };
 	const r = mergeHooks(s, wanted);
+	// req: R-923
 	check("a look-alike command does not suppress the real hook", r.added.includes("SessionStart objective"));
+	// req: R-923
 	check("the look-alike is still there, untouched", s.hooks.SessionStart[0].hooks[0].command === "echo nana-objective.sh.disabled");
 	check("hasHook now reports the real hook", hasHook(s, "SessionStart", spec("SessionStart objective")));
 }
@@ -573,6 +681,20 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	} catch (error) { err = error; }
 	// req: R-394
 	check("stale-hook migration refuses a concurrent replacement and preserves its bytes", err instanceof SetupError && fs.readFileSync(file, "utf8") === concurrent);
+}
+
+/* --- forced win32: a hand-written exec-form variant is kept byte for byte, no twin (R-923) ---- */
+{
+	const home = freshHome("nana-setup-win32-variant-");
+	const file = path.join(home, ".claude", "settings.json");
+	const hookPath = `${repo}/packages/nana-setup/claude/hooks/nana-objective.mjs`;
+	const handWritten = { type: "command", command: "node", args: [hookPath], timeout: 5, statusMessage: "my own objective message" };
+	fs.writeFileSync(file, JSON.stringify({ hooks: { SessionStart: [{ hooks: [handWritten] }] } }, null, 2) + "\n");
+	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
+	const after = JSON.parse(fs.readFileSync(file, "utf8"));
+	const objectiveEntries = after.hooks.SessionStart[0].hooks.filter((h) => JSON.stringify(h).includes("nana-objective.mjs"));
+	// req: R-923
+	check("forced win32: a hand-written exec-form variant is kept byte for byte, no twin", r.status === 0 && objectiveEntries.length === 1 && JSON.stringify(objectiveEntries[0]) === JSON.stringify(handWritten), JSON.stringify(objectiveEntries));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

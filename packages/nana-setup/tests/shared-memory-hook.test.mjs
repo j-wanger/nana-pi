@@ -36,7 +36,7 @@ function freshHome({ withIndex = true } = {}) {
 	return td;
 }
 const run = (home, env = {}, stdin = "", cwd) =>
-	spawnSync(process.execPath, [hook], { encoding: "utf8", input: stdin, cwd, env: { PATH: process.env.PATH, HOME: home, ...env } });
+	spawnSync(process.execPath, [hook], { encoding: "utf8", input: stdin, cwd, env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, ...env } });
 
 /* --- 1. fail-open when there is no shared index ---------------------------------------- */
 {
@@ -130,7 +130,7 @@ const run = (home, env = {}, stdin = "", cwd) =>
 	const home = freshHome();
 	const cwd = tmpDir(path.join(os.tmpdir(), "nana-cwd-"));
 	tmps.push(cwd);
-	const r = spawnSync(process.execPath, [hook], { encoding: "utf8", input: "", cwd, env: { PATH: process.env.PATH, HOME: home } });
+	const r = spawnSync(process.execPath, [hook], { encoding: "utf8", input: "", cwd, env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home } });
 	check("no CLAUDE_PROJECT_DIR: uses the cwd", fs.existsSync(path.join(home, ".claude", "projects", projectKey(fs.realpathSync(cwd)), "memory", "shared")) || fs.existsSync(path.join(home, ".claude", "projects", projectKey(cwd), "memory", "shared")));
 	check("no CLAUDE_PROJECT_DIR: exit 0", r.status === 0);
 }
@@ -141,7 +141,7 @@ const run = (home, env = {}, stdin = "", cwd) =>
 	const cwd = tmpDir(path.join(os.tmpdir(), "nana-deleted-cwd-"));
 	tmps.push(cwd);
 	const code = `import { rmdirSync } from "node:fs"; rmdirSync(process.cwd()); await import(${JSON.stringify(new URL("../claude/hooks/nana-shared-memory.mjs", import.meta.url).href)});`;
-	const r = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd, encoding: "utf8", input: "", env: { PATH: process.env.PATH, HOME: home } });
+	const r = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd, encoding: "utf8", input: "", env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home } });
 	// req: R-934
 	check("deleted cwd: self-heal skipped, creates nothing, index still printed", r.status === 0 && /self-heal skipped/.test(r.stdout) && r.stdout.includes("- [One](one.md)") && !fs.existsSync(path.join(home, ".claude", "projects")), r.stderr + r.stdout);
 }

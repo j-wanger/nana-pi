@@ -64,6 +64,31 @@ for (const [name, command, expected, dialect] of cases) {
 	check(`predicate table: ${name}`, Boolean(verifierPipeReason(command, dialect)) === expected);
 }
 
+// R-1062 (sol plan r1 MUST 1, r2 MUST 1): the PowerShell lexer in liveText. Every negative case
+// carries a live `git commit` outside the construct (sol r2 MUST 1), so a lexer that exposes the
+// pipe turns the case into an ask.
+const psCases = [
+	["PS: unquoted pipe masks a trailing commit", "npm test | Select-Object -Last 5; git commit -m x", true],
+	["PS: a $(...) subexpression inside a double-quoted string is live", '"$(npm test | Select-Object -Last 1)"; git commit -m x', true],
+	["PS: a $(...) subexpression inside an expandable here-string is live", '@"\n$(npm test | Select-Object -Last 1)\n"@\ngit commit -m x', true],
+	["PS: recovery after a backtick-escaped double quote", 'Write-Output "a`"b"; npm test | Select-Object -Last 1; git commit -m x', true],
+	["PS: recovery after a doubled double quote", 'Write-Output "a""b"; npm test | Select-Object -Last 1; git commit -m x', true],
+	["PS: mirror — the pipe stays inside a string closed only after it (backtick form)", 'Write-Output "a`" | b"; git commit -m x', false],
+	["PS: mirror — the pipe stays inside a string closed only after it (doubled form)", 'Write-Output "a"" | b"; git commit -m x', false],
+	["PS: a single-quoted string hides its pipe", "'npm test | x'; git commit -m x", false],
+	["PS: a double-quoted string hides its pipe", '"npm test | x"; git commit -m x', false],
+	["PS: a backtick escapes a pipe outside any string", "npm test `| x; git commit -m x", false],
+	["PS: a line comment hides its pipe", "# npm test | x\ngit commit -m x", false],
+	["PS: a block comment hides its pipe", "<# npm test | x #> git commit -m x", false],
+	["PS: a single-quoted here-string hides its pipe", "@'\nnpm test | x\n'@\ngit commit -m x", false],
+	["PS: an expandable here-string with no subexpression hides its pipe", '@"\nnpm test | x\n"@\ngit commit -m x', false],
+	["PS: a doubled single quote does not end the string early", "'it''s | x'; git commit -m x", false],
+];
+for (const [name, command, expected] of psCases) {
+	// req: R-1062
+	check(`predicate table: ${name}`, Boolean(verifierPipeReason(command, "powershell")) === expected);
+}
+
 let handler;
 gateExtension({ on: (event, fn) => { if (event === "tool_call") handler = fn; } });
 const ctx = { cwd: process.cwd(), hasUI: false, isProjectTrusted: () => false };

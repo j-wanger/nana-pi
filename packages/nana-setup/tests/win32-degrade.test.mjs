@@ -20,7 +20,9 @@ import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
+const repo = path.resolve(pkg, "..", "..");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -62,8 +64,9 @@ for (const label of ["hook nana-objective.mjs", "hook nana-shared-memory.mjs"]) 
 check("win32 install skips every POSIX PATH command and leaves bin absent or empty", posix.status === 0 && pathLabels.length > 0 && pathLabels.every((label) => /skipped\s+skipped \(win32\)/.test(line(label))) && (!fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0), pathLabels.find((label) => !/skipped\s+skipped \(win32\)/.test(line(label))) ?? "bin directory is not empty");
 // req: R-589
 check("win32: PATH nana-setup reports skipped (win32)", /skipped\s+skipped \(win32\)/.test(line("PATH nana-setup")), line("PATH nana-setup"));
-for (const label of ["settings SessionStart objective", "settings SessionStart shared-memory"]) {
-	check(`win32: ${label} reports skipped (win32: POSIX hook)`, line(label).includes("skipped (win32: POSIX hook)"), line(label));
+// R-1051: the four Node hook settings entries are wired on win32 now, in exec form — not skipped.
+for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory"]) {
+	check(`win32: ${label} is created, not skipped`, line(label).includes("created"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
 check("win32: no ~/.local/bin entry is created", !fs.existsSync(path.join(home, ".local", "bin")) || fs.readdirSync(path.join(home, ".local", "bin")).length === 0);
@@ -80,24 +83,48 @@ check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
-// req: R-387
-check("win32: only the knowledge hook is wired", cmds.length === 1 && cmds[0].includes("nana-knowledge.ts"));
+// req: R-1051
+check("win32: only the knowledge hook is wired", cmds.length === 1 && JSON.stringify(settings.hooks.UserPromptSubmit).includes("nana-knowledge.ts"));
+// req: R-1050
 check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
-// req: R-387
+// req: R-1050
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
-// req: R-985
-check("win32: no Claude verifier PreToolUse entry is installed", !settings.hooks.PreToolUse?.some((group) => group.hooks.some((entry) => entry.command.includes("verifier-pipe.mjs"))));
+// R-985, R-1053: the verifier-pipe hook IS wired on win32 now, matcher Bash|PowerShell.
+const allEntries = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => ({ group: g, hook: h }))));
+const win32Wanted = desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo, platform: "win32" });
+for (const w of win32Wanted) {
+	const found = allEntries.filter(({ hook }) => JSON.stringify(hook).includes(w.marker.replace(" hook", "")));
+	// req: R-1050
+	check(`win32: exactly one ${w.label} entry, exec form (command "node", args array, no shell key)`, found.length === 1 && found[0].hook.command === "node" && Array.isArray(found[0].hook.args) && !("shell" in found[0].hook), JSON.stringify(found));
+	// req: R-1051
+	check(`win32: ${w.label} args[0] is absolute, exists, and ends with the entry's script`, path.isAbsolute(found[0]?.hook.args?.[0] ?? "") && fs.existsSync(found[0]?.hook.args?.[0] ?? "") && (found[0]?.hook.args?.[0] ?? "").endsWith(w.spec.script));
+}
+// req: R-1053
+check("win32: the verifier group's matcher is Bash-or-PowerShell", allEntries.find(({ hook }) => JSON.stringify(hook).includes("verifier-pipe.mjs"))?.group?.matcher === WIN_VERIFIER_MATCHER);
+check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
 
 /* doctor agrees, and does not fail on what the platform cannot have */
 const doctorCwd = tmpDir(path.join(os.tmpdir(), "nana-setup-doctor-cwd-"));
 tmps.push(doctorCwd);
 const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
+// req: R-937
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
+// req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
+// req: R-937
 check("win32 doctor marks the skipped pieces", (doc.stdout.match(/skipped \(win32\)/g) || []).length >= 4);
+// req: R-937
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
-// req: R-985
-check("win32 doctor skips rather than expects a Claude verifier entry", /settings PreToolUse verifier pipe\s+skipped \(win32; Claude Code hooks unavailable\)/.test(doc.stdout) && !/✗ settings PreToolUse verifier pipe/.test(doc.stdout));
+for (const w of win32Wanted) {
+	// req: R-1055
+	check(`win32 doctor: settings ${w.label} is ✓`, new RegExp(`✓ settings ${w.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
+}
+// req: R-1057
+check("win32 doctor: node for the objective hook runs (not skipped)", /✓ node for the objective hook/.test(doc.stdout), doc.stdout);
+// req: R-1060
+check("win32 doctor: a note names the Claude Code exec-form floor", doc.stdout.includes(CLAUDE_CODE_EXEC_FLOOR), doc.stdout);
+// req: R-1060
+check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
 
 /* re-running is still idempotent under the win32 branch */
 const again = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
@@ -130,6 +157,52 @@ check("win32: second install reports nothing to do", again.stdout.includes("noth
 	check("win32 symlink: the target is now a regular file", fs.lstatSync(path.join(linked, ".claude", "rules", "nana-soul.md")).isFile() && !fs.lstatSync(path.join(linked, ".claude", "rules", "nana-soul.md")).isSymbolicLink());
 	check("win32 symlink: it holds the repo copy", fs.readFileSync(path.join(linked, ".claude", "rules", "nana-soul.md"), "utf8") === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-soul.md"), "utf8"));
 	check("win32 symlink: the replacement is reported", /replaced a symlink/.test(r.stdout), r.stdout);
+}
+
+/* --- every hook label is repaired in place when its checkout has moved, not just knowledge
+   (R-1056, R-1059) — doctor (R-1055) is checked for every label too, not one representative ---- */
+for (const w of win32Wanted) {
+	const h2 = freshHome();
+	// POSIX path.isAbsolute rejects a `C:\` form, so this forced-win32-on-POSIX fixture uses a
+	// POSIX-shaped absolute path, as the seat acceptance script's own stale seeds do.
+	const missingTarget = `/gone/checkout/packages/${w.spec.script === "nana-knowledge.ts" ? "nana-knowledge/bin" : "nana-setup/claude/hooks"}/${w.spec.script}`;
+	const extra = w.spec.args ?? [];
+	const staleEntry = { type: "command", command: "node", args: [missingTarget, ...extra], timeout: 5 };
+	const group = w.matcher ? { matcher: w.matcher, hooks: [staleEntry] } : { hooks: [staleEntry] };
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { [w.event]: [group] } }, null, 2) + "\n");
+	const preDoc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check(`win32 doctor: a stale ${w.label} target reads ✗`, new RegExp(`✗ settings ${w.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(preDoc.stdout), preDoc.stdout);
+	const r = run(["install", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1056
+	check(`win32: stale ${w.label} install exits 0`, r.status === 0, r.stdout + r.stderr);
+	const after = JSON.parse(fs.readFileSync(path.join(h2, ".claude", "settings.json"), "utf8"));
+	// a minimal single-entry seed also triggers install to add the other four missing entries,
+	// so the "no twin" proof is that exactly ONE entry under this event still names this script.
+	const matching = after.hooks[w.event].flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes(w.spec.script));
+	const repaired = matching[0];
+	// req: R-1056
+	check(`win32: stale ${w.label} is repaired in place to this checkout, no twin`, matching.length === 1 && repaired.command === "node" && Array.isArray(repaired.args) && path.isAbsolute(repaired.args[0]) && fs.existsSync(repaired.args[0]), JSON.stringify(repaired));
+	const doc2 = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check(`win32 doctor: settings ${w.label} reads ✓ after repair`, new RegExp(`✓ settings ${w.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc2.stdout), doc2.stdout);
+}
+
+/* --- the earlier win32 knowledge form, pointing at a missing checkout, is moved to exec form
+   in place even though only its form (not its health) is wrong (R-1059) --------------------- */
+{
+	const h2 = freshHome();
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	const healthyLegacy = { type: "command", command: `node ${shq(path.join(repo, "packages/nana-knowledge/bin/nana-knowledge.ts"))} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [healthyLegacy] }] } }, null, 2) + "\n");
+	const r = run(["install", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1059
+	check("win32: install over the earlier win32 form exits 0", r.status === 0, r.stdout + r.stderr);
+	const after = JSON.parse(fs.readFileSync(path.join(h2, ".claude", "settings.json"), "utf8"));
+	const entries = after.hooks.UserPromptSubmit[0].hooks;
+	// req: R-1059
+	check("win32: a healthy earlier-form knowledge entry is moved to exec form in place, no twin", entries.length === 1 && entries[0].command === "node" && Array.isArray(entries[0].args) && entries[0].args[1] === "hook", JSON.stringify(entries));
 }
 
 /* the seam does not leak: a normal run on this machine still links */

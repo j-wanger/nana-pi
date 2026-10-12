@@ -59,6 +59,17 @@ const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
 // req: R-985
 check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.matcher === "Bash" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && pipe.entry.command.startsWith("node "));
 
+{
+	const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
+	const prefixed = "set -o pipefail; npm test | Select-Object -Last 1; git commit -m x";
+	const psHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: prefixed } });
+	// req: R-1054
+	check("decideHook judges a PowerShell event with the PowerShell dialect (bash pipefail syntax stays inactive)", psHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHit));
+	const bashNoHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: prefixed } });
+	// req: R-1054
+	check("decideHook keeps the Bash dialect for a Bash event (the same pipefail prefix is exempted there)", bashNoHit.response === null, JSON.stringify(bashNoHit));
+}
+
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));
 const layout = resolveLayout({ home });
 fs.mkdirSync(layout.hooksDir, { recursive: true });
@@ -120,13 +131,13 @@ const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
 const claudeRow = matrix.split("\n").find((line) => line.startsWith("| Claude Code seat |")) ?? "";
 const piRow = matrix.split("\n").find((line) => line.startsWith("| pi TUI or desk session |")) ?? "";
 // req: R-985
-check("runtime matrix declares verifier-pipe surfaces for pi and Claude Code", /Verifier pipe/.test(matrix) && /Bash PreToolUse Node hook/.test(claudeRow) && /nana-gate/.test(piRow) && /shared predicate/.test(piRow));
+check("runtime matrix declares verifier-pipe surfaces for pi and Claude Code", /Verifier pipe/.test(matrix) && /PreToolUse Node hook `verifier-pipe\.mjs`/.test(claudeRow) && /matcher `Bash` on macOS and Linux, `Bash\\\|PowerShell` on Windows/.test(claudeRow) && /nana-gate/.test(piRow) && /shared predicate/.test(piRow));
 const packDeclaration = packReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
 const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
 // req: R-985
 check("both READMEs declare the user-scope live verifier-pipe change", /user-scope/.test(packDeclaration) && /every session/.test(packDeclaration) && /user-scope/.test(setupDeclaration) && /every session/.test(setupDeclaration));
-// req: R-985
-check("pack README declares the Claude win32 hook limitation", /Claude Code.*not wired on native Windows/.test(packDeclaration));
+// req: R-985, R-1053
+check("pack README declares the Claude win32 verifier coverage", /Claude Code hook is wired on native Windows too/.test(packDeclaration) && /Bash\|PowerShell/.test(packDeclaration));
 // req: R-982
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
 // req: R-985
