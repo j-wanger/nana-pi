@@ -48,14 +48,9 @@ Nothing today measures that definition.
 
 **CI green is necessary, not sufficient.** A green check proves less than the 2026-10-24 goal:
 - Claude Code itself never runs. The check simulates the documented dispatch.
-- The pi seat is measured by registration and one session that loads nana-pack (R-1079, if probe (f) holds). No prompt runs, so no pack hook inside a pi prompt fires.
+- The pi seat is measured by registration and one session that loads nana-pack (R-1079; probe (f) held, 2026-10-12). No prompt runs, so no pack hook inside a pi prompt fires.
 
-"Done" on 2026-10-24 also needs three more things:
-- Jake's Claude Code machine check (cc CHANGE:548-564);
-- Jake's own run of this check on Windows. It is the only test of this plan's most-likely-wrong claim (section 3);
-- R-1079 holding, or its replacement row if probe (f) fails.
-
-Whether "done" includes those three is Jake's call (Open, section 3). HANDOFF states this limit (section 4).
+"Done" on 2026-10-24 is settled (seat decision, §3, after Jake's 2026-10-11 acceptance that his machine is the proof): this check green on both legs on a push to main with an empty win32 known-red list, plus Jake's Claude Code machine check (cc CHANGE:548-564) and Jake's own run of this check on his Windows machine — the only test of this plan's most-likely-wrong claim (section 3). HANDOFF states this limit (section 4).
 
 **Observable outcomes.**
 1. One command, `node packages/nana-setup/bin/install-check.mjs`, installs nana from its checkout into a new temporary home.
@@ -66,7 +61,7 @@ Whether "done" includes those three is Jake's call (Open, section 3). HANDOFF st
    - Install registers nana-pack and nana-knowledge with the real pi.
    - `pi list` shows both at the checkout, and neither is filtered.
    - pi-subagents installs at doctor's floor version.
-   - One `pi --mode rpc --no-session` session in the fixture project loads nana-pack (R-1079, provisional on probe (f)).
+   - One `pi --mode rpc --no-session` session in the fixture project loads nana-pack (R-1079; probe (f) held, 2026-10-12).
 3. **Claude Code seat.** The settings hold exactly the five nana hook entries in the documented shape. Each one:
    - passes a simulation of Claude Code's documented dispatch;
    - exits 0 within its sealed timeout;
@@ -116,15 +111,17 @@ Deliberate forgery is out of scope: a hand-forged `settings.json`, a hook or too
 Probe (f) held (§3 step 6), so R-1076's adoption clause keeps its full output assertion; there is no weaker fallback (sol plan r1 MUST 3).
 
 **Sealed values.** These live in `packages/nana-setup/lib/install-check-config.mjs`, each with its provenance beside it. Each is pinned by one test that names its row.
-- **The hook table (R-1074).** Events and scripts are contract values from the Claude Code seat row of the runtime matrix (`templates/_shared/working-under-nana-pi.md:7`, mirrored in the root `AGENTS.md`). The timeout is a contract value copied from `settings.mjs:139-175`, never imported.
+- **The hook table (R-1074, R-1082).** Events and scripts are contract values from the Claude Code seat row of the runtime matrix (`templates/_shared/working-under-nana-pi.md:7`, mirrored in the root `AGENTS.md`). The timeout is a contract value copied from `settings.mjs:139-175`, never imported.
 
-  | Label | Event | Matcher tools or source | Script | Timeout |
-  |---|---|---|---|---|
-  | objective | SessionStart | `startup` | `nana-objective.mjs` | 5 |
-  | adoption | SessionStart | `startup` | `nana-adoption.mjs` | 5 |
-  | shared memory | SessionStart | `startup` | `nana-shared-memory.mjs` | 5 |
-  | verifier pipe | PreToolUse | `Bash` | `verifier-pipe.mjs` | 5 |
-  | knowledge pull | UserPromptSubmit | no matcher | `nana-knowledge.ts`, then `hook` | 5 |
+  | Label | Event | Matcher tools or source | Script | Timeout | Form on darwin/linux | Form on win32 |
+  |---|---|---|---|---|---|---|
+  | objective | SessionStart | `startup` | `nana-objective.mjs` | 5 | shell | exec |
+  | adoption | SessionStart | `startup` | `nana-adoption.mjs` | 5 | shell | exec |
+  | shared memory | SessionStart | `startup` | `nana-shared-memory.mjs` | 5 | shell | exec |
+  | verifier pipe | PreToolUse | `Bash` | `verifier-pipe.mjs` | 5 | shell | exec |
+  | knowledge pull | UserPromptSubmit | no matcher | `nana-knowledge.ts`, then `hook` | 5 | shell | exec |
+
+  The form columns are contract values: exec form on win32 from cc R-1050 (cc CHANGE, exec-form decision of 2026-10-12); shell form elsewhere from main's `settings.mjs`, which cc leaves byte-identical (cc R-1061). Exec form means `command` `node` and an `args` array; shell form means no `args`. R-1082 fails an entry whose form differs.
 
   - The verifier's tools are `Bash` on every platform, plus `PowerShell` on win32. The PowerShell entry is a contract value from cc R-1053 (cc CHANGE:141) and the hooks docs (cc CHANGE:68, :101-102). cc rewords the matrix's verifier cell to name the Windows matcher (cc CHANGE:338).
   - `startup` is the SessionStart source for a new session (hooks docs, SessionStart matcher values, read 2026-10-12).
@@ -145,12 +142,12 @@ Probe (f) held (§3 step 6), so R-1076's adoption clause keeps its full output a
   - `NANA_TEST_TEMP_ROOTS` (`packages/nana-pack/lib/adoption.mjs:39-40`; `bin/nana-adoption.mjs:40-41` warns on stderr when it is set);
   - `NANA_HANDOFF` (`packages/nana-pack/extensions/nana-handoff.ts:329`). When it is `off`, R-1079's journal line is never written;
   - every `npm_config_*` variable from the caller, matched without case on win32. The check then sets its own `npm_config_cache`.
-- **The known-red list (R-1070).** One list per platform.
+- **The known-red list (R-1070, R-1080).** One list per platform. Each entry is sealed as `{ item, code, owner, expires }`: `code` is the one failure the entry may excuse — `missing-entry`, `wrong-form`, `no-output` or `note-row`; `owner` names the cc row that fixes it; `expires` is `2026-10-24`. A listed item that fails with any other code, or on or after its expiry date, prints FAIL. Since cc-hooks-windows lands first (§3, decided), the win32 list is expected to be EMPTY at this lane's land; the entries below are the fallback if that order changes.
   - darwin: empty.
   - win32 at plan time: the hook set, objective, adoption, shared memory, verifier (`Bash`) and verifier (`PowerShell`). Each entry names the cc row that fixes it.
   - Also on win32: the doctor `·` rows that cc changes. INFERRED: these are `settings …` at `doctor.mjs:382` (cc R-1055) and "node for the objective hook" at `:296` (cc R-1057).
-  - The seat seals the list at land from the lane's final Windows run with main merged in. An entry is listed only when a named lane or row owns its fix.
-- **The doctor note list (R-1072).** These are the rows that may show `·` by design, one list per platform.
+  - The seat seals the list at land from the lane's final Windows run with main merged in. An entry is listed only when a named lane or row owns its fix, and each entry carries its code and expiry.
+- **The doctor note list (R-1081).** These are the rows that may show `·` by design, one list per platform.
   - darwin: "pi agent dir" (`doctor.mjs:418`), "pi mcp.json" when absent (`:532`), "desk service" not installed (`:620`) and "release status" (`:640`).
   - win32 adds: the four PATH rows (`:585-588`; the Support line says Windows links none of the pack's PATH commands), "desk service" (`:619`; launchd is macOS-only) and the pi-only skill rows (`:360`).
   - `hook …` at `:335` stays unclassified until the first merged Windows run. INFERRED: cc's exec form may point at checkout scripts, which would leave those rows as notes.
@@ -195,7 +192,7 @@ Why these modules sit in nana-setup:
    - `<home>/notes` is a `git init` repository whose `docs/install-check.md` holds the run token. The knowledge build discovers `~/*/docs` inside folders that contain `.git` (`packages/nana-knowledge/lib/sources.ts:41-45`, `:93-114`).
    - `<home>/project` is a `git init` repository with no `.pi` folder and no adoption evidence.
 3. **Environment and install (R-1071).**
-   - **One environment** serves every process the check starts: install, pi, the hooks and doctor. One test pins it.
+   - **One spawn function, one environment** (R-1071, R-1084). Every child goes through it: both fixture `git init` runs (`<home>/notes`, `<home>/project`), Git Bash discovery (the `git.exe` lookup and any `git --exec-path` call), install, every pi call (`pi install npm:…`, `pi list`, the session), every hook and doctor. A recording-spawn test enumerates all of them.
    - HOME and USERPROFILE point at `<home>`. The override list and the caller's `npm_config_*` variables are removed.
    - **Children's temporary folder is `<home>/tmp`.** Node's `os.tmpdir()` reads TMPDIR on POSIX and TEMP first on win32 (Node docs, read 2026-10-12). Two consequences follow:
      - Child temporary files stay inside the home.
@@ -223,7 +220,7 @@ Why these modules sit in nana-setup:
    - `pi list` prints `User packages:` with each source and, indented, its resolved path. An object entry prints with `(filtered)` (`dist/package-manager-cli.js:842-871`; `dist/core/package-manager.js:768`). Doctor counts only string entries as registered (`doctor.mjs:610`).
    - The check strips colour codes and resolves both sides. On win32 it compares without case.
    - INFERRED: the exact output format, taken from the code. Under GitHub Actions the output is coloured.
-6. **pi session (R-1079; provisional on probe (f)).**
+6. **pi session (R-1079; probe (f) held, 2026-10-12).**
    - The check starts `pi --mode rpc --no-session` in `<home>/project` with no model flag. It sends `{"type":"get_commands"}`, reads the response, and closes stdin.
    - pi's RPC docs allow a session with no model selected (pi 1.0.2 `docs/rpc-commands.md:186`).
    - **Probe (f), run by the seat 2026-10-12 on macOS with pi 1.0.2**, in a temporary HOME and `PI_CODING_AGENT_DIR`, after `pi install <checkout>/packages/nana-pack`, in a fresh git project, sending `get_commands`: the session reached `session_start` with no model (journal line `session_start`, reason `startup`), and `get_commands` listed `reload-runtime`. With `NANA_TEST_TEMP_ROOTS` unset, NO `directory_unadopted` line appeared: nana-handoff skips projects under temporary folders (`packages/nana-pack/lib/adoption.mjs:39-40`). With `NANA_TEST_TEMP_ROOTS` set EMPTY (the documented seam: empty disables the skip), the journal gained `adoption_test_temp_roots_override` and then `directory_unadopted` naming the project. So the check sets it empty for the pi session and the adoption hook; the override line in the journal is expected, not a failure. Whether the same holds on windows-latest is shown by the first red-first CI run.
@@ -235,7 +232,7 @@ Why these modules sit in nana-setup:
      - an entry with `args` is exec form: `command` plus `args`, with no shell. Exec form needs a real executable (`.exe`) on win32;
      - any other entry is shell form. It runs through `sh -c` on macOS and Linux, and through Git Bash on Windows.
 
-     The check keys on `args`, not on the platform. So it needs no change when cc-hooks-windows moves Windows to exec form (cc R-1050). Until then, the only Windows entry is the knowledge entry in shell form (`steps.mjs:509`), and it runs through Git Bash.
+     The check keys on `args` to RUN an entry. Before running it, R-1082 compares the entry's form with its sealed row's form for the platform; a mismatch prints FAIL, or XFAIL only under a matching `wrong-form` known-red entry before its expiry. If cc-hooks-windows had not landed, Windows entries would be absent or shell form and would fail with `missing-entry` or `wrong-form`.
    - **Finding Git Bash.** The docs say Git Bash is "located via registry or `PATH`" (read 2026-10-12). The check derives the Git root from the `git.exe` on PATH:
      - `git.exe` can sit in `Git\cmd`, `Git\bin` or `Git\mingw64\bin`. The checkout log uses `C:\Program Files\Git\bin\git.exe`;
      - the check then uses `<root>\bin\bash.exe`;
@@ -254,21 +251,22 @@ Why these modules sit in nana-setup:
      - adoption: `bin/nana-adoption.mjs:79`, `:82`. It names the root from step 6's journal line;
      - shared memory: `nana-shared-memory.mjs:78`, `:87-89`;
      - verifier: `lib/verifier-hook.mjs:12-24`. The docs require `hookEventName` inside `hookSpecificOutput`;
-     - knowledge: `nana-knowledge/lib/hook.ts:27`, `:39`. Its internal budget is 1,500 ms. When the budget runs out, the hook exits 0 and prints nothing, which fails R-1077. On win32 the pointer reads `~\notes\docs\…`, so the check matches the fixture note by file name.
+     - knowledge (R-1083): `nana-knowledge/lib/hook.ts:27`, `:39`. Its internal budget is 1,500 ms. When the budget runs out, the hook exits 0 and prints nothing, which fails R-1077. On win32 the pointer reads `~\notes\docs\…`, so the check matches the fixture note by file name.
      - Plain stdout over 10,000 characters is replaced by a file path and a 2,000-character preview (hooks docs). The check fails an entry over the cap.
    - **Samples:**
      - The SessionStart sample's `source` is `startup`. Its `transcript_path` is `<home>/.claude/projects/install-check/<uuid>.jsonl`, the path Claude Code takes. The check creates that folder first, as Claude Code would (INFERRED).
      - The hook uses that folder when its parent is `<claude home>/projects` (`nana-shared-memory.mjs:45-55`). So no project key is computed, and the link is expected at exactly `projects/install-check/memory/shared`.
      - The verifier hit and miss samples are listed under the sealed values.
-8. **Doctor (R-1072).**
+8. **Doctor (R-1081).**
    - The check runs `node packages/nana-setup/bin/nana-setup.mjs doctor` with no flag, from `<home>/project`.
    - Doctor exits 1 on any ✗ or ! (`bin/nana-setup.mjs:325-335`). It exits 0 with `·` rows.
    - On win32 about 15 rows are "skipped" notes (`doctor.mjs:296`, `:335`, `:360`, `:382`, `:585-588`, `:619`). So the check reads the exit status and also each `·` row:
      - a row on the platform's note list passes;
-     - a row on the known-red list prints XFAIL;
+     - a row on the known-red list prints XFAIL only when its failure code is `note-row` and the run is before the entry's expiry (R-1080);
      - any other row prints FAIL.
    - The folder is neutral because doctor warns about project trust when the folder holds `.pi/nana-pack.json` with no trust record (`doctor.mjs:430-437`), and the checkout tracks that file.
 9. **Report and cleanup.**
+   - The first lines name the resolved paths: the Git Bash `bash.exe` (win32), the `pi` the check launches, and `node`. A runner-image change then shows as a path change, not a hook failure.
    - When every line is PASS or XFAIL, the check deletes the home.
    - On any FAIL it keeps the home and prints its path, the `hooks` block of its `settings.json`, and the last `pull.log` record (`nana-knowledge/lib/paths.ts:25`).
    - CI wipes `runner.temp` at job end, so the printed lines are the evidence. Chosen over an artifact upload: the printed lines are enough to triage and need no extra action.
@@ -367,7 +365,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 
 **Declared limits and residuals.**
 - **Claude Code itself never runs.** The check simulates the dispatch the docs describe. The real dispatch stays with Jake's machine check in cc-hooks-windows (cc CHANGE:548-564). That covers the workspace trust dialog, the PATH Claude Code passes, the `node` it finds, PowerShell routing and `${CLAUDE_PROJECT_DIR}` substitution in `args`.
-- **pi seat: registration plus one session with no prompt.** The pack's prompt-time hooks (gate, objective, knowledge pull, post-edit) are not exercised. nana-knowledge's load inside pi is unproven. If probe (f) fails, the session row is retired, and only registration is measured.
+- **pi seat: registration plus one session with no prompt.** The pack's prompt-time hooks (gate, objective, knowledge pull, post-edit) are not exercised. nana-knowledge's load inside pi is unproven. Probe (f) held, so the session row stands.
 - **Children's temporary folder is inside the home.** This is a chosen deviation from a real machine. It keeps the fixture project from being a temporary root.
   - POSIX also treats `/tmp` as a temporary root. On Linux the home would sit under `/tmp`, which this lane does not handle. There is no Linux leg.
 - **Writes outside the home on win32 (INFERRED none from nana).** APPDATA and LOCALAPPDATA are not redirected, and machine-level npm and Git config are read. Acceptance (b) runs on macOS only. Jake's Windows run carries this residual.
@@ -394,7 +392,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
   - So the Windows leg can pass where Jake's machine fails, or fail for runner reasons. Jake's own Windows run is the only test of this claim.
 
 **Decided by the seat (2026-10-12), with the reason.**
-- The 2026-10-24 "done" = this check green on both legs on a push to main with an empty win32 known-red list, PLUS Jake's own run of it on his Windows machine and his Claude Code machine check (cc CHANGE:548-564). Jake accepted on 2026-10-11 that his machine, not a VM or a hosted runner, is the proof for Windows. R-1079 is part of it if probe (f) holds; otherwise its replacement row is.
+- The 2026-10-24 "done" = this check green on both legs on a push to main with an empty win32 known-red list, PLUS Jake's own run of it on his Windows machine and his Claude Code machine check (cc CHANGE:548-564). Jake accepted on 2026-10-11 that his machine, not a VM or a hosted runner, is the proof for Windows. R-1079 is part of it (probe (f) held, 2026-10-12).
 - Landing order: `cc-hooks-windows` lands first (it is building; this lane is planning). Whichever lane lands second merges main and edits the win32 known-red list in that merge; the seat owns merges, so no lane's scope has to stretch.
 - Checklist step 8 (doctor's `!` on project trust on every fresh machine) goes to the queued small process lane, not this one.
 
@@ -436,7 +434,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 ## 5. Verification
 
 - **Seat acceptance script**, written and red before the build: `docs/reviews/install-check-2026-10-12/acceptance.mjs`, run on macOS.
-  - (a) The command exists and exits 0 from a clean worktree. It prints a PASS line, and no XFAIL, for each of these labels: install, pi-subagents, `pi list` nana-pack, `pi list` nana-knowledge, the pi session (if R-1079 stands), the hook set, the five hooks and doctor.
+  - (a) The command exists and exits 0 from a clean worktree. It prints a PASS line, and no XFAIL, for each of these labels: install, pi-subagents, `pi list` nana-pack, `pi list` nana-knowledge, the pi session (R-1079), the hook set, the five hooks and doctor.
   - (b) The real home is untouched. A listing with sizes and modification times of the following is identical before and after the run:
     - `~/.claude/settings.json`, `~/.claude/hooks`, `~/.claude/projects` and `~/.claude/nana-memory`;
     - `~/.pi/agent/settings.json`, `~/.pi/agent/npm`, `~/.pi/agent/nana-objective.md`, `~/.pi/agent/nana-pack.json` and the pack's journal;
@@ -454,7 +452,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
     3. the shared-memory hook's import broken;
     4. the knowledge entry losing its `hook` word.
   - (e) `ci.yml` has the job shape shown in section 3, and the release job needs both jobs.
-  - (f) Probe, run before the build. In the temporary home, does `pi --mode rpc --no-session` with no model answer `get_commands` with `reload-runtime`? Does it write a `directory_unadopted` line for `<home>/project`? A yes keeps R-1079 and R-1076's adoption clause. A no retires R-1079 before the build and relabels the adoption line.
+  - (f) Probe — RUN by the seat 2026-10-12 on macOS and HELD (§3 step 6): a model-free session lists `reload-runtime` and, with `NANA_TEST_TEMP_ROOTS` empty, writes `directory_unadopted` for the project. R-1079 and R-1076's full adoption clause stand.
   - (g) Probe, recorded only. Run doctor from the checkout root against the temporary home. It records on a run the finding the code already confirms.
 - **Pure cases on every leg** (`install-check.test.mjs`):
   - **Shape and mapping:**
@@ -490,7 +488,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
   - **Environment:**
     - the override list and the caller's `npm_config_*` variables are removed, without case on win32;
     - HOME, USERPROFILE, TMPDIR, TEMP, TMP and `npm_config_cache` are set;
-    - the same environment reaches install, pi, the hooks and doctor.
+    - a recording spawn shows the same sanitized environment on EVERY child: both fixture `git init` runs, Git Bash discovery, install, `pi install npm:…`, `pi list`, the pi session, each of the five hooks and doctor (R-1084).
   - **Install command line:** it carries no override flag.
   - **Doctor:**
     - exit 1 with only ✓ and ! marks is a FAIL;
@@ -505,13 +503,17 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
   - **Platform:** `NANA_SETUP_PLATFORM` is ignored.
   - **Reporting:**
     - any FAIL gives a non-zero exit;
-    - a listed item that fails prints XFAIL;
-    - a listed item that passes prints FAIL.
+    - a listed item that fails with its sealed code before its expiry prints XFAIL (R-1080);
+    - a listed item that fails with a DIFFERENT code prints FAIL (the wrong-code case);
+    - a listed item that fails on or after its expiry prints FAIL (the expired case, with an injected clock);
+    - a listed item that passes prints FAIL;
+    - the first lines name the resolved Git Bash (win32), pi and node paths.
+  - **Dispatch form (R-1082):** a shell-form entry under forced win32 fails; an exec-form entry under forced darwin fails; each row's sealed form is read from the table, never inferred from `args`.
   - **Pins:** each of these is pinned by one test naming its row:
-    - the hook table and the allowed keys (R-1074);
+    - the hook table with its form columns (R-1074, R-1082) and the allowed keys (R-1074);
     - the override list (R-1071);
-    - the known-red list (R-1070);
-    - the doctor note list (R-1072).
+    - the known-red list with each entry's code and expiry (R-1070, R-1080);
+    - the doctor note list (R-1081).
 - **Mutation pairs.** Each one breaks the check's own code, never an assertion. The seat records which test turns red.
   1. Ignore `args` and always use a shell: the exec-form case fails.
   2. Split a shell-form command on spaces with no shell: the shell-form case fails.
@@ -544,6 +546,10 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
       - drop `timeout-minutes` (R-1078);
       - drop `install-check` from the release job's `needs` (R-597);
       - use plain `npm i -g` without `--ignore-scripts` (R-1078).
+  24. XFAIL any failure of a listed item whatever its code: the wrong-code case fails.
+  25. Ignore the expiry: the expired case fails.
+  26. Skip the form check (R-1082): the shell-on-win32 and exec-on-darwin cases fail.
+  27. Spawn a fixture `git init` directly instead of through the shared spawn: the recording-spawn case fails (R-1084).
 - **Red-first CI runs.** The seat records each run ID in the evidence of R-1070 and R-1078.
   - **Windows baseline.** This is the lane's first draft-PR run, on main without cc.
     - `install-check (windows-latest)` should conclude success.
@@ -591,7 +597,7 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
   - Section 1 states that CI green is necessary, not sufficient, and lists what "done" also needs. HANDOFF `:59` gets the qualifier.
 - **Adoption.** The draft's adoption PASS could not fail: temporary roots count as adopted (`adoption.mjs:38-43`, `:124`).
   - Children's TMPDIR, TEMP and TMP now point at `<home>/tmp`.
-  - A real pi session (new R-1079, provisional on probe (f), now run before the build) writes the journal line the adoption entry must name.
+  - A real pi session (new R-1079; probe (f) run 2026-10-12 and held) writes the journal line the adoption entry must name.
   - `NANA_TEST_TEMP_ROOTS` is cleared rather than used. This settles a conflict between the two checks: the code check said clear it, and the claims check offered it as one option.
 - **Hook-set shape (R-1074).** The check now validates:
   - the nesting;
@@ -637,3 +643,4 @@ The two files carry their own copies of the samples. Sharing them is rejected (b
 - **Open for Jake.** Four lines are added: the "done" definition, the cross-lane edit to the known-red list, checklist step 8, and a local land-checklist run.
 - **Process note.** The code check wrote one scratchpad copy of cc CHANGE.md at `71757f4` (`/private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/cc-change-71757f4.md`). It is outside the repo. No repo file changed.
 - 2026-10-12, after sol plan r1 (LAND-WITH-FIXES 82/100): each known-red entry carries a sealed expected-failure code and the 2026-10-24 expiry (R-1080), with wrong-reason and expired-entry test cases; the sealed hook table carries the dispatch form per platform (R-1082); probe (f) was run and HELD, with `NANA_TEST_TEMP_ROOTS` set empty for the pi session, so R-1079 stays and the adoption fallback is gone; one spawn function passes the sanitized environment to every child, git and Git Bash discovery included (R-1084), with a recording-spawn test over all of them; R-1072, R-1077 and R-1079 now carry one `shall` each (R-1081, R-1083 split out); the stale "open" sentence on Jake's Windows run is resolved; the check prints the resolved Git Bash and pi paths at its start, so a runner-image change is distinguishable from a hook failure; and the pi-coverage residual is explicit: registration and one model-free session do not exercise pi's prompt-time objective, knowledge, gate or post-edit behaviour. New IDs R-1080–R-1084 extend this lane's range (R-1080–R-1089 reserved; no other lane holds them).
+- 2026-10-12, after sol plan r2 (SEND-BACK 78/100): the verification and design text now carry R-1080's code-and-expiry rule (wrong-code and expired cases), the hook table carries per-platform form columns with shape cases (R-1082), the recording-spawn test enumerates every child (R-1084), the front "done" text states the settled definition, every probe (f) mention states the held result, the resolved paths are in the report and its tests, and the doctor, known-red and knowledge references name R-1081, R-1080 and R-1083.
