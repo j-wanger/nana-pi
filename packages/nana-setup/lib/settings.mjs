@@ -361,6 +361,12 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
  */
 export function installerTarget(hook, wanted, platform) {
 	if (!hook || typeof hook !== "object" || typeof hook.command !== "string") return null;
+	// A hook that CARRIES a statusMessage of its own, different from the wanted row's, is someone
+	// else's — reject it outright rather than let a later shape check accept it for the wrong
+	// reason (R-653, R-923). A hook with no statusMessage at all (every fixture predating this
+	// field, and every hand-seeded stale entry the repair cases below construct) is silent on the
+	// question, so the shape checks decide it exactly as before.
+	if (hook.statusMessage !== undefined && hook.statusMessage !== wanted.entry.statusMessage) return null;
 	const win32 = platform === "win32";
 	const hasArgs = "args" in hook && hook.args !== undefined;
 	const isKnowledge = wanted.marker === "nana-knowledge.ts hook";

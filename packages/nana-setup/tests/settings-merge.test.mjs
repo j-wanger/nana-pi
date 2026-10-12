@@ -176,6 +176,22 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("absolute knowledge hook target outside repository is not accepted as healthy", row.replaced);
 }
 
+/* --- a stale knowledge entry carrying ANOTHER status message is not the installer's own: left
+   byte for byte, not replaced — the merge result matches main's own gate (`settings.mjs:276`),
+   which skipped any entry whose statusMessage was not "nana: knowledge pull" (R-653, R-1061) --- */
+{
+	const wantedForeign = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const foreignStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "my own knowledge" };
+	const before = JSON.stringify(foreignStale);
+	const foreignSettings = { hooks: { UserPromptSubmit: [{ hooks: [foreignStale] }] } };
+	const foreignResult = mergeRepoHooks(foreignSettings, { repoRoot: "/repo", wanted: wantedForeign });
+	const foreignRow = foreignResult["UserPromptSubmit knowledge pull"];
+	// req: R-653
+	check("a stale knowledge entry with another status message is not matched as the installer's own (found false, not replaced)", foreignRow.found === false && foreignRow.replaced === false);
+	// req: R-653
+	check("that entry is left byte for byte", JSON.stringify(foreignSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
+}
+
 /* --- win32 exec form: desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget ------- */
 {
 	// (R-1050, R-1051) every win32 entry is exec form, unquoted and unescaped, from the checkout.
@@ -256,9 +272,14 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("installerTarget rejects an extra args element", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5 }, objWin, "win32") === null);
 	// req: R-923
 	check("installerTarget rejects a relative path", installerTarget({ command: "node", args: ["packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32") === null);
+	// req: R-653
+	check("installerTarget rejects another status message", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "another status message" }, objWin, "win32") === null && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "another status message" }, knowledgePosix, undefined) === null);
 	// req: R-1056
 	// req: R-653
 	check("installerTarget on win32 rejects a shell form carrying args", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5 }, knowledgeWin, "win32") === null);
+	// req: R-1056
+	// req: R-653
+	check("installerTarget on win32 rejects the POSIX prefixed form carrying args", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5 }, knowledgeWin, "win32") === null);
 	// req: R-1061
 	// req: R-653
 	check("installerTarget on POSIX rejects the two win32-only forms", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined) === null && installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objPosix, undefined) === null);
@@ -276,7 +297,11 @@ check("five active hook entries are wanted", wanted.length === 5);
 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	// req: R-1050
 	check("forced-win32 removeInstallerHooks removes exactly the five entries", removed.length === 5, JSON.stringify(removed));
-	check("forced-win32 removeInstallerHooks keeps the entry whose args differ", settings.hooks.SessionStart[0].hooks.length === 1 && settings.hooks.SessionStart[0].hooks[0].args.includes("--extra"), JSON.stringify(settings.hooks.SessionStart));
+	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
+	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
+	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
+	// every check after it in the file (sol r2 round 2 item 3).
+	check("forced-win32 removeInstallerHooks keeps the entry whose args differ", settings.hooks?.SessionStart?.[0]?.hooks?.length === 1 && settings.hooks.SessionStart[0].hooks[0].args.includes("--extra"), JSON.stringify(settings.hooks?.SessionStart));
 }
 
 /* --- exact legacy SessionStart entries migrate in place -------------------------------- */
@@ -712,6 +737,23 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const objectiveEntries = after.hooks.SessionStart[0].hooks.filter((h) => JSON.stringify(h).includes("nana-objective.mjs"));
 	// req: R-923
 	check("forced win32: a hand-written exec-form variant is kept byte for byte, no twin", r.status === 0 && objectiveEntries.length === 1 && JSON.stringify(objectiveEntries[0]) === JSON.stringify(handWritten), JSON.stringify(objectiveEntries));
+}
+
+/* --- the same case for EVERY hook label, not just the objective one — and it now genuinely
+   depends on hasHook, since installerTarget itself rejects the mismatched status message before
+   any shape check runs, rather than happening to match the real, healthy checkout path as the
+   installer's own (R-923) ------------------------------------------------------------------- */
+for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "win32" })) {
+	const home = freshHome("nana-setup-win32-variant-");
+	const file = path.join(home, ".claude", "settings.json");
+	const handWritten = { type: "command", command: "node", args: w.entry.args, timeout: 5, statusMessage: `my own ${w.label} message` };
+	const group = w.matcher ? { matcher: w.matcher, hooks: [handWritten] } : { hooks: [handWritten] };
+	fs.writeFileSync(file, JSON.stringify({ hooks: { [w.event]: [group] } }, null, 2) + "\n");
+	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
+	const after = JSON.parse(fs.readFileSync(file, "utf8"));
+	const matching = (after.hooks[w.event] ?? []).flatMap((g) => g.hooks ?? []).filter((h) => JSON.stringify(h).includes(w.spec.script));
+	// req: R-923
+	check(`forced win32: a hand-written exec-form variant (another status message) is kept byte for byte, no twin — ${w.label}`, r.status === 0 && matching.length === 1 && JSON.stringify(matching[0]) === JSON.stringify(handWritten), JSON.stringify(matching));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
