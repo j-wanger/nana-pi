@@ -34,8 +34,12 @@ const snap = () => {
   const lines = [];
   const walk = (p, depth) => {
     let st; try { st = fs.lstatSync(p); } catch { lines.push(`${p} absent`); return; }
-    lines.push(`${p} ${st.size} ${st.mtimeMs}`);
-    if (st.isDirectory() && depth < 3) for (const e of fs.readdirSync(p).sort()) walk(path.join(p, e), depth + 1);
+    // ~/.claude/projects holds every live Claude Code session's transcript (the seat's own included), so
+    // there only entry names to depth 2 are compared; sizes and times are compared everywhere else
+    // (seat fix 2026-10-12 after build 1: a background run counted the seat's own transcript growth).
+    const inProjects = p.startsWith(path.join(H, ".claude", "projects"));
+    lines.push(inProjects ? `${p} exists` : `${p} ${st.size} ${st.mtimeMs}`);
+    if (st.isDirectory() && depth < (inProjects ? 2 : 3)) for (const e of fs.readdirSync(p).sort()) walk(path.join(p, e), depth + 1);
   };
   for (const w of watched) walk(w, 0);
   return lines.join("\n");
