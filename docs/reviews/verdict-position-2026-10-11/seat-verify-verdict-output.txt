@@ -59,6 +59,11 @@ ok   "  VERDICT: LAND\nbody\nVERDICT: LAND" → null (want null)
 ok   "**VERDICT: LAND**\nbody\nVERDICT: LAND" → null (want null)
 ok   "VERDIϹT: SEND-BACK\nnotes\nVERDICT: LAND" → null (want null)
 ok   "VERDICT: LAND\nVERDIϹT: SEND-BACK" → null (want null)
+ok   "# VERDICT: LAND\nbody\n# VERDICT: LAND" → null (want null)
+ok   "`VERDICT: LAND`\nbody\n`VERDICT: LAND`" → null (want null)
+ok   "  VERDICT: LAND\nbody\n  VERDICT: LAND" → null (want null)
+ok   "**VERDICT: LAND**\nbody\n**VERDICT: LAND**" → null (want null)
+ok   "VERDICT: LAND\nbody\nVERDICT: LAND" → LAND (want LAND)
 ok   "VERDICT: LAND\nV𝚬RDICT: SEND-BACK" → null (want null)
 ok   "V𝚬RDICT: SEND-BACK\nnotes\nVERDICT: LAND" → null (want null)
 ok   "VERDICT: LAND (fixes pending)" → null (want null)
@@ -92,6 +97,6 @@ ok   table entry U+3B9 → i voids a first-line LAND → null
 ok   table entry U+475 → v voids a first-line LAND → null
 ok   table entry U+501 → d voids a first-line LAND → null
 ok   table entry U+433 → r voids a first-line LAND → null
-cases: 72/72
-corpus: 338 files, {"word":330,"empty":8}, 0 mismatch(es) with the prototype
+cases: 77/77
+corpus: 435 files, {"word":421,"empty":14}, 0 mismatch(es) with the prototype
 seat-verify-verdict: 0 mismatch(es)

@@ -431,7 +431,7 @@ function verdictWord(out) {
   if (carries(final)) {
     const selected = finalGrammar.exec(final)?.[1] ?? null;
     if (!selected) return null;
-    if (first !== final && carries(first)) {
+    if (nonblank.length > 1 && carries(first)) {
       const firstWord = firstGrammar.exec(first)?.[1] ?? null;
       if (firstWord !== selected) return null;
     }
