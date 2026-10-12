@@ -184,6 +184,12 @@ const PAIRS = [
 		anchor: "export function installerTarget(hook, wanted, platform) {\n",
 		replacement: "export function installerTarget(hook, wanted, platform) {\n\tif (hook && typeof hook === \"object\" && hook.statusMessage === undefined) hook = { ...hook, statusMessage: wanted.entry.statusMessage };\n",
 		tests: [SM, WD], expectRed: ["no status message"] },
+	// 27: the kept "otherwise every group" scan (CHANGE §3), dropped by build 1 and found by both final
+	// reviewers (sol r1 MUST 2, astra r1 MUST 2); brief 4 names the fixed line exactly.
+	{ n: "27", name: "scan only matcher-less groups for a row with no matcher", file: SETTINGS,
+		anchor: "const matcherOk = w.matcher === undefined || group?.matcher === w.matcher;",
+		replacement: "const matcherOk = w.matcher === undefined ? group?.matcher === undefined : group?.matcher === w.matcher;",
+		tests: [SM], expectRed: ["matcher"] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
