@@ -7,10 +7,10 @@
 *Re-checked 2026-10-12 against the code and the docs. The last line of "Seat fact-check" records the changes.*
 
 *Features and rows:*
-- *FEAT-010 "Guard risky commands and protected resources": R-984.*
-- *SUB-012 "Deliver commands, hooks and workflow resources": R-985, R-301; new R-1054.*
+- *FEAT-010 "Guard risky commands and protected resources": R-984; new R-1062.*
+- *SUB-012 "Deliver commands, hooks and workflow resources": R-985, R-301; new R-1054 and R-1064.*
 - *SUB-013 "Connect hooks and packages without duplication": R-319, R-923; new R-1061.*
-- *SUB-015 "Apply the platform's supported installation": R-387 and R-936 (both retired), and the feature's purpose line; new R-1050, R-1051, R-1053 and R-1058.*
+- *SUB-015 "Apply the platform's supported installation": R-387 and R-936 (both retired), and the feature's purpose line; new R-1050, R-1051, R-1053, R-1058 and R-1063.*
 - *FEAT-015 "Diagnose the active environment": R-937; new R-1055, R-1057 and R-1060.*
 - *FEAT-018 "Update or remove managed components safely": R-394, R-653; new R-1056 and R-1059.*
 - *FEAT-019 "Release usable templates and report support": R-684.*
