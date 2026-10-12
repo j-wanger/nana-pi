@@ -3019,9 +3019,9 @@
         "Jake requires Windows testing now. Run Windows tests in the current priority."
       ],
       "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard Jake's own Claude Code settings.",
-      "written_by": "seat workflow, 2026-10-10",
-      "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
-      "date": "2026-10-10",
+      "written_by": "build round eleven, through the refresh guide, 2026-10-12",
+      "checked_by": "seat read, 2026-10-12; stamp taken from the refresh packet",
+      "date": "2026-10-12",
       "stamp": {
         "commit": "4b3846ece4d64dbf796d96ed39eeb78913e4ed56",
         "purpose": "Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.",

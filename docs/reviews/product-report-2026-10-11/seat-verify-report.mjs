@@ -232,7 +232,10 @@ for (const [label, change, check] of [
   out("the real store validates against the ledger history", p.join(" | ") || "none", "none");
   const store = existsSync(realStore) ? JSON.parse(readFileSync(realStore, "utf8")) : { features: [] };
   out("the real store holds the 38 migrated assessments", store.features?.length, "38");
-  out("every migrated assessment is stamped at c4332ec", (store.features ?? []).length > 0 && store.features.every((f) => f.stamp?.commit === "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67"), "true");
+  // Final reviews r1 (astra S1): FEAT-013 was refreshed through the guide in build 11; every OTHER
+  // migrated assessment keeps the migration stamp, and FEAT-013 must carry a later stamp that validates.
+  out("every migrated assessment except the refreshed FEAT-013 is stamped at c4332ec", (store.features ?? []).length > 0 && store.features.filter((f) => f.id !== "FEAT-013").every((f) => f.stamp?.commit === "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67"), "true");
+  out("the refreshed FEAT-013 carries a later stamp", (store.features ?? []).some((f) => f.id === "FEAT-013" && f.stamp?.commit !== "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67"), "true");
 }
 
 // ── Round 5: packets (R-1029) ──

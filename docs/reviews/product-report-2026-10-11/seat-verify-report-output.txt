@@ -31,7 +31,7 @@ ok   store check refuses an unknown field: true/true (want true/true)
 ok   store check refuses a rating outside the enum: true/true (want true/true)
 ok   store check refuses an own row marked shared (mark mismatch): true/true (want true/true)
 ok   fingerprints are equal for a CRLF, trailing-space ledger: none (want none)
-(node:83882) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:31974) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/product-report/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/product-report/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
@@ -47,7 +47,8 @@ ok   a feature with no assessment is unassessed: unassessed (want unassessed)
 ok   the real store exists after migration: true (want true)
 ok   the real store validates against the ledger history: none (want none)
 ok   the real store holds the 38 migrated assessments: 38 (want 38)
-MISS every migrated assessment is stamped at c4332ec: false (want true)
+ok   every migrated assessment except the refreshed FEAT-013 is stamped at c4332ec: true (want true)
+ok   the refreshed FEAT-013 carries a later stamp: true (want true)
 ok   packets: runs on an absent directory: 0 (want 0)
 ok   packets: exactly one per out-of-date or unassessed feature: FEAT-001.json,FEAT-002.json (want FEAT-001.json,FEAT-002.json)
 ok   packet: top-level keys: assessment,differences,feature,rows,stamp,version (want assessment,differences,feature,rows,stamp,version)
@@ -118,4 +119,4 @@ ok   render #issues: each violated row shows its status, never undefined: true (
 ok   render #features lists every feature with its state: true (want true)
 ok   render: a stale feature says out of date and names the changed row: true (want true)
 ok   packets: refused while REQUIREMENTS.md differs from HEAD: true/0 (want true/0)
-seat-verify-report: 1 mismatch(es)
+seat-verify-report: 0 mismatch(es)
