@@ -167,7 +167,9 @@ for (const w of win32Wanted) {
 	// POSIX-shaped absolute path, as the seat acceptance script's own stale seeds do.
 	const missingTarget = `/gone/checkout/packages/${w.spec.script === "nana-knowledge.ts" ? "nana-knowledge/bin" : "nana-setup/claude/hooks"}/${w.spec.script}`;
 	const extra = w.spec.args ?? [];
-	const staleEntry = { type: "command", command: "node", args: [missingTarget, ...extra], timeout: 5 };
+	// An installer-written entry always carries its own statusMessage (R-1061, R-653, R-923), so
+	// this stale fixture must too — otherwise installerTarget correctly reads it as not ours.
+	const staleEntry = { type: "command", command: "node", args: [missingTarget, ...extra], timeout: 5, statusMessage: w.entry.statusMessage };
 	const group = w.matcher ? { matcher: w.matcher, hooks: [staleEntry] } : { hooks: [staleEntry] };
 	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
 	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { [w.event]: [group] } }, null, 2) + "\n");
