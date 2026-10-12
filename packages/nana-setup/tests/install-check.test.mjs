@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ALLOWED_HOOK_KEYS, HOOKS, KNOWN_RED, OVERRIDE_ENV } from "../lib/install-check-config.mjs";
-import { buildEnvironment, classifyResult, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, formatResultLine, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
 
 let failures = 0;
 const check = (title, fn) => {
@@ -64,6 +64,34 @@ check("dispatch chooses direct exec or platform shell", () => {
   assert.deepEqual(hookInvocation({ command: "node", args: ["hook.mjs"] }, "darwin", "/bin/bash"), { command: "node", args: ["hook.mjs"], shell: false });
   assert.deepEqual(hookInvocation({ command: "node hook.mjs" }, "darwin", "/bin/bash"), { command: "/bin/sh", args: ["-c", "node hook.mjs"], shell: false });
   assert.deepEqual(hookInvocation({ command: "node hook.mjs" }, "win32", "C:\\Git\\bin\\bash.exe"), { command: "C:\\Git\\bin\\bash.exe", args: ["-c", "node hook.mjs"], shell: false });
+});
+
+// req: R-1070
+check("FAIL timeout report includes its measured duration", () => {
+  assert.equal(formatResultLine("pi session", { status: "FAIL", code: "timeout" }, "timed out after 1234 ms"), "FAIL pi session — timeout: timed out after 1234 ms");
+});
+
+// req: R-1070
+check("FAIL exit report includes status and the last stderr line", () => {
+  assert.equal(formatResultLine("install", { status: "FAIL", code: "exit" }, "exit status 7; last stderr: denied"), "FAIL install — exit: exit status 7; last stderr: denied");
+});
+
+// req: R-1070
+check("multiline FAIL reason collapses whitespace and is capped at 200 characters", () => {
+  const line = formatResultLine("doctor", { status: "FAIL", code: "note-row" }, `  offending\n  ${"x".repeat(240)}  `);
+  assert.equal(line.length, "FAIL doctor — note-row: ".length + 200);
+  assert.equal(line, `FAIL doctor — note-row: offending ${"x".repeat(190)}`);
+});
+
+// req: R-1070, R-1080
+check("XFAIL report includes code, known-red owner and expiry", () => {
+  const knownRed = { owner: "R-1057", expires: "2026-10-24" };
+  assert.equal(formatResultLine("hook objective", { status: "XFAIL", code: "missing-entry" }, "entry is absent", knownRed), "XFAIL hook objective — missing-entry: entry is absent (known red, R-1057, until 2026-10-24)");
+});
+
+// req: R-1070
+check("PASS report has no reason suffix", () => {
+  assert.equal(formatResultLine("install", { status: "PASS", code: null }, "ignored"), "PASS install");
 });
 
 // req: R-1080

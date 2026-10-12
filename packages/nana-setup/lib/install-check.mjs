@@ -65,6 +65,15 @@ export function hookInvocation(entry, platformName, gitBash = null) {
   return { command: "/bin/sh", args: ["-c", entry.command], shell: false };
 }
 
+export function formatResultLine(item, result, reason = "", knownRed = null) {
+  const prefix = `${result.status} ${item}`;
+  if (result.status === "PASS") return prefix;
+  const detail = String(reason || "required condition was not observed").replace(/\s+/g, " ").trim().slice(0, 200);
+  const owner = result.status === "XFAIL" && knownRed?.owner && knownRed?.expires
+    ? ` (known red, ${knownRed.owner}, until ${knownRed.expires})` : "";
+  return `${prefix} — ${result.code}: ${detail}${owner}`;
+}
+
 export function classifyResult(item, code, passed, knownRed, now = new Date()) {
   const match = (knownRed ?? []).find((x) => x.item === item);
   if (passed) return { status: match ? "FAIL" : "PASS", code: match ? "unexpected-pass" : null };

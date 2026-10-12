@@ -12,7 +12,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { buildEnvironment, classifyResult, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
+import { performance } from "node:perf_hooks";
+import { buildEnvironment, classifyResult, formatResultLine, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
 import { DOCTOR_NOTES, HOOKS, KNOWN_RED, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "../lib/install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
@@ -38,13 +39,23 @@ const resolveOnPath = (name) => {
   return name;
 };
 const emit = (label, code, passed, detail = "") => {
+  const knownRed = (KNOWN_RED[platformName] ?? []).find((entry) => entry.item === label);
   const result = classifyResult(label, code, passed, KNOWN_RED[platformName] ?? [], new Date());
-  const line = `${result.status} ${label}${detail ? ` — ${detail}` : ""}`;
+  const reason = detail || (code === "missing-entry" ? `required entry or marker missing for ${label}` : `observed ${code ?? "failure"} while checking ${label}`);
+  const line = formatResultLine(label, result, reason, knownRed);
   console.log(line);
   outcomes.set(label, result.status);
   if (result.status === "FAIL") failed = true;
 };
-const spawnOne = (command, args, options = {}) => spawnSync(command, args, { ...options, encoding: "utf8", timeout: options.timeout ?? SPAWN_TIMEOUT_MS.pi, cwd: options.cwd ?? root, input: options.input, env: options.env ?? env, windowsHide: true });
+const spawnOne = (command, args, options = {}) => {
+  const started = performance.now();
+  const result = spawnSync(command, args, { ...options, encoding: "utf8", timeout: options.timeout ?? SPAWN_TIMEOUT_MS.pi, cwd: options.cwd ?? root, input: options.input, env: options.env ?? env, windowsHide: true });
+  result.durationMs = Math.round(performance.now() - started);
+  return result;
+};
+const processReason = (result) => result.error?.code === "ETIMEDOUT"
+  ? `timed out after ${result.durationMs} ms`
+  : `exit status ${result.status ?? "unknown"}${result.signal ? ` (signal ${result.signal})` : ""}${result.stderr?.trim() ? `; last stderr: ${result.stderr.trim().split(/\r?\n/).at(-1)}` : ""}`;
 const ok = (r) => !r.error && r.status === 0;
 const git = (folder) => { fs.mkdirSync(path.join(folder, ".git"), { recursive: true }); return spawnOne("git", ["init", "--quiet", folder], { cwd: folder, timeout: SPAWN_TIMEOUT_MS.git }); };
 let pi = "pi";
@@ -74,7 +85,7 @@ try {
   fs.writeFileSync(path.join(home, ".claude-placeholder"), "");
   let installEnv = { ...env, HOME: home, USERPROFILE: home };
   const install = spawnOne(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install"], { cwd: root, env: installEnv, timeout: SPAWN_TIMEOUT_MS.install });
-  emit("install", "exit", ok(install), install.stderr?.trim().split(/\r?\n/).at(-1) ?? "");
+  emit("install", install.error?.code === "ETIMEDOUT" ? "timeout" : "exit", ok(install), processReason(install));
   if (ok(install)) {
     const objective = path.join(home, ".pi", "agent", "nana-objective.md");
     fs.writeFileSync(objective, `**Objective (since 2026-10-12):** ${token}.\n\n**Current priority (since 2026-10-12):** install-check ${token}.\n`);
@@ -90,7 +101,7 @@ try {
     return spawnOne(invocation.command, invocation.args, { ...invocation.options, cwd: project, timeout, env: { ...env, ...extra } });
   };
   const sub = piRun(["install", `npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`], SPAWN_TIMEOUT_MS.pi);
-  emit("pi-subagents", "exit", ok(sub), sub.stderr?.trim().split(/\r?\n/).at(-1) ?? "");
+  emit("pi-subagents", sub.error?.code === "ETIMEDOUT" ? "timeout" : "exit", ok(sub), processReason(sub));
   const listed = piRun(["list"], SPAWN_TIMEOUT_MS.list);
   const parsed = parsePiList(listed.stdout ?? "", root, platformName);
   emit("pi list nana-pack", "missing-entry", ok(listed) && parsed.pack);
@@ -103,7 +114,12 @@ try {
   let journal = "";
   try { journal = fs.readFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), "utf8"); } catch {}
   const piSessionOk = ok(session) && sessionOutput.includes("reload-runtime") && journal.includes('"event":"directory_unadopted"') && journal.includes(project);
-  emit("pi session", "no-output", piSessionOk);
+  const sessionReason = session.error?.code === "ETIMEDOUT" ? processReason(session)
+    : !ok(session) ? processReason(session)
+      : !sessionOutput.includes("reload-runtime") ? "reload-runtime not in get_commands output"
+        : !journal.includes('"event":"directory_unadopted"') || !journal.includes(project) ? `journal has no directory_unadopted for ${project}`
+          : "required pi session condition was not observed";
+  emit("pi session", session.error?.code === "ETIMEDOUT" ? "timeout" : "no-output", piSessionOk, sessionReason);
 
   const settingsPath = path.join(home, ".claude", "settings.json");
   let settings;
@@ -112,7 +128,8 @@ try {
   for (const [event, rows] of Object.entries(settings.hooks ?? {})) for (const group of rows) groups.push({ event, group });
   const mapped = mapHookEntries(groups, platformName);
   const hookSetOk = mapped.failures.length === 0;
-  emit("hook set", mapped.failures.find((failure) => failure.code === "missing-entry")?.code ?? mapped.failures[0]?.code ?? "missing-entry", hookSetOk);
+  const firstHookFailure = mapped.failures[0];
+  emit("hook set", firstHookFailure?.code ?? "missing-entry", hookSetOk, firstHookFailure ? `${firstHookFailure.item}: ${firstHookFailure.code}` : "all sealed hook entries were observed");
 
   const sessionDir = path.join(home, ".claude", "projects", projectKey(project));
   fs.mkdirSync(sessionDir, { recursive: true });
@@ -158,13 +175,23 @@ try {
       }
       outputOk = outputOk && validHit && ok(miss) && (miss.stdout ?? "") === "";
     }
-    const failureDetail = expected.shortLabel === "verifier pipe" && !outputOk ? `hit=${JSON.stringify(result.stdout)} miss=${JSON.stringify(missOutput)}` : "";
-    emit(expected.label, outputOk ? null : (structuralFailure?.code ?? (!result.stdout ? "no-output" : "unexpected")), outputOk, failureDetail);
+    let failureDetail = "";
+    if (!outputOk) {
+      if (result.error?.code === "ETIMEDOUT") failureDetail = processReason(result);
+      else if (!ok(result)) failureDetail = processReason(result);
+      else if (expected.shortLabel === "objective" && !result.stdout.startsWith("[nana:objective]")) failureDetail = "no [nana:objective] line";
+      else if (expected.shortLabel === "knowledge pull" && !result.stdout.includes("[nana:knowledge]")) failureDetail = "no [nana:knowledge] block";
+      else if (expected.shortLabel === "verifier pipe") failureDetail = `hit=${JSON.stringify(result.stdout)} miss=${JSON.stringify(missOutput)}`;
+      else failureDetail = "required hook output or fixture condition was not observed";
+    }
+    const failureCode = result.error?.code === "ETIMEDOUT" ? "timeout" : outputOk ? null : (structuralFailure?.code ?? (!result.stdout ? "no-output" : "unexpected"));
+    emit(expected.label, failureCode, outputOk, failureDetail);
   }
   const doctor = spawnOne(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "doctor"], { cwd: project, timeout: SPAWN_TIMEOUT_MS.doctor });
   const notesAllowed = DOCTOR_NOTES[platformName] ?? [];
   const unexpectedNote = (doctor.stdout ?? "").split(/\r?\n/).find((line) => line.includes("·") && !notesAllowed.some((n) => line.includes(n)));
-  emit("doctor", unexpectedNote ? "note-row" : "exit", ok(doctor) && !unexpectedNote, unexpectedNote ?? "");
+  const doctorDetail = unexpectedNote ? unexpectedNote.replace(/\s+/g, " ").trim() : !ok(doctor) ? processReason(doctor) : "doctor completed without an unexpected note row";
+  emit("doctor", unexpectedNote ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", ok(doctor) && !unexpectedNote, doctorDetail);
   if (!failed) fs.rmSync(home, { recursive: true, force: true });
   else console.error(`install-check home retained: ${home}`);
 } catch (error) {
