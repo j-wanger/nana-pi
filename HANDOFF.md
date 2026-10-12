@@ -13,6 +13,7 @@
 - 2026-10-10: the requirements tree (capabilities, features and subgroups; shared rows; feature lifecycle) and four-digit requirement IDs landed together on Jake's checkpoint-2 acceptance, after sol and astra final reviews — `docs/sessions/2026-10.md`.
 - 2026-10-10: the land rule — `nana-land` refuses any commit no review covers and any revision with a verdict other than LAND, keeps every reviewer's verdict, and has no exemption; landed on Jake's checkpoint-2 acceptance after sol and astra reviews — `docs/sessions/2026-10.md`.
 - 2026-10-11: main pushed (Jake), CI cut template v0.6.8; Windows now runs in hosted CI as a non-blocking suite leg. Its first run reached `npm test` with 69 of 133 test files failing on the default checkout (64 in a measurement run that kept LF line endings), sorted into five product bugs and fix lanes — `docs/reviews/windows-ci-2026-10-11/windows-triage.md`.
+- 2026-10-11: the verdict reader takes a review's verdict from its final line, or from a plain first line when the final line carries none. yokai-world's lands work again: its reviewers put the verdict first — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -33,6 +34,7 @@
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
+- Verdict reader: a plain first-line LAND followed by a rejection that avoids the word "verdict" still reads LAND. Look-alike letters outside the fold table and misspelled labels are not caught. The reader ignores a middle verdict line when the final line carries one. Notes that say "verdict" after a first-line verdict leave the round empty. yokai-world's nine empty records from before the fix stay; a session merged those revisions by hand.
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 

@@ -1,0 +1,20 @@
+# seat run 2026-10-11 against eab842a in a separate clone (the reviewed worktree was under review); anchors updated for build 5
+red  final-only: no first-line branch → FAIL: complete extracts plain first-line verdicts, supported score
+red  drop the other-line guard → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  drop the look-alike fold → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  drop default-ignorable removal (both places) → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  remove only category Cf (both places) → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  drop NFKC → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  fold only after NFKC (astra land r1) → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  fold only before NFKC → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  final-line grammar for the first line (sol build r1) → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  raw first-line detection in the final branch → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  drop the first/final agreement → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  allow marks on the first line → FAIL: complete refuses marks, corrections, conflicting verdicts, i
+red  reject the bare score on the first line → FAIL: complete extracts plain first-line verdicts, supported score
+red  keep the byte-order mark → FAIL: complete extracts plain first-line verdicts, supported score
+red  final grammar without the bare score → FAIL: complete extracts plain first-line verdicts, supported score
+red  final line read first-line style (marks refused) → FAIL: complete records the LAND corpus forms and final SEND-BACK
+red  malformed final accepted by falling through → FAIL: complete records an empty verdict for malformed verdict suff
+worktree clean
+mutations: 17/17 red
