@@ -139,11 +139,14 @@ A hostile local user is out of scope. Anyone who can edit `settings.json` or the
 | R-1051 | added (SUB-015) | WHERE the platform is win32, the installer shall wire the objective, adoption, shared-memory and verifier-pipe settings entries to the checkout's own `packages/nana-setup/claude/hooks/<hook>.mjs`. |
 | R-1052 | withdrawn (a draft ID only, never written to `REQUIREMENTS.md`) | Was the refusal of a checkout path containing `$`, a backtick or `%`. It existed only because a double-quoted shell form expands those characters. Exec form refuses no character, so the regression it declared is gone. This lane does not reuse the ID, so earlier review notes stay unambiguous. |
 | R-1053 | added (SUB-015) | WHERE the platform is win32, the installer shall place the verifier-pipe entry in a PreToolUse group whose matcher is `Bash\|PowerShell`. |
-| R-1054 | added (SUB-012, beside R-985); overlaps R-984 | WHEN the verifier hook receives a PreToolUse event whose tool is `PowerShell`, it shall judge the command with the pipe guard's PowerShell dialect. |
+| R-1054 | added (SUB-012, beside R-985); overlaps R-984 | WHEN the verifier hook receives a PreToolUse event whose tool is `PowerShell`, it shall judge the command with the pipe guard's PowerShell dialect (R-1062). |
+| R-1062 | added (FEAT-010, beside R-984; sol plan r1 MUST 1) | WHERE the pipe guard's dialect is `powershell`, it shall treat a pipe as live only outside a single-quoted string, a here-string, a `#` line comment, a `<# … #>` block comment and a backtick escape, and outside a double-quoted string except inside a `$( … )` subexpression there. |
 | R-1055 | added (FEAT-015, beside R-393) | WHERE the platform is win32, doctor shall report each of the five hook settings rows as ✓ only when an entry invoking its script, in exec form or shell form, sits under the expected event and matcher, and every entry under that event invoking the script has an absolute script path that resolves inside the checkout. Pinned by forced-win32 suite cases (section 5), not only by the acceptance script. |
 | R-1056 | added (FEAT-018, beside R-394, which it extends); re-scoped 2026-10-12 | WHEN install finds an installer-shaped, repo-anchored hook entry whose script is missing or resolves outside the checkout, it shall replace that entry in place with the platform's current form. Repo-anchored means the knowledge pull on every platform, and all five entries on win32. Installer-shaped means timeout 5, the installer's status message for that entry, and a form that matches one of these apart from the checkout path: the POSIX knowledge form on every platform; on win32 only, the earlier win32 knowledge form `node '<path>' hook` and the R-1050 exec form. On win32 a shell form also carries no `args`. |
 | R-1057 | added (FEAT-015, beside R-344) | WHERE the platform is win32, doctor shall run the R-344 Node floor check on the `node` found on PATH instead of reporting it skipped. Pinned by a forced-win32 suite case (section 5). |
-| R-1058 | added (SUB-015); re-scoped 2026-10-12 from three shells to exec form | WHERE the platform is win32, each hook entry the installer writes, spawned as exec form (its `command` with its `args` and no shell), shall start its script and produce that script's expected output, from a checkout, a home and a project folder whose paths contain a space, `$`, a backtick, `%` and an apostrophe. Was: run by Git Bash, by PowerShell, or by cmd.exe. Exec form uses none of them. Its only test runs on the non-blocking Windows leg, so no blocking leg pins it. Its evidence names that leg's run ID. |
+| R-1058 | added (SUB-015); re-scoped 2026-10-12 to exec form; split after sol plan r1 (MUST 2) | WHERE the platform is win32, each hook entry the installer writes, spawned as exec form (its `command` with its `args` and no shell) from a checkout, a home and a project folder whose paths contain a space, `$`, a backtick, `%` and an apostrophe, shall exit 0 within its `timeout` with no module-resolution error on stderr. Evidence is DIRECT EXEC-FORM CONFORMANCE on the non-blocking Windows leg (its run ID), not proof that Claude Code itself dispatches the hook; Jake's machine check is the acceptance evidence for that. |
+| R-1063 | added (SUB-015; split from R-1058) | WHERE the platform is win32, when spawned as R-1058 describes with its event's sample stdin, the objective entry shall print a first line starting `[nana:objective]` and no `OBJECTIVE UNAVAILABLE`, the adoption entry no `ADOPTION UNAVAILABLE`, and the shared-memory entry its `[nana:shared-memory]` header and the seeded `- [` index line. |
+| R-1064 | added (SUB-012; split from R-1058) | WHERE the platform is win32, the verifier entry spawned as R-1058 describes shall print exactly one JSON line whose `permissionDecision` is `ask` for a `Bash` or `PowerShell` event whose command masks a test's exit code through a live pipe, and print nothing for any other command. |
 | R-1059 | added (FEAT-018, beside R-1056) | WHERE the platform is win32, WHEN install finds an installer-shaped knowledge entry in a shell form R-1056 recognizes, it shall replace it in place with the R-1050 exec form even when its script resolves inside the checkout. |
 | R-1060 | added (FEAT-015) | WHERE the platform is win32, doctor shall print a note row stating that the Claude Code hooks need Claude Code `CLAUDE_CODE_EXEC_FLOOR` (2.1.139) or later, without running `claude`. |
 | R-1061 | added (SUB-013, beside R-923) | WHERE the platform is not win32, install and doctor shall decide whether an entry invokes a nana hook from its `command` field alone, ignoring any `args`. This keeps the POSIX read side identical to `main` (outcome 6). |
@@ -257,6 +260,13 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 - **`verifier-hook.mjs` `decideHook`** (`:14`).
   - Accept `tool_name` `Bash` or `PowerShell`. The PowerShell tool's input "fields match the Bash tool, with the command string in `command`" (hooks#powershell).
   - For PowerShell, call the predicate with `"powershell"` (`verifierPipeReason(command, "powershell")`, `pipe-guard.mjs:85`).
+- **`pipe-guard.mjs` `liveText(command, dialect)`** (R-1062; sol plan r1 MUST 1). Today the dialect changes only the pipefail rule; `liveText` (`:17-75`) lexes every command as Bash, so in PowerShell a backtick reads as command substitution, `\"` as an escape, and here-strings and block comments are not seen. For `powershell` it gets its own lexer:
+  - a single-quoted string runs to the next `'` not doubled (`''` is a literal quote); nothing inside is live;
+  - a double-quoted string runs to the next `"` not doubled and not backtick-escaped; nothing inside is live EXCEPT a `$( … )` subexpression, whose contents are lexed again as live PowerShell (nesting counted);
+  - a here-string starts with `@'` or `@"` at the end of a line and ends at a line that begins with `'@` or `"@`; nothing inside is live, except `$( … )` in the `@"` form;
+  - outside strings, a backtick escapes the next character (`` `| `` is not a pipe), `#` starts a comment to the end of the line, and `<# … #>` is a block comment;
+  - the Bash path is byte-for-byte unchanged (every existing pipe-guard case keeps its result).
+  - Blast radius: the pi seat's `nana-gate` uses the same predicate for PowerShell (CLAUDE.md runtime table), so its PowerShell judgments get the same correction. That is the intended effect, and the existing gate-corpus tests must stay green.
   - POSIX keeps the `Bash` matcher, which filters out any PowerShell event there (see the residual below).
 - **Header only:** `claude/hooks/verifier-pipe.mjs` keeps its code. Its purpose line, "one Claude Code Bash PreToolUse event", becomes "one Claude Code Bash or PowerShell PreToolUse event".
 - **Unchanged:** the code of the four hook scripts, `lib/hook-producer.mjs`, the knowledge CLI, `lib/uninstall.mjs` and `.github/workflows/ci.yml`.
@@ -325,7 +335,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 - **The PowerShell tool on POSIX.**
   - macOS, Linux and WSL can turn the tool on with `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`, which also requires `pwsh`.
   - POSIX keeps the `Bash` matcher (outcome 6), so a session with the tool on gets no verifier guard.
-- **The runtime matrix (R-985).** The `_shared` matrix says "Bash PreToolUse Node hook" for the Claude Code seat. After this lane that is incomplete for win32. R-985 carries the gap as its residual (section 2 and section 4, NOT).
+- **The runtime matrix (R-985; sol plan r1 MUST 3).** The `_shared` matrix (`templates/_shared/working-under-nana-pi.md`, mirrored in this repo's AGENTS.md and CLAUDE.md regions) says "Bash PreToolUse Node hook" for the Claude Code seat. This lane changes the cell to "PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash|PowerShell` on Windows)", updates both tagged checks (`verifier-pipe.test.mjs:122-123`, `templates-render.test.mjs:288-298`), keeps the three copies byte-identical (R-859), and runs `template:accept`. The next main build cuts a template tag through CI as usual.
 - **Product report assessments.** The stamps in `docs/product-report/assessments.json` carry rows this lane changes:
   - FEAT-010: R-984;
   - FEAT-013: R-985, R-301, R-319, R-923, R-387 and R-936;
@@ -335,7 +345,7 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 
   The report will mark these "out of date" after the land. No check fails on that. Refreshing them is not in this lane.
 - **Windows-leg coverage of the rewritten README checks.** `verifier-pipe.test.mjs` crashes at `:37` on the Windows leg, because no hooks folder exists on win32 (`fs.realpathSync` on the missing link). So its rewritten `:128-133` checks run only on the POSIX legs. Lane 6 owns that file's portability.
-- **Uninstall.** Uninstall still refuses on win32 (lane 4). Until then, someone must remove the five win32 entries by hand.
+- **Uninstall (sol plan r1 SHOULD 1).** Uninstall refuses on win32 before anything else (`uninstall.mjs:41`), before this lane and after it. The five entries this lane writes join that existing gap: until the Windows install-shape lane adds Windows uninstall, someone removes them by hand. The pure `removeInstallerHooks` case pins only that function; this plan does NOT claim Windows uninstall works.
 - **Console flash.** The detached index rebuild sets no `windowsHide` (`packages/nana-knowledge/lib/hook.ts:51-69`), so a console window may flash (INFERRED). This lane does not change it.
 - **Gone with exec form.** These no longer apply to the five win32 entries:
   - profile output from Git Bash or PowerShell;
@@ -356,6 +366,8 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
   - `steps.mjs` (`stepSettings` only);
   - `doctor.mjs` (the Node floor row, the hook settings rows, the floor note row and its header);
   - `verifier-hook.mjs`;
+  - `packages/nana-pack/lib/pipe-guard.mjs` (`liveText` gains the PowerShell lexer, R-1062) and `packages/nana-pack/tests/pipe-guard.test.mjs`;
+  - the runtime matrix cell in `templates/_shared/working-under-nana-pi.md` and its two byte-identical copies (`AGENTS.md`, `CLAUDE.md` regions), with `verifier-pipe.test.mjs` and `templates-render.test.mjs`;
   - the header of `claude/hooks/verifier-pipe.mjs` (purpose line only).
 - A new test, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, which runs on the Windows leg only.
   - The other legs skip it through a declared entry in `scripts/test.mjs` (`SKIPS`, `:155`).
@@ -408,7 +420,6 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
 - Shell form and cmd.exe support on win32.
 - Writing anything into `~/.claude/hooks` on win32.
 - A doctor probe of `claude --version`.
-- The `_shared` matrix's "Bash PreToolUse Node hook" text. Two tagged checks pin it: `verifier-pipe.test.mjs:122-123` and `templates-render.test.mjs:288-298` (`req: R-680 R-985`). After this lane that text is incomplete for win32. Changing it means a template release, so this lane declares the gap, and R-985 carries it as its residual.
 - Refreshing the product report assessments that go out of date (section 3).
 - The installer's handling of `CLAUDE_CONFIG_DIR`, and the PowerShell-tool gap on POSIX. Both are declared above.
 
@@ -498,7 +509,12 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
     - CI runs only on a push to main or on a pull request (`ci.yml:2-5`), so pushing the branch runs nothing. A Windows run needs a draft pull request, which needs no approval (Jake, 2026-10-11).
     - The seat reads this file's lines in the Windows job log and records the run ID in R-1058's evidence. A green check is not evidence.
 - **macOS regression:** case (d) above, plus `npm run test:locked` green.
+- **PowerShell lexing cases (R-1062), on every leg in `pipe-guard.test.mjs`.** Live (ask): `npm test | Select-Object -Last 5; git commit -m x`; `"$(npm test | Select-Object -Last 1)"; git commit -m x`. Not live: `'npm test | x'`; `"npm test | x"`; ``npm test `| x``; `# npm test | x`; `<# npm test | x #> git commit`; a here-string `@'` … `npm test | x` … `'@`; a doubled quote `'it''s | x'`. Every existing Bash case keeps its result.
+- **Every hook label, not one representative (sol plan r1 NOTE).** The forced-win32 doctor cases (R-1055) and the migration cases (R-1056, R-1059) iterate all five hook labels.
 - **Mutation pairs.** Each mutation breaks code, never an assertion, and the seat records which test goes red.
+  19. Lex PowerShell as Bash (drop the dialect branch in `liveText`): the escaped-pipe, here-string and block-comment cases fail.
+  20. Treat `$( … )` inside double quotes as inactive: the subexpression case fails.
+  21. Leave the matrix cell as "Bash PreToolUse": the two matrix checks fail.
   1. Restore the filter at `steps.mjs:505-509`: the five-entry case fails on every leg, and every Windows spawn case fails.
   2. Write shell form on win32 (`node ${shq(path)}`, no `args`): the exec-shape case fails on every leg. On Windows the harness fails each entry before spawning, because the entry has no `args`.
   3. Quote the path inside `args` (`"'<path>'"`, a shell habit): the exec-shape case fails, because the element is not an absolute path. The Windows spawn cases fail, because `node` receives the quotes.
@@ -654,3 +670,4 @@ Jake reported that his Windows machine runs Claude Code 2.1.296, the same versio
   - Removed: profile output, shell flags, PowerShell stdin, cmd.exe, the refused set, UNC collapse and `CLAUDE_CODE_SHELL_PREFIX`.
   - Added: Claude Code before 2.1.139; the real exec-form spawn on Windows, now the claim most likely to be wrong; `node` as a real executable; hand-written exec-form variants on win32; no `NODE_NO_WARNINGS` on win32.
 - **Memory.** Two lines were already corrected on 2026-10-12: `user_jake_windows_both_seats.md:10` and `reference_claude_code_hooks_windows.md:9`. The reference note's `:3` and `:16` still describe the double-quoted shell form, and the seat updates them.
+- 2026-10-12, after sol plan r1 (SEND-BACK 70/100): PowerShell lexing added to the pipe guard (R-1062); R-1058 split into start (R-1058), SessionStart output (R-1063) and verifier output (R-1064), with its CI evidence named direct exec-form conformance; the runtime matrix cell updated in all three copies; Windows uninstall stated as a gap this lane does not close; doctor and migration cases iterate all five labels.
