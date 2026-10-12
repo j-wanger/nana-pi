@@ -18,12 +18,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findPi } from "../../nana-pack/lib/win-command.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
-const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister, installExitCode, PI_INSTALL_HINT } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -153,7 +154,7 @@ function piHomeWith(packages) {
 	// req: R-679
 	check("fixture manifest root checkout identity covers its extension directories", rootCoverage.present && rootCoverage.match === path.relative(agent, repo), JSON.stringify(rootCoverage));
 }
-{
+if (process.platform !== "win32") {
 	const home = piHomeWith(null);
 	const agent = path.join(home, ".pi", "agent");
 	const knowledge = path.relative(agent, path.join(repo, "packages", "nana-knowledge"));
@@ -178,7 +179,7 @@ function piHomeWith(packages) {
 		// req: R-323
 		check("install adds only the missing per-package entry, never a root entry", calls.length === 2 && calls[1] === `install ${path.join(repo, "packages", "nana-pack")}` && !calls.some((line) => line === `install ${repo}`), `${JSON.stringify(calls)} ${JSON.stringify(installed)}`);
 	} finally { process.env.PATH = savedPath; }
-}
+} else console.log("SKIP POSIX-only fake-pi registration test: it uses a #!/bin/sh executable and colon-separated PATH");
 
 /* --- a WORKTREE of the same repo is the same repo --------------------------------------- */
 {
@@ -258,7 +259,97 @@ function piHomeWith(packages) {
 	}
 }
 
+// Injected POSIX launcher cases are portable; the recording spawn never invokes pi.
+{
+	const fixture = tmpDir(path.join(os.tmpdir(), "nana-posix-pi-manifest-"));
+	tmps.push(fixture);
+	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"] } }));
+	const fakeLayout = { piHome: "/Users/fake/.pi/agent", isRealHome: true };
+	const injected = { platform: () => "darwin", manifestRoot: fixture };
+	const missing = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }) });
+	// req: R-1036
+	check("darwin missing pi is skipped with install hint", missing[0]?.status === "skipped" && missing[0].detail.includes(PI_INSTALL_HINT));
+	const denied = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
+	// req: R-1036
+	check("darwin found pi with EACCES is a problem and fails install", denied[0]?.status === "problem" && installExitCode(denied) === 1);
+	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 2, stderr: "bad version" }) });
+	// req: R-1036
+	check("darwin found pi with nonzero version probe is a problem", failed[0]?.status === "problem");
+}
+
+// Injected win32 launcher cases are portable; the recording spawn never invokes pi.
+{
+	const fixture = tmpDir(path.join(os.tmpdir(), "nana-win-pi-manifest-"));
+	tmps.push(fixture);
+	for (const name of ["nana-pack", "nana-knowledge"]) fs.mkdirSync(path.join(fixture, "packages", name, "extensions"), { recursive: true });
+	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"] } }));
+	const fakeLayout = { piHome: "C:\\Users\\fake\\.pi\\agent", isRealHome: true };
+	const calls = [];
+	const injected = { platform: () => "win32", env: { PATH: "C:\\bin", ComSpec: "C:\\Windows\\cmd.exe" }, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.cmd", manifestRoot: fixture, spawn: (command, args, options) => { calls.push({ command, args, options }); return { status: 0, stdout: "1.2.3", stderr: "" }; } };
+	const result = stepPiRegister(fakeLayout, {}, injected);
+	// req: R-1033 R-1034 R-1036
+	check("win32 pi registration uses ComSpec and sets agent dir for install", result[0]?.status === "created" && calls.length === 3 && calls[0].command === "C:\\Windows\\cmd.exe" && calls[0].args[0] === "/d" && calls[1].options.env.PI_CODING_AGENT_DIR === fakeLayout.piHome, JSON.stringify({ result, calls }));
+	const missing = stepPiRegister(fakeLayout, {}, { ...injected, exists: () => false, spawn: () => { throw new Error("must not spawn"); } });
+	// req: R-1033
+	check("win32 missing pi is skipped with install hint", missing[0]?.status === "skipped" && missing[0].detail.includes(PI_INSTALL_HINT));
+	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 1, stderr: "failed" }) });
+	// req: R-1036
+	check("win32 found pi with failing version probe is a problem", failed[0]?.status === "problem");
+	const spawnError = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
+	// req: R-1036
+	check("win32 found pi with spawn error is a problem", spawnError[0]?.status === "problem");
+	const refused = stepPiRegister(fakeLayout, {}, { ...injected, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, spawn: () => { throw new Error("must not spawn"); } });
+	// req: R-1035
+	check("win32 refused shim is a problem without spawn", refused[0]?.status === "problem" && refused[0].detail.includes("%"));
+	const direct = stepPiRegister(fakeLayout, {}, { ...injected, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.exe", spawn: (command, args) => { calls.push({ command, args }); return { status: 0, stdout: "1.2.3" }; } });
+	// req: R-1039
+	check("win32 executable launches direct", direct[0]?.status === "created" && calls.some((call) => call.command.toLowerCase().endsWith("pi.exe")));
+}
+
+if (process.platform === "win32") {
+	const prefix = tmpDir(path.join(os.tmpdir(), "nana npm prefix space "));
+	const fixture = path.join(prefix, "manifest root space &()^;", "app");
+	const pkg = path.join(prefix, "fake-pi");
+	fs.mkdirSync(path.join(fixture, "packages", "nana-pack", "extensions"), { recursive: true });
+	fs.mkdirSync(pkg, { recursive: true });
+	const log = path.join(prefix, "calls.json");
+	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions"] } }));
+	fs.writeFileSync(path.join(pkg, "package.json"), JSON.stringify({ name: "fake-pi-for-nana", version: "1.0.0", bin: { pi: "cli.cjs" } }));
+	fs.writeFileSync(path.join(pkg, "cli.cjs"), `#!/usr/bin/env node\nconst fs=require('node:fs'); const a=process.argv.slice(2); if(a[0]==='--version') console.log('9.9.9'); else fs.writeFileSync(${JSON.stringify(log)}, JSON.stringify(a));\n`);
+	// Invoke npm's JS CLI directly so spaces in the fixture prefix remain argv boundaries on Windows.
+	const npmCli = process.env.npm_execpath;
+	const installed = npmCli
+		? spawnSync(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, pkg], { encoding: "utf8" })
+		: { status: 1, stderr: "npm_execpath is not set" };
+	const fixtureInstalled = installed.status === 0;
+	check("Windows fixture npm installed the local shim", fixtureInstalled, installed.stderr);
+	const env = { ...process.env, PATH: `${prefix};${process.env.PATH ?? ""}` };
+	const expectedShim = path.join(prefix, "pi.cmd");
+	const selected = findPi({ env, cwd: prefix });
+	const selectedFixture = selected === expectedShim;
+	// req: R-1033
+	check("Windows integration selected the prepended npm pi shim", selectedFixture, selected);
+	if (!fixtureInstalled || !selectedFixture) {
+		console.log("SKIP Windows npm-shim registration: fixture installation or exact findPi precondition failed");
+	} else {
+		const comspec = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
+		const guardedSpawn = (command, args, options) => {
+			const valid = comspec && command.toLowerCase() === env[comspec].toLowerCase() && args.includes("/c") && args.join(" ").toLowerCase().includes(expectedShim.toLowerCase());
+			if (!valid) {
+				check("Windows registration spawn is only fixture ComSpec shim", false, JSON.stringify({ command, args, expectedShim }));
+				return { error: new Error("refused non-fixture pi invocation") };
+			}
+			return spawnSync(command, args, options);
+		};
+		const result = stepPiRegister({ piHome: path.join(prefix, "agent"), isRealHome: true }, {}, { platform: () => "win32", env, spawn: guardedSpawn, manifestRoot: fixture });
+		const args = JSON.parse(fs.readFileSync(log, "utf8"));
+		// req: R-1034
+		check("Windows npm shim preserves spaced metacharacter manifest root argv", result[0]?.status === "created" && JSON.stringify(args) === JSON.stringify(["install", path.join(fixture, "packages", "nana-pack")]), JSON.stringify({ result, args }));
+	}
+	fs.rmSync(prefix, { recursive: true, force: true });
+} else console.log("SKIP Windows npm-generated pi.cmd integration: space/metacharacter manifest root and prepended PATH");
+
 // req: R-392
-check("repository manifests remain byte-identical after fixture coverage checks", [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].every((file, index) => fs.readFileSync(file).equals(repoManifestBytes[index])));
+check("repository manifests remain byte-identical after fixture coverage checks",   [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].every((file, index) => fs.readFileSync(file).equals(repoManifestBytes[index])));
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);

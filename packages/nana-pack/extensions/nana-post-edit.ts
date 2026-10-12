@@ -31,6 +31,7 @@ import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { resolveToolPath } from "../lib/gate-paths.ts";
+import { cmdCouldNotRun } from "../lib/win-command.mjs";
 import { promptPath, promptText, uiPath } from "../lib/display.mjs";
 
 /** Cap on captured checker output (matches the previous exec maxBuffer). */
@@ -143,13 +144,16 @@ function killTree(child: ChildProcess, escalate: boolean): void {
 // Deadline-aware: `timedOut` (elapsed >= the timeout) forces `timeout` even when a
 // child traps the kill signal and exits 0 (err === null) — decided BEFORE the
 // !err → checks_passed branch, so a killed checker is never recorded as passed.
-function classify(err: any, aborted: boolean, timedOut: boolean): CheckStatus {
+export function classifyPostEdit(err: any, aborted: boolean, timedOut: boolean, command: string, cwd: string, env?: NodeJS.ProcessEnv, hostPlatform = process.platform, exists?: (file: string) => boolean): CheckStatus {
 	if (aborted || err?.name === "AbortError" || err?.code === "ABORT_ERR") return "not_run"; // interrupted
 	// Output overflow: the child is killed but no verdict was produced —
 	// an error, NOT a timeout. Decide it before the killed → timeout branch below.
 	if (err && (err.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" || /maxBuffer/i.test(err.message ?? ""))) return "error";
 	if (timedOut || err?.killed) return "timeout"; // deadline fired, or killed by the timeout option
 	if (!err) return "checks_passed";
+	if (hostPlatform === "win32" && err.code === 1) {
+		try { if (cmdCouldNotRun(command, { env, cwd, exists })) return "error"; } catch { /* classifier must remain crash-free */ }
+	}
 	// shell "command not found" (127) / "found but not executable" (126) / cmd.exe "not recognized" (9009),
 	// a direct spawn failure (ENOENT), or permission denied (EACCES) — the checker never produced a verdict.
 	if (err.code === "ENOENT" || err.code === "EACCES" || err.code === 127 || err.code === 126 || err.code === 9009) return "error";
@@ -191,7 +195,7 @@ function run(
 			const timedOut = timeoutMs > 0 && performance.now() - startedAt >= timeoutMs;
 			const code = err ? (typeof err.code === "number" ? err.code : 1) : 0;
 			const exitCode = err ? (typeof err.code === "number" ? err.code : null) : 0;
-			resolve({ code, exitCode, status: classify(err, signal?.aborted ?? false, timedOut), out });
+			resolve({ code, exitCode, status: classifyPostEdit(err, signal?.aborted ?? false, timedOut, cmd, cwd, env), out });
 		};
 
 		// Terminate, then escalate AND settle: one shared path for the deadline and

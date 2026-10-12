@@ -1,0 +1,89 @@
+ok   export win-command findOnPath is a function
+ok   export win-command findPi is a function
+ok   export win-command winCommand is a function
+ok   export win-command cmdCouldNotRun is a function
+ok   export steps stepPiRegister is a function
+ok   export steps installExitCode is a function
+ok   export doctor diagnose is a function
+ok   INTERNAL_COMMANDS is exactly the sealed 45
+ok   DEFAULT_PATHEXT
+ok   PI_EXTENSIONS
+ok   PATH key read as Path
+ok   PATH key read as PATH
+ok   quoted and empty PATH entries
+ok   PATHEXT order inside one folder
+ok   earlier folder beats a later extension
+ok   working folder never searched for pi
+ok   working folder searched first when asked
+ok   a directory named pi.cmd is skipped
+ok   unset PATHEXT uses the default
+ok   .JS and .PS1 in PATHEXT are skipped for pi
+ok   upper-case pi.CMD found
+ok   nothing found → null
+ok   .cmd → ComSpec
+ok   .cmd → exact switch list and quoted line
+ok   .cmd → verbatim arguments
+ok   upper-case .CMD → ComSpec
+ok   default ComSpec is cmd.exe
+ok   .exe → direct, path kept
+ok   .exe → argument array kept, nothing refused
+ok   .exe → no verbatim arguments
+ok   .com → direct
+ok   .ps1 → refused
+ok   .cmd refuses double quote in an argument, naming it
+ok   .cmd refuses double quote in its path
+ok   .cmd refuses percent in an argument, naming it
+ok   .cmd refuses percent in its path
+ok   .cmd refuses bang in an argument, naming it
+ok   .cmd refuses bang in its path
+ok   .cmd refuses CR
+ok   .cmd refuses LF
+ok   .cmd refuses NUL
+ok   .cmd refuses a trailing backslash
+ok   .cmd accepts & ( ) ^ ; and spaces inside quotes
+ok   could not run: "missing-tool x"
+ok   could not run: ".\\missing-tool"
+ok   could not run: "C:\\nowhere\\tool.exe"
+ok   could not run: "   missing-tool"
+ok   could not run: "\tmissing-tool"
+ok   could not run: "dirt"
+ok   not classified: "ruff check ."
+ok   not classified: "local"
+ok   not classified: ".\\check"
+ok   not classified: "ECHO hi"
+ok   not classified: "type missing.txt"
+ok   not classified: "dir/Z"
+ok   not classified: "cd\\nowhere"
+ok   not classified: "cd.."
+ok   not classified: "echo.text"
+ok   not classified: ""
+ok   not classified: "   "
+ok   not classified: "%ComSpec% /c exit 1"
+ok   not classified: "@node -e x"
+ok   not classified: "^ruff check"
+ok   not classified: "\"C:\\nowhere\\tool.exe\""
+ok   not classified: "ruff,check"
+ok   not classified: "missing-tool&&x"
+ok   win32 .cmd: first call is ComSpec --version
+ok   win32 .cmd: install calls go through ComSpec with PI_CODING_AGENT_DIR
+ok   win32 .cmd: step created
+ok   win32 not found → skipped with the hint, no spawn
+ok   win32 spawn error → problem, install exits 1
+ok   win32 --version exit 1 → problem
+ok   win32 refused .cmd path → problem naming %, no spawn
+ok   win32 .exe with % → spawned directly
+ok   posix ENOENT → skipped
+ok   posix EACCES → problem
+ok   posix --version exit 2 → problem
+ok   doctor win32: version with stderr noise → ok 1.0.2
+ok   doctor win32: ran through ComSpec
+ok   doctor win32: exit 1 → fail on the real home
+ok   doctor win32: empty → fail on the real home
+ok   doctor win32: malformed → fail on the real home
+ok   doctor win32: stderr only → fail on the real home
+ok   doctor win32: spawn error → fail on the real home
+ok   doctor win32: not found → fail with the shared hint
+ok   doctor win32: refused .cmd on the real home → fail naming %, no spawn
+ok   doctor win32: refused .cmd under --home → note naming %, no spawn
+cases: 87/87
+seat-verify-wincmd: 0 mismatch(es)

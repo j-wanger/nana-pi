@@ -1,0 +1,20 @@
+red  bare pi spawn on win32 → pi-registration.test.mjs: FAIL win32 pi registration uses ComSpec and sets agent dir for install {"result":[{"label"
+red  findPi allows every PATHEXT extension → win-command.test.mjs: FAIL findPi excludes non-pi PATHEXT extensions got "C:\\bin\\pi.js" expected null
+red  drop PATHEXT in the lookup → win-command.test.mjs: FAIL PATH keys ignore case, quoted and empty entries skip, PATHEXT order applies within fo
+red  search the working folder for pi → win-command.test.mjs: FAIL PATH keys ignore case, quoted and empty entries skip, PATHEXT order applies within fo
+red  drop the argument quoting → win-command.test.mjs: FAIL cmd launch quotes path and arguments exactly got {"command":"C:\\Windows\\cmd.exe","a
+red  drop the % refusal → win-command.test.mjs: FAIL cmd refusal names "%" got false expected true
+red  refuse % for .exe too → win-command.test.mjs: FAIL exe with metacharacters launches directly got {"refused":"unsupported extension .exe"
+red  drop /v:off → win-command.test.mjs: FAIL cmd launch quotes path and arguments exactly got {"command":"C:\\Windows\\cmd.exe","a
+red  compare extensions with case → win-command.test.mjs: FAIL uppercase pi.CMD selects cmd launch got undefined expected "cmd.exe"
+red  treat internal commands as missing → win-command.test.mjs: FAIL cmdCouldNotRun "ECHO" got true expected false
+red  let %, @ and ^ words through → win-command.test.mjs: FAIL cmdCouldNotRun "%ComSpec% /c exit 1" got true expected false
+red  drop PATHEXT for separator paths → win-command.test.mjs: FAIL cmdCouldNotRun "check x" got true expected false
+red  drop the attached-syntax rule → win-command.test.mjs: FAIL cmdCouldNotRun "dir/Z" got true expected false
+red  found-but-failing pi is skipped → pi-registration.test.mjs: FAIL darwin found pi with EACCES is a problem and fails install 
+red  posix: any probe error is a skip → pi-registration.test.mjs: FAIL darwin found pi with EACCES is a problem and fails install 
+red  doctor runs a refused .cmd pi → doctor-runtime.test.mjs: exit 1
+red  doctor: a refusal is only a note → doctor-runtime.test.mjs: FAIL pi executable failure is a real-home failure 
+red  post-edit: drop the win32 missing-command rule → post-edit-status.test.mjs: FAIL win32 launch classification missing-tool x
+worktree clean
+mutations: 18/18 red
