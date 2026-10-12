@@ -1,0 +1,550 @@
+<title>nana-pi Product Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+:root{
+  --ground:#f3f5f2;--surface:#fcfcfb;--sunk:#eaeee9;--line:#d5dbd6;--line-soft:#e3e8e3;
+  --ink:#14201b;--ink-2:#44524b;--ink-3:#6b7871;
+  --accent:#1d5b86;--accent-soft:#dce8f1;--accent-ink:#0f3d5e;
+  --good:#0ca30c;--warn:#fab219;--serious:#ec835a;--crit:#d03b3b;
+  --planned:#8a9bb0;--retired:#bfc6c1;
+  --good-ink:#0b6b17;--warn-ink:#7a5200;--crit-ink:#9e2323;
+  --pill-good:#e3f3e1;--pill-warn:#fdf0d2;--pill-crit:#f9e1e0;--pill-frozen:#e4e9f2;--pill-neutral:#e9ece8;
+  --shadow:0 1px 2px rgba(20,32,27,.06),0 4px 14px rgba(20,32,27,.05);
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"IBM Plex Serif",ui-serif,Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --ground:#0f1513;--surface:#161d1a;--sunk:#1c2421;--line:#2c3633;--line-soft:#232c29;
+  --ink:#e6ece8;--ink-2:#b4c0ba;--ink-3:#8a9690;
+  --accent:#78b4df;--accent-soft:#1d3142;--accent-ink:#a9d1ee;
+  --planned:#7d8ea3;--retired:#4b5450;
+  --good-ink:#6fd36f;--warn-ink:#f6c45a;--crit-ink:#f08a8a;
+  --pill-good:#16301a;--pill-warn:#352a10;--pill-crit:#3a1a1a;--pill-frozen:#1f2a3a;--pill-neutral:#242c29;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25);}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#0f1513;--surface:#161d1a;--sunk:#1c2421;--line:#2c3633;--line-soft:#232c29;
+  --ink:#e6ece8;--ink-2:#b4c0ba;--ink-3:#8a9690;
+  --accent:#78b4df;--accent-soft:#1d3142;--accent-ink:#a9d1ee;
+  --planned:#7d8ea3;--retired:#4b5450;
+  --good-ink:#6fd36f;--warn-ink:#f6c45a;--crit-ink:#f08a8a;
+  --pill-good:#16301a;--pill-warn:#352a10;--pill-crit:#3a1a1a;--pill-frozen:#1f2a3a;--pill-neutral:#242c29;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25);}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 var(--sans);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1240px;margin:0 auto}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.mono,code{font-family:var(--mono);font-size:.86em}
+h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.005em}
+h1{font-size:clamp(1.55rem,3.2vw,2.1rem);line-height:1.15}
+h2{font-size:1.32rem;line-height:1.25}
+h3{font-size:1.06rem;line-height:1.3;font-family:var(--sans);font-weight:600}
+p{margin:0}
+.eyebrow{font:500 .72rem/1.2 var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3)}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)}
+header.top{padding-block:28px 14px;display:grid;gap:10px}
+.snapshot{display:flex;flex-wrap:wrap;gap:6px 14px;font:400 .8rem/1.4 var(--mono);color:var(--ink-3)}
+.snapshot b{color:var(--ink-2);font-weight:500}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:22px;scrollbar-width:none}
+nav.tabs button{background:none;border:0;padding:12px 14px 11px;cursor:pointer;color:var(--ink-2);font-weight:500;white-space:nowrap;border-bottom:2px solid transparent}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs button .n{font:400 .74rem var(--mono);color:var(--ink-3);margin-left:6px}
+section.panel{display:grid;gap:22px}
+.lede{font-size:1.02rem;max-width:68ch;color:var(--ink-2)}
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:10px;padding:18px 18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 16px;display:grid;gap:2px}
+.stat .v{font:600 1.6rem/1.1 var(--serif);font-variant-numeric:tabular-nums}
+.stat .k{font-size:.82rem;color:var(--ink-2)}
+.pill{display:inline-flex;align-items:center;gap:5px;font:500 .74rem/1 var(--sans);padding:4px 8px;border-radius:99px;background:var(--pill-neutral);color:var(--ink-2);white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.85}
+.pill.good{background:var(--pill-good);color:var(--good-ink)}
+.pill.warn{background:var(--pill-warn);color:var(--warn-ink)}
+.pill.crit{background:var(--pill-crit);color:var(--crit-ink)}
+.pill.frozen{background:var(--pill-frozen);color:var(--accent-ink)}
+.pill.plain::before{display:none}
+.chip{font:500 .76rem/1 var(--mono);padding:3px 6px;border-radius:5px;background:var(--sunk);color:var(--ink-2);border:1px solid var(--line-soft);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+ul.tight{margin:0;padding-left:1.1em;display:grid;gap:6px}
+.decision{display:grid;gap:8px;padding:16px 18px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;box-shadow:var(--shadow)}
+.decision .q{font-weight:600}
+.decision .rec{color:var(--ink-2)} .decision .rec b{color:var(--ink);font-weight:600}
+.decision.ask{border-left-color:var(--crit)}
+.split{display:grid;grid-template-columns:minmax(260px,330px) 1fr;gap:18px;align-items:start}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+.flist{display:grid;gap:4px;max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:64px;padding-right:4px}
+@media (max-width:860px){.flist{max-height:none;position:static}}
+.fcap{font:500 .72rem/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);padding:12px 8px 4px}
+.fitem{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;text-align:left;padding:8px 10px;border-radius:8px;border:1px solid transparent;background:none;cursor:pointer}
+.fitem:hover{background:var(--surface);border-color:var(--line-soft)}
+.fitem[aria-current="true"]{background:var(--surface);border-color:var(--accent);box-shadow:var(--shadow)}
+.fitem .fid{font:500 .72rem var(--mono);color:var(--ink-3)}
+.fitem .fl{font-size:.88rem;line-height:1.3}
+.fitem .mini{grid-column:2/4}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input,.filters select{font:inherit;font-size:.88rem;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:0}
+.filters input{flex:1 1 220px}
+.bar{display:flex;height:10px;border-radius:3px;overflow:hidden;gap:2px;background:transparent}
+.bar span{display:block;height:100%}
+.bar.lg{height:14px;border-radius:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--ink-2)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.fdetail{display:grid;gap:18px}
+.fhead{display:grid;gap:8px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:.9rem}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line-soft);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line-soft)}
+th{font:500 .72rem/1.2 var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);background:var(--sunk);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.id{font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+details.ev summary{cursor:pointer;color:var(--ink-3);font-size:.78rem}
+details.ev div{font:400 .76rem/1.5 var(--mono);color:var(--ink-2);margin-top:6px;overflow-wrap:anywhere}
+.req-text{max-width:70ch}
+.callout{padding:12px 14px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);font-size:.9rem}
+.prose{display:grid;gap:10px;max-width:72ch}
+.prose p{color:var(--ink-2)}
+.prose b{color:var(--ink)}
+.chartrow{display:grid;grid-template-columns:minmax(150px,280px) 1fr minmax(64px,auto);gap:10px;align-items:center;padding:4px 6px;border-radius:6px;cursor:pointer;background:none;border:0;text-align:left;width:100%}
+.chartrow:hover{background:var(--sunk)}
+.chartrow .lbl{font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chartrow .lbl .fid{font:500 .72rem var(--mono);color:var(--ink-3);margin-right:6px}
+.chartrow .tot{font:500 .78rem var(--mono);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.track{position:relative;height:14px}
+@media (max-width:620px){.chartrow{grid-template-columns:1fr auto}.chartrow .track{grid-column:1/3}}
+.axis{display:grid;grid-template-columns:minmax(150px,280px) 1fr minmax(64px,auto);gap:10px;padding:0 6px;font:400 .7rem var(--mono);color:var(--ink-3)}
+.axis .ticks{position:relative;height:14px}
+.axis .ticks span{position:absolute;transform:translateX(-50%)}
+@media (max-width:620px){.axis{display:none}}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--surface);font:500 .78rem/1.35 var(--sans);padding:7px 9px;border-radius:6px;max-width:260px;box-shadow:var(--shadow)}
+.empty{color:var(--ink-3);font-size:.9rem;padding:12px 0}
+.count-line{font:400 .8rem var(--mono);color:var(--ink-3)}
+.sev{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em}
+@media (prefers-reduced-motion:no-preference){.fitem,.chip,.chartrow{transition:background-color .12s,border-color .12s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">nana-pi · product ledger · decision report</span>
+    <h1>What the toolkit promises, feature by feature</h1>
+    <div class="snapshot" id="snapshot"></div>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Report sections" id="tabs"></nav>
+  <main id="main"></main>
+</div>
+<div id="tip" hidden></div>
+
+<script type="application/json" id="report-data">/*DATA*/</script>
+<script>
+(function(){
+const D = JSON.parse(document.getElementById('report-data').textContent);
+const R = D.rows, F = D.features, S = D.subgroups, A = D.assess || {};
+const CAPS = D.capabilities;
+const STATUS = [
+  ['implemented','Implemented','var(--good)','good'],
+  ['untested','Untested','var(--warn)','warn'],
+  ['violated','Violated','var(--crit)','crit'],
+  ['planned','Planned','var(--planned)','plain'],
+  ['retired','Retired','var(--retired)','plain'],
+];
+const STATUS_HELP = {
+  implemented:'A test is cited and carries the row marker.',
+  untested:'No test is recorded as pinning every clause; the code may still do it.',
+  violated:'A known, recorded deviation from the row.',
+  planned:'Agreed, not built.',
+  retired:'History only; the ID is never reused.'
+};
+
+/* ---------- tiny DOM helpers (text only; data is never parsed as HTML) ---------- */
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  if (attrs) for (const [k,v] of Object.entries(attrs)){
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.setAttribute('style', v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()){
+    if (kid == null || kid === false) continue;
+    el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+function md(s){
+  const out = []; const parts = String(s==null?'':s).split(/(`[^`]+`|\*\*[^*]+\*\*)/);
+  for (const p of parts){
+    if (!p) continue;
+    if (p.length>1 && p.startsWith('`') && p.endsWith('`')) out.push(h('code',null,p.slice(1,-1)));
+    else if (p.length>3 && p.startsWith('**') && p.endsWith('**')) out.push(h('b',null,p.slice(2,-2)));
+    else out.push(p);
+  }
+  return out;
+}
+const store = {
+  get(k){ try { return localStorage.getItem('npl:'+k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem('npl:'+k, v); } catch(e){} }
+};
+const capOf = id => CAPS.find(c => c.id === id);
+const fmtStatus = s => {
+  const st = (s||'').trim();
+  if (st.startsWith('frozen')) return h('span',{class:'pill frozen',title:st},'Frozen');
+  if (st.startsWith('retired')) return h('span',{class:'pill plain',title:st},'Retired');
+  if (st.startsWith('proposed')) return h('span',{class:'pill plain',title:st},'Proposed');
+  return h('span',{class:'pill good'},'Active');
+};
+const MAT = {'solid':'good','mostly solid':'good','partial':'warn','weak':'crit'};
+const fmtMaturity = m => m ? h('span',{class:'pill '+(MAT[m]||'plain')}, m[0].toUpperCase()+m.slice(1)) : null;
+function rowChip(id){ return h('button',{class:'chip',type:'button',title: R[id] ? R[id].requirement : id, onclick:()=>openRow(id)}, id); }
+function featChip(id){ return h('button',{class:'chip',type:'button',title: F[id] ? F[id].label : id, onclick:()=>openFeature(id)}, id); }
+function statusPill(s){ const d = STATUS.find(x=>x[0]===s); return h('span',{class:'pill '+(d?d[3]:'plain'), title: STATUS_HELP[s]||''}, d?d[1]:s); }
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById('tip');
+function showTip(e, text){ tip.textContent = text; tip.hidden = false; moveTip(e); }
+function moveTip(e){
+  const pad = 12, w = tip.offsetWidth, ht = tip.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+  if (y + ht > window.innerHeight - 8) y = e.clientY - ht - pad;
+  tip.style.left = Math.max(8,x)+'px'; tip.style.top = Math.max(8,y)+'px';
+}
+function hideTip(){ tip.hidden = true; }
+
+/* ---------- stacked status bar ---------- */
+function statusBar(counts, opts={}){
+  const total = STATUS.reduce((a,[k])=>a+(counts[k]||0),0);
+  const scale = opts.scale || total || 1;
+  const wrap = h('div',{class:'bar'+(opts.lg?' lg':''), style:`width:${Math.max(2,100*total/scale)}%`, role:'img',
+    'aria-label': STATUS.filter(([k])=>counts[k]).map(([k,l])=>`${l} ${counts[k]}`).join(', ')});
+  for (const [k,label,color] of STATUS){
+    const n = counts[k]||0; if (!n) continue;
+    const seg = h('span',{style:`flex:${n} 1 0;background:${color};${k==='implemented'?'':''}`});
+    seg.addEventListener('mouseenter', e=>showTip(e, `${opts.name?opts.name+' · ':''}${label}: ${n} of ${total}`));
+    seg.addEventListener('mousemove', moveTip); seg.addEventListener('mouseleave', hideTip);
+    wrap.append(seg);
+  }
+  return wrap;
+}
+function legend(){
+  return h('div',{class:'legend'}, STATUS.map(([k,l,c])=>h('span',{title:STATUS_HELP[k]}, h('i',{style:`background:${c}`}), l)));
+}
+
+/* ---------- totals ---------- */
+const totals = {}; for (const r of Object.values(R)) totals[r.status] = (totals[r.status]||0)+1;
+const sharedRows = Object.values(R).filter(r=>r.shared_with.length);
+const nShareLinks = sharedRows.reduce((a,r)=>a+r.shared_with.length,0);
+const frozen = Object.values(F).filter(f=>f.status.startsWith('frozen'));
+const capCounts = id => { const c={}; for (const fid of capOf(id).features) for (const [k] of STATUS) c[k]=(c[k]||0)+(F[fid].counts[k]||0); return c; };
+
+/* ---------- snapshot line ---------- */
+document.getElementById('snapshot').append(
+  h('span',null,'Snapshot ', h('b',null,D.meta.generated)),
+  h('span',null,'branch ', h('b',null,D.meta.branch), ' @ ', h('b',null,D.meta.commit)),
+  h('span',null, D.meta.state)
+);
+
+/* ---------- tabs ---------- */
+const TABS = [
+  ['decisions','Decisions'],['product','Product'],['features','Features', Object.keys(F).length],
+  ['shared','Shared requirements', sharedRows.length],['issues','Issues and deviations'],['requirements','All requirements', Object.keys(R).length]
+];
+const tabsEl = document.getElementById('tabs'), main = document.getElementById('main');
+let current = null, currentFeature = store.get('feature') || 'FEAT-001';
+function setTab(id, push=true){
+  current = id;
+  for (const b of tabsEl.children) b.setAttribute('aria-selected', b.dataset.id===id ? 'true':'false');
+  main.replaceChildren(RENDER[id]());
+  store.set('tab', id);
+  if (push) history.replaceState(null,'','#'+id);
+}
+for (const [id,label,n] of TABS){
+  tabsEl.append(h('button',{role:'tab',type:'button','data-id':id,'aria-selected':'false',onclick:()=>setTab(id)}, label, n!=null?h('span',{class:'n'},n):null));
+}
+function openFeature(fid){ currentFeature = fid; store.set('feature', fid); setTab('features', false); history.replaceState(null,'','#'+fid); window.scrollTo({top:0}); }
+let rowQuery = '';
+function openRow(rid){ rowQuery = rid; setTab('requirements'); }
+
+/* ================= DECISIONS ================= */
+function decisionCard(q, rec, extra, ask){
+  return h('div',{class:'decision'+(ask?' ask':'')}, h('div',{class:'q'},q), rec?h('div',{class:'rec'},h('b',null,'Recommendation: '),rec):null, extra||null);
+}
+function renderDecisions(){
+  const asks = [
+    ['Accept both parts of the requirements tree?','Accept. The tree, the placement review, shared rows and lifecycle rules passed review; astra ruled land, 9 out of 10, with no open blocking findings.',
+      h('div',{class:'muted'},'Once you accept, the seat merges the lane, runs the full suite on the merged result, and records the session.')],
+    ['Confirm the seven frozen features?','Confirm. They are the desk features your D4 ruling pauses; the structured-output feature stays active because D4 names the desk, not the stage layer.',
+      h('div',{class:'chips'}, frozen.map(f=>featChip(f.id)), featChip('FEAT-025'))],
+    ['Keep the share that ties the knowledge pull’s escaping rule to the display feature?','Keep it for now; revisit it in the next small change. astra thinks the dependency runs the other way, which would make it an over-flag, not a missed risk.',
+      h('div',{class:'chips'}, rowChip('R-224'), featChip('FEAT-012'))],
+  ];
+  const top = (D.synth && D.synth.top_decisions) || [];
+  const perFeature = Object.values(A).flatMap(a => (a.decisions||[]).map(d => ({...d, fid:a.id})));
+  const policyIssues = D.issues.filter(i => /policy/.test(i.fix_kind||''));
+  const openQs = D.questions.filter(q => !q.closed && q.id !== 'note');
+  const blockingAsks = D.handoff.asks.filter(a => a.kind==='blocking');
+  const otherAsks = D.handoff.asks.filter(a => a.kind!=='blocking');
+  return h('section',{class:'panel'},
+    h('p',{class:'lede'},'Everything on this page comes from the requirements ledger on the review branch, its review records and the project frontier. Start here: what needs your call now, then the product-level choices, then decisions inside each feature.'),
+    h('div',{class:'stats'},
+      stat(Object.keys(R).length,'requirements'), stat(totals.implemented||0,'implemented'), stat(totals.untested||0,'untested'),
+      stat(totals.violated||0,'violated'), stat(sharedRows.length,'shared, high blast radius'), stat(frozen.length,'features frozen'), stat(5,'free requirement IDs left')),
+    h('h2',null,'Needs your call now'),
+    h('div',{class:'grid'}, asks.map(([q,r,x])=>decisionCard(q,r,x,true))),
+    top.length ? h('h2',null,'Product-level decisions') : null,
+    top.length ? h('div',{class:'grid g2'}, top.map(d=>decisionCard(d.question, d.recommendation, h('div',{class:'grid',style:'gap:8px'}, h('div',{class:'muted'},d.why), h('div',{class:'chips'}, (d.features||[]).filter(x=>F[x]).map(featChip)))))) : null,
+    h('h2',null,'Before any change adds requirements'),
+    decisionCard('Choose the next requirement ID format.','Decide before the next change that adds rows. Five three-digit IDs remain (R-295 to R-299); a four-digit ID is silently skipped by today’s checker.',
+      h('div',{class:'muted'},'The rail, both project templates and the aml-desk copy all read exactly three digits. Widening is one small compatibility change across them.')),
+    perFeature.length ? h('h2',null,'Decisions inside features') : null,
+    perFeature.length ? h('div',{class:'grid g2'}, perFeature.map(d=>decisionCard(d.question, d.recommendation,
+      h('div',{class:'chips'}, featChip(d.fid), (d.rows||[]).filter(x=>R[x]).map(rowChip))))) : null,
+    h('h2',null,'Audit issues that need a policy choice'),
+    h('div',{class:'grid g2'}, policyIssues.map(i=>decisionCard(i.title+'.', i.decision, h('div',{class:'grid',style:'gap:6px'},
+      h('div',{class:'muted'}, i.severity_view), h('div',{class:'chips'}, i.features.map(featChip), i.rows.slice(0,8).map(rowChip)))))),
+    h('h2',null,'Open questions in the ledger'),
+    h('div',{class:'tbl-wrap'}, h('table',null, h('thead',null,h('tr',null,h('th',null,'#'),h('th',null,'Question'))),
+      h('tbody',null, openQs.map(q=>h('tr',null,h('td',{class:'id'},q.id),h('td',{class:'req-text'},md(q.text.length>420?q.text.slice(0,420)+'…':q.text))))))),
+    h('h2',null,'Other open asks on the project frontier'),
+    h('div',{class:'tbl-wrap'}, h('table',null, h('thead',null,h('tr',null,h('th',null,'Kind'),h('th',null,'Since'),h('th',null,'Ask'))),
+      h('tbody',null, [...blockingAsks,...otherAsks].map(a=>h('tr',null,h('td',null,h('span',{class:'pill '+(a.kind==='blocking'?'crit':'plain')},a.kind)),h('td',{class:'id'},a.since),h('td',{class:'req-text'},h('b',null,md(a.title+'. ')),md(a.text)))))))
+  );
+}
+function stat(v,k){ return h('div',{class:'stat'}, h('span',{class:'v'},v), h('span',{class:'k'},k)); }
+
+/* ================= PRODUCT ================= */
+function textBlock(raw){
+  const box = h('div',{class:'prose'});
+  for (const para of raw.split(/\n\s*\n/)){
+    const t = para.replace(/\s*\n\s*/g,' ').trim(); if (!t) continue;
+    const m = t.match(/^([A-Z][^.:]{2,40}[.:]) (.*)$/);
+    box.append(m ? h('p',null,h('b',null,m[1]+' '),md(m[2])) : h('p',null,md(t)));
+  }
+  return box;
+}
+function renderProduct(){
+  const outcomes = D.product.purpose_block.split('\n').filter(l=>/^\d\. /.test(l)).map(l=>l.replace(/\*\*/g,''));
+  const purpose = (D.product.purpose_block.match(/Purpose: ([\s\S]*?)\n\n/)||[])[1]||'';
+  const synthCaps = Object.fromEntries(((D.synth&&D.synth.capabilities)||[]).map(c=>[c.id,c]));
+  const maxTotal = Math.max(...Object.values(F).map(f=>f.rows.length));
+  return h('section',{class:'panel'},
+    h('div',{class:'grid g2'},
+      h('div',{class:'card'}, h('span',{class:'eyebrow'},'Purpose'), h('p',{style:'margin-top:8px;font-size:1.05rem'}, md(purpose.replace(/\s*\n\s*/g,' '))),
+        h('p',{class:'muted',style:'margin-top:10px'}, h('b',null,'Objective: '), D.product.objective),
+        h('p',{class:'muted',style:'margin-top:6px'}, h('b',null,'Current priority: '), md(D.product.priority))),
+      h('div',{class:'card'}, h('span',{class:'eyebrow'},'Outcomes the tree serves'), h('ul',{class:'tight',style:'margin-top:8px'}, outcomes.map(o=>h('li',null,md(o.replace(/^\d\. /,'')))))) ),
+    h('h2',null,'Capabilities'),
+    h('div',{class:'grid g2'}, CAPS.map(c=>{
+      const cc = capCounts(c.id), n = c.features.reduce((a,f)=>a+F[f].rows.length,0), sc = synthCaps[c.id];
+      return h('div',{class:'card',style:'display:grid;gap:10px'},
+        h('div',null,h('span',{class:'eyebrow'},c.id+' · '+c.features.length+' features · '+n+' rows'), h('h3',{style:'margin-top:4px'},c.label)),
+        h('p',{class:'muted'},c.purpose),
+        statusBar(cc,{lg:true,name:c.label}),
+        sc ? h('p',null,sc.summary) : null,
+        sc && sc.decision && !/^none/i.test(sc.decision) ? h('p',{class:'callout'}, sc.decision) : null,
+        h('div',{class:'chips'}, c.features.map(featChip)));
+    })),
+    h('h2',null,'Every feature at a glance'),
+    h('p',{class:'muted'},'Bar length is the number of requirements; colour is their recorded status. Hover a segment for its count; select a row to open the feature.'),
+    legend(),
+    h('div',{class:'card',style:'padding:12px 10px'},
+      h('div',{class:'axis'}, h('span'), h('div',{class:'ticks'}, [0,20,40,60,80].filter(t=>t<=maxTotal+5).map(t=>h('span',{style:`left:${100*t/maxTotal}%`},t))), h('span')),
+      CAPS.map(c=>[ h('div',{class:'fcap'},c.id+' · '+c.label),
+        c.features.map(fid=>{ const f=F[fid]; return h('button',{class:'chartrow',type:'button',onclick:()=>openFeature(fid)},
+          h('span',{class:'lbl'}, h('span',{class:'fid'},fid), f.label),
+          h('span',{class:'track'}, statusBar(f.counts,{scale:maxTotal,lg:true,name:fid})),
+          h('span',{class:'tot'}, f.rows.length, f.status.startsWith('frozen')?' · frozen':''));
+        }) ])),
+    h('h2',null,'How the tree is governed'),
+    h('div',{class:'card'}, textBlock(D.product.governance)),
+    h('h2',null,'How this was checked'),
+    h('div',{class:'card prose'},
+      h('p',null,'The tree was drafted by astra, then reviewed placement by placement by a 27-agent workflow (12 reviewers, 12 skeptics, a critic and two more skeptics): 17 rows moved, 95 rows marked shared. A line-by-line proof shows every one of the 1,004 original rows survived byte for byte. Each feature assessment on this page was written by one agent and fact-checked by another against the ledger.'),
+      h('div',{class:'tbl-wrap'}, h('table',null, h('thead',null,h('tr',null,h('th',null,'Review item'),h('th',null,'Revision'),h('th',null,'Reviewer'),h('th',null,'Verdict'))),
+        h('tbody',null, D.reviews.map(r=>h('tr',null,h('td',{class:'id'},r.item),h('td',{class:'id'},r.revision),h('td',null,r.role+' ('+r.model+')'),h('td',null,h('span',{class:'pill '+(r.verdict==='LAND'?'good':r.verdict==='SEND-BACK'?'crit':'warn')},r.verdict)))))))),
+    h('h2',null,'Deliberately out of scope'),
+    h('div',{class:'card'}, h('ul',{class:'tight'}, D.product.omissions.split('\n').filter(l=>l.startsWith('- ')).map(l=>h('li',null,md(l.slice(2))))))
+  );
+}
+
+/* ================= FEATURES ================= */
+let fFilter = {q:'', cap:'', status:'', maturity:''};
+function renderFeatures(){
+  const listBox = h('div',{class:'flist',role:'list'});
+  const detail = h('div',{class:'fdetail'});
+  const q = h('input',{type:'search',id:'feat-q',placeholder:'Filter features',value:fFilter.q,'aria-label':'Filter features'});
+  const selCap = h('select',{id:'feat-cap','aria-label':'Capability'}, h('option',{value:''},'All capabilities'), CAPS.map(c=>h('option',{value:c.id},c.id+' · '+c.label)));
+  const selSt = h('select',{id:'feat-st','aria-label':'Status'}, h('option',{value:''},'Any status'), h('option',{value:'active'},'Active'), h('option',{value:'frozen'},'Frozen'));
+  const selMat = h('select',{id:'feat-mat','aria-label':'Maturity'}, h('option',{value:''},'Any maturity'), ['solid','mostly solid','partial','weak'].map(m=>h('option',{value:m},m)));
+  selCap.value = fFilter.cap; selSt.value = fFilter.status; selMat.value = fFilter.maturity;
+  function drawList(){
+    listBox.replaceChildren();
+    for (const c of CAPS){
+      const items = c.features.filter(fid=>{
+        const f=F[fid], a=A[fid]||{};
+        if (fFilter.cap && c.id!==fFilter.cap) return false;
+        if (fFilter.status && !f.status.startsWith(fFilter.status)) return false;
+        if (fFilter.maturity && a.maturity!==fFilter.maturity) return false;
+        if (fFilter.q){ const t=(fid+' '+f.label+' '+f.purpose+' '+(a.what_it_does||'')).toLowerCase(); if(!t.includes(fFilter.q.toLowerCase())) return false; }
+        return true;
+      });
+      if (!items.length) continue;
+      listBox.append(h('div',{class:'fcap'},c.id+' · '+c.label));
+      for (const fid of items){
+        const f=F[fid], a=A[fid]||{};
+        listBox.append(h('button',{class:'fitem',type:'button',role:'listitem','aria-current':fid===currentFeature?'true':'false',onclick:()=>{currentFeature=fid;store.set('feature',fid);history.replaceState(null,'','#'+fid);drawList();drawDetail();}},
+          h('span',{class:'fid'},fid), h('span',{class:'fl'},f.label),
+          f.status.startsWith('frozen')?h('span',{class:'pill frozen plain',title:f.status},'Frozen'):(a.maturity?h('span',{class:'dot',title:a.maturity,style:`background:var(--${MAT[a.maturity]==='good'?'good':MAT[a.maturity]==='warn'?'warn':'crit'})`}):h('span')),
+          h('span',{class:'mini'}, statusBar(f.counts,{name:fid}))));
+      }
+    }
+    if (!listBox.children.length) listBox.append(h('div',{class:'empty'},'No feature matches these filters.'));
+  }
+  function drawDetail(){ detail.replaceChildren(featureDetail(currentFeature)); }
+  q.addEventListener('input',()=>{fFilter.q=q.value;drawList();});
+  selCap.addEventListener('change',()=>{fFilter.cap=selCap.value;drawList();});
+  selSt.addEventListener('change',()=>{fFilter.status=selSt.value;drawList();});
+  selMat.addEventListener('change',()=>{fFilter.maturity=selMat.value;drawList();});
+  drawList(); drawDetail();
+  return h('section',{class:'panel'}, h('div',{class:'filters'}, q, selCap, selSt, selMat), h('div',{class:'split'}, listBox, detail));
+}
+function featureDetail(fid){
+  const f = F[fid]; if (!f) return h('div',{class:'empty'},'Unknown feature.');
+  const a = A[fid] || {}, c = capOf(f.capability);
+  const sharedIn = f.also_applies, sharedOut = f.shared_out;
+  const issues = D.issues.filter(i=>i.features.includes(fid));
+  const moved = D.moves.filter(m=>R[m.id] && R[m.id].feature===fid);
+  const groups = f.subgroups.length ? f.subgroups.map(s=>({id:s,label:S[s].label,purpose:S[s].purpose,rows:S[s].rows})) : [{id:null,label:null,purpose:null,rows:f.rows}];
+  const list = (items, title) => items && items.length ? h('div',{class:'card',style:'display:grid;gap:10px'}, h('h3',null,title),
+    h('ul',{class:'tight'}, items.map(x=>h('li',null, x.text||x, x.rows&&x.rows.length?h('span',{class:'chips',style:'margin-left:6px;display:inline-flex'}, x.rows.filter(r=>R[r]).map(rowChip)):null)))) : null;
+  return h('article',{class:'fdetail'},
+    h('div',{class:'fhead'},
+      h('span',{class:'eyebrow'}, c.id+' · '+c.label),
+      h('h2',null, h('span',{class:'mono faint',style:'font-size:.8em;margin-right:8px'},fid), f.label),
+      h('div',{class:'chips',style:'gap:8px'}, fmtStatus(f.status), fmtMaturity(a.maturity),
+        h('span',{class:'pill plain'}, f.rows.length+' requirements'), sharedIn.length?h('span',{class:'pill plain'}, sharedIn.length+' shared in'):null,
+        sharedOut.length?h('span',{class:'pill warn plain'}, sharedOut.length+' shared out'):null),
+      f.status.startsWith('frozen') ? h('p',{class:'callout'}, 'Frozen: ', f.status.replace(/^frozen \(|\)$/g,''), '. No discretionary change until the ruling.') : null),
+    a.what_it_does ? h('p',{style:'font-size:1.05rem;max-width:70ch'}, a.what_it_does) : null,
+    h('p',{class:'muted',style:'max-width:70ch'}, h('b',null,'Purpose in the ledger: '), md(f.purpose)),
+    h('div',{class:'card',style:'display:grid;gap:10px'},
+      h('div',{style:'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap'}, h('h3',null,'Status of its requirements'), legend()),
+      statusBar(f.counts,{lg:true,name:fid}),
+      h('div',{class:'count-line'}, STATUS.filter(([k])=>f.counts[k]).map(([k,l])=>`${l} ${f.counts[k]}`).join(' · ')),
+      a.maturity_reason ? h('p',{class:'muted'}, a.maturity_reason) : null),
+    h('div',{class:'grid g2'}, list(a.gaps,'Gaps that matter'), list(a.risks,'Risks')),
+    a.decisions && a.decisions.length ? h('div',{class:'grid'}, h('h3',null,'Decisions'), a.decisions.map(d=>decisionCard(d.question,d.recommendation,(d.rows||[]).length?h('div',{class:'chips'},d.rows.filter(r=>R[r]).map(rowChip)):null))) : null,
+    a.next_step ? h('div',{class:'callout'}, h('b',null,'Next step: '), a.next_step) : null,
+    sharedIn.length ? h('div',{class:'card',style:'display:grid;gap:10px'}, h('h3',null,'Requirements homed elsewhere that constrain it'),
+      h('div',{class:'tbl-wrap'}, h('table',null, h('thead',null,h('tr',null,h('th',null,'Row'),h('th',null,'Home'),h('th',null,'Why it applies here'))),
+        h('tbody',null, sharedIn.map(r=>h('tr',null,h('td',{class:'id'},rowChip(r)),h('td',{class:'id'},featChip(R[r].feature)),h('td',{class:'req-text'}, md(D.share_reasons[r+'>'+fid]||R[r].requirement)))))))) : null,
+    sharedOut.length ? h('div',{class:'card',style:'display:grid;gap:10px'}, h('h3',null,'Its requirements other features depend on'),
+      h('p',{class:'muted'},'Change these with care: every listed feature must be reviewed with the change.'),
+      h('div',{class:'tbl-wrap'}, h('table',null, h('thead',null,h('tr',null,h('th',null,'Row'),h('th',null,'Also applies to'))),
+        h('tbody',null, sharedOut.map(r=>h('tr',null,h('td',{class:'id'},rowChip(r)),h('td',null,h('div',{class:'chips'},R[r].shared_with.map(featChip))))))))) : null,
+    issues.length ? h('div',{class:'card',style:'display:grid;gap:10px'}, h('h3',null,'Audit issues touching it'),
+      h('ul',{class:'tight'}, issues.map(i=>h('li',null,h('b',null,i.title+'. '), i.verdict?h('span',{class:'faint'},'('+i.verdict.toLowerCase()+', fix: '+(i.fix_kind||'—')+') '):null, h('span',{class:'chips',style:'display:inline-flex'}, i.rows.filter(r=>R[r] && R[r].feature===fid).map(rowChip)))))) : null,
+    moved.length ? h('div',{class:'card',style:'display:grid;gap:10px'}, h('h3',null,'Rows moved here by the placement review'),
+      h('ul',{class:'tight'}, moved.map(m=>h('li',null, rowChip(m.id), ' from ', m.from, ': ', md(m.reason))))) : null,
+    h('h3',null,'Requirements'),
+    groups.map(g=>h('div',{class:'grid',style:'gap:8px'},
+      g.id ? h('div',null, h('span',{class:'eyebrow'}, g.id+' · '+g.rows.length+' rows'), h('div',{style:'font-weight:600;margin-top:2px'},g.label), h('p',{class:'muted'},g.purpose)) : null,
+      reqTable(g.rows)))
+  );
+}
+function reqTable(ids, showFeature){
+  return h('div',{class:'tbl-wrap'}, h('table',null,
+    h('thead',null,h('tr',null,h('th',null,'ID'),h('th',null,'Requirement'),showFeature?h('th',null,'Feature'):null,h('th',null,'Status'))),
+    h('tbody',null, ids.map(id=>{ const r=R[id]; return h('tr',{id:'row-'+id},
+      h('td',{class:'id'},id),
+      h('td',{class:'req-text'}, md(r.requirement), r.shared_with.length?h('div',{class:'chips',style:'margin-top:6px'}, h('span',{class:'faint',style:'font-size:.76rem'},'Also applies to'), r.shared_with.map(featChip)):null,
+        h('details',{class:'ev'}, h('summary',null,'Evidence'), h('div',null, r.evidence))),
+      showFeature?h('td',{class:'id'},featChip(r.feature)):null,
+      h('td',null,statusPill(r.status))); }))));
+}
+
+/* ================= SHARED ================= */
+function renderShared(){
+  const rows = sharedRows.slice().sort((a,b)=>b.shared_with.length-a.shared_with.length || (a.id[0]===b.id[0]?+a.id.slice(2)-+b.id.slice(2):a.id[0]==='R'?-1:1));
+  return h('section',{class:'panel'},
+    h('p',{class:'lede'},`${sharedRows.length} requirements constrain more than their home feature (${nShareLinks} links). A change to any of them must name its home and every feature listed, and the review reads them all. Most-shared first.`),
+    h('div',{class:'tbl-wrap'}, h('table',null,
+      h('thead',null,h('tr',null,h('th',null,'Row'),h('th',null,'Requirement'),h('th',null,'Home'),h('th',null,'Also applies to'),h('th',{class:'num'},'Listers'),h('th',null,'Status'))),
+      h('tbody',null, rows.map(r=>h('tr',null, h('td',{class:'id'},r.id), h('td',{class:'req-text'},md(r.requirement),
+          h('details',{class:'ev'},h('summary',null,'Why it is shared'), h('div',null, r.shared_with.map(fid=>fid+': '+(D.share_reasons[r.id+'>'+fid]||'—')).join('\n\n')))),
+        h('td',{class:'id'},featChip(r.feature)), h('td',null,h('div',{class:'chips'},r.shared_with.map(featChip))),
+        h('td',{class:'num'},r.shared_with.length), h('td',null,statusPill(r.status))))))));
+}
+
+/* ================= ISSUES ================= */
+function renderIssues(){
+  const violated = Object.values(R).filter(r=>r.status==='violated');
+  const planned = Object.values(R).filter(r=>r.status==='planned');
+  return h('section',{class:'panel'},
+    h('h2',null,'Recorded deviations'),
+    h('p',{class:'muted'},'Rows marked violated: the code is known not to meet them. Each needs a disposition: fix, accept for now with a revisit date, or change the contract.'),
+    reqTable(violated.map(r=>r.id), true),
+    planned.length ? [h('h2',null,'Planned'), reqTable(planned.map(r=>r.id), true)] : null,
+    h('h2',null,'Audit issues (astra’s audit, verified by the seat)'),
+    h('p',{class:'muted'},'Fifteen contract issues from the outside audit, each checked against the code: 12 hold, 3 hold in part, none wrong. Most are wording fixes to rows; a few need a policy choice.'),
+    h('div',{class:'tbl-wrap'}, h('table',null,
+      h('thead',null,h('tr',null,h('th',null,'Issue'),h('th',null,'Verdict'),h('th',null,'Fix'),h('th',null,'Finding'),h('th',null,'Features'))),
+      h('tbody',null, D.issues.map(i=>h('tr',null, h('td',{class:'id'},i.id),
+        h('td',null,h('span',{class:'pill '+(i.verdict==='CONFIRMED'?'warn':'plain')}, (i.verdict||'').toLowerCase())),
+        h('td',{class:'id'},i.fix_kind||'—'),
+        h('td',{class:'req-text'}, h('b',null,md(i.title+'. ')), md(i.severity_view), h('details',{class:'ev'},h('summary',null,'Finding and proposed fix'), h('div',null, i.finding+'\n\nFix: '+(i.fix_sketch||i.recommendation)))),
+        h('td',null,h('div',{class:'chips'},i.features.map(featChip)))))))),
+    h('h2',null,'Placement review: rows that moved'),
+    h('p',{class:'muted'},'Seventeen rows moved to a better home; 992 stayed where astra placed them.'),
+    h('div',{class:'tbl-wrap'}, h('table',null,
+      h('thead',null,h('tr',null,h('th',null,'Row'),h('th',null,'From'),h('th',null,'To'),h('th',null,'Why'))),
+      h('tbody',null, D.moves.map(m=>h('tr',null,h('td',{class:'id'},rowChip(m.id)),h('td',{class:'id'},m.from),h('td',{class:'id'},m.to),h('td',{class:'req-text'},md(m.reason))))))),
+    h('h2',null,'Carried residuals on the project frontier'),
+    h('div',{class:'card'}, h('ul',{class:'tight'}, D.handoff.residuals.map(r=>h('li',null,md(r)))))
+  );
+}
+
+/* ================= ALL REQUIREMENTS ================= */
+let rFilter = {status:'', feature:'', shared:false};
+function renderRequirements(){
+  const q = h('input',{type:'search',id:'req-q',placeholder:'Search 1,012 requirements by ID or words',value:rowQuery,'aria-label':'Search requirements'});
+  const st = h('select',{id:'req-st','aria-label':'Status'}, h('option',{value:''},'Any status'), STATUS.map(([k,l])=>h('option',{value:k},l)));
+  const fe = h('select',{id:'req-fe','aria-label':'Feature'}, h('option',{value:''},'Any feature'), Object.values(F).map(f=>h('option',{value:f.id},f.id+' · '+f.label)));
+  const sh = h('label',{style:'display:flex;gap:6px;align-items:center;font-size:.88rem'}, h('input',{type:'checkbox',id:'req-sh'}), 'Shared only');
+  st.value=rFilter.status; fe.value=rFilter.feature; sh.firstChild.checked=rFilter.shared;
+  const out = h('div'), count = h('div',{class:'count-line'});
+  function draw(){
+    const t = q.value.trim().toLowerCase(); rowQuery = q.value;
+    const ids = Object.keys(R).filter(id=>{ const r=R[id];
+      if (rFilter.status && r.status!==rFilter.status) return false;
+      if (rFilter.feature && r.feature!==rFilter.feature) return false;
+      if (rFilter.shared && !r.shared_with.length) return false;
+      if (t && !(id.toLowerCase().includes(t) || r.requirement.toLowerCase().includes(t))) return false;
+      return true; });
+    count.textContent = `${ids.length} of ${Object.keys(R).length} shown`+(ids.length>300?' · showing the first 300; narrow the search':'');
+    out.replaceChildren(reqTable(ids.slice(0,300), true));
+  }
+  q.addEventListener('input',draw); st.addEventListener('change',()=>{rFilter.status=st.value;draw();});
+  fe.addEventListener('change',()=>{rFilter.feature=fe.value;draw();}); sh.firstChild.addEventListener('change',e=>{rFilter.shared=e.target.checked;draw();});
+  draw();
+  return h('section',{class:'panel'}, h('div',{class:'filters'}, q, st, fe, sh), count, out);
+}
+
+const RENDER = {decisions:renderDecisions, product:renderProduct, features:renderFeatures, shared:renderShared, issues:renderIssues, requirements:renderRequirements};
+const hash = (location.hash||'').slice(1);
+if (F[hash]) { currentFeature = hash; setTab('features', false); }
+else if (RENDER[hash]) setTab(hash, false);
+else setTab(store.get('tab') && RENDER[store.get('tab')] ? store.get('tab') : 'decisions', false);
+})();
+</script>

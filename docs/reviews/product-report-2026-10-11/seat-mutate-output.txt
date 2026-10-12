@@ -1,0 +1,23 @@
+red  parse the stamped ledger without normalising (R-1022): FAIL fingerprints ignore CRLF and trailing whitespace ["/var/folders/lg/h9m6nvvd2_9d7s3hyj
+red  drop shares from the staleness check (R-1021): exit 1
+red  skip the digit check (R-1023): FAIL rejects digits in every assessment prose field [false,false,false,false,false,false]
+red  trust the stored stamp instead of rebuilding it (R-1026): FAIL rejects forged historical row status, fingerprint, mark, purpose and feature status [
+red  read the checked-out ledger instead of git show (R-1026): FAIL validates assessment stamps against their historical ledger []
+red  allow a second assessment for one feature (R-1027): FAIL rejects every closed-schema and uniqueness violation [["duplicate feature",false]]
+red  allow a repeated stamp row (R-1027): FAIL rejects every closed-schema and uniqueness violation [["duplicate row",false]]
+red  drop planned from the solid check (R-1024): FAIL rejects solid ratings with planned own rows []
+red  ignore the own-or-shared mark (R-1021): FAIL row moved home and shared back is named as changed {"state":"current","id":"R-1012","
+red  drop the ask body (R-1018): FAIL rendered decisions view preserves every full ask body 
+red  skip a malformed ask instead of refusing (R-1030): FAIL malformed ask is named and refuses output 
+red  leave < unescaped in the data script (R-1019): FAIL hostile ledger markup remains inert data 
+red  drop the own-property route guard (R-1019): FAIL unknown prototype hashes render Decisions 
+red  hardcode the clean flag (R-1013): FAIL git metadata reflects actual commit date and clean state for clean, tracked, and untr
+red  refuse nothing on tree problems (R-1025): FAIL tree-checker problems are named and refuse output 
+red  unassessed reads as current (R-1028): exit 1
+red  packets for current features too (R-1029): FAIL writes deterministic stale and unassessed packets with HEAD stamps and a validating r
+red  packets into a non-empty directory (R-1029): FAIL refuses non-empty packet directories without writing 
+red  packets on a dirty ledger (round 6): FAIL packets refuse while REQUIREMENTS.md differs from HEAD without writing 
+red  packet without its ready stamp (R-1029): exit 1
+red  spans rendered as literal text (R-1019): FAIL assessment lists render separate text-only list items 
+worktree clean
+mutations: 21/21 red

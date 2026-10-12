@@ -16,6 +16,7 @@
 - 2026-10-11: the verdict reader takes a review's verdict from its final line, or from a plain first line when the final line carries none. yokai-world's lands work again: its reviewers put the verdict first — `docs/sessions/2026-10.md`.
 - 2026-10-11: on Windows, install now registers nana with pi. It runs the first pi on PATH (npm, pnpm, Volta or Scoop) and runs a `.cmd` shim through cmd.exe with quoted arguments. A pi that is found but broken is a problem, not a skip, except a macOS or Linux pi whose interpreter is missing. Doctor checks pi there too, and post-edit reports a missing Windows tool as "could not run" — `docs/sessions/2026-10.md`.
 - 2026-10-11: Jake's process rulings. Every plan names its threat: honest variation in our tools' output is in scope, deliberate forgery is out. Small lanes get one plan review, gate and format lanes two; after that only a named fail-open bug reopens a plan. Once every reviewer says LAND, the seat edits nothing more. Urgent fixes ship alone and get hardened later. Builders: time one lane with Sonnet 5.5 and one with luna before any roster change.
+- 2026-10-11: the product report is a feature. One command builds a readable page from the requirements, the open asks and stored assessments. Each assessment shows as current, out of date or unassessed, and refresh packets let any seat refresh one — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -39,6 +40,7 @@
 - Windows pi launch: nana runs the first `pi.com`, `.exe`, `.bat` or `.cmd` on PATH — not PowerShell's `pi.ps1`, an alias or a function, and never a `pi.cmd` in the working folder. A `.cmd` pi whose path or package folder holds `%`, `!` or a double quote needs a manual `pi install`. Post-edit calls a missing tool a failed check when it hides behind a non-simple first word or later in a compound command. A failing command led by an internal command outside the sealed list reads as "could not run".
 - Verdict reader: a plain first-line LAND followed by a rejection that avoids the word "verdict" still reads LAND. Look-alike letters outside the fold table and misspelled labels are not caught. The reader ignores a middle verdict line when the final line carries one. Notes that say "verdict" after a first-line verdict leave the round empty. yokai-world's nine empty records from before the fix stay; a session merged those revisions by hand.
 - Desk residuals live in `apps/desk/README.md` Known limits.
+- Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 
 ## Where things stand
@@ -53,7 +55,6 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
-   - Land the product report.
    - The Claude Code seat's hooks on Windows, built by Sonnet 5.5. Jake's machine is x64 with Git Bash, so the Bash tool fires there.
    - Beside it, the install-and-hooks check on both platforms, built by luna. Green on both is the 2026-10-24 "done".
    - A small process lane: Jake's review caps and threat-model rule in the working pattern, a standard last-line verdict instruction in pi-review, and a parallel test runner.

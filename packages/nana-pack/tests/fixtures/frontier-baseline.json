@@ -1,0 +1,32 @@
+{
+  "current": {
+    "status": 0,
+    "stdout": "<fixture>/current.md:1: word-budget: words=1663 budget=1200\nsummary words=1663 budget=1200 findings=1\n",
+    "stderr": ""
+  },
+  "noTitle": {
+    "status": 0,
+    "stdout": "summary words=11 budget=1200 findings=0\n",
+    "stderr": ""
+  },
+  "continuation": {
+    "status": 0,
+    "stdout": "summary words=9 budget=1200 findings=0\n",
+    "stderr": ""
+  },
+  "missing": {
+    "status": 0,
+    "stdout": "<fixture>/missing.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
+    "stderr": ""
+  },
+  "future": {
+    "status": 0,
+    "stdout": "<fixture>/future.md:2: open-tag: Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date\nsummary words=9 budget=1200 findings=1\n",
+    "stderr": ""
+  },
+  "fenced": {
+    "status": 0,
+    "stdout": "summary words=11 budget=1200 findings=0\n",
+    "stderr": ""
+  }
+}

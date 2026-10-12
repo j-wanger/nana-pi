@@ -9,6 +9,7 @@
  */
 import * as fs from "node:fs";
 import { HANDOFF_WORD_BUDGET } from "../lib/frontier-config.mjs";
+import { splitOpenForJake } from "../lib/handoff-asks.mjs";
 
 const isDate = (value) => {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -123,18 +124,10 @@ for (let i = 0; i < lines.length; i++) {
 			if (isDate(date) && date < today) add(i + 1, "overdue-date", `${date} precedes ${today}`);
 		}
 	}
-	if ((inSection(i, "next") || inSection(i, "open for jake")) && isListItem(lines[i])) {
-		const entry = entriesBetween(i, (() => {
-			let end = i + 1;
-			while (end < lines.length && !/^\s*$/.test(lines[end]) && !isListItem(lines[end]) && !isHeading(lines[end])) end++;
-			return end;
-		})())[0];
-		if (!entry) continue;
-		if (inSection(i, "open for jake")) {
-			const tag = /\[(?:blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i.exec(entry.text.join(" "));
-			if (!tag || !isDate(tag[1]) || tag[1] > today) add(i + 1, "open-tag", "Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");
-		}
-	}
+}
+for (const entry of splitOpenForJake(text)) {
+	const tag = entry.tag;
+	if (!tag || !isDate(tag.since) || tag.since > today) add(entry.line, "open-tag", "Open for Jake entry needs [blocking|optional|parked, since YYYY-MM-DD] with a valid non-future date");
 }
 
 for (const finding of findings) console.log(`${file}:${finding.line}: ${finding.kind}: ${finding.detail}`);

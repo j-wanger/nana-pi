@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ID, requirementRowId } from "./requirements-trace.mjs";
+import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
@@ -85,6 +85,7 @@ export function parseLedger(text) {
       for (let j = i + 1; j < lines.length && !headingsByLine.has(j); j++) {
         if (opaque[j]) continue;
         if (!heading.purpose && /^Purpose:/.test(lines[j])) heading.purpose = lines[j].slice("Purpose:".length).trim();
+        if (heading.id.startsWith("CAP-") && !heading.outcome && /^Outcome:/.test(lines[j])) heading.outcome = lines[j].slice("Outcome:".length).trim();
         if (heading.id.startsWith("FEAT-") && /^Status:/.test(lines[j])) {
           const value = lines[j].slice("Status:".length).trim();
           heading.statusLines.push({ value, line: j + 1 });
@@ -173,14 +174,10 @@ export function checkLifecycleAndShares(parsed) {
   const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-"));
   const rowHome = new Map();
   const rowStatus = new Map();
-  for (const table of parsed.tables) {
-    const feature = table.heading?.id?.startsWith("FEAT-") ? table.heading : table.heading?.parent;
-    for (const id of table.rows) {
-      if (feature?.id?.startsWith("FEAT-")) rowHome.set(id, feature.id);
-      const source = parsed.lines[table.rowLines[table.rows.indexOf(id)] - 1] ?? "";
-      const cells = source.split("|").map((cell) => cell.trim());
-      rowStatus.set(id, cells[3] ?? "");
-    }
+  for (const row of readRequirementRows(parsed)) {
+    const feature = row.heading?.id?.startsWith("FEAT-") ? row.heading : row.heading?.parent;
+    if (feature?.id?.startsWith("FEAT-")) rowHome.set(row.id, feature.id);
+    rowStatus.set(row.id, row.status);
   }
   for (const feature of features) {
     const status = feature.status;
@@ -231,7 +228,26 @@ export function compressRowIds(ids) {
   }
   return compressed.join(", ") || "—";
 }
-function descendants(parsed, heading) {
+export function readRequirementRows(parsed) {
+  const trim = (value) => value.replace(new RegExp(`^[${WHITESPACE}]+|[${WHITESPACE}]+$`, "gu"), "");
+  const rows = [];
+  for (const table of parsed.tables) {
+    for (let index = 0; index < table.rows.length; index++) {
+      const line = parsed.lines[table.rowLines[index] - 1] ?? "";
+      const cells = line.split("|").map(trim);
+      rows.push({
+        id: table.rows[index],
+        requirement: cells[2] ?? "",
+        status: cells[3] ?? "",
+        evidence: cells[4] ?? "",
+        line: table.rowLines[index],
+        heading: table.heading,
+      });
+    }
+  }
+  return rows;
+}
+export function descendants(parsed, heading) {
   return parsed.headings.filter((candidate) => {
     let parent = candidate;
     while (parent) { if (parent === heading) return true; parent = parent.parent; }

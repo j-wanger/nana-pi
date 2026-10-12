@@ -26,6 +26,26 @@ const check = (name, ok, detail = "") => {
 	if (!ok) fails++;
 };
 const run = (file, extra = []) => spawnSync(process.execPath, [CLI, "--today", "2026-10-06", file, ...extra], { encoding: "utf8" });
+{
+  const golden = JSON.parse(fs.readFileSync(path.join(HERE, "fixtures/frontier-baseline.json"), "utf8"));
+  const dir = tmpDir(path.join(os.tmpdir(), "frontier-baseline-"));
+  const inputs = {
+    current: fs.readFileSync(path.join(HERE, "fixtures/frontier/handoff-current-2026-10-11.md"), "utf8"),
+    noTitle: "## Open for Jake\n- [optional, since 2026-10-10] no grammar here\n",
+    continuation: "## Open for Jake\n- decision\n[optional, since 2026-10-10]\n",
+    missing: "## Open for Jake\n- decision with no tag\n",
+    future: "## Open for Jake\n- [blocking, since 2026-10-12] future\n",
+    fenced: "## Open for Jake\n```md\n- [blocking, since 2026-10-12] fenced\n```\n",
+  };
+  for (const [name, text] of Object.entries(inputs)) {
+    const file = path.join(dir, `${name}.md`);
+    fs.writeFileSync(file, text);
+    const actual = spawnSync(process.execPath, [CLI, "--today", "2026-10-11", file], { encoding: "utf8" });
+    const stdout = actual.stdout.replaceAll(dir, "<fixture>");
+    // golden captured from the unmodified frontier CLI before the shared splitter change
+    check(`frontier golden: ${name} output is byte-identical`, actual.status === golden[name].status && stdout === golden[name].stdout && actual.stderr === golden[name].stderr, stdout);
+  }
+}
 
 // req: R-873
 check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);

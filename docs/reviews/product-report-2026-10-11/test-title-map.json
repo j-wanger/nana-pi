@@ -1,0 +1,6 @@
+{
+  "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,024": {
+    "replacedBy": "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,056",
+    "why": "The ledger gained the split phone-width requirement, so the assertion now pins its current committed row total."
+  }
+}
