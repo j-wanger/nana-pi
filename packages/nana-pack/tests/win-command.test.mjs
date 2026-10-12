@@ -42,9 +42,13 @@ check("cmd launch quotes path and arguments exactly", winCommand("C:\\path with 
 // req: R-1039
 check("exe with metacharacters launches directly", winCommand("C:\\100%!\\pi.exe", ["%", "!"], {}), { command: "C:\\100%!\\pi.exe", args: ["%", "!"], options: {} });
 for (const bad of ['"', "%", "!", "\r", "\n", "\0"]) {
+  const label = bad === '"' ? "double quote" : bad === "\r" ? "carriage return" : bad === "\n" ? "line feed" : bad === "\0" ? "NUL" : bad;
   const refusal = winCommand(`C:\\${bad}\\pi.cmd`, [], {}).refused;
   // req: R-1035
-  check(`cmd refusal names ${JSON.stringify(bad)}`, Boolean(refusal) && refusal.includes(bad === '"' ? "double quote" : bad === "\r" ? "carriage return" : bad === "\n" ? "line feed" : bad === "\0" ? "NUL" : bad), true);
+  check(`cmd refusal names ${JSON.stringify(bad)}`, Boolean(refusal) && refusal.includes(label), true);
+  const argumentRefusal = winCommand("C:\\bin\\pi.cmd", [bad], {}).refused;
+  // req: R-1035
+  check(`cmd argument refusal names ${JSON.stringify(bad)}`, Boolean(argumentRefusal) && argumentRefusal.includes(label), true);
 }
 // req: R-1035
 check("cmd trailing backslash refused", Boolean(winCommand("C:\\bin\\pi.cmd", ["ends\\"], {}).refused), true);
@@ -60,6 +64,8 @@ for (const [cmd, expected] of cmdCases) {
   // req: R-1038
   check(`cmdCouldNotRun ${JSON.stringify(cmd)}`, cmdCouldNotRun(cmd, { env: { PATH: "C:\\bin", PATHEXT: ".PY;.CMD;.EXE" }, cwd: "C:\\cwd", exists: (p) => ["c:\\cwd\\check.cmd", "c:\\bin\\tool.cmd", "c:\\bin\\ruff.py"].includes(p.toLowerCase()) }), expected);
 }
+// req: R-1038
+check("word found as written on PATH is not classified as missing", cmdCouldNotRun("tool x", { env: { PATH: "C:\\bin", PATHEXT: ".CMD" }, cwd: "C:\\cwd", exists: (p) => p.toLowerCase() === "c:\\bin\\tool" }), false);
 // req: R-1038
 check("sealed cmd internal command vocabulary", INTERNAL_COMMANDS, "assoc break call cd chdir cls color copy date del dir dpath echo endlocal erase exit for ftype goto if keys md mkdir mklink move path pause popd prompt pushd rd rem ren rename rmdir set setlocal shift start time title type ver verify vol".split(" "));
 if (process.platform === "win32") {

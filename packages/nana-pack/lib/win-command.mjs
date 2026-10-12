@@ -72,5 +72,6 @@ export function cmdCouldNotRun(command, { env = process.env, cwd = process.cwd()
     return !candidates.some((candidate) => exists(winAbsolute(candidate, cwd)));
   }
   if (candidates.some((candidate) => exists(winAbsolute(candidate, cwd)))) return false;
-  return findOnPath(word, { env, cwd, exists }) === null;
+  const pathDirs = String(envValue(env, "PATH") ?? "").split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  return !pathDirs.some((dir) => candidates.some((candidate) => exists(winAbsolute(path.win32.join(dir, candidate), cwd))));
 }

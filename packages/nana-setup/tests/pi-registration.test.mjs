@@ -18,7 +18,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findOnPath } from "../../nana-pack/lib/win-command.mjs";
+import { findPi } from "../../nana-pack/lib/win-command.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -321,15 +321,31 @@ if (process.platform === "win32") {
 	const installed = npmCli
 		? spawnSync(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, pkg], { encoding: "utf8" })
 		: { status: 1, stderr: "npm_execpath is not set" };
-	check("Windows fixture npm installed the local shim", installed.status === 0, installed.stderr);
+	const fixtureInstalled = installed.status === 0;
+	check("Windows fixture npm installed the local shim", fixtureInstalled, installed.stderr);
 	const env = { ...process.env, PATH: `${prefix};${process.env.PATH ?? ""}` };
-	const selected = findOnPath("pi", { env, cwd: prefix });
+	const expectedShim = path.join(prefix, "pi.cmd");
+	const selected = findPi({ env, cwd: prefix });
+	const selectedFixture = selected === expectedShim;
 	// req: R-1033
-	check("Windows integration selected the prepended npm pi shim", selected === path.join(prefix, "pi.cmd"), selected);
-	const result = stepPiRegister({ piHome: path.join(prefix, "agent"), isRealHome: true }, {}, { platform: () => "win32", env, manifestRoot: fixture });
-	const args = JSON.parse(fs.readFileSync(log, "utf8"));
-	// req: R-1034
-	check("Windows npm shim preserves spaced metacharacter manifest root argv", result[0]?.status === "created" && JSON.stringify(args) === JSON.stringify(["install", path.join(fixture, "packages", "nana-pack")]), JSON.stringify({ result, args }));
+	check("Windows integration selected the prepended npm pi shim", selectedFixture, selected);
+	if (!fixtureInstalled || !selectedFixture) {
+		console.log("SKIP Windows npm-shim registration: fixture installation or exact findPi precondition failed");
+	} else {
+		const comspec = Object.keys(env).find((key) => key.toLowerCase() === "comspec");
+		const guardedSpawn = (command, args, options) => {
+			const valid = comspec && command.toLowerCase() === env[comspec].toLowerCase() && args.includes("/c") && args.join(" ").toLowerCase().includes(expectedShim.toLowerCase());
+			if (!valid) {
+				check("Windows registration spawn is only fixture ComSpec shim", false, JSON.stringify({ command, args, expectedShim }));
+				return { error: new Error("refused non-fixture pi invocation") };
+			}
+			return spawnSync(command, args, options);
+		};
+		const result = stepPiRegister({ piHome: path.join(prefix, "agent"), isRealHome: true }, {}, { platform: () => "win32", env, spawn: guardedSpawn, manifestRoot: fixture });
+		const args = JSON.parse(fs.readFileSync(log, "utf8"));
+		// req: R-1034
+		check("Windows npm shim preserves spaced metacharacter manifest root argv", result[0]?.status === "created" && JSON.stringify(args) === JSON.stringify(["install", path.join(fixture, "packages", "nana-pack")]), JSON.stringify({ result, args }));
+	}
 	fs.rmSync(prefix, { recursive: true, force: true });
 } else console.log("SKIP Windows npm-generated pi.cmd integration: space/metacharacter manifest root and prepended PATH");
 
