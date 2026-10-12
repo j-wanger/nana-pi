@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
-import { buildEnvironment, classifyResult, formatResultLine, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
 import { DOCTOR_NOTES, HOOKS, KNOWN_RED, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "../lib/install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
@@ -181,6 +181,7 @@ try {
       else if (!ok(result)) failureDetail = processReason(result);
       else if (expected.shortLabel === "objective" && !result.stdout.startsWith("[nana:objective]")) failureDetail = "no [nana:objective] line";
       else if (expected.shortLabel === "knowledge pull" && !result.stdout.includes("[nana:knowledge]")) failureDetail = "no [nana:knowledge] block";
+      else if (structuralFailure) failureDetail = hookFailureReason(entry, expected, structuralFailure.code, platformName);
       else if (expected.shortLabel === "verifier pipe") failureDetail = `hit=${JSON.stringify(result.stdout)} miss=${JSON.stringify(missOutput)}`;
       else failureDetail = "required hook output or fixture condition was not observed";
     }

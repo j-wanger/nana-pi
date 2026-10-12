@@ -74,6 +74,11 @@ export function formatResultLine(item, result, reason = "", knownRed = null) {
   return `${prefix} — ${result.code}: ${detail}${owner}`;
 }
 
+export function hookFailureReason(entry, expected, code, platformName) {
+  if (code === "wrong-form") return `dispatch form is ${Array.isArray(entry.args) ? "exec" : "shell"}, expected ${expected.form[platformName]}`;
+  return `${expected.label}: ${code}`;
+}
+
 export function classifyResult(item, code, passed, knownRed, now = new Date()) {
   const match = (knownRed ?? []).find((x) => x.item === item);
   if (passed) return { status: match ? "FAIL" : "PASS", code: match ? "unexpected-pass" : null };

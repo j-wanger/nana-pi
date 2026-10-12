@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ALLOWED_HOOK_KEYS, HOOKS, KNOWN_RED, OVERRIDE_ENV } from "../lib/install-check-config.mjs";
-import { buildEnvironment, classifyResult, formatResultLine, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
 
 let failures = 0;
 const check = (title, fn) => {
@@ -92,6 +92,11 @@ check("XFAIL report includes code, known-red owner and expiry", () => {
 // req: R-1070
 check("PASS report has no reason suffix", () => {
   assert.equal(formatResultLine("install", { status: "PASS", code: null }, "ignored"), "PASS install");
+});
+
+// req: R-1070
+check("wrong-form report names the observed and expected hook dispatch forms", () => {
+  assert.equal(hookFailureReason({ command: "node hook.mjs" }, { label: "hook knowledge pull", form: { win32: "exec" } }, "wrong-form", "win32"), "dispatch form is shell, expected exec");
 });
 
 // req: R-1080
