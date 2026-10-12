@@ -70,6 +70,17 @@ export function mapHookEntries(groups, platformName) {
   return { entries: found, failures };
 }
 
+export function findGitBash(pathEntries, exists = fs.existsSync) {
+  for (const entry of pathEntries ?? []) {
+    const normalized = String(entry).replaceAll("/", "\\").replace(/\\+$/, "");
+    const gitRoot = normalized.replace(/\\mingw64\\bin$/i, "").replace(/\\(?:cmd|bin)$/i, "");
+    if (gitRoot === normalized) continue;
+    const candidate = `${gitRoot}\\bin\\bash.exe`;
+    if (exists(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function hookInvocation(entry, platformName, gitBash = null) {
   if (Array.isArray(entry.args)) return { command: entry.command, args: entry.args, shell: false };
   if (platformName === "win32") return { command: gitBash, args: ["-c", entry.command], shell: false };
@@ -116,9 +127,8 @@ export function spawnChild(spawn, command, args, options, env) {
 }
 
 function comparablePath(value, platformName) {
-  let resolved;
-  try { resolved = fs.realpathSync.native(value); } catch { resolved = path.resolve(value); }
-  return platformName === "win32" ? resolved.toLowerCase() : resolved;
+  if (platformName === "win32") return path.win32.resolve(value).toLowerCase();
+  try { return fs.realpathSync.native(value); } catch { return path.resolve(value); }
 }
 
 export function journalHasUnadopted(text, project, platformName = process.platform) {
@@ -161,13 +171,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root, exists }) ?? "pi") : resolveOnPath("pi");
   let bash = null;
   if (platformName === "win32") {
-    for (const dir of String(childEnv.PATH ?? "").split(path.delimiter)) {
-      const gitExe = path.join(dir, "git.exe");
-      const lookedUp = await invoke(gitExe, ["--version"]);
-      if (lookedUp.error || lookedUp.status !== 0) continue;
-      const candidates = [path.resolve(dir, "..", "bin", "bash.exe"), path.resolve(dir, "..", "..", "bin", "bash.exe")];
-      bash = candidates.find((candidate) => fs.existsSync(candidate)) ?? bash;
-    }
+    bash = findGitBash(String(childEnv.PATH ?? "").split(/[;]/));
     emitLine(`Git Bash: ${bash ?? "not found"}`);
   }
   emitLine(`pi: ${path.resolve(pi)}`);
