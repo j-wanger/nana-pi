@@ -44,7 +44,7 @@ const emit = (label, code, passed, detail = "") => {
   outcomes.set(label, result.status);
   if (result.status === "FAIL") failed = true;
 };
-const spawnOne = (command, args, options = {}) => spawnSync(command, args, { encoding: "utf8", timeout: options.timeout ?? SPAWN_TIMEOUT_MS.pi, cwd: options.cwd ?? root, input: options.input, env: options.env ?? env, windowsHide: true });
+const spawnOne = (command, args, options = {}) => spawnSync(command, args, { ...options, encoding: "utf8", timeout: options.timeout ?? SPAWN_TIMEOUT_MS.pi, cwd: options.cwd ?? root, input: options.input, env: options.env ?? env, windowsHide: true });
 const ok = (r) => !r.error && r.status === 0;
 const git = (folder) => { fs.mkdirSync(path.join(folder, ".git"), { recursive: true }); return spawnOne("git", ["init", "--quiet", folder], { cwd: folder, timeout: SPAWN_TIMEOUT_MS.git }); };
 let pi = "pi";
@@ -96,7 +96,9 @@ try {
   emit("pi list nana-pack", "missing-entry", ok(listed) && parsed.pack);
   emit("pi list nana-knowledge", "missing-entry", ok(listed) && parsed.knowledge);
 
-  const session = spawnOne(platformName === "win32" ? winCommand(pi, ["--mode", "rpc", "--no-session"], { comspec: env.ComSpec }).command : pi, platformName === "win32" ? winCommand(pi, ["--mode", "rpc", "--no-session"], { comspec: env.ComSpec }).args : ["--mode", "rpc", "--no-session"], { cwd: project, timeout: SPAWN_TIMEOUT_MS.session, env: { ...env, NANA_TEST_TEMP_ROOTS: "" }, input: '{"type":"get_commands"}\n' });
+  const sessionArgs = ["--mode", "rpc", "--no-session"];
+  const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: env.ComSpec }) : { command: pi, args: sessionArgs, options: {} };
+  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : spawnOne(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, env: { ...env, NANA_TEST_TEMP_ROOTS: "" }, input: '{"type":"get_commands"}\n' });
   const sessionOutput = `${session.stdout ?? ""}${session.stderr ?? ""}`;
   let journal = "";
   try { journal = fs.readFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), "utf8"); } catch {}
