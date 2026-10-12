@@ -1,0 +1,32 @@
+MISS (a) the command exists → false (want true)
+MISS (a) exits 0 → "missing" (want 0)
+MISS (a) PASS line: install → false (want true)
+MISS (a) PASS line: pi-subagents → false (want true)
+MISS (a) PASS line: pi list nana-pack → false (want true)
+MISS (a) PASS line: pi list nana-knowledge → false (want true)
+MISS (a) PASS line: pi session → false (want true)
+MISS (a) PASS line: hook set → false (want true)
+MISS (a) PASS line: hook objective → false (want true)
+MISS (a) PASS line: hook adoption → false (want true)
+MISS (a) PASS line: hook shared memory → false (want true)
+MISS (a) PASS line: hook verifier pipe (Bash) → false (want true)
+MISS (a) PASS line: hook knowledge pull → false (want true)
+MISS (a) PASS line: doctor → false (want true)
+ok   (a) no XFAIL line on macOS
+MISS (a) the first lines name the resolved pi and node paths → false (want true)
+ok   (b) the real home's watched paths are unchanged
+ok   (b) no new ~/.claude/projects entry for the check
+MISS (c) hostile environment: exits 0 → "missing" (want 0)
+MISS (c) hostile environment: every label still PASS → false (want true)
+ok   (c) hostile environment: the pointed-at folders stay empty
+MISS (d) the verifier entry dropped from desiredHooks: exits non-zero and FAILs "hook verifier pipe (Bash)" → false (want true)
+MISS (d) stepPiRegister always SKIPPED: exits non-zero and FAILs "pi list nana-pack" → false (want true)
+MISS (d) the shared-memory hook's import broken: exits non-zero and FAILs "hook shared memory" → false (want true)
+MISS (d) the knowledge entry losing its hook word: exits non-zero and FAILs "hook knowledge pull" → false (want true)
+MISS (e) an install-check job exists before suite → false (want true)
+MISS (e) it runs on macos-latest and windows-latest → false (want true)
+ok   (e) it has no continue-on-error
+MISS (e) it runs the command exactly → false (want true)
+MISS (e) release needs both jobs → false (want true)
+cases: 5/30
+install-check acceptance: 25 mismatch(es)
