@@ -192,6 +192,23 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("that entry is left byte for byte", JSON.stringify(foreignSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
 }
 
+/* --- a stale knowledge entry with NO status message at all is not the installer's own either:
+   left byte for byte, not replaced — main's gate reads a missing statusMessage as a mismatch,
+   same as a foreign one, because every entry the installer has ever written carries its own
+   (R-1061, R-653) --- */
+{
+	const wantedNoMessage = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const noMessageStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 };
+	const before = JSON.stringify(noMessageStale);
+	const noMessageSettings = { hooks: { UserPromptSubmit: [{ hooks: [noMessageStale] }] } };
+	const noMessageResult = mergeRepoHooks(noMessageSettings, { repoRoot: "/repo", wanted: wantedNoMessage });
+	const noMessageRow = noMessageResult["UserPromptSubmit knowledge pull"];
+	// req: R-1061
+	check("a stale knowledge entry with no status message is not matched as the installer's own (found false, not replaced)", noMessageRow.found === false && noMessageRow.replaced === false);
+	// req: R-653
+	check("that entry is left byte for byte", JSON.stringify(noMessageSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
+}
+
 /* --- win32 exec form: desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget ------- */
 {
 	// (R-1050, R-1051) every win32 entry is exec form, unquoted and unescaped, from the checkout.
@@ -262,27 +279,31 @@ check("five active hook entries are wanted", wanted.length === 5);
 	const knowledgePosix = wantedPosix.find((w) => w.label === "UserPromptSubmit knowledge pull");
 	const objPosix = wantedPosix.find((w) => w.label === "SessionStart objective");
 	// req: R-1056
-	check("installerTarget accepts the POSIX knowledge form on every platform", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgeWin, "win32")?.form === "posix" && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined)?.form === "posix");
+	check("installerTarget accepts the POSIX knowledge form on every platform", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32")?.form === "posix" && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgePosix, undefined)?.form === "posix");
 	// req: R-1056
-	check("installerTarget accepts the earlier win32 knowledge form", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgeWin, "win32")?.form === "win32-legacy");
+	check("installerTarget accepts the earlier win32 knowledge form", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32")?.form === "win32-legacy");
 	// req: R-1050
 	// req: R-1056
-	check("installerTarget accepts the R-1050 exec form", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32")?.form === "win32-exec");
+	check("installerTarget accepts the R-1050 exec form", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32")?.form === "win32-exec");
 	// req: R-923
-	check("installerTarget rejects an extra args element", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5 }, objWin, "win32") === null);
+	check("installerTarget rejects an extra args element", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32") === null);
 	// req: R-923
-	check("installerTarget rejects a relative path", installerTarget({ command: "node", args: ["packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32") === null);
+	check("installerTarget rejects a relative path", installerTarget({ command: "node", args: ["packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32") === null);
 	// req: R-653
 	check("installerTarget rejects another status message", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "another status message" }, objWin, "win32") === null && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "another status message" }, knowledgePosix, undefined) === null);
-	// req: R-1056
-	// req: R-653
-	check("installerTarget on win32 rejects a shell form carrying args", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5 }, knowledgeWin, "win32") === null);
-	// req: R-1056
-	// req: R-653
-	check("installerTarget on win32 rejects the POSIX prefixed form carrying args", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5 }, knowledgeWin, "win32") === null);
 	// req: R-1061
 	// req: R-653
-	check("installerTarget on POSIX rejects the two win32-only forms", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined) === null && installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objPosix, undefined) === null);
+	// req: R-923
+	check("installerTarget returns null for a missing status message", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5 }, objWin, "win32") === null && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }, knowledgePosix, undefined) === null);
+	// req: R-1056
+	// req: R-653
+	check("installerTarget on win32 rejects a shell form carrying args", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32") === null);
+	// req: R-1056
+	// req: R-653
+	check("installerTarget on win32 rejects the POSIX prefixed form carrying args", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", args: ["ignored"], timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32") === null);
+	// req: R-1061
+	// req: R-653
+	check("installerTarget on POSIX rejects the two win32-only forms", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgePosix, undefined) === null && installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objPosix, undefined) === null);
 }
 {
 	const wantedWin32 = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
@@ -754,6 +775,25 @@ for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "w
 	const matching = (after.hooks[w.event] ?? []).flatMap((g) => g.hooks ?? []).filter((h) => JSON.stringify(h).includes(w.spec.script));
 	// req: R-923
 	check(`forced win32: a hand-written exec-form variant (another status message) is kept byte for byte, no twin — ${w.label}`, r.status === 0 && matching.length === 1 && JSON.stringify(matching[0]) === JSON.stringify(handWritten), JSON.stringify(matching));
+}
+
+/* --- the same case again with NO status message at all, not just another one: a missing
+   statusMessage is a mismatch too (R-1061, R-653, R-923), so this must keep failing the
+   installerTarget match on `statusMessage` grounds and fall to hasHook, exactly like the
+   loop above --------------------------------------------------------------------------- */
+for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "win32" })) {
+	const home = freshHome("nana-setup-win32-variant-");
+	const file = path.join(home, ".claude", "settings.json");
+	const handWritten = { type: "command", command: "node", args: w.entry.args, timeout: 5 };
+	const group = w.matcher ? { matcher: w.matcher, hooks: [handWritten] } : { hooks: [handWritten] };
+	fs.writeFileSync(file, JSON.stringify({ hooks: { [w.event]: [group] } }, null, 2) + "\n");
+	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
+	const after = JSON.parse(fs.readFileSync(file, "utf8"));
+	const matching = (after.hooks[w.event] ?? []).flatMap((g) => g.hooks ?? []).filter((h) => JSON.stringify(h).includes(w.spec.script));
+	// req: R-1061
+	// req: R-653
+	// req: R-923
+	check(`forced win32: a hand-written exec-form variant with NO status message is kept byte for byte, no twin — ${w.label}`, r.status === 0 && matching.length === 1 && JSON.stringify(matching[0]) === JSON.stringify(handWritten), JSON.stringify(matching));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

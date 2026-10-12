@@ -356,17 +356,18 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
  *  - "win32-exec" — win32 only, the R-1050 exec form: `command` exactly `node`, `args` exactly
  *    the installer's length, `args[0]` absolute and ending in the entry's own script suffix, any
  *    later element equal to the installer's.
- * Every other shape — a hand-edited variant, an extra `args` element, a different status message
- * carried on a non-matching shape, a relative path — is rejected (R-653, R-923).
+ * Every other shape — a hand-edited variant, an extra `args` element, a missing or different
+ * status message, a relative path — is rejected (R-1061, R-653, R-923).
  */
 export function installerTarget(hook, wanted, platform) {
 	if (!hook || typeof hook !== "object" || typeof hook.command !== "string") return null;
-	// A hook that CARRIES a statusMessage of its own, different from the wanted row's, is someone
-	// else's — reject it outright rather than let a later shape check accept it for the wrong
-	// reason (R-653, R-923). A hook with no statusMessage at all (every fixture predating this
-	// field, and every hand-seeded stale entry the repair cases below construct) is silent on the
-	// question, so the shape checks decide it exactly as before.
-	if (hook.statusMessage !== undefined && hook.statusMessage !== wanted.entry.statusMessage) return null;
+	// An entry is the installer's own only when its statusMessage EQUALS the wanted row's,
+	// exactly as main's own gate reads it: `mergeKnowledgeHook` skips any entry whose
+	// statusMessage is not "nana: knowledge pull", and the legacy path requires the exact key
+	// set `command,statusMessage,timeout,type`. A missing statusMessage is not silence on the
+	// question — it is a different value, same as any other mismatch — because every entry the
+	// installer has ever written carries its own statusMessage (R-1061, R-653, R-923).
+	if (hook.statusMessage !== wanted.entry.statusMessage) return null;
 	const win32 = platform === "win32";
 	const hasArgs = "args" in hook && hook.args !== undefined;
 	const isKnowledge = wanted.marker === "nana-knowledge.ts hook";
