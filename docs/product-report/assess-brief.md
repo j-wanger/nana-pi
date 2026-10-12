@@ -9,8 +9,34 @@ Run this loop from the repository root. Any seat can use any model.
    ```
 
    The command creates the directory when needed. It refuses a directory that already contains files.
-2. For each packet, write one candidate object using that feature's prose fields: `what_it_does`, `maturity`, `maturity_reason`, `gaps`, `risks`, `decisions`, `next_step`, `written_by`, `checked_by`, and `date`. Judge the prose from the packet's rows; do not invent coverage. Copy the packet's `stamp` exactly into the candidate's `stamp` field.
-3. Replace that feature's entry in `docs/product-report/assessments.json` with the candidate. Keep the store's top-level `version` and `features` shape.
+2. For each packet, write one candidate object using that feature's prose fields. Copy `packet.feature.id` into the candidate's `id`; use `what_it_does`, `maturity`, `maturity_reason`, `gaps`, `risks`, `decisions`, `next_step`, `written_by`, `checked_by`, and `date`. Judge the prose from the packet's rows; do not invent coverage. Copy the packet's `stamp` exactly into the candidate's `stamp` field.
+
+   Complete candidate example (copy the actual packet stamp in place of the representative values below):
+
+   ```json
+   {
+     "id": "FEAT-001",
+     "what_it_does": "Keeps its checks together.",
+     "maturity": "partial",
+     "maturity_reason": "Some checks remain open.",
+     "gaps": ["A missing check."],
+     "risks": ["A stale result."],
+     "decisions": ["A future choice."],
+     "next_step": "Run the full suite.",
+     "written_by": "seat",
+     "checked_by": "reviewer",
+     "date": "2026-10-11",
+     "stamp": {
+       "commit": "0123456789abcdef0123456789abcdef01234567",
+       "purpose": "Rebuild a product report from the requirements.",
+       "status": "active",
+       "rows": [
+         { "id": "R-1000", "mark": "own", "status": "implemented", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }
+       ]
+     }
+   }
+   ```
+3. If `features` already contains an entry with this `id`, replace that entry with the candidate. Otherwise append the candidate to `features`. Keep the store's top-level `version` and `features` shape.
 4. Run the report test:
 
    ```sh

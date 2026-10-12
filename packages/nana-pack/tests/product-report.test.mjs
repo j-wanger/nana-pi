@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import * as vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildReport, generateReport, generatePackets, renderInto, validateStore } from "../../../scripts/product-report.mjs";
@@ -84,23 +85,32 @@ try {
   {
     const { root } = fixture("content");
     const model = (await buildReport({ root }));
+    model.features.find((item) => item.id === "FEAT-039").assessmentState = "current";
     model.features.find((item) => item.id === "FEAT-039").assessment = { what_it_does: "Keeps requirements together.", maturity: "partial", maturity_reason: "Some checks remain open.", gaps: ["A missing check.", "**Another** `gap`."], risks: ["A stale result."], decisions: ["A future choice."], next_step: "Run the full suite.", written_by: "seat", checked_by: "reviewer", date: "2026-10-11" };
     model.asks[0].body += " **bold span** and `code span`";
     const render = (hash = "") => {
-      const nodes = [];
+      const nodes = []; const handlers = [];
       const rootNode = { tag: "main", children: [], appendChild(node) { this.children.push(node); }, replaceChildren(...children) { this.children = children; } };
-      const make = (tag) => { const node = { tag, children: [], attrs: {}, value: "", appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener() {} }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); nodes.push(node); return node; };
+      const make = (tag) => { const node = { tag, children: [], attrs: {}, value: "", appendChild(child) { this.children.push(child); }, append(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(name, value) { this.attrs[name] = value; }, addEventListener(type, callback) { handlers.push({ node: this, type, callback }); } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); nodes.push(node); return node; };
       const document = { getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
       renderInto(document, model, { hash });
       const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)];
-      return { text: flatten(rootNode).map((node) => typeof node.text === "string" ? node.text : "").join(" "), nodes: flatten(rootNode) };
+      return { text: flatten(rootNode).map((node) => typeof node.text === "string" ? node.text : "").join(" "), nodes: flatten(rootNode), root: rootNode, handlers };
     };
     const product = render("#product"); const features = render("#features"); const detail = render("#FEAT-039");
     const requirements = render("#requirements"); const issues = render("#issues"); const decisions = render();
+    // req: R-1013
+    check("rendered provenance section states exact commit, date, and clean state", decisions.nodes.some((node) => node.tag === "p" && node.textContent === `Commit: ${model.commit} · ${model.date} · Working tree: ${model.clean ? "clean" : "dirty"}`));
     // req: R-1014
-    check("rendered #product view shows every capability, purpose, outcome and feature", model.capabilities.every((cap) => product.text.includes(cap.purpose) && product.text.includes(cap.outcome) && cap.features.every((id) => product.text.includes(id))), product.text.slice(0, 250));
+    check("rendered #product cards show exact capability purpose, outcome, links and counts", model.capabilities.every((cap) => { const card = product.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === `${cap.id} · ${cap.label}`)); return card && card.children.some((child) => child.tag === "p" && child.textContent === `Purpose: ${cap.purpose}`) && card.children.some((child) => child.tag === "p" && child.textContent === `Outcome: ${cap.outcome}`) && cap.features.every((id) => card.children.some((child) => child.tag === "p" && child.children.some((link) => link.tag === "a" && link.textContent.startsWith(id) && link.attrs.href === `#${id}`))); }));
+    // req: R-1014
+    check("product feature bars carry their model's exact segment values", model.capabilities.every((cap) => cap.features.every((id) => { const item = model.features.find((feature) => feature.id === id); const card = product.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === `${cap.id} · ${cap.label}`)); const featureLine = card?.children.findIndex((child) => child.tag === "p" && child.children.some((link) => link.tag === "a" && link.attrs.href === `#${id}`)); const bar = card?.children[featureLine + 1]?.children?.find((node) => node.attrs?.class === "status-bar"); return bar && bar.children.map((segment) => segment.attrs.style).join(",") === ["implemented", "untested", "planned", "violated", "retired"].map((status) => `flex-grow:${item.counts[status] ?? 0}`).join(","); })));
     // req: R-1015
-    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does") && detail.text.includes("current — matches the stamped ledger, not rechecked against later decisions"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+    // req: R-1015
+    const summaryFailures = model.features.filter((item) => { const card = features.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.children.some((link) => link.attrs?.href === `#${item.id}`))); const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)]; const descendants = card ? flatten(card) : []; return !card || !descendants.some((child) => child.textContent === `Status: ${item.status}`) || !descendants.some((child) => child.textContent === `Assessment: ${item.assessmentState}`) || !descendants.some((child) => child.textContent === `Shared in: ${item.shared.join(", ") || "None"}`) || !descendants.some((child) => child.textContent === `Shared by: ${item.sharedBy.join(", ") || "None"}`) || !descendants.some((child) => child.attrs?.class === "count-label" && child.textContent === `Counts: ${["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts[status]}`).join(" · ")}`); });
+    // req: R-1015
+    check("feature summary cards render exact counts, status, incoming and outgoing shares", summaryFailures.length === 0, summaryFailures.slice(0, 2).map((item) => item.id).join(","));
     const detailText = detail.text;
     const featureHeadings = detail.nodes.filter((node) => /^h[1-6]$/.test(node.tag) && node.textContent.includes("FEAT-039") && node.textContent.includes(model.features.find((item) => item.id === "FEAT-039").label));
     // req: R-1040
@@ -111,11 +121,11 @@ try {
     // req: R-1041
     check("assessment lists do not join entries into punctuation", !detail.text.includes(".;"));
     // req: R-1015
-    check("feature detail places human-labelled assessment before counts, shares and rows", detail.nodes.some((node) => node.attrs?.class?.includes("state-") && node.textContent === model.features.find((item) => item.id === "FEAT-039").assessmentState) && detailText.indexOf("What it does") < detailText.indexOf("Counts") && detailText.indexOf("Counts") < detailText.indexOf("Shared by") && detailText.indexOf("Shared by") < detailText.lastIndexOf("Requirements"));
+    check("feature detail places human-labelled assessment before counts, shares and rows", detail.nodes.some((node) => node.attrs?.class?.includes("state-current") && node.textContent.startsWith("current — matches the stamped ledger")) && detailText.indexOf("What it does") < detailText.indexOf("Counts") && detailText.indexOf("Counts") < detailText.indexOf("Shared by") && detailText.indexOf("Shared by") < detailText.lastIndexOf("Requirements"));
     // req: R-1015
     check("feature IDs link to their detail views in product, features, shared and detail views", [product, features, render("#shared"), detail].every((view) => view.nodes.filter((node) => node.tag === "a" && /^FEAT-/.test(node.textContent ?? "")).every((node) => node.attrs.href === `#${node.textContent.split(" · ")[0]}`)) && model.features.every((item) => features.nodes.some((node) => node.tag === "a" && node.attrs.href === `#${item.id}`)));
     // req: R-1015
-    check("feature detail shows status counts and a stacked bar", detail.nodes.some((node) => node.attrs?.class === "status-bar") && Object.keys(model.features.find((item) => item.id === "FEAT-039").counts).every((status) => detail.text.includes(status)));
+    check("feature detail shows exact status counts and stacked bar segments", (() => { const item = model.features.find((feature) => feature.id === "FEAT-039"); const bar = detail.nodes.find((node) => node.attrs?.class === "status-bar"); const counts = detail.nodes.find((node) => node.attrs?.class === "count-label"); return bar && bar.children.map((segment) => segment.attrs.style).join(",") === ["implemented", "untested", "planned", "violated", "retired"].map((status) => `flex-grow:${item.counts[status]}`).join(",") && counts.textContent === `Counts: ${["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts[status]}`).join(" · ")}`; })());
     // req: R-1015
     check("rendered views never expose raw assessment store keys", [product, features, detail, render("#shared"), requirements, issues, decisions].every((view) => !/what_it_does|maturity_reason/.test(view.text)));
     const plain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
@@ -125,13 +135,20 @@ try {
     const requirementWords = new Set(normalizeWords(requirementText));
     const carries = (source, value) => { const available = source === requirementText ? requirementWords : new Set(normalizeWords(source)); return normalizeWords(value).every((word) => available.has(word)); };
     // req: R-1016
-    check("rendered #requirements view shows every row text, status and evidence", allRows.every((row) => requirementText.includes(row.id) && carries(requirementText, row.requirement) && requirementText.includes(row.status) && (row.evidence === "—" || carries(requirementText, row.evidence))) && allRows.length === requirements.nodes.filter((node) => node.tag === "article").length && requirements.nodes.filter((node) => node.tag === "article").every((card) => card.children.some((node) => node.attrs.class === "row-heading") && card.children.some((node) => node.attrs.class === "row-evidence")));
+    const renderPlain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
+    const requirementCardFailures = requirements.nodes.filter((card) => card.tag === "article").flatMap((card) => { const heading = card.children.find((child) => child.attrs?.class === "row-heading"); const expected = allRows.find((row) => heading?.textContent.startsWith(`${row.id} `)); return !expected || !card.children.some((node) => node.attrs?.class === "row-heading" && node.textContent === `${expected.id} ${expected.status}`) || !renderPlain(card.textContent).includes(renderPlain(expected.requirement)) || !renderPlain(card.textContent).includes(renderPlain(expected.evidence)) ? [heading?.textContent ?? "no heading"] : []; });
+    // req: R-1016
+    check("rendered #requirements view shows each row's exact text, pill and evidence in its own card", allRows.length === requirements.nodes.filter((node) => node.tag === "article").length && requirementCardFailures.length === 0, JSON.stringify(requirementCardFailures.slice(0, 3).map((heading) => ({ heading, row: allRows.find((item) => heading.startsWith(item.id)), actual: requirements.nodes.find((card) => card.tag === "article" && card.children.find((child) => child.attrs?.class === "row-heading")?.textContent === heading)?.children.map((child) => [child.attrs?.class, child.textContent]) }))));
+    // req: R-1016
+    check("requirement cards keep evidence in the smaller monospace presentation", /\.row-evidence\s*\{[^}]*font:\s*\.8rem[^;}]*monospace[^}]*\}/.test(model.template));
     // req: R-1017
     check("rendered #issues view shows every violated row and evidence", model.violated.every((row) => issues.text.includes(row.id) && issues.text.includes(row.requirement) && issues.text.includes(row.evidence)));
+    // req: R-1017
+    check("each Issues card shows the violated pill without undefined", issues.nodes.filter((node) => node.tag === "article").length === model.violated.length && issues.nodes.filter((node) => node.tag === "article").every((card) => card.children.some((heading) => heading.attrs?.class === "row-heading" && heading.children.some((pill) => pill.textContent === "violated" && pill.attrs?.class === "status-pill status-violated")) && !card.textContent.includes("undefined")));
     // req: R-1018
     check("rendered decisions view shows every ask kind, since-date, title and full body", model.asks.every((ask) => decisions.text.includes(ask.kind) && decisions.text.includes(ask.since) && carries(decisions.text, ask.title) && carries(decisions.text, ask.body)));
     // req: R-1018
-    check("rendered decisions view preserves every full ask body", model.asks.length > 0 && model.asks.every((ask) => normalizeWords(ask.body).length > 0 && carries(decisions.text, ask.body)));
+    check("rendered decisions view preserves every full ask body", model.asks.length > 0 && decisions.nodes.filter((node) => node.tag === "article").length === model.asks.length && decisions.nodes.filter((card) => card.tag === "article").every((card) => { const ask = model.asks.find((item) => card.children.find((child) => child.tag === "h3")?.textContent === item.title); return ask && card.children.some((child) => child.tag === "p" && child.textContent === `Ask: ${plain(ask.body)}`); }));
     const routeSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
     const prototypeHashesRenderDecisions = ["#constructor", "#__proto__", "#hasOwnProperty"].every((hash) => {
       const view = render(hash);
@@ -142,7 +159,34 @@ try {
     check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
     check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
     // req: R-1042
-    check("hashchange bootstrap scrolls to top after rendering", /addEventListener\("hashchange",\s*\(\)\s*=>\s*\{\s*renderInto\(document, data, \{ hash: location\.hash \}\);\s*window\.scrollTo\(0, 0\);\s*\}\)/.test(model.template));
+    const bootstrap = model.template.split("<script>\n")[1].split("</script>")[0].replace("const renderInto = (__RENDERER__);", "");
+    let hashHandler; let scrollAfterRender = false; let renderCount = 0;
+    const bootstrapRoot = { children: [], replaceChildren(...children) { this.children = children; renderCount++; }, appendChild(child) { this.children.push(child); } };
+    const bootstrapDocument = { getElementById(id) { return id === "report" ? bootstrapRoot : { textContent: JSON.stringify(model) }; }, createElement(tag) { return { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(key, value) { this.attrs[key] = value; }, addEventListener() {} }; }, createTextNode(text) { return { text: String(text), get textContent() { return this.text; } }; } };
+    vm.runInNewContext(bootstrap, { renderInto, document: bootstrapDocument, location: { hash: "#product" }, addEventListener(type, callback) { if (type === "hashchange") hashHandler = callback; }, window: { scrollTo() { scrollAfterRender = renderCount === 2 && bootstrapRoot.children.length > 0; } } });
+    hashHandler();
+    // req: R-1042
+    check("hashchange bootstrap renders before scrolling to top", renderCount === 2 && scrollAfterRender);
+  }
+  {
+    const { root } = fixture("feature-filter");
+    const model = (await buildReport({ root }));
+    const sharedRow = model.features.flatMap((feature, index) => feature.shared.map((id) => ({ receiver: feature, index, id }))).find(({ receiver, index, id }) => {
+      const ownerIndex = model.features.findIndex((feature) => feature.rows.some((row) => row.id === id && row.mark === "own"));
+      return ownerIndex >= 0 && index < ownerIndex && model.features.some((feature, later) => later > ownerIndex && feature.shared.includes(id));
+    });
+    const made = [];
+    const rootNode = { children: [], replaceChildren(...children) { this.children = children; }, appendChild(child) { this.children.push(child); } };
+    const make = (tag) => { const node = { tag, children: [], attrs: {}, value: "", appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(key, value) { this.attrs[key] = value; }, addEventListener(type, callback) { this[type] = callback; } }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); made.push(node); return node; };
+    const document = { made, getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+    renderInto(document, model, { hash: "#requirements" });
+    const featureSelect = made.find((node) => node.tag === "select" && node.attrs["aria-label"] === "Filter by feature");
+    const cardTexts = () => { const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)]; return flatten(rootNode).filter((node) => node.tag === "article").map((node) => node.textContent); };
+    const sees = (featureId) => { featureSelect.value = featureId; featureSelect.change(); return cardTexts().some((text) => text.includes(sharedRow.id)); };
+    const owner = model.features.find((feature) => feature.rows.some((row) => row.id === sharedRow.id && row.mark === "own"));
+    const later = model.features.find((feature) => model.features.indexOf(feature) > model.features.indexOf(owner) && feature.shared.includes(sharedRow.id));
+    // req: R-1015
+    check("feature requirement filter retains a row for earlier receiver, owner, and later receiver", Boolean(sharedRow && sees(sharedRow.receiver.id) && sees(owner.id) && sees(later.id)));
   }
   {
     const { root } = fixture("hostile");
@@ -193,6 +237,11 @@ try {
     const invalidDateOut = path.join(temp, "bad-ask-date.html"); let dateError = "";
     try { await generateReport({ root: invalidDateRoot, out: invalidDateOut }); } catch (caught) { dateError = caught.message; }
     check("malformed ask date is named and refuses output", /HANDOFF.*line/i.test(dateError) && !fs.existsSync(invalidDateOut));
+    const unknownKindRoot = fixture("bad-ask-kind").root;
+    fs.appendFileSync(path.join(unknownKindRoot, "HANDOFF.md"), "\n## Open for Jake\n- **[mystery, since 2026-10-10] Unknown kind.** body\n");
+    const unknownKindOut = path.join(temp, "bad-ask-kind.html"); let kindError = "";
+    try { await generateReport({ root: unknownKindRoot, out: unknownKindOut }); } catch (caught) { kindError = caught.message; }
+    check("unknown ask kind is named and refuses output", /HANDOFF.*line \d+: malformed/i.test(kindError) && !fs.existsSync(unknownKindOut), kindError);
   }
   {
     const { root, git } = fixture("store-valid");
@@ -322,13 +371,24 @@ try {
     const names = fs.readdirSync(firstDir).sort();
     const packet = JSON.parse(fs.readFileSync(path.join(firstDir, "FEAT-039.json"), "utf8"));
     const unassessed = JSON.parse(fs.readFileSync(path.join(firstDir, "FEAT-001.json"), "utf8"));
+    const currentModel = await buildReport({ root });
+    const expectedNames = currentModel.features.filter((feature) => feature.assessmentState !== "current").map((feature) => `${feature.id}.json`).sort();
+    const allPacketsIdentical = names.every((name) => fs.readFileSync(path.join(firstDir, name)).equals(fs.readFileSync(path.join(secondDir, name))));
     const currentFeatureHasNoPacket = !names.includes("FEAT-002.json");
     const expectedPacketRows = (await buildReport({ root })).features.find((feature) => feature.id === "FEAT-039").rows.map(({ id, mark, requirement, status, evidence }) => ({ id, mark, requirement, status, evidence }));
-    const staleAssessmentCandidate = { ...packet.assessment, stamp: packet.stamp };
+    const staleAssessmentCandidate = { ...packet.assessment, id: packet.feature.id, stamp: packet.stamp };
     const unassessedCandidate = { id: unassessed.feature.id, what_it_does: "Current prose without digits.", maturity: "partial", maturity_reason: "Some checks remain open.", gaps: ["A missing check."], risks: ["A stale result."], decisions: ["A future choice."], next_step: "Run the full suite.", written_by: "seat", checked_by: "reviewer", date: "2026-10-11", stamp: unassessed.stamp };
-    const roundTripPath = writeStore(root, [staleAssessmentCandidate, unassessedCandidate]);
+    const guidedEntries = [structuredClone(packet.assessment)];
+    for (const candidate of [staleAssessmentCandidate, unassessedCandidate]) {
+      const existingIndex = guidedEntries.findIndex((entry) => entry.id === candidate.id);
+      if (existingIndex >= 0) guidedEntries[existingIndex] = candidate;
+      else guidedEntries.push(candidate);
+    }
+    const roundTripPath = writeStore(root, guidedEntries);
     // req: R-1029
-    check("writes deterministic stale and unassessed packets with HEAD stamps and a validating round trip", names.includes("FEAT-039.json") && packet.version === 1 && Object.keys(packet).sort().join(",") === "assessment,differences,feature,rows,stamp,version" && Object.keys(packet.feature).sort().join(",") === "id,label,purpose,status" && packet.feature.purpose.includes("requirements") && packet.rows.every((row) => Object.keys(row).sort().join(",") === "evidence,id,mark,requirement,status") && JSON.stringify(packet.rows) === JSON.stringify(expectedPacketRows) && packet.assessment?.id === "FEAT-039" && packet.stamp.commit === git(["rev-parse", "HEAD"]).stdout.trim() && packet.stamp.rows.length === packet.rows.length && packet.differences.purpose?.was && packet.differences.purpose?.now && unassessed.assessment === null && unassessed.differences.added.length === 0 && unassessed.rows.some((row) => row.mark === "shared") && currentFeatureHasNoPacket && fs.readFileSync(path.join(firstDir, "FEAT-039.json")).equals(fs.readFileSync(path.join(secondDir, "FEAT-039.json"))) && validateStore({ root, storePath: roundTripPath }).length === 0);
+    check("writes deterministic stale and unassessed packets with HEAD stamps and a validating round trip", names.includes("FEAT-039.json") && packet.version === 1 && Object.keys(packet).sort().join(",") === "assessment,differences,feature,rows,stamp,version" && Object.keys(packet.feature).sort().join(",") === "id,label,purpose,status" && packet.feature.purpose.includes("requirements") && packet.rows.every((row) => Object.keys(row).sort().join(",") === "evidence,id,mark,requirement,status") && JSON.stringify(packet.rows) === JSON.stringify(expectedPacketRows) && packet.assessment?.id === "FEAT-039" && packet.stamp.commit === git(["rev-parse", "HEAD"]).stdout.trim() && packet.stamp.rows.length === packet.rows.length && packet.differences.purpose?.was && packet.differences.purpose?.now && unassessed.assessment === null && unassessed.differences.added.length === 0 && unassessed.rows.some((row) => row.mark === "shared") && currentFeatureHasNoPacket && JSON.stringify(names) === JSON.stringify(expectedNames) && allPacketsIdentical && validateStore({ root, storePath: roundTripPath }).length === 0);
+    // req: R-1029
+    check("refresh guide recipe copies packet IDs, replaces stale entries, appends unassessed entries, and validates", staleAssessmentCandidate.id === packet.feature.id && unassessedCandidate.id === unassessed.feature.id && guidedEntries.length === 2 && guidedEntries.some((entry) => entry.id === packet.feature.id && entry.stamp.commit === packet.stamp.commit) && guidedEntries.some((entry) => entry.id === unassessed.feature.id && entry.stamp.commit === unassessed.stamp.commit) && validateStore({ root, storePath: roundTripPath }).length === 0);
     const packetSource = fs.readFileSync(path.join(ROOT, "scripts/product-report.mjs"), "utf8");
     const earlyRefusal = packetSource.indexOf("if (initialEntries.length)");
     const buildAfterRefusal = packetSource.indexOf("const model = await buildReport", earlyRefusal);
@@ -383,6 +443,39 @@ try {
     const movedFeature = movedReport.model.features.find((item) => item.id === "FEAT-039");
     // req: R-1021
     check("row moved home and shared back is named as changed", movedFeature?.assessmentState === "out of date" && movedFeature.differences.changed.includes(ownRow.id), JSON.stringify({ state: movedFeature?.assessmentState, id: ownRow.id, changed: movedFeature?.differences.changed, added: movedFeature?.differences.added, removed: movedFeature?.differences.removed }));
+  }
+  {
+    const cases = ["added", "removed", "text", "status"];
+    const renderedDifferences = [];
+    for (const kind of cases) {
+      const repo = fixture(`rendered-difference-${kind}`);
+      const commit = repo.git(["rev-parse", "HEAD"]).stdout.trim();
+      writeStore(repo.root, [makeAssessment(repo.root, commit, "FEAT-039")]);
+      const ledgerPath = path.join(repo.root, "REQUIREMENTS.md");
+      const parsed = parseLedger(fs.readFileSync(ledgerPath, "utf8"));
+      const feature = parsed.headings.find((heading) => heading.id === "FEAT-039");
+      const own = readRequirementRows(parsed).find((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === feature) return true; return false; });
+      const rowLine = `| ${own.id} | ${own.requirement} | ${own.status} | ${own.evidence} |`;
+      const lines = fs.readFileSync(ledgerPath, "utf8").split("\n");
+      const at = lines.indexOf(rowLine);
+      if (kind === "added") lines.splice(at + 1, 0, "| R-9998 | The fixture shall name its added requirement. | implemented | Added fixture evidence. |");
+      if (kind === "removed") lines.splice(at, 1);
+      if (kind === "text") lines[at] = rowLine.replace(own.requirement, `${own.requirement} Changed fixture wording.`);
+      if (kind === "status") lines[at] = rowLine.replace(`| ${own.status} |`, `| ${own.status === "implemented" ? "untested" : "implemented"} |`);
+      fs.writeFileSync(ledgerPath, lines.join("\n"));
+      repo.git(["add", "REQUIREMENTS.md"]); repo.git(["commit", "-qm", `change ${kind}`]);
+      const report = await buildReport({ root: repo.root });
+      const item = report.features.find((entry) => entry.id === "FEAT-039");
+      const rootNode = { children: [], replaceChildren(...children) { this.children = children; }, appendChild(child) { this.children.push(child); } };
+      const make = (tag) => { const node = { tag, children: [], attrs: {}, appendChild(child) { this.children.push(child); }, replaceChildren(...children) { this.children = children; }, setAttribute(key, value) { this.attrs[key] = value; }, addEventListener() {} }; Object.defineProperty(node, "textContent", { get() { return this.children.map((child) => child.textContent ?? child.text ?? "").join(""); }, set(value) { this.children = [{ text: String(value) }]; } }); return node; };
+      const document = { getElementById: () => rootNode, createElement: make, createTextNode: (value) => ({ text: String(value), get textContent() { return this.text; } }) };
+      renderInto(document, report, { hash: "#FEAT-039" });
+      const flattened = [rootNode, ...rootNode.children.flatMap((child) => [child, ...(child.children ?? [])])];
+      const difference = kind === "added" ? `Added rows: R-9998` : kind === "removed" ? `Removed rows: ${own.id}` : `Changed rows: ${own.id}`;
+      renderedDifferences.push(item.assessmentState === "out of date" && item.differences[kind === "text" || kind === "status" ? "changed" : kind].includes(kind === "added" ? "R-9998" : own.id) && flattened.some((node) => node.tag === "p" && node.textContent === difference));
+    }
+    // req: R-1021
+    check("rendered difference sections name added, removed, text-changed, and status-changed rows", renderedDifferences.length === 4 && renderedDifferences.every(Boolean), JSON.stringify(renderedDifferences));
   }
   {
     // req: R-1027
