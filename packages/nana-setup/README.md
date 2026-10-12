@@ -396,6 +396,12 @@ written — `project` reads the user-scope config to decide what to write) until
 `--pi-home <absolute dir>` or set an absolute value, and `doctor` prints a `!` line naming the cwd it resolved against and never says "all good"
 (exit 1). An explicit `--pi-home`, relative or not, is your decision and is used as given.
 
+## Install check
+
+Run `node packages/nana-setup/bin/install-check.mjs` from the repository root. The check installs nana into a temporary home, registers the checked-out pi extensions, installs pi-subagents, starts a pi RPC session, simulates Claude Code hook dispatch, and runs doctor. Its child processes receive the temporary home and temporary/cache folders; the check does not install nana into the caller's real home. The check depends on Node, Git, pi, npm registry access, and Git Bash on Windows.
+
+The check proves that the documented installation and selected installed hooks run in this fixture on the current runner. It does not start Claude Code, invoke pi prompt-time hooks, or prove the result on every machine. Windows follows the fresh-machine sequence without the PATH-link step: it installs nana into the temporary home, installs pi-subagents, writes the objective fixture, starts pi from the fixture project, dispatches installed hooks through Git Bash, and runs doctor. A Windows green result is not a substitute for Jake's Windows machine rehearsal.
+
 ## Tests
 
 Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with its failure

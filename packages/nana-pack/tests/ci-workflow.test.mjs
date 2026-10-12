@@ -22,7 +22,7 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
   assert.match(workflow, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
   assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
   assert.match(workflow, /^      - run: npm test/m);
-  assert.match(workflow, /^  release:\n    needs: suite\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
+  assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
   assert.match(workflow, /^    permissions:\n      contents: write/m);
   assert.match(workflow, /^    concurrency:\n      group: template-release\n      cancel-in-progress: false/m);
   assert.match(workflow, /^        with:\n          fetch-depth: 0/m);
@@ -77,7 +77,18 @@ check("suite runs on Windows with bash and the pinned toolchain", () => {
 // req: R-1032
 check("Windows suite failure does not block release", () => {
   assert.match(workflow, /^    continue-on-error: \$\{\{ matrix\.os != 'macos-latest' \}\}/m);
-  assert.match(workflow, /^  release:\n    needs: suite\n/m);
+  assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n/m);
+});
+// req: R-1078
+check("install check is a blocking macOS and Windows job before suite", () => {
+  const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
+  assert(job.length > 0);
+  assert(workflow.indexOf("  install-check:") < workflow.indexOf("  suite:"));
+  assert.match(job, /os: \[macos-latest, windows-latest\]/);
+  assert.match(job, /^    timeout-minutes: 20$/m);
+  assert.doesNotMatch(job, /continue-on-error/);
+  assert.match(job, /^        run: node packages\/nana-setup\/bin\/install-check\.mjs$/m);
+  assert.match(job, /npm i -g --ignore-scripts @earendil-works\/pi-coding-agent@\$\{PI_VERSION\}/);
 });
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {

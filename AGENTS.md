@@ -36,7 +36,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   own `Usage`/`calculateCost`); `studies/` holds recorded verdicts.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); tags ship only through
-  `npm run release`, which runs acceptance first; CI releases after a green suite on main. `templates/_shared/` is the SINGLE source of everything more than
+  `npm run release`, which runs acceptance first; CI releases after green suite and install-check jobs on main. `templates/_shared/` is the SINGLE source of everything more than
   one consumer emits — `working-under-nana-pi.md` (the canonical section below) and the three
   frontier seeds `OBJECTIVE.md` / `HANDOFF.md` / `docs/sessions/README.md`, which the language
   templates pull in with a Jinja `include` (the loader root is the repo root), the skill

@@ -22,7 +22,7 @@ Sibling repo to `~/nana-agent-loop`.
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
-  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking. Generated CI
+  via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the suite and install-check jobs pass on main; Linux and Windows suite legs are non-blocking, while the Windows install check blocks release. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
@@ -174,7 +174,7 @@ uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <
 ```
 
 Copier renders the latest `v*` tag, never HEAD — tags are cut only by
-`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after the blocking macOS suite leg passes on main; Linux and Windows suite legs are non-blocking. The first green hosted run cut v0.6.4 on 2026-10-08. A passing gate prints no summary line, and the non-blocking Linux suite leg still fails one symlink-escape check. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
+`npm run release -- [--ref <rev>] [--push]`, which runs the gate first; CI runs it after the suite and install-check jobs pass on main; Linux and Windows suite legs are non-blocking, while the Windows install check blocks release. The first green hosted run cut v0.6.4 on 2026-10-08. A passing gate prints no summary line, and the non-blocking Linux suite leg still fails one symlink-escape check. `npm run template:accept -- [--src <repo>] [--ref <rev>]` runs the four rendered project checks. Pinned pack installs (`@ref`) need a ref that contains the root manifest —
 tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) instead.
 
 ### From a local clone
