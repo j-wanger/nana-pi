@@ -124,22 +124,21 @@ export function journalHasUnadopted(text, project, platformName = process.platfo
   });
 }
 
-export async function runInstallCheck({ root, home, platformName, env, spawn, now = () => new Date(), out = () => {} }) {
+export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {} }) {
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
   const childEnv = buildEnvironment(env, home, platformName);
+  if (platformName !== "win32") childEnv.PATH = `${path.join(home, ".local", "bin")}${path.delimiter}${childEnv.PATH ?? ""}`;
   const project = path.join(home, "project");
+  childEnv.CLAUDE_PROJECT_DIR = project;
   const notes = path.join(home, "notes");
   fs.mkdirSync(path.join(home, "tmp"), { recursive: true });
   fs.mkdirSync(path.join(home, ".npm"), { recursive: true });
   fs.mkdirSync(project, { recursive: true });
   fs.mkdirSync(path.join(notes, "docs"), { recursive: true });
   const token = `installcheck_${now().getTime().toString(36)}`;
-  const invoke = async (command, args, options = {}) => {
-    const launchEnv = buildEnvironment({ ...childEnv, ...(options.env ?? {}) }, home, platformName);
-    if (Object.hasOwn(options.env ?? {}, "NANA_TEST_TEMP_ROOTS")) launchEnv.NANA_TEST_TEMP_ROOTS = options.env.NANA_TEST_TEMP_ROOTS;
-    return spawn(command, args, { cwd: root, ...options, env: launchEnv });
-  };
+  const invoke = async (command, args, options = {}) =>
+    spawn(command, args, { cwd: root, ...options, env: childEnv });
   const git = (folder) => invoke("git", ["init", "--quiet", folder], { cwd: folder, timeout: SPAWN_TIMEOUT_MS.git });
   const resolveOnPath = (name) => {
     for (const dir of String(childEnv.PATH ?? "").split(path.delimiter)) {
@@ -153,7 +152,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, no
   const gitRootOkay = gitInit1.status === 0 && gitInit2.status === 0;
   fs.writeFileSync(path.join(notes, "docs", "install-check.md"), `# ${token}\nfixture evidence\n`);
   const nodePath = process.execPath;
-  let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root }) ?? "pi") : resolveOnPath("pi");
+  let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root, exists }) ?? "pi") : resolveOnPath("pi");
   let bash = null;
   if (platformName === "win32") {
     for (const dir of String(childEnv.PATH ?? "").split(path.delimiter)) {
@@ -183,13 +182,11 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, no
     fs.writeFileSync(path.join(home, ".pi", "agent", "nana-objective.md"), `**Objective (since 2026-10-12):** ${token}.\n\n**Current priority (since 2026-10-12):** install-check ${token}.\n`);
     const memory = path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md");
     fs.appendFileSync(memory, `\n- [${token}] install-check fixture memory.\n`);
-    if (platformName !== "win32") childEnv.PATH = `${path.join(home, ".local", "bin")}${path.delimiter}${childEnv.PATH ?? ""}`;
   }
-  const piRun = async (args, timeout = SPAWN_TIMEOUT_MS.pi, extra = {}) => {
-    const runEnv = { ...childEnv, ...extra };
-    if (platformName !== "win32") return invoke(pi, args, { cwd: project, timeout, env: runEnv });
+  const piRun = async (args, timeout = SPAWN_TIMEOUT_MS.pi) => {
+    if (platformName !== "win32") return invoke(pi, args, { cwd: project, timeout });
     const launch = winCommand(pi, args, { comspec: childEnv.ComSpec });
-    return launch.refused ? { status: 1, stderr: launch.refused } : invoke(launch.command, launch.args, { ...launch.options, cwd: project, timeout, env: runEnv });
+    return launch.refused ? { status: 1, stderr: launch.refused } : invoke(launch.command, launch.args, { ...launch.options, cwd: project, timeout });
   };
   const sub = await piRun(["install", `npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`]);
   report("pi-subagents", sub.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(sub), okay(sub) ? "" : reason(sub));
@@ -199,7 +196,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, no
   report("pi list nana-knowledge", "missing-entry", okay(listed) && parsed.knowledge);
   const sessionArgs = ["--mode", "rpc", "--no-session"];
   const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: childEnv.ComSpec }) : { command: pi, args: sessionArgs, options: {} };
-  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : await invoke(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, input: '{"type":"get_commands"}\n', env: { ...childEnv, NANA_TEST_TEMP_ROOTS: "" } });
+  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : await invoke(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, input: '{"type":"get_commands"}\n' });
   let journal = "";
   try { journal = fs.readFileSync(path.join(home, ".pi/agent/nana-journal.jsonl"), "utf8"); } catch {}
   const sessionOutput = `${session.stdout ?? ""}${session.stderr ?? ""}`;
@@ -224,8 +221,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, no
       ? { prompt: `${SAMPLE_INPUTS.prompt} ${token}`, cwd: project }
       : { hook_event_name: "PreToolUse", tool_name: expected.tool, tool_input: { command: expected.tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
     const invocation = hookInvocation(entry, platformName, bash);
-    const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project, NANA_TEST_TEMP_ROOTS: "" };
-    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input), env: hookEnv });
+    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input) });
     const stdout = result.stdout ?? "";
     let passed = !structural && okay(result) && stdout.length <= SAMPLE_INPUTS.maxOutput;
     if (expected.shortLabel === "objective") passed &&= stdout.startsWith("[nana:objective]") && stdout.includes(token) && !stdout.includes("OBJECTIVE UNAVAILABLE");
@@ -239,7 +235,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, no
     let miss = null;
     if (expected.shortLabel === "verifier pipe") {
       const missInput = { hook_event_name: "PreToolUse", tool_name: expected.tool, tool_input: { command: expected.tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };
-      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput), env: hookEnv });
+      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput) });
       const outputLines = stdout.trim().split(/\r?\n/).filter(Boolean); let valid = false;
       if (outputLines.length === 1) try { const payload = JSON.parse(outputLines[0]).hookSpecificOutput; valid = payload?.hookEventName === "PreToolUse" && payload?.permissionDecision === "ask"; } catch {}
       passed &&= valid && okay(miss) && (miss.stdout ?? "") === "";
