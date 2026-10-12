@@ -1,0 +1,61 @@
+ok   win32 install exits 0
+ok   win32: exactly one nana-objective.mjs entry under SessionStart
+ok   win32: nana-objective.mjs is exec form (command "node", args array, no shell key)
+ok   win32: nana-objective.mjs args[0] is an absolute existing script inside this checkout
+ok   win32: nana-objective.mjs extra args
+ok   win32: exactly one nana-adoption.mjs entry under SessionStart
+ok   win32: nana-adoption.mjs is exec form (command "node", args array, no shell key)
+ok   win32: nana-adoption.mjs args[0] is an absolute existing script inside this checkout
+ok   win32: nana-adoption.mjs extra args
+ok   win32: exactly one nana-shared-memory.mjs entry under SessionStart
+ok   win32: nana-shared-memory.mjs is exec form (command "node", args array, no shell key)
+ok   win32: nana-shared-memory.mjs args[0] is an absolute existing script inside this checkout
+ok   win32: nana-shared-memory.mjs extra args
+ok   win32: exactly one verifier-pipe.mjs entry under PreToolUse
+ok   win32: verifier-pipe.mjs is exec form (command "node", args array, no shell key)
+ok   win32: verifier-pipe.mjs args[0] is an absolute existing script inside this checkout
+ok   win32: verifier-pipe.mjs extra args
+ok   win32: exactly one nana-knowledge.ts entry under UserPromptSubmit
+ok   win32: nana-knowledge.ts is exec form (command "node", args array, no shell key)
+ok   win32: nana-knowledge.ts args[0] is an absolute existing script inside this checkout
+ok   win32: nana-knowledge.ts extra args
+ok   win32: verifier group matcher is Bash|PowerShell
+ok   win32: a second install leaves settings.json byte-identical
+ok   win32 install over a stale knowledge entry exits 0
+ok   win32: the stale knowledge entry is replaced, not twinned
+ok   win32: the replacement is exec form into this checkout
+ok   doctor win32: "settings SessionStart objective" is ✓
+ok   doctor win32: "settings SessionStart adoption" is ✓
+ok   doctor win32: "settings SessionStart shared-memory" is ✓
+ok   doctor win32: "settings PreToolUse verifier pipe" is ✓
+ok   doctor win32: "settings UserPromptSubmit knowledge pull" is ✓
+ok   doctor win32: "node for the objective hook" is ✓
+ok   doctor win32: a note names the Claude Code 2.1.139 floor
+ok   exec objective: exit 0
+ok   exec objective: first line starts [nana:objective], no OBJECTIVE UNAVAILABLE
+ok   exec adoption: exit 0, no ADOPTION UNAVAILABLE
+ok   exec shared memory: exit 0, header and the seeded line
+ok   exec verifier: Bash masked pipe → one ask
+ok   exec verifier: PowerShell masked pipe → one ask
+ok   exec verifier: PowerShell plain command → empty stdout
+ok   exec verifier: Bash plain command → empty stdout
+ok   exec knowledge: exit 0, no module-resolution error
+ok   R-1062 live (ask): "npm test | Select-Object -Last 5; git commit -m x"
+ok   R-1062 live (ask): "\"$(npm test | Select-Object -Last 1)\"; git commit -m x"
+ok   R-1062 live (ask): "@\"\n$(npm test | Select-Object -Last 1)\n\"@\ngit commit -m x"
+ok   R-1062 live (ask): "Write-Output \"a`\"b\"; npm test | Select-Object -Last 1; git commit 
+ok   R-1062 live (ask): "Write-Output \"a\"\"b\"; npm test | Select-Object -Last 1; git commit
+ok   R-1062 not live (no ask): "Write-Output \"a`\" | b\"; git commit -m x"
+ok   R-1062 not live (no ask): "Write-Output \"a\"\" | b\"; git commit -m x"
+ok   R-1062 not live (no ask): "'npm test | x'; git commit -m x"
+ok   R-1062 not live (no ask): "\"npm test | x\"; git commit -m x"
+ok   R-1062 not live (no ask): "npm test `| x; git commit -m x"
+ok   R-1062 not live (no ask): "# npm test | x\ngit commit -m x"
+ok   R-1062 not live (no ask): "<# npm test | x #> git commit -m x"
+ok   R-1062 not live (no ask): "@'\nnpm test | x\n'@\ngit commit -m x"
+ok   R-1062 not live (no ask): "@\"\nnpm test | x\n\"@\ngit commit -m x"
+ok   R-1062 not live (no ask): "'it''s | x'; git commit -m x"
+ok   bash dialect unchanged: npm test | tail -5; git commit → ask
+ok   darwin: settings.json equals main's (/Users/jwang/nana-pi), paths normalised
+cases: 59/59
+seat-verify-hooks: 0 mismatch(es)

@@ -1,0 +1,5 @@
+ok   replaced: win32: ${label} reports skipped (win32: POSIX hook) → win32: ${label} is created, not skipped
+ok   replaced: win32: no Claude verifier PreToolUse entry is installed → win32: the verifier group's matcher is Bash-or-PowerShell
+ok   replaced: win32 doctor skips rather than expects a Claude verifier entry → win32 doctor: settings ${w.label} is ✓
+ok   replaced: pack README declares the Claude win32 hook limitation → pack README declares the Claude win32 verifier coverage
+seat-verify-tests: 0 gap(s)
