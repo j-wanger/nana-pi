@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Seat mutation runner for lane verdict-position (frozen; anchors updated by the seat after build 3,
-which moved the canonical form to fold before and after NFKC). Each mutation breaks the CODE in
+which moved the canonical form to fold before and after NFKC, and after build 5, which decides "a
+different line" by position). Each mutation breaks the CODE in
 packages/nana-pack/bin/review-round.mjs, runs review-ledger.test.mjs, and expects the named check to
 FAIL; the file is restored with `git checkout` after each. Run from the repo root."""
 import subprocess, sys
@@ -20,14 +21,14 @@ M = [
   ("fold only after NFKC (astra land r1)", "fold(fold(line.replace(", "fold((line.replace(", REFUSE),
   ("fold only before NFKC", "const canon = (line) => fold(fold(", "const canon = (line) => (fold(", REFUSE),
   ("final-line grammar for the first line (sol build r1)", "const firstWord = firstGrammar.exec(first)?.[1] ?? null;", "const firstWord = finalGrammar.exec(first)?.[1] ?? null;", REFUSE),
-  ("raw first-line detection in the final branch", "if (first !== final && carries(first)) {", "if (first !== final && /VERDICT:/.test(first)) {", REFUSE),
+  ("raw first-line detection in the final branch", "if (nonblank.length > 1 && carries(first)) {", "if (nonblank.length > 1 && /VERDICT:/.test(first)) {", REFUSE),
   ("drop the first/final agreement", "if (firstWord !== selected) return null;", "", REFUSE),
   ("allow marks on the first line", "const firstGrammar = /^VERDICT: ", "const firstGrammar = /^[\\s#>*_`-]*VERDICT: ", REFUSE),
   ("reject the bare score on the first line", "| — \\d+\\/\\d+| \\d+\\/\\d+)?", "| — \\d+\\/\\d+)?", EXTRACT),
   ("keep the byte-order mark", "if (text.startsWith('\\uFEFF')) text = text.slice(1);", "", EXTRACT),
   ("final grammar without the bare score", "|—\\\\s*\\\\d+/\\\\d+|\\\\d+/\\\\d+)", "|—\\\\s*\\\\d+/\\\\d+)", EXTRACT),
   ("final line read first-line style (marks refused)", "if (carries(final)) {", "if (false) {", CORPUS),
-  ("malformed final accepted by falling through", "if (!selected) return null;\n    if (first !== final", "if (!selected) return firstGrammar.exec(first)?.[1] ?? null;\n    if (first !== final", MALFORMED),
+  ("malformed final accepted by falling through", "if (!selected) return null;\n    if (nonblank.length > 1", "if (!selected) return firstGrammar.exec(first)?.[1] ?? null;\n    if (nonblank.length > 1", MALFORMED),
 ]
 src = open(F, encoding="utf-8").read()
 red = 0

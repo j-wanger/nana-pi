@@ -1,3 +1,4 @@
+# seat run 2026-10-11 against eab842a in a separate clone (the reviewed worktree was under review); anchors updated for build 5
 red  final-only: no first-line branch → FAIL: complete extracts plain first-line verdicts, supported score
 red  drop the other-line guard → FAIL: complete refuses marks, corrections, conflicting verdicts, i
 red  drop the look-alike fold → FAIL: complete refuses marks, corrections, conflicting verdicts, i
