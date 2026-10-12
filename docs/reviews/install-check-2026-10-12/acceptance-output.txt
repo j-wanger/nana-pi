@@ -1,0 +1,32 @@
+ok   (a) the command exists
+ok   (a) exits 0
+ok   (a) PASS line: install
+ok   (a) PASS line: pi-subagents
+ok   (a) PASS line: pi list nana-pack
+ok   (a) PASS line: pi list nana-knowledge
+ok   (a) PASS line: pi session
+ok   (a) PASS line: hook set
+ok   (a) PASS line: hook objective
+ok   (a) PASS line: hook adoption
+ok   (a) PASS line: hook shared memory
+ok   (a) PASS line: hook verifier pipe (Bash)
+ok   (a) PASS line: hook knowledge pull
+ok   (a) PASS line: doctor
+ok   (a) no XFAIL line on macOS
+ok   (a) the first lines name the resolved pi and node paths
+ok   (b) the real home's watched paths are unchanged
+ok   (b) no new ~/.claude/projects entry for the check
+ok   (c) hostile environment: exits 0
+ok   (c) hostile environment: every label still PASS
+ok   (c) hostile environment: the pointed-at folders stay empty
+ok   (d) the verifier entry dropped from desiredHooks: exits non-zero and FAILs "hook verifier pipe (Bash)"
+ok   (d) stepPiRegister always SKIPPED: exits non-zero and FAILs "pi list nana-pack"
+ok   (d) the shared-memory hook's import broken: exits non-zero and FAILs "hook shared memory"
+ok   (d) the knowledge entry losing its hook word: exits non-zero and FAILs "hook knowledge pull"
+ok   (e) an install-check job exists before suite
+ok   (e) it runs on macos-latest and windows-latest
+ok   (e) it has no continue-on-error
+ok   (e) it runs the command exactly
+ok   (e) release needs both jobs
+cases: 30/30
+install-check acceptance: 0 mismatch(es)
