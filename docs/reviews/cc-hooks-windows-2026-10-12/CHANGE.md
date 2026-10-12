@@ -140,7 +140,7 @@ A hostile local user is out of scope. Anyone who can edit `settings.json` or the
 | R-1052 | withdrawn (a draft ID only, never written to `REQUIREMENTS.md`) | Was the refusal of a checkout path containing `$`, a backtick or `%`. It existed only because a double-quoted shell form expands those characters. Exec form refuses no character, so the regression it declared is gone. This lane does not reuse the ID, so earlier review notes stay unambiguous. |
 | R-1053 | added (SUB-015) | WHERE the platform is win32, the installer shall place the verifier-pipe entry in a PreToolUse group whose matcher is `Bash\|PowerShell`. |
 | R-1054 | added (SUB-012, beside R-985); overlaps R-984 | WHEN the verifier hook receives a PreToolUse event whose tool is `PowerShell`, it shall judge the command with the pipe guard's PowerShell dialect (R-1062). |
-| R-1062 | added (FEAT-010, beside R-984; sol plan r1 MUST 1) | WHERE the pipe guard's dialect is `powershell`, it shall treat a pipe as live only outside a single-quoted string, a here-string, a `#` line comment, a `<# … #>` block comment and a backtick escape, and outside a double-quoted string except inside a `$( … )` subexpression there. |
+| R-1062 | added (FEAT-010, beside R-984; sol plan r1 MUST 1, r2 MUST 1) | WHERE the pipe guard's dialect is `powershell`, it shall treat a pipe as live only outside a single-quoted string, a single-quoted (`@'`) here-string, a `#` line comment, a `<# … #>` block comment and a backtick escape, and outside a double-quoted string or an expandable (`@"`) here-string except inside a `$( … )` subexpression there. |
 | R-1055 | added (FEAT-015, beside R-393) | WHERE the platform is win32, doctor shall report each of the five hook settings rows as ✓ only when an entry invoking its script, in exec form or shell form, sits under the expected event and matcher, and every entry under that event invoking the script has an absolute script path that resolves inside the checkout. Pinned by forced-win32 suite cases (section 5), not only by the acceptance script. |
 | R-1056 | added (FEAT-018, beside R-394, which it extends); re-scoped 2026-10-12 | WHEN install finds an installer-shaped, repo-anchored hook entry whose script is missing or resolves outside the checkout, it shall replace that entry in place with the platform's current form. Repo-anchored means the knowledge pull on every platform, and all five entries on win32. Installer-shaped means timeout 5, the installer's status message for that entry, and a form that matches one of these apart from the checkout path: the POSIX knowledge form on every platform; on win32 only, the earlier win32 knowledge form `node '<path>' hook` and the R-1050 exec form. On win32 a shell form also carries no `args`. |
 | R-1057 | added (FEAT-015, beside R-344) | WHERE the platform is win32, doctor shall run the R-344 Node floor check on the `node` found on PATH instead of reporting it skipped. Pinned by a forced-win32 suite case (section 5). |
@@ -509,11 +509,18 @@ R-393 keeps its text, and R-1055 extends doctor's check to all five win32 rows. 
     - CI runs only on a push to main or on a pull request (`ci.yml:2-5`), so pushing the branch runs nothing. A Windows run needs a draft pull request, which needs no approval (Jake, 2026-10-11).
     - The seat reads this file's lines in the Windows job log and records the run ID in R-1058's evidence. A green check is not evidence.
 - **macOS regression:** case (d) above, plus `npm run test:locked` green.
-- **PowerShell lexing cases (R-1062), on every leg in `pipe-guard.test.mjs`.** Live (ask): `npm test | Select-Object -Last 5; git commit -m x`; `"$(npm test | Select-Object -Last 1)"; git commit -m x`. Not live: `'npm test | x'`; `"npm test | x"`; ``npm test `| x``; `# npm test | x`; `<# npm test | x #> git commit`; a here-string `@'` … `npm test | x` … `'@`; a doubled quote `'it''s | x'`. Every existing Bash case keeps its result.
+- **PowerShell lexing cases (R-1062), on every leg in `pipe-guard.test.mjs` (sol plan r2 MUST 1: every case carries a live `git commit` outside the construct, so a lexer that exposes the pipe turns the case into an ask).**
+  - Live (ask): `npm test | Select-Object -Last 5; git commit -m x`; `"$(npm test | Select-Object -Last 1)"; git commit -m x`; an expandable here-string whose body is `$(npm test | Select-Object -Last 1)`, then `git commit -m x`.
+  - Recovery after an escaped or doubled double quote (a lexer that ends the string early or late fails here): `Write-Output "a`"b"; npm test | Select-Object -Last 1; git commit -m x` → ask; `Write-Output "a""b"; npm test | Select-Object -Last 1; git commit -m x` → ask; and the mirror cases where the quote is NOT closed until after the pipe (`Write-Output "a`" | b"; git commit -m x`, `Write-Output "a"" | b"; git commit -m x`) → no ask.
+  - Not live (no ask), each followed by `; git commit -m x` or a newline and `git commit -m x`: `'npm test | x'`; `"npm test | x"`; ``npm test `| x``; `# npm test | x`; `<# npm test | x #>`; a single-quoted here-string `@'` … `npm test | x` … `'@`; an expandable here-string `@"` … `npm test | x` … `"@` (plain text, no `$( )`); `'it''s | x'`.
+  - Every existing Bash case keeps its result.
 - **Every hook label, not one representative (sol plan r1 NOTE).** The forced-win32 doctor cases (R-1055) and the migration cases (R-1056, R-1059) iterate all five hook labels.
 - **Mutation pairs.** Each mutation breaks code, never an assertion, and the seat records which test goes red.
-  19. Lex PowerShell as Bash (drop the dialect branch in `liveText`): the escaped-pipe, here-string and block-comment cases fail.
-  20. Treat `$( … )` inside double quotes as inactive: the subexpression case fails.
+  19. Lex PowerShell as Bash (drop the dialect branch in `liveText`): the escaped-pipe, here-string, block-comment and backtick-escaped-quote recovery cases fail.
+  20. Treat `$( … )` inside double quotes or an expandable here-string as inactive: both subexpression cases fail.
+  22. End a double-quoted string at a backtick-escaped quote: the backtick recovery and mirror cases fail.
+  23. Treat `""` inside a double-quoted string as a close-and-reopen pair that resets state wrongly: the doubled-quote recovery and mirror cases fail.
+  24. Treat every here-string as single-quoted: the expandable here-string subexpression case fails.
   21. Leave the matrix cell as "Bash PreToolUse": the two matrix checks fail.
   1. Restore the filter at `steps.mjs:505-509`: the five-entry case fails on every leg, and every Windows spawn case fails.
   2. Write shell form on win32 (`node ${shq(path)}`, no `args`): the exec-shape case fails on every leg. On Windows the harness fails each entry before spawning, because the entry has no `args`.
@@ -649,7 +656,7 @@ Jake reported that his Windows machine runs Claude Code 2.1.296, the same versio
   - Outcome 1 is now exec form.
   - The refusal outcome is gone. In its place, the README and doctor state the 2.1.139 floor.
   - Outcome 4 adds the in-place move of today's win32 knowledge entry to exec form.
-  - Outcome 6 declares one POSIX read-side change: exec-form entries count as present.
+  - (Withdrawn by the second re-check, 2026-10-12.) An earlier draft said exec-form entries count as present on POSIX. The final design is R-1061: POSIX reads only `command`, as on main.
 - **Rows.**
   - R-1050 and R-1058 are rewritten for exec form.
   - R-1052 is withdrawn.
@@ -671,3 +678,4 @@ Jake reported that his Windows machine runs Claude Code 2.1.296, the same versio
   - Added: Claude Code before 2.1.139; the real exec-form spawn on Windows, now the claim most likely to be wrong; `node` as a real executable; hand-written exec-form variants on win32; no `NODE_NO_WARNINGS` on win32.
 - **Memory.** Two lines were already corrected on 2026-10-12: `user_jake_windows_both_seats.md:10` and `reference_claude_code_hooks_windows.md:9`. The reference note's `:3` and `:16` still describe the double-quoted shell form, and the seat updates them.
 - 2026-10-12, after sol plan r1 (SEND-BACK 70/100): PowerShell lexing added to the pipe guard (R-1062); R-1058 split into start (R-1058), SessionStart output (R-1063) and verifier output (R-1064), with its CI evidence named direct exec-form conformance; the runtime matrix cell updated in all three copies; Windows uninstall stated as a gap this lane does not close; doctor and migration cases iterate all five labels.
+- 2026-10-12, after sol plan r2 (SEND-BACK 86/100): every R-1062 negative case carries a live commit; recovery cases after backtick-escaped and doubled double quotes, with mirrors; expandable here-string text and subexpression cases; R-1062 states the expandable here-string exception; three more lexer mutation pairs; the stale POSIX read-side line marked withdrawn.
