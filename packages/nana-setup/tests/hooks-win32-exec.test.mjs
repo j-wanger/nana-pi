@@ -106,19 +106,24 @@ try {
 
 	{
 		const r = spawnEntry(entries["nana-objective.mjs"].hook, session);
+		// req: R-1058
 		check("objective: exit 0", r.status === 0, r.stderr);
+		// req: R-1063
 		check("objective: first line starts [nana:objective], no OBJECTIVE UNAVAILABLE", (r.stdout || "").split("\n")[0]?.startsWith("[nana:objective]") && !(r.stdout || "").includes("OBJECTIVE UNAVAILABLE"), r.stdout + r.stderr);
 	}
 	{
 		const r = spawnEntry(entries["nana-adoption.mjs"].hook, session);
+		// req: R-1063
 		check("adoption: exit 0, no ADOPTION UNAVAILABLE", r.status === 0 && !(r.stdout || "").includes("ADOPTION UNAVAILABLE"), r.stdout + r.stderr);
 	}
 	{
 		const r = spawnEntry(entries["nana-shared-memory.mjs"].hook, session);
+		// req: R-1063
 		check("shared memory: exit 0, header and the seeded line", r.status === 0 && (r.stdout || "").includes("[nana:shared-memory]") && (r.stdout || "").includes("Seeded entry"), r.stdout + r.stderr);
 		const link = path.join(claudeHome, "projects");
 		const projectDirs = fs.existsSync(link) ? fs.readdirSync(link) : [];
 		const junction = projectDirs.map((d) => path.join(link, d, "memory", "shared")).find((p) => fs.existsSync(p));
+		// req: R-1063
 		check("shared memory: the project's memory/shared is a link to the shared folder", Boolean(junction) && fs.lstatSync(junction).isSymbolicLink(), junction ?? "(none found)");
 	}
 	{
@@ -126,14 +131,18 @@ try {
 		const ev = (tool, command) => ({ hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command }, cwd: project, session_id: "win32-exec" });
 		const isAsk = (r) => { try { return JSON.parse((r.stdout || "").trim().split("\n")[0]).hookSpecificOutput?.permissionDecision === "ask"; } catch { return false; } };
 		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5; git commit -m x"));
+		// req: R-1064
 		check("verifier: Bash masked pipe gives one ask", isAsk(bashAsk), bashAsk.stdout + bashAsk.stderr);
 		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5; git commit -m x"));
+		// req: R-1064
 		check("verifier: PowerShell masked pipe gives an ask, Bash pipefail syntax stays inactive there", isAsk(psAsk), psAsk.stdout + psAsk.stderr);
 		const noMatch = spawnEntry(v, ev("Bash", "git status"));
+		// req: R-1064
 		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
 	}
 	{
 		const r = spawnEntry(entries["nana-knowledge.ts"].hook, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
+		// req: R-1058
 		check("knowledge: exit 0 within the limit, no module-resolution error on stderr", r.status === 0 && !/Cannot find module|ERR_MODULE_NOT_FOUND/.test(r.stderr || ""), r.stdout + r.stderr);
 	}
 
