@@ -39,26 +39,33 @@ export function mapHookEntries(groups, platformName) {
   const found = [];
   const failures = [];
   const all = [];
+  let malformedGroup = false;
   for (const row of groups ?? []) {
-    for (const entry of row.group?.hooks ?? []) all.push({ event: row.event, matcher: row.group?.matcher, entry });
+    const group = row?.group;
+    if (!group || typeof group !== "object" || !Array.isArray(group.hooks) || (group.matcher !== undefined && typeof group.matcher !== "string")) { malformedGroup = true; continue; }
+    for (const entry of group.hooks) all.push({ event: row.event, matcher: group.matcher, entry });
   }
   const expectedHooks = HOOKS.filter((hook) => !hook.platforms || hook.platforms.includes(platformName));
   const used = new Set();
   for (const expected of expectedHooks) {
-    const hit = all.find((x, index) => !used.has(index) && x.event === expected.event &&
-      (expected.event === "SessionStart" ? matches(x.matcher, "startup") : expected.event === "UserPromptSubmit" ? x.matcher === undefined : matches(x.matcher, expected.tool)) &&
-      (String(x.entry.command ?? "").includes(expected.script) || (Array.isArray(x.entry.args) && x.entry.args.some((a) => String(a).includes(expected.script)))));
-    if (!hit) { failures.push({ item: expected.label, code: "missing-entry" }); continue; }
-    const index = all.indexOf(hit); used.add(index);
+    const hitIndex = all.findIndex((x, index) => !used.has(index) && x.event === expected.event &&
+      (String(x.entry?.command ?? "").includes(expected.script) || (Array.isArray(x.entry?.args) && x.entry.args.some((a) => String(a).includes(expected.script)))));
+    if (hitIndex < 0) { failures.push({ item: expected.label, code: "missing-entry" }); continue; }
+    used.add(hitIndex);
+    const hit = all[hitIndex];
     const e = hit.entry;
-    const form = Array.isArray(e.args) ? "exec" : "shell";
+    const form = !e || typeof e !== "object" ? "invalid" : e.args === undefined ? "shell" : e.command === "node" && Array.isArray(e.args) ? "exec" : "invalid";
     if (form !== expected.form[platformName]) failures.push({ item: expected.label, code: "wrong-form" });
-    if (e.type !== "command" || typeof e.command !== "string" || e.timeout !== expected.timeout ||
+    if (!e || typeof e !== "object" || Array.isArray(e) || e.type !== "command" || typeof e.command !== "string" || e.timeout !== expected.timeout ||
         (e.args !== undefined && (!Array.isArray(e.args) || e.args.some((arg) => typeof arg !== "string"))) ||
         Object.keys(e).some((k) => !ALLOWED_HOOK_KEYS.includes(k))) failures.push({ item: expected.label, code: "bad-shape" });
+    const requiredTools = expected.event === "SessionStart" ? ["startup"] : expected.event === "UserPromptSubmit" ? [] :
+      expected.tool === "Bash" && platformName === "win32" ? ["Bash", "PowerShell"] : [expected.tool];
+    if ((expected.event === "UserPromptSubmit" && hit.matcher !== undefined) || requiredTools.some((tool) => !matches(hit.matcher, tool)))
+      failures.push({ item: expected.label, code: "bad-matcher" });
     found.push({ expected, ...hit });
   }
-  if (all.length !== expectedHooks.length || used.size !== expectedHooks.length)
+  if (malformedGroup || all.length !== expectedHooks.length || used.size !== expectedHooks.length)
     failures.push({ item: "hook set", code: all.length < expectedHooks.length ? "missing-entry" : "extra-entry" });
   return { entries: found, failures };
 }
@@ -130,7 +137,6 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const childEnv = buildEnvironment(env, home, platformName);
   if (platformName !== "win32") childEnv.PATH = `${path.join(home, ".local", "bin")}${path.delimiter}${childEnv.PATH ?? ""}`;
   const project = path.join(home, "project");
-  childEnv.CLAUDE_PROJECT_DIR = project;
   const notes = path.join(home, "notes");
   fs.mkdirSync(path.join(home, "tmp"), { recursive: true });
   fs.mkdirSync(path.join(home, ".npm"), { recursive: true });
@@ -138,7 +144,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   fs.mkdirSync(path.join(notes, "docs"), { recursive: true });
   const token = `installcheck_${now().getTime().toString(36)}`;
   const invoke = async (command, args, options = {}) =>
-    spawn(command, args, { cwd: root, ...options, env: childEnv });
+    spawn(command, args, { cwd: root, ...options, env: options.env ?? childEnv });
   const git = (folder) => invoke("git", ["init", "--quiet", folder], { cwd: folder, timeout: SPAWN_TIMEOUT_MS.git });
   const resolveOnPath = (name) => {
     for (const dir of String(childEnv.PATH ?? "").split(path.delimiter)) {
@@ -196,7 +202,8 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   report("pi list nana-knowledge", "missing-entry", okay(listed) && parsed.knowledge);
   const sessionArgs = ["--mode", "rpc", "--no-session"];
   const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: childEnv.ComSpec }) : { command: pi, args: sessionArgs, options: {} };
-  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : await invoke(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, input: '{"type":"get_commands"}\n' });
+  const sessionEnv = { ...childEnv, NANA_TEST_TEMP_ROOTS: "" };
+  const session = sessionLaunch.refused ? { status: 1, stderr: sessionLaunch.refused } : await invoke(sessionLaunch.command, sessionLaunch.args, { ...sessionLaunch.options, cwd: project, timeout: SPAWN_TIMEOUT_MS.session, input: '{"type":"get_commands"}\n', env: sessionEnv });
   let journal = "";
   try { journal = fs.readFileSync(path.join(home, ".pi/agent/nana-journal.jsonl"), "utf8"); } catch {}
   const sessionOutput = `${session.stdout ?? ""}${session.stderr ?? ""}`;
@@ -212,16 +219,18 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   fs.mkdirSync(sessionDir, { recursive: true });
   const transcript = path.join(sessionDir, `${token}.jsonl`); fs.writeFileSync(transcript, "");
   const sample = { ...SAMPLE_INPUTS.session, source: "startup", transcript_path: transcript, cwd: project };
-  for (const expected of HOOKS.filter((hook) => !hook.platforms || hook.platforms.includes(platformName))) {
+  const hookRuns = HOOKS.filter((hook) => !hook.platforms || hook.platforms.includes(platformName)).map(async (expected) => {
     const mappedEntry = mapped.entries.find((candidate) => candidate.expected.label === expected.label);
     const structural = mapped.failures.find((failure) => failure.item === expected.label);
-    if (!mappedEntry) { report(expected.label, structural?.code ?? "missing-entry", false); continue; }
+    if (!mappedEntry) { report(expected.label, structural?.code ?? "missing-entry", false); return; }
     const entry = mappedEntry.entry;
+    if (structural) { report(expected.label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
     const input = expected.event === "SessionStart" ? sample : expected.event === "UserPromptSubmit"
       ? { prompt: `${SAMPLE_INPUTS.prompt} ${token}`, cwd: project }
       : { hook_event_name: "PreToolUse", tool_name: expected.tool, tool_input: { command: expected.tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
     const invocation = hookInvocation(entry, platformName, bash);
-    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input) });
+    const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
+    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input), env: hookEnv });
     const stdout = result.stdout ?? "";
     let passed = !structural && okay(result) && stdout.length <= SAMPLE_INPUTS.maxOutput;
     if (expected.shortLabel === "objective") passed &&= stdout.startsWith("[nana:objective]") && stdout.includes(token) && !stdout.includes("OBJECTIVE UNAVAILABLE");
@@ -235,7 +244,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     let miss = null;
     if (expected.shortLabel === "verifier pipe") {
       const missInput = { hook_event_name: "PreToolUse", tool_name: expected.tool, tool_input: { command: expected.tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };
-      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput) });
+      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput), env: hookEnv });
       const outputLines = stdout.trim().split(/\r?\n/).filter(Boolean); let valid = false;
       if (outputLines.length === 1) try { const payload = JSON.parse(outputLines[0]).hookSpecificOutput; valid = payload?.hookEventName === "PreToolUse" && payload?.permissionDecision === "ask"; } catch {}
       passed &&= valid && okay(miss) && (miss.stdout ?? "") === "";
@@ -244,7 +253,8 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     let detail = "";
     if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : expected.shortLabel === "verifier pipe" ? `hit=${JSON.stringify(stdout)} miss=${JSON.stringify(miss?.stdout ?? "")}` : "required hook output or fixture condition was not observed";
     report(expected.label, code, passed, detail);
-  }
+  });
+  await Promise.all(hookRuns);
   const doctor = await invoke(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "doctor"], { cwd: project, timeout: SPAWN_TIMEOUT_MS.doctor });
   const unexpected = (doctor.stdout ?? "").split(/\r?\n/).find((line) => line.includes("·") && !(DOCTOR_NOTES[platformName] ?? []).some((note) => line.includes(note)));
   report("doctor", unexpected ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && !unexpected, unexpected ? unexpected : okay(doctor) ? "" : reason(doctor));

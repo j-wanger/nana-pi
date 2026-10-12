@@ -151,7 +151,7 @@ check("reporting matches known-red fingerprint and expiry and rejects unexpected
 });
 
 function tempHome() { return tmpDir(path.join(os.tmpdir(), "install-check-test-")); }
-function recordingRun({ platformName = "linux", env = {}, failInstall = false } = {}) {
+function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null } = {}) {
   const home = tempHome();
   const calls = [];
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -169,7 +169,8 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false } 
       for (const hook of HOOKS.filter((item) => !item.platforms || item.platforms.includes(platformName))) {
         const entry = { type: "command", command: `node ${hook.script}`, timeout: hook.timeout };
         if (platformName === "win32") { entry.command = "node"; entry.args = [hook.script]; }
-        (hooks[hook.event] ??= []).push({ ...(hook.matcher ? { matcher: hook.matcher } : {}), hooks: [entry] });
+        const matcher = platformName === "win32" && hook.tool === "Bash" ? "Bash|PowerShell" : hook.matcher;
+        (hooks[hook.event] ??= []).push({ ...(matcher ? { matcher } : {}), hooks: [entry] });
       }
       fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
       fs.writeFileSync(path.join(home, ".claude/settings.json"), JSON.stringify({ hooks }));
@@ -200,7 +201,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false } 
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
-  const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn, exists: platformName === "win32" ? (candidate) => candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
+  const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
   return { home, calls, run };
 }
 
@@ -220,16 +221,30 @@ check("environment: HOME, USERPROFILE, TMPDIR, TEMP, TMP and npm_config_cache po
   assert.equal(result.npm_config_cache, path.join("/temp/home", ".npm"));
 });
 
-// req: R-1071, R-1084
-check("environment: the recording spawn sees the same sanitized environment on every child", async () => {
+// req: R-1071, R-1075, R-1079, R-1084
+check("environment: every child gets the base environment plus only its own step's additions (CLAUDE_PROJECT_DIR for each hook, NANA_TEST_TEMP_ROOTS empty for the pi session)", async () => {
   const fixture = recordingRun({ env: { PI_CODING_AGENT_DIR: "/outside", npm_config_userconfig: "/outside" } });
   try {
     await fixture.run;
     assert.ok(fixture.calls.length > 10);
-    const first = fixture.calls[0].options.env;
-    for (const call of fixture.calls) assert.deepEqual(Object.keys(call.options.env).sort().map((key) => [key, call.options.env[key]]), Object.keys(first).sort().map((key) => [key, first[key]]));
-    assert.equal(first.PI_CODING_AGENT_DIR, undefined); assert.equal(first.npm_config_userconfig, undefined);
+    const base = buildEnvironment({ PATH: "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", PI_CODING_AGENT_DIR: "/outside", npm_config_userconfig: "/outside" }, fixture.home, "linux");
+    base.PATH = `${path.join(fixture.home, ".local", "bin")}${path.delimiter}${base.PATH}`;
+    for (const call of fixture.calls) {
+      const expected = { ...base };
+      const isHook = /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`);
+      const isSession = call.args.includes("--mode") && call.args.includes("rpc");
+      if (isHook) expected.CLAUDE_PROJECT_DIR = path.join(fixture.home, "project");
+      if (isSession) expected.NANA_TEST_TEMP_ROOTS = "";
+      assert.deepEqual(call.options.env, expected);
+    }
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1079
+check("pi session: runs with NANA_TEST_TEMP_ROOTS set empty", async () => {
+  const fixture = recordingRun();
+  try { await fixture.run; const call = fixture.calls.find((item) => item.args.includes("--mode") && item.args.includes("rpc")); assert.equal(call.options.env.NANA_TEST_TEMP_ROOTS, ""); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 // req: R-1084
@@ -341,6 +356,118 @@ check("pin R-1070 R-1080: the known-red list with each entry's code, owner and e
     assert.deepEqual(Object.keys(entry), ["item", "code", "owner", "expires"]);
     assert.equal(typeof entry.item, "string"); assert.ok(entry.code); assert.match(entry.owner, /^R-\d+$/); assert.match(entry.expires, /^\d{4}-\d{2}-\d{2}$/);
   }
+});
+
+const hookGroups = (platform = "darwin", overrides = {}) => HOOKS.filter((h) => !h.platforms || h.platforms.includes(platform)).map((h) => {
+  const e = { type: "command", command: h.form[platform] === "exec" ? "node" : `node ${h.script}`, timeout: h.timeout, ...(h.form[platform] === "exec" ? { args: [h.script] } : {}) };
+  const matcher = Object.hasOwn(overrides, h.label) ? overrides[h.label] : platform === "win32" && h.tool === "Bash" ? "Bash|PowerShell" : h.matcher;
+  return { event: h.event, group: { ...(matcher === null ? {} : { matcher }), hooks: [e] } };
+});
+const expectBad = (groups, platform = "darwin") => assert.ok(mapHookEntries(groups, platform).failures.length > 0);
+
+// req: R-1074
+check("hook set: an exact set passes", () => { assert.equal(mapHookEntries(hookGroups(), "darwin").failures.length, 0); });
+// req: R-1074
+check("hook set: a missing row fails", () => { expectBad(hookGroups().slice(1)); });
+// req: R-1074
+check("hook set: a duplicate entry fails", () => { const rows = hookGroups(); rows.push(structuredClone(rows[0])); expectBad(rows); });
+// req: R-1074
+check("hook set: an unmapped extra entry fails", () => { const rows = hookGroups(); rows.push({ event: "Notification", group: { hooks: [{ type: "command", command: "extra", timeout: 5 }] } }); expectBad(rows); });
+// req: R-1074
+check("hook set: a missing type, async true, a shell field, non-string args, or a missing or non-5 timeout each fail", () => {
+  for (const mutate of [e => delete e.type, e => e.async = true, e => e.shell = true, e => e.args = [2], e => delete e.timeout, e => e.timeout = 4]) {
+    const rows = hookGroups(); mutate(rows[0].group.hooks[0]); expectBad(rows);
+  }
+  const withNull = hookGroups(); withNull[0].group.hooks[0] = null; expectBad(withNull);
+});
+// req: R-1074
+check("hook set: a group without the matcher-and-hooks nesting fails", () => { expectBad([{ event: "SessionStart", group: { hooks: [] } }]); });
+// req: R-1074
+check("matcher: *, empty and omitted admit everything", () => {
+  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe (Bash)": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+});
+// req: R-1074
+check("matcher: 'Bash, PowerShell' and 'Bash|PowerShell' admit both tools", () => {
+  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe (Bash)": matcher, "hook verifier pipe (PowerShell)": matcher }), "win32").failures.length, 0);
+});
+// req: R-1074
+check("matcher: list separators admit only the exact listed tools", () => {
+  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) {
+    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe (Bash)": matcher, "hook verifier pipe (PowerShell)": matcher }), "win32").failures.length, 0);
+  }
+});
+// req: R-1074
+check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe (Bash)": "^Bash$" }), "darwin").failures.length, 0); });
+// req: R-1074
+check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe (Bash)": "NotBash" })); });
+// req: R-1074
+check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
+// req: R-1074
+check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe (Bash)": "Bash", "hook verifier pipe (PowerShell)": "Bash" }), "win32"); });
+// req: R-1082
+check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
+// req: R-1082
+check("form: an exec-form entry under darwin fails", () => { const rows = hookGroups(); rows[0].group.hooks[0].args = ["nana-objective.mjs"]; expectBad(rows); });
+// req: R-1082
+check("form: each row's form is read from the sealed table, never inferred from args", () => {
+  for (const platform of ["darwin", "win32"]) for (const h of HOOKS.filter(x => !x.platforms || x.platforms.includes(platform))) assert.ok(["exec", "shell"].includes(h.form[platform]));
+  const rows = hookGroups("darwin"); rows[0].group.hooks[0].args = ["nana-objective.mjs"]; expectBad(rows);
+  const winRows = hookGroups("win32"); winRows[0].group.hooks[0].command = "not-node"; expectBad(winRows, "win32");
+});
+// req: R-1074, R-1082
+check("pin R-1074 R-1082: the hook table with its form columns and the allowed entry keys", () => {
+  assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.script, h.timeout, h.form]), [
+    ["hook objective", "SessionStart", "startup", "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook adoption", "SessionStart", "startup", "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook shared memory", "SessionStart", "startup", "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook verifier pipe (Bash)", "PreToolUse", "Bash", "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook verifier pipe (PowerShell)", "PreToolUse", "PowerShell", "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook knowledge pull", "UserPromptSubmit", null, "nana-knowledge.ts", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+  ]);
+  assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
+});
+// req: R-1075
+check("dispatch: an entry with args runs as exec form with no shell", () => { assert.deepEqual(hookInvocation({ command: "node", args: ["hook.mjs"] }, "darwin"), { command: "node", args: ["hook.mjs"], shell: false }); });
+// req: R-1075
+check("dispatch: an entry without args runs /bin/sh -c on POSIX and Git Bash bash -c on win32", () => {
+  assert.deepEqual(hookInvocation({ command: "node hook.mjs" }, "linux"), { command: "/bin/sh", args: ["-c", "node hook.mjs"], shell: false });
+  assert.deepEqual(hookInvocation({ command: "node hook.mjs" }, "win32", "C:\\\\Git\\\\bin\\\\bash.exe"), { command: "C:\\\\Git\\\\bin\\\\bash.exe", args: ["-c", "node hook.mjs"], shell: false });
+});
+// req: R-1075
+check("dispatch: Git Bash is derived from git.exe in cmd, bin or mingw64\\bin, and System32\\bash.exe is refused", () => {
+  const source = readFileSync(fileURLToPath(new URL("../lib/install-check.mjs", import.meta.url)), "utf8");
+  assert.match(source, /const gitExe = path\.join\(dir, "git\.exe"\)/);
+  assert.match(source, /path\.resolve\(dir, "\.\.", "bin", "bash\.exe"\)/); assert.match(source, /path\.resolve\(dir, "\.\.", "\.\.", "bin", "bash\.exe"\)/);
+  assert.doesNotMatch(source, /System32.*bash\.exe/);
+});
+// req: R-1075
+check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
+  const fixture = recordingRun();
+  try { await fixture.run; const hooks = fixture.calls.filter(c => /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(c.args.join(" "))); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1075
+check("dispatch: the three SessionStart entries start before any of them finishes", async () => {
+  let starts = 0; let finishes = 0; let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    const name = `${command} ${args.join(" ")}`;
+    if (!/nana-(objective|adoption|shared-memory)/.test(name)) return spawn(command, args, options);
+    starts++;
+    if (starts === 3) release();
+    await gate;
+    if (finishes > 0) throw new Error("SessionStart started after a finish");
+    const result = await spawn(command, args, options); finishes++; return result;
+  }});
+  try { await fixture.run; assert.equal(starts, 3); assert.equal(finishes, 3); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1075
+check("dispatch: a hook that runs past its timeout is a FAIL whose reason prints the duration", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) =>
+    /nana-objective/.test(`${command} ${args.join(" ")}`) ? { error: { code: "ETIMEDOUT" }, ms: 5432 } : spawn(command, args, options) });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 if (failures) process.exitCode = 1;
