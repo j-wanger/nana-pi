@@ -80,6 +80,17 @@ const REQUIRED = {
 		["pi list: a (filtered) entry fails", ["R-1073"]],
 		["pi list: runs from the fixture project with no PI_CODING_AGENT_DIR", ["R-1073"]],
 	],
+	// 3a (after the seat's mutation runner, 38/44 at 7b6c650): the verifier is ONE entry whose matcher admits
+	// every tool of its row (cc writes "Bash|PowerShell"); the spawn adapter reports timeouts and keeps enough
+	// stdout for the cap to bite.
+	"3a": [
+		["verifier row: on win32 one entry whose matcher admits Bash and PowerShell satisfies the hook set and both verifier lines", ["R-1074", "R-1077"]],
+		["verifier row: on win32 an entry whose matcher admits only Bash fails the PowerShell line", ["R-1074", "R-1077"]],
+		["verifier row: on darwin one entry admitting Bash satisfies the verifier line and no PowerShell line is printed", ["R-1074", "R-1077"]],
+		["spawn adapter: a child killed at its timeout reports ETIMEDOUT and its duration", ["R-1075"]],
+		["spawn adapter: stdout is kept to 10,001 characters, so a 10,001-character output fails the cap", ["R-1076"]],
+		["timeout: a hook past its timeout reports the timeout code, not no-output", ["R-1075", "R-1080"]],
+	],
 };
 
 const session = process.argv[2];
