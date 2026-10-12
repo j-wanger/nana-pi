@@ -26,7 +26,7 @@ function spawn(command, args, options = {}) {
     const cap = (current, chunk) => (current + chunk.toString()).slice(0, 10000);
     let child;
     try {
-      child = childSpawn(command, args, { cwd: options.cwd, env: options.env, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+      child = childSpawn(command, args, { cwd: options.cwd, env: options.env, windowsHide: true, windowsVerbatimArguments: options.windowsVerbatimArguments, stdio: ["pipe", "pipe", "pipe"] });
       child.stdout.on("data", (chunk) => { stdout = cap(stdout, chunk); });
       child.stderr.on("data", (chunk) => { stderr = cap(stderr, chunk); });
       const timer = setTimeout(() => child.kill(), options.timeout ?? timeoutFallback);

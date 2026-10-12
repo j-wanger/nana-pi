@@ -110,6 +110,12 @@ check("wrong-form report names the observed and expected hook dispatch forms", (
 });
 
 // req: R-1079
+check("win32 pi command preserves ComSpec verbatim argv launch options", () => {
+  const source = readFileSync(fileURLToPath(new URL("../bin/install-check.mjs", import.meta.url)), "utf8");
+  assert.match(source, /windowsVerbatimArguments: options\.windowsVerbatimArguments/);
+});
+
+// req: R-1079
 check("Windows JSON journal path matches parsed cwd and rejects other events or folders", () => {
   const project = "D:\\a\\_temp\\project";
   assert.equal(journalHasUnadopted(JSON.stringify({ event: "directory_unadopted", cwd: project }), project, "win32"), true);
