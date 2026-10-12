@@ -68,7 +68,9 @@ out("win32: a second install leaves settings.json byte-identical", fs.readFileSy
 {
   const h2 = freshHome("stale");
   fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
-  const stale = { hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "node 'C:\\gone\\checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 }] }] } };
+  // seat fix 2026-10-12 (build 2): the seed carries the installer's status message, as every entry the
+  // installer has written since 2026-09-18 does; without it the seed was not an installer entry at all.
+  const stale = { hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "node 'C:\\gone\\checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }] }] } };
   fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify(stale, null, 2));
   out("win32 install over a stale knowledge entry exits 0", run(cli, ["install", "--home", h2], { NANA_SETUP_PLATFORM: "win32" }).status, 0);
   const k = entries(settingsOf(h2), "UserPromptSubmit").filter(({ hook }) => JSON.stringify(hook).includes("nana-knowledge"));

@@ -173,6 +173,17 @@ const PAIRS = [
 	{ n: "18b", name: "installerTarget accepts a win32 shell form carrying args (POSIX prefixed form)", file: SETTINGS,
 		anchor: "\tif (isKnowledge && !(win32 && hasArgs)) {", replacement: "\tif (isKnowledge) {",
 		tests: [SM], expectRed: ["installerTarget on win32 rejects a shell form carrying args"] },
+	// 25-26: the kept status-message gate (CHANGE §3 "the timeout and status-message gate stays"), added by
+	// the seat after build 1 dropped it. Injected at the top of installerTarget so they apply however the
+	// gate is written.
+	{ n: "25", name: "drop the status-message gate (every entry reads as carrying the wanted row's status)", file: SETTINGS,
+		anchor: "export function installerTarget(hook, wanted, platform) {\n",
+		replacement: "export function installerTarget(hook, wanted, platform) {\n\tif (hook && typeof hook === \"object\") hook = { ...hook, statusMessage: wanted.entry.statusMessage };\n",
+		tests: [SM, WD], expectRed: ["status message"] },
+	{ n: "26", name: "accept a missing status message as the installer's own", file: SETTINGS,
+		anchor: "export function installerTarget(hook, wanted, platform) {\n",
+		replacement: "export function installerTarget(hook, wanted, platform) {\n\tif (hook && typeof hook === \"object\" && hook.statusMessage === undefined) hook = { ...hook, statusMessage: wanted.entry.statusMessage };\n",
+		tests: [SM, WD], expectRed: ["no status message"] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
