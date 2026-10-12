@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ALLOWED_HOOK_KEYS, HOOKS, KNOWN_RED, OVERRIDE_ENV } from "../lib/install-check-config.mjs";
-import { buildEnvironment, classifyResult, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, journalHasUnadopted } from "../lib/install-check.mjs";
 
 let failures = 0;
 const check = (title, fn) => {
@@ -46,9 +46,19 @@ check("environment removes overrides and redirects home, temp and npm cache", ()
 });
 
 // req: R-1071
+check("sealed override list removes every listed key and caller npm config keys case-insensitively", () => {
+  const source = Object.fromEntries([...OVERRIDE_ENV.map((key) => [key, "caller"]), ["Npm_Config_Cache", "outside"], ["npm_config_userconfig", "outside"], ["PATH", "/bin"]]);
+  const env = buildEnvironment(source, "/temp/home", "win32");
+  assert.equal(OVERRIDE_ENV.length, 8);
+  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
+  assert.deepEqual(Object.keys(env).filter((key) => key.toLowerCase().startsWith("npm_config_")).map((key) => key.toLowerCase()), ["npm_config_cache"]);
+  assert.equal(Object.keys(env).some((key) => OVERRIDE_ENV.some((item) => item.toLowerCase() === key.toLowerCase())), false);
+});
+
+// req: R-1071
 check("install invokes real-home mode without sandbox flags", () => {
-  const source = readFileSync(fileURLToPath(new URL("../bin/install-check.mjs", import.meta.url)), "utf8");
-  assert.ok(source.includes('"packages/nana-setup/bin/nana-setup.mjs"), "install"'));
+  const source = readFileSync(fileURLToPath(new URL("../lib/install-check.mjs", import.meta.url)), "utf8");
+  assert.ok(source.includes('[path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install"]'));
   assert.doesNotMatch(source, /"install", "--(?:home|claude-home|pi-home)/);
 });
 
@@ -99,7 +109,26 @@ check("wrong-form report names the observed and expected hook dispatch forms", (
   assert.equal(hookFailureReason({ command: "node hook.mjs" }, { label: "hook knowledge pull", form: { win32: "exec" } }, "wrong-form", "win32"), "dispatch form is shell, expected exec");
 });
 
-// req: R-1080
+// req: R-1079
+check("Windows JSON journal path matches parsed cwd and rejects other events or folders", () => {
+  const project = "D:\\a\\_temp\\project";
+  assert.equal(journalHasUnadopted(JSON.stringify({ event: "directory_unadopted", cwd: project }), project, "win32"), true);
+  assert.equal(journalHasUnadopted(JSON.stringify({ event: "directory_unadopted", cwd: "D:\\a\\other" }), project, "win32"), false);
+  assert.equal(journalHasUnadopted(JSON.stringify({ event: "session_start", cwd: project }), project, "win32"), false);
+});
+
+// req: R-1070, R-1080
+check("sealed known-red entries carry item, failure code, owner and expiry", () => {
+  assert.deepEqual(KNOWN_RED.darwin, []);
+  for (const platform of ["darwin", "win32"]) for (const entry of KNOWN_RED[platform]) {
+    assert.deepEqual(Object.keys(entry), ["item", "code", "owner", "expires"]);
+    assert.ok(["missing-entry", "wrong-form", "no-output", "note-row"].includes(entry.code));
+    assert.match(entry.owner, /^R-\d+$/);
+    assert.equal(entry.expires, "2026-10-24");
+  }
+});
+
+// req: R-1070, R-1080
 check("reporting matches known-red fingerprint and expiry and rejects unexpected passes", () => {
   const item = { item: "hook objective", code: "no-output", owner: "R-1057", expires: "2099-01-01" };
   assert.equal(classifyResult("hook objective", "no-output", false, [item], new Date("2098-12-31T00:00:00Z")).status, "XFAIL");
