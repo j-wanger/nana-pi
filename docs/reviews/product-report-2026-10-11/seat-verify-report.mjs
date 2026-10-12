@@ -313,7 +313,7 @@ function stubDocument() {
     node.setAttribute = (k, v) => { node.attrs[k] = String(v); };
     node.getAttribute = (k) => node.attrs[k] ?? null;
     node.removeAttribute = (k) => { delete node.attrs[k]; };
-    node.addEventListener = (type, fn) => { node.listeners.push(type); };
+    node.addEventListener = (type, fn) => { node.listeners.push({ type, fn }); };
     Object.defineProperty(node, "textContent", { get: () => text_(node), set: (v) => { node.children = [make("text", null, String(v))]; } });
     for (const sink of SINKS) Object.defineProperty(node, sink, { get: () => "", set: () => violations.push(sink) });
     Object.defineProperty(node, "insertAdjacentHTML", { value: () => violations.push("insertAdjacentHTML") });
@@ -388,6 +388,20 @@ async function render(r, hash) {
     out("render #FEAT-001: gaps, risks and decisions are list items", ["A gap.", "A risk.", "A decision."].every((t) => items.includes(t)), "true");
     out("render: no list joined into prose (no \".;\")", Object.entries(views).filter(([, v]) => v.text.includes(".;")).map(([h]) => h || "(none)").join(",") || "none", "none");
   }
+  // Final reviews r1: the feature filter must show a feature's own AND shared-in rows; Issues pills.
+  {
+    const st = stubDocument(); mod.renderInto(st.document, views["#requirements"].model, { hash: "#requirements" });
+    let select = null; walk(st.root, (n) => { if (n.tag === "select" && /feature/i.test(n.attrs["aria-label"] ?? "")) select = n; });
+    let shown = "";
+    if (select) {
+      select.value = "FEAT-002";
+      for (const l of select.listeners) if (l.type === "change" || l.type === "input") l.fn({ target: select });
+      shown = st.text();
+    }
+    out("render #requirements: filtering FEAT-002 shows its shared-in row R-001 and its own R-003", Boolean(select) && shown.includes("The tool shall quokka one.") && /R-003/.test(shown), "true");
+    out("render #requirements: filtering FEAT-002 hides FEAT-001's own unshared row", Boolean(select) && !shown.includes("The tool shall quokka two."), "true");
+  }
+  out("render #issues: each violated row shows its status, never undefined", views["#issues"].text.includes("violated") && !/undefined/.test(views["#issues"].text), "true");
   const ff = views["#features"].text;
   out("render #features lists every feature with its state", ff.includes("FEAT-001") && ff.includes("FEAT-002") && /unassessed/i.test(ff), "true");
 }
