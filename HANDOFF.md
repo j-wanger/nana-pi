@@ -12,6 +12,7 @@
 - 2026-10-10: the new priority line in the umbrella `OBJECTIVE.md` (sol LAND, 10/10). Rulings: nothing reaches main unless an independent reviewer accepted it; rm runs freely only inside the working directory; Jake requires Windows testing now; the desk stays frozen; the export rule gets an explicit pi carve-out; a study stops when it cannot write its evidence.
 - 2026-10-10: the requirements tree (capabilities, features and subgroups; shared rows; feature lifecycle) and four-digit requirement IDs landed together on Jake's checkpoint-2 acceptance, after sol and astra final reviews — `docs/sessions/2026-10.md`.
 - 2026-10-10: the land rule — `nana-land` refuses any commit no review covers and any revision with a verdict other than LAND, keeps every reviewer's verdict, and has no exemption; landed on Jake's checkpoint-2 acceptance after sol and astra reviews — `docs/sessions/2026-10.md`.
+- 2026-10-11: the product report is a feature. One command builds a readable page from the requirements, the open asks and stored assessments. Each assessment shows as current, out of date or unassessed, and refresh packets let any seat refresh one — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -33,6 +34,7 @@
 - Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
 - Desk residuals live in `apps/desk/README.md` Known limits.
+- Product report: the 38 assessments carry an inferred stamp commit, so 11 show out of date from day one. Packets refuse while REQUIREMENTS.md has uncommitted edits. The page needs full git history; a shallow clone refuses. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
 
 ## Where things stand
@@ -50,7 +52,6 @@
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
-- **[optional, since 2026-10-10] Push main.** Main holds the requirements tree, the four-digit IDs and the land rule, none pushed. Pushing starts CI and its template tag, which carries the new working-pattern text to copier projects.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).
