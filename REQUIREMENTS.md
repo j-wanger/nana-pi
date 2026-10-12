@@ -1519,7 +1519,7 @@ Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
 | R-1030 | IF an entry in HANDOFF.md's "Open for Jake" section has no parseable kind, since-date or title, THEN the report command shall refuse, naming the line, and write no page. | implemented | `packages/nana-pack/tests/product-report.test.mjs::malformed ask is named and refuses output`, `packages/nana-pack/tests/product-report.test.mjs::unknown ask kind is named and refuses output` |
 | R-1040 | The feature detail view shall show its feature title in exactly one heading. | implemented | `packages/nana-pack/tests/product-report.test.mjs::feature detail shows its title once` |
 | R-1041 | The feature detail view shall render each gaps, risks and decisions entry in its own list item beneath its label, with markdown spans rendered as text nodes. | implemented | `packages/nana-pack/tests/product-report.test.mjs::assessment lists render separate text-only list items` |
-| R-1042 | WHEN the page bootstrap renders after a hashchange, it shall scroll the page to the top after rendering. | implemented | `packages/nana-pack/tests/product-report.test.mjs::hashchange bootstrap scrolls to top after rendering` |
+| R-1042 | WHEN the page bootstrap renders after a hashchange, it shall scroll the page to the top after rendering. | implemented | `packages/nana-pack/tests/product-report.test.mjs::hashchange bootstrap renders before scrolling to top` |
 
 # CAP-08 · Evaluate agent choices with credible evidence
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.

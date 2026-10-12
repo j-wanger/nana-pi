@@ -1,5 +1,5 @@
 red  parse the stamped ledger without normalising (R-1022): FAIL fingerprints ignore CRLF and trailing whitespace ["/var/folders/lg/h9m6nvvd2_9d7s3hyj
-red  drop shares from the staleness check (R-1021): FAIL writes deterministic stale and unassessed packets with HEAD stamps and a validating r
+red  drop shares from the staleness check (R-1021): exit 1
 red  skip the digit check (R-1023): FAIL rejects digits in every assessment prose field [false,false,false,false,false,false]
 red  trust the stored stamp instead of rebuilding it (R-1026): FAIL rejects forged historical row status, fingerprint, mark, purpose and feature status [
 red  read the checked-out ledger instead of git show (R-1026): FAIL validates assessment stamps against their historical ledger []

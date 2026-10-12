@@ -3016,14 +3016,14 @@
       ],
       "decisions": [
         "Two rows promise the same requirements-skill link but carry different statuses. Retire the untested duplicate? Retire the untested row and point it at the pinned one. The audit rates this low. The duplicate only double-counts and blurs this feature's maturity.",
-        "Should the some untested Windows install rows get tests now, or wait? Defer the Windows tests until Windows use is planned. The settings-file and hook gaps protect Jake's files more today. Fix the audit's Windows wording now, since it changes no code."
+        "Jake requires Windows testing now. Run Windows tests in the current priority."
       ],
       "next_step": "Pin the settings-file parse stop and the held-lock stop with two tests, since both guard Jake's own Claude Code settings.",
       "written_by": "seat workflow, 2026-10-10",
       "checked_by": "fact-check workflow, 2026-10-10; stamp commit inferred from matching counts at migration",
       "date": "2026-10-10",
       "stamp": {
-        "commit": "c4332ecb9b9d22d45083fb52b9631c5f1b41fa67",
+        "commit": "4b3846ece4d64dbf796d96ed39eeb78913e4ed56",
         "purpose": "Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.",
         "status": "active",
         "rows": [

@@ -107,7 +107,6 @@ try {
     check("product feature bars carry their model's exact segment values", model.capabilities.every((cap) => cap.features.every((id) => { const item = model.features.find((feature) => feature.id === id); const card = product.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.textContent === `${cap.id} · ${cap.label}`)); const featureLine = card?.children.findIndex((child) => child.tag === "p" && child.children.some((link) => link.tag === "a" && link.attrs.href === `#${id}`)); const bar = card?.children[featureLine + 1]?.children?.find((node) => node.attrs?.class === "status-bar"); return bar && bar.children.map((segment) => segment.attrs.style).join(",") === ["implemented", "untested", "planned", "violated", "retired"].map((status) => `flex-grow:${item.counts[status] ?? 0}`).join(","); })));
     // req: R-1015
     check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does") && detail.text.includes("current — matches the stamped ledger, not rechecked against later decisions"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
-    // req: R-1015
     const summaryFailures = model.features.filter((item) => { const card = features.nodes.find((node) => node.tag === "article" && node.children.some((child) => child.tag === "h3" && child.children.some((link) => link.attrs?.href === `#${item.id}`))); const flatten = (node) => [node, ...(node.children ?? []).flatMap(flatten)]; const descendants = card ? flatten(card) : []; return !card || !descendants.some((child) => child.textContent === `Status: ${item.status}`) || !descendants.some((child) => child.textContent === `Assessment: ${item.assessmentState}`) || !descendants.some((child) => child.textContent === `Shared in: ${item.shared.join(", ") || "None"}`) || !descendants.some((child) => child.textContent === `Shared by: ${item.sharedBy.join(", ") || "None"}`) || !descendants.some((child) => child.attrs?.class === "count-label" && child.textContent === `Counts: ${["implemented", "untested", "planned", "violated", "retired"].map((status) => `${status} ${item.counts[status]}`).join(" · ")}`); });
     // req: R-1015
     check("feature summary cards render exact counts, status, incoming and outgoing shares", summaryFailures.length === 0, summaryFailures.slice(0, 2).map((item) => item.id).join(","));
@@ -134,7 +133,6 @@ try {
     const normalizeWords = (value) => String(value ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").split(/\s+/).filter(Boolean);
     const requirementWords = new Set(normalizeWords(requirementText));
     const carries = (source, value) => { const available = source === requirementText ? requirementWords : new Set(normalizeWords(source)); return normalizeWords(value).every((word) => available.has(word)); };
-    // req: R-1016
     const renderPlain = (value) => String(value ?? "").replaceAll("**", "").replaceAll("`", "").replace(/\s+/g, " ").trim();
     const requirementCardFailures = requirements.nodes.filter((card) => card.tag === "article").flatMap((card) => { const heading = card.children.find((child) => child.attrs?.class === "row-heading"); const expected = allRows.find((row) => heading?.textContent.startsWith(`${row.id} `)); return !expected || !card.children.some((node) => node.attrs?.class === "row-heading" && node.textContent === `${expected.id} ${expected.status}`) || !renderPlain(card.textContent).includes(renderPlain(expected.requirement)) || !renderPlain(card.textContent).includes(renderPlain(expected.evidence)) ? [heading?.textContent ?? "no heading"] : []; });
     // req: R-1016
@@ -158,7 +156,6 @@ try {
     check("unknown prototype hashes render Decisions", prototypeHashesRenderDecisions && /Object\.prototype\.hasOwnProperty\.call\(views, hash\)/.test(routeSource));
     check("renderer turns markdown spans into b and code nodes", decisions.nodes.some((node) => node.tag === "b") && decisions.nodes.some((node) => node.tag === "code") && !decisions.text.includes("**bold span**") && !decisions.text.includes("`code span`"));
     check("renderer includes tab links and requirements controls", features.nodes.some((node) => node.tag === "a") && requirements.nodes.some((node) => node.tag === "input") && requirements.nodes.some((node) => node.tag === "select"));
-    // req: R-1042
     const bootstrap = model.template.split("<script>\n")[1].split("</script>")[0].replace("const renderInto = (__RENDERER__);", "");
     let hashHandler; let scrollAfterRender = false; let renderCount = 0;
     const bootstrapRoot = { children: [], replaceChildren(...children) { this.children = children; renderCount++; }, appendChild(child) { this.children.push(child); } };
@@ -241,6 +238,7 @@ try {
     fs.appendFileSync(path.join(unknownKindRoot, "HANDOFF.md"), "\n## Open for Jake\n- **[mystery, since 2026-10-10] Unknown kind.** body\n");
     const unknownKindOut = path.join(temp, "bad-ask-kind.html"); let kindError = "";
     try { await generateReport({ root: unknownKindRoot, out: unknownKindOut }); } catch (caught) { kindError = caught.message; }
+    // req: R-1030
     check("unknown ask kind is named and refuses output", /HANDOFF.*line \d+: malformed/i.test(kindError) && !fs.existsSync(unknownKindOut), kindError);
   }
   {
@@ -337,9 +335,15 @@ try {
     const plannedLedger = fs.readFileSync(plannedLedgerPath, "utf8");
     const parsed = parseLedger(plannedLedger);
     const plannedFeature = parsed.headings.find((heading) => heading.id === "FEAT-039");
-    const plannedRow = readRequirementRows(parsed).find((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === plannedFeature) return true; return false; });
-    const oldRow = `| ${plannedRow.id} | ${plannedRow.requirement} | ${plannedRow.status} | ${plannedRow.evidence} |`;
-    fs.writeFileSync(plannedLedgerPath, plannedLedger.replace(oldRow, oldRow.replace(`| ${plannedRow.status} |`, "| planned |")));
+    const featureRows = readRequirementRows(parsed).filter((row) => { for (let heading = row.heading; heading; heading = heading.parent) if (heading === plannedFeature) return true; return false; });
+    const plannedRow = featureRows[0];
+    let normalizedPlannedLedger = plannedLedger;
+    for (const row of featureRows) {
+      const oldLine = `| ${row.id} | ${row.requirement} | ${row.status} | ${row.evidence} |`;
+      normalizedPlannedLedger = normalizedPlannedLedger.replace(oldLine, oldLine.replace(`| ${row.status} |`, "| implemented |"));
+    }
+    const oldRow = `| ${plannedRow.id} | ${plannedRow.requirement} | implemented | ${plannedRow.evidence} |`;
+    fs.writeFileSync(plannedLedgerPath, normalizedPlannedLedger.replace(oldRow, oldRow.replace("| implemented |", "| planned |")));
     plannedRoot.git(["add", "REQUIREMENTS.md"]); plannedRoot.git(["commit", "-qm", "planned own row"]);
     const plannedAssessment = makeAssessment(plannedRoot.root, plannedRoot.git(["rev-parse", "HEAD"]).stdout.trim(), "FEAT-039");
     plannedAssessment.maturity = "solid";
