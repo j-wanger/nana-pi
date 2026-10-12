@@ -354,8 +354,11 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
  *  - "win32-legacy" — win32 only, the knowledge form today's code actually writes there:
  *    `node '<path>' hook`, no `args`.
  *  - "win32-exec" — win32 only, the R-1050 exec form: `command` exactly `node`, `args` exactly
- *    the installer's length, `args[0]` absolute and ending in the entry's own script suffix, any
- *    later element equal to the installer's.
+ *    the installer's length, `args[0]` absolute and ending in the entry's own REPOSITORY suffix
+ *    (`/packages/nana-setup/claude/hooks/<name>` or `/packages/nana-knowledge/bin/nana-knowledge.ts`,
+ *    compared across `/` and `\`) — not merely the script's basename, which a customized target
+ *    outside the checkout (`C:/custom/nana-objective.mjs`) also satisfies (final review r1 astra
+ *    MUST 3) — any later element equal to the installer's.
  * Every other shape — a hand-edited variant, an extra `args` element, a missing or different
  * status message, a relative path — is rejected (R-1061, R-653, R-923).
  */
@@ -397,7 +400,14 @@ export function installerTarget(hook, wanted, platform) {
 	const expectedExtra = wanted.spec.args ?? [];
 	if (hook.args.length !== 1 + expectedExtra.length) return null;
 	const target = targetFromArgv([hook.command, ...hook.args], wanted.spec, false);
-	return target && path.win32.isAbsolute(target) ? { target, form: "win32-exec" } : null;
+	if (!target || !path.win32.isAbsolute(target)) return null;
+	// Ownership by the COMPLETE repository suffix, not merely the script's basename —
+	// targetFromArgv only requires `endsWith('/' + script)`, which a customized target outside
+	// the checkout (`C:/custom/nana-objective.mjs`) also satisfies, and the repair must not claim
+	// that entry as its own (final review r1 astra MUST 3, CHANGE §3). Compared with both
+	// separators normalised to `/`, since a hand-written entry may use backslashes throughout.
+	const repoSuffix = isKnowledge ? "/packages/nana-knowledge/bin/nana-knowledge.ts" : `/packages/nana-setup/claude/hooks/${wanted.spec.script}`;
+	return target.replace(/\\/g, "/").endsWith(repoSuffix) ? { target, form: "win32-exec" } : null;
 }
 
 /**
@@ -424,7 +434,13 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 		const found = [];
 		if (Array.isArray(groups)) {
 			for (const group of groups) {
-				const matcherOk = w.matcher === undefined ? group?.matcher === undefined : group?.matcher === w.matcher;
+				// A row with no required matcher scans EVERY group — main's own knowledge scan
+				// always has (CHANGE §3 "otherwise every group") — not only matcher-less ones; the
+				// ternary this replaced skipped matcher-scoped groups entirely, so an
+				// installer-shaped stale entry living under one (e.g. a foreign `matcher: "*"`
+				// group) was never found and got a duplicate appended beside it (final review r1
+				// sol MUST 2, astra MUST 2).
+				const matcherOk = w.matcher === undefined || group?.matcher === w.matcher;
 				if (!matcherOk || !Array.isArray(group?.hooks)) continue;
 				for (let i = 0; i < group.hooks.length; i++) {
 					const hook = group.hooks[i];

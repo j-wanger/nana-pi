@@ -25,8 +25,10 @@ import { platform } from "../lib/paths.mjs";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)), "..", "..");
 let fails = 0;
+// final review r1 (sol MUST 3): the detail/extra argument is printed on every line, not only on
+// FAIL — R-1058 records each entry's spawn duration there, which only this Windows leg can read.
 const check = (n, ok, extra) => {
-	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra ?? "");
+	console.log(ok ? "PASS" : "FAIL", n, extra ?? "");
 	if (!ok) fails++;
 };
 
@@ -101,25 +103,42 @@ try {
 	// req: R-1053
 	check("the verifier group's matcher is Bash-or-PowerShell", entries["verifier-pipe.mjs"]?.matcher === "Bash|PowerShell", JSON.stringify(entries["verifier-pipe.mjs"]));
 
-	const spawnEntry = (hook, stdin, timeoutMs) => spawnSync(hook.command, hook.args, { shell: false, input: JSON.stringify(stdin), env, encoding: "utf8", timeout: timeoutMs ?? (hook.timeout ?? 10) * 1000 + 5000 });
+	// final review r1 (sol MUST 3, astra MUST 4): spawn with the entry's OWN declared timeout ×
+	// 1000, no added slack — R-1058 says each hook "shall exit 0 within its timeout", and the old
+	// +5000ms margin let a hook that took up to 9s still read as meeting a 5s contract. The
+	// duration is returned so every check below can record it.
+	const spawnEntry = (hook, stdin) => {
+		const startedAt = Date.now();
+		const r = spawnSync(hook.command, hook.args, { shell: false, input: JSON.stringify(stdin), env, encoding: "utf8", timeout: hook.timeout * 1000 });
+		return { ...r, ms: Date.now() - startedAt };
+	};
 	const session = { hook_event_name: "SessionStart", source: "startup", cwd: project, session_id: "win32-exec" };
+	// not title-bearing (the req: R-1058 marker sits on each literal check() call below, so the
+	// static title-trace rail can cite each entry by name): the shared boolean and the duration +
+	// timeout-exceeded note that each check's detail records.
+	const moduleOk = (r) => r.status === 0 && !/Cannot find module|ERR_MODULE_NOT_FOUND/.test(r.stderr || "");
+	const detail = (r) => `${r.ms}ms, timeout ${r.error?.code === "ETIMEDOUT" ? "EXCEEDED" : "not exceeded"}; ${r.stdout}${r.stderr}`;
 
 	{
 		const r = spawnEntry(entries["nana-objective.mjs"].hook, session);
 		// req: R-1058
-		check("objective: exit 0", r.status === 0, r.stderr);
+		check("objective: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
 		// req: R-1063
 		check("objective: first line starts [nana:objective], no OBJECTIVE UNAVAILABLE", (r.stdout || "").split("\n")[0]?.startsWith("[nana:objective]") && !(r.stdout || "").includes("OBJECTIVE UNAVAILABLE"), r.stdout + r.stderr);
 	}
 	{
 		const r = spawnEntry(entries["nana-adoption.mjs"].hook, session);
+		// req: R-1058
+		check("adoption: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
 		// req: R-1063
 		check("adoption: exit 0, no ADOPTION UNAVAILABLE", r.status === 0 && !(r.stdout || "").includes("ADOPTION UNAVAILABLE"), r.stdout + r.stderr);
 	}
 	{
 		const r = spawnEntry(entries["nana-shared-memory.mjs"].hook, session);
+		// req: R-1058
+		check("shared memory: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
 		// req: R-1063
-		check("shared memory: exit 0, header and the seeded line", r.status === 0 && (r.stdout || "").includes("[nana:shared-memory]") && (r.stdout || "").includes("Seeded entry"), r.stdout + r.stderr);
+		check("shared memory: exit 0, header and the seeded \"- [\" index line", r.status === 0 && (r.stdout || "").includes("[nana:shared-memory]") && /^- \[Seeded entry\]/m.test(r.stdout || ""), r.stdout + r.stderr);
 		const link = path.join(claudeHome, "projects");
 		const projectDirs = fs.existsSync(link) ? fs.readdirSync(link) : [];
 		const junction = projectDirs.map((d) => path.join(link, d, "memory", "shared")).find((p) => fs.existsSync(p));
@@ -129,13 +148,24 @@ try {
 	{
 		const v = entries["verifier-pipe.mjs"].hook;
 		const ev = (tool, command) => ({ hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command }, cwd: project, session_id: "win32-exec" });
-		const isAsk = (r) => { try { return JSON.parse((r.stdout || "").trim().split("\n")[0]).hookSpecificOutput?.permissionDecision === "ask"; } catch { return false; } };
+		// final review r1 (sol MUST 4): exactly one non-empty line, parsed whole, naming
+		// hookEventName PreToolUse and permissionDecision ask — not merely "first line parses".
+		const askLine = (r) => {
+			const lines = (r.stdout || "").split("\n").filter((l) => l.length > 0);
+			if (lines.length !== 1) return null;
+			try {
+				const parsed = JSON.parse(lines[0]);
+				return parsed?.hookSpecificOutput?.hookEventName === "PreToolUse" && parsed?.hookSpecificOutput?.permissionDecision === "ask" ? parsed : null;
+			} catch { return null; }
+		};
 		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5; git commit -m x"));
+		// req: R-1058
+		check("verifier: exit 0 within its own timeout, no module-resolution error", moduleOk(bashAsk), detail(bashAsk));
 		// req: R-1064
-		check("verifier: Bash masked pipe gives one ask", isAsk(bashAsk), bashAsk.stdout + bashAsk.stderr);
+		check("verifier: Bash masked pipe gives exactly one ask line (hookEventName PreToolUse)", Boolean(askLine(bashAsk)), bashAsk.stdout + bashAsk.stderr);
 		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5; git commit -m x"));
 		// req: R-1064
-		check("verifier: PowerShell masked pipe gives an ask, Bash pipefail syntax stays inactive there", isAsk(psAsk), psAsk.stdout + psAsk.stderr);
+		check("verifier: PowerShell masked pipe gives exactly one ask line (hookEventName PreToolUse), Bash pipefail syntax stays inactive there", Boolean(askLine(psAsk)), psAsk.stdout + psAsk.stderr);
 		const noMatch = spawnEntry(v, ev("Bash", "git status"));
 		// req: R-1064
 		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
@@ -143,7 +173,7 @@ try {
 	{
 		const r = spawnEntry(entries["nana-knowledge.ts"].hook, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
 		// req: R-1058
-		check("knowledge: exit 0 within the limit, no module-resolution error on stderr", r.status === 0 && !/Cannot find module|ERR_MODULE_NOT_FOUND/.test(r.stderr || ""), r.stdout + r.stderr);
+		check("knowledge: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
 	}
 
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
@@ -154,8 +184,10 @@ try {
 		// req: R-1055
 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);
 	}
+	// final review r1 (sol MUST 3, astra MUST 4): the note's full MEANING, not only the version
+	// string — the floor itself, and that doctor never runs `claude --version` to check it.
 	// req: R-1060
-	check("doctor: a note names the Claude Code exec-form floor (2.1.139)", doctorResult.stdout.includes("2.1.139"), doctorResult.stdout);
+	check("doctor: a note names the Claude Code exec-form floor (2.1.139)", doctorResult.stdout.includes("2.1.139") && /need Claude Code 2\.1\.139 or later/.test(doctorResult.stdout) && /claude --version.*never run/.test(doctorResult.stdout), doctorResult.stdout);
 } finally {
 	removeWorktree();
 }

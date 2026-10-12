@@ -83,10 +83,12 @@ check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
+// final review r1 astra SHOULD 7: all five hooks are now wired on win32 — this check only ever
+// examined UserPromptSubmit, which still carries exactly the one knowledge entry (no twin); the
+// title used to claim the opposite ("only the knowledge hook is wired") from when the other four
+// were skipped there. Renamed; see test-title-map.json.
 // req: R-1051
-check("win32: only the knowledge hook is wired", cmds.length === 1 && JSON.stringify(settings.hooks.UserPromptSubmit).includes("nana-knowledge.ts"));
-// req: R-1050
-check("win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)", !cmds[0].startsWith("NODE_NO_WARNINGS="));
+check("win32: UserPromptSubmit carries exactly the one knowledge entry, no twin", cmds.length === 1 && JSON.stringify(settings.hooks.UserPromptSubmit).includes("nana-knowledge.ts"));
 // req: R-1050
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
 // R-985, R-1053: the verifier-pipe hook IS wired on win32 now, matcher Bash|PowerShell.
@@ -121,8 +123,10 @@ for (const w of win32Wanted) {
 }
 // req: R-1057
 check("win32 doctor: node for the objective hook runs (not skipped)", /✓ node for the objective hook/.test(doc.stdout), doc.stdout);
+// final review r1 (sol MUST 3, astra MUST 4): the note's full MEANING, not only the version
+// string — the floor itself, and that doctor never runs `claude --version` to check it.
 // req: R-1060
-check("win32 doctor: a note names the Claude Code exec-form floor", doc.stdout.includes(CLAUDE_CODE_EXEC_FLOOR), doc.stdout);
+check("win32 doctor: a note names the Claude Code exec-form floor", doc.stdout.includes(CLAUDE_CODE_EXEC_FLOOR) && /need Claude Code 2\.1\.139 or later/.test(doc.stdout) && /claude --version.*never run/.test(doc.stdout), doc.stdout);
 // req: R-1060
 check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
 
@@ -189,6 +193,60 @@ for (const w of win32Wanted) {
 	const doc2 = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
 	// req: R-1055
 	check(`win32 doctor: settings ${w.label} reads ✓ after repair`, new RegExp(`✓ settings ${w.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc2.stdout), doc2.stdout);
+}
+
+/* --- final review r1 (sol MUST 3, astra MUST 4): R-1055's two clauses — "under the expected
+   event and matcher" and "every target resolves inside the checkout" — each get a case the
+   per-label happy/missing loop above never exercises: a correctly-targeted entry sitting under
+   the WRONG matcher, one under the WRONG event, a target that EXISTS but resolves outside the
+   checkout (distinct from the missing-target case above, which never reaches the
+   resolves-inside-checkout branch), and a healthy entry beside a stale duplicate under the same
+   event (every target must resolve, not just one) ----------------------------------------------- */
+{
+	const h2 = freshHome();
+	const verifierWanted = win32Wanted.find((w) => w.label === "PreToolUse verifier pipe");
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [verifierWanted.entry] }] } }, null, 2) + "\n");
+	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check("win32 doctor: a correctly-targeted entry under the wrong matcher reads ✗", new RegExp(`✗ settings ${verifierWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
+}
+{
+	const h2 = freshHome();
+	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [objWanted.entry] }] } }, null, 2) + "\n");
+	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check("win32 doctor: a correctly-targeted entry under the wrong event reads ✗", new RegExp(`✗ settings ${objWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
+}
+{
+	const h2 = freshHome();
+	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
+	const outsideDir = tmpDir(path.join(os.tmpdir(), "nana-setup-outside-"));
+	tmps.push(outsideDir);
+	const outsideTarget = path.join(outsideDir, "nana-objective.mjs");
+	fs.writeFileSync(outsideTarget, "// exists, but not the checkout's copy\n");
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	const outsideEntry = { ...objWanted.entry, args: [outsideTarget] };
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { SessionStart: [{ hooks: [outsideEntry] }] } }, null, 2) + "\n");
+	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check("win32 doctor: a target that exists but resolves outside the checkout reads ✗", new RegExp(`✗ settings ${objWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
+}
+{
+	const h2 = freshHome();
+	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
+	const outsideDir = tmpDir(path.join(os.tmpdir(), "nana-setup-outside2-"));
+	tmps.push(outsideDir);
+	const outsideTarget = path.join(outsideDir, "nana-objective.mjs");
+	fs.writeFileSync(outsideTarget, "// exists, but not the checkout's copy\n");
+	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+	const duplicateEntry = { ...objWanted.entry, args: [outsideTarget] };
+	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { SessionStart: [{ hooks: [objWanted.entry, duplicateEntry] }] } }, null, 2) + "\n");
+	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+	// req: R-1055
+	check("win32 doctor: a good entry beside a stale duplicate under the same event reads ✗", new RegExp(`✗ settings ${objWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
 }
 
 /* --- the earlier win32 knowledge form, pointing at a missing checkout, is moved to exec form

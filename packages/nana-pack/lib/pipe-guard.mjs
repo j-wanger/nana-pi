@@ -94,40 +94,113 @@ function lineEndsAfter(source, pos) {
 }
 
 /**
- * Find the index just past the matching close paren for a PowerShell `$(` opened at `start` (the
- * index right after the `(`), skipping over single- and double-quoted PowerShell strings (with
- * their own doubled-quote and backtick escapes honoured) so a paren or quote inside a nested
- * string is never misread. Returns -1 when unterminated.
+ * True when `#` at `source[i]` starts a PowerShell line comment rather than being literal inside
+ * a bareword or URL — only at a token boundary: the start of the text, or right after whitespace
+ * or one of the statement/pipe/brace/paren separators `; | & ( { } )` (R-1062, sol/astra final
+ * review r1 MUST 1). Windows PowerShell Language Specification 3.0 §2.2.3 Comments: "A character
+ * sequence is only recognized as a comment if that sequence begins with `#` or `<#`. For example,
+ * hello#there is considered a single token whereas hello #there is considered the token hello
+ * followed by a single-line comment. As well as following white space, the comment start
+ * sequence can also be preceded by any expression-terminating or statement-terminating character
+ * (such as `)`, `}`, `]`, `'`, `"`, or `;`)." — and §2.3.3 generic-token-char, whose exclusion set
+ * (the characters that end a bareword token) includes the same separators: `{ } ( ) ; , | & $`.
+ * (learn.microsoft.com/en-us/powershell/scripting/lang-spec/chapter-02, read 2026-10-12.)
  */
-function matchPowerShellParen(source, start) {
-	let depth = 1;
-	let nested = "";
-	let i = start;
-	for (; i < source.length && depth > 0; i++) {
-		const ch = source[i];
-		if (nested) {
-			if (nested === "'" && ch === "'" && source[i + 1] === "'") { i++; continue; }
-			if (nested === '"' && ch === "`" && i + 1 < source.length) { i++; continue; }
-			if (nested === '"' && ch === '"' && source[i + 1] === '"') { i++; continue; }
-			if (ch === nested) nested = "";
-			continue;
-		}
-		if (ch === "'" || ch === '"') { nested = ch; continue; }
-		if (ch === "(") depth++;
-		else if (ch === ")") depth--;
-	}
-	return depth === 0 ? i : -1;
+function startsPowerShellComment(source, i) {
+	return source[i] === "#" && (i === 0 || /[\s;|&(){}]/.test(source[i - 1]));
 }
 
 /**
- * The PowerShell dialect of liveText (R-1062, sol plan r1 MUST 1 / r2 MUST 1). Bash's lexer
- * never ran this: in PowerShell a backtick escapes the next character (so a backtick-escaped
- * pipe or quote is never live), `"..."` honours a backtick escape and a doubled `""` as a
- * literal quote rather than closing the string, `#` starts a line comment, `<# … #>` is a block
- * comment, and a here-string (`@'` / `@"` at the end of a line, closed by a line that BEGINS
- * with `'@` / `"@`) is never live except for a `$( … )` subexpression inside the expandable
- * (`@"`) form — the same exception a plain double-quoted string gets. A subexpression is lexed
- * again as live PowerShell (nesting counted via matchPowerShellParen).
+ * Find the index just past the matching close paren for a PowerShell `$(` opened at `start` (the
+ * index right after the `(`), honouring the SAME lexical rules liveTextPowerShell's default state
+ * applies — single- and double-quoted strings (with their own doubled-quote and backtick escapes),
+ * here-strings, a backtick escaping the next character, a `#` line comment (only at a token
+ * boundary, startsPowerShellComment) and a `<# … #>` block comment — so a `)` found inside any of
+ * those can never close the subexpression early (R-1062, sol r1 MUST 1 / astra r1 MUST 1: sol's
+ * repro puts a `)` inside a `# …` line comment). A nested `$( … )` recurses through this same
+ * function, so its own close is found the same way. Returns -1 when unterminated.
+ */
+function matchPowerShellParen(source, start) {
+	let depth = 1;
+	let quote = "";
+	let hereString = null;
+	let comment = false;
+	let block = false;
+	let atLineStart = true;
+	for (let i = start; i < source.length; i++) {
+		const ch = source[i];
+		const nextAtLineStart = ch === "\n";
+
+		if (hereString) {
+			if (atLineStart && ch === hereString && source[i + 1] === "@") { i++; hereString = null; atLineStart = false; continue; }
+			if (hereString === '"' && ch === "$" && source[i + 1] === "(") {
+				const end = matchPowerShellParen(source, i + 2);
+				if (end === -1) return -1;
+				i = end - 1;
+				atLineStart = false;
+				continue;
+			}
+			atLineStart = nextAtLineStart;
+			continue;
+		}
+		if (block) {
+			if (ch === "#" && source[i + 1] === ">") { i++; block = false; atLineStart = false; continue; }
+			atLineStart = nextAtLineStart;
+			continue;
+		}
+		if (comment) {
+			if (ch === "\n") { comment = false; atLineStart = true; continue; }
+			atLineStart = false;
+			continue;
+		}
+		if (quote === "'") {
+			if (ch === "'" && source[i + 1] === "'") { i++; atLineStart = false; continue; }
+			if (ch === "'") { quote = ""; atLineStart = false; continue; }
+			atLineStart = nextAtLineStart;
+			continue;
+		}
+		if (quote === '"') {
+			if (ch === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
+			if (ch === '"' && source[i + 1] === '"') { i++; atLineStart = false; continue; }
+			if (ch === "$" && source[i + 1] === "(") {
+				const end = matchPowerShellParen(source, i + 2);
+				if (end === -1) return -1;
+				i = end - 1;
+				atLineStart = false;
+				continue;
+			}
+			if (ch === '"') { quote = ""; atLineStart = false; continue; }
+			atLineStart = nextAtLineStart;
+			continue;
+		}
+		// default / live state
+		if (ch === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
+		if (startsPowerShellComment(source, i)) { comment = true; atLineStart = false; continue; }
+		if (ch === "<" && source[i + 1] === "#") { block = true; i++; atLineStart = false; continue; }
+		if (ch === "'") { quote = "'"; atLineStart = false; continue; }
+		if (ch === '"') { quote = '"'; atLineStart = false; continue; }
+		if (ch === "@" && (source[i + 1] === "'" || source[i + 1] === '"') && lineEndsAfter(source, i + 2)) {
+			hereString = source[i + 1]; i++; atLineStart = false; continue;
+		}
+		if (ch === "(") { depth++; atLineStart = false; continue; }
+		if (ch === ")") { depth--; if (depth === 0) return i + 1; atLineStart = false; continue; }
+		atLineStart = nextAtLineStart;
+	}
+	return -1;
+}
+
+/**
+ * The PowerShell dialect of liveText (R-1062, sol plan r1 MUST 1 / r2 MUST 1; final review r1
+ * MUST 1). Bash's lexer never ran this: in PowerShell a backtick escapes the next character (so
+ * a backtick-escaped pipe or quote is never live), `"..."` honours a backtick escape and a
+ * doubled `""` as a literal quote rather than closing the string, a `#` starts a line comment
+ * only at a token boundary — startsPowerShellComment — so `issue#123` or a URL's `/#fragment`
+ * stays literal, `<# … #>` is a block comment, and a here-string (`@'` / `@"` at the end of a
+ * line, closed by a line that BEGINS with `'@` / `"@`) is never live except for a `$( … )`
+ * subexpression inside the expandable (`@"`) form — the same exception a plain double-quoted
+ * string gets. A subexpression's bound is found by matchPowerShellParen, which honours the same
+ * rules (so a `)` inside a nested comment or here-string never ends it early), and its content is
+ * then lexed again as live PowerShell (nesting counted the same way).
  */
 function liveTextPowerShell(source) {
 	let text = "";
@@ -199,7 +272,7 @@ function liveTextPowerShell(source) {
 		}
 		// default / live state
 		if (ch === "`" && i + 1 < source.length) { text += "  "; i++; atLineStart = false; continue; }
-		if (ch === "#") { comment = true; text += " "; atLineStart = false; continue; }
+		if (startsPowerShellComment(source, i)) { comment = true; text += " "; atLineStart = false; continue; }
 		if (ch === "<" && source[i + 1] === "#") { block = true; text += "  "; i++; atLineStart = false; continue; }
 		if (ch === "'") { quote = "'"; text += " "; atLineStart = false; continue; }
 		if (ch === '"') { quote = '"'; text += " "; atLineStart = false; continue; }

@@ -14,5 +14,13 @@
   "pack README declares the Claude win32 hook limitation": {
     "replacedBy": "pack README declares the Claude win32 verifier coverage",
     "why": "R-985/R-1053: the pack README now states that the Claude Code verifier hook IS wired on native Windows (matcher Bash|PowerShell), which inverts this check's claim."
+  },
+  "win32: only the knowledge hook is wired": {
+    "replacedBy": "win32: UserPromptSubmit carries exactly the one knowledge entry, no twin",
+    "why": "final review r1 astra SHOULD 7: all five hooks are now wired on win32, so the old title's claim is stale; the check itself only ever examined UserPromptSubmit (one entry, the knowledge pull, no twin) — renamed to say that."
+  },
+  "win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)": {
+    "replacedBy": "win32: exactly one ${w.label} entry, exec form (command \"node\", args array, no shell key)",
+    "why": "final review r1 astra SHOULD 7: exec form always sets command exactly \"node\", so this prefix check is vacuous for every win32 entry now — dropped in favor of the existing per-label loop's exact-equality assertion (command === \"node\"), which already subsumes it and already runs for all five labels."
   }
 }

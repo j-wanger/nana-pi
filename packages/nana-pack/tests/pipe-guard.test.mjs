@@ -83,6 +83,18 @@ const psCases = [
 	["PS: a single-quoted here-string hides its pipe", "@'\nnpm test | x\n'@\ngit commit -m x", false],
 	["PS: an expandable here-string with no subexpression hides its pipe", '@"\nnpm test | x\n"@\ngit commit -m x', false],
 	["PS: a doubled single quote does not end the string early", "'it''s | x'; git commit -m x", false],
+	// final review r1 MUST 1 (R-1062, astra's repro): a `#` mid-word, or inside a URL, is literal
+	// — only a `#` at a token boundary starts a comment — so neither hides the live pipe before it.
+	["PS: an embedded # inside a word does not start a comment", "npm test | Select-Object -Last 5; Write-Output issue#123; git commit -m x", true],
+	["PS: a URL fragment's # does not start a comment", "npm test | Select-Object -Last 5; Write-Output https://host/a#summary; git commit -m x", true],
+	// final review r1 MUST 1 (R-1062, sol's repro): the $(...) subexpression bound is found with
+	// the same lexical rules as the top-level scan, so a ")" inside a nested comment, block
+	// comment or backtick escape never closes the subexpression early.
+	["PS: a line comment inside $(...) does not end it early", '"$(Write-Output hi # )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	["PS: a block comment inside $(...) does not end it early", '"$(Write-Output hi <# ) #> npm test | Select-Object -Last 1)"; git commit -m x', true],
+	["PS: a backtick-escaped ) inside $(...) does not end it early", '"$(Write-Output hi `) npm test | Select-Object -Last 1)"; git commit -m x', true],
+	// a genuine comment — preceded by whitespace, a token boundary either way — still hides its pipe.
+	["PS: a genuine comment after a command stays inactive", "git status # | x\ngit commit -m x", false],
 ];
 for (const [name, command, expected] of psCases) {
 	// req: R-1062

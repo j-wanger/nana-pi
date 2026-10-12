@@ -68,6 +68,13 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 	const bashNoHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: prefixed } });
 	// req: R-1054
 	check("decideHook keeps the Bash dialect for a Bash event (the same pipefail prefix is exempted there)", bashNoHit.response === null, JSON.stringify(bashNoHit));
+	// final review r1 MUST 1: the embedded-# fix (R-1062) pinned through decideHook, not only the
+	// bare predicate.
+	const embeddedHash = "npm test | Select-Object -Last 5; Write-Output issue#123; git commit -m x";
+	const psHashHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedHash } });
+	// req: R-1054
+	// req: R-1062
+	check("decideHook: an embedded # inside a PowerShell word does not mask a live pipe before commit", psHashHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHashHit));
 }
 
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));

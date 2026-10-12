@@ -209,6 +209,36 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("that entry is left byte for byte", JSON.stringify(noMessageSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
 }
 
+/* --- final review r1 (sol MUST 2, astra MUST 2): main scans EVERY group for an installer-shaped
+   entry regardless of matcher, not only matcher-less ones — a stale entry under a foreign
+   matcher-scoped group is still found and replaced in place, no twin --------------------------- */
+{
+	const wantedMatcherStale = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const staleUnderMatcher = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" };
+	const matcherSettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [staleUnderMatcher] }] } };
+	const matcherResult = mergeRepoHooks(matcherSettings, { repoRoot: "/repo", wanted: wantedMatcherStale });
+	const matcherRow = matcherResult["UserPromptSubmit knowledge pull"];
+	const desiredKnowledgeCommand = wantedMatcherStale.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
+	// req: R-1061
+	// req: R-1056
+	check("every group is scanned regardless of matcher: a stale knowledge entry under matcher \"*\" is found and replaced in place, no twin", matcherRow.found && matcherRow.replaced && matcherSettings.hooks.UserPromptSubmit[0].hooks.length === 1 && matcherSettings.hooks.UserPromptSubmit[0].hooks[0].command === desiredKnowledgeCommand, JSON.stringify(matcherSettings.hooks.UserPromptSubmit));
+}
+/* --- the same matcher scan finds a HEALTHY installer-shaped entry under a matcher-scoped group
+   too, and leaves it alone rather than reporting it absent (which would let mergeHooks append a
+   duplicate beside it) — uses this checkout's own real repo root, since realpathSync needs a real
+   target to read as healthy -------------------------------------------------------------------- */
+{
+	const wantedHealthyMatcher = desiredHooks({ hooksDir: "/unused", repoRoot: repo });
+	const healthyEntry = { ...wantedHealthyMatcher.find((w) => w.label === "UserPromptSubmit knowledge pull").entry };
+	const before = JSON.stringify(healthyEntry);
+	const healthySettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [healthyEntry] }] } };
+	const healthyResult = mergeRepoHooks(healthySettings, { repoRoot: repo, wanted: wantedHealthyMatcher });
+	const healthyRow = healthyResult["UserPromptSubmit knowledge pull"];
+	// req: R-1061
+	// req: R-1056
+	check("every group is scanned regardless of matcher: a healthy knowledge entry under matcher \"*\" is found and left alone, no twin", healthyRow.found && !healthyRow.replaced && healthySettings.hooks.UserPromptSubmit[0].hooks.length === 1 && JSON.stringify(healthySettings.hooks.UserPromptSubmit[0].hooks[0]) === before, JSON.stringify(healthySettings.hooks.UserPromptSubmit));
+}
+
 /* --- win32 exec form: desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget ------- */
 {
 	// (R-1050, R-1051) every win32 entry is exec form, unquoted and unescaped, from the checkout.
@@ -289,6 +319,20 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("installerTarget rejects an extra args element", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32") === null);
 	// req: R-923
 	check("installerTarget rejects a relative path", installerTarget({ command: "node", args: ["packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32") === null);
+	// final review r1 astra MUST 3: ownership is the entry's REPOSITORY suffix, not merely the
+	// script's basename — a customized target outside the checkout's own tree, sharing only the
+	// basename, is kept as a hand-written variant rather than repaired onto nana's checkout.
+	// req: R-923
+	check("installerTarget on win32 rejects a customized target outside the checkout's own tree, same basename", installerTarget({ command: "node", args: ["C:/custom/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32") === null);
+	// req: R-923
+	check("installerTarget on win32 rejects a customized knowledge target outside the checkout's own tree, same basename", installerTarget({ command: "node", args: ["C:/custom/nana-knowledge.ts", "hook"], timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32") === null);
+	// the suffix check is root-agnostic (any checkout root carrying the entry's own repository
+	// suffix is still ours to repair) and compares across `/` and `\`, since a hand-written entry
+	// may use backslashes throughout its root while the installer's own suffix is forward-slash.
+	// req: R-1056
+	check("installerTarget on win32 accepts any root carrying the entry's own repository suffix", installerTarget({ command: "node", args: ["/elsewhere/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32")?.form === "win32-exec");
+	// req: R-1056
+	check("installerTarget on win32 compares the repository suffix across / and \\", installerTarget({ command: "node", args: ["C:\\old\\packages\\nana-setup\\claude\\hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objWin, "win32")?.form === "win32-exec");
 	// req: R-653
 	check("installerTarget rejects another status message", installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "another status message" }, objWin, "win32") === null && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "another status message" }, knowledgePosix, undefined) === null);
 	// req: R-1061
