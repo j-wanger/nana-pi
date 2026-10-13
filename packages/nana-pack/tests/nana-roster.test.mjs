@@ -164,7 +164,10 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		["a directory", (f) => fs.mkdirSync(f)],
 		["a valid roster padded past the 1 MiB cap", (f) => fs.writeFileSync(f, JSON.stringify({ roster: sampleRoster() }) + " ".repeat(1024 * 1024))],
 		...(process.platform === "win32" ? [] : [["a dangling symlink", (f) => fs.symlinkSync(path.join(path.dirname(f), "missing-target.json"), f)]]),
-		...(process.getuid?.() === 0 ? [] : [["mode 000 (unreadable)", (f) => { fs.writeFileSync(f, JSON.stringify({ roster: sampleRoster() })); fs.chmodSync(f, 0o000); }]]),
+		// chmod 0o000 restricts read access under POSIX permission bits; it does not on win32,
+		// where NTFS ACLs (not unix mode bits) decide readability, so the file is still a VALID
+		// roster there, not a refusal — skip, as the dangling-symlink case does.
+		...(process.platform !== "win32" && process.getuid?.() !== 0 ? [["mode 000 (unreadable)", (f) => { fs.writeFileSync(f, JSON.stringify({ roster: sampleRoster() })); fs.chmodSync(f, 0o000); }]] : []),
 	];
 	const results = FILE_SHAPES.map(([label, arrange]) => {
 		const dir = freshAgentDir(`file-shape-${label.replace(/\W+/g, "-")}`);
@@ -175,6 +178,7 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		return [label, !r.ok && r.file === file && typeof r.problem === "string" && r.problem.length > 0];
 	});
 	if (process.platform === "win32") console.log("SKIP a dangling symlink: POSIX symlinks (win32)");
+	if (process.platform === "win32") console.log("SKIP mode 000 (unreadable): NTFS ACLs, not unix mode bits, decide readability (win32)");
 	// req: R-1122
 	check("an unreadable or malformed user nana-pack.json is refused naming the file",
 		results.every(([, pass]) => pass),

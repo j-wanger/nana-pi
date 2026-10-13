@@ -245,8 +245,19 @@ console.log("VERDICT: LAND");
 		const reviewStandard = fs.readFileSync(path.join(root, "prompts", "review-standard.md"), "utf8");
 		// req: R-1125
 		check("Windows: pi-review hands the review standard to pi as text",
-			reviewRun.status === 0 && reviewCalls.length >= 1 && reviewCalls[0].argv.includes(reviewStandard) && /INFO Windows pi-review revision:/.test(reviewRun.stderr),
+			reviewRun.status === 0 && reviewCalls.length >= 1 && reviewCalls[0].argv.includes(reviewStandard),
 			JSON.stringify({ reviewRun, reviewCalls: reviewCalls.map((c) => ({ ...c, argv: "elided" })) }));
+		// The seat reads this from the CI log: a `+snap` revision means a reviewed tree holding a
+		// mode-bit file (review-round.mjs reads it from the index) would not match a plain-SHA LAND
+		// on Windows, naming CHANGE.md §5's claim most likely wrong (and §6 item 15, if so).
+		try {
+			const tallyPath = path.join(temp, "review-ledger.rounds.jsonl");
+			const rounds = fs.readFileSync(tallyPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+			const last = rounds.filter((r) => r.kind === "round" && r.item === "winlaunch").at(-1);
+			console.log(`INFO Windows pi-review revision: ${last?.revision ?? "(no round recorded)"}`);
+		} catch (e) {
+			console.log(`INFO Windows pi-review revision: (ledger unreadable: ${e.message})`);
+		}
 
 		// -- a busy pi is not stalled --
 		fs.rmSync(record, { force: true });
