@@ -8,7 +8,7 @@ shell, backslash and mixed-separator paths, a user's own hand-written hook entri
 is in scope; a hostile local user is out. Lane class: gate-adjacent (the pipe guard's PowerShell lexer).
 
 Records, all in `docs/reviews/cc-hooks-windows-2026-10-12/`: the plan (`CHANGE.md`; seat planning workflow,
-two fact-checks, sol plan r1–r3 at 70, 86, 100), three Sonnet builds (`build-brief-1..3.md`), the seat's
+two fact-checks, sol plan r1–r3 at 70, 86, 100), four Sonnet builds (`build-brief-1..4.md`), the seat's
 acceptance script (`seat-verify-hooks.mjs`, black box through a forced-win32 install; 59/59), the title check
 (`seat-verify-tests.mjs`; 0 gaps), and the seat's code-break runner (`seat-mutate.mjs`; 36/36 red at the last
 build — do NOT run it: it takes many minutes and adds scratch git worktrees; read its committed outputs
