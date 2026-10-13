@@ -11,31 +11,48 @@ import fs from "node:fs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
+import { EventEmitter } from "node:events";
 import path from "node:path";
 import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV } from "../lib/install-check-config.mjs";
-import { buildEnvironment, classifyResult, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck } from "../lib/install-check.mjs";
+import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck } from "../lib/install-check.mjs";
 import { projectKey } from "../lib/project-key.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 
+// Chosen 2026-10-12: bound an individual asynchronous case while allowing ordinary setup variance.
+const CASE_TIMEOUT_MS = 30000;
+const cases = [];
 let failures = 0;
-const check = (title, fn) => {
-  try { fn(); console.log("PASS", title); }
-  catch (error) { failures++; console.log("FAIL", title, error.message); }
-};
+const check = (title, fn) => cases.push({ title, fn });
+async function runChecks() {
+  for (const { title, fn } of cases) {
+    let timer;
+    try {
+      await Promise.race([
+        Promise.resolve().then(fn),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`case timed out after ${CASE_TIMEOUT_MS} ms`)), CASE_TIMEOUT_MS); }),
+      ]);
+      console.log("PASS", title);
+    } catch (error) {
+      failures++;
+      console.log("FAIL", title, error?.message ?? String(error));
+    } finally { clearTimeout(timer); }
+  }
+}
+
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 6);
+  assert.equal(HOOKS.length, 5);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook verifier pipe (Bash)", "hook verifier pipe (PowerShell)", "hook knowledge pull"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook verifier pipe", "hook knowledge pull"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
 // req: R-1074, R-1082
 check("hook mapping rejects wrong dispatch forms on both platform families", () => {
   const entries = HOOKS.filter((h) => !h.platforms || h.platforms.includes("darwin"));
-  const groups = entries.map((h) => ({ event: h.event, group: { ...(h.matcher ? { matcher: h.matcher } : {}), hooks: [{ type: "command", command: `node ${h.script}`, timeout: h.timeout }] } }));
+  const groups = entries.map((h) => { const matcher = h.matcher && typeof h.matcher === "object" ? h.matcher.darwin : h.matcher; return { event: h.event, group: { ...(matcher ? { matcher } : {}), hooks: [{ type: "command", command: `node ${h.script}`, timeout: h.timeout }] } }; });
   assert.equal(mapHookEntries(groups, "darwin").failures.length, 0);
   assert.ok(mapHookEntries(groups, "win32").failures.some((x) => x.code === "wrong-form"));
 });
@@ -117,7 +134,7 @@ check("wrong-form report names the observed and expected hook dispatch forms", (
 
 // req: R-1079
 check("win32 pi command preserves ComSpec verbatim argv launch options", () => {
-  const source = readFileSync(fileURLToPath(new URL("../bin/install-check.mjs", import.meta.url)), "utf8");
+  const source = readFileSync(fileURLToPath(new URL("../lib/install-check.mjs", import.meta.url)), "utf8");
   assert.match(source, /windowsVerbatimArguments: options\.windowsVerbatimArguments/);
 });
 
@@ -169,7 +186,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       for (const hook of HOOKS.filter((item) => !item.platforms || item.platforms.includes(platformName))) {
         const entry = { type: "command", command: `node ${hook.script}`, timeout: hook.timeout };
         if (platformName === "win32") { entry.command = "node"; entry.args = [hook.script]; }
-        const matcher = platformName === "win32" && hook.tool === "Bash" ? "Bash|PowerShell" : hook.matcher;
+        const matcher = hook.matcher && typeof hook.matcher === "object" ? hook.matcher[platformName] : hook.matcher;
         (hooks[hook.event] ??= []).push({ ...(matcher ? { matcher } : {}), hooks: [entry] });
       }
       fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
@@ -360,7 +377,7 @@ check("pin R-1070 R-1080: the known-red list with each entry's code, owner and e
 
 const hookGroups = (platform = "darwin", overrides = {}) => HOOKS.filter((h) => !h.platforms || h.platforms.includes(platform)).map((h) => {
   const e = { type: "command", command: h.form[platform] === "exec" ? "node" : `node ${h.script}`, timeout: h.timeout, ...(h.form[platform] === "exec" ? { args: [h.script] } : {}) };
-  const matcher = Object.hasOwn(overrides, h.label) ? overrides[h.label] : platform === "win32" && h.tool === "Bash" ? "Bash|PowerShell" : h.matcher;
+  const matcher = Object.hasOwn(overrides, h.label) ? overrides[h.label] : h.matcher && typeof h.matcher === "object" ? h.matcher[platform] : h.matcher;
   return { event: h.event, group: { ...(matcher === null ? {} : { matcher }), hooks: [e] } };
 });
 const expectBad = (groups, platform = "darwin") => assert.ok(mapHookEntries(groups, platform).failures.length > 0);
@@ -384,26 +401,26 @@ check("hook set: a missing type, async true, a shell field, non-string args, or 
 check("hook set: a group without the matcher-and-hooks nesting fails", () => { expectBad([{ event: "SessionStart", group: { hooks: [] } }]); });
 // req: R-1074
 check("matcher: *, empty and omitted admit everything", () => {
-  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe (Bash)": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
 });
 // req: R-1074
 check("matcher: 'Bash, PowerShell' and 'Bash|PowerShell' admit both tools", () => {
-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe (Bash)": matcher, "hook verifier pipe (PowerShell)": matcher }), "win32").failures.length, 0);
+  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
 });
 // req: R-1074
 check("matcher: list separators admit only the exact listed tools", () => {
   for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) {
-    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe (Bash)": matcher, "hook verifier pipe (PowerShell)": matcher }), "win32").failures.length, 0);
+    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
   }
 });
 // req: R-1074
-check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe (Bash)": "^Bash$" }), "darwin").failures.length, 0); });
+check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe": "^Bash$" }), "darwin").failures.length, 0); });
 // req: R-1074
-check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe (Bash)": "NotBash" })); });
+check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe": "NotBash" })); });
 // req: R-1074
 check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
 // req: R-1074
-check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe (Bash)": "Bash", "hook verifier pipe (PowerShell)": "Bash" }), "win32"); });
+check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe": "Bash" }), "win32"); });
 // req: R-1082
 check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
 // req: R-1082
@@ -416,13 +433,12 @@ check("form: each row's form is read from the sealed table, never inferred from 
 });
 // req: R-1074, R-1082
 check("pin R-1074 R-1082: the hook table with its form columns and the allowed entry keys", () => {
-  assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.script, h.timeout, h.form]), [
-    ["hook objective", "SessionStart", "startup", "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook adoption", "SessionStart", "startup", "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook shared memory", "SessionStart", "startup", "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook verifier pipe (Bash)", "PreToolUse", "Bash", "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook verifier pipe (PowerShell)", "PreToolUse", "PowerShell", "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook knowledge pull", "UserPromptSubmit", null, "nana-knowledge.ts", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+  assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.tools ?? null, h.script, h.timeout, h.form]), [
+    ["hook objective", "SessionStart", "startup", null, "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+    ["hook knowledge pull", "UserPromptSubmit", null, null, "nana-knowledge.ts", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
   ]);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
 });
@@ -600,4 +616,70 @@ check("pi list: runs from the fixture project with no PI_CODING_AGENT_DIR", asyn
   try { await fixture.run; const call = fixture.calls.find(item => item.args[0] === "list"); assert.equal(call.options.cwd, path.join(fixture.home, "project")); assert.equal(Object.hasOwn(call.options.env, "PI_CODING_AGENT_DIR"), false); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
+// req: R-1074, R-1077
+check("verifier row: on win32 one entry whose matcher admits Bash and PowerShell satisfies the hook set and both verifier lines", async () => {
+  const fixture = recordingRun({ platformName: "win32" });
+  try {
+    const result = await fixture.run;
+    assert.ok(result.lines.includes("FAIL hook set — unexpected-pass: observed missing-entry while checking hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
+    assert.equal(result.lines.filter(line => /^FAIL hook verifier pipe \((Bash|PowerShell)\) — unexpected-pass:/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
+    const settings = JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8"));
+    assert.equal(settings.hooks.PreToolUse.length, 1);
+    assert.equal(settings.hooks.PreToolUse[0].matcher, "Bash|PowerShell");
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1074, R-1077
+check("verifier row: on win32 an entry whose matcher admits only Bash fails the PowerShell line", async () => {
+  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ command, args, options, spawn }) => {
+    const result = await spawn(command, args, options);
+    if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
+      const file = path.join(fixture.home, ".claude/settings.json");
+      const settings = JSON.parse(fs.readFileSync(file, "utf8"));
+      settings.hooks.PreToolUse[0].matcher = "Bash";
+      fs.writeFileSync(file, JSON.stringify(settings));
+    }
+    return result;
+  }});
+  try { const result = await fixture.run; assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (Bash) — unexpected-pass:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1074, R-1077
+check("verifier row: on darwin one entry admitting Bash satisfies the verifier line and no PowerShell line is printed", async () => {
+  const fixture = recordingRun({ platformName: "darwin" });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)")); assert.equal(result.lines.some(line => line.includes("PowerShell")), false); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1075
+check("spawn adapter: a child killed at its timeout reports ETIMEDOUT and its duration", async () => {
+  const childSpawn = () => {
+    const child = new EventEmitter(); child.stdout = new EventEmitter(); child.stderr = new EventEmitter(); child.stdin = { end() {} };
+    child.kill = () => queueMicrotask(() => child.emit("close", null, "SIGTERM"));
+    return child;
+  };
+  let tick = 0;
+  const run = createSpawnAdapter(childSpawn, { now: () => tick++ * 17 });
+  const result = await run("fake", [], { timeout: 5 });
+  assert.equal(result.error.code, "ETIMEDOUT"); assert.equal(result.ms, 17);
+});
+// req: R-1076
+check("spawn adapter: stdout is kept to 10,001 characters, so a 10,001-character output fails the cap", async () => {
+  const childSpawn = () => {
+    const child = new EventEmitter(); child.stdout = new EventEmitter(); child.stderr = new EventEmitter(); child.stdin = { end() {} };
+    queueMicrotask(() => { child.stdout.emit("data", "x".repeat(10002)); child.emit("close", 0, null); });
+    child.kill = () => {};
+    return child;
+  };
+  const adapterResult = await createSpawnAdapter(childSpawn)("fake", [], { timeout: 1000 });
+  assert.equal(adapterResult.stdout.length, 10001);
+  await assertOnlyHookFails(scriptedFixture(hookIs("nana-objective.mjs"), () => ({ stdout: `[nana:objective] ${"x".repeat(10000)}` })), "hook objective");
+});
+// req: R-1075, R-1080
+check("timeout: a hook past its timeout reports the timeout code, not no-output", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) =>
+    /nana-objective/.test(`${command} ${args.join(" ")}`) ? { error: { code: "ETIMEDOUT" }, ms: 5432 } : spawn(command, args, options) });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms")); assert.ok(!result.lines.includes("XFAIL hook objective — no-output")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+await runChecks();
 if (failures) process.exitCode = 1;

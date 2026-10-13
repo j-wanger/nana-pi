@@ -11,8 +11,7 @@ export const HOOKS = [
   { label: "hook objective", shortLabel: "objective", event: "SessionStart", matcher: "startup", script: "nana-objective.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook adoption", shortLabel: "adoption", event: "SessionStart", matcher: "startup", script: "nana-adoption.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
-  { label: "hook verifier pipe (Bash)", shortLabel: "verifier pipe", event: "PreToolUse", matcher: "Bash", script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" }, tool: "Bash" },
-  { label: "hook verifier pipe (PowerShell)", shortLabel: "verifier pipe", event: "PreToolUse", matcher: "PowerShell", script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" }, tool: "PowerShell", platforms: ["win32"] },
+  { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook knowledge pull", shortLabel: "knowledge pull", event: "UserPromptSubmit", matcher: null, script: "nana-knowledge.ts", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
 ];
 // Contract value: documented command-hook fields, excluding fields which alter dispatch, read 2026-10-12.

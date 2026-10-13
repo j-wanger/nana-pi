@@ -1942,7 +1942,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process, network
 - **errors** — Exits nonzero when any reported item is FAIL.
 - **callers** — —
-- **callees** — `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check.mjs`
+- **callees** — `packages/nana-setup/lib/install-check.mjs`
 
 ### `packages/nana-setup/bin/nana-setup.mjs`
 
@@ -2031,7 +2031,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Hook, environment, known-red and doctor-note contracts.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-setup/bin/install-check.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/install-check.test.mjs`
+- **callers** — `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/install-check.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/install-check.mjs`
