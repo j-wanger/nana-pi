@@ -371,7 +371,7 @@ So a brand-new repo links itself on its first session. `/Users/jwang/aml-desk` â
 
 ## Platforms
 
-Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 
 On native Windows, nana-setup wires every Claude Code hook entry in exec form from the checkout, needing Claude Code 2.1.139 or later to run at all. Installer copies and skipped PATH commands are still implementation details, not a claim of broader supported parity.
 On Windows the Claude Code `requirements` skill is the only one mirrored (a copy, not a link); `spec`, `py-lint`, `py-review` and `py-test` are skipped and stay pi-only there.

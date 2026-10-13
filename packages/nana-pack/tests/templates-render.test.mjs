@@ -313,9 +313,27 @@ function checkInstructionContracts() {
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
-	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.`;
+	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
+	// req: R-1126
+	check("shared working pattern makes the pattern the default with the machine roster",
+		shared.includes("a change that touches code with tests goes through the pattern") &&
+		shared.includes("questions and one-line fixes get a direct answer") &&
+		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"') &&
+		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
+		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
+	// req: R-1127
+	check("shared working pattern gives the land review to the seat when the roster sets no land model",
+		shared.includes("when the roster sets no land model") &&
+		shared.includes("docs/reviews/<lane>-<date>/seat-land.md") &&
+		shared.includes("before the final round") &&
+		shared.includes("the independent slice review still covers every land"));
+	const DEFAULT_PATTERN_BULLET = "- Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builder, reviewer and land models come from this machine's roster, printed by `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs\"`. Where pi-worker and pi-review are not on PATH (Windows), run them as `node \"$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs\"` and `node \"$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs\"` with the same arguments.";
+	const SEAT_LAND_BULLET = "- Seat land review: when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.";
+	// req: R-1128
+	check("nana-soul carries the shared default-pattern and seat land review bullets",
+		soul.replace(/\r/g, "").includes(DEFAULT_PATTERN_BULLET) && soul.replace(/\r/g, "").includes(SEAT_LAND_BULLET));
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
 		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&

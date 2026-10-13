@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
- * @purpose Define the sealed wall-clock ceiling for lane workers and pi's npm package identity.
+ * @purpose Define the sealed launcher values: the lane ceiling, the default builder and roster, and pi's npm package identity.
  * @inputs none
- * @outputs LANE_MAX_SECS, LANE_DEFAULTS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS
+ * @outputs LANE_MAX_SECS, LANE_DEFAULTS, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, THINKING_LEVELS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS
  * @effects none
  * @errors none
  */
@@ -14,6 +14,23 @@ export const LANE_DEFAULTS = Object.freeze({
   model: 'gpt-6-luna',
   thinking: 'high',
   tools: 'read,grep,find,bash,edit,write',
+});
+
+// contract: R-1122 — the roster object's four slots, in print order; scout and land may be null
+// (NULLABLE_SLOTS); builder and reviewer are mandatory entries.
+export const ROSTER_SLOTS = Object.freeze(['scout', 'builder', 'reviewer', 'land']);
+export const NULLABLE_SLOTS = Object.freeze(['scout', 'land']);
+// contract: pi 1.0.2 dist/cli/args.js:6 VALID_THINKING_LEVELS, read 2026-10-13.
+export const THINKING_LEVELS = Object.freeze(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
+
+// provenance: R-1120 — roles: Jake, 2026-10-06; provider and model ids: the seat's. The builder
+// slot reads LANE_DEFAULTS by name so the two definitions cannot drift; this Mac runs no pi scout
+// (chosen); reviewer and land carry no thinking (INFERRED: the ledger records no thinking).
+export const ROSTER_DEFAULTS = Object.freeze({
+  scout: null,
+  builder: Object.freeze({ provider: LANE_DEFAULTS.provider, model: LANE_DEFAULTS.model, thinking: LANE_DEFAULTS.thinking }),
+  reviewer: Object.freeze({ provider: 'openai-codex', model: 'gpt-5.6-sol', thinking: null }),
+  land: Object.freeze({ provider: 'openai-codex', model: 'gpt-6-astra', thinking: null }),
 });
 
 // contract: pi 1.0.2 package.json name and bin {"pi": "dist/bundle/cli.js"}, read 2026-10-13.

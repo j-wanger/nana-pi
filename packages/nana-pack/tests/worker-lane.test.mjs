@@ -29,10 +29,16 @@ const brief = path.join(temp, "brief.md"); fs.writeFileSync(brief, "lane brief c
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");
 fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${piSpawnMarker}"\nprintf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`); fs.chmodSync(pi, 0o755);
+// An empty, fixed agent dir keeps an ambient PI_CODING_AGENT_DIR (e.g. a standalone run started
+// from inside a pi session) from leaking into the roster resolver; scripts/test.mjs already
+// scrubs the variable under `npm test`, so this is belt-and-suspenders. It is the same directory
+// trust.json already uses below, so trust behaviour is unchanged; roster-specific cases override
+// it per call.
+const defaultAgentDir = path.join(temp, ".pi", "agent");
 const out = path.join(temp, "output.md");
 const run = (cwd, args, more = {}, piArgs = []) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, ...args, ...(piArgs.length ? ["--", ...piArgs] : [])], {
 	cwd, encoding: "utf8", timeout: 15000,
-	env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, ...more },
+	env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
 });
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) process.exitCode = 1; };
 const legacyRepeat = run(lane, ["--poll", "invalid"], {}, ["-p", "legacy"]);
@@ -143,9 +149,77 @@ const resourceDisableForms = [["-nc"], ["--no-context-files"], ["-ne"], ["--no-e
 check("lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve", resourceDisableForms.every((form) => run(lane, ["--lane", "alpha", "--brief", brief], {}, form).status === 1));
 // req: R-961
 check("lane refuses retries before launch", run(lane, ["--lane", "alpha", "--brief", brief, "--retries", "1"]).status === 1 && /--retries greater than zero/.test(run(lane, ["--lane", "alpha", "--brief", brief, "--retries", "1"]).stderr));
+
+const freshAgentDir = (label) => { const d = path.join(temp, `agent-${label}`); fs.mkdirSync(d, { recursive: true }); return d; };
+const writeRoster = (dir, roster) => { const f = path.join(dir, "nana-pack.json"); fs.writeFileSync(f, JSON.stringify({ roster })); return f; };
+const rosterEntry = (provider, model, thinking) => ({ provider, model, thinking });
+const sampleRoster = () => ({ scout: null, builder: rosterEntry("example-gateway", "roster-model", "low"), reviewer: rosterEntry("example-gateway", "gpt-5.6-sol", null), land: null });
+
+fs.rmSync(piSpawnMarker, { force: true });
+const rosterGoodDir = freshAgentDir("roster-good");
+writeRoster(rosterGoodDir, sampleRoster());
+const rosterGoodRun = run(lane, ["--lane", "alpha", "--brief", brief], { PI_CODING_AGENT_DIR: rosterGoodDir });
+const rosterGoodArgs = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-961
+check("lane passes the machine roster builder to pi, each flag once",
+	rosterGoodRun.status === 0 && [["--provider", "example-gateway"], ["--model", "roster-model"], ["--thinking", "low"]].every(([flag, value]) =>
+		rosterGoodArgs.indexOf(flag) >= 0 && rosterGoodArgs[rosterGoodArgs.indexOf(flag) + 1] === value && rosterGoodArgs.filter((seen) => seen === flag).length === 1),
+	rosterGoodRun.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const rosterNullDir = freshAgentDir("roster-null-thinking");
+writeRoster(rosterNullDir, { ...sampleRoster(), builder: rosterEntry("example-gateway", "roster-model", null) });
+const rosterNullRun = run(lane, ["--lane", "alpha", "--brief", brief], { PI_CODING_AGENT_DIR: rosterNullDir });
+const rosterNullArgs = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-961
+check("lane omits --thinking when the machine roster builder thinking is null",
+	rosterNullRun.status === 0 && !rosterNullArgs.includes("--thinking") && rosterNullArgs.includes("--provider") && rosterNullArgs.includes("roster-model"),
+	rosterNullRun.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const rosterBadDir = freshAgentDir("roster-bad");
+const rosterBadFile = writeRoster(rosterBadDir, { ...sampleRoster(), builder: null });
+const rosterBadRun = run(lane, ["--lane", "alpha", "--brief", brief], { PI_CODING_AGENT_DIR: rosterBadDir });
+// req: R-961
+check("lane refuses a refused roster before starting pi, naming the file",
+	rosterBadRun.status === 1 &&
+	rosterBadRun.stderr === `pi-worker: lane refused: roster refused: ${rosterBadFile}: roster.builder is not an entry (null)\n` &&
+	!fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath),
+	rosterBadRun.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const projectPiDir = path.join(lane, ".pi");
+fs.mkdirSync(projectPiDir, { recursive: true });
+fs.writeFileSync(path.join(projectPiDir, "nana-pack.json"), JSON.stringify({ roster: { ...sampleRoster(), builder: rosterEntry("project-gateway", "project-model", "low") } }));
+const projectIgnoredRun = run(lane, ["--lane", "alpha", "--brief", brief]);
+fs.rmSync(projectPiDir, { recursive: true, force: true });
+const projectIgnoredArgs = (fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "").split("\n");
+// req: R-1121
+check("lane ignores a roster in project .pi/nana-pack.json",
+	projectIgnoredRun.status === 0 &&
+	projectIgnoredArgs.indexOf("--provider") >= 0 && projectIgnoredArgs[projectIgnoredArgs.indexOf("--provider") + 1] === "openai-codex" &&
+	projectIgnoredArgs.indexOf("--model") >= 0 && projectIgnoredArgs[projectIgnoredArgs.indexOf("--model") + 1] === "gpt-6-luna",
+	projectIgnoredRun.stderr);
+
+fs.rmSync(piSpawnMarker, { force: true });
+const builderLineRun = run(lane, ["--lane", "alpha", "--brief", brief]);
+const builderLines = builderLineRun.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder:"));
+const builderLineIdx = builderLineRun.stderr.indexOf("pi-worker: builder:");
+const attemptIdx = builderLineRun.stderr.indexOf("[pi-worker] attempt 1/1");
+fs.rmSync(piSpawnMarker, { force: true });
+const builderLineFileDir = freshAgentDir("roster-builder-line-file");
+const builderLineFile = writeRoster(builderLineFileDir, { ...sampleRoster(), builder: rosterEntry("example-gateway", "roster-model", null) });
+const builderLineFileRun = run(lane, ["--lane", "alpha", "--brief", brief], { PI_CODING_AGENT_DIR: builderLineFileDir });
+const builderLinesFile = builderLineFileRun.stderr.split(/\r?\n/).filter((l) => l.startsWith("pi-worker: builder:"));
+// req: R-1124
+check("lane prints the resolved builder and roster source on stderr before starting pi",
+	builderLineRun.status === 0 && builderLines.length === 1 && builderLines[0] === "pi-worker: builder: openai-codex gpt-6-luna high; source: default" && builderLineIdx >= 0 && attemptIdx >= 0 && builderLineIdx < attemptIdx &&
+	builderLineFileRun.status === 0 && builderLinesFile.length === 1 && builderLinesFile[0] === `pi-worker: builder: example-gateway roster-model default; source: ${builderLineFile}`,
+	`${builderLineRun.stderr}\n---\n${builderLineFileRun.stderr}`);
+
 const laneSpawnCount = path.join(temp, "lane-spawns");
 fs.writeFileSync(pi, `#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`); fs.chmodSync(pi, 0o755);
-const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp }, stdio: "ignore" });
+const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
 const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
 // req: R-960

@@ -2,7 +2,7 @@
 
 The toolkit repo: adoption of pi, the nana pack, desk, knowledge pull, and project templates. Sibling to `~/nana-agent-loop`.
 
-Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 
 Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 
@@ -16,7 +16,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
   adopt-ts, adopt-structure, dev workflow); `bin/` — the `pi-review` runner (canonical home since 2026-09-18, on PATH via
   `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `review-ledger` and `pi-worker`
-  behind it, `pi-watchdog`, the two producers the seat's Claude Code SessionStart hooks run —
+  behind it, `pi-watchdog`, `nana-roster` (the per-machine roster command), the two producers the seat's Claude Code SessionStart hooks run —
   `nana-objective` and `nana-adoption` — `nana-writing` (the report-only writing checker), and
   `nana-frontier` (the report-only HANDOFF structure checker).
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
@@ -63,7 +63,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 
 ## Working pattern
 
-See the shared working pattern below for the defaults; the roster source is shared memory `reference_roster.md`. Local overrides are explicit in each project.
+See the shared working pattern below for the defaults and the roster command. Local overrides are explicit in each project.
 
 <!-- nana:working-under-nana-pi begin -->
 ## Working under nana-pi
@@ -95,6 +95,8 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 - Plans: every plan names its threat model: honest variation in our tools' output is in scope, deliberate forgery is out, and a finding outside the model is a residual. A small lane gets one plan-review round and a gate or format lane two; after that only a named fail-open bug reopens the plan. Urgent fixes ship alone and are hardened in a later lane. Once every reviewer says LAND, nothing more is edited.
 - Review bar: `pi-review` appends the review standard to every review it runs, so its briefs state the threat model and lane class but not the bar. A review with no MUST finding says LAND; LAND-WITH-FIXES is retired because `nana-land` accepts only LAND. A confirmation round reviews only the change since the last round, and its brief names that revision.
 - Land checklist: resolve review findings or record residuals at point of use; use `nana-land` with a clean `main` checkout and clean source, verified review rounds, and the suite on the reviewed tip; rerun the suite if either checkout changes, and rely on the helper's immediate pre-merge checks, ff-only merge, and containment verification. Every commit reaching main must be covered by a revision every reviewer accepted; there are no exemptions, and never commit directly to main. Put HANDOFF and session notes in the reviewed change before its final round; nothing is written after a land. For a confirmation round over cap, use the standard reason: `confirmation round on the final tip after fixes to named findings or a merge of current main`. Cleanup is a separate operation, only for a clean `feat/<lane>` worktree contained in `main`. Then run map, README, and locked full-suite checks; commit explicit paths and report evidence.
+- Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builder, reviewer and land models come from this machine's roster, printed by `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`. Where pi-worker and pi-review are not on PATH (Windows), run them as `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"` and `node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"` with the same arguments.
+- Seat land review: when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
 <!-- nana:working-under-nana-pi end -->
 

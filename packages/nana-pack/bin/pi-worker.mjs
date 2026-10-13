@@ -2,10 +2,12 @@
 /**
  * @module packages/nana-pack/bin/pi-worker.mjs
  * @purpose Run a pi worker under a liveness watchdog, with an optional fail-closed linked-worktree lane mode.
- * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args)
- * @outputs worker output written to --out and SUCCESS / FAILED diagnostics on stderr
+ * @inputs argv (--out, watchdog knobs, optional lane options, then `--` and pi args), and in lane
+ *  mode this machine's roster (the user-scope nana-pack.json in pi's active agent dir)
+ * @outputs worker output written to --out, SUCCESS / FAILED diagnostics on stderr, and in lane
+ *  mode one `pi-worker: builder: …; source: …` line on stderr before pi starts
  * @effects disk (writes output), process (spawns and may kill the pi child process group)
- * @errors exit 1 on bad args, invalid lane, failed worker, or exceeded lane ceiling
+ * @errors exit 1 on bad args, invalid lane, a refused roster, failed worker, or exceeded lane ceiling
  */
 import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
@@ -13,6 +15,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import { LANE_DEFAULTS, LANE_MAX_SECS } from './worker-config.mjs';
+import { resolveRoster } from './nana-roster.mjs';
+import { piAgentDir } from '../lib/agent-dir.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N]\n';
@@ -89,13 +93,17 @@ if (laneMode) {
 		accessSync(briefPath, constants.R_OK);
 	} catch { laneFailure('brief must be a readable regular file'); }
 	if (separator >= 0 && all.slice(separator + 1).length) laneFailure('caller pi arguments are refused in lane mode');
+	const rosterResult = resolveRoster(piAgentDir());
+	if (!rosterResult.ok) laneFailure(`roster refused: ${rosterResult.file}: ${rosterResult.problem}`);
+	const builder = rosterResult.roster.builder;
+	process.stderr.write(`pi-worker: builder: ${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}; source: ${rosterResult.source}\n`);
 	const preamblePath = new URL('../prompts/builder-preamble.md', import.meta.url);
 	const preamble = readFileSync(preamblePath, 'utf8').replaceAll('{{WORKTREE}}', cwd).replaceAll('{{BRANCH}}', branch);
 	laneRoot = cwd; laneGitDir = dirs[0];
 	const preambleDir = mkdtempSync(path.join(tmpdir(), 'nana-lane-preamble-'));
 	preambleFile = path.join(preambleDir, 'preamble.md');
 	writeFileSync(preambleFile, preamble);
-	const piArgs = ['--provider', LANE_DEFAULTS.provider, '--model', LANE_DEFAULTS.model, '--thinking', LANE_DEFAULTS.thinking, '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
+	const piArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, '-p', `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`];
 	const argvSeparator = argv.indexOf('--');
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...piArgs);
 	else argv.push('--', ...piArgs);
@@ -116,7 +124,9 @@ if (laneMode) {
 	}
 	validateLaneAttempt = validateLane;
 }
-function fsReal(p) { return realpathSync(p); }
+// R-1125: win32 resolves a lane's paths by native real path, which keeps an 8.3 or differently
+// cased form the way git itself sees it; POSIX keeps the JS implementation, as landed.
+function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
 
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
 if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => ['--lane', '--brief', '--max-secs'].includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }

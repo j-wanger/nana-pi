@@ -1,17 +1,20 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
- * @purpose Run `pi` under a CPU-liveness watchdog that kills and retries attempts whose CPU time stays
- *  flat and cleans up child trees on termination signals.
+ * @purpose Start pi (on win32 through its npm Node entry) under a CPU-liveness watchdog that kills
+ *  and retries attempts whose CPU time stays flat and cleans up child trees on termination signals.
  * @inputs the launcher's argv before `--` (--out, --stall-secs, --retries, --poll) and the pi args after
- *  it, the child's CPU seconds from `ps` or PowerShell, and the caller's accept(text) predicate
+ *  it, the child's CPU seconds from `ps` or PowerShell, the caller's accept(text) predicate, and, on
+ *  win32, PATH, PATHEXT and pi's npm package's `package.json`
  * @outputs {ok, text, attempt} with captured output, signal-aborted status, per-poll `cpu=…s flat=n/m`, STALL and
- *  attempt lines on stderr, the RETRIES_NOTICE string, or a parse {error}
- * @effects process (spawns `pi` detached per attempt with NANA_HANDOFF=off, kills its process tree on a
- *  stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
- *  stderr)
+ *  attempt lines on stderr, the RETRIES_NOTICE string, a parse {error}, and piLaunch's own
+ *  `{command, args}` or `{refused}`
+ * @effects process (spawns pi detached per attempt with NANA_HANDOFF=off — by name, its located
+ *  `.exe`/`.com`, or node with its entry on win32 — kills its process tree on a stall or signal,
+ *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
+ *  stderr; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
- *  --stall-secs/--poll or a non-whole --retries, and a spawn failure or stall returns ok:false with the
- *  partial text
+ *  --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the
+ *  partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
  */
 // pi-watchdog.mjs — the liveness WATCHDOG shared by pi-review (reviews, round-capped) and
 // pi-worker (workers, no ledger). Moved verbatim out of pi-review.mjs in T2b; behaviour unchanged.
@@ -30,9 +33,64 @@
 // (pi-review 2 → 3 attempts, unchanged; pi-worker 0 — a retried worker repeats its mutations).
 
 import { spawn, execSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdtempSync, openSync, closeSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, openSync, closeSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import * as path from 'node:path';
+import { findPi } from '../lib/win-command.mjs';
+import { PI_PACKAGE, PI_BIN_NAME, NPM_DIRS } from './worker-config.mjs';
+
+/**
+ * Resolve how to launch pi on this platform (R-1125). Not win32: pi by name, argv unchanged —
+ * today's behaviour, and the one every POSIX install (npm symlink, pnpm script, the managed
+ * launcher) already keeps pi as the watched process with its argv intact. win32: findPi (R-1033)
+ * locates the running pi; a `.cmd`/`.bat` npm shim starts through the Node running it, with the
+ * npm package's own `pi` bin entry as the first argument and the pi arguments unchanged after it —
+ * pi's own managed-install rule (pi.dev install.ps1:1456-1489): the bin, its containment in the
+ * package folder and `isFile` are checked the same way, and `process.execPath` runs it, no shell;
+ * a located `.exe`/`.com` starts directly. Anything else is refused, named, nothing started.
+ * Returns `{command, args}` or `{refused}`, synchronously.
+ */
+export function piLaunch(piArgs, { platform = process.platform, env = process.env, cwd = process.cwd(), exists, isFile = (p) => { try { return statSync(p).isFile(); } catch { return false; } }, readText = (p) => readFileSync(p, 'utf8'), execPath = process.execPath } = {}) {
+  if (platform !== 'win32') return { command: 'pi', args: piArgs };
+  const win = path.win32;
+  const found = findPi({ env, cwd, exists });
+  if (!found) return { refused: 'pi is not on PATH' };
+  const ext = win.extname(found).toLowerCase();
+  if (ext === '.exe' || ext === '.com') return { command: found, args: piArgs };
+  // A .cmd/.bat npm shim: the package sits beside it (the global layout) or one level up through
+  // node_modules/.bin (the local layout, matched case-insensitively — NTFS folder names fold case).
+  const shimDir = win.dirname(found);
+  const lastTwo = shimDir.split(/[\\/]/).filter(Boolean).slice(-2).map((p) => p.toLowerCase());
+  const isDotBinLayout = lastTwo.length === 2 && lastTwo[0] === NPM_DIRS[0] && lastTwo[1] === NPM_DIRS[1];
+  const packageRoot = isDotBinLayout ? win.dirname(shimDir) : win.join(shimDir, NPM_DIRS[0]);
+  const packageDir = win.join(packageRoot, ...PI_PACKAGE.split('/'));
+  const packageJsonPath = win.join(packageDir, 'package.json');
+  let packageJsonText;
+  try {
+    packageJsonText = readText(packageJsonPath);
+  } catch {
+    return { refused: `pi at ${found} is not an npm global install: no ${PI_PACKAGE} package beside it; install pi with npm (pnpm, Volta and the pi.dev installer are not supported by the launchers)` };
+  }
+  let packageJson;
+  try {
+    packageJson = JSON.parse(packageJsonText);
+  } catch {
+    return { refused: `${packageJsonPath} is not valid JSON` };
+  }
+  if (typeof packageJson !== 'object' || packageJson === null || packageJson.name !== PI_PACKAGE) {
+    return { refused: `${packageJsonPath} is not the ${PI_PACKAGE} package` };
+  }
+  const bin = typeof packageJson.bin === 'string' ? packageJson.bin : packageJson.bin?.[PI_BIN_NAME];
+  if (!bin) return { refused: `${PI_PACKAGE} at ${packageDir} declares no ${PI_BIN_NAME} bin` };
+  const entry = win.resolve(packageDir, bin);
+  const relative = win.relative(packageDir, entry);
+  if (relative.startsWith('..') || win.isAbsolute(relative)) {
+    return { refused: `pi bin ${bin} resolves outside ${packageDir}` };
+  }
+  if (!isFile(entry)) return { refused: `pi entry ${entry} is not a file` };
+  return { command: execPath, args: [entry, ...piArgs] };
+}
 
 /** Parse the launcher's argv. Wrapper options are read ONLY from the slice before `--` (sol
  *  review 2026-09-16, F): a pi arg must never be mistaken for --out or any watchdog knob.
@@ -102,9 +160,19 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
+  const launch = piLaunch(args, { cwd });
+  if (launch.refused) {
+    // Nothing started: close and remove the capture dir, and report it as a failed attempt, the
+    // same way today's spawn ENOENT is — a refusal is retried, named, every time (residual, not a
+    // regression; see pack README and REQUIREMENTS.md R-1125's evidence note).
+    try { closeSync(fd); } catch { /* already closed */ }
+    try { rmSync(dirname(tmp), { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
+    process.stderr.write(`[${tag}] pi launch refused: ${launch.refused}\n`);
+    return { ok: false, text: '' };
+  }
   // NANA_HANDOFF=off: a watchdog child is a NON-WRITER — it neither picks up nor writes the
   // nana handoff (L3; the role comes from this explicit marker, never the tool list).
-  const child = spawn('pi', args, { cwd, stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv } });
+  const child = spawn(launch.command, launch.args, { cwd, stdio: ['ignore', fd, fd], detached: true, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv } });
 
   let spawnErr = null;
   onChild(child);

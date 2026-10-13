@@ -1,0 +1,132 @@
+ok   (control) harness: the scratch lane worktree is on feat/roster-accept and its lock path resolved
+ok   (control) non-lane pi-worker starts the stub pi by name: exit 0, one call, argv recorded
+ok   (a) no nana-pack.json: lane pi-worker exits 0, the stub started once, the lock is released
+ok   (a) no nana-pack.json: the stub's argv is today's lane argv, openai-codex gpt-6-luna high (R-1120, R-961)
+ok   (a) no nana-pack.json: stderr has exactly one builder line, naming source default (R-1124)
+ok   (a) no nana-pack.json: the builder line comes before [pi-worker] attempt 1/1 (R-1124)
+ok   (a) a nana-pack.json with only an objective block (this Mac's shape): today's lane argv (R-1120)
+ok   (a) a nana-pack.json with only an objective block: one builder line, source default (R-1124)
+ok   (b) machine roster: lane exits 0 and the stub started once
+ok   (b) machine roster: the stub's argv carries example-gateway roster-accept-builder low, HOME's roster ignored (R-961, R-1121)
+ok   (b) machine roster: exactly one builder line naming the file (R-1124)
+ok   (b) machine roster: the builder line comes before [pi-worker] attempt 1/1 (R-1124)
+ok   (b) builder thinking null: exit 0 and no --thinking in the stub's argv (R-961)
+ok   (b) builder thinking null: the builder line says default and names the file (R-1124)
+ok   (b) builder thinking max (pi's seventh level) is accepted and passed (R-1122, R-961)
+ok   (b) a roster in the worktree's .pi/nana-pack.json with no user roster: today's lane argv (R-1121)
+ok   (b) a roster in the worktree's .pi/nana-pack.json: the builder line says source default (R-1121, R-1124)
+ok   (b) non-lane pi-worker with a malformed roster: exit 0, the stub started, no builder line (§3, §6 item 7)
+ok   (c) missing slot land: exit 1, stub not started, no lock, refusal names the file and "land" (R-1122, R-961)
+ok   (c) extra slot auditor: exit 1, stub not started, no lock, refusal names the file and "auditor" (R-1122, R-961)
+ok   (c) builder null: exit 1, stub not started, no lock, refusal names the file and "builder" (R-1122, R-961)
+ok   (c) builder "x": exit 1, stub not started, no lock, refusal names the file and "builder" (R-1122, R-961)
+ok   (c) builder []: exit 1, stub not started, no lock, refusal names the file and "builder" (R-1122, R-961)
+ok   (c) reviewer null: exit 1, stub not started, no lock, refusal names the file and "reviewer" (R-1122, R-961)
+ok   (c) roster "x": exit 1, stub not started, no lock, refusal names the file and "roster" (R-1122, R-961)
+ok   (c) roster null: exit 1, stub not started, no lock, refusal names the file and "roster" (R-1122, R-961)
+ok   (c) builder missing provider: exit 1, stub not started, no lock, refusal names the file and "provider" (R-1122, R-961)
+ok   (c) builder missing model: exit 1, stub not started, no lock, refusal names the file and "model" (R-1122, R-961)
+ok   (c) builder missing thinking: exit 1, stub not started, no lock, refusal names the file and "thinking" (R-1122, R-961)
+ok   (c) builder extra tools: exit 1, stub not started, no lock, refusal names the file and "tools" (R-1122, R-961)
+ok   (c) builder provider "": exit 1, stub not started, no lock, refusal names the file and "provider" (R-1122, R-961)
+ok   (c) builder model "gpt 6": exit 1, stub not started, no lock, refusal names the file and "model" (R-1122, R-961)
+ok   (c) builder model with a line feed: exit 1, stub not started, no lock, refusal names the file and "model" (R-1122, R-961)
+ok   (c) builder thinking "ultra": exit 1, stub not started, no lock, refusal names the file and "thinking" (R-1122, R-961)
+ok   (c) scout model "gpt 6" (builder valid): exit 1, stub not started, no lock, refusal names the file and "model" (R-1122, R-961)
+ok   (c) reviewer thinking "ultra" (builder valid): exit 1, stub not started, no lock, refusal names the file and "thinking" (R-1122, R-961)
+ok   (c) nana-pack.json invalid JSON: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json UTF-16LE with its byte-order mark: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json top level []: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json top level null: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json a directory: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json a valid roster padded past the 1 MiB cap: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json a dangling symlink: exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (c) nana-pack.json mode 000 (unreadable): exit 1, stub not started, no lock, refusal names the file (R-1122, R-961)
+ok   (d) no nana-pack.json: exit 0, the default roster, source default, nothing on stderr (R-1123, R-1120)
+ok   (d) machine roster with a null land: `land: seat`, `default` for a null thinking, source the file; HOME's roster ignored (R-1123, R-1121)
+ok   (d) machine roster with a null scout and a set land: `scout: none`, every slot exactly as written (R-1123, R-1121)
+ok   (d) a roster saved with a BOM and CRLF line endings is read (R-1121)
+ok   (d) a nana-pack.json with only an objective block: the default roster, source default (R-1120)
+ok   (d) a project .pi/nana-pack.json roster in the cwd is never read: the default roster (R-1121)
+ok   (d) PI_CODING_AGENT_DIR names a regular file (ENOTDIR): absent, so the default roster (R-1120, §3)
+ok   (d) a refused roster: exit 1, nothing on stdout, stderr names the file and the field (R-1123, R-1122)
+ok   (d) invalid JSON: exit 1, nothing on stdout, stderr names the file (R-1123, R-1122)
+ok   (f) harness: findPi with the fake volume's exists finds C:\npm\pi.cmd on PATH C:\a;C:\npm
+ok   (f) npm global layout: node runs the package's pi bin entry, arguments unchanged (LF, CRLF, %, !, ", trailing \) (R-1125)
+ok   (f) npm global layout with PI.CMD on disk: the same launch (R-1125)
+ok   (f) npm global layout with a string bin: the same launch (R-1125)
+ok   (f) npm global layout with a pi.bat shim: the same launch (R-1125)
+ok   (f) npm .bin layout: node runs <shim folder>\..\<package>'s entry (R-1125)
+ok   (f) npm .bin layout spelled Node_Modules\.BIN on PATH: the same entry, compared ignoring case (R-1125)
+ok   (f) harness: findPi returns its own lowercase candidate C:\npm\pi.exe for PI.EXE on disk
+ok   (f) a located pi.exe starts directly: command is findPi's return, arguments unchanged (R-1125)
+ok   (f) a located pi.com starts directly (R-1125)
+ok   (f) darwin: pi by name with the arguments unchanged, even with an npm pi.cmd on the injected PATH (R-1125, K7)
+ok   (f) linux: pi by name with the arguments unchanged, even with an npm pi.cmd on the injected PATH (R-1125, K7)
+ok   (f) refused, nothing to start: no pi on PATH; the reason names "pi is not on PATH" (R-1125)
+ok   (f) refused, nothing to start: a Volta-shaped pi.cmd, no package beside it; the reason names "pnpm", "Volta", "pi.dev" (R-1125)
+ok   (f) refused, nothing to start: a pnpm-global-shaped pi.cmd, package under global\v11; the reason names "pnpm", "Volta", "pi.dev" (R-1125)
+ok   (f) refused, nothing to start: a pi.dev-managed-shaped pi.cmd, package under install\releases; the reason names "pnpm", "Volta", "pi.dev" (R-1125)
+ok   (f) refused, nothing to start: package.json names another package (valid bin, entry present); the reason names "package.json" (R-1125)
+ok   (f) refused, nothing to start: package.json is invalid JSON; the reason names "package.json" (R-1125)
+ok   (f) refused, nothing to start: package.json declares no bin; the reason names "bin" (R-1125)
+ok   (f) refused, nothing to start: package.json's bin object has no pi key; the reason names "bin" (R-1125)
+ok   (f) refused, nothing to start: the bin escapes the package (..\..\..\evil.js, C:\npm\evil.js present); the reason names "outside" (R-1125)
+ok   (f) refused, nothing to start: the entry is missing; the reason names "cli.js" (R-1125)
+ok   (f) refused, nothing to start: the entry is a directory; the reason names "cli.js" (R-1125)
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv"
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: non-lane pi-worker hands pi line breaks, %, !, quotes and a trailing backslash unchanged"
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: pi-review hands the review standard to pi as text"
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: a busy pi is not stopped as stalled"
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory"
+WIN  (f) read from the draft PR's Windows leg on the reviewed tip, PASS required: "Windows: lane pi-worker starts pi from a short or differently cased worktree path"
+WIN  (f) read from the tests-first run: all ten win32-launch titles FAIL, each for a named cause (piLaunch missing, spawn pi ENOENT, cwd is not the repository root, or no pi launch refused line)
+WIN  (f) read from the Windows leg: the `INFO Windows pi-review revision: <revision>` line; `+snap` makes §6 item 15 a named carry
+ok   (e) harness: the base shared file has a Project-specific overrides bullet and the proposal is two whole lines
+ok   (e) the shared file is the base copy with the two proposed bullets inserted before Project-specific overrides (R-1126, R-1127)
+ok   (e) the shared file carries the proposed bullets byte for byte, once
+ok   (e) AGENTS.md's shared region is byte-identical to the shared file (R-859)
+ok   (e) nana-soul is the base copy with the two proposed bullets ending Work habits (R-1128)
+ok   (e) nana-soul carries the proposed bullets byte for byte, once (R-1128)
+ok   (e) AGENTS.md names no reference_roster
+ok   (e) AGENTS.md's pointer line reads as §3 gives it, once, outside the region
+ok   (e) AGENTS.md's Layout entry for packages/nana-pack/ names nana-roster
+ok   (e) CLAUDE.md is still a symlink to AGENTS.md
+ok   (e) harness: the base AGENTS.md has one Support line holding the old launcher clause
+ok   (e) AGENTS.md carries exactly one Support line, equal to R-684's new canonical line
+ok   (e) README.md carries exactly one Support line, equal to R-684's new canonical line
+ok   (e) packages/nana-setup/README.md carries exactly one Support line, equal to R-684's new canonical line
+ok   (e) pack README's Lane builder names the builder line and drops the literal roster (§3)
+ok   (e) pack README has a Machine roster subsection with the example-gateway example and the roster command (§3)
+ok   (e) pack README gives the Windows launcher form node "$HOME/…/pi-worker.mjs" and the quoted "@<full path>" brief (§3)
+ok   (g) harness: CHANGE §2 gives draft text for R-961 and R-1120–R-1128
+ok   (g) R-1120 is one row with exactly one "shall"
+ok   (g) R-1120's text is CHANGE §2's
+ok   (g) R-1121 is one row with exactly one "shall"
+ok   (g) R-1121's text is CHANGE §2's
+ok   (g) R-1122 is one row with exactly one "shall"
+ok   (g) R-1122's text is CHANGE §2's
+ok   (g) R-1123 is one row with exactly one "shall"
+ok   (g) R-1123's text is CHANGE §2's
+ok   (g) R-1124 is one row with exactly one "shall"
+ok   (g) R-1124's text is CHANGE §2's
+ok   (g) R-1125 is one row with exactly one "shall"
+ok   (g) R-1125's text is CHANGE §2's
+ok   (g) R-1126 is one row with exactly one "shall"
+ok   (g) R-1126's text is CHANGE §2's
+ok   (g) R-1127 is one row with exactly one "shall"
+ok   (g) R-1127's text is CHANGE §2's
+ok   (g) R-1128 is one row with exactly one "shall"
+ok   (g) R-1128's text is CHANGE §2's
+ok   (g) R-961 reworded: CHANGE §2's text, one "shall", the dated evidence note
+ok   (g) R-684 reworded: the launcher clause runs through node with an npm-installed pi, one "shall"
+ok   (g) evidence notes: R-1120 names Jake's roles, R-1125 names review-ledger run as not covered
+ok   (g) each new row sits under the heading §2 names
+ok   (g) each placed row follows the row §2 names, on the next line
+ok   (g) FEAT-007's Also applies line gains R-1125
+ok   (g) node scripts/requirements-tree.mjs --check exits 0
+ok   (h) git diff --name-only main...HEAD lists only §4 paths and the lane's review folder
+ok   (h) empty merge-base diff on pi-review, review-ledger, review-round, nana-land, win-command(-config) and nana-setup/lib (§4 NOT)
+ok   (h) pi-watchdog.mjs names no winCommand, no shell option and no verbatim arguments (§3)
+cases: 122/122
+roster acceptance: 0 mismatch(es)
