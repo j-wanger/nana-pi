@@ -84,6 +84,46 @@ const plainResult = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 check("every pi-worker child receives NANA_ROLE=worker", result.startsWith("worker:") && plainWorker.status === 0 && plainResult.startsWith("worker:"), `${result}\n${plainResult}`);
 // req: R-628
 check("lane preamble forbids the named package-manager operations at a worktree root", fs.readFileSync(path.join(temp, "prompt-1"), "utf8").includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
+const preambleText = fs.readFileSync(path.join(temp, "prompt-1"), "utf8");
+const RULE_LINE = {
+	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
+	fixTheClass: "Fix the class, not the named example: cover every alias, option form and input shape the rule names.",
+	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
+	crlfAndWhitespace: "A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.",
+	idsFromBriefRange: "New requirement rows take IDs only from the range your brief names.",
+	noSuiteTestRunsSeatScript: "No suite test runs, imports or copies a seat script.",
+	noUnnamedTestDeleted: "Never delete a test your brief does not name.",
+	touchedTestsBeforeCommit: "Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.",
+	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
+	longOutputToFile: "Send long script output to a committed file and paste only the lines your brief asks for.",
+	readCiOnce: "When your brief asks for CI, read the finished run once and report. Do not wait for another notification.",
+	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.",
+};
+const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
+// req: R-1110
+check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
+// req: R-1110
+check("lane preamble carries: fix the class", preambleOnce(RULE_LINE.fixTheClass), RULE_LINE.fixTheClass);
+// req: R-1110
+check("lane preamble carries: await every async case", preambleOnce(RULE_LINE.awaitEveryAsyncCase), RULE_LINE.awaitEveryAsyncCase);
+// req: R-1110
+check("lane preamble carries: CRLF and whitespace cases", preambleOnce(RULE_LINE.crlfAndWhitespace), RULE_LINE.crlfAndWhitespace);
+// req: R-1110
+check("lane preamble carries: IDs from the brief's range", preambleOnce(RULE_LINE.idsFromBriefRange), RULE_LINE.idsFromBriefRange);
+// req: R-1110
+check("lane preamble carries: no suite test runs a seat script", preambleOnce(RULE_LINE.noSuiteTestRunsSeatScript), RULE_LINE.noSuiteTestRunsSeatScript);
+// req: R-1110
+check("lane preamble carries: no unnamed test deleted", preambleOnce(RULE_LINE.noUnnamedTestDeleted), RULE_LINE.noUnnamedTestDeleted);
+// req: R-1110
+check("lane preamble carries: touched tests before each commit and the full suite before the last", preambleOnce(RULE_LINE.touchedTestsBeforeCommit), RULE_LINE.touchedTestsBeforeCommit);
+// req: R-1110
+check("lane preamble carries: seat checks before DONE", preambleOnce(RULE_LINE.seatChecksBeforeDone), RULE_LINE.seatChecksBeforeDone);
+// req: R-1110
+check("lane preamble carries: long output to a committed file", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
+// req: R-1110
+check("lane preamble carries: read CI once", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
+// req: R-1110
+check("lane preamble carries: the suite check count in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
 const defaultPairs = [["--provider", "openai-codex"], ["--model", "gpt-6-luna"], ["--thinking", "high"], ["-t", "read,grep,find,bash,edit,write"]];
 const receivedArgs = result.split("\n");
 // req: R-961

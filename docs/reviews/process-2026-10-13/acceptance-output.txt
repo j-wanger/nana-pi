@@ -1,0 +1,53 @@
+ok   (a) committed review standard is byte-equal to review-standard.proposed.md
+ok   (a) committed builder preamble is byte-equal to builder-preamble.proposed.md
+ok   (a) the shared file carries shared-text.proposed.md's bullets byte-equal, once, as whole lines
+ok   (a) the shared file is main's copy with exactly those bullets inserted after the Review ladder bullet
+ok   (a) AGENTS.md's shared region is byte-identical to the shared file
+ok   (a) CLAUDE.md is still a symlink to AGENTS.md
+ok   (b) AGENTS.md outside the shared markers carries one step: install check + macOS + nana-land (R-1109)
+ok   (b) the shared file names no install check (§3: it stays outside the markers)
+ok   (c) harness: the stub pi started and its argv was captured
+ok   (c) pi-review exits 0 against the stub
+ok   (c) the scratch home's ledger recorded a LAND round for the item
+ok   (c) the immutable-checkout sentence is appended exactly once (R-974 kept)
+ok   (c) the stub received the standard's text exactly once in its whole argv (R-1105)
+ok   (c) that text is one --append-system-prompt value of its own (R-1105)
+ok   (c) no argv element names the standard's path (R-1105)
+ok   (c) the standard is appended after the immutable-checkout sentence (R-1105)
+ok   (d) control: the pack copy with the standard present exits 0 and starts the stub
+ok   (d) standard missing: pi-review exits 1 (R-1106)
+ok   (d) standard missing: stderr names the file
+ok   (d) standard missing: no reservations directory in the scratch home
+ok   (d) standard missing: no admission note on stderr
+ok   (d) standard missing: the stub pi never started
+ok   (d) standard a directory: pi-review exits 1 (R-1106)
+ok   (d) standard a directory: stderr names the file
+ok   (d) standard a directory: no reservations directory in the scratch home
+ok   (d) standard a directory: no admission note on stderr
+ok   (d) standard a directory: the stub pi never started
+ok   (d) standard blank: pi-review exits 1 (R-1106)
+ok   (d) standard blank: stderr names the file
+ok   (d) standard blank: no reservations directory in the scratch home
+ok   (d) standard blank: no admission note on stderr
+ok   (d) standard blank: the stub pi never started
+ok   (e) README step 8 runs a nana-setup trust command before nana-setup doctor (R-1111)
+ok   (e) harness: nana-setup install --home <scratch> exits 0
+ok   (e) step 8's trust command, adapted to the scratch home and --yes, exits 0
+ok   (e) harness: step 8's doctor ran from the worktree
+ok   (e) doctor from the worktree shows a ✓ project trust row (R-1111)
+ok   (f) R-1100 is one row with exactly one "shall"
+ok   (f) R-1101 is one row with exactly one "shall"
+ok   (f) R-1102 is one row with exactly one "shall"
+ok   (f) R-1103 is one row with exactly one "shall"
+ok   (f) R-1104 is one row with exactly one "shall"
+ok   (f) R-1105 is one row with exactly one "shall"
+ok   (f) R-1106 is one row with exactly one "shall"
+ok   (f) R-1107 is one row with exactly one "shall"
+ok   (f) R-1108 is one row with exactly one "shall"
+ok   (f) R-1109 is one row with exactly one "shall"
+ok   (f) R-1110 is one row with exactly one "shall"
+ok   (f) R-1111 is one row with exactly one "shall"
+ok   (f) node scripts/requirements-tree.mjs --check exits 0
+ok   (g) git diff --name-only main...HEAD lists only §4 paths
+cases: 51/51
+process acceptance: 0 mismatch(es)

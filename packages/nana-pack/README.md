@@ -153,6 +153,14 @@ scratch=$(mktemp -d)
 pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider openai-codex -m gpt-5.6-sol -p "$(cat brief.md)"
 ```
 
+**The review standard.** Before admission, `pi-review` reads `prompts/review-standard.md` and refuses —
+exit 1, no reservation, no checkout, no pi child — when the file is missing, not a regular file, or blank
+after trimming. Every admitted review receives its TEXT, never its path, as a second
+`--append-system-prompt` appended once, immediately after the immutable-checkout sentence, so a review
+brief states only the threat model and lane class and never repeats the bar. `review-ledger run` wraps
+any other launcher command as given and does **not** inject this text; a hand-rolled review brief must
+paste it itself.
+
 **Any other launcher** (e.g. a hand-rolled `claude -p … > "$scratch/out.md"`) prefixes the same check —
 `bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
 
