@@ -1,0 +1,11 @@
+RED  flag dropped from the release line
+RED  a third pi install line without the flag
+RED  an unversioned pi install step
+RED  no Z
+RED  unquoted value
+RED  rollover date
+RED  a second PI_BEFORE in the suite env
+RED  npm_config_before in the suite env
+RED  a root .npmrc with before
+RED  retuned cutoff
+pin-mutate: 10/10 red

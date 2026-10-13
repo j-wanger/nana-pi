@@ -35,7 +35,7 @@ check("R-291: committed outline equals a fresh render", map === actual.outline, 
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,085", (() => {
+check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,088", (() => {
   const outlineLines = map.split("\n");
   let leafTotal = 0;
   for (const heading of actual.parsed.headings) {
@@ -49,8 +49,8 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1085;
-})(), "committed IDs differ or leaf total is not 1,085");
+  return leafTotal === 1088;
+})(), "committed IDs differ or leaf total is not 1,088");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }

@@ -1,0 +1,35 @@
+ok   (a) PI_BEFORE is declared exactly once in the file
+ok   (a) the workflow env holds PI_BEFORE, double-quoted, sealed value
+ok   (a) at least two pi install lines
+ok   (a) every pi install line ends with the cutoff flag
+ok   (a) no npm_config_before anywhere in the workflow
+ok   (a) no before line in a repository-root .npmrc
+ok   (b) the suite install line was found
+ok   (b) the pinned install exits 0
+ok   (b) the pinned tree holds pi-coding-agent
+ok   (b) every @earendil-works package in the pinned tree is 1.0.2 (at least eight)
+ok   (b) pi's main entry imports from the pinned tree
+ok   (b) apps/desk/test/app-listener.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/buffer-caps.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/changes-endpoint.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/crash-paths.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/host-rule.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/origin-rule.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/pi-087-entries.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/pi-session-parity.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/prompt-detach.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/spawn-and-persist.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/stage-key-persistence.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/teardown-invariants.test.mjs passes against the pinned tree
+ok   (b) apps/desk/test/usage-line.test.mjs passes against the pinned tree
+ok   (b) packages/nana-pack/tests/agent-dir-parity.test.mjs passes against the pinned tree
+ok   (b) packages/nana-pack/tests/config-project-gate-fallback.test.mjs passes against the pinned tree
+ok   (b) packages/nana-pack/tests/config-trust.test.mjs passes against the pinned tree
+ok   (b) packages/nana-pack/tests/objective-golden.test.mjs passes against the pinned tree
+ok   (b) packages/nana-pack/tests/post-edit-file-queue.test.mjs passes against the pinned tree
+ok   (c) the unpinned control install exits 0
+ok   (c) the unpinned control resolves pi-codemode past 1.0.x
+ok   (c) the unpinned control fails pi's import with the missing export
+ok   (c) a drift file fails against the unpinned control
+cases: 33/33
+ci-pi-pin acceptance: 0 mismatch(es)
