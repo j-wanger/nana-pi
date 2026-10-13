@@ -225,7 +225,12 @@ for (const w of win32Wanted) {
 	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
 	const outsideDir = tmpDir(path.join(os.tmpdir(), "nana-setup-outside-"));
 	tmps.push(outsideDir);
-	const outsideTarget = path.join(outsideDir, "nana-objective.mjs");
+	// Forward-slash suffix, not path.join: on real Windows path.join gives an ALL-backslash
+	// path, which targetFromArgv's `endsWith('/' + script)` check (and the real installer's own
+	// win32 paths — CHANGE §3, native root + `/` suffix) would read as not invoking the script
+	// at all, making this fixture invisible rather than "outside the checkout" (sol MUST 3 /
+	// astra MUST 4 case, windows-leg fix).
+	const outsideTarget = `${outsideDir}/nana-objective.mjs`;
 	fs.writeFileSync(outsideTarget, "// exists, but not the checkout's copy\n");
 	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
 	const outsideEntry = { ...objWanted.entry, args: [outsideTarget] };
@@ -239,7 +244,9 @@ for (const w of win32Wanted) {
 	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
 	const outsideDir = tmpDir(path.join(os.tmpdir(), "nana-setup-outside2-"));
 	tmps.push(outsideDir);
-	const outsideTarget = path.join(outsideDir, "nana-objective.mjs");
+	// Forward-slash suffix — see the note above; the "good" entry here already names a real,
+	// visible target, so this fixture must be a SECOND real, VISIBLE target, not an invisible one.
+	const outsideTarget = `${outsideDir}/nana-objective.mjs`;
 	fs.writeFileSync(outsideTarget, "// exists, but not the checkout's copy\n");
 	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
 	const duplicateEntry = { ...objWanted.entry, args: [outsideTarget] };
