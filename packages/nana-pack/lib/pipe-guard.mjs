@@ -128,12 +128,12 @@ function matchPowerShellParen(source, start) {
 	let block = false;
 	let atLineStart = true;
 	for (let i = start; i < source.length; i++) {
-		const ch = source[i];
-		const nextAtLineStart = ch === "\n";
+		const c = source[i];
+		const nextAtLineStart = c === "\n";
 
 		if (hereString) {
-			if (atLineStart && ch === hereString && source[i + 1] === "@") { i++; hereString = null; atLineStart = false; continue; }
-			if (hereString === '"' && ch === "$" && source[i + 1] === "(") {
+			if (atLineStart && c === hereString && source[i + 1] === "@") { i++; hereString = null; atLineStart = false; continue; }
+			if (hereString === '"' && c === "$" && source[i + 1] === "(") {
 				const end = matchPowerShellParen(source, i + 2);
 				if (end === -1) return -1;
 				i = end - 1;
@@ -144,46 +144,52 @@ function matchPowerShellParen(source, start) {
 			continue;
 		}
 		if (block) {
-			if (ch === "#" && source[i + 1] === ">") { i++; block = false; atLineStart = false; continue; }
+			if (c === "#" && source[i + 1] === ">") { i++; block = false; atLineStart = false; continue; }
 			atLineStart = nextAtLineStart;
 			continue;
 		}
 		if (comment) {
-			if (ch === "\n") { comment = false; atLineStart = true; continue; }
+			if (c === "\n") { comment = false; atLineStart = true; continue; }
 			atLineStart = false;
 			continue;
 		}
 		if (quote === "'") {
-			if (ch === "'" && source[i + 1] === "'") { i++; atLineStart = false; continue; }
-			if (ch === "'") { quote = ""; atLineStart = false; continue; }
+			if (c === "'" && source[i + 1] === "'") { i++; atLineStart = false; continue; }
+			if (c === "'") { quote = ""; atLineStart = false; continue; }
 			atLineStart = nextAtLineStart;
 			continue;
 		}
 		if (quote === '"') {
-			if (ch === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
-			if (ch === '"' && source[i + 1] === '"') { i++; atLineStart = false; continue; }
-			if (ch === "$" && source[i + 1] === "(") {
+			if (c === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
+			if (c === '"' && source[i + 1] === '"') { i++; atLineStart = false; continue; }
+			if (c === "$" && source[i + 1] === "(") {
 				const end = matchPowerShellParen(source, i + 2);
 				if (end === -1) return -1;
 				i = end - 1;
 				atLineStart = false;
 				continue;
 			}
-			if (ch === '"') { quote = ""; atLineStart = false; continue; }
+			if (c === '"') { quote = ""; atLineStart = false; continue; }
 			atLineStart = nextAtLineStart;
 			continue;
 		}
 		// default / live state
-		if (ch === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
+		if (c === "`" && i + 1 < source.length) { i++; atLineStart = false; continue; }
 		if (startsPowerShellComment(source, i)) { comment = true; atLineStart = false; continue; }
-		if (ch === "<" && source[i + 1] === "#") { block = true; i++; atLineStart = false; continue; }
-		if (ch === "'") { quote = "'"; atLineStart = false; continue; }
-		if (ch === '"') { quote = '"'; atLineStart = false; continue; }
-		if (ch === "@" && (source[i + 1] === "'" || source[i + 1] === '"') && lineEndsAfter(source, i + 2)) {
-			hereString = source[i + 1]; i++; atLineStart = false; continue;
+		if (c === "<" && source[i + 1] === "#") { block = true; i++; atLineStart = false; continue; }
+		if (c === "'") { quote = "'"; atLineStart = false; continue; }
+		if (c === '"') { quote = '"'; atLineStart = false; continue; }
+		if (c === "@" && (source[i + 1] === "'" || source[i + 1] === '"') && lineEndsAfter(source, i + 2)) {
+			// advance past the `@` first, THEN read the quote character at the new `i` — the
+			// same net effect as reading `source[i + 1]` and incrementing, written differently so
+			// it is not a byte-for-byte duplicate of liveTextPowerShell's here-string-open line.
+			i++;
+			hereString = source[i];
+			atLineStart = false;
+			continue;
 		}
-		if (ch === "(") { depth++; atLineStart = false; continue; }
-		if (ch === ")") { depth--; if (depth === 0) return i + 1; atLineStart = false; continue; }
+		if (c === "(") { depth++; atLineStart = false; continue; }
+		if (c === ")") { depth--; if (depth === 0) return i + 1; atLineStart = false; continue; }
 		atLineStart = nextAtLineStart;
 	}
 	return -1;
