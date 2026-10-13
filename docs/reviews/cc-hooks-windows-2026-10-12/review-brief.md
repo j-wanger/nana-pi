@@ -1,6 +1,6 @@
 # Review — the Claude Code seat's hooks on Windows, 2026-10-12 (gpt-5.6-sol build review and gpt-6-astra land review, in parallel)
 
-**Round 3 (the last allowed).** Round 2 (`sol-r2.md` 7/10, `astra-r2.md` 90/100, both SEND-BACK, at `f7bb70c`) closed round 1 and found `<#` opening a block comment inside a word, plus evidence gaps in R-1055, R-1056, R-1060, R-937 and the cited CI run. Build 5 (`build-brief-5.md`) fixed them; the seat added pair 32 and re-anchored 28–30 (37/37 red, re-run by the seat), made Jake's check page repeatable (unique folder, fixture preflight; astra r2 SHOULD 1), and recorded the CI pin as an urgent separate lane. Check every round-1 and round-2 finding is closed, then review the whole diff: this round covers the exact tip that will land. The macOS and Linux CI legs are red from 2026-10-12 23:00Z for an upstream reason (pi-codemode 1.2.0 breaks fresh pi 1.0.2 installs for code importing pi's modules); the lane's macOS evidence is the local locked suite (`137 files … 0 FAIL`).
+**Round 4 — over-cap confirmation round on the final tip after fixes to named findings.** Round 3 (`sol-r3.md` SEND-BACK 8/10, `astra-r3.md` LAND-WITH-FIXES 94/100, at `54b569b`) left one lexer finding (a `#` after a closing quote, `'hi'#`, missed as a comment start, so a `)` inside it closed `$( … )` early) and evidence references (R-937's skill-row test, the final CI run). Build 6 (`build-brief-6.md`) made the comment-boundary set the spec's union (§2.2.3 and §2.3.3, each character sourced in the code), added a case per boundary character and per word character, cited R-937's skill-row test and the build-6 Windows run. The seat re-anchored pairs 28 and 32 and re-ran the whole table on the code tip: 37/37 red. Confirm the round-3 findings are closed and that nothing else changed beyond them; the earlier rounds' findings stay closed. The macOS and Linux CI legs are red for the upstream pi-codemode reason (separate urgent lane); the local locked suite is 137 files, 0 FAIL.
 
 Review `git diff 7e6ce39..HEAD` on `feat/cc-hooks-windows` (based on current `main`, `7e6ce39`). Threat model
 (Jake, 2026-10-11): honest variation in a Windows machine — Git Bash present or not, PowerShell as the primary
@@ -8,13 +8,13 @@ shell, backslash and mixed-separator paths, a user's own hand-written hook entri
 is in scope; a hostile local user is out. Lane class: gate-adjacent (the pipe guard's PowerShell lexer).
 
 Records, all in `docs/reviews/cc-hooks-windows-2026-10-12/`: the plan (`CHANGE.md`; seat planning workflow,
-two fact-checks, sol plan r1–r3 at 70, 86, 100), five Sonnet builds (`build-brief-1..5.md`), the seat's
+two fact-checks, sol plan r1–r3 at 70, 86, 100), six Sonnet builds (`build-brief-1..6.md`), the seat's
 acceptance script (`seat-verify-hooks.mjs`, black box through a forced-win32 install; 59/59), the title check
 (`seat-verify-tests.mjs`; 0 gaps), and the seat's code-break runner (`seat-mutate.mjs`; 37/37 red at the last
 build — do NOT run it: it takes many minutes and adds scratch git worktrees; read its committed outputs
-`seat-mutate-build{1,2,3,4,5}-output.txt`, `seat-mutate-build{4,5}-seat-output.txt`). You may run `seat-verify-hooks.mjs` and any test file. The real Windows
-evidence is CI run 38342945583 at the last code tip (Windows job: `hooks-win32-exec` 25 pass, `pipe-guard` 69,
-`win32-degrade` 86; `settings-merge` 192 pass and 3 file-mode fails the plan declares out of scope).
+`seat-mutate-build{1,…,6}-output.txt`, `seat-mutate-build{4,5,6}-seat-output.txt`). You may run `seat-verify-hooks.mjs` and any test file. The real Windows
+evidence is CI run 38347800159 at the last code tip (Windows job: `hooks-win32-exec` 25 pass, `pipe-guard` 84,
+`win32-degrade` 86 at the prior run; `settings-merge` 192 pass and 3 file-mode fails the plan declares out of scope).
 
 Check: (1) `packages/nana-setup/lib/settings.mjs`, `steps.mjs`, `doctor.mjs`, `verifier-hook.mjs`,
 `claude/hooks/verifier-pipe.mjs` and `packages/nana-pack/lib/pipe-guard.mjs` against CHANGE §2–§4 and rows
