@@ -56,8 +56,8 @@ feat/install-check reserves R-1070–R-1089 and uses up to R-1084; no branch use
 | ID | Change | Text (draft) |
 |---|---|---|
 | R-1090 | added (FEAT-019) | Every root CI workflow step that installs pi shall pass npm's `--before` flag set to the declared pi resolution cutoff `PI_BEFORE`. |
-| R-1091 | added (FEAT-019) | The root CI workflow shall declare the pi resolution cutoff exactly once, as a double-quoted `PI_BEFORE` value that is a valid UTC instant in the form `YYYY-MM-DDTHH:MM:SSZ`, in its workflow-level `env:` beside `PI_VERSION`. |
-| R-1092 | added (FEAT-019) | The repository shall not set npm's `before` configuration through an `npm_config_before` environment variable in its CI workflow, in any letter case, or through a `before` line in a repository `.npmrc`. |
+| R-1091 | added (FEAT-019) | The root CI workflow shall declare the pi resolution cutoff exactly once, as the double-quoted `PI_BEFORE` value `2026-10-04T06:57:57Z` (a valid UTC instant in the form `YYYY-MM-DDTHH:MM:SSZ`), in its workflow-level `env:` beside `PI_VERSION`. |
+| R-1092 | added (FEAT-019) | The repository shall not set npm's `before` configuration through an `npm_config_before` environment variable in its CI workflow, in any letter case, or through a `before` line in the repository-root `.npmrc`. |
 
 R-597, R-686, R-996, R-1031 and R-1032 keep their text and tests. R-950 and R-951 (fresh-machine checklist)
 are unchanged; see §6 item 1. The requirements-tree leaf total moves from 1,070 to 1,073.
@@ -146,7 +146,7 @@ setup-uv and action-major pins; an upstream issue; pre-existing Ubuntu and Windo
   `new Date(v).toISOString() === v.replace("Z", ".000Z")`, which rejects rollover dates.
 - `// req: R-1091` "the pi resolution cutoff is sealed at the seat's install moment": the only copy of the
   literal, `PI_BEFORE: "2026-10-04T06:57:57Z"`.
-- `// req: R-1092` "npm's before is never set through the environment or a repository .npmrc": no
+- `// req: R-1092` "npm's before is never set through the environment or a repository-root .npmrc": no
   non-comment line of `ci.yml` matches `/npm_config_before/i`, and no `.npmrc` at the repository root holds a
   `before` line.
 
@@ -160,7 +160,7 @@ ${{ env.PI_BEFORE }}` in the suite `env:` → R-1092; retuned to `2026-10-05T00:
 check, naming R-1091.
 
 **Seat, before the build review.** Install the built line, expanded with its env values, into a scratch
-prefix and read `npm ls --prefix <p> -g @earendil-works/pi-codemode` (expect 1.0.2); import pi's main entry
+prefix and read `npm ls --prefix <p> -g --all`: all eight `@earendil-works` packages at 1.0.2 (sol plan r1 SHOULD 2); import pi's main entry
 from that prefix (expect no SyntaxError); `test:locked`, `map:check`, `readme:check` green; `req:tree` run.
 
 **CI on the draft PR, red first.** The baseline is the three post-drift runs in §1.
@@ -184,7 +184,7 @@ since 2026-10-05 (INFERRED); the seat's locked suite on that same tree is the co
    that install the desk will not start and the bench's in-process load fails (INFERRED from CI and the
    import chain; not run locally). This conflicts with the rule that every README claim is true; this Mac
    is unaffected. Trade: fixing it here changes the command users type and grows an urgent lane; leaving
-   it breaks a fresh macOS seat until the follow-up. Decision: a follow-up lane right after this one
+   it breaks a fresh macOS seat until the follow-up. Decision: a follow-up lane after the install-check lane (Jake's queue names install-check next; sol plan r1 MUST 2)
    that appends the same cutoff to those three commands and extends R-951's check to read `PI_BEFORE` from
    `ci.yml`, so README and CI cannot drift and install-check's line mirrors README step 2 exactly. It is not Jake's call: it
    restores a README promise without changing what a user installs. `apps/bench/README.md:26` and the desk's fix
@@ -209,3 +209,8 @@ since 2026-10-05 (INFERRED); the seat's locked suite on that same tree is the co
 6. **Research side effect.** Two probes appended 8 lines (handoff_missing, session_start, objective_pickup,
    session_shutdown, twice each) to `~/.pi/agent/nana-journal.jsonl` at 2026-10-13T11:43:23–24Z; left in
    place for Jake to keep or delete.
+
+## Plan review
+
+- 2026-10-13, sol plan r1 LAND-WITH-FIXES 92/100 (`sol-plan-r1.md`), the one round a small lane gets. Applied: R-1091 states the sealed value; the README follow-up runs after install-check, per Jake's queue; R-1092 names the repository-root `.npmrc`; the seat's scratch check asserts all eight package versions.
+- 2026-10-13, seat amendment before the build: ONE push instead of two. The red-first evidence is local — the seat's acceptance script fails 23 of 33 at launch (`acceptance-launch.txt`) and passes 33 of 33 on a prototype of §3's fix, including all 18 drift files against a scratch install of the pinned line — so a tests-only CI push would add a 25-minute cycle and no information.
