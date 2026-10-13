@@ -23,6 +23,7 @@
 - 2026-10-13: one command installs nana into a temporary home and runs every hook the way Claude Code and pi do. CI runs it on macOS and Windows and blocks on either; both pass with no expected failures — `docs/sessions/2026-10.md`. Main's run 38414636460 passed it on both, so the CI half of the 2026-10-24 "done" is met.
 - 2026-10-13: every review now gets one standard text from pi-review: the last-line verdict and Jake's materiality bar. The working pattern carries his plan rules, the builder preamble has twelve refreshed rules, and fresh-machine step 8 trusts the clone — `docs/sessions/2026-10.md`.
 - 2026-10-13: Jake's rulings. Sonnet builds larger or riskier lanes, and luna builds small lanes with every test named. Any change that touches code with tests goes through the worker and reviewer pattern. A machine may leave the land model unset; then the seat gives the land review.
+- 2026-10-13: every pi install command in the READMEs now carries CI's pinned version and cutoff. So does the hint install and doctor print when pi is missing; nana-setup reads both values by name from CI's file. When a line fails, the install check also prints the installed hooks and the last knowledge-pull record — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -43,8 +44,10 @@
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
-- Install check: it proves install and hooks in a temporary home, not a live Claude Code session. Linux runs no install check. Its Windows doctor note list carries two labels that never print as notes there: one skill row passes and the other does not exist.
+- Install check: it proves install and hooks in a temporary home, not a live Claude Code session. Linux runs no install check.
 - Review standard: projects other than nana-pi take the new working-pattern text only when `nana-setup project` runs there. `review-ledger run` gets no standard. Nothing stages a pi-review change before it reaches every caller.
+- Fresh install: the desk's two install hints in its code and the study README still name no cutoff, since Jake froze the desk. We tested PowerShell 7; PowerShell 5.1 and cmd should pass the unquoted cutoff unchanged, but nobody has run them.
+- Process lane reviews left three requirements whose tests check less than their rows say. They are an unreadable standard file, each preamble rule on its own line, and step 8's trust target.
 - CI pin: the install gate checks the workflow text, not the resolved packages; a check that imports pi after install is the hardening step. The cutoff does not freeze deprecations or retags. The suite's template acceptance test needs the network, and a network hiccup refused one land run.
 - Claude Code hooks on Windows: uninstall still refuses there, and its leftover-entry report would miss the new form (the Windows install-shape lane). Doctor's four hook-file rows read "skipped (win32)" just above the five ✓ settings rows. On the Windows CI leg, three file-mode checks and one test that deletes its own working folder stay red (test portability). Nothing here proves how Claude Code itself starts the hooks, routes PowerShell, or how long they take. Reviewers found the PowerShell lexer's gaps one character at a time over three rounds. The hardening step: a Windows-leg test compares its comment and string spans with PowerShell's own tokenizer over generated commands.
 - Windows pi launch: nana runs the first `pi.com`, `.exe`, `.bat` or `.cmd` on PATH — not PowerShell's `pi.ps1`, an alias or a function, and never a `pi.cmd` in the working folder. A `.cmd` pi whose path or package folder holds `%`, `!` or a double quote needs a manual `pi install`. Post-edit calls a missing tool a failed check when it hides behind a non-simple first word or later in a compound command. A failing command led by an internal command outside the sealed list reads as "could not run".
@@ -65,9 +68,8 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
-   - Then fresh local installs: the README, desk and bench install commands take the same cutoff, checked against CI's value. Until then a fresh install of pi breaks the desk.
-   - Now: fresh install, which pins the install commands and closes the install check's leftovers.
-   - Then the roster: a roster per machine, the pattern as the default, and Windows launchers that start pi.
+   - Now: the roster. Each machine gets its own roster, the pattern becomes the default, and the Windows launchers start pi through its Node entry.
+   - Then the tree for every project (Jake, 2026-10-13). Templates seed the requirements tree, the adopt step sorts a flat ledger into it, and the product report runs in any project.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
    - Then project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.

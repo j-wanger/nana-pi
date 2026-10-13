@@ -1,0 +1,86 @@
+ok   (0) ci.yml declares PI_VERSION (1.0.2) and PI_BEFORE (2026-10-04T06:57:57Z)
+ok   (a) the readme check covers 7 READMEs, including the four that install pi
+MISS (a) README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found) → :121 "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2" (no unquoted --before=2026-10-04T06:57:57Z)
+ok   (a) packages/nana-pack/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+ok   (a) packages/nana-knowledge/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+ok   (a) packages/nana-stage/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+MISS (a) packages/nana-setup/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found) → :70 "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>" (a @earendil-works/pi-coding-agent spec not at @1.0.2; no unquoted --before=2026-10-04T06:57:57Z)
+MISS (a) apps/desk/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found) → :25 "npm i -g @earendil-works/pi-coding-agent@1.0.2" (no unquoted --before=2026-10-04T06:57:57Z)
+MISS (a) apps/bench/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (2 found) → :11 "npm i -g @earendil-works/pi-coding-agent@1.0.2" (no unquoted --before=2026-10-04T06:57:57Z) | :26 "npm i -g @earendil-works/pi-coding-agent" (a @earendil-works/pi-coding-agent spec not at @1.0.2; no unquoted --before=2026-10-04T06:57:57Z)
+ok   (a) README.md step 2 holds a pi install command (non-vacuity)
+MISS (a) README.md: its pi install commands are exactly "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → :121 "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2"
+MISS (a) packages/nana-setup/README.md: its pi install commands are exactly "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → :70 "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>"
+MISS (a) apps/desk/README.md: its pi install commands are exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → :25 "npm i -g @earendil-works/pi-coding-agent@1.0.2"
+MISS (a) apps/bench/README.md: its pi install commands are exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → :11 "npm i -g @earendil-works/pi-coding-agent@1.0.2" | :26 "npm i -g @earendil-works/pi-coding-agent"
+ok   (b) harness: the scratch PATH has node and npm and no pi
+ok   (b) harness: doctor --home <scratch> ran and printed its pi executable row
+MISS (b) doctor: the hint carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent": a @earendil-works/pi-coding-agent spec not at @1.0.2; no unquoted --before=2026-10-04T06:57:57Z
+MISS (b) doctor: the hint equals README step 2's command → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent" vs "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2"
+ok   (b) harness: install in a scratch HOME ran and printed its pi packages row
+MISS (b) install: the hint carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent": a @earendil-works/pi-coding-agent spec not at @1.0.2; no unquoted --before=2026-10-04T06:57:57Z
+MISS (b) install: the hint equals README step 2's command → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent" vs "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2"
+MISS (b) steps.mjs PI_INSTALL_HINT equals README step 2's command → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent" vs "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2" 
+ok   (b) harness: the bench loader with a wrong BENCH_PI_ROOT printed a Fix line
+MISS (b) bench: the fix line's command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z → "npm i -g @earendil-works/pi-coding-agent"
+MISS (b) bench: the fix line's command is exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → "npm i -g @earendil-works/pi-coding-agent"
+ok   (c) harness: the scratch copy's steps.mjs imports and exports a hint
+MISS (c) control: the copy with the real ci.yml gives "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z" → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) a CRLF ci.yml gives the same values → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) a retuned pair in ci.yml reaches the hint by name, with no code change → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) no ci.yml: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) ci.yml without PI_BEFORE: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_BEFORE with a space ("2026-10-04 06:57:57Z"): <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_BEFORE empty: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_BEFORE not a date: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_BEFORE a rollover date ("2026-02-30T06:57:57Z"): <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_BEFORE with a shell metacharacter: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) ci.yml without PI_VERSION: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (c) PI_VERSION empty: <version> and <cutoff> placeholders, never an empty --before= → "npm i -g --ignore-scripts @earendil-works/pi-coding-agent"
+MISS (f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash → The check depends on Node, Git, pi, npm registry access, and Git Bash on Windows. | Windows follows the fresh-machine sequence without the PATH-link step: it installs nana into the temporary home, installs pi-subagents, writes the objective fix
+MISS (f) setup README: the Windows sentence says installed hooks run directly in exec form → phrase not found
+MISS (f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record → phrase not found
+MISS (f) Jake's page: step 2 is labelled PowerShell-only → "In Git Bash or PowerShell, from the checkout:"
+MISS (f) Jake's page differs from main in exactly one line → 0 lines differ
+MISS (f) apps/desk/README.md differs from main in exactly one line (the runtime row) → 0 lines differ
+MISS (g) R-1093 exists under SUB-011 with exactly one "shall" → no row
+MISS (g) R-1094 exists under SUB-011 with exactly one "shall" → no row
+MISS (g) R-1095 exists under FEAT-034 with exactly one "shall" → no row
+MISS (g) R-1096 exists under FEAT-015 with exactly one "shall" → no row
+ok   (g) R-1097 is unused
+MISS (g) the ledger holds 1,092 rows → 1088 rows
+ok   (g) no existing row changed its text or status, and none was removed
+MISS (g) each row's evidence cites every listed test whose marker names it (R-291 excepted) → R-1093 ⟵ every README pi install command carries CI's PI_VERSION and an unquoted PI_BEFORE | R-1093 ⟵ the missing-pi hint carries CI's PI_VERSION and an unquoted PI_BEFORE | R-1093 ⟵ pi pin reads PI_VERSION and PI_BEFORE from the workflow env with LF or CRLF line ends | R-1093 ⟵ the missing-pi hint is built from the checkout's CI workflow by pi-pin | R-1094 ⟵ the missing-pi hint is built from the 
+MISS (g) no row still cites a renamed title → install check is a blocking macOS and Windows job before suite
+ok   (g) node scripts/requirements-tree.mjs --check exits 0
+ok   (h) every changed path is in CHANGE §4 or the lane's review folder (11 paths)
+ok   (h) .github/ is unchanged
+ok   (h) apps/desk changes only README.md
+ok   (h) packages/nana-setup/lib/doctor.mjs is unchanged
+ok   (h) packages/nana-pack/lib/win-command.mjs is unchanged
+ok   (h) packages/nana-setup/bin/install-check.mjs is unchanged
+ok   (h) packages/nana-setup/tests/pi-registration.test.mjs is unchanged
+ok   (h) templates/ and the bench studies are unchanged
+note: uncommitted paths outside the review folder: none
+MISS (i) seat-titles 1: every title once, with its rows, and the old titles gone → 23 missing: NO-FILE packages/nana-setup/tests/pi-install-pin.test.mjs — every README pi install command carries CI's PI_VERSION and an unquoted PI_BEFORE | NO-FILE packages/nana-setup/tests/pi-install-pin.test.mjs — the missing-pi hint carries CI's PI_VERSION and an unquoted PI_BEFORE | NO-FILE packages/nana-setup/tests/pi-install-pin.test.mjs — pi pin reads PI_VERSION and PI_BEFORE from the workf
+MISS (j) win32 doctor notes: 17, without the two skills doctor never notes, keeping skill spec → 19: skill requirements, skill nana-standards, skill spec, skill py-lint, skill py-review, skill py-test
+ok   (d) harness: README step 2's command ran into a scratch --prefix ("npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2")
+MISS (d) README step 2: every @earendil-works package is at 1.0.2 (8 found) → @earendil-works/chord@1.2.0, @earendil-works/pi-agent-core@1.2.0, @earendil-works/pi-ai@1.2.0, @earendil-works/pi-telemetry@1.2.0, @earendil-works/pi-codemode@1.2.0, @earendil-works/pi-mcp@1.2.0, @earendil-works/pi-tui@1.2.0
+MISS (d) README step 2: the tree equals the seat's global pi tree (125 vs 152) → scratch only: @earendil-works/chord@1.2.0, @earendil-works/pi-agent-core@1.2.0, @earendil-works/pi-ai@1.2.0, @babel/runtime@7.29.10, @aws-sdk/core@3.978.3, @smithy/core@3.36.0; seat only: @earendil-works/chord@1.0.2, esbuild@0.28.2, @esbuild/aix-ppc64@undefined, @esbuild/android-arm@undefined, @esbuild/android-arm64@undefined, @esbuild/android-x64@undefined
+MISS (d) README step 2: pi's main entry imports → 1: SyntaxError: The requested module '@earendil-works/pi-codemode/declarations' does not provide an export named 'MCP_TYPESCRIPT_PREAMBLE'
+ok   (d) harness: the desk README's command ran into a scratch --prefix ("npm i -g @earendil-works/pi-coding-agent@1.0.2")
+MISS (d) the desk README: every @earendil-works package is at 1.0.2 (8 found) → @earendil-works/chord@1.2.0, @earendil-works/pi-agent-core@1.2.0, @earendil-works/pi-ai@1.2.0, @earendil-works/pi-telemetry@1.2.0, @earendil-works/pi-codemode@1.2.0, @earendil-works/pi-mcp@1.2.0, @earendil-works/pi-tui@1.2.0
+MISS (d) the desk README: the tree equals the seat's global pi tree (125 vs 152) → scratch only: @earendil-works/chord@1.2.0, @earendil-works/pi-agent-core@1.2.0, @earendil-works/pi-ai@1.2.0, @babel/runtime@7.29.10, @aws-sdk/core@3.978.3, @smithy/core@3.36.0; seat only: @earendil-works/chord@1.0.2, esbuild@0.28.2, @esbuild/aix-ppc64@undefined, @esbuild/android-arm@undefined, @esbuild/android-arm64@undefined, @esbuild/android-x64@undefined
+MISS (d) the desk README: pi's main entry imports → 1: SyntaxError: The requested module '@earendil-works/pi-codemode/declarations' does not provide an export named 'MCP_TYPESCRIPT_PREAMBLE'
+MISS (d) PowerShell via npm.ps1: step 2 as written resolves every @earendil-works package at 1.0.2 (dry run, exit 0) → exit 0; @earendil-works/pi-telemetry@1.2.0, @earendil-works/pi-tui@1.2.0, @earendil-works/pi-mcp@1.2.0, @earendil-works/pi-codemode@1.2.0
+ok   (d) PowerShell: the placeholder form exits non-zero and adds nothing
+ok   (e) a clean run here exits 0 with only PASS result lines
+ok   (e) a clean run prints no diagnostics lines
+ok   (e) harness: a scratch worktree at HEAD with the shared-memory hook's import broken
+ok   (e) harness: the fault run exits non-zero and FAILs hook shared memory
+MISS (e) the last two lines are `settings hooks:` then `last pull.log record:`, after every result line → tail ["PASS hook objective","FAIL doctor — note-row: this project's shared link absent for /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-K1uSQ3/project — the SessionStart hook creates it on the next session"]; last result line at 13 of 14
+ok   (e) harness: the fault run kept its temporary home and named it
+MISS (e) the settings hooks line holds the kept home's hooks block as one-line JSON → got null; want {"SessionStart":[{"hooks":[{"type":"command","command":"node '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/n
+MISS (e) the pull.log line holds the kept home's last non-empty pull.log line → got null; want {"ts":"2026-10-13T16:03:03.866Z","cwd":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-install-check-K1uS
+cases: 30/82
+fresh-install acceptance: 52 mismatch(es)
+exit 1

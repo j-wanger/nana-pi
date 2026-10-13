@@ -8,7 +8,7 @@ Cross-platform, `node <file>` tests, no npm dependencies of its own.
 | What | Why | Version |
 |---|---|---|
 | **Node** | the whole harness | **≥ 22.19** — pi's own floor (`engines.node: ">=22.19.0"` in `@earendil-works/pi-coding-agent/package.json`), and the bench spawns pi |
-| **`@earendil-works/pi-coding-agent`, installed globally** | spawned as `pi --mode json` for every measured run, **and imported in-process** so token and cost arithmetic is pi's, not ours | **1.0.2** (`npm i -g @earendil-works/pi-coding-agent@1.0.2`; tested 2026-10-05; the startup warning floor stays 0.84.4, below which the exports were never verified) |
+| **`@earendil-works/pi-coding-agent`, installed globally** | spawned as `pi --mode json` for every measured run, **and imported in-process** so token and cost arithmetic is pi's, not ours | **1.0.2** (`npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z`; tested 2026-10-05; the startup warning floor stays 0.84.4, below which the exports were never verified) |
 | ↳ its bundled **`@earendil-works/pi-ai`** | `calculateCost(model, usage)` and the `Usage` type — both **root exports** (`dist/index.d.ts` → `models.ts` / `types.ts`); never a deep `dist/` path | ships inside pi 1.0.2 |
 | ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 1.0.2 |
 | **`pi-web-access`** under `apps/bench/.ext/` | profile C **only**. Reviewed, content-pinned by sha256 in `study.json`, deliberately **not vendored** into this repo | **0.28.0** — `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0` |
@@ -23,7 +23,7 @@ that are still ours because pi does not export them.
 
 ## Install, run and test
 
-Nothing to install beyond the Dependencies above (`npm i -g @earendil-works/pi-coding-agent`);
+Nothing to install beyond the Dependencies above (`npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z`);
 the bench itself has no `package.json` and no `node_modules`. To run it, and to test it:
 
 ```bash

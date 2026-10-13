@@ -1,0 +1,27 @@
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — every README pi install command carries CI's PI_VERSION and an unquoted PI_BEFORE
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — the missing-pi hint carries CI's PI_VERSION and an unquoted PI_BEFORE
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — pi pin reads PI_VERSION and PI_BEFORE from the workflow env with LF or CRLF line ends
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — the missing-pi hint is built from the checkout's CI workflow by pi-pin
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — an unreadable or incomplete workflow gives a placeholder hint, never an empty cutoff
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — pin R-1093: the CI workflow path pi-pin reads
+NO-FILE  packages/nana-setup/tests/pi-install-pin.test.mjs — a cutoff with a space, a shell metacharacter or a rollover date gives a placeholder hint
+MISSING  apps/bench/test/usage.test.mjs — …and its fix line carries CI's PI_VERSION and an unquoted PI_BEFORE
+MISSING  packages/nana-setup/tests/install-check.test.mjs — install: an install that exits non-zero prints FAIL install with its exit status
+MISSING  packages/nana-setup/tests/install-check.test.mjs — pi session: a get_commands response without reload-runtime prints FAIL pi session
+MISSING  packages/nana-setup/tests/install-check.test.mjs — pi session: a journal without a directory_unadopted line for the fixture project prints FAIL pi session
+MISSING  packages/nana-setup/tests/install-check.test.mjs — dispatch: on win32 Git Bash discovery reads the path variable under any letter case and uses the injected exists
+MISSING  packages/nana-setup/tests/install-check.test.mjs — diagnostics: a run with a FAIL line prints the settings hooks block and the last pull.log record after the result lines
+MISSING  packages/nana-setup/tests/install-check.test.mjs — diagnostics: missing settings and pull.log files print could-not-be-read lines with their error codes
+MISSING  packages/nana-setup/tests/install-check.test.mjs — diagnostics: malformed settings print the error name and an empty pull.log prints none
+MISSING  packages/nana-setup/tests/install-check.test.mjs — pin R-1096: the pull.log path under the temporary home
+ok       pin R-1081: the doctor note list
+MISSING  packages/nana-pack/tests/ci-workflow.test.mjs — install check is a blocking macOS and Windows job
+MISSING  packages/nana-pack/tests/ci-workflow.test.mjs — install check job runs in bash and checks pi's version after the pinned install and before the check
+ok       checklist versions match Node, pi CI and pi-subagents sources
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,092
+NO-REQ   packages/nana-setup/tests/doctor-runtime.test.mjs — missing pi names the shared install hint — the line above must name R-1093 (saw "// req: R-1037")
+NO-REQ   packages/nana-setup/tests/doctor-runtime.test.mjs — install missing-pi detail imports the same hint and never reaches install — the line above must name R-1093 (saw "// req: R-1037")
+NOT-GONE packages/nana-pack/tests/ci-workflow.test.mjs — install check is a blocking macOS and Windows job before suite
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,088
+seat-titles 1: 23 missing
+exit 1
