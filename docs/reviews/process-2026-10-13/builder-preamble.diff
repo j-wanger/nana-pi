@@ -1,0 +1,38 @@
+4a5
+> Scope
+5a7,14
+> - Never edit `HANDOFF.md` or session archives.
+> - New requirement rows take IDs only from the range your brief names.
+> - A findings list is closures only.
+> - Never start model sessions or subagents.
+> - Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root; render a template project into a temp directory and use that project's toolchain there.
+> - Keep gate-trigger text out of bash command strings.
+> 
+> Tests
+6a16
+> - Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.
+8c18,20
+< - A findings list is closures only.
+---
+> - Fix the class, not the named example: cover every alias, option form and input shape the rule names.
+> - A test harness awaits every async case under a per-case limit.
+> - A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
+9a22,26
+> - No suite test runs, imports or copies a seat script.
+> - Never delete a test your brief does not name.
+> 
+> Before you report
+> - Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.
+11,14c28,30
+< - Keep gate-trigger text out of bash command strings.
+< - Never start model sessions or subagents.
+< - Never edit `HANDOFF.md` or session archives.
+< - Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root; render a template project into a temp directory and use that project's toolchain there.
+---
+> - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
+> - Send long script output to a committed file and paste only the lines your brief asks for.
+> - When your brief asks for CI, read the finished run once and report. Do not wait for another notification.
+18c34
+< Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line; and what was not done.
+---
+> Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.

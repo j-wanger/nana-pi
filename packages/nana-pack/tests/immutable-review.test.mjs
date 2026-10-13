@@ -20,9 +20,13 @@ const root = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "immutable-review-tes
 const fakeBin = path.join(root, "fake-bin");
 fs.mkdirSync(fakeBin);
 const fakePi = path.join(fakeBin, "pi");
+// The observed argv ("$*") may itself carry embedded newlines once an appended system prompt is
+// multi-line text (R-1105): write it as the file's tail, after exactly three header lines, so a
+// reader can split the header and rejoin the remainder, rather than one blind split("\n").
 fs.writeFileSync(fakePi, `#!/bin/sh
 printf '%s\\n' "$$" > "$OBSERVE_PID"
-printf '%s\\n%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" "$*" > "$OBSERVE"
+printf '%s\\n%s\\n%s\\n' "$PWD" "$NANA_REVIEW_ROOT" "$NANA_ROLE" > "$OBSERVE"
+printf '%s' "$*" >> "$OBSERVE"
 while [ -n "$WAIT_FOR" ] && [ ! -e "$WAIT_FOR" ]; do sleep 0.05; done
 case "$MODE" in fail) exit 1;; stall) exec sleep 30;; *) echo 'VERDICT: LAND';; esac
 `);
@@ -83,7 +87,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const OBSERVE_WAIT_ITERATIONS = 200; // chosen: five seconds lets the child record launch state on loaded CI.
 for (let i = 0; i < OBSERVE_WAIT_ITERATIONS && !fs.existsSync(observe); i++) await delay(25);
 const launched = fs.existsSync(observe);
-let observed = launched ? fs.readFileSync(observe, "utf8").trim().split("\n") : [];
+// Header is exactly three lines (cwd, NANA_REVIEW_ROOT, NANA_ROLE); the remainder is the raw
+// argv tail, rejoined verbatim even when it carries its own embedded newlines (R-1105).
+const observedParts = launched ? fs.readFileSync(observe, "utf8").split("\n") : [];
+let observed = launched ? [observedParts[0], observedParts[1], observedParts[2], observedParts.slice(3).join("\n")] : [];
 const checkout = observed[0];
 const snapshotCorrect = launched && fs.existsSync(observePid) && /^\d+\n?$/.test(fs.readFileSync(observePid, "utf8")) && fs.realpathSync(checkout) === fs.realpathSync(observed[1]) && observed[2] === "reviewer" &&
   observed[3].includes(`Your cwd is an immutable checkout of revision ${revision} at ${observed[1]}; read files there, not in other worktrees`) &&
@@ -106,6 +113,17 @@ const worktreesAfterSuccess = git(repo, "worktree", "list", "--porcelain");
 // req: R-968
 // req: R-974
 check("dirty working state is reproduced exactly and reviewer runs in the immutable checkout", result === 0 && snapshotCorrect && row?.revision === revision, JSON.stringify({ result, observed, row, revision }));
+const standardPath = path.join(bin, "..", "prompts", "review-standard.md");
+const standardText = fs.readFileSync(standardPath, "utf8").trim();
+const argvStr = observed[3] ?? "";
+const immutableSentence = `Your cwd is an immutable checkout of revision ${revision} at ${observed[1]}; read files there, not in other worktrees`;
+const idxImmutable = argvStr.indexOf(immutableSentence);
+const idxStandard = standardText ? argvStr.indexOf(standardText) : -1;
+const standardOccurrences = standardText ? argvStr.split(standardText).length - 1 : 0;
+// req: R-1105
+check("pi-review appends the review standard text once after the immutable sentence",
+  launched && standardOccurrences === 1 && idxImmutable >= 0 && idxStandard > idxImmutable && !argvStr.includes("review-standard.md"),
+  JSON.stringify({ standardOccurrences, idxImmutable, idxStandard }));
 // req: R-970
 check("pi-review records its provider, model, actual attempts and duration",
   row?.provider === "openai-codex" && row?.model === "gpt-5.6-sol" && row?.attempts === 1 && Number.isFinite(row?.durationMs) &&

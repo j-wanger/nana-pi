@@ -322,6 +322,44 @@ function checkInstructionContracts() {
 		desk.includes("Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify) is available only if its extension is in the checked set.") &&
 		desk.includes("Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, or notify unless a manifest explicitly lists the relevant extension.") &&
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
+	// req: R-1100
+	check("shared working pattern requires a threat model per plan",
+		shared.includes("every plan names its threat model") &&
+		shared.includes("honest variation in our tools' output is in scope") &&
+		shared.includes("deliberate forgery is out") &&
+		shared.includes("a finding outside the model is a residual"));
+	// req: R-1101
+	check("shared working pattern caps plan review at one or two rounds",
+		shared.includes("A small lane gets one plan-review round and a gate or format lane two") &&
+		shared.includes("only a named fail-open bug reopens the plan"));
+	// req: R-1102
+	check("shared working pattern freezes edits after an all-LAND review",
+		shared.includes("Once every reviewer says LAND, nothing more is edited"));
+	// req: R-1103
+	check("shared working pattern ships urgent fixes alone",
+		shared.includes("Urgent fixes ship alone and are hardened in a later lane"));
+	// req: R-1104
+	check("shared working pattern states the review bar for seats",
+		shared.includes("`pi-review` appends the review standard to every review it runs") &&
+		shared.includes("A review with no MUST finding says LAND") &&
+		shared.includes("LAND-WITH-FIXES is retired") &&
+		shared.includes("A confirmation round reviews only the change since the last round"));
+	const agentsMd = frontDoors[1];
+	const sharedBegin = "<!-- nana:working-under-nana-pi begin -->";
+	const sharedEnd = "<!-- nana:working-under-nana-pi end -->";
+	const sb = agentsMd.indexOf(sharedBegin), se = agentsMd.indexOf(sharedEnd);
+	const insideSharedRegion = sb >= 0 && se >= 0 ? agentsMd.slice(sb, se) : "";
+	const outsideSharedRegion = sb < 0 || se < 0 ? agentsMd : agentsMd.slice(0, sb) + agentsMd.slice(se + sharedEnd.length);
+	// req: R-1109
+	check("AGENTS.md carries the macOS install check outside the shared region",
+		// one step, scoped to its own line (seat mutation run 2026-10-13: phrases matched anywhere outside the region
+		// let "on macOS", "before `nana-land`" and "or a hook" be deleted with this check green)
+		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ")).length === 1 &&
+		outsideSharedRegion.replace(/\r/g, "").split("\n").some((line) =>
+			line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ") &&
+			line.includes("a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`")) &&
+		!/install[- ]check/i.test(insideSharedRegion) &&
+		fs.existsSync(path.join(REPO, "packages/nana-setup/bin/install-check.mjs")));
 }
 checkInstructionContracts();
 

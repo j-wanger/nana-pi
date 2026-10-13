@@ -4,13 +4,15 @@
  * @purpose Run a `pi` REVIEW under the liveness watchdog and the per-item round cap, recording the verdict
  *  only when a review was produced.
  * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
- *  and the pi args), the user-scope review ledger, and the reviewed tree's git revision
+ *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
+ *  prompts/review-standard.md
  * @outputs the review text written to --out, a round recorded in the ledger, and the admission note,
  *  warnings and a SUCCESS / FAILED line on stderr
  * @effects disk (writes --out plus the ledger's reservation, tally and audit files), process (the
  *  watchdog's `pi` child, the reservation heartbeat, the exit code)
- * @errors exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args), when every
- *  attempt stalled or failed, or when the round could not be recorded; exit 0 otherwise
+ * @errors exit 1 when admission is refused (over the cap, a git failure, a bad --out, bad args, a missing,
+ *  non-regular or blank review standard), when every attempt stalled or failed, or when the round could not
+ *  be recorded; exit 0 otherwise
  */
 // pi-review.mjs — run a `pi` (Codex) REVIEW under the liveness watchdog (pi-watchdog.mjs), with
 // the per-item review round cap (review-round.mjs, T2b). Every launch here is a review: there is
@@ -22,15 +24,17 @@
 // Exit: 0 = a review was produced (written to --out) and its verdict recorded; 1 = refused, all
 // retries stalled, bad args, or the verdict could not be recorded.
 
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree } from './review-round.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
+const REVIEW_STANDARD_URL = new URL('../prompts/review-standard.md', import.meta.url);
 const w = parseWatchdogArgv(process.argv);
 if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
@@ -38,6 +42,22 @@ if (w.error) {
 }
 
 if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-review', w.retries));
+
+// R-1106 — read and validate the review standard before admission: no reservation, no checkout,
+// no pi child when it is missing, not a regular file, unreadable, or blank after trimming.
+const reviewStandardPath = fileURLToPath(REVIEW_STANDARD_URL);
+let reviewStandardText;
+try {
+  if (!statSync(REVIEW_STANDARD_URL).isFile()) throw new Error(`${reviewStandardPath} is not a regular file`);
+  reviewStandardText = readFileSync(REVIEW_STANDARD_URL, 'utf8');
+} catch (e) {
+  process.stderr.write(`pi-review: review standard refused: ${e.code === 'ENOENT' ? `${reviewStandardPath} is missing` : e.message}\n`);
+  process.exit(1);
+}
+if (!reviewStandardText.trim()) {
+  process.stderr.write(`pi-review: review standard refused: ${reviewStandardPath} is blank\n`);
+  process.exit(1);
+}
 
 // Round cap — only the argv BEFORE `--` is consulted, so a pi arg can never satisfy or spoof
 // --item/--over-cap.
@@ -174,7 +194,7 @@ try {
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {
-    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`], childEnv: { NANA_ROLE: 'reviewer', NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
+    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText], childEnv: { NANA_ROLE: 'reviewer', NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
   } finally {
     stopHeartbeat();
     if (!r?.ok) release(adm.id);
