@@ -46,7 +46,7 @@ export const REQUIRED = {
 		[CIW, "install check job runs in bash and checks pi's version after the pinned install and before the check", ["R-1078"]],
 		// T19 (title kept, pi clause edited) and T20 (rename).
 		[FRESH, "checklist versions match Node, pi CI and pi-subagents sources", ["R-951"]],
-		[TREE, "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,092", ["R-291"]],
+		[TREE, "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,104", ["R-291"]], // 1,092 before main's merge of the process lane (+12 rows, 2026-10-13)
 		// Plan review NOTE: the two existing R-1037 tests of the shared hint gain R-1093 in their markers.
 		[DOCTOR, "missing pi names the shared install hint", ["R-1037", "R-1093"]],
 		[DOCTOR, "install missing-pi detail imports the same hint and never reaches install", ["R-1037", "R-1093"]],

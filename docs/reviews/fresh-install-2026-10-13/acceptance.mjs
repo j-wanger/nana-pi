@@ -244,7 +244,7 @@ const oneLineChange = (rel) => {
   }
   out("(g) R-1097 is unused", !/\bR-1097\b/.test(ledger), "R-1097 appears in REQUIREMENTS.md");
   const leaves = (ledger.match(/^\| (?:R|G)-\d+ \|/gm) ?? []).length;
-  out("(g) the ledger holds 1,092 rows", leaves === 1092, `${leaves} rows`);
+  out("(g) the ledger holds 1,104 rows (1,092 + the process lane's 12, merged 2026-10-13)", leaves === 1104, `${leaves} rows`);
   const changed = [...then].filter(([id, r]) => !now.has(id) || now.get(id).text !== r.text || now.get(id).status !== r.status).map(([id]) => id);
   out("(g) no existing row changed its text or status, and none was removed", then.size > 0 && changed.length === 0, changed.join(", ") || "base ledger unreadable");
   const missing = [];
