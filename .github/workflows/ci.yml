@@ -10,6 +10,11 @@ permissions:
 env:
   # 1.0.2: installed and verified version, pi 1.0 adoption 2026-10-04
   PI_VERSION: 1.0.2
+  # measured 2026-10-13 (R-1091): the seat's pi 1.0.2 install moment (pi-coding-agent package.json mtime
+  # 2026-10-04T02:57:57-04:00); npm --before at this time reproduced the seat's `npm ls -g --all` exactly.
+  # Valid for PI_VERSION 1.0.2 from 2026-10-04T00:56:19.486Z (pi 1.0.2 published) to before
+  # 2026-10-05T08:30:34.061Z (first 1.0.3 sibling, pi-codemode). Move it with PI_VERSION.
+  PI_BEFORE: "2026-10-04T06:57:57Z"
 
 jobs:
   suite:
@@ -35,7 +40,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}
+      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: npm test
@@ -60,7 +65,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}
+      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: git config user.name "github-actions[bot]"
