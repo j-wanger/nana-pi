@@ -185,9 +185,14 @@ check("five active hook entries are wanted", wanted.length === 5);
    proof of the "resolves outside the checkout" clause specifically. ------------------------- */
 {
 	const outsideRepoRoot = tmpDir(path.join(os.tmpdir(), "nana-setup-outside-repo-"));
-	const outsideKnowledgeDir = path.join(outsideRepoRoot, "packages", "nana-knowledge", "bin");
+	// Forward-slash suffix, not path.join: on real Windows path.join gives an ALL-backslash path,
+	// which installerKnowledgeTarget's endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts")
+	// check (forward-slash, matching the installer's own POSIX command text) would then read as
+	// not invoking the script at all — the same lesson win32-degrade.test.mjs's outside-checkout
+	// fixtures already carry, applied here too.
+	const outsideKnowledgeDir = `${outsideRepoRoot}/packages/nana-knowledge/bin`;
 	fs.mkdirSync(outsideKnowledgeDir, { recursive: true });
-	const outsideKnowledgeTarget = path.join(outsideKnowledgeDir, "nana-knowledge.ts");
+	const outsideKnowledgeTarget = `${outsideKnowledgeDir}/nana-knowledge.ts`;
 	fs.writeFileSync(outsideKnowledgeTarget, "// exists on disk, but is not this checkout's copy\n");
 	const wantedOutside = desiredHooks({ hooksDir: "/unused", repoRoot: repo });
 	const desiredOutsideCommand = wantedOutside.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
