@@ -1,4 +1,4 @@
-# Plan review — lane roster (gpt-5.6-sol), 2026-10-13, round 2 of at most 2 (GATE lane) — the last plan round
+# Plan review — lane roster (gpt-5.6-sol), 2026-10-13, round 3 — Jake-ordered after a design switch
 
 Review the change declaration `CHANGE.md` in this folder and `shared-text.proposed.md`. The lane gives each
 machine its own role roster (a `roster` block in the user-scope `nana-pack.json`; the Mac's values stay the
@@ -17,7 +17,7 @@ behaviour main has today. Name the realistic input and the consequence; if you c
 Contrived inputs, rare edge cases, wording, citation bookkeeping and test-evidence gaps are SHOULD or NOTE.
 `VERDICT: LAND` when no MUST stands; `VERDICT: SEND-BACK` only for a MUST. Do not use LAND-WITH-FIXES.
 
-Round 1 (`sol-plan-r1.md`, SEND-BACK 6/10) named two MUSTs; the plan's "Plan review r1" section says how each is closed (pi-worker and pi-review now start pi through `findPi`/`winCommand` on Windows, with Windows-leg stub tests; every lane launch prints the resolved builder). Confirm both are closed, then review the revised plan. This is the last plan round: after it, only a named fail-open bug reopens the plan.
+Round 3, ordered by Jake (2026-10-13: "Yes switch, but go through plan review"). Round 2 (`sol-plan-r2.md`) said LAND 9/10 for a design that started pi on Windows through cmd.exe (`winCommand`). New real-machine evidence — Jake's Windows seat hit `spawn pi ENOENT`, and starting pi's Node entry directly worked end-to-end there — switched the design: on win32 the launchers start `process.execPath` + pi's `bin` entry (npm global or `.bin` layout), a `.exe`/`.com` pi directly, and refuse anything else with a named message; the cmd.exe workarounds (prompt file, process-tree CPU) are dropped. The "Seat amendment (2026-10-13): Node entry" section lists every change; `research-node-entry.md` and the two `factcheck-node-entry-*.md` files are its evidence. Review the switched design and confirm round 2's notes still hold.
 
 Check: (1) the land rule still holds — nothing can reach main without an independent reviewer's LAND, with or
 without a land model; (2) a machine whose roster is absent, malformed or names another provider gets either the
