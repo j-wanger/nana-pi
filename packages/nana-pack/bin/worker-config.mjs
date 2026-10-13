@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
- * @purpose Define the sealed wall-clock ceiling for lane workers.
+ * @purpose Define the sealed wall-clock ceiling for lane workers and pi's npm package identity.
  * @inputs none
- * @outputs LANE_MAX_SECS and LANE_DEFAULTS
+ * @outputs LANE_MAX_SECS, LANE_DEFAULTS, PI_PACKAGE, PI_BIN_NAME, NPM_DIRS
  * @effects none
  * @errors none
  */
@@ -15,3 +15,10 @@ export const LANE_DEFAULTS = Object.freeze({
   thinking: 'high',
   tools: 'read,grep,find,bash,edit,write',
 });
+
+// contract: pi 1.0.2 package.json name and bin {"pi": "dist/bundle/cli.js"}, read 2026-10-13.
+export const PI_PACKAGE = '@earendil-works/pi-coding-agent';
+export const PI_BIN_NAME = 'pi';
+// contract: npm 10.9.7's bin-links 5.0.0 bin-target.js — a shim's package sits in the sibling
+// node_modules (the global layout) or one level up through node_modules/.bin (the local layout).
+export const NPM_DIRS = Object.freeze(['node_modules', '.bin']);
