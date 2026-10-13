@@ -27,7 +27,7 @@ retune or README edit; a missing or malformed `ci.yml`; a `Path` key. Out: forge
 | ID | Change | Text |
 |---|---|---|
 | R-1093 | added, SUB-011 after R-951 | Every `npm i` or `npm install` command for `@earendil-works/pi-coding-agent` in a README the readme check covers, and the missing-pi hint install and doctor print, shall carry the root CI workflow's `PI_VERSION` as `@earendil-works/pi-coding-agent@<PI_VERSION>` and its `PI_BEFORE` as an unquoted `--before=<PI_BEFORE>`. |
-| R-1094 | added, SUB-011 | IF the root CI workflow cannot be read, or its `PI_VERSION` or `PI_BEFORE` value is missing or empty, or `PI_BEFORE` does not parse as a date, THEN the missing-pi hint shall carry `<version>` and `<cutoff>` in their places, never an empty `--before=`. |
+| R-1094 | added, SUB-011 | IF the root CI workflow cannot be read, or its `PI_VERSION` or `PI_BEFORE` value is missing or empty, or `PI_BEFORE` is not a valid UTC instant in the form `YYYY-MM-DDTHH:MM:SSZ`, THEN the missing-pi hint shall carry `<version>` and `<cutoff>` in their places, never an empty `--before=`. |
 | R-1095 | added, FEAT-034 after R-508 | IF the bench finds no installed pi package directory, THEN its fix line shall name a pi install command carrying the root CI workflow's `PI_VERSION` and `PI_BEFORE` in the form R-1093 states. |
 | R-1096 | added, FEAT-015 after R-1084 | WHEN any result line is FAIL, the install check shall print, after its result lines, a `settings hooks:` line holding the temporary home's Claude Code settings `hooks` block as one-line JSON and a `last pull.log record:` line holding the last non-empty line of that home's knowledge pull log or `none`, each reading `could not be read (<error code, else error name>)` when its file cannot be read or parsed. |
 
@@ -177,3 +177,18 @@ green. **Most likely wrong:** that Windows PowerShell 5.1 and cmd behave as Powe
 6. R-1071, R-1078 and R-1079 pinned by small tests, setting aside the materiality default on purpose (§2).
 7. Kept: diagnostics (now R-1096), the `Path` lookup, the note-list retune, the Git Bash README fix, the session correction, the split line.
 8. Builder luna: 5 code and 6 test files, at the limit. Rows renumbered R-1093 to R-1096; tree total 1,092.
+
+## Plan review (2026-10-13)
+
+sol plan r1 SEND-BACK 7/10 (`sol-plan-r1.md`), the one round a small lane gets; the seat folds the findings into the build brief
+and records them here, and the build review checks them:
+- **MUST, fixed by design:** `parsePiPin` accepts any `Date.parse` value, so a retune such as `"2026-10-04 06:57:57Z"` would emit
+  an unquoted command npm splits. `parsePiPin` now requires the same shape R-1091 pins for `ci.yml` —
+  `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$` and a valid instant — and returns `null` (placeholders) otherwise; T-cases add a space, a
+  shell metacharacter and a rollover date. (R-1091's own check already fails such a value in `ci.yml`; this closes the reader too.)
+- **SHOULD, adopted:** T1 scans every line of each covered README for an `npm i`/`npm install` of `@earendil-works/pi-coding-agent`,
+  whatever the Markdown form (inline, fenced, indented, continued lines); a mutation adds an indented and a two-line command.
+- **SHOULD, adopted by narrowing:** R-1093 covers the READMEs and nana-setup's missing-pi hint; the desk's code hints
+  (`pi-session.mjs:347`, `:353`) stay out under the desk freeze and are a declared residual, as is the study README command.
+- **NOTE, adopted:** the two existing R-1037 tests of install's and doctor's shared hint gain `R-1093` in their markers and are cited.
+- **Seat, after the checks were written:** R-1094's text now says "not a valid UTC instant in the form `YYYY-MM-DDTHH:MM:SSZ`" to match the parser rule above; a new title `a cutoff with a space, a shell metacharacter or a rollover date gives a placeholder hint` (R-1094) carries those cases; `packages/nana-setup/tests/doctor-runtime.test.mjs` joins §4's scope for the two R-1037 markers that gain R-1093.
