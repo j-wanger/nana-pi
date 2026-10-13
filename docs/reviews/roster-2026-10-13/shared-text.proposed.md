@@ -1,0 +1,2 @@
+- Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builder, reviewer and land models come from this machine's roster, printed by `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`.
+- Seat land review: when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.
