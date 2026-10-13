@@ -23,11 +23,12 @@ export const KNOWN_RED = {
   darwin: [],
   win32: [],
 };
-// Contract values: doctor.mjs informational rows; win32 hook skips come from the hooks lane (R-937), floor from R-1060.
+// Contract values: doctor.mjs informational rows; win32 hook skips come from the hooks lane (R-937), floor from R-1060;
+// the four pi-only skill skips are doctor.mjs NEW_CLAUDE_SKILLS on win32 (R-937), sealed by the seat from Windows run 38398090979.
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {

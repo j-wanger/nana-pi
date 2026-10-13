@@ -280,7 +280,7 @@ const PAIRS = [
 // script path instead), run through the real command on top of the pair-15 commit.
 const TRUE_DROP = {
   file: SETTINGS,
-  anchor: "export function desiredHooks({ hooksDir, repoRoot }) {",
+  anchor: "export function desiredHooks({ hooksDir, repoRoot, platform }) {",
   replacement: "export function desiredHooks(o) { return desiredHooksAll(o).filter((r) => r.marker !== \"verifier-pipe.mjs\"); }\nfunction desiredHooksAll({ hooksDir, repoRoot }) {",
 };
 
