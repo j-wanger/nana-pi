@@ -91,6 +91,12 @@ const REQUIRED = {
 		["spawn adapter: stdout is kept to 10,001 characters, so a 10,001-character output fails the cap", ["R-1076"]],
 		["timeout: a hook past its timeout reports the timeout code, not no-output", ["R-1075", "R-1080"]],
 	],
+	// 3b: the five pairs that survived at 43da8d6 (4a, 13a, 17, 19, S1b) are fixed inside existing titles; two new
+	// titles cover the hook spawn timeout and the Git Bash lookup's git.exe requirement.
+	"3b": [
+		["dispatch: each hook's spawn timeout is its row's timeout × 1000", ["R-1075"]],
+		["dispatch: a PATH folder without git.exe yields no Git Bash", ["R-1075"]],
+	],
 };
 
 const session = process.argv[2];
