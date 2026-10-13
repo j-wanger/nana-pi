@@ -38,6 +38,8 @@ function npmCommands(text) {
     }
     const open = /^ {0,3}(`{3,}|~{3,})/.exec(line);
     if (open) { flushProse(); fence = open[1]; continue; }
+    // a blank line ends a paragraph (so an indented block may follow it) and stays inside an indented block
+    if (/^\s*$/.test(line)) { if (block.length) block.push(line); else flushProse(); continue; }
     if (/^(?: {4}|\t)/.test(line) && !prose.length) { block.push(line); continue; }
     flushBlock(); prose.push(line);
   }
@@ -67,7 +69,7 @@ const cases = [];
 const check = (title, fn) => cases.push({ title, fn });
 
 // req: R-1093
-check("the README scan finds a command continued after npm, a span across lines and a comment-only cutoff", () => {
+check("the README scan finds a command continued after npm, a span across lines, a comment-only cutoff and an indented block after a paragraph", () => {
   const pin = `@earendil-works/pi-coding-agent@${version}`;
   const continued = npmCommands("```bash\nnpm \\\n  i -g " + pin + "\n```\n");
   assert.deepEqual(continued, [`npm i -g ${pin}`]);
@@ -75,6 +77,8 @@ check("the README scan finds a command continued after npm, a span across lines 
   assert.deepEqual(span, [`npm i -g ${pin} --before=${before}`]);
   const commented = npmCommands("```bash\nnpm i -g " + pin + " # --before=" + before + "\n```\n");
   assert.deepEqual(commented, [`npm i -g ${pin}`]);
+  const indented = npmCommands("Install pi:\n\n    npm i -g " + pin + "\n\nThen run doctor.\n");
+  assert.deepEqual(indented, [`npm i -g ${pin}`]);
 });
 
 // req: R-1093
