@@ -124,7 +124,7 @@ The experience has **two halves**, and both are installed from this repo:
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
 6. Run `pi install npm:pi-subagents@0.75.0`.
 7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
-8. Run `nana-setup doctor` from `~/nana-pi`; expect `all good`.
+8. Run `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor` from `~/nana-pi`; expect `all good`.
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 

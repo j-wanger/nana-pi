@@ -1,0 +1,8 @@
+seat-mutate: lane process, tip 865b1a9f07a59b1cb25d34b0937fc645168603b8, 5 pairs, node v22.22.2, 2026-10-13T18:16:44.686Z
+BASELINE ok   packages/nana-pack/tests/templates-render.test.mjs (exit 0, 130 PASS, 0 SKIP, 0 FAIL, 46.1s)
+RED 1109a install-check subsection inside the shared region (AGENTS.md only) — AGENTS.md carries the macOS install check outside the shared region | AGENTS.md marker-owned section is byte-identical to the shared file; 2 FAIL total (1 file changed, 4 insertions(+), 4 deletions(-))
+RED 1109b install-check path misspelt — AGENTS.md carries the macOS install check outside the shared region; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 1109c delete "on macOS" — AGENTS.md carries the macOS install check outside the shared region; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 1109d delete "before `nana-land`" — AGENTS.md carries the macOS install check outside the shared region; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 1109e delete "or a hook" — AGENTS.md carries the macOS install check outside the shared region; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+seat-mutate: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived

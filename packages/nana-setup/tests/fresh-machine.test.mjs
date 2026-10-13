@@ -32,4 +32,9 @@ check("checklist versions match Node, pi CI and pi-subagents sources", entries[0
 const layout = resolveLayout();
 // req: R-950
 check("checklist objective paths name the resolved pi seed files", entries[6]?.includes(path.basename(layout.piObjective)) && entries[6]?.includes(path.basename(layout.piPackConfig)), entries[6]);
+const step8 = entries[7] ?? "";
+const step8Commands = [...step8.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((c) => /^nana-setup\s/.test(c));
+const step8Kinds = step8Commands.map((c) => c.split(/\s+/)[1]);
+// req: R-1111
+check("fresh-machine step 8 trusts the clone before doctor", step8Kinds.includes("trust") && step8Kinds.includes("doctor") && step8Kinds.indexOf("trust") < step8Kinds.indexOf("doctor"), step8);
 if (fails) process.exitCode = 1;
