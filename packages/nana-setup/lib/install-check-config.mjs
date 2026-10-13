@@ -23,11 +23,11 @@ export const KNOWN_RED = {
   darwin: [],
   win32: [],
 };
-// Contract values: doctor.mjs informational rows; the win32 additions reflect its documented skips.
+// Contract values: doctor.mjs informational rows; win32 hook skips come from the hooks lane (R-937), floor from R-1060.
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {

@@ -676,7 +676,7 @@ check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor"],
   });
 });
 // req: R-1073
