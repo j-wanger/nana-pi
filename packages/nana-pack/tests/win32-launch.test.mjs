@@ -247,17 +247,23 @@ console.log("VERDICT: LAND");
 		check("Windows: pi-review hands the review standard to pi as text",
 			reviewRun.status === 0 && reviewCalls.length >= 1 && reviewCalls[0].argv.includes(reviewStandard),
 			JSON.stringify({ reviewRun, reviewCalls: reviewCalls.map((c) => ({ ...c, argv: "elided" })) }));
-		// The seat reads this from the CI log: a `+snap` revision means a reviewed tree holding a
-		// mode-bit file (review-round.mjs reads it from the index) would not match a plain-SHA LAND
-		// on Windows, naming CHANGE.md §5's claim most likely wrong (and §6 item 15, if so).
+		// A `+snap` revision would mean a reviewed tree holding a mode-bit file (review-round.mjs
+		// reads it from the index) does not match a plain-SHA LAND on Windows — CHANGE.md §5's claim
+		// most likely wrong, and a named carry (§6 item 15) if it ever shows. The test runner prints
+		// a failing check's detail even in non-verbose mode, so a `+snap` surfaces the revision to
+		// the seat reading the CI log; a clean round passes silently (an extra check, not a seat-titles title).
+		let revisionDetail = "(ledger unreadable)";
+		let revisionIsSnap = true;
 		try {
 			const tallyPath = path.join(temp, "review-ledger.rounds.jsonl");
 			const rounds = fs.readFileSync(tallyPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 			const last = rounds.filter((r) => r.kind === "round" && r.item === "winlaunch").at(-1);
-			console.log(`INFO Windows pi-review revision: ${last?.revision ?? "(no round recorded)"}`);
+			revisionDetail = last?.revision ?? "(no round recorded)";
+			revisionIsSnap = String(revisionDetail).includes("+snap");
 		} catch (e) {
-			console.log(`INFO Windows pi-review revision: (ledger unreadable: ${e.message})`);
+			revisionDetail = `(ledger unreadable: ${e.message})`;
 		}
+		check("Windows: pi-review's recorded revision is a plain sha, not a +snap", !revisionIsSnap, `INFO Windows pi-review revision: ${revisionDetail}`);
 
 		// -- a busy pi is not stalled --
 		fs.rmSync(record, { force: true });
