@@ -1,0 +1,34 @@
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — sealed default roster is luna high builder, sol reviewer, astra land and no scout
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — absent user nana-pack.json yields the default roster
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — user nana-pack.json without a roster yields the default roster
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — a valid machine roster replaces every slot, keeping a null scout and a null land
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — a machine roster saved with a byte-order mark and CRLF line endings is read
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — the roster is read from PI_CODING_AGENT_DIR, not the home agent dir
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — a project .pi/nana-pack.json roster is never read
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — each invalid roster shape is refused naming the slot or field
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — an unreadable or malformed user nana-pack.json is refused naming the file
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — roster command prints one line per slot and the source
+NO-FILE  packages/nana-pack/tests/nana-roster.test.mjs — roster command prints a refused roster on stderr and exits 1
+ok       lane passes only the sealed roster and fixed brief instruction
+MISSING  packages/nana-pack/tests/worker-lane.test.mjs — lane passes the machine roster builder to pi, each flag once
+MISSING  packages/nana-pack/tests/worker-lane.test.mjs — lane omits --thinking when the machine roster builder thinking is null
+MISSING  packages/nana-pack/tests/worker-lane.test.mjs — lane refuses a refused roster before starting pi, naming the file
+MISSING  packages/nana-pack/tests/worker-lane.test.mjs — lane ignores a roster in project .pi/nana-pack.json
+MISSING  packages/nana-pack/tests/worker-lane.test.mjs — lane prints the resolved builder and roster source on stderr before starting pi
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — shared working pattern makes the pattern the default with the machine roster
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — shared working pattern gives the land review to the seat when the roster sets no land model
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — nana-soul carries the shared default-pattern and seat land review bullets
+ok       three front doors carry one identical scoped platform claim
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,109
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — win32 launch runs the npm pi package's bin entry with the running node and the arguments unchanged
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — win32 launch starts a pi.exe directly
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — win32 launch refuses with a named reason when pi, its package, its bin or its entry is missing
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — non-win32 launch is pi by name with the arguments unchanged
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: non-lane pi-worker hands pi line breaks, %, !, quotes and a trailing backslash unchanged
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: pi-review hands the review standard to pi as text
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: a busy pi is not stopped as stalled
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory
+NO-FILE  packages/nana-pack/tests/win32-launch.test.mjs — Windows: lane pi-worker starts pi from a short or differently cased worktree path
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,100
+seat-titles 1: 31 missing
