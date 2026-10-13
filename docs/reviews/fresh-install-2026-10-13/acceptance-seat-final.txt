@@ -1,0 +1,84 @@
+ok   (0) ci.yml declares PI_VERSION (1.0.2) and PI_BEFORE (2026-10-04T06:57:57Z)
+ok   (a) the readme check covers 7 READMEs, including the four that install pi
+ok   (a) README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found)
+ok   (a) packages/nana-pack/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+ok   (a) packages/nana-knowledge/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+ok   (a) packages/nana-stage/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (0 found)
+ok   (a) packages/nana-setup/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found)
+ok   (a) apps/desk/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (1 found)
+ok   (a) apps/bench/README.md: every pi install command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z (2 found)
+ok   (a) README.md step 2 holds a pi install command (non-vacuity)
+ok   (a) README.md: its pi install commands are exactly "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (a) packages/nana-setup/README.md: its pi install commands are exactly "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (a) apps/desk/README.md: its pi install commands are exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (a) apps/bench/README.md: its pi install commands are exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (b) harness: the scratch PATH has node and npm and no pi
+ok   (b) harness: doctor --home <scratch> ran and printed its pi executable row
+ok   (b) doctor: the hint carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z
+ok   (b) doctor: the hint equals README step 2's command
+ok   (b) harness: install in a scratch HOME ran and printed its pi packages row
+ok   (b) install: the hint carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z
+ok   (b) install: the hint equals README step 2's command
+ok   (b) steps.mjs PI_INSTALL_HINT equals README step 2's command
+ok   (b) harness: the bench loader with a wrong BENCH_PI_ROOT printed a Fix line
+ok   (b) bench: the fix line's command carries @1.0.2 and an unquoted --before=2026-10-04T06:57:57Z
+ok   (b) bench: the fix line's command is exactly "npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (c) harness: the scratch copy's steps.mjs imports and exports a hint
+ok   (c) control: the copy with the real ci.yml gives "npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z"
+ok   (c) a CRLF ci.yml gives the same values
+ok   (c) a retuned pair in ci.yml reaches the hint by name, with no code change
+ok   (c) no ci.yml: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) ci.yml without PI_BEFORE: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_BEFORE with a space ("2026-10-04 06:57:57Z"): <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_BEFORE empty: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_BEFORE not a date: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_BEFORE a rollover date ("2026-02-30T06:57:57Z"): <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_BEFORE with a shell metacharacter: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) ci.yml without PI_VERSION: <version> and <cutoff> placeholders, never an empty --before=
+ok   (c) PI_VERSION empty: <version> and <cutoff> placeholders, never an empty --before=
+ok   (f) setup README: no sentence says hooks dispatch through, or the check needs, Git Bash
+ok   (f) setup README: the Windows sentence says installed hooks run directly in exec form
+ok   (f) setup README: it says a FAIL prints the hooks block and the last knowledge-pull record
+ok   (f) Jake's page: step 2 is labelled PowerShell-only
+ok   (f) Jake's page differs from main in exactly one line
+ok   (f) apps/desk/README.md differs from main in exactly one line (the runtime row)
+ok   (g) R-1093 exists under SUB-011 with exactly one "shall"
+ok   (g) R-1094 exists under SUB-011 with exactly one "shall"
+ok   (g) R-1095 exists under FEAT-034 with exactly one "shall"
+ok   (g) R-1096 exists under FEAT-015 with exactly one "shall"
+ok   (g) R-1097 is unused
+ok   (g) the ledger holds 1,104 rows (1,092 + the process lane's 12, merged 2026-10-13)
+ok   (g) no existing row changed its text or status, and none was removed
+ok   (g) each row's evidence cites every listed test whose marker names it (R-291 excepted)
+ok   (g) no row still cites a renamed title
+ok   (g) node scripts/requirements-tree.mjs --check exits 0
+ok   (h) every changed path is in CHANGE §4 or the lane's review folder (33 paths)
+ok   (h) .github/ is unchanged
+ok   (h) apps/desk changes only README.md
+ok   (h) packages/nana-setup/lib/doctor.mjs is unchanged
+ok   (h) packages/nana-pack/lib/win-command.mjs is unchanged
+ok   (h) packages/nana-setup/bin/install-check.mjs is unchanged
+ok   (h) packages/nana-setup/tests/pi-registration.test.mjs is unchanged
+ok   (h) templates/ and the bench studies are unchanged
+ok   (i) seat-titles 1: every title once, with its rows, and the old titles gone
+ok   (j) win32 doctor notes: 17, without the two skills doctor never notes, keeping skill spec
+ok   (d) harness: README step 2's command ran into a scratch --prefix ("npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z")
+ok   (d) README step 2: every @earendil-works package is at 1.0.2 (8 found)
+ok   (d) README step 2: the tree equals the seat's global pi tree (152 vs 152)
+ok   (d) README step 2: pi's main entry imports
+ok   (d) harness: the desk README's command ran into a scratch --prefix ("npm i -g @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z")
+ok   (d) the desk README: every @earendil-works package is at 1.0.2 (8 found)
+ok   (d) the desk README: the tree equals the seat's global pi tree (152 vs 152)
+ok   (d) the desk README: pi's main entry imports
+ok   (d) PowerShell via npm.ps1: step 2 as written resolves every @earendil-works package at 1.0.2 (dry run, exit 0)
+ok   (d) PowerShell: the placeholder form exits non-zero and adds nothing
+ok   (e) a clean run here exits 0 with only PASS result lines
+ok   (e) a clean run prints no diagnostics lines
+ok   (e) harness: a scratch worktree at HEAD with the shared-memory hook's import broken
+ok   (e) harness: the fault run exits non-zero and FAILs hook shared memory
+ok   (e) the last two lines are `settings hooks:` then `last pull.log record:`, after every result line
+ok   (e) harness: the fault run kept its temporary home and named it
+ok   (e) the settings hooks line holds the kept home's hooks block as one-line JSON
+ok   (e) the pull.log line holds the kept home's last non-empty pull.log line
+cases: 82/82
+fresh-install acceptance: 0 mismatch(es)
