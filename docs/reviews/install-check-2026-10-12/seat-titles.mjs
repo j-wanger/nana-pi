@@ -97,6 +97,14 @@ const REQUIRED = {
 		["dispatch: each hook's spawn timeout is its row's timeout × 1000", ["R-1075"]],
 		["dispatch: a PATH folder without git.exe yields no Git Bash", ["R-1075"]],
 	],
+	// 4 (after main's merge, Windows run 38393751564: every hook line passed): the empty known-red list, an
+	// unexpected-pass reason that says what happened, and a doctor reason naming every row off the note list.
+	"4": [
+		["reporting: an unexpected pass names the listed code and owner", ["R-1080"]],
+		["doctor: the reason names every note row off the note list", ["R-1081"]],
+		["pin R-1070 R-1080: the known-red list with each entry's code, owner and expiry", ["R-1070", "R-1080"]],
+		["pin R-1081: the doctor note list", ["R-1081"]],
+	],
 };
 
 const session = process.argv[2];
