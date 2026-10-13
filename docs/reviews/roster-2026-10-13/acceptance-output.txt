@@ -125,8 +125,8 @@ ok   (g) each new row sits under the heading §2 names
 ok   (g) each placed row follows the row §2 names, on the next line
 ok   (g) FEAT-007's Also applies line gains R-1125
 ok   (g) node scripts/requirements-tree.mjs --check exits 0
-ok   (h) git diff --name-only main...HEAD lists only §4 paths and the lane's review folder
+MISS (h) git diff --name-only main...HEAD lists only §4 paths and the lane's review folder → ["packages/nana-pack/tests/review-standard.test.mjs"] (want [])
 ok   (h) empty merge-base diff on pi-review, review-ledger, review-round, nana-land, win-command(-config) and nana-setup/lib (§4 NOT)
 ok   (h) pi-watchdog.mjs names no winCommand, no shell option and no verbatim arguments (§3)
-cases: 122/122
-roster acceptance: 0 mismatch(es)
+cases: 121/122
+roster acceptance: 1 mismatch(es)
