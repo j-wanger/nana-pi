@@ -255,7 +255,9 @@ console.log("VERDICT: LAND");
 		let revisionDetail = "(ledger unreadable)";
 		let revisionIsSnap = true;
 		try {
-			const tallyPath = path.join(temp, "review-ledger.rounds.jsonl");
+			// review-round.mjs's ledgerPaths() keys the tally to <home>/.pi/agent, deliberately not
+			// to PI_CODING_AGENT_DIR (env.HOME here is `temp`).
+			const tallyPath = path.join(temp, ".pi", "agent", "review-ledger.rounds.jsonl");
 			const rounds = fs.readFileSync(tallyPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 			const last = rounds.filter((r) => r.kind === "round" && r.item === "winlaunch").at(-1);
 			revisionDetail = last?.revision ?? "(no round recorded)";
