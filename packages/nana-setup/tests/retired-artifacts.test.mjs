@@ -317,7 +317,7 @@ try {
 		check("win32 install leaves the unrecognized skill owner directory unchanged", result.status === 0 && fs.readFileSync(path.join(edited, "SKILL.md"), "utf8") === "owner's unrecognized win32 skill\n", `${result.status} ${result.stdout}`);
 		// req: R-665
 		check("win32 install reports all four new skill rows skipped", ["spec", "py-lint", "py-review", "py-test"].every((name) => result.stdout.includes(`skill ${name}`) && result.stdout.includes("skipped (win32)")), result.stdout);
-		// req: R-665 R-666
+		// req: R-665 R-666 R-937
 		check("win32 preserves requirements mirror behavior and doctor skips pi-only skills", fs.readFileSync(path.join(h, ".claude", "skills", "requirements", "SKILL.md")).equals(fs.readFileSync(path.join(repo, "packages", "nana-pack", "skills", "requirements", "SKILL.md"))) && /✓ skill requirements\s+copied from/.test(doctor.stdout) && ["spec", "py-lint", "py-review", "py-test"].every((name) => new RegExp(`· skill ${name}\\s+skipped \\(win32; pi-only\\)`).test(doctor.stdout)), doctor.stdout);
 	}
 	{
