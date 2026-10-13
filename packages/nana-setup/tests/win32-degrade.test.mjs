@@ -23,6 +23,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { HOOKS } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -113,8 +114,14 @@ const doc = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, do
 check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 // req: R-937
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
-// req: R-937
-check("win32 doctor marks the skipped pieces", (doc.stdout.match(/skipped \(win32\)/g) || []).length >= 4);
+// final review r2 (sol MUST 2, astra MUST 1): pin every expected win32-skipped doctor row BY
+// LABEL, individually — the four hook-file rows and the four PATH rows — not "at least four",
+// which a changed OTHER row's detail (still counting toward 4) would satisfy without proving any
+// particular row is marked.
+for (const label of [...HOOKS.map((h) => `hook ${h}`), "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup"]) {
+	// req: R-937
+	check(`win32 doctor: ${label} reads skipped (win32)`, new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+skipped \\(win32\\)`).test(doc.stdout), doc.stdout);
+}
 // req: R-937
 check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
 for (const w of win32Wanted) {
@@ -129,6 +136,36 @@ check("win32 doctor: node for the objective hook runs (not skipped)", /✓ node 
 check("win32 doctor: a note names the Claude Code exec-form floor", doc.stdout.includes(CLAUDE_CODE_EXEC_FLOOR) && /need Claude Code 2\.1\.139 or later/.test(doc.stdout) && /claude --version.*never run/.test(doc.stdout), doc.stdout);
 // req: R-1060
 check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
+
+/* --- final review r2 (sol MUST 2, astra MUST 1): the note above says doctor never runs `claude`
+   — prove it by recording any invocation, rather than only reading the printed claim. A `claude`
+   (and `claude.cmd`) stub sits first on PATH; it appends to a file if it is ever run. The file
+   staying absent after doctor runs is the proof, checked on forced win32 and on the host
+   platform the real `run` platform seam does not force (sol r2 MUST 2, astra r2 MUST 1). ------ */
+{
+	const claudeStubHome = freshHome();
+	const claudeStubDir = tmpDir(path.join(os.tmpdir(), "nana-doctor-claude-stub-"));
+	tmps.push(claudeStubDir);
+	const recordFile = path.join(claudeStubDir, "claude-invoked.txt");
+	fs.writeFileSync(path.join(claudeStubDir, "claude"), `#!/bin/sh\nprintf '%s\\n' "$*" >> ${shq(recordFile)}\necho 1.0.0\n`);
+	fs.chmodSync(path.join(claudeStubDir, "claude"), 0o755);
+	fs.writeFileSync(path.join(claudeStubDir, "claude.cmd"), `@echo off\r\necho %* >> "${recordFile}"\r\necho 1.0.0\r\n`);
+	const withClaudeStubFirst = (invoke) => {
+		const saved = process.env.PATH;
+		process.env.PATH = `${claudeStubDir}${path.delimiter}${saved || ""}`;
+		try { return invoke(); } finally { if (saved === undefined) delete process.env.PATH; else process.env.PATH = saved; }
+	};
+	// claudeStubHome is a throwaway, never-installed home — doctor is expected to print plenty of
+	// ✗ against it (that is not this test's question); only whether it ever shells out to
+	// `claude` is. Each run spawns successfully (no ENOENT from spawnSync itself), which is all
+	// the status check here needs to establish.
+	const forcedWin32Doc = withClaudeStubFirst(() => run(["doctor", "--home", claudeStubHome], { NANA_SETUP_PLATFORM: "win32" }));
+	// req: R-1060
+	check("win32 doctor never invokes a recording claude stub on PATH (forced win32)", typeof forcedWin32Doc.status === "number" && !fs.existsSync(recordFile), forcedWin32Doc.stdout);
+	const hostPlatformDoc = withClaudeStubFirst(() => run(["doctor", "--home", claudeStubHome], {}));
+	// req: R-1060
+	check("doctor never invokes a recording claude stub on PATH (host platform)", typeof hostPlatformDoc.status === "number" && !fs.existsSync(recordFile), hostPlatformDoc.stdout);
+}
 
 /* re-running is still idempotent under the win32 branch */
 const again = run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });

@@ -2,6 +2,7 @@ ok   replaced: win32: ${label} reports skipped (win32: POSIX hook) → win32: ${
 ok   replaced: win32: only the knowledge hook is wired → win32: UserPromptSubmit carries exactly the one knowledge entry, no twin
 ok   replaced: win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it) → win32: exactly one ${w.label} entry, exec form (command "node", args array, no shell key)
 ok   replaced: win32: no Claude verifier PreToolUse entry is installed → win32: the verifier group's matcher is Bash-or-PowerShell
+ok   replaced: win32 doctor marks the skipped pieces → win32 doctor: ${label} reads skipped (win32)
 ok   replaced: win32 doctor skips rather than expects a Claude verifier entry → win32 doctor: settings ${w.label} is ✓
 ok   replaced: pack README declares the Claude win32 hook limitation → pack README declares the Claude win32 verifier coverage
 seat-verify-tests: 0 gap(s)

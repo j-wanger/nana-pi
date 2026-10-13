@@ -75,6 +75,13 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 	// req: R-1054
 	// req: R-1062
 	check("decideHook: an embedded # inside a PowerShell word does not mask a live pipe before commit", psHashHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHashHit));
+	// final review r2 MUST 1: the embedded-<# fix (R-1062, sol r2 repro) pinned through
+	// decideHook too, not only the bare predicate (pipe-guard.test.mjs).
+	const embeddedBlock = "npm test | Select-Object -Last 1; Write-Output issue<#123; git commit -m x";
+	const psBlockHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedBlock } });
+	// req: R-1054
+	// req: R-1062
+	check("decideHook: an embedded <# inside a PowerShell word does not mask a live pipe before commit", psBlockHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psBlockHit));
 }
 
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));
@@ -147,7 +154,9 @@ check("both READMEs declare the user-scope live verifier-pipe change", /user-sco
 check("pack README declares the Claude win32 verifier coverage", /Claude Code hook is wired on native Windows too/.test(packDeclaration) && /Bash\|PowerShell/.test(packDeclaration));
 // req: R-982
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
+// final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
+// Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
 // req: R-985
-check("setup README retains context retirement and knowledge migration guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("The knowledge hook is migrated in place only when its timeout and status metadata match"));
+check("setup README retains context retirement and knowledge migration guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("On POSIX, the knowledge hook is migrated in place only when its timeout and status metadata match"));
 
 if (failures) process.exitCode = 1;

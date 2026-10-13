@@ -176,6 +176,29 @@ check("five active hook entries are wanted", wanted.length === 5);
 	check("absolute knowledge hook target outside repository is not accepted as healthy", row.replaced);
 }
 
+/* --- final review r2 (sol MUST 2, astra MUST 1): the case above uses a MISSING target
+   (/old-clone never exists on disk), so realpathSync throws and the entry is replaced for that
+   reason alone — it never reaches R-1056's OTHER branch, a target that resolves fine but outside
+   the checkout. Create a real file, under the OS temp folder, that carries the knowledge entry's
+   own repository suffix, so fs.realpathSync succeeds and genuinely mismatches repoRoot (this
+   checkout's own real root) rather than throwing — then the in-place replacement, no twin, is
+   proof of the "resolves outside the checkout" clause specifically. ------------------------- */
+{
+	const outsideRepoRoot = tmpDir(path.join(os.tmpdir(), "nana-setup-outside-repo-"));
+	const outsideKnowledgeDir = path.join(outsideRepoRoot, "packages", "nana-knowledge", "bin");
+	fs.mkdirSync(outsideKnowledgeDir, { recursive: true });
+	const outsideKnowledgeTarget = path.join(outsideKnowledgeDir, "nana-knowledge.ts");
+	fs.writeFileSync(outsideKnowledgeTarget, "// exists on disk, but is not this checkout's copy\n");
+	const wantedOutside = desiredHooks({ hooksDir: "/unused", repoRoot: repo });
+	const desiredOutsideCommand = wantedOutside.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
+	const outsideEntry = { type: "command", command: `NODE_NO_WARNINGS=1 node ${shq(outsideKnowledgeTarget)} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
+	const outsideSettings = { hooks: { UserPromptSubmit: [{ hooks: [outsideEntry] }] } };
+	const outsideResult = mergeRepoHooks(outsideSettings, { repoRoot: repo, wanted: wantedOutside });
+	const outsideRow = outsideResult["UserPromptSubmit knowledge pull"];
+	// req: R-1056
+	check("an EXISTING knowledge target outside the checkout, carrying the repository suffix, is replaced in place with no duplicate", outsideRow.found && outsideRow.replaced && outsideSettings.hooks.UserPromptSubmit[0].hooks.length === 1 && outsideSettings.hooks.UserPromptSubmit[0].hooks[0].command === desiredOutsideCommand, JSON.stringify(outsideSettings.hooks.UserPromptSubmit));
+}
+
 /* --- a stale knowledge entry carrying ANOTHER status message is not the installer's own: left
    byte for byte, not replaced — the merge result matches main's own gate (`settings.mjs:276`),
    which skipped any entry whose statusMessage was not "nana: knowledge pull" (R-653, R-1061) --- */

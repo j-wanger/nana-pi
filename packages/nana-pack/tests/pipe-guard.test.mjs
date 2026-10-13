@@ -87,6 +87,17 @@ const psCases = [
 	// — only a `#` at a token boundary starts a comment — so neither hides the live pipe before it.
 	["PS: an embedded # inside a word does not start a comment", "npm test | Select-Object -Last 5; Write-Output issue#123; git commit -m x", true],
 	["PS: a URL fragment's # does not start a comment", "npm test | Select-Object -Last 5; Write-Output https://host/a#summary; git commit -m x", true],
+	// final review r2 MUST 1 (R-1062, sol's repro): `<#` starts a comment only at the SAME token
+	// boundary as `#` — `issue<#123` is one bare token, so it never hides the live pipe before it.
+	["PS: an embedded <# inside a word does not start a block comment (sol r2 repro)", "npm test | Select-Object -Last 1; Write-Output issue<#123; git commit -m x", true],
+	// the same embedded-<# repro, now inside a $(...) subexpression: matchPowerShellParen must
+	// apply the identical boundary rule when it hunts for the close paren, not only the top-level
+	// scan — otherwise it reads "<#123...)" as an unterminated block comment, never finds the real
+	// close, and the whole subexpression (including its live pipe) is masked as literal text.
+	['PS: an embedded <# inside a word inside $(...) does not start a block comment', '"$(Write-Output issue<#123; npm test | Select-Object -Last 1)"; git commit -m x', true],
+	// negative, regression guard: a genuine block comment at a non-initial token boundary (after
+	// "; ") still hides its body — the new shared predicate must not stop recognizing real ones.
+	["PS: a genuine block comment at a non-initial boundary still hides its pipe", "Write-Output x; <#npm test | y#> git commit -m x", false],
 	// final review r1 MUST 1 (R-1062, sol's repro): the $(...) subexpression bound is found with
 	// the same lexical rules as the top-level scan, so a ")" inside a nested comment, block
 	// comment or backtick escape never closes the subexpression early.

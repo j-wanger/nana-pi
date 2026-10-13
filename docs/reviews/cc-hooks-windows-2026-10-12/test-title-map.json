@@ -22,5 +22,9 @@
   "win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)": {
     "replacedBy": "win32: exactly one ${w.label} entry, exec form (command \"node\", args array, no shell key)",
     "why": "final review r1 astra SHOULD 7: exec form always sets command exactly \"node\", so this prefix check is vacuous for every win32 entry now — dropped in favor of the existing per-label loop's exact-equality assertion (command === \"node\"), which already subsumes it and already runs for all five labels."
+  },
+  "win32 doctor marks the skipped pieces": {
+    "replacedBy": "win32 doctor: ${label} reads skipped (win32)",
+    "why": "R-937, final review r2 (sol MUST 2, astra MUST 1): \"at least four\" skipped (win32) strings never pinned any PARTICULAR row — a changed label elsewhere could still satisfy the count. Replaced with one assertion per expected label (the four `hook *` rows and the four `PATH *` rows), individually."
   }
 }
