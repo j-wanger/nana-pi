@@ -352,11 +352,12 @@ function checkInstructionContracts() {
 	const outsideSharedRegion = sb < 0 || se < 0 ? agentsMd : agentsMd.slice(0, sb) + agentsMd.slice(se + sharedEnd.length);
 	// req: R-1109
 	check("AGENTS.md carries the macOS install check outside the shared region",
-		/install[- ]check/i.test(outsideSharedRegion) &&
-		outsideSharedRegion.includes("macOS") &&
-		outsideSharedRegion.includes("`nana-land`") &&
-		outsideSharedRegion.includes("packages/nana-setup/bin/install-check.mjs") &&
-		outsideSharedRegion.includes("packages/nana-setup/") &&
+		// one step, scoped to its own line (seat mutation run 2026-10-13: phrases matched anywhere outside the region
+		// let "on macOS", "before `nana-land`" and "or a hook" be deleted with this check green)
+		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ")).length === 1 &&
+		outsideSharedRegion.replace(/\r/g, "").split("\n").some((line) =>
+			line.startsWith("Land checklist, nana-pi only (Jake, 2026-10-12): ") &&
+			line.includes("a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`")) &&
 		!/install[- ]check/i.test(insideSharedRegion) &&
 		fs.existsSync(path.join(REPO, "packages/nana-setup/bin/install-check.mjs")));
 }
