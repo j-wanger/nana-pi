@@ -2,14 +2,14 @@
  * @module packages/nana-setup/lib/install-check.mjs
  * @purpose Implements pure install-check contracts and the isolated subprocess runner.
  * @inputs Sealed configuration, process environment, platform, clock and spawn function.
- * @outputs Child results, item judgments and environment construction.
- * @effects process
+ * @outputs Child results, item judgments, environment construction and failure diagnostics.
+ * @effects disk, process
  * @errors Child failures become item results; invalid hook shapes are reported as failures.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { PI_SUBAGENTS_FLOOR } from "./doctor.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
@@ -202,7 +202,8 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   let pi = platformName === "win32" ? (findPi({ env: childEnv, cwd: root, exists }) ?? "pi") : resolveOnPath("pi");
   let bash = null;
   if (platformName === "win32") {
-    bash = findGitBash(String(childEnv.PATH ?? "").split(/[;]/));
+    const pathKey = Object.keys(childEnv).find((key) => key.toLowerCase() === "path");
+    bash = findGitBash(String(pathKey ? childEnv[pathKey] : "").split(/[;]/), exists);
     emitLine(`Git Bash: ${bash ?? "not found"}`);
   }
   emitLine(`pi: ${path.resolve(pi)}`);
@@ -307,5 +308,22 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     doctorDetail = `${kept.join("; ")}${kept.length ? "; " : ""}… and ${labels.length - kept.length} more`;
   }
   report("doctor", labels.length ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && labels.length === 0, labels.length ? doctorDetail : okay(doctor) ? "" : reason(doctor));
+  if (failed) {
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    try {
+      const settingsText = fs.readFileSync(settingsPath, "utf8");
+      const parsedSettings = JSON.parse(settingsText);
+      emitLine(`settings hooks: ${JSON.stringify(parsedSettings.hooks ?? null)}`);
+    } catch (error) {
+      emitLine(`settings hooks: could not be read (${error?.code ?? error?.name ?? "Error"})`);
+    }
+    const pullLogPath = path.join(home, ...PULL_LOG_PATH);
+    try {
+      const records = fs.readFileSync(pullLogPath, "utf8").split(/\r?\n/).filter((line) => line.trim());
+      emitLine(`last pull.log record: ${records.at(-1) ?? "none"}`);
+    } catch (error) {
+      emitLine(`last pull.log record: could not be read (${error?.code ?? error?.name ?? "Error"})`);
+    }
+  }
   return { lines, exitCode: failed ? 1 : 0 };
 }

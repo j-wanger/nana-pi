@@ -50,9 +50,9 @@ try {
 	// req: R-952
 	check("pi executable rejects output without a version", piRow()?.status === "fail" && piRow().detail.includes("printed no version"));
 	fs.unlinkSync(valid);
-	// req: R-1037
+	// req: R-1037, R-1093
 	check("missing pi names the shared install hint", piRow()?.status === "fail" && piRow().detail.includes(PI_INSTALL_HINT));
-	// req: R-1037
+	// req: R-1037, R-1093
 	check("install missing-pi detail imports the same hint and never reaches install", stepPiRegister(layout, {}, { platform: () => "darwin" }).at(-1)?.detail.includes(PI_INSTALL_HINT));
 	const override = resolveLayout({ home });
 	// req: R-952

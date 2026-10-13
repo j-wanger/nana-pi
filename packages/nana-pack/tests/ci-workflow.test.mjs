@@ -118,7 +118,7 @@ check("Windows suite failure does not block release", () => {
   assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n/m);
 });
 // req: R-1078
-check("install check is a blocking macOS and Windows job before suite", () => {
+check("install check is a blocking macOS and Windows job", () => {
   const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
   assert(job.length > 0);
   assert(workflow.indexOf("  install-check:") < workflow.indexOf("  suite:"));
@@ -128,6 +128,16 @@ check("install check is a blocking macOS and Windows job before suite", () => {
   assert.match(job, /^        run: node packages\/nana-setup\/bin\/install-check\.mjs$/m);
   assert.match(job, /npm i -g --ignore-scripts @earendil-works\/pi-coding-agent@\$\{PI_VERSION\}/);
 });
+// req: R-1078
+check("install check job runs in bash and checks pi's version after the pinned install and before the check", () => {
+  const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
+  assert.match(job, /^    defaults:\n      run:\n        shell: bash$/m);
+  const install = job.indexOf("run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}");
+  const version = job.indexOf('run: test "$(pi --version)" = "${PI_VERSION}"');
+  const check = job.indexOf("run: node packages/nana-setup/bin/install-check.mjs");
+  assert(install >= 0 && version > install && check > version);
+});
+
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";

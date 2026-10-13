@@ -2,8 +2,7 @@
  * @module apps/bench/lib/pi-exports.mjs
  * @purpose Resolve the installed pi packages and borrow pi's own public Usage and cost arithmetic
  *  instead of re-deriving it.
- * @inputs env PI_BENCH_ENTRY, BENCH_PI_ROOT and PI_CODING_AGENT_DIR; the pi binary path and the
- *  package.json files found walking up from it
+ * @inputs env PI_BENCH_ENTRY, BENCH_PI_ROOT and PI_CODING_AGENT_DIR; root CI workflow pin and the pi binary path and package.json files found walking up from it
  * @outputs exports
  *  PI_PACKAGE/PI_AI_PACKAGE/PI_MIN_VERSION/REQUIRED_PI_AI/REQUIRED_PI/compareVersions/piRootCandidates/loadPiExports/createPricer;
  *  returns {calculateCost, Usage-shaped helpers} and a pricer closure
@@ -46,7 +45,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
+import { pinPiInstall, readPiPin } from "../../../packages/nana-setup/lib/pi-pin.mjs";
 
 export const PI_PACKAGE = "@earendil-works/pi-coding-agent";
 export const PI_AI_PACKAGE = "@earendil-works/pi-ai";
@@ -145,7 +145,7 @@ export async function loadPiExports({ piBin = process.env.PI_BENCH_ENTRY, import
 		throw new Error(
 			`the bench needs the installed ${PI_PACKAGE} (>= ${PI_MIN_VERSION}) for token and cost arithmetic, ` +
 				`and no directory with its package.json was found.\nTried:\n  ${tried.join("\n  ")}\n` +
-				`Fix: npm i -g ${PI_PACKAGE}   (or set BENCH_PI_ROOT to the package directory — it is exclusive when set)`,
+				`Fix: ${pinPiInstall(`npm i -g ${PI_PACKAGE}`, readPiPin(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")))}   (or set BENCH_PI_ROOT to the package directory — it is exclusive when set)`,
 		);
 	}
 

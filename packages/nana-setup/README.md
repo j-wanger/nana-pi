@@ -67,7 +67,7 @@ macOS, only against the real home).
 3. Run `node packages/nana-setup/bin/nana-setup.mjs install --desk` (drop `--desk` when there is no desk service).
 4. Run `node packages/nana-setup/bin/nana-setup.mjs doctor`.
 
-Upgrade pi itself with `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@<version>`. Never run targetless `pi update`, `pi update --all` or `pi update --self`; `pi update <source>` and `pi update --extensions` update packages only.
+Upgrade pi itself with `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2 --before=2026-10-04T06:57:57Z`. The version and cutoff are tested in the root CI workflow. Never run targetless `pi update`, `pi update --all` or `pi update --self`; `pi update <source>` and `pi update --extensions` update packages only.
 
 ### Remove nana setup
 
@@ -398,9 +398,9 @@ written — `project` reads the user-scope config to decide what to write) until
 
 ## Install check
 
-Run `node packages/nana-setup/bin/install-check.mjs` from the repository root. The check installs nana into a temporary home, registers the checked-out pi extensions, installs pi-subagents, starts a pi RPC session, simulates Claude Code hook dispatch, and runs doctor. Its child processes receive the temporary home and temporary/cache folders; the check does not install nana into the caller's real home. The check depends on Node, Git, pi, npm registry access, and Git Bash on Windows.
+Run `node packages/nana-setup/bin/install-check.mjs` from the repository root. The check installs nana into a temporary home, registers the checked-out pi extensions, installs pi-subagents, starts a pi RPC session, simulates Claude Code hook dispatch, and runs doctor. Its child processes receive the temporary home and temporary/cache folders; the check does not install nana into the caller's real home. The check depends on Node, Git, pi and npm registry access.
 
-The check proves that the documented installation and selected installed hooks run in this fixture on the current runner. It does not start Claude Code, invoke pi prompt-time hooks, or prove the result on every machine. Windows follows the fresh-machine sequence without the PATH-link step: it installs nana into the temporary home, installs pi-subagents, writes the objective fixture, starts pi from the fixture project, dispatches installed hooks through Git Bash, and runs doctor. A Windows green result is not a substitute for Jake's Windows machine rehearsal.
+On FAIL, it prints the hooks block and the last knowledge-pull record after the result lines. The check proves that the documented installation and selected installed hooks run in this fixture on the current runner. It does not start Claude Code, invoke pi prompt-time hooks, or prove the result on every machine. Windows follows the fresh-machine sequence without the PATH-link step: it installs nana into the temporary home, installs pi-subagents, writes the objective fixture, starts pi from the fixture project, runs each installed hook directly in exec form (`node` with arguments, no shell), and runs doctor. A Windows green result is not a substitute for Jake's Windows machine rehearsal.
 
 ## Tests
 

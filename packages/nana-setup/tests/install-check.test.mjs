@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV } from "../lib/install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH } from "../lib/install-check-config.mjs";
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck } from "../lib/install-check.mjs";
 import { projectKey } from "../lib/project-key.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -258,6 +258,27 @@ check("environment: every child gets the base environment plus only its own step
 });
 
 // req: R-1079
+check("pi session: a get_commands response without reload-runtime prints FAIL pi session", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    const result = await spawn(command, args, options);
+    return args.includes("--mode") && args.includes("rpc") ? { ...result, stdout: "{}" } : result;
+  } });
+  try { const result = await fixture.run; assert.ok(result.lines.some((line) => line.startsWith("FAIL pi session — no-output:"))); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1079
+check("pi session: a journal without a directory_unadopted line for the fixture project prints FAIL pi session", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    const result = await spawn(command, args, options);
+    if (args.includes("--mode") && args.includes("rpc")) fs.writeFileSync(path.join(fixture.home, ".pi/agent/nana-journal.jsonl"), "");
+    return result;
+  } });
+  try { const result = await fixture.run; assert.ok(result.lines.some((line) => line.startsWith("FAIL pi session — no-output:"))); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1079
 check("pi session: runs with NANA_TEST_TEMP_ROOTS set empty", async () => {
   const fixture = recordingRun();
   try { await fixture.run; const call = fixture.calls.find((item) => item.args.includes("--mode") && item.args.includes("rpc")); assert.equal(call.options.env.NANA_TEST_TEMP_ROOTS, ""); }
@@ -280,6 +301,13 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       } else assert.ok(fixture.calls.some((call) => call.command === "C:\\tools\\pi.exe"));
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
+});
+
+// req: R-1071
+check("install: an install that exits non-zero prints FAIL install with its exit status", async () => {
+  const fixture = recordingRun({ failInstall: true });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL install — exit: exit status 1; last stderr: failed")); assert.equal(result.exitCode, 1); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 // req: R-1071
@@ -473,6 +501,18 @@ check("dispatch: a PATH folder without git.exe yields no Git Bash", () => {
   const present = new Set(["C:\\Other\\bin\\bash.exe"]);
   assert.equal(findGitBash(["C:\\Other\\bin"], (candidate) => present.has(candidate)), null);
 });
+// req: R-1075
+check("dispatch: on win32 Git Bash discovery reads the path variable under any letter case and uses the injected exists", async () => {
+  const home = tempHome();
+  try {
+    const env = { Path: "C:\\Git\\cmd", ComSpec: "C:\\Windows\\System32\\cmd.exe" };
+    const exists = (candidate) => ["C:\\Git\\cmd\\git.exe", "C:\\Git\\bin\\bash.exe"].includes(candidate);
+    const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+    const result = await runInstallCheck({ root, home, platformName: "win32", env, exists, spawn: async () => ({ status: 1 }), out: () => {} });
+    assert.equal(result.lines[0], "Git Bash: C:\\Git\\bin\\bash.exe");
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+});
+
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
@@ -671,12 +711,55 @@ check("doctor: a known-red note row is an XFAIL", () => {
   const result = classifyResult("doctor", "note-row", false, known, new Date("2098-12-31T00:00:00Z"));
   assert.equal(formatResultLine("doctor", result, "note", known[0]), "XFAIL doctor — note-row: note (known red, R-1055, until 2099-01-01)");
 });
+// req: R-1096
+check("diagnostics: a run with a FAIL line prints the settings hooks block and the last pull.log record after the result lines", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => {
+    if (args.includes("doctor")) {
+      fs.mkdirSync(path.join(fixture.home, ".pi/agent/nana-knowledge"), { recursive: true });
+      fs.writeFileSync(path.join(fixture.home, ...PULL_LOG_PATH), "first record\nsecond record\n");
+      return { status: 0, stdout: "· unexpected" };
+    }
+    return spawn(command, args, options);
+  } });
+  try { const result = await fixture.run; const end = result.lines.slice(-2); assert.deepEqual(end, [`settings hooks: ${JSON.stringify(JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8")).hooks)}`, "last pull.log record: second record"]); assert.ok(result.lines.indexOf(end[0]) > result.lines.findIndex((line) => line.startsWith("FAIL doctor"))); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1096
+check("diagnostics: missing settings and pull.log files print could-not-be-read lines with their error codes", async () => {
+  const fixture = recordingRun({ failInstall: true });
+  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-2), ["settings hooks: could not be read (ENOENT)", "last pull.log record: could not be read (ENOENT)"]); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1096
+check("diagnostics: malformed settings print the error name and an empty pull.log prints none", async () => {
+  let home;
+  const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => {
+    if (args.includes("doctor")) {
+      fs.writeFileSync(path.join(home, ".claude/settings.json"), "{");
+      fs.mkdirSync(path.join(home, ".pi/agent/nana-knowledge"), { recursive: true });
+      fs.writeFileSync(path.join(home, ...PULL_LOG_PATH), "\n  \n");
+      return { status: 0, stdout: "· unexpected" };
+    }
+    return spawn(command, args, options);
+  } });
+  home = fixture.home;
+  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-2), ["settings hooks: could not be read (SyntaxError)", "last pull.log record: none"]); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+
+// req: R-1096
+check("pin R-1096: the pull.log path under the temporary home", () => {
+  assert.deepEqual(PULL_LOG_PATH, [".pi", "agent", "nana-knowledge", "pull.log"]);
+});
+
 // req: R-1081
 check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
     darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
     linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
   });
 });
 // req: R-1073

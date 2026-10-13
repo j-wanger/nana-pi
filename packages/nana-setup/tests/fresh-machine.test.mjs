@@ -11,7 +11,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DESK_NODE_FLOOR, PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
-import { PI_INSTALL_HINT } from "../lib/steps.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 
 let fails = 0;
@@ -28,7 +27,7 @@ check("fresh-machine checklist has eight ordered actions", entries.length === 8 
 const ciVersion = read(".github/workflows/ci.yml").match(/^\s*PI_VERSION:\s*(\S+)/m)?.[1];
 const flat = entries.join(" ");
 // req: R-951
-check("checklist versions match Node, pi CI and pi-subagents sources", entries[0]?.includes(`Node ≥ ${DESK_NODE_FLOOR}`) && entries[1]?.includes(`${PI_INSTALL_HINT}@${ciVersion}`) && entries[5]?.includes(`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`), flat);
+check("checklist versions match Node, pi CI and pi-subagents sources", entries[0]?.includes(`Node ≥ ${DESK_NODE_FLOOR}`) && entries[1]?.includes(`@earendil-works/pi-coding-agent@${ciVersion} `) && entries[5]?.includes(`pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`), flat);
 const layout = resolveLayout();
 // req: R-950
 check("checklist objective paths name the resolved pi seed files", entries[6]?.includes(path.basename(layout.piObjective)) && entries[6]?.includes(path.basename(layout.piPackConfig)), entries[6]);

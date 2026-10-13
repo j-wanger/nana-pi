@@ -297,7 +297,11 @@ check("the nested model id is surfaced for pricing", nestedNoPricer.nestedModels
 	else process.env.BENCH_PI_ROOT = prev;
 	// req: R-508
 	check("a wrong BENCH_PI_ROOT fails and names the path tried", /definitely\/not\/a\/pi\/install/.test(threw ?? ""), (threw ?? "").slice(0, 80));
-	check("…and tells the maintainer how to fix it", /npm i -g @earendil-works\/pi-coding-agent/.test(threw ?? ""), threw ?? "");
+	const workflowText = fs.readFileSync(path.join(here, "../../..", ".github/workflows/ci.yml"), "utf8");
+	const ciVersion = workflowText.match(/^  PI_VERSION: (\S+)$/m)?.[1];
+	const ciBefore = workflowText.match(/^  PI_BEFORE: "([^"]+)"$/m)?.[1];
+	// req: R-1095
+	check("…and its fix line carries CI's PI_VERSION and an unquoted PI_BEFORE", (threw ?? "").includes(`npm i -g @earendil-works/pi-coding-agent@${ciVersion} --before=${ciBefore}`), threw ?? "");
 	if (previousRoot === undefined) delete process.env.BENCH_PI_ROOT;
 	else process.env.BENCH_PI_ROOT = previousRoot;
 }

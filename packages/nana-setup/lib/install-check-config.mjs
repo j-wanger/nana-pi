@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/install-check-config.mjs
  * @purpose Defines the independent sealed contract and tunables for the install check.
  * @inputs None.
- * @outputs Hook, environment, known-red and doctor-note contracts.
+ * @outputs Hook, environment, known-red, doctor-note and filesystem-path contracts.
  * @effects none
  * @errors None.
  */
@@ -18,6 +18,8 @@ export const HOOKS = [
 export const ALLOWED_HOOK_KEYS = ["type", "command", "args", "timeout", "statusMessage"];
 // Contract values: environment readers in nana-pack, nana-knowledge and nana-setup, audited 2026-10-12.
 export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"];
+// Contract path: nana-knowledge/lib/paths.ts, read 2026-10-13.
+export const PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"];
 // Provenance: Windows install-check run 38393751564 after main merge; every hook passed, 2026-10-13.
 export const KNOWN_RED = {
   darwin: [],
@@ -28,7 +30,7 @@ export const KNOWN_RED = {
 export const DOCTOR_NOTES = {
   darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
   linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "skill requirements", "skill nana-standards", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
+  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "PATH pi-review", "PATH pi-worker", "PATH nana-land", "PATH nana-setup", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook verifier-pipe.mjs", "Claude Code hooks floor", "skill spec", "skill py-lint", "skill py-review", "skill py-test"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {

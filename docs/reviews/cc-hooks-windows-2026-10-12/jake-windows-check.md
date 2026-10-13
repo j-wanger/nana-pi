@@ -16,7 +16,7 @@ Also record your account type (claude.ai, Console or other), any Bash deny rule 
 permission rule in your settings, and whether this is your first Claude Code session since an upgrade.
 
 ## 2. The install check (added 2026-10-13)
-In Git Bash or PowerShell, from the checkout:
+In PowerShell, from the checkout:
 ```powershell
 cd $NANA; node packages\nana-setup\bin\install-check.mjs
 ```

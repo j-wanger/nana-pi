@@ -37,6 +37,7 @@ import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
+import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 
 export class SetupError extends Error {}
 
@@ -806,8 +807,9 @@ export function stepDesk(layout, o) {
 
 /* ------------------------------------------------------------- pi package registration */
 
-/** chosen: use the setup README's global pi installation command; its tested version lives in CI. */
-export const PI_INSTALL_HINT = "npm i -g --ignore-scripts @earendil-works/pi-coding-agent";
+/** The install hint is derived from CI's checked pi version and cutoff. */
+const PI_INSTALL_BASE = "npm i -g --ignore-scripts @earendil-works/pi-coding-agent";
+export const PI_INSTALL_HINT = pinPiInstall(PI_INSTALL_BASE, readPiPin(repoRoot));
 
 /** realpath, falling back to the nearest existing ancestor so a non-existent path still resolves. */
 export function realpathSafe(p) {
