@@ -1,4 +1,4 @@
-# Plan review — lane roster (gpt-5.6-sol), 2026-10-13, round 1 of at most 2 (GATE lane)
+# Plan review — lane roster (gpt-5.6-sol), 2026-10-13, round 2 of at most 2 (GATE lane) — the last plan round
 
 Review the change declaration `CHANGE.md` in this folder and `shared-text.proposed.md`. The lane gives each
 machine its own role roster (a `roster` block in the user-scope `nana-pack.json`; the Mac's values stay the
@@ -16,6 +16,8 @@ boundary bypassed in practice, wrong output someone acts on, a broken install or
 behaviour main has today. Name the realistic input and the consequence; if you cannot, it is a SHOULD or NOTE.
 Contrived inputs, rare edge cases, wording, citation bookkeeping and test-evidence gaps are SHOULD or NOTE.
 `VERDICT: LAND` when no MUST stands; `VERDICT: SEND-BACK` only for a MUST. Do not use LAND-WITH-FIXES.
+
+Round 1 (`sol-plan-r1.md`, SEND-BACK 6/10) named two MUSTs; the plan's "Plan review r1" section says how each is closed (pi-worker and pi-review now start pi through `findPi`/`winCommand` on Windows, with Windows-leg stub tests; every lane launch prints the resolved builder). Confirm both are closed, then review the revised plan. This is the last plan round: after it, only a named fail-open bug reopens the plan.
 
 Check: (1) the land rule still holds — nothing can reach main without an independent reviewer's LAND, with or
 without a land model; (2) a machine whose roster is absent, malformed or names another provider gets either the
