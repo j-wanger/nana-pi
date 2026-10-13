@@ -65,7 +65,7 @@
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
-- **[blocking, since 2026-10-12] Your Windows check of the Claude Code hooks.** After this land, install from main on your machine. Accept the trust dialog in an adopted project, then start Claude Code with its debug flag. Expect the objective block, the shared-memory index and a knowledge pull on your first prompt. Ask Claude to pipe a test run before a commit, and expect an ask. The full steps are in the lane's session entry.
+- **[blocking, since 2026-10-12] Your Windows check of the Claude Code hooks.** After this land, follow the page of PowerShell steps. It uses a throwaway folder and takes about 15 minutes. Paste the recorded lines back to the seat — `docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md`.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).

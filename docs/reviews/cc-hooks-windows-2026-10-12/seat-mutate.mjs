@@ -190,6 +190,23 @@ const PAIRS = [
 		anchor: "const matcherOk = w.matcher === undefined || group?.matcher === w.matcher;",
 		replacement: "const matcherOk = w.matcher === undefined ? group?.matcher === undefined : group?.matcher === w.matcher;",
 		tests: [SM], expectRed: ["matcher"] },
+	// 28-31: final review r1 fixes (sol MUST 1, astra MUST 1 and 3), added by the seat against build 4's code.
+	{ n: "28", name: "a # anywhere starts a PowerShell comment (no token boundary)", file: PIPE,
+		anchor: "return source[i] === \"#\" && (i === 0 || /[\\s;|&(){}]/.test(source[i - 1]));",
+		replacement: "return source[i] === \"#\";",
+		tests: [PG], expectRed: ["#"] },
+	{ n: "29", name: "the $( ) scan ignores PowerShell line comments", file: PIPE,
+		anchor: "\t\tif (startsPowerShellComment(source, i)) { comment = true; atLineStart = false; continue; }\n",
+		replacement: "",
+		tests: [PG], expectRed: ["comment"] },
+	{ n: "30", name: "the $( ) scan ignores PowerShell block comments", file: PIPE,
+		anchor: "\t\tif (c === \"<\" && source[i + 1] === \"#\") { block = true; i++; atLineStart = false; continue; }\n",
+		replacement: "",
+		tests: [PG], expectRed: ["block comment"] },
+	{ n: "31", name: "win32 exec-form ownership by file name only (no repository suffix)", file: SETTINGS,
+		anchor: "return target.replace(/\\\\/g, \"/\").endsWith(repoSuffix) ? { target, form: \"win32-exec\" } : null;",
+		replacement: "return { target, form: \"win32-exec\" };",
+		tests: [SM, WD], expectRed: ["custom"] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
