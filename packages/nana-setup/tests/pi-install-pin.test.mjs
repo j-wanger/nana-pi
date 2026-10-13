@@ -11,6 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpDir } from "./tmp-dir.mjs";
 import { CI_WORKFLOW, parsePiPin, pinPiInstall, readPiPin } from "../lib/pi-pin.mjs";
 import { PI_INSTALL_HINT } from "../lib/steps.mjs";
 
@@ -86,7 +87,7 @@ check("the missing-pi hint is built from the checkout's CI workflow by pi-pin", 
 
 // req: R-1094
 check("an unreadable or incomplete workflow gives a placeholder hint, never an empty cutoff", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nana-pi-pin-"));
+  const dir = tmpDir(path.join(os.tmpdir(), "nana-pi-pin-"));
   try {
     assert.equal(readPiPin(dir), null);
     for (const body of ["", `  PI_VERSION: ${version}\n`, `  PI_VERSION: ${version}\n  PI_BEFORE: \"\"\n`, `  PI_VERSION: \n  PI_BEFORE: \"${before}\"\n`, `  PI_VERSION: ${version}\n  PI_BEFORE: \"not-a-date\"\n`]) {
