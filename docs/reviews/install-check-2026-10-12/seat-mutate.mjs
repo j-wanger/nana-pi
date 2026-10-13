@@ -246,7 +246,7 @@ const PAIRS = [
     anchor: "    needs: [suite, install-check]\n", replacement: "    needs: [suite]\n",
     tests: [CW], expectRed: [T.ciRelease, T.ciR1032] },
   { n: "23g", name: "ci.yml: plain npm i -g without --ignore-scripts", file: CI,
-    anchor: "      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}\n", replacement: "      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}\n",
+    anchor: "      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before=\"${PI_BEFORE}\"\n", replacement: "      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before=\"${PI_BEFORE}\"\n",
     tests: [CW], expectRed: [T.ciJob] },
   { n: "24", name: "XFAIL any failure of a listed item whatever its code", file: LIB,
     anchor: CLASSIFY_XFAIL, replacement: "  if (match && date < match.expires) return { status: \"XFAIL\", code };",

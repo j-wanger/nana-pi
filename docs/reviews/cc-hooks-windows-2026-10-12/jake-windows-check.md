@@ -1,6 +1,6 @@
 # Jake's Windows check — the Claude Code hooks (after cc-hooks-windows lands)
 
-About 15 minutes in PowerShell on your Windows machine. Nothing here touches a real project: the check uses a
+About 20 minutes in PowerShell on your Windows machine. Nothing here touches a real project: the check uses a
 throwaway folder you delete at the end. Paste the results (the four "record" lines and each expect line's
 outcome) back to the seat.
 
@@ -15,7 +15,16 @@ Get-ChildItem env: | Where-Object Name -in CLAUDE_CODE_USE_POWERSHELL_TOOL,CLAUD
 Also record your account type (claude.ai, Console or other), any Bash deny rule or scoped `PowerShell(...)`
 permission rule in your settings, and whether this is your first Claude Code session since an upgrade.
 
-## 2. Install and doctor
+## 2. The install check (added 2026-10-13)
+In Git Bash or PowerShell, from the checkout:
+```powershell
+cd $NANA; node packages\nana-setup\bin\install-check.mjs
+```
+It installs nana into a temporary home and runs every hook as Claude Code would. Expect 13 lines starting
+`PASS`, ending with `PASS doctor`, and exit code 0. Paste every line back, including the first lines naming
+the resolved Git Bash, pi and node.
+
+## 3. Install and doctor
 Windows has no linked `nana-setup` command, so run it from the checkout:
 ```powershell
 node "$NANA\packages\nana-setup\bin\nana-setup.mjs" install
@@ -32,7 +41,7 @@ Select-String -Path "$HOME\.claude\nana-memory\shared\MEMORY.md" -Pattern "^- \[
 If the objective file still holds only the seed's placeholder lines, or MEMORY.md has no `- [` line, the
 matching expect line below cannot show your content; record exactly what the session printed instead.
 
-## 3. A throwaway project with a knowledge note
+## 4. A throwaway project with a knowledge note
 ```powershell
 $P = "$HOME\nana-hooks-check-$(Get-Date -Format yyyyMMddHHmmss)"   # a new folder each run
 New-Item -ItemType Directory "$P\docs" | Out-Null; cd $P; git init
@@ -57,7 +66,7 @@ Add the throwaway hook that shows which `node` Claude Code starts — save as `$
   "timeout": 5 } ] } ] } }
 ```
 
-## 4. One Claude Code session
+## 5. One Claude Code session
 ```powershell
 cd $P; claude --debug
 ```
@@ -73,7 +82,7 @@ In the debug log, find each hook's `Hooks:` line and record its status and durat
 `failed to start` most likely means `node` did not resolve to a real `node.exe` (inferred; the docs list the
 status, not its causes).
 
-## 5. Clean up
+## 6. Clean up
 ```powershell
 cd $HOME; Remove-Item -Recurse -Force $P      # only the folder this run created
 node "$NANA\packages\nana-knowledge\bin\nana-knowledge.ts" build
