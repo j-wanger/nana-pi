@@ -504,6 +504,9 @@ const SCOPE = [
 	"docs/code-map.md",
 	"HANDOFF.md",
 	"docs/sessions/2026-10.md",
+  // seat, after build 1: the merged process lane's review-standard test copies the pack's bin and prompts; pi-watchdog now
+  // imports win-command.mjs, so that fixture must copy it too (a forced 3-line test change, not a §4 omission)
+  "packages/nana-pack/tests/review-standard.test.mjs",
 ];
 const SCOPE_PREFIX = "docs/reviews/roster-2026-10-13/";
 const diff = spawnSync("git", ["diff", "--name-only", "main...HEAD"], { cwd: root, encoding: "utf8" });

@@ -24,8 +24,8 @@ const FORM = { [NR]: AWAITABLE, [W32]: AWAITABLE, [WL]: PLAIN, [TR]: PLAIN, [RT]
 // R-291's literal is the base's leaf total plus nine. main bc84b70 (process landed, fresh-install not) totals 1,100,
 // so the roster lane makes it 1,109. If fresh-install lands first the base is 1,104 and both literals below move
 // (1,104 → 1,113); the seat edits them in a dated amendment, never the builder.
-const TREE_BEFORE = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,100";
-const TREE_AFTER = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,109";
+const TREE_BEFORE = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,104";
+const TREE_AFTER = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,113";
 
 export const REQUIRED = {
 	"1": [
