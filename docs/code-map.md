@@ -1807,7 +1807,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/review-standard.test.mjs`
 
 - **purpose** — Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
-- **inputs** — packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs and prompts/, a stub pi executable, and a temporary git repository.
+- **inputs** — packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs and prompts/, a stub pi executable, and a temporary git repository.
 - **outputs** — PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
 - **effects** — disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi; POSIX only)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
