@@ -96,22 +96,57 @@ function lineEndsAfter(source, pos) {
 /**
  * True when `source[i]` starts a PowerShell comment — a line comment (`#`) or a block comment
  * (`<#`) — rather than being literal inside a bareword or URL: EITHER form only begins at a token
- * boundary, the start of the text or right after whitespace or one of the statement/pipe/brace/
- * paren separators `; | & ( { } )` (R-1062, sol/astra final review r1 MUST 1; sol r2 MUST 1 for
- * `<#`, which this same boundary now also gates — `issue<#123` is one bare token, exactly like
- * `issue#123`). Windows PowerShell Language Specification 3.0 §2.2.3 Comments: "A character
- * sequence is only recognized as a comment if that sequence begins with `#` or `<#`. For example,
- * hello#there is considered a single token whereas hello #there is considered the token hello
- * followed by a single-line comment. As well as following white space, the comment start
- * sequence can also be preceded by any expression-terminating or statement-terminating character
- * (such as `)`, `}`, `]`, `'`, `"`, or `;`)." — and §2.3.3 generic-token-char, whose exclusion set
- * (the characters that end a bareword token) includes the same separators: `{ } ( ) ; , | & $`.
- * (learn.microsoft.com/en-us/powershell/scripting/lang-spec/chapter-02, read 2026-10-12.)
+ * boundary, the start of the text, or right after one of the characters named below (R-1062,
+ * sol/astra final review r1 MUST 1; sol r2 MUST 1 for `<#`, which this same boundary also gates —
+ * `issue<#123` is one bare token, exactly like `issue#123`; sol final review r3 MUST 1: the set is
+ * the UNION of the two cited sections, not a subset — the prior predicate reached only whitespace
+ * and `; | & ( ) { }`, so a character either section names but the predicate omitted — `'`, `"`,
+ * `]`, `,`, `$`, backtick — could fail open inside a `$( … )` subexpression: not recognising a
+ * comment PowerShell does recognise lets a `)` inside it close the subexpression early, hiding
+ * whatever follows).
+ *
+ * Windows PowerShell Language Specification 3.0 (learn.microsoft.com/en-us/powershell/scripting/
+ * lang-spec/chapter-02, read 2026-10-12):
+ * - §2.2.3 Comments: "A character sequence is only recognized as a comment if that sequence
+ *   begins with `#` or `<#`. … As well as following white space, the comment start sequence can
+ *   also be preceded by any expression-terminating or statement-terminating character (such as
+ *   `)`, `}`, `]`, `'`, `"`, or `;`)." — a non-exhaustive ("such as") example list.
+ * - §2.3.3 Commands, generic-token-char: "Any Unicode character except { } ( ) ; , | & $ ` (the
+ *   backtick character) double-quote-character single-quote-character whitespace new-line-
+ *   character escaped-character" — the characters a bareword/command token cannot contain, so
+ *   when one of them sits right before `#`, the token already ended there.
+ *
+ * Each boundary character below, with its source:
+ *   whitespace — §2.2.3 ("following white space") and §2.3.3 (`whitespace`); `\s` also covers
+ *     the newline both sections separately call out.
+ *   `)`  — §2.2.3 example, and §2.3.3 (excludes `)`).
+ *   `}`  — §2.2.3 example, and §2.3.3 (excludes `}`).
+ *   `'`  — §2.2.3 example, and §2.3.3 (excludes single-quote-character).
+ *   `"`  — §2.2.3 example, and §2.3.3 (excludes double-quote-character).
+ *   `;`  — §2.2.3 example, and §2.3.3 (excludes `;`).
+ *   `]`  — §2.2.3 example only; §2.3.3's generic-token-char does not exclude `[` or `]`.
+ *   `{`  — §2.3.3 only (excludes `{`); not one of §2.2.3's own "such as" examples.
+ *   `(`  — §2.3.3 only (excludes `(`).
+ *   `,`  — §2.3.3 only (excludes `,`).
+ *   `|`  — §2.3.3 only (excludes `|`).
+ *   `&`  — §2.3.3 only (excludes `&`).
+ *   `$`  — §2.3.3 only (excludes `$`).
+ *   backtick — §2.3.3 only (excludes the backtick); included for an exact union, but never
+ *     actually reachable as the character just before a LIVE `#` in this scanner: the
+ *     backtick-escape branch in both default states below fires first and always consumes the
+ *     very next character (matching real PowerShell, where a backtick always escapes what
+ *     follows it), so a backtick immediately before `#` produces an escaped, literal `#` — never
+ *     a comment start — before this predicate is ever asked about that position.
+ *
+ * Neither section names `[` — it opens an index or a type literal, never terminates one — so the
+ * spec is silent there; the choice made is to NOT treat it as a boundary, which keeps a `#` right
+ * after `[` literal and the surrounding text LIVE rather than silently starting a comment.
+ *
  * Returns "line", "block", or false — never a bare boolean — so a caller can tell the two comment
  * forms apart without re-deriving the boundary check itself.
  */
 function startsPowerShellComment(source, i) {
-	if (!(i === 0 || /[\s;|&(){}]/.test(source[i - 1]))) return false;
+	if (!(i === 0 || /[\s;,|&(){}$`'"\]]/.test(source[i - 1]))) return false;
 	if (source[i] === "#") return "line";
 	if (source[i] === "<" && source[i + 1] === "#") return "block";
 	return false;

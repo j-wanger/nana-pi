@@ -82,6 +82,15 @@ check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event =
 	// req: R-1054
 	// req: R-1062
 	check("decideHook: an embedded <# inside a PowerShell word does not mask a live pipe before commit", psBlockHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psBlockHit));
+	// final review r3 MUST 1 (R-1062, sol's repro): the boundary set omitted the closing single
+	// quote named by §2.2.3/§2.3.3, so a ")" right after it could close a $(...) subexpression
+	// early and hide the live pipe that follows — pinned through decideHook, not only the bare
+	// predicate (pipe-guard.test.mjs).
+	const solRepro = "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1\n)\"; git commit -m x";
+	const solReproHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: solRepro } });
+	// req: R-1054
+	// req: R-1062
+	check("decideHook: sol's closing-quote repro does not mask a live pipe before commit", solReproHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(solReproHit));
 }
 
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));

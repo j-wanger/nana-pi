@@ -106,6 +106,37 @@ const psCases = [
 	["PS: a backtick-escaped ) inside $(...) does not end it early", '"$(Write-Output hi `) npm test | Select-Object -Last 1)"; git commit -m x', true],
 	// a genuine comment — preceded by whitespace, a token boundary either way — still hides its pipe.
 	["PS: a genuine comment after a command stays inactive", "git status # | x\ngit commit -m x", false],
+	// final review r3 MUST 1 (R-1062, sol's repro): the boundary set is the UNION §2.2.3 and
+	// §2.3.3 name, not the prior subset (whitespace and `; | & ( ) { }`). Each case nests its
+	// boundary character inside a $(...), directly before "# )", so a scanner that fails to
+	// recognise the boundary lets that stray ")" close the subexpression early — exactly sol's
+	// repro — instead of the real ")" at the end of the npm test line. Whitespace itself is
+	// already pinned above ("a line comment inside $(...) does not end it early").
+	["PS: a comment after a closing single quote hides a ) that would close early (sol r3 repro; §2.2.3 example, §2.3.3 single-quote-character)", "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1\n)\"; git commit -m x", true],
+	['PS: a comment after a closing double quote hides a ) that would close early (§2.2.3 example, §2.3.3 double-quote-character)', '"$(Write-Output "hi"# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a semicolon hides a ) that would close early (§2.2.3 example, §2.3.3)', '"$(Write-Output 1;# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a closing bracket hides a ) that would close early (§2.2.3 example only)', '"$(Write-Output $a[0]# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a closing brace hides a ) that would close early (§2.3.3 only)', '"$(Write-Output {}# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after an opening brace hides a ) that would close early (§2.3.3 only)', '"$(Write-Output {# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a closing paren hides a ) that would close early (§2.2.3 example, §2.3.3)', '"$(Write-Output (1)# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after an opening paren hides a ) that would close early (§2.3.3 only)', '"$(Write-Output (# )\nnpm test | Select-Object -Last 1\n))"; git commit -m x', true],
+	['PS: a comment after a comma hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1,# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a pipe hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1|# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after an ampersand hides a ) that would close early (§2.3.3 only)', '"$(Write-Output 1&# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	['PS: a comment after a dollar sign hides a ) that would close early (§2.3.3 only)', '"$(Write-Output $# )\nnpm test | Select-Object -Last 1\n)"; git commit -m x', true],
+	// backtick (§2.3.3) can never actually sit right before a LIVE "#": the backtick-escape rule
+	// (matching real PowerShell) always consumes the very next character first, so "`#" is an
+	// escaped, literal "#", never a comment start — this is the reachable half of that claim;
+	// no positive "backtick starts a comment" case can be constructed, because the boundary
+	// check is never reached at that position.
+	["PS: a backtick escapes a following # instead of starting a comment", "Write-Output `# npm test | Select-Object -Last 1\ngit commit -m x", true],
+	// a word character (letter, digit, underscore) never starts a comment: none is named by
+	// either cited section, so "#" stays mid-word and swallows nothing. The letter case already
+	// exists above ("an embedded # inside a word does not start a comment"); these add the other
+	// two word-character classes the same way — if "#" were wrongly treated as a boundary here,
+	// it would swallow the rest of the line, including "git commit", flipping this to false.
+	["PS: a digit before # does not start a comment", "npm test | Select-Object -Last 5; Write-Output issue1#123; git commit -m x", true],
+	["PS: an underscore before # does not start a comment", "npm test | Select-Object -Last 5; Write-Output issue_#123; git commit -m x", true],
 ];
 for (const [name, command, expected] of psCases) {
 	// req: R-1062
