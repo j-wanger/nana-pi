@@ -192,8 +192,9 @@ const PAIRS = [
 		tests: [SM], expectRed: ["matcher"] },
 	// 28-31: final review r1 fixes (sol MUST 1, astra MUST 1 and 3), added by the seat against build 4's code.
 	{ n: "28", name: "a # anywhere starts a PowerShell comment (no token boundary)", file: PIPE,
-		anchor: "\tif (!(i === 0 || /[\\s;|&(){}]/.test(source[i - 1]))) return false;\n\tif (source[i] === \"#\") return \"line\";\n",
-		replacement: "\tif (source[i] === \"#\") return \"line\";\n\tif (!(i === 0 || /[\\s;|&(){}]/.test(source[i - 1]))) return false;\n",
+		// injected after the signature so it applies however the boundary set is written
+		anchor: "function startsPowerShellComment(source, i) {\n",
+		replacement: "function startsPowerShellComment(source, i) {\n\tif (source[i] === \"#\") return \"line\";\n",
 		tests: [PG], expectRed: ["#"] },
 	{ n: "29", name: "the $( ) scan ignores PowerShell line comments", file: PIPE,
 		anchor: "\t\t\tif (commentStart === \"line\") { comment = true; atLineStart = false; continue; }\n",
@@ -209,8 +210,8 @@ const PAIRS = [
 		tests: [SM, WD], expectRed: ["custom"] },
 	// 32: final review r2 sol MUST 1 — <# opens a block comment only at a token boundary.
 	{ n: "32", name: "a <# anywhere starts a PowerShell block comment (no token boundary)", file: PIPE,
-		anchor: "\tif (!(i === 0 || /[\\s;|&(){}]/.test(source[i - 1]))) return false;\n\tif (source[i] === \"#\") return \"line\";\n\tif (source[i] === \"<\" && source[i + 1] === \"#\") return \"block\";\n",
-		replacement: "\tif (source[i] === \"<\" && source[i + 1] === \"#\") return \"block\";\n\tif (!(i === 0 || /[\\s;|&(){}]/.test(source[i - 1]))) return false;\n\tif (source[i] === \"#\") return \"line\";\n",
+		anchor: "function startsPowerShellComment(source, i) {\n",
+		replacement: "function startsPowerShellComment(source, i) {\n\tif (source[i] === \"<\" && source[i + 1] === \"#\") return \"block\";\n",
 		tests: [PG], expectRed: ["<#"] },
 ];
 
