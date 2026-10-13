@@ -17,6 +17,7 @@
 - 2026-10-11: on Windows, install now registers nana with pi. It runs the first pi on PATH (npm, pnpm, Volta or Scoop) and runs a `.cmd` shim through cmd.exe with quoted arguments. A pi that is found but broken is a problem, not a skip, except a macOS or Linux pi whose interpreter is missing. Doctor checks pi there too, and post-edit reports a missing Windows tool as "could not run" — `docs/sessions/2026-10.md`.
 - 2026-10-11: Jake's process rulings. Every plan names its threat: honest variation in our tools' output is in scope, deliberate forgery is out. Small lanes get one plan review, gate and format lanes two; after that only a named fail-open bug reopens a plan. Once every reviewer says LAND, the seat edits nothing more. Urgent fixes ship alone and get hardened later. Builders: time one lane with Sonnet 5.5 and one with luna before any roster change.
 - 2026-10-11: the product report is a feature. One command builds a readable page from the requirements, the open asks and stored assessments. Each assessment shows as current, out of date or unassessed, and refresh packets let any seat refresh one — `docs/sessions/2026-10.md`.
+- 2026-10-12: the Claude Code seat's hooks run on Windows. Install writes all five as a plain node call with no shell. The verifier also watches PowerShell, and doctor checks each hook. They need Claude Code 2.1.139 or later. Your Windows machine is the only real proof — `docs/sessions/2026-10.md`.
 
 ## Carried residuals (live; one line each)
 
@@ -37,6 +38,7 @@
 - `~/nana-agent-loop` still tracks the retired hook's empty `.claude/.context-warned`.
 - Four-digit IDs: aml-desk's hand copy of the rail still reads three digits (hand edit, no urgency); basketball-geek is on the older pytest-marker rail, so taking the new tag is a migration. The rails sort ID lists as text (cosmetic). A character outside the shared whitespace list between a row's opening pipe and its ID hides the row from both rails. The tree checker still splits lines on LF without CR handling (the Windows lane).
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
+- Claude Code hooks on Windows: uninstall still refuses there, and its leftover-entry report would miss the new form (the Windows install-shape lane). Doctor's four hook-file rows read "skipped (win32)" just above the five ✓ settings rows. On the Windows CI leg, three file-mode checks and one test that deletes its own working folder stay red (test portability). Nothing here proves how Claude Code itself starts the hooks, routes PowerShell, or how long they take. Reviewers found the PowerShell lexer's gaps one character at a time over three rounds. The hardening step: a Windows-leg test compares its comment and string spans with PowerShell's own tokenizer over generated commands.
 - Windows pi launch: nana runs the first `pi.com`, `.exe`, `.bat` or `.cmd` on PATH — not PowerShell's `pi.ps1`, an alias or a function, and never a `pi.cmd` in the working folder. A `.cmd` pi whose path or package folder holds `%`, `!` or a double quote needs a manual `pi install`. Post-edit calls a missing tool a failed check when it hides behind a non-simple first word or later in a compound command. A failing command led by an internal command outside the sealed list reads as "could not run".
 - Verdict reader: a plain first-line LAND followed by a rejection that avoids the word "verdict" still reads LAND. Look-alike letters outside the fold table and misspelled labels are not caught. The reader ignores a middle verdict line when the final line carries one. Notes that say "verdict" after a first-line verdict leave the round empty. yokai-world's nine empty records from before the fix stay; a session merged those revisions by hand.
 - Desk residuals live in `apps/desk/README.md` Known limits.
@@ -55,8 +57,8 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
-   - The Claude Code seat's hooks on Windows, built by Sonnet 5.5. Jake's machine is x64 with Git Bash, so the Bash tool fires there.
-   - Beside it, the install-and-hooks check on both platforms, built by luna. Green on both is the 2026-10-24 "done".
+   - Urgent and alone: CI installs pi as the registry stood before 2026-10-12 23:00 UTC. A new pi-codemode release broke fresh pi 1.0.2 installs for our tests, so every CI suite leg is red.
+   - The install-and-hooks check on both platforms, built by luna, lands next. Green on both is the 2026-10-24 "done".
    - A small process lane: Jake's review caps and threat-model rule in the working pattern, a standard last-line verdict instruction in pi-review, and a parallel test runner.
    - Then project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
    - Jake's machine is the proof for Windows. A UTM VM here would run ARM64, so it is a rehearsal only.
@@ -64,6 +66,7 @@
 
 ## Open for Jake (each ask: blocking, optional or parked, and since when)
 
+- **[blocking, since 2026-10-12] Your Windows check of the Claude Code hooks.** After this land, follow the page of PowerShell steps. It uses a throwaway folder and takes about 15 minutes. Paste the recorded lines back to the seat — `docs/reviews/cc-hooks-windows-2026-10-12/jake-windows-check.md`.
 - **[optional, since 2026-10-05] Background subagents.** You reported "Subagents still not working as background processes". One real gap: a subagent from a prompt template always runs in the foreground. Where did you see it — pi, the desk or Claude Code — and did the agent wait or never start one?
 - **[optional, since 2026-09-28] Provenance label.** A broken `trust.json` symlink gets no diagnosis; writability and staleness are pre-checks; the Claude hook resolves a relative override against its own cwd. The label no longer fires in your five repos.
 - **[optional, since 2026-10-07] One TUI check.** In a pi TUI session in an unfocused window, trigger a gate approval dialog: expect a desktop notification "Approval needed in pi" (or a recorded notifier failure).

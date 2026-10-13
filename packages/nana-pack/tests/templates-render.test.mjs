@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 //     command `--check` is green.
 // Needs `uvx copier`; without it every row SKIPs. Temp HOME.
 // Run: node --experimental-strip-types <this file>
-const { desiredHooks } = await import(new URL("../../nana-setup/lib/settings.mjs", import.meta.url).href);
+const { desiredHooks, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../../nana-setup/lib/settings.mjs", import.meta.url).href);
 const NANA_HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-home-")));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
@@ -291,7 +291,7 @@ function checkInstructionContracts() {
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | Bash PreToolUse Node hook `verifier-pipe.mjs` | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
+			"| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |",
 			"| pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension |",
 			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
@@ -313,7 +313,7 @@ function checkInstructionContracts() {
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
-	const canonicalSupport = "Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows there is no Claude Code hook except the knowledge pull, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.";
+	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-685

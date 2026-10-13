@@ -2,7 +2,7 @@
 
 The toolkit repo: adoption of pi, the nana pack, desk, knowledge pull, and project templates. Sibling to `~/nana-agent-loop`.
 
-Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows there is no Claude Code hook except the knowledge pull, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
+Support: macOS tested; Linux and Windows run in hosted CI, where their suite legs are non-blocking; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, none of the pack's PATH commands are linked, and the review and builder launchers are unavailable; launchd is macOS-only.
 
 Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 
@@ -72,7 +72,7 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
 
 | Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule | Knowledge pull | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | Bash PreToolUse Node hook `verifier-pipe.mjs` | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |
+| Claude Code seat | SessionStart `nana-objective.mjs` and `nana-adoption.mjs` hooks | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule | UserPromptSubmit `nana-knowledge.ts hook` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify |
 | pi TUI or desk session | `nana-objective` extension | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension |
 | pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension | No shared auto-memory | Neither rule | `nana-writing` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension |
 | Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |

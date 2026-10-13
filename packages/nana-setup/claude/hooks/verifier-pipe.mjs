@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-setup/claude/hooks/verifier-pipe.mjs
- * @purpose Run the verifier-pipe decision for one Claude Code Bash PreToolUse event.
+ * @purpose Run the verifier-pipe decision for one Claude Code Bash or PowerShell PreToolUse event.
  * @inputs Claude Code PreToolUse JSON on stdin.
  * @outputs a hit decision on stdout; errors produce a stderr diagnostic.
  * @effects process (reads stdin and writes stdout/stderr).

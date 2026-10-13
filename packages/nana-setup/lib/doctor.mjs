@@ -9,7 +9,8 @@
  *  <piHome>/agents/reviewer.md, <piHome>/npm/node_modules/pi-subagents/package.json,
  *  <piHome>/mcp.json, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land and nana-setup, the LaunchAgents plist;
  *  `node -p process.versions.node` and `launchctl print`
- * @outputs an array of { status, label, detail } rows; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
+ * @outputs an array of { status, label, detail } rows, including a win32-only note row naming the
+ *  Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); DESK_NODE_FLOOR ("22.19"); PI_SUBAGENTS_FLOOR ("0.75.0"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath()
  * @effects disk (reads only), process (spawns node, pi --version and launchctl to probe)
@@ -24,7 +25,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { hasHook, desiredHooks, knowledgeHookHealthy, commandInvokes } from "./settings.mjs";
+import { hasHook, desiredHooks, hookTargets, knowledgeHookHealthy, commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, NEW_CLAUDE_SKILLS, DESK_SERVER, HOOKS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, PI_INSTALL_HINT, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, lstatSafe, objectiveTarget, readPiPackConfig, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { spawnSync } from "node:child_process";
 import { releaseStatus } from "../../nana-pack/lib/release-status.mjs";
@@ -293,8 +294,9 @@ export function diagnose(layout, opts = {}) {
 	const add = (status, label, detail) => checks.push({ status, label, detail });
 
 	// --- runtime floor: the `node` the objective hook will run (the one on this PATH) ---
-	if (win) add(NOTE, "node for the objective hook", "skipped (win32)");
-	else {
+	// R-1057: win32 runs this too now, on whatever `node` doctor's own PATH finds — which may
+	// differ from the one Claude Code's exec-form hooks resolve (declared limit, CHANGE.md §3).
+	{
 		const r = spawnSync("node", ["-p", "process.versions.node"], { encoding: "utf8" });
 		const v = r.status === 0 ? r.stdout.trim() : null;
 		add(
@@ -376,22 +378,40 @@ export function diagnose(layout, opts = {}) {
 	} catch (err) {
 		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
 	}
-	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot })) {
-		const posixHook = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"].includes(w.spec.script);
-		if (win && (posixHook || w.label === "PreToolUse verifier pipe")) {
-			add(NOTE, `settings ${w.label}`, `skipped (win32${w.label === "PreToolUse verifier pipe" ? "; Claude Code hooks unavailable" : ""})`);
+	// R-1055: on win32 every one of the five settings rows is now a real ✓/✗, read the same way —
+	// the entry sits under the expected event and matcher (hasHook), and every entry that invokes
+	// its script resolves inside the checkout (hookTargets). On POSIX the four hook rows keep
+	// hasHook alone and the knowledge row keeps knowledgeHookHealthy, both exactly as on `main`
+	// (R-1061).
+	const platformValue = win ? "win32" : undefined;
+	for (const w of desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue })) {
+		if (parseError) { add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`); continue; }
+		if (win) {
+			const present = hasHook(settings, w.event, w.spec, w.matcher, platformValue);
+			const targets = hookTargets(settings, w.event, w.spec, platformValue);
+			// win32.isAbsolute, not the platform-dependent path.isAbsolute: an exec-form
+			// target is a win32 path even when this check is forced on a POSIX host.
+			const resolves = targets.length > 0 && targets.every((target) => {
+				try {
+					const real = fs.realpathSync(target);
+					const root = fs.realpathSync(repoRoot);
+					return path.win32.isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
+				} catch { return false; }
+			});
+			const healthy = present && resolves;
+			add(healthy ? OK : FAIL, `settings ${w.label}`, healthy ? w.marker : `${w.marker} — target is missing or does not resolve inside ${repoRoot}`);
 			continue;
 		}
-		if (parseError) add(FAIL, `settings ${w.label}`, `settings.json ${parseError}`);
-		else {
-			const healthy = w.label === "UserPromptSubmit knowledge pull"
-				? knowledgeHookHealthy(settings, repoRoot)
-				: hasHook(settings, w.event, w.spec, w.matcher);
-			add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
-				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
-				: w.marker);
-		}
+		const healthy = w.label === "UserPromptSubmit knowledge pull"
+			? knowledgeHookHealthy(settings, repoRoot)
+			: hasHook(settings, w.event, w.spec, w.matcher);
+		add(healthy ? OK : FAIL, `settings ${w.label}`, w.label === "UserPromptSubmit knowledge pull" && !healthy
+			? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
+			: w.marker);
 	}
+	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
+	// problem pi-cmd-launch solved for pi, which is not worth it for a floor Jake already exceeds.
+	if (win) add(NOTE, "Claude Code hooks floor", `need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later (not checked here — \`claude --version\` is never run)`);
 	for (const { event, command } of retiredSettingsCommands(settings))
 		add(FAIL, `settings ${event} retired hook`, `retired bash hook still wired: ${command}`);
 

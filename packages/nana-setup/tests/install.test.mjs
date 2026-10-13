@@ -17,9 +17,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const { commandInvokes, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, entryInvokes, hookTargets } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 /**
  * A minimal, SEPARATE re-implementation of pi-subagents' own documented frontmatter contract
@@ -125,15 +126,19 @@ check("private rule is a REGULAR file (never a link into the repo)", fs.lstatSyn
 check("private rule is not in the repo", !fs.existsSync(path.join(pkg, "claude", "rules", "nana-personal.md")));
 
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
-const commands = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
+const allHooks = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks));
+const commands = allHooks.map((h) => h.command);
 // req: R-301
 check("retired context hook is absent from settings", !JSON.stringify(settings).includes("context-size-check.sh"));
+// Read through entryInvokes (not .command alone), so this still passes on win32, where the real
+// install (platform() === "win32" there, not forced) writes exec-form entries (R-1050).
 for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo })) {
-	check(`settings.json wires ${w.marker}`, commands.some((c) => commandInvokes(c, w.spec)));
+	check(`settings.json wires ${w.marker}`, allHooks.some((h) => entryInvokes(h, w.spec, platform())));
 }
 // req: R-321
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
-check("knowledge hook points at this install root", commands.some((c) => c.includes(path.join(repo, "packages", "nana-knowledge"))));
+const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
+check("knowledge hook points at this install root", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).some((t) => t.includes(path.join(repo, "packages", "nana-knowledge"))));
 
 // req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));
@@ -312,22 +317,27 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	seedPiSubagents(spaced);
 	const r = run(["install", "--home", spaced]);
 	check("space in home: install exits 0", r.status === 0, r.stderr);
-	const s = JSON.parse(fs.readFileSync(path.join(spaced, ".claude", "settings.json"), "utf8"));
-	const cmds = Object.values(s.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
-	check("space in home: the path is quoted", cmds.every((c) => c.includes("'")), cmds.join(" | "));
-	// the real proof: run the SessionStart commands through a shell
-	const sessionStart = s.hooks.SessionStart.flatMap((g) => g.hooks.map((h) => h.command));
-	for (const c of sessionStart) {
-		const out = spawnSync("bash", ["-c", c], { encoding: "utf8", input: "", env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" } });
-		check(`space in home: \`${c.slice(0, 40)}…\` runs cleanly`, out.status === 0 && !/No such file|command not found/.test(out.stderr), out.stderr);
+	// On win32 no path enters a command string at all (exec form, R-1050); this shell-quoting
+	// proof is POSIX-only. The Windows leg's own exec-form spawn, with a space AND several
+	// shell-special characters, is hooks-win32-exec.test.mjs's job.
+	if (process.platform !== "win32") {
+		const s = JSON.parse(fs.readFileSync(path.join(spaced, ".claude", "settings.json"), "utf8"));
+		const cmds = Object.values(s.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => h.command)));
+		check("space in home: the path is quoted", cmds.every((c) => c.includes("'")), cmds.join(" | "));
+		// the real proof: run the SessionStart commands through a shell
+		const sessionStart = s.hooks.SessionStart.flatMap((g) => g.hooks.map((h) => h.command));
+		for (const c of sessionStart) {
+			const out = spawnSync("bash", ["-c", c], { encoding: "utf8", input: "", env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" } });
+			check(`space in home: \`${c.slice(0, 40)}…\` runs cleanly`, out.status === 0 && !/No such file|command not found/.test(out.stderr), out.stderr);
+		}
+		const shared = spawnSync("bash", ["-c", sessionStart.find((c) => c.includes("nana-shared-memory"))], {
+			encoding: "utf8",
+			input: "",
+			env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
+		});
+		// req: R-319
+		check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
 	}
-	const shared = spawnSync("bash", ["-c", sessionStart.find((c) => c.includes("nana-shared-memory"))], {
-		encoding: "utf8",
-		input: "",
-		env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
-	});
-	// req: R-319
-	check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);
 	check("space in home: doctor exits 0", run(["doctor", "--home", spaced]).status === 0);
 }
 

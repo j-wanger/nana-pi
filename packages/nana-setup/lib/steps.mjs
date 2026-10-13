@@ -34,7 +34,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { commandInvokes, desiredHooks, mergeHooks, mergeKnowledgeHook, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 
@@ -501,19 +501,15 @@ function retiredHookCommands(settings) {
 }
 
 export function stepSettings(layout, o, state) {
-	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
-	// Win32 retains today's knowledge-only Claude hook surface; recognize managed hooks by script.
-	const portedScripts = new Set(["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "verifier-pipe.mjs"]);
-	const applicable = win()
-		? wanted.filter((w) => !portedScripts.has(w.spec.script) && w.label !== "PreToolUse verifier pipe")
-			.map((w) => ({ ...w, entry: { ...w.entry, command: w.entry.command.replace(/^NODE_NO_WARNINGS=1 /, "") } }))
-		: wanted;
-	const live = new Set(applicable.map((w) => w.label));
+	const platformValue = win() ? "win32" : undefined;
+	// On win32 every entry applies, written in exec form from the checkout (R-1050, R-1051); on
+	// every other platform desiredHooks() with no platform stays byte-identical to `main`.
+	const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform: platformValue });
 	const report = (added, settings) => [
 		...wanted.map((w) => ({
 			label: `settings ${w.label}`,
-			status: !live.has(w.label) ? SKIPPED : added.includes(w.label) ? CREATED : UNCHANGED,
-			detail: !live.has(w.label) ? `skipped (win32: ${w.label === "PreToolUse verifier pipe" ? "Claude Code hooks unavailable" : "POSIX hook"})` : added.includes(w.label) ? "added" : "already wired",
+			status: added.includes(w.label) ? CREATED : UNCHANGED,
+			detail: added.includes(w.label) ? "added" : "already wired",
 		})),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 		...(added.includes("SessionStart retired hook migration") ? [{ label: "settings SessionStart retired hook migration", status: UPDATED, detail: o.dryRun ? "would migrate managed entries in place" : "migrated managed entries in place" }] : []),
@@ -522,14 +518,13 @@ export function stepSettings(layout, o, state) {
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
-		const knowledge = applicable.find((w) => w.label === "UserPromptSubmit knowledge pull");
-		const other = applicable.filter((w) => w !== knowledge);
-		const migration = mergeKnowledgeHook(settings, {
-			repoRoot,
-			desiredCommand: knowledge.entry.command,
-		});
-		const result = mergeHooks(settings, migration.added ? applicable : other);
-		if (migration.replaced) result.added.push(knowledge.label);
+		// Repo-anchored entries (the knowledge pull on every platform, all five on win32) are
+		// repaired in place when stale or (on win32) not yet in exec form (R-1056, R-1059);
+		// everything else goes through the ordinary append-if-missing merge.
+		const repo = mergeRepoHooks(settings, { repoRoot, wanted, platform: platformValue });
+		const toAppend = wanted.filter((w) => !repo[w.label]?.found);
+		const result = mergeHooks(settings, toAppend, platformValue);
+		for (const w of wanted) if (repo[w.label]?.replaced) result.added.push(w.label);
 		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
 		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
 		return result;

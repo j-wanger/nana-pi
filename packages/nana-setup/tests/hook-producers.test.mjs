@@ -7,6 +7,7 @@
  * @errors failed checks set a nonzero process exit code.
  */
 import { spawn } from "node:child_process";
+import path from "node:path";
 import { hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
 let failures = 0;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) failures++; };
@@ -27,9 +28,12 @@ check("launcher configurations drive missing-CLI output with canonical markers",
 	const config = hookProducerConfig(name, "/clone");
 	let output = "";
 	runHookProducer({ ...config, stdout: { write: (text) => { output += text; } } });
+	// Built via path.join, the way hookProducerConfig itself does, so this stays correct on
+	// win32, where path.join("/clone", "packages/.../x.mjs") uses backslashes.
+	const cli = path.join("/clone", name === "objective" ? "packages/nana-pack/bin/nana-objective.mjs" : "packages/nana-pack/bin/nana-adoption.mjs");
 	const expected = name === "objective"
-		? "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/clone/packages/nana-pack/bin/nana-objective.mjs). Tell the user before spending.\n"
-		: "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/clone/packages/nana-pack/bin/nana-adoption.mjs).\n";
+		? `[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (${cli}). Tell the user before spending.\n`
+		: `[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (${cli}).\n`;
 	return output === expected;
 }));
 // req: R-687

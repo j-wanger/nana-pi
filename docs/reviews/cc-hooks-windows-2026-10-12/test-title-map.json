@@ -1,0 +1,30 @@
+{
+  "win32: ${label} reports skipped (win32: POSIX hook)": {
+    "replacedBy": "win32: ${label} is created, not skipped",
+    "why": "R-1051: the four Node hook settings entries are now wired on win32 (exec form), so they are no longer skipped — the loop now asserts the row is created instead."
+  },
+  "win32: no Claude verifier PreToolUse entry is installed": {
+    "replacedBy": "win32: the verifier group's matcher is Bash-or-PowerShell",
+    "why": "R-985/R-1053: the verifier-pipe hook is now installed on win32 too (matcher Bash|PowerShell), which inverts this check's claim; the rewrite asserts the new matcher instead."
+  },
+  "win32 doctor skips rather than expects a Claude verifier entry": {
+    "replacedBy": "win32 doctor: settings ${w.label} is ✓",
+    "why": "R-1055: doctor now expects and verifies the verifier-pipe settings row on win32 (real ✓/✗) instead of reporting it skipped; the rewrite iterates all five hook labels, including the verifier."
+  },
+  "pack README declares the Claude win32 hook limitation": {
+    "replacedBy": "pack README declares the Claude win32 verifier coverage",
+    "why": "R-985/R-1053: the pack README now states that the Claude Code verifier hook IS wired on native Windows (matcher Bash|PowerShell), which inverts this check's claim."
+  },
+  "win32: only the knowledge hook is wired": {
+    "replacedBy": "win32: UserPromptSubmit carries exactly the one knowledge entry, no twin",
+    "why": "final review r1 astra SHOULD 7: all five hooks are now wired on win32, so the old title's claim is stale; the check itself only ever examined UserPromptSubmit (one entry, the knowledge pull, no twin) — renamed to say that."
+  },
+  "win32: no `VAR=1 cmd` env prefix (cmd.exe cannot run it)": {
+    "replacedBy": "win32: exactly one ${w.label} entry, exec form (command \"node\", args array, no shell key)",
+    "why": "final review r1 astra SHOULD 7: exec form always sets command exactly \"node\", so this prefix check is vacuous for every win32 entry now — dropped in favor of the existing per-label loop's exact-equality assertion (command === \"node\"), which already subsumes it and already runs for all five labels."
+  },
+  "win32 doctor marks the skipped pieces": {
+    "replacedBy": "win32 doctor: ${label} reads skipped (win32)",
+    "why": "R-937, final review r2 (sol MUST 2, astra MUST 1): \"at least four\" skipped (win32) strings never pinned any PARTICULAR row — a changed label elsewhere could still satisfy the count. Replaced with one assertion per expected label (the four `hook *` rows and the four `PATH *` rows), individually."
+  }
+}
