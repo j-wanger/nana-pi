@@ -24,9 +24,17 @@ node "$NANA\packages\nana-setup\bin\nana-setup.mjs" doctor
 Expect in doctor: `✓ node for the objective hook`, five `✓ settings …` rows (objective, adoption,
 shared-memory, verifier pipe, knowledge pull), and a `·` note naming Claude Code 2.1.139.
 
+Check the two fixtures the session expects to print, and record which exist:
+```powershell
+Get-Content "$HOME\.pi\agent\nana-objective.md" -TotalCount 12          # your objective lines
+Select-String -Path "$HOME\.claude\nana-memory\shared\MEMORY.md" -Pattern "^- \["   # at least one index line
+```
+If the objective file still holds only the seed's placeholder lines, or MEMORY.md has no `- [` line, the
+matching expect line below cannot show your content; record exactly what the session printed instead.
+
 ## 3. A throwaway project with a knowledge note
 ```powershell
-$P = "$HOME\nana-hooks-check"
+$P = "$HOME\nana-hooks-check-$(Get-Date -Format yyyyMMddHHmmss)"   # a new folder each run
 New-Item -ItemType Directory "$P\docs" | Out-Null; cd $P; git init
 Set-Content "$P\docs\hooks-check.md" "# Hooks check`n`nThe word zanzibarquill proves the knowledge pull reached this note."
 node "$NANA\packages\nana-knowledge\bin\nana-knowledge.ts" build
@@ -55,7 +63,7 @@ cd $P; claude --debug
 ```
 Accept the workspace trust dialog first: Claude Code holds back every hook until you do. Then expect:
 - an objective block (your user-scope objective), the shared-memory index, an adoption notice naming
-  `nana-hooks-check` (logged by the pi session above), and a `nana-check {…}` line — ask Claude "what did the nana-check line say?" and record it;
+  the new `nana-hooks-check-…` folder (logged by the pi session above), and a `nana-check {…}` line — ask Claude "what did the nana-check line say?" and record it;
 - on the prompt "what does zanzibarquill prove?", a `[nana:knowledge]` block naming `hooks-check.md`;
 - on "run exactly this one command: `npm test | Select-Object -Last 5; git commit -m check`", an ask from the
   verifier before anything runs. **Decline it.** Record the tool name the ask shows (Bash or PowerShell). If
@@ -67,6 +75,6 @@ status, not its causes).
 
 ## 5. Clean up
 ```powershell
-cd $HOME; Remove-Item -Recurse -Force "$HOME\nana-hooks-check"
+cd $HOME; Remove-Item -Recurse -Force $P      # only the folder this run created
 node "$NANA\packages\nana-knowledge\bin\nana-knowledge.ts" build
 ```

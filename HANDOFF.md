@@ -57,6 +57,7 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
+   - Urgent and alone: CI installs pi as the registry stood before 2026-10-12 23:00 UTC. A new pi-codemode release broke fresh pi 1.0.2 installs for our tests, so every CI suite leg is red.
    - The install-and-hooks check on both platforms, built by luna, lands next. Green on both is the 2026-10-24 "done".
    - A small process lane: Jake's review caps and threat-model rule in the working pattern, a standard last-line verdict instruction in pi-review, and a parallel test runner.
    - Then project files on Windows (the AGENTS.md refresh, TypeScript line endings), the Windows install shape, test portability (it hides about 70 checks) and the maintainer tools.
