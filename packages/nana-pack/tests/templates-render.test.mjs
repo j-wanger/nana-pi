@@ -329,11 +329,16 @@ function checkInstructionContracts() {
 		shared.includes("docs/reviews/<lane>-<date>/seat-land.md") &&
 		shared.includes("before the final round") &&
 		shared.includes("the independent slice review still covers every land"));
-	const DEFAULT_PATTERN_BULLET = "- Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builder, reviewer and land models come from this machine's roster, printed by `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs\"`. Where pi-worker and pi-review are not on PATH (Windows), run them as `node \"$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs\"` and `node \"$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs\"` with the same arguments.";
-	const SEAT_LAND_BULLET = "- Seat land review: when the roster sets no land model (it prints `land: seat`), the seat writes its land review as `docs/reviews/<lane>-<date>/seat-land.md` in the lane's reviewed change before the final round; the independent slice review still covers every land.";
+	// R-1128 reads the two bullets from the shared file itself (not a literal copy in this test), so
+	// an edit to the shared file's bullet text that the R-1126/R-1127 title checks do not cover still
+	// shows nana-soul stale: the extracted bullet changes while nana-soul's copy does not.
+	const sharedBullet = (label) => { const m = new RegExp(`^- ${label}:.*$`, "m").exec(shared); return m ? m[0] : null; };
+	const defaultPatternBullet = sharedBullet("Default pattern");
+	const seatLandBullet = sharedBullet("Seat land review");
 	// req: R-1128
 	check("nana-soul carries the shared default-pattern and seat land review bullets",
-		soul.replace(/\r/g, "").includes(DEFAULT_PATTERN_BULLET) && soul.replace(/\r/g, "").includes(SEAT_LAND_BULLET));
+		Boolean(defaultPatternBullet) && Boolean(seatLandBullet) &&
+		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(seatLandBullet));
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
 		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&

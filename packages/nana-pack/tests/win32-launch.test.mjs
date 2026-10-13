@@ -137,6 +137,16 @@ const launch = (v, PATH, platform = "win32") => {
 }
 
 {
+	const notStringBin = launch(npmGlobal({ pkg: pkgJson({ bin: 5 }) }), PATH_GLOBAL);
+	const notStringBinPi = launch(npmGlobal({ pkg: pkgJson({ bin: { [PI_BIN_NAME]: 5 } }) }), PATH_GLOBAL);
+	const refusedNoBin = (r) => r.command === undefined && r.threw === undefined && typeof r.refused === "string" && r.refused.includes("bin");
+	// req: R-1125
+	check("win32 launch refuses with a named reason, without throwing, when pi's bin is not a string",
+		refusedNoBin(notStringBin) && refusedNoBin(notStringBinPi),
+		JSON.stringify({ notStringBin, notStringBinPi }));
+}
+
+{
 	// req: R-1125
 	check("non-win32 launch is pi by name with the arguments unchanged",
 		["darwin", "linux"].every((platform) => { const r = launch(npmGlobal(), PATH_GLOBAL, platform); return r.command === "pi" && JSON.stringify(r.args) === JSON.stringify(PI_ARGS); }));
@@ -291,6 +301,11 @@ console.log("VERDICT: LAND");
 		check("Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory",
 			noPkgRun.status === 1 && /pi launch refused/.test(noPkgRun.stderr) && readRecord().length === 0 && newCaptureDirs.length === 0,
 			JSON.stringify({ noPkgRun, newCaptureDirs }));
+		const noPkgOutText = fs.existsSync(noPkgOut) ? fs.readFileSync(noPkgOut, "utf8") : null;
+		// req: R-1125
+		check("Windows: a refused launch writes its reason to --out",
+			noPkgOutText !== null && noPkgOutText.startsWith("pi launch refused:") && noPkgRun.stderr.includes(noPkgOutText.trim()),
+			JSON.stringify({ noPkgOutText, noPkgRun }));
 
 		// -- a short or differently cased worktree path --
 		fs.rmSync(record, { force: true });

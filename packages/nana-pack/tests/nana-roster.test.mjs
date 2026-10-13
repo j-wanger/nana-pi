@@ -157,6 +157,20 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 }
 
 {
+	const c1Model = sampleRoster();
+	c1Model.builder.model = "gpt-6\u0085luna";
+	const c1Provider = sampleRoster();
+	c1Provider.reviewer.provider = "example\u009fgateway";
+	const rModel = validateRosterShape(c1Model);
+	const rProvider = validateRosterShape(c1Provider);
+	// req: R-1122
+	check("a provider or model holding a C1 control character is refused naming the slot and field",
+		Boolean(rModel.problem) && rModel.problem.includes("builder") && rModel.problem.includes("model") &&
+		Boolean(rProvider.problem) && rProvider.problem.includes("reviewer") && rProvider.problem.includes("provider"),
+		JSON.stringify({ rModel, rProvider }));
+}
+
+{
 	const FILE_SHAPES = [
 		["invalid JSON", (f) => fs.writeFileSync(f, "{\"roster\": ")],
 		["top level is an array", (f) => fs.writeFileSync(f, "[]")],

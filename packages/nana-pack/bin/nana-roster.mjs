@@ -63,7 +63,7 @@ function entryProblem(slot, value) {
   if (extra.length) return `roster.${slot} has an unexpected field ${extra.join(', ')}`;
   for (const field of ['provider', 'model']) {
     const v = value[field];
-    if (typeof v !== 'string' || v.length === 0 || /[\s\x00-\x1f\x7f]/.test(v)) {
+    if (typeof v !== 'string' || v.length === 0 || /[\s\x00-\x1f\x7f-\x9f]/.test(v)) {
       return `roster.${slot}.${field} must be a non-empty string with no whitespace or control character (got ${JSON.stringify(v)})`;
     }
   }

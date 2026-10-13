@@ -81,7 +81,9 @@ export function piLaunch(piArgs, { platform = process.platform, env = process.en
   if (typeof packageJson !== 'object' || packageJson === null || packageJson.name !== PI_PACKAGE) {
     return { refused: `${packageJsonPath} is not the ${PI_PACKAGE} package` };
   }
-  const bin = typeof packageJson.bin === 'string' ? packageJson.bin : packageJson.bin?.[PI_BIN_NAME];
+  const bin = typeof packageJson.bin === 'string'
+    ? packageJson.bin
+    : (packageJson.bin !== null && typeof packageJson.bin === 'object' && typeof packageJson.bin[PI_BIN_NAME] === 'string' ? packageJson.bin[PI_BIN_NAME] : undefined);
   if (!bin) return { refused: `${PI_PACKAGE} at ${packageDir} declares no ${PI_BIN_NAME} bin` };
   const entry = win.resolve(packageDir, bin);
   const relative = win.relative(packageDir, entry);
@@ -168,7 +170,7 @@ async function runOnce(tag, { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpt
     try { closeSync(fd); } catch { /* already closed */ }
     try { rmSync(dirname(tmp), { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
     process.stderr.write(`[${tag}] pi launch refused: ${launch.refused}\n`);
-    return { ok: false, text: '' };
+    return { ok: false, text: `pi launch refused: ${launch.refused}` };
   }
   // NANA_HANDOFF=off: a watchdog child is a NON-WRITER — it neither picks up nor writes the
   // nana handoff (L3; the role comes from this explicit marker, never the tool list).
