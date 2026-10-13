@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-standard.test.mjs
  * @purpose Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
- * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs and prompts/, a stub pi executable, and a temporary git repository.
+ * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs and prompts/, a stub pi executable, and a temporary git repository.
  * @outputs PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
  * @effects disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi; POSIX only)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -38,7 +38,8 @@ check("review standard defines a MUST and limits confirmation rounds to the delt
 	STANDARD_TEXT);
 
 // ---------------------------------------------------------------- R-1106: refusal before admission from a pack copy
-// A copy of bin/, lib/verdict-config.mjs and prompts/ lets each variant mutate the copy's own
+// A copy of bin/, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs and
+// prompts/ (pi-watchdog.mjs's piLaunch needs the last two) lets each variant mutate the copy's own
 // review-standard.md without ever touching the real file. Spawn cases SKIP on win32 (POSIX
 // shell stub), like handoff-writer-role.test.mjs.
 const MISSING_TITLE = "missing review standard is refused before admission";
@@ -53,7 +54,9 @@ if (process.platform === "win32") {
 	const pack = path.join(scratch, "pack-copy");
 	for (const dir of ["bin", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(pack, dir), { recursive: true });
 	fs.mkdirSync(path.join(pack, "lib"), { recursive: true });
-	fs.copyFileSync(path.join(PACK, "lib", "verdict-config.mjs"), path.join(pack, "lib", "verdict-config.mjs"));
+	for (const lib of ["verdict-config.mjs", "win-command.mjs", "win-command-config.mjs"]) {
+		fs.copyFileSync(path.join(PACK, "lib", lib), path.join(pack, "lib", lib));
+	}
 	const copyBin = path.join(pack, "bin", "pi-review.mjs");
 	const copyStandard = path.join(pack, "prompts", "review-standard.md");
 
