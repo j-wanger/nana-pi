@@ -22,37 +22,60 @@ const version = lines.find((line) => /^  PI_VERSION: (\S+)$/.test(line))?.match(
 const before = lines.find((line) => /^  PI_BEFORE: "([^"]*)"$/.test(line))?.match(/^  PI_BEFORE: "([^"]*)"$/)?.[1];
 const readmes = JSON.parse(fs.readFileSync(path.join(root, "readme-check.config.json"), "utf8")).readmes;
 function npmCommands(text) {
+  // Every npm install command in a README, whatever the Markdown form: inline spans (one or more backticks,
+  // across lines), fenced and indented blocks, with continued lines joined (\ everywhere; PowerShell ` and cmd ^
+  // in code blocks) and shell comments dropped — so "npm \" + "i -g …", a span split across lines, or a cutoff
+  // that appears only in a trailing comment cannot hide a command (final review r1, 2026-10-13).
   const lines = text.split(/\r?\n/);
-  const found = [];
-  let fence = null;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (fence && new RegExp(`^ {0,3}${fence[0]}{${fence.length},}\\s*$`).test(line)) { fence = null; continue; }
-    const open = !fence && /^ {0,3}(`{3,}|~{3,})/.exec(line);
-    if (open) { fence = open[1]; continue; }
-    const code = Boolean(fence) || /^(?: {4}|\t)/.test(line);
-    const re = /\bnpm\s+(?:i|install)\b/g;
-    let match;
-    while ((match = re.exec(line))) {
-      let command;
-      const inline = !fence && ((line.slice(0, match.index).match(/`/g) ?? []).length % 2 === 1);
-      if (inline) {
-        let rest = line.slice(match.index), k = i;
-        while (!rest.includes("`") && k + 1 < lines.length && k < i + 5) rest += `\n${lines[++k]}`;
-        command = rest.split("`")[0];
-      } else {
-        let rest = line.slice(match.index), k = i;
-        const continuation = code ? /\s(?:\\|`|\^)\s*$/ : /\s\\\s*$/;
-        while (continuation.test(rest) && k + 1 < lines.length) rest = rest.replace(continuation, " ") + lines[++k];
-        command = rest;
-      }
-      found.push(command.replace(/\s+/g, " ").trim());
+  const fragments = [];
+  let fence = null, block = [], prose = [];
+  const flushBlock = () => { if (block.length) fragments.push({ code: true, text: block.join("\n") }); block = []; };
+  const flushProse = () => { if (prose.length) fragments.push({ code: false, text: prose.join("\n") }); prose = []; };
+  for (const line of lines) {
+    if (fence) {
+      if (new RegExp(`^ {0,3}${fence[0]}{${fence.length},}\\s*$`).test(line)) { fence = null; flushBlock(); continue; }
+      block.push(line); continue;
     }
+    const open = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    if (open) { flushProse(); fence = open[1]; continue; }
+    if (/^(?: {4}|\t)/.test(line) && !prose.length) { block.push(line); continue; }
+    flushBlock(); prose.push(line);
+  }
+  flushBlock(); flushProse();
+  const found = [];
+  const scan = (source, code) => {
+    const joined = code ? source.replace(/[ \t](?:\\|`|\^)[ \t]*\n[ \t]*/g, " ") : source.replace(/[ \t]\\[ \t]*\n[ \t]*/g, " ");
+    for (const logical of joined.split("\n")) {
+      const re = /\bnpm\s+(?:i|install)\b/g;
+      let match;
+      while ((match = re.exec(logical))) {
+        let command = logical.slice(match.index);
+        command = command.replace(/(^|\s)#.*$/, "$1");
+        found.push(command.replace(/\s+/g, " ").trim());
+      }
+    }
+  };
+  for (const fragment of fragments) {
+    if (fragment.code) { scan(fragment.text, true); continue; }
+    const span = /(`+)([\s\S]*?[^`])\1(?!`)/g;
+    let m;
+    while ((m = span.exec(fragment.text))) scan(m[2].replace(/\n/g, " "), false);
   }
   return found;
 }
 const cases = [];
 const check = (title, fn) => cases.push({ title, fn });
+
+// req: R-1093
+check("the README scan finds a command continued after npm, a span across lines and a comment-only cutoff", () => {
+  const pin = `@earendil-works/pi-coding-agent@${version}`;
+  const continued = npmCommands("```bash\nnpm \\\n  i -g " + pin + "\n```\n");
+  assert.deepEqual(continued, [`npm i -g ${pin}`]);
+  const span = npmCommands("Run ``npm i -g\n" + pin + " --before=" + before + "`` first.");
+  assert.deepEqual(span, [`npm i -g ${pin} --before=${before}`]);
+  const commented = npmCommands("```bash\nnpm i -g " + pin + " # --before=" + before + "\n```\n");
+  assert.deepEqual(commented, [`npm i -g ${pin}`]);
+});
 
 // req: R-1093
 check("every README pi install command carries CI's PI_VERSION and an unquoted PI_BEFORE", () => {

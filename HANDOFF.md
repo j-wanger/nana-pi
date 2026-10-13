@@ -68,7 +68,6 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
-   - Then fresh local installs: the README, desk and bench install commands take the same cutoff, checked against CI's value. Until then a fresh install of pi breaks the desk.
    - Now: the roster. Each machine gets its own roster, the pattern becomes the default, and the Windows launchers start pi through its Node entry.
    - Then the tree for every project (Jake, 2026-10-13). Templates seed the requirements tree, the adopt step sorts a flat ledger into it, and the product report runs in any project.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
