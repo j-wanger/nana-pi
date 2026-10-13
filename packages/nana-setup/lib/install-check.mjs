@@ -94,7 +94,9 @@ export function hookInvocation(entry, platformName, gitBash = null) {
 export function formatResultLine(item, result, reason = "", knownRed = null) {
   const prefix = `${result.status} ${item}`;
   if (result.status === "PASS") return prefix;
-  const detail = String(reason || "required condition was not observed").replace(/\s+/g, " ").trim().slice(0, 200);
+  const unexpectedPass = result.code === "unexpected-pass" && knownRed?.owner && knownRed?.expires
+    ? `listed as known red (${knownRed.code}, ${knownRed.owner}, until ${knownRed.expires}) but passed` : null;
+  const detail = String(unexpectedPass || reason || "required condition was not observed").replace(/\s+/g, " ").trim().slice(0, 200);
   const owner = result.status === "XFAIL" && knownRed?.owner && knownRed?.expires
     ? ` (known red, ${knownRed.owner}, until ${knownRed.expires})` : "";
   return `${prefix} — ${result.code}: ${detail}${owner}`;
@@ -291,7 +293,19 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   }));
   await Promise.all(hookRuns);
   const doctor = await invoke(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "doctor"], { cwd: project, timeout: SPAWN_TIMEOUT_MS.doctor });
-  const unexpected = (doctor.stdout ?? "").split(/\r?\n/).find((line) => line.includes("·") && !(DOCTOR_NOTES[platformName] ?? []).some((note) => line.includes(note)));
-  report("doctor", unexpected ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && !unexpected, unexpected ? unexpected : okay(doctor) ? "" : reason(doctor));
+  const unexpected = (doctor.stdout ?? "").split(/\r?\n/).filter((line) => line.includes("·") && !(DOCTOR_NOTES[platformName] ?? []).some((note) => line.includes(note)));
+  const labels = unexpected.map((line) => line.slice(line.indexOf("·") + 1).replace(/\s+/g, " ").trim());
+  let doctorDetail = labels.join("; ");
+  if (doctorDetail.length > 200) {
+    const kept = [];
+    for (const label of labels) {
+      const suffix = `… and ${labels.length - kept.length} more`;
+      const candidate = [...kept, label].join("; ");
+      if (`${candidate}; ${suffix}`.length <= 200) kept.push(label);
+      else break;
+    }
+    doctorDetail = `${kept.join("; ")}${kept.length ? "; " : ""}… and ${labels.length - kept.length} more`;
+  }
+  report("doctor", labels.length ? "note-row" : doctor.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(doctor) && labels.length === 0, labels.length ? doctorDetail : okay(doctor) ? "" : reason(doctor));
   return { lines, exitCode: failed ? 1 : 0 };
 }

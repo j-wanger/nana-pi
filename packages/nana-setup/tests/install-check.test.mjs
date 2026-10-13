@@ -354,9 +354,11 @@ check("reporting: a listed item failing on or after its expiry prints FAIL", () 
 });
 
 // req: R-1080
-check("reporting: a listed item that passes prints FAIL", () => {
+check("reporting: an unexpected pass names the listed code and owner", () => {
   const item = { item: "case", code: "note-row", owner: "R-1", expires: "2026-10-13" };
-  assert.equal(classifyResult("case", null, true, [item], new Date("2026-10-12T00:00:00Z")).status, "FAIL");
+  const result = classifyResult("case", null, true, [item], new Date("2026-10-12T00:00:00Z"));
+  assert.equal(result.status, "FAIL");
+  assert.equal(formatResultLine("case", result, "", item), "FAIL case — unexpected-pass: listed as known red (note-row, R-1, until 2026-10-13) but passed");
 });
 
 // req: R-1070
@@ -377,6 +379,7 @@ check("pin R-1071: the override list", () => {
 // req: R-1070, R-1080
 check("pin R-1070 R-1080: the known-red list with each entry's code, owner and expiry", () => {
   assert.deepEqual(KNOWN_RED.darwin, []);
+  assert.deepEqual(KNOWN_RED.win32, []);
   for (const platform of ["darwin", "win32"]) for (const entry of KNOWN_RED[platform]) {
     assert.deepEqual(Object.keys(entry), ["item", "code", "owner", "expires"]);
     assert.equal(typeof entry.item, "string"); assert.ok(entry.code); assert.match(entry.owner, /^R-\d+$/); assert.match(entry.expires, /^\d{4}-\d{2}-\d{2}$/);
@@ -637,14 +640,36 @@ check("doctor: exit 1 with only check and ! marks is a FAIL", async () => {
 // req: R-1081
 check("doctor: exit 0 with a note row off the note list is a FAIL", async () => {
   const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => args.includes("doctor") ? { status: 0, stdout: "· unknown note" } : spawn(command, args, options) });
-  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL doctor — note-row: · unknown note")); }
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL doctor — note-row: unknown note")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1081
+check("doctor: the reason names every note row off the note list", async () => {
+  const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => args.includes("doctor") ? { status: 0, stdout: "· first unknown\n· second unknown" } : spawn(command, args, options) });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL doctor — note-row: first unknown; second unknown")); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1081
+check("doctor: the reason caps note labels and reports the remainder", async () => {
+  const notes = Array.from({ length: 20 }, (_, i) => `· row ${i} ${"x".repeat(20)}`).join("\n");
+  const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => args.includes("doctor") ? { status: 0, stdout: notes } : spawn(command, args, options) });
+  try {
+    const result = await fixture.run; const line = result.lines.find((row) => row.startsWith("FAIL doctor — note-row:"));
+    assert.ok(line.length <= "FAIL doctor — note-row: ".length + 200);
+    assert.match(line, /… and \d+ more$/);
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1081
+check("doctor: a win32 note row off the empty known-red list is a FAIL", async () => {
+  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ args, options, spawn, command }) => args.includes("doctor") ? { status: 0, stdout: "· unexpected note" } : spawn(command, args, options) });
+  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL doctor — note-row: unexpected note")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1081, R-1080
-check("doctor: a known-red note row is an XFAIL", async () => {
-  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ args, options, spawn, command }) => args.includes("doctor") ? { status: 0, stdout: "· unexpected note" } : spawn(command, args, options) });
-  try { const result = await fixture.run; assert.ok(result.lines.some(line => line.startsWith("XFAIL doctor — note-row:"))); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+check("doctor: a known-red note row is an XFAIL", () => {
+  const known = [{ item: "doctor", code: "note-row", owner: "R-1055", expires: "2099-01-01" }];
+  const result = classifyResult("doctor", "note-row", false, known, new Date("2098-12-31T00:00:00Z"));
+  assert.equal(formatResultLine("doctor", result, "note", known[0]), "XFAIL doctor — note-row: note (known red, R-1055, until 2099-01-01)");
 });
 // req: R-1081
 check("pin R-1081: the doctor note list", () => {
@@ -673,8 +698,8 @@ check("verifier row: on win32 one entry whose matcher admits Bash and PowerShell
   const fixture = recordingRun({ platformName: "win32" });
   try {
     const result = await fixture.run;
-    assert.ok(result.lines.includes("FAIL hook set — unexpected-pass: observed missing-entry while checking hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
-    assert.equal(result.lines.filter(line => /^FAIL hook verifier pipe \((Bash|PowerShell)\) — unexpected-pass:/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
+    assert.ok(result.lines.includes("PASS hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
+    assert.equal(result.lines.filter(line => /^PASS hook verifier pipe \((Bash|PowerShell)\)$/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
     const settings = JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8"));
     assert.equal(settings.hooks.PreToolUse.length, 1);
     assert.equal(settings.hooks.PreToolUse[0].matcher, "Bash|PowerShell");
@@ -692,7 +717,7 @@ check("verifier row: on win32 an entry whose matcher admits only Bash fails the 
     }
     return result;
   }});
-  try { const result = await fixture.run; assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (Bash) — unexpected-pass:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
+  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)"), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1074, R-1077

@@ -18,18 +18,10 @@ export const HOOKS = [
 export const ALLOWED_HOOK_KEYS = ["type", "command", "args", "timeout", "statusMessage"];
 // Contract values: environment readers in nana-pack, nana-knowledge and nana-setup, audited 2026-10-12.
 export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"];
-// Known-red entries are owned, fingerprinted fallbacks through 2026-10-24; the Mac list is empty.
+// Provenance: Windows install-check run 38393751564 after main merge; every hook passed, 2026-10-13.
 export const KNOWN_RED = {
   darwin: [],
-  win32: [
-    { item: "hook set", code: "missing-entry", owner: "R-1050", expires: "2026-10-24" },
-    { item: "hook objective", code: "missing-entry", owner: "R-1057", expires: "2026-10-24" },
-    { item: "hook adoption", code: "missing-entry", owner: "R-1057", expires: "2026-10-24" },
-    { item: "hook shared memory", code: "missing-entry", owner: "R-1057", expires: "2026-10-24" },
-    { item: "hook verifier pipe (Bash)", code: "missing-entry", owner: "R-1053", expires: "2026-10-24" },
-    { item: "hook verifier pipe (PowerShell)", code: "missing-entry", owner: "R-1053", expires: "2026-10-24" },
-    { item: "doctor", code: "note-row", owner: "R-1055", expires: "2026-10-24" },
-  ],
+  win32: [],
 };
 // Contract values: doctor.mjs informational rows; the win32 additions reflect its documented skips.
 export const DOCTOR_NOTES = {
