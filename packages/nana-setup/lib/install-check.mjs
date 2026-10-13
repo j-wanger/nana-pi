@@ -78,7 +78,7 @@ export function findGitBash(pathEntries, exists = fs.existsSync) {
   for (const entry of pathEntries ?? []) {
     const normalized = String(entry).replaceAll("/", "\\").replace(/\\+$/, "");
     const gitRoot = normalized.replace(/\\mingw64\\bin$/i, "").replace(/\\(?:cmd|bin)$/i, "");
-    if (gitRoot === normalized) continue;
+    if (gitRoot === normalized || !exists(`${normalized}\\git.exe`)) continue;
     const candidate = `${gitRoot}\\bin\\bash.exe`;
     if (exists(candidate)) return candidate;
   }

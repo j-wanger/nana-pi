@@ -168,7 +168,7 @@ check("reporting matches known-red fingerprint and expiry and rejects unexpected
 });
 
 function tempHome() { return tmpDir(path.join(os.tmpdir(), "install-check-test-")); }
-function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null } = {}) {
+function recordingRun({ platformName = "linux", env = {}, failInstall = false, spawnOverride = null, piShim = null } = {}) {
   const home = tempHome();
   const calls = [];
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -218,7 +218,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
-  const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
+  const run = runInstallCheck({ root, home, platformName, env: { PATH: platformName === "win32" ? "C:\\tools" : "/bin", ComSpec: "C:\\Windows\\System32\\cmd.exe", ...env }, spawn: (command, args, options) => spawnOverride ? spawnOverride({ command, args, options, spawn }) : spawn(command, args, options), exists: platformName === "win32" ? (candidate) => piShim ? candidate.toLowerCase().endsWith("\\pi.cmd") : candidate.toLowerCase().endsWith("\\pi.exe") : undefined, now: () => new Date("2026-10-12T00:00:00Z"), out: () => {} });
   return { home, calls, run };
 }
 
@@ -290,15 +290,22 @@ check("install: the command line carries no override flag", async () => {
 });
 
 // req: R-1071
-check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", () => {
-  const expected = buildEnvironment({ PATH: "/bin" }, "/home", "linux");
-  const actual = buildEnvironment({ PATH: "/bin", NANA_SETUP_PLATFORM: "win32" }, "/home", "linux");
-  assert.deepEqual(actual, expected);
+check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () => {
+  const fixture = recordingRun({ platformName: "darwin", env: { NANA_SETUP_PLATFORM: "win32" } });
+  try {
+    const result = await fixture.run;
+    assert.equal(result.exitCode, 0, result.lines.join("\\n"));
+    assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
+    assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
+    const hooks = fixture.calls.filter((call) => /nana-(objective|adoption|shared-memory|knowledge)|verifier-pipe/.test(`${call.command} ${call.args.join(" ")}`));
+    assert.ok(hooks.length >= 5);
+    assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 // req: R-1079
 check("pi launch: on win32, pi install, pi list and the session go through findPi and winCommand", async () => {
-  const fixture = recordingRun({ platformName: "win32" });
+  const fixture = recordingRun({ platformName: "win32", piShim: "C:\\tools\\pi.cmd" });
   try {
     await fixture.run;
     const source = readFileSync(fileURLToPath(new URL("../lib/install-check.mjs", import.meta.url)), "utf8");
@@ -310,10 +317,11 @@ check("pi launch: on win32, pi install, pi list and the session go through findP
     assert.equal(launch.command, "C:\\Windows\\cmd.exe");
     assert.equal(launch.options.windowsVerbatimArguments, true);
     assert.deepEqual(launch.args, ["/d", "/v:off", "/s", "/c", '\"\"C:\\tools\\pi.cmd\" \"list\"\"']);
-    const piCommands = fixture.calls.filter((call) => call.command === "C:\\tools\\pi.exe");
-    assert.ok(piCommands.some((call) => call.args.some((arg) => arg.includes("pi-subagents"))));
-    assert.ok(piCommands.some((call) => call.args.includes("list")));
-    assert.ok(piCommands.some((call) => call.args.includes("--mode") && call.args.includes("rpc")));
+    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && /pi-subagents|list|--mode/.test(call.args.join(" ")));
+    assert.equal(piCommands.length, 3);
+    assert.ok(piCommands.every((call) => call.command.toLowerCase().endsWith("\\cmd.exe")));
+    assert.ok(piCommands.every((call) => call.args[0] === "/d" && call.args.includes("/c") && call.args.some((arg) => arg.includes("C:\\tools\\pi.cmd"))));
+    assert.equal(fixture.calls.some((call) => call.command === "C:\\tools\\pi.cmd"), false);
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
@@ -453,9 +461,14 @@ check("dispatch: an entry without args runs /bin/sh -c on POSIX and Git Bash bas
 check("dispatch: Git Bash is derived from git.exe in cmd, bin or mingw64\\bin, and System32\\bash.exe is refused", () => {
   for (const entry of ["C:\\Program Files\\Git\\cmd", "C:\\Program Files\\Git\\bin", "C:\\Program Files\\Git\\mingw64\\bin"]) {
     const expected = "C:\\Program Files\\Git\\bin\\bash.exe";
-    assert.equal(findGitBash([entry], (candidate) => candidate.toLowerCase() === expected.toLowerCase()), expected);
+    assert.equal(findGitBash([entry], (candidate) => candidate.toLowerCase() === expected.toLowerCase() || candidate.toLowerCase() === `${entry.toLowerCase()}\\git.exe`), expected);
   }
   assert.equal(findGitBash(["C:\\Windows\\System32"], (candidate) => candidate.toLowerCase() === "c:\\windows\\system32\\bash.exe"), null);
+});
+// req: R-1075
+check("dispatch: a PATH folder without git.exe yields no Git Bash", () => {
+  const present = new Set(["C:\\Other\\bin\\bash.exe"]);
+  assert.equal(findGitBash(["C:\\Other\\bin"], (candidate) => present.has(candidate)), null);
 });
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
@@ -480,11 +493,34 @@ check("dispatch: the three SessionStart entries start before any of them finishe
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
+check("dispatch: each hook's spawn timeout is its row's timeout × 1000", async () => {
+  const fixture = recordingRun();
+  try {
+    await fixture.run;
+    for (const hook of HOOKS.filter((row) => !row.platforms || row.platforms.includes("linux"))) {
+      const calls = fixture.calls.filter((call) => `${call.command} ${call.args.join(" ")}`.includes(hook.script));
+      assert.equal(calls.length, hook.shortLabel === "verifier pipe" ? 2 : 1, hook.label);
+      assert.ok(calls.every((call) => call.options.timeout === hook.timeout * 1000), hook.label);
+    }
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
+// req: R-1075
 check("dispatch: a hook that runs past its timeout is a FAIL whose reason prints the duration", async () => {
-  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) =>
-    /nana-objective/.test(`${command} ${args.join(" ")}`) ? { error: { code: "ETIMEDOUT" }, ms: 5432 } : spawn(command, args, options) });
-  try { const result = await fixture.run; assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms")); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+  const seen = [];
+  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
+    const hook = HOOKS.find((row) => `${command} ${args.join(" ")}`.includes(row.script));
+    if (hook) seen.push({ script: hook.script, timeout: options.timeout });
+    return hook?.shortLabel === "objective" ? { error: { code: "ETIMEDOUT" }, ms: 5432 } : spawn(command, args, options);
+  }});
+  try {
+    const result = await fixture.run;
+    assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms"));
+    for (const hook of HOOKS.filter((row) => !row.platforms || row.platforms.includes("linux"))) {
+      const calls = seen.filter((call) => call.script === hook.script);
+      assert.equal(calls.length, hook.shortLabel === "verifier pipe" ? 2 : 1, hook.label);
+      assert.ok(calls.every((call) => call.timeout === hook.timeout * 1000), hook.label);
+    }
+  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 function scriptedFixture(match, change, platformName = "linux") {
@@ -528,15 +564,19 @@ check("shared memory: a link at another key or with another target fails", async
   await assertOnlyHookFails(fixture, "hook shared memory");
 });
 // req: R-1076
-check("output: a 10,001-character stdout fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-objective.mjs"), () => ({ stdout: `[nana:objective] ${"x".repeat(10000)}` })), "hook objective"));
+check("output: a 10,001-character stdout fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-objective.mjs"), (result) => {
+  const token = result.stdout.match(/installcheck_[a-z0-9]+/)?.[0];
+  const prefix = `[nana:objective] ${token} `;
+  return { stdout: prefix + "x".repeat(10001 - prefix.length) };
+}), "hook objective"));
 // req: R-1077
-check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), () => ({ stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\\n` })), "hook verifier pipe (Bash)"));
+check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\n` }), "hook verifier pipe (Bash)"));
 // req: R-1077
-check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), () => ({ stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\\n` })), "hook verifier pipe (Bash)"));
+check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\n` }), "hook verifier pipe (Bash)"));
 // req: R-1077
-check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), () => ({ stdout: "not-json\\n" })), "hook verifier pipe (Bash)"));
+check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: "not-json\n" }), "hook verifier pipe (Bash)"));
 // req: R-1077
-check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), () => ({ stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\\n{}\\n` })), "hook verifier pipe (Bash)"));
+check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n{}\n` }), "hook verifier pipe (Bash)"));
 // req: R-1077
 check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
 // req: R-1083
@@ -559,6 +599,18 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
       assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative === ".pi/agent/nana-journal.jsonl" || relative === "notes/docs/install-check.md";
+      const written = [];
+      const visit = (directory) => {
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+          const absolute = path.join(directory, entry.name);
+          const relative = path.relative(fixture.home, absolute).split(path.sep).join("/");
+          if (entry.isDirectory()) visit(absolute);
+          else if (!ownedByInstallOrPi(relative)) written.push(relative);
+        }
+      };
+      visit(fixture.home);
+      assert.deepEqual(written.sort(), [".claude/nana-memory/shared/MEMORY.md", ".pi/agent/nana-objective.md"]);
       const pathValue = fixture.calls.find(call => call.args[0] === "init").options.env.PATH;
       if (platformName === "win32") assert.equal(pathValue, "C:\\tools");
       else assert.equal(pathValue.split(path.delimiter)[0], path.join(fixture.home, ".local/bin"));
