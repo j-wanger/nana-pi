@@ -29,6 +29,16 @@
 //   buildReport pair (11b)                         → product-report
 //   checkTree/parseLedger pairs (11c, 12, 13, 14)  → requirements-tree, product-report, templates-render (T1/T2 call
 //                                                    checkTree on the renders)
+//   build-2 pairs (B1, B4, B5)                     → requirements-tree, product-report, templates-render (as above;
+//                                                    B1 also reaches ledgerReadProblem, whose files are a subset)
+//
+// Build-2 revision (lane tip 03223fb, build-brief-2.md): build 2 rewrote the checker's row count, no-tree rule and
+// near-miss pattern, so five anchors moved. Each re-anchored pair makes the SAME wrong behaviour its label names, on
+// the build-2 code, with its frozen expectations unchanged: 11/2 drops the no-row line (now on countRequirementRowLines);
+// 11c/2 narrows the id group to CAP and keeps the widened prefix /^\s{0,3}#{1,6}\s*/; 13/1 returns
+// checkRowsUnderFeatures in place of [noTreeProblem(rowCount)]; 13/2 swaps !hasCapOrFeat for allHeadings.length === 0;
+// 14 drops ${rowCount}. Three pairs pin build 2's fixes (code only): B1 brief item 1, B4 item 4, B5 item 5. These
+// anchors match 03223fb, not be19808: run with SEAT_MUTATE_TIP=03223fb.
 //
 // Seat corrections to §5 (declared before the run; each prints as "also (declared)", never hidden):
 // (a) K4: the frozen §5 at be19808 holds K1-K3 only. factcheck-repo.md's "K4 (R-599)" is today's K3 (renumbered when
@@ -125,6 +135,10 @@ const T11 = "R-1159: a ledger with rows and no tree gets one line naming the row
 const T15 = 'R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger';
 const T13 = "a ledger with rows and no tree is refused with one problem line, not one per row";
 const T14 = "a UTF-16 ledger and a ledger with no rows are refused by the report, naming the reason, and build no page";
+// build-2 titles (build-brief-2.md items 1 and 4)
+const B_PADDED = "R-1160: a tree ledger with a padded table header is not refused as having no rows";
+const B_COUNT = "R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included";
+const B_SUBONLY = "R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line";
 const R737 = (l, m) => `${l} ${m}: Part G ships G-001..G-022 unrenumbered`;
 const UNTESTED22 = (l) => `${l} adopt: every Part G row starts untested`;
 const NO_INVENT = (l) => `${l} adopt: no product row is invented`;
@@ -177,18 +191,22 @@ const PAIRS = [
 	{ n: "10/2", name: "`--root` also compares the outline (<dir>/docs/requirements-tree.md)", edits: [one(TREE, "    const { problems } = checkTree(text);\n    if (problems.length) { for (const p of problems) console.error(p); return 1; }\n", "    const { problems, outline } = checkTree(text);\n    if (problems.length) { for (const p of problems) console.error(p); return 1; }\n    let committedOutline = null;\n    try { committedOutline = readFileSync(resolve(process.cwd(), argv[1], \"docs/requirements-tree.md\"), \"utf8\"); } catch {}\n    if (committedOutline !== outline) { console.error(\"docs/requirements-tree.md: differs from rendered outline\"); return 1; }\n")], tests: CLI_T, expectRed: [T8] },
 	{ n: "10/3", name: "`--root <dir> --write` accepted", edits: [one(TREE, "if (argv.length !== 2 || !argv[1]) return usage();", "if (argv.length < 2 || !argv[1]) return usage();")], tests: CLI_T, expectRed: [T8], alsoRed: [T8write] },
 	{ n: "11/1", name: "the NUL check dropped (in ledgerReadProblem)", edits: [one(TREE, '  if (text.includes("\\u0000")) return "REQUIREMENTS.md: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8";\n', "")], tests: READ_T, expectRed: [T9, T14] },
-	{ n: "11/2", name: "the no-row check dropped (in ledgerReadProblem)", edits: [one(TREE, '  if (readRequirementRows(parsed).length === 0) return "REQUIREMENTS.md: no requirement rows";\n', "")], tests: READ_T, expectRed: [T9, T14] },
+	{ n: "11/2", name: "the no-row check dropped (in ledgerReadProblem)", edits: [one(TREE, '  if (countRequirementRowLines(parsed) === 0) return "REQUIREMENTS.md: no requirement rows";\n', "")], tests: READ_T, expectRed: [T9, T14] },
 	{ n: "11b", name: "buildReport skips ledgerReadProblem", edits: [one(REPORT, "  const readProblem = ledgerReadProblem(ledgerText, parseLedger(ledgerText));\n  if (readProblem) throw new Error(readProblem);\n", "")], tests: REPORT_T, expectRed: [T14] },
 	{ n: "11c/1", name: "the near-miss scan dropped", edits: [one(TREE, "  const nearMiss = checkNearMissHeadings(parsed);\n", "  const nearMiss = [];\n")], tests: TREE_T, expectRed: [T15] },
-	{ n: "11c/2", name: "the near-miss scan matches CAP headings only", edits: [one(TREE, "const TREE_HEADING_LIKE = /^#{1,3}\\s*(CAP|FEAT|SUB)-\\d+/;", "const TREE_HEADING_LIKE = /^#{1,3}\\s*(CAP)-\\d+/;")], tests: TREE_T, expectRed: [T15] },
+	{ n: "11c/2", name: "the near-miss scan matches CAP headings only", edits: [one(TREE, "const TREE_HEADING_LIKE = /^\\s{0,3}#{1,6}\\s*(CAP|FEAT|SUB)-\\d+/;", "const TREE_HEADING_LIKE = /^\\s{0,3}#{1,6}\\s*(CAP)-\\d+/;")], tests: TREE_T, expectRed: [T15] },
 	{ n: "12", name: "parseLedger splits on \"\\n\" only", edits: [one(TREE, ".split(/\\r?\\n/);", '.split("\\n");')], tests: TREE_T, expectRed: [T10] },
-	{ n: "13/1", name: "checkTree keeps one problem per row with no tree", edits: [one(TREE, "nearMiss.length ? nearMiss : [noTreeProblem(rows)]", "nearMiss.length ? nearMiss : checkRowsUnderFeatures(parsed)")], tests: TREE_T, expectRed: [T11, T13] },
-	{ n: "13/2", name: "the no-tree rule fires only when the ledger has no heading at all", edits: [one(TREE, "const problems = parsed.headings.length === 0 && rows.length > 0", "const problems = parsed.allHeadings.length === 0 && rows.length > 0")], tests: TREE_T, expectRed: [T11, T13], alsoRed: [T15] },
-	{ n: "14", name: "the no-tree line drops its row count", edits: [one(TREE, "holds ${rows.length} requirement rows and no", "holds requirement rows and no")], tests: TREE_T, expectRed: [T11, T13] },
+	{ n: "13/1", name: "checkTree keeps one problem per row with no tree", edits: [one(TREE, "nearMiss.length ? nearMiss : [noTreeProblem(rowCount)]", "nearMiss.length ? nearMiss : checkRowsUnderFeatures(parsed)")], tests: TREE_T, expectRed: [T11, T13] },
+	{ n: "13/2", name: "the no-tree rule fires only when the ledger has no heading at all", edits: [one(TREE, "const problems = !hasCapOrFeat && rowCount > 0", "const problems = parsed.allHeadings.length === 0 && rowCount > 0")], tests: TREE_T, expectRed: [T11, T13], alsoRed: [T15] },
+	{ n: "14", name: "the no-tree line drops its row count", edits: [one(TREE, "holds ${rowCount} requirement rows and no", "holds requirement rows and no")], tests: TREE_T, expectRed: [T11, T13] },
 	// Keeps (K1-K3)
 	{ n: "K1", name: "a G row (G-017) dropped from the include", edits: [one(INCL, "| G-017 | WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates. | untested | split from G-003 2026-10-04 (EARS form batch 0): no test pins this clause |\n", "")], tests: INCL_T, expectRed: each(R737), alsoRed: [...each(T2), ...LANGS.map(UNTESTED22), ...R581] },
 	{ n: "K2", name: "the adopt seed emits R-001 under FEAT-001 (both seeds)", edits: SEEDS.map((f) => one(f, ADOPT_TABLE, "table.\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The package shall report its version. | untested | — |\n{% else %}")), tests: SEED_T, expectRed: [...LANGS.map((l) => T1(l, "adopt")), ...LANGS.map(T3), ...LANGS.map(NO_INVENT)] },
 	{ n: "K3", name: "R-1156's checker command written with a bare `.mjs` path token (requirements skill)", edits: [one(REQ_SKILL, CHECKER_CMD, "`node scripts/requirements-tree.mjs --root .`")], tests: REQSKILL_T, expectRed: LANGS.map(R598), alsoRed: [T7] },
+	// Build-2 fixes (B1, B4, B5; build-brief-2.md items 1, 4, 5)
+	{ n: "B1", name: "row counting reverts to rows under the byte-exact `| ID | Requirement | Status | Evidence |` header (readRequirementRows, in ledgerReadProblem and checkTree)", edits: [one(TREE, '  if (countRequirementRowLines(parsed) === 0) return "REQUIREMENTS.md: no requirement rows";\n', '  if (readRequirementRows(parsed).length === 0) return "REQUIREMENTS.md: no requirement rows";\n'), one(TREE, "  const rowCount = countRequirementRowLines(parsed);\n", "  const rowCount = readRequirementRows(parsed).length;\n")], tests: TREE_T, expectRed: [B_PADDED, B_COUNT] },
+	{ n: "B4", name: "the no-tree rule counts SUB headings again", edits: [one(TREE, 'const hasCapOrFeat = parsed.headings.some((h) => h.id.startsWith("CAP-") || h.id.startsWith("FEAT-"));', 'const hasCapOrFeat = parsed.headings.some((h) => h.id.startsWith("CAP-") || h.id.startsWith("FEAT-") || h.id.startsWith("SUB-"));')], tests: TREE_T, expectRed: [B_SUBONLY] },
+	{ n: "B5", name: "the near-miss pattern back to /^#{1,3}\\s*(CAP|FEAT|SUB)-\\d+/", edits: [one(TREE, "const TREE_HEADING_LIKE = /^\\s{0,3}#{1,6}\\s*(CAP|FEAT|SUB)-\\d+/;", "const TREE_HEADING_LIKE = /^#{1,3}\\s*(CAP|FEAT|SUB)-\\d+/;")], tests: TREE_T, expectRed: [T15] },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────

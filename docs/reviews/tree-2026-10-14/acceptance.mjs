@@ -541,8 +541,10 @@ for (const [label, args] of [["node scripts/requirements-tree.mjs --check", [RT_
 const handoff = collapse(text("HANDOFF.md"));
 out("(f, seat item) HANDOFF drops the LF-only tree checker line and the \"Now: the tree for every project\" line",
 	[handoff.includes("The tree checker still splits lines on LF without CR handling"), handoff.includes("Now: the tree for every project")], [false, false]);
-out("(f, seat item) HANDOFF carries §6's queue (tree-lift, regroup) and residual 14's Windows `nana-setup install` line",
-	[/tree-lift/.test(handoff), /regroup/.test(handoff), lines(text("HANDOFF.md")).some((l) => l.includes("nana-setup install") && /Windows/.test(l) && /requirements skill/.test(l))], [true, true, true]);
+// Seat amendment 2026-10-14: the queue line says "the lift" in plain words (the writing rule keeps code names out of
+// HANDOFF prose), so the case reads the word, not the lane name.
+out("(f, seat item) HANDOFF carries §6's queue (the lift, the regroup) and residual 14's Windows `nana-setup install` line",
+	[/\blift\b/i.test(handoff), /regroup/.test(handoff), lines(text("HANDOFF.md")).some((l) => l.includes("nana-setup install") && /Windows/.test(l) && /requirements skill/.test(l))], [true, true, true]);
 out("(f, seat item) the session entry docs/sessions/2026-10.md is in the lane's diff", changed.includes("docs/sessions/2026-10.md"), true);
 // The build must be committed: an untracked or modified path outside this review folder would pass every case above
 // that reads the working tree, and copier renders only committed template text at --vcs-ref HEAD.
