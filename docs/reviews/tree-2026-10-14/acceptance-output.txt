@@ -1,0 +1,182 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) the scratch folder is outside the checkout
+ok   (harness) uvx copier is available
+ok   (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0
+ok   (harness) typescript scaffold: copier renders at the tip and at the base
+ok   (b) typescript scaffold: --root <render> exits 0, prints `requirements tree: 0 problems; rows 23; features 2` only, and adds or changes no file in the render (R-1150, R-1157)
+ok   (b) typescript scaffold: the render has a capability besides CAP-90 and a feature besides FEAT-900 (R-1150)
+ok   (b) typescript scaffold: a CRLF copy exits 0 with the same output (R-1158)
+ok   (b) typescript scaffold: a UTF-16LE copy exits 1 naming the NUL byte, UTF-16 and UTF-8, never `0 problems` (R-1160)
+ok   (guard) typescript scaffold: all 22 G rows are present once
+ok   (b) typescript scaffold: every G row sits in FEAT-900 under CAP-90, in SUB-900 to SUB-904, and no R row sits in CAP-90 (R-1151)
+ok   (harness) typescript scaffold: the base render holds 22 G rows in sections G1 to G5
+ok   (b) typescript scaffold: each G row sits in the SUB-90n that matches its base section G(n+1)
+ok   (b) typescript scaffold: SUB-900 to SUB-904 are under FEAT-900, keep G1–G5's labels and each has a Purpose: line
+ok   (b) typescript scaffold: CAP-90 holds one feature, FEAT-900; both have Purpose:, CAP-90 an Outcome:, FEAT-900 Status: active (S2)
+ok   (guard) typescript scaffold: the G row lines are byte-identical to the base render's, in order
+ok   (b) typescript scaffold: R-001 sits in a product feature under a product capability that reads Status: active (§3.1)
+ok   (b) typescript scaffold: a product capability and feature exist and their purposes start "DRAFT —" (S10)
+ok   (b) typescript scaffold: REQUIREMENTS.md carries R-1153's four phrases
+ok   (b) typescript scaffold: REQUIREMENTS.md names no Jake, no ~/nana-pi/ and no Part G (S9, §3.1)
+ok   (b) typescript scaffold: an ordinary `## How this file is organized` comes before the first capability (§3.1)
+ok   (b) typescript scaffold: `# Open questions and deliberate omissions` closes the file after every row and tree heading, holding both sections (§3.1)
+ok   (b) typescript scaffold: CAP-90 is the last capability (S2)
+ok   (guard) typescript scaffold: no `Also applies:` line and no outline in the render (§3.5)
+ok   (b) typescript scaffold: a feature appended after the closing heading fails nesting (§3.1, R-290)
+ok   (b) typescript scaffold: REQUIREMENTS-general.md carries the same CAP-90, FEAT-900 and SUB-900 to SUB-904 headings and G rows (§3.1)
+ok   (harness) typescript adopt: copier renders at the tip and at the base
+ok   (b) typescript adopt: --root <render> exits 0, prints `requirements tree: 0 problems; rows 22; features 2` only, and adds or changes no file in the render (R-1150, R-1157)
+ok   (b) typescript adopt: the render has a capability besides CAP-90 and a feature besides FEAT-900 (R-1150)
+ok   (b) typescript adopt: a CRLF copy exits 0 with the same output (R-1158)
+ok   (b) typescript adopt: a UTF-16LE copy exits 1 naming the NUL byte, UTF-16 and UTF-8, never `0 problems` (R-1160)
+ok   (guard) typescript adopt: all 22 G rows are present once
+ok   (b) typescript adopt: every G row sits in FEAT-900 under CAP-90, in SUB-900 to SUB-904, and no R row sits in CAP-90 (R-1151)
+ok   (harness) typescript adopt: the base render holds 22 G rows in sections G1 to G5
+ok   (b) typescript adopt: each G row sits in the SUB-90n that matches its base section G(n+1)
+ok   (b) typescript adopt: SUB-900 to SUB-904 are under FEAT-900, keep G1–G5's labels and each has a Purpose: line
+ok   (b) typescript adopt: CAP-90 holds one feature, FEAT-900; both have Purpose:, CAP-90 an Outcome:, FEAT-900 Status: active (S2)
+ok   (guard) typescript adopt: the G row lines are byte-identical to the base render's, in order
+ok   (b) typescript adopt: a product feature reads Status: proposed and holds no row; no R row anywhere (R-1152)
+ok   (b) typescript adopt: a product capability and feature exist and their purposes start "DRAFT —" (S10)
+ok   (b) typescript adopt: REQUIREMENTS.md carries R-1153's four phrases
+ok   (b) typescript adopt: REQUIREMENTS.md names no Jake, no ~/nana-pi/ and no Part G (S9, §3.1)
+ok   (b) typescript adopt: an ordinary `## How this file is organized` comes before the first capability (§3.1)
+ok   (b) typescript adopt: `# Open questions and deliberate omissions` closes the file after every row and tree heading, holding both sections (§3.1)
+ok   (b) typescript adopt: CAP-90 is the last capability (S2)
+ok   (guard) typescript adopt: no `Also applies:` line and no outline in the render (§3.5)
+ok   (b) typescript adopt: a feature appended after the closing heading fails nesting (§3.1, R-290)
+ok   (b) typescript adopt: REQUIREMENTS-general.md carries the same CAP-90, FEAT-900 and SUB-900 to SUB-904 headings and G rows (§3.1)
+ok   (harness) python scaffold: copier renders at the tip and at the base
+ok   (b) python scaffold: --root <render> exits 0, prints `requirements tree: 0 problems; rows 23; features 2` only, and adds or changes no file in the render (R-1150, R-1157)
+ok   (b) python scaffold: the render has a capability besides CAP-90 and a feature besides FEAT-900 (R-1150)
+ok   (b) python scaffold: a CRLF copy exits 0 with the same output (R-1158)
+ok   (b) python scaffold: a UTF-16LE copy exits 1 naming the NUL byte, UTF-16 and UTF-8, never `0 problems` (R-1160)
+ok   (guard) python scaffold: all 22 G rows are present once
+ok   (b) python scaffold: every G row sits in FEAT-900 under CAP-90, in SUB-900 to SUB-904, and no R row sits in CAP-90 (R-1151)
+ok   (harness) python scaffold: the base render holds 22 G rows in sections G1 to G5
+ok   (b) python scaffold: each G row sits in the SUB-90n that matches its base section G(n+1)
+ok   (b) python scaffold: SUB-900 to SUB-904 are under FEAT-900, keep G1–G5's labels and each has a Purpose: line
+ok   (b) python scaffold: CAP-90 holds one feature, FEAT-900; both have Purpose:, CAP-90 an Outcome:, FEAT-900 Status: active (S2)
+ok   (guard) python scaffold: the G row lines are byte-identical to the base render's, in order
+ok   (b) python scaffold: R-001 sits in a product feature under a product capability that reads Status: active (§3.1)
+ok   (b) python scaffold: a product capability and feature exist and their purposes start "DRAFT —" (S10)
+ok   (b) python scaffold: REQUIREMENTS.md carries R-1153's four phrases
+ok   (b) python scaffold: REQUIREMENTS.md names no Jake, no ~/nana-pi/ and no Part G (S9, §3.1)
+ok   (b) python scaffold: an ordinary `## How this file is organized` comes before the first capability (§3.1)
+ok   (b) python scaffold: `# Open questions and deliberate omissions` closes the file after every row and tree heading, holding both sections (§3.1)
+ok   (b) python scaffold: CAP-90 is the last capability (S2)
+ok   (guard) python scaffold: no `Also applies:` line and no outline in the render (§3.5)
+ok   (b) python scaffold: a feature appended after the closing heading fails nesting (§3.1, R-290)
+ok   (b) python scaffold: REQUIREMENTS-general.md carries the same CAP-90, FEAT-900 and SUB-900 to SUB-904 headings and G rows (§3.1)
+ok   (harness) python adopt: copier renders at the tip and at the base
+ok   (b) python adopt: --root <render> exits 0, prints `requirements tree: 0 problems; rows 22; features 2` only, and adds or changes no file in the render (R-1150, R-1157)
+ok   (b) python adopt: the render has a capability besides CAP-90 and a feature besides FEAT-900 (R-1150)
+ok   (b) python adopt: a CRLF copy exits 0 with the same output (R-1158)
+ok   (b) python adopt: a UTF-16LE copy exits 1 naming the NUL byte, UTF-16 and UTF-8, never `0 problems` (R-1160)
+ok   (guard) python adopt: all 22 G rows are present once
+ok   (b) python adopt: every G row sits in FEAT-900 under CAP-90, in SUB-900 to SUB-904, and no R row sits in CAP-90 (R-1151)
+ok   (harness) python adopt: the base render holds 22 G rows in sections G1 to G5
+ok   (b) python adopt: each G row sits in the SUB-90n that matches its base section G(n+1)
+ok   (b) python adopt: SUB-900 to SUB-904 are under FEAT-900, keep G1–G5's labels and each has a Purpose: line
+ok   (b) python adopt: CAP-90 holds one feature, FEAT-900; both have Purpose:, CAP-90 an Outcome:, FEAT-900 Status: active (S2)
+ok   (guard) python adopt: the G row lines are byte-identical to the base render's, in order
+ok   (b) python adopt: a product feature reads Status: proposed and holds no row; no R row anywhere (R-1152)
+ok   (b) python adopt: a product capability and feature exist and their purposes start "DRAFT —" (S10)
+ok   (b) python adopt: REQUIREMENTS.md carries R-1153's four phrases
+ok   (b) python adopt: REQUIREMENTS.md names no Jake, no ~/nana-pi/ and no Part G (S9, §3.1)
+ok   (b) python adopt: an ordinary `## How this file is organized` comes before the first capability (§3.1)
+ok   (b) python adopt: `# Open questions and deliberate omissions` closes the file after every row and tree heading, holding both sections (§3.1)
+ok   (b) python adopt: CAP-90 is the last capability (S2)
+ok   (guard) python adopt: no `Also applies:` line and no outline in the render (§3.5)
+ok   (b) python adopt: a feature appended after the closing heading fails nesting (§3.1, R-290)
+ok   (b) python adopt: REQUIREMENTS-general.md carries the same CAP-90, FEAT-900 and SUB-900 to SUB-904 headings and G rows (§3.1)
+ok   (harness) the Python scaffold render commits to a new repo
+ok   (c) product-report.mjs --root <python scaffold> --out <outside it> exits 0 and writes a page holding CAP-01, FEAT-001 and FEAT-900
+ok   (guard) the report leaves the render's working tree clean
+ok   (d) --root <tree ledger>, run from a folder holding a broken ledger, exits 0 printing `requirements tree: 0 problems; rows 1; features 1`; a junk docs/requirements-tree.md is neither read nor written and no file appears (R-1157)
+ok   (d) --root . run inside the project checks that project's ledger, not nana-pi's (R-1156 form, R-1157)
+ok   (d) --root . run inside a project with a row outside its feature exits 1 naming it (R-1157)
+ok   (d) --root <ledger with a row outside its feature> exits 1 and names it on stderr, no `0 problems` (R-1157)
+ok   (d) --root <dir> --write, --root <dir> --check, a bare --root and a doubled --root each exit 2 with a usage line naming --root <dir> (R-1157, §3.2)
+ok   (d) --root <this checkout> exits 0 with this ledger's counts
+ok   (d) the two-problem ledger exits 1 naming FEAT-002's missing Purpose: and R-002 outside a table
+ok   (d) its CRLF copy exits 1 with the same two problems at the same line numbers (R-1158)
+ok   (d) nana-pi's ledger copied as LF and as CRLF: both exit 0 with this ledger's counts (R-1158)
+ok   (d) 1,000 flat rows: exit 1 and stderr is one line naming `1000 requirement rows`, no requirements tree yet and the requirements skill (R-1159)
+ok   (d) 1,000 flat rows with CRLF line endings: the same one line (R-1159, R-1158; the trigger was a Windows seat)
+ok   (harness) the real flat ledger holds rows and no tree or near-miss heading
+ok   (d) a copy of ~/basketball-geek/REQUIREMENTS.md: exit 1 and one line naming `165 requirement rows` and no requirements tree yet (R-1159)
+ok   (guard) the real project's working ledger is unchanged by the run (read-only)
+ok   (d) near-miss CAP, FEAT and SUB headings (" - " for " · "): exit 1, each named with its line and the · form, no no-tree line, no per-row line (R-1161)
+ok   (d) a valid tree with one near-miss FEAT heading: exit 1 naming line 12 and the · form (R-1161)
+ok   (d) --root <UTF-16LE tree ledger with BOM>: exit 1 naming the NUL byte, UTF-16 and UTF-8, no `0 problems` (R-1160)
+ok   (d) --root <tree with no row>: exit 1 saying no requirement rows, no `0 problems` (R-1160)
+ok   (d) nana-pi's own --check and --write refuse a UTF-16 ledger naming UTF-16, and --write writes no outline (R-1160, §3.2)
+ok   (d) nana-pi's own --check refuses a ledger with no row (R-1160, §3.2)
+ok   (d) the report on 1,000 flat rows: exit 1, a header line plus R-1159's one line, no per-row line, no page (R-1159, R-1025)
+ok   (d) the report on a UTF-16LE ledger: exit 1 naming the NUL byte, UTF-16 and UTF-8, no page (R-1160)
+ok   (d) the report on 1,000 flat CRLF rows: exit 1 with R-1159's one line, no page (R-1159)
+ok   (d) the report on a tree with no row: exit 1 saying no requirement rows, no page (R-1160)
+ok   (guard) the report on the same committed one-row tree ledger exits 0 and writes its page (the fixtures are sound)
+ok   (s) the requirements skill names the owner, the feature a row serves and §3.4's flat-ledger carve-out (R-1154)
+ok   (s) the requirements skill drops "Jake decides", "In this ledger,", the numbered-sections audit brief and the separate Part (R-1154)
+ok   (s) the requirements skill quotes R-1159's line, `no requirements tree yet` (§3.4)
+ok   (s) the requirements skill names both R-1156 commands exactly (R-1156)
+ok   (s) each of the five scaffold and adopt skills puts a row in the table of the feature it serves, carries the carve-out and names no Part G (R-1155)
+ok   (harness) CHANGE §2 gives one-shall text for each of R-1150 to R-1161, and the lane adds twelve rows
+ok   (e) R-1150 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1151 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1152 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1153 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1154 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1155 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1156 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1157 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1158 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1159 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1160 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1161 is one row carrying CHANGE §2's text with exactly one "shall"
+ok   (e) R-1150–R-1153 follow R-738 line by line in SUB-019
+ok   (e) R-1154–R-1156 follow R-657 line by line in FEAT-032
+ok   (e) R-1157–R-1161 follow R-294 line by line in FEAT-028
+ok   (e) R-1150's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1151's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1152's evidence cites its 2 §5 title(s) as the rail reads them
+ok   (e) R-1153's evidence cites its 4 §5 title(s) as the rail reads them
+ok   (e) R-1154's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1155's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1156's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1157's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1158's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1159's evidence cites its 2 §5 title(s) as the rail reads them
+ok   (e) R-1160's evidence cites its 2 §5 title(s) as the rail reads them
+ok   (e) R-1161's evidence cites its 1 §5 title(s) as the rail reads them
+ok   (e) R-1150 to R-1161 and R-291 read implemented
+ok   (guard) R-291's evidence keeps every base citation other than the base leaf-total title
+ok   (guard) no base row changes its Requirement text or Status
+ok   (e) the row set is the base's plus R-1150 to R-1161, each once: leaf total 1113 → 1125
+ok   (e) the leaf totals agree with R-291's renamed title
+ok   (guard) nana-pi's tree headings are the base's (68)
+ok   (guard) R-1162 to R-1169 are unused: no REQUIREMENTS.md mention, no req: marker
+ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0
+ok   (guard) git diff --name-only 484329c..HEAD lists only §4 In paths and this review folder
+ok   (guard) the merge-base diff touches no §3.5 file
+ok   (guard) both main guards are the base's lines, unchanged (§3.5)
+ok   (f) product-report.mjs changes only buildReport's one ledgerReadProblem call (and its import), ahead of the HANDOFF.md read (§3.3, §3.5)
+ok   (f) requirements-tree.mjs exports checkTree, noTreeProblem and ledgerReadProblem (§3.2)
+ok   (f) README names the checker's --root beside requirements-tree.mjs (§4, :64)
+ok   (f) README's report section says "on any nana project with the tree:" and gives R-1156's report form (§4, :243)
+ok   (guard) node scripts/requirements-tree.mjs --check exits 0
+ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0
+ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0
+MISS (f, seat item) HANDOFF drops the LF-only tree checker line and the "Now: the tree for every project" line → [true,true] (want [false,false])
+MISS (f, seat item) HANDOFF carries §6's queue (tree-lift, regroup) and residual 14's Windows `nana-setup install` line → [false,false,false] (want [true,true,true])
+MISS (f, seat item) the session entry docs/sessions/2026-10.md is in the lane's diff → false (want true)
+ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder
+ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0
+ok   (guard) packages/nana-pack/tests/product-report.test.mjs exits 0
+ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 177/180 (build cases red: 3/135; guard and harness red: 0/45)
+tree acceptance: 3 mismatch(es)
