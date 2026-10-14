@@ -110,12 +110,12 @@ drafts by feature under capabilities; `:163-166` says the seed's general-enginee
   block". Every `Part G` in the five (scaffold `:15-16,:46`; adopt-py `:53,:141,:148`; adopt-ts `:69,:163,:170`) becomes "the general-engineering feature".
 
 **3.5 What NOT to do.** Leave unchanged: the shared working section, AGENTS.md, CLAUDE.md, nana-soul, `copier.yml`, both rails, `packages/nana-setup/**`, the pack's bin list,
-`handoff-asks.mjs`, `scripts/product-report.mjs`, `template.html`, both main guards, nana-pi's tree headings, the assessments store. Add no project-suite tree gate, no project
+`handoff-asks.mjs`, every part of `scripts/product-report.mjs` except `buildReport`'s one `ledgerReadProblem` call (R-1160, §3.3), `template.html`, both main guards, nana-pi's tree headings, the assessments store. Add no project-suite tree gate, no project
 outline, no lift, no `Also applies:` in seeds.
 
 ## 4. Scope
 
-**In.** Code: `scripts/requirements-tree.mjs`. Templates: both `REQUIREMENTS.md.jinja`, `templates/_shared/requirements-general.md`. Skills: requirements, scaffold-py,
+**In.** Code: `scripts/requirements-tree.mjs`; `scripts/product-report.mjs` (`buildReport` calls `ledgerReadProblem`, R-1160). Templates: both `REQUIREMENTS.md.jinja`, `templates/_shared/requirements-general.md`. Skills: requirements, scaffold-py,
 scaffold-ts, adopt-py, adopt-ts, adopt-structure. Tests: `templates-render.test.mjs`, `requirements-tree.test.mjs`, `product-report.test.mjs` (`packages/nana-pack/tests/`).
 Docs: `README.md` `:64` gains the checker's `--root`; `:243` gains "on any nana project with the tree:" and the R-1156 report form. Also `REQUIREMENTS.md`,
 `docs/requirements-tree.md`, `docs/code-map.md`, the session entry, the corpus, and `HANDOFF.md`: `:46` drops "The tree checker still splits lines on LF without CR handling
@@ -228,7 +228,7 @@ existing repo and turn into feature trees, then development really becomes featu
 5. The report prints a `MODULE_TYPELESS_PACKAGE_JSON` warning on stderr every run (ran); the checker prints none, since `process.exit` (`:407`) runs first. Already deferred (product-report CHANGE §6).
 6. Through a symlinked or junctioned checkout, both main guards (`requirements-tree.mjs:407`, `product-report.mjs:318`) exit 0 silently on any argument (ran). Pre-existing; not fixed here.
 7. (Closed by plan r1: R-1160 covers the report.)
-8. A heading typed with `-` for `·` (`requirements-tree.mjs:16`) gives "not in a feature or subgroup table" for each of its rows, without naming the heading. Carry.
+8. (Closed by plan r1: R-1161 names a near-miss heading.)
 9. nana-pi's `--check` and R-291's test compare the outline raw (`:397-398`; `requirements-tree.test.mjs:34`); a CRLF checkout of nana-pi fails them. Test-portability lane.
 10. The hand-built tree with 29 problems on this Mac needs a hand fix in its own lane: Part G under one feature, four features moved above it, two `Status:` lines added.
 11. A feature inserted just above the closing heading nests silently under CAP-90; a check for a capability mixing G and R features belongs with S3's gate.
@@ -256,3 +256,10 @@ sol SEND-BACK with two MUSTs, both folded in above: (1) UTF-16 and no-row ledger
 command and the report both call (T9, T14; pairs 11, 11b); (2) a tree typed with `-` for `·` read as a flat ledger and
 got the wrong next step — R-1161 names each near-miss heading and suppresses R-1159 (T15; pair 11c). Rows R-1160 and
 R-1161 are new; tree-lift keeps R-1162 to R-1169. Leaf total base + 12.
+
+## Plan review r2 (2026-10-14)
+
+sol SEND-BACK with one MUST: §3.5 still listed `scripts/product-report.mjs` as unchanged and §4 left it out of scope,
+contradicting R-1160's report fix — a builder following the scope would leave UTF-16 reports failing open. Fixed: §4 In
+names the report's one change and §3.5 excludes every other part of it. Its NOTE: residual 8 is closed by R-1161 and now
+says so. Round 3 (over the format lane's two-round plan cap, for this named fail-open finding) reviews only this delta.
