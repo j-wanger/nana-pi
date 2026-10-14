@@ -1,0 +1,27 @@
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript scaffold: REQUIREMENTS.md passes the requirements tree checker
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript adopt: REQUIREMENTS.md passes the requirements tree checker
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python scaffold: REQUIREMENTS.md passes the requirements tree checker
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python adopt: REQUIREMENTS.md passes the requirements tree checker
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript scaffold: every G row is homed in FEAT-900 under CAP-90 with no R row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript adopt: every G row is homed in FEAT-900 under CAP-90 with no R row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python scaffold: every G row is homed in FEAT-900 under CAP-90 with no R row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python adopt: every G row is homed in FEAT-900 under CAP-90 with no R row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript adopt: the product feature is proposed and holds no row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python adopt: the product feature is proposed and holds no row
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript scaffold: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — typescript adopt: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python scaffold: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — python adopt: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — requirements skill names the tree check and the product report with a project root
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-1157: --root checks another project's ledger, names its problems and writes no outline
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-1159: a ledger with rows and no tree gets one line naming the row count and the next step
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,125
+MISSING  packages/nana-pack/tests/product-report.test.mjs — a ledger with rows and no tree is refused with one problem line, not one per row
+MISSING  packages/nana-pack/tests/product-report.test.mjs — a UTF-16 ledger and a ledger with no rows are refused by the report, naming the reason, and build no page
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,113
+seat-titles 1: 26 missing
