@@ -1,0 +1,54 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) pointer.proposed.txt is CHANGE §3's pointer block: one line starting `- Seat guide:`
+ok   (harness) nana-seat.proposed.md is CHANGE §3's guide block, 8 bullets
+ok   (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0
+ok   (b) packages/nana-setup/claude/rules/nana-seat.md is a regular file in the checkout
+ok   (b) the guide equals nana-seat.proposed.md with \r stripped
+ok   (b) the guide has 8 bullets
+ok   (b) nana-writing.mjs <guide> (no --report) reads the guide and prints over=0 passive=0 banned=0
+ok   (c) the template holds the pointer line once and no other `- Seat guide:` line
+ok   (c) the AGENTS.md region holds the pointer line once and no other `- Seat guide:` line
+ok   (harness) the base template and base AGENTS.md each have one Seat land review bullet
+ok   (c) the template is the base copy plus the pointer, right after the Seat land review bullet
+ok   (c) AGENTS.md is the base copy plus the pointer, right after its Seat land review bullet
+ok   (c) the AGENTS.md region equals the template (R-859, S5)
+ok   (harness) the pointer names the guide under $HOME/nana-pi/
+ok   (c) the file the pointer names exists in this checkout
+ok   (harness) the scratch folder is outside the checkout
+ok   (d) install --home <tmp> exits 0
+ok   (d) install links ~/.claude/rules/nana-seat.md to the checkout's guide
+ok   (d) doctor prints `✓ rule nana-seat.md`
+ok   (d) uninstall --yes exits 0 and removes the nana-seat.md link install made
+ok   (d) win32: install --home <tmp> exits 0
+ok   (d) win32: ~/.claude/rules/nana-seat.md is a regular file byte-equal to the checkout's guide
+ok   (d) win32: doctor prints `✓ rule nana-seat.md`
+ok   (harness) CHANGE §2 gives one-shall draft text for R-301 and R-1140–R-1142
+ok   (harness) R-301's draft is the base text with the rule list grown to four
+ok   (e) R-1140 is one row with exactly one "shall"
+ok   (e) R-1140's text is CHANGE §2's
+ok   (e) R-1141 is one row with exactly one "shall"
+ok   (e) R-1141's text is CHANGE §2's
+ok   (e) R-1142 is one row with exactly one "shall"
+ok   (e) R-1142's text is CHANGE §2's
+ok   (e) R-301 names four rules including nana-seat.md, in CHANGE §2's text
+ok   (e) each new row sits under the heading §2 names
+ok   (e) R-1140 follows R-1110 and R-1142 follows R-1127, each on the next line
+ok   (e) R-1140's evidence cites its 9 §5 title(s)
+ok   (e) R-1141's evidence cites its 1 §5 title(s)
+ok   (e) R-1142's evidence cites its 2 §5 title(s)
+ok   (e) R-301's evidence cites its 1 §5 title(s)
+ok   (e) R-350's evidence cites its 1 §5 title(s)
+ok   (e) R-1140, R-1141, R-1142, R-301 and R-350 read implemented
+ok   (e) R-301's evidence keeps every base citation (it gains, never loses)
+ok   (e) R-350's evidence keeps every base citation (it gains, never loses)
+ok   (e) R-350, R-954, R-903–R-907 and R-1128 keep their base text
+ok   (e) R-1143–R-1149 are unused: no REQUIREMENTS.md mention, no req: marker
+ok   (f) git diff --name-only 484329c..HEAD lists only §4 In paths and this review folder
+ok   (f) the build is committed: no uncommitted or untracked path outside this review folder
+ok   (f) the guide and its test file are added in the lane's commits
+ok   (f) packages/nana-setup/lib/steps.mjs changes one code line: CLAUDE_RULES gains "nana-seat.md"; ruleSource and every other code line stay (S3)
+ok   (f) packages/nana-setup/lib/state-manifest.mjs changes one code line: the rule-link list gains "nana-seat.md"; every other code line stays
+ok   (f) the setup README has one `claude/rules/nana-seat.md` row, right after the nana-standards row
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 52/52
+seat-guide acceptance: 0 mismatch(es)
