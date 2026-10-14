@@ -197,10 +197,13 @@ function treeChecks(language, mode, reqs) {
 	const rows = readRequirementRows(tree.parsed);
 	const gRows = rows.filter((r) => r.id.startsWith("G-"));
 	const rRows = rows.filter((r) => r.id.startsWith("R-"));
+	const RESERVED_SUBGROUPS = ["SUB-900", "SUB-901", "SUB-902", "SUB-903", "SUB-904"];
+	const subgroups = tree.parsed.headings.filter((h) => h.parent === feat900).map((h) => h.id);
 	// req: R-1151
 	check(`${language} ${mode}: every G row is homed in FEAT-900 under CAP-90 with no R row`,
-		Boolean(feat900) && feat900.parent?.id === "CAP-90" && gRows.length === 22 && gRows.every((r) => under900(r.heading)) && !rRows.some((r) => under900(r.heading)),
-		`feat900=${feat900?.id} parent=${feat900?.parent?.id} gRows=${gRows.length} strayR=${rRows.filter((r) => under900(r.heading)).map((r) => r.id)}`);
+		Boolean(feat900) && feat900.parent?.id === "CAP-90" && gRows.length === 22 && gRows.every((r) => under900(r.heading)) && !rRows.some((r) => under900(r.heading)) &&
+		[...subgroups].sort().join(",") === RESERVED_SUBGROUPS.join(",") && gRows.every((r) => RESERVED_SUBGROUPS.includes(r.heading?.id)),
+		`feat900=${feat900?.id} parent=${feat900?.parent?.id} gRows=${gRows.length} strayR=${rRows.filter((r) => under900(r.heading)).map((r) => r.id)} subgroups=${subgroups.join(",")}`);
 
 	if (mode === "adopt") {
 		const productFeat = feats.find((h) => h.id !== "FEAT-900");
