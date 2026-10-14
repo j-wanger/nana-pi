@@ -7,9 +7,9 @@ rules all hold.
 **R-1140: "hold no other bullet" is pinned only for top-level `- ` bullets.** `packages/nana-setup/tests/seat-rule.test.mjs:46`
 counts a line as a bullet only when it starts with `- `. An indented sub-bullet (`  - Check the builder transcript every
 turn.`) or a `* ` or `+ ` bullet leaves every check green, though it adds exactly the per-turn checking this lane exists
-to stop. Change the bullet detection to `/^\s*[-*+]\s/` on the `\r`-stripped lines, keep the title exactly, and show it
-red first: with that sub-bullet added under the third rule in the guide, the check must fail on the old detection's
-fix and pass when you revert the guide. Do not change the guide, the rows or any other test.
+to stop. Change the bullet detection to `/^\s*[-*+]\s/` on the `\r`-stripped lines, keep the title exactly, and show the gap
+first: add that sub-bullet under the third rule in the guide, see the old check stay green and the new check fail,
+then revert the guide so the new check passes. Do not change the guide, the rows or any other test.
 
 ## Done
 `npm run test:locked` (0 failed); `node docs/reviews/seat-guide-2026-10-14/seat-titles.mjs 1` → `0 missing`;
