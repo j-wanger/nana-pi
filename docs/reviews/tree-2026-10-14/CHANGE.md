@@ -263,3 +263,7 @@ sol SEND-BACK with one MUST: §3.5 still listed `scripts/product-report.mjs` as 
 contradicting R-1160's report fix — a builder following the scope would leave UTF-16 reports failing open. Fixed: §4 In
 names the report's one change and §3.5 excludes every other part of it. Its NOTE: residual 8 is closed by R-1161 and now
 says so. Round 3 (over the format lane's two-round plan cap, for this named fail-open finding) reviews only this delta.
+
+## Plan review r3 (2026-10-14)
+
+sol LAND (`sol-plan-r3.md`): round 2's MUST is closed. The plan is frozen at this commit.
