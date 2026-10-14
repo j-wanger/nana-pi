@@ -486,6 +486,9 @@ const SKILL = (name) => `packages/nana-pack/skills/${name}/SKILL.md`;
 const SCOPE = [
 	RT_SCRIPT, PR_SCRIPT,
 	"templates/python/template/REQUIREMENTS.md.jinja", "templates/typescript/template/REQUIREMENTS.md.jinja", "templates/_shared/requirements-general.md",
+	// Seat amendment 2026-10-14: build brief 3 moved the organization section into one shared source (astra r1 SHOULD;
+	// the AGENTS.md Layout rule), so the In list gains it.
+	"templates/_shared/requirements-organization.md",
 	...["requirements", "scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"].map(SKILL),
 	TR, RT, PR,
 	"README.md", "REQUIREMENTS.md", "docs/requirements-tree.md", "docs/code-map.md", "docs/sessions/2026-10.md", "HANDOFF.md",
