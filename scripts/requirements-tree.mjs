@@ -397,16 +397,17 @@ function checkNearMissHeadings(parsed) {
   }
   return problems;
 }
-// R-1159 / R-1160: a raw count of requirement row lines, by requirementRowId alone, outside
-// code fences — never through readRequirementRows, whose table detection needs a byte-exact
+// R-1159 / R-1160: a raw count of requirement row lines, by requirementRowId alone, fenced
+// rows included (the trace rail counts every line it recognises, fenced or not) — never
+// through readRequirementRows, whose table detection needs a byte-exact
 // "| ID | Requirement | Status | Evidence |" header and breaks a table at a blank line. A
-// padded header (a markdown formatter, or one trailing space) or a blank line inside a table
-// must not undercount the rows a no-tree ledger holds, or make a ledger that has rows read as
-// having none.
+// padded header (a markdown formatter, or one trailing space), a blank line inside a table, or
+// a row inside a code fence must not undercount the rows a no-tree ledger holds, or make a
+// ledger that has rows read as having none.
 function countRequirementRowLines(parsed) {
   let count = 0;
   for (let i = 0; i < parsed.lines.length; i++) {
-    if (!parsed.opaque[i] && requirementRowId(parsed.lines[i])) count++;
+    if (requirementRowId(parsed.lines[i])) count++;
   }
   return count;
 }

@@ -332,6 +332,18 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
 }
 
 {
+  // A fenced requirement row is still a row the trace rail counts (requirementRowId carries no
+  // code-fence exception); the raw per-line count must include it too, alongside a normal row
+  // in a recognised table.
+  const flat = "# A flat ledger\n\n## 1. Things\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | One thing shall work. | untested | — |\n\n```\n| R-002 | A fenced thing shall work. | untested | — |\n```\n";
+  const r = checkTree(flat);
+  // req: R-1159
+  check("R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it",
+    r.problems.length === 1 && /\b2 requirement rows\b/.test(r.problems[0]) && /no requirements tree yet/.test(r.problems[0]) && /requirements skill/.test(r.problems[0]),
+    r.problems.join("; "));
+}
+
+{
   // A lone subgroup heading has no capability or feature above it: the ledger has no tree
   // yet, same as a plain numbered-section ledger, not a nesting problem for the stray SUB.
   const SUB_ONLY = "### SUB-001 · Lonely\nPurpose: subgroup\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n| R-002 | The other thing shall work. | untested | — |\n";
