@@ -175,11 +175,18 @@ function partG(language, dest, mode) {
 		`got ${gIds} (sorted ${sorted}, duplicates: ${!noDupes})`);
 	// req: R-737
 	check(`${language} ${mode}: no jinja survives into REQUIREMENTS.md`, !/\{[{%]/.test(reqs), "an unrendered tag is left");
+	// req: R-1153
+	check(`${language} ${mode}: REQUIREMENTS.md's organization section comes from the one shared source`,
+		reqs.split(SHARED_ORGANIZATION).length - 1 === 1,
+		"the organization text is missing, altered or duplicated");
 	return reqs;
 }
 
 const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .';
 const REPORT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/product-report.mjs" --root .';
+// R-1153: the "How this file is organized" section is single-sourced from this file and
+// pulled into both languages, both modes, with a Jinja include — never hand-duplicated.
+const SHARED_ORGANIZATION = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-organization.md"), "utf-8");
 const collapse = (s) => (s ?? "").replace(/\s+/g, " ");
 
 /** R-1150 to R-1153: the rendered REQUIREMENTS.md starts life as a requirements tree. */
