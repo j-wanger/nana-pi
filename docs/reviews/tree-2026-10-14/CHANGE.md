@@ -1,7 +1,7 @@
 # Change declaration — tree: every new project starts with the requirements tree, and the checker and report run in any project
 
 *Lane `tree` · `feat/tree` · `~/nana-pi-wt/tree`, from `main` `484329c` (roster landed) · 2026-10-14 · seat draft 2 (seat revision at the end; not reviewed). Features:
-FEAT-014 SUB-019, FEAT-032, FEAT-028. New R-1150 to R-1159; R-1160 unused; R-1161 to R-1169 held for lane `tree-lift` (§6); seat-guide takes R-1140 to R-1142. No reworded or
+FEAT-014 SUB-019, FEAT-032, FEAT-028. New R-1150 to R-1161 (R-1160 and R-1161 added by the plan r1 revision); R-1162 to R-1169 held for lane `tree-lift` (§6); seat-guide takes R-1140 to R-1142. No reworded or
 retired row, tree change in nana-pi, or share. Class FORMAT (it changes the ledger format every new project inherits): two plan-review rounds. Builder: Sonnet 5.5. No
 `packages/nana-setup/` or hook change, so no install check. Evidence: the `research-*.md` and `factcheck-*.md` beside this file and the probe scripts in `probes/`; the
 renders and other projects' ledger copies the probes read stay in the seat's scratch, uncommitted. Cites are at `484329c`; "Ran" means run on this Mac at `5b53ebc` (research) or `484329c` (fact-checks); INFERRED means not read or run.*
@@ -48,12 +48,14 @@ Main's highest ID is R-1128. One `shall` per row.
 | R-1154 | added, FEAT-032 after R-657 | The requirements skill shall direct every new row, audit-extracted rows included, into the table of the feature it serves once the ledger has a tree, keep a ledger without a tree in its numbered sections and name a lift and then a regroup as its next step, and name the project owner as the one who decides tree changes. |
 | R-1155 | added, FEAT-032 | The scaffold-py, scaffold-ts, adopt-py, adopt-ts and adopt-structure skills shall direct each row into the table of the feature it serves once the ledger has a tree, keep a ledger without a tree in its numbered sections and name a lift and then a regroup as its next step, and name no `Part G`. |
 | R-1156 | added, FEAT-032 | The requirements skill shall name the tree check as `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .` and the product report as `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. |
-| R-1157 | added, FEAT-028 after R-294 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, refusing with a named reason and exit 1 a ledger that holds a NUL byte or no requirement row, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. |
+| R-1157 | added, FEAT-028 after R-294 | WHEN the tree checker command runs with `--root <dir>` and no other argument, it shall check only `<dir>/REQUIREMENTS.md` and read or write no outline, printing each problem on stderr with exit 1, and otherwise printing its problem, row and feature counts with exit 0. |
 | R-1158 | added, FEAT-028 | The tree checker shall report the same problems, at the same line numbers, for a ledger with CRLF line endings as for the same ledger with LF line endings. |
 | R-1159 | added, FEAT-028 | WHEN the tree checker reads a REQUIREMENTS.md that holds requirement rows but no capability or feature heading, it shall report one problem, which names the row count, says the ledger has no requirements tree yet and points to the requirements skill for the next step, in place of one problem per row. |
+| R-1160 | added, FEAT-028 | WHEN a REQUIREMENTS.md holds a NUL byte or no requirement row, the tree checker command and the product report shall each refuse it with exit 1 and a named reason (for a NUL byte, that the file is likely UTF-16 and must be saved as UTF-8), the report writing no page. |
+| R-1161 | added, FEAT-028 | WHEN a REQUIREMENTS.md heading starts with a capability, feature or subgroup ID but does not match the tree heading form, the tree checker shall report a problem naming that heading's line number and the expected form, in place of R-1159's no-tree problem. |
 
 No row changes text or status; R-737, R-738, R-581, R-582, R-590, R-1012, R-1025 and R-1030 keep theirs. Through R-1025 the report refuses naming R-1159's one problem (plus
-its header line). Leaf total: the base at branch time + 10 — 1,113 → **1,123** from `484329c`; 1,116 → **1,126** if seat-guide is on main first (§4). Headings stay 68.
+its header line). Leaf total: the base at branch time + 12 — 1,113 → **1,125** from `484329c`; 1,116 → **1,128** if seat-guide is on main first (§4). Headings stay 68.
 
 ## 3. Design
 
@@ -82,13 +84,17 @@ needs two shapes from one include.
 **3.2 Tree checker (`scripts/requirements-tree.mjs`).** `parseLedger` splits on `/\r?\n/` after the BOM strip (`:61`); the outline stays LF. `checkTree` gains R-1159: rows and
 no CAP or FEAT heading give one problem, built by an exported `noTreeProblem(rows)`: `REQUIREMENTS.md holds <n> requirement rows and no capability or feature heading: this
 ledger has no requirements tree yet. The requirements skill describes the next step.` Ran (grep): no existing `checkTree` fixture has rows without a CAP or FEAT heading (the
-SUB-only one, `requirements-tree.test.mjs:116`, has no row). `main` takes `--root <dir>` as a third form. It refuses, exit 1, a ledger holding U+0000 (`<path>: NUL byte;
-likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8`) or no row (`<path>: no requirement rows`). Then it prints problems to stderr with exit 1, or `requirements tree:
+SUB-only one, `requirements-tree.test.mjs:116`, has no row). **Plan r1 MUSTs (2026-10-14).** (a) R-1160: an exported `ledgerReadProblem(text, parsed)` returns `<path>: NUL byte; likely UTF-16 from Windows PowerShell
+5.1; save it as UTF-8` for text holding U+0000, `<path>: no requirement rows` for a ledger with no `| R-`/`| G-` row, else null. Both `main --root` and the
+report's `buildReport` call it before `checkTree` and refuse on a non-null result (exit 1, no page); nana-pi's own `--write`/`--check` call it too. It sits outside
+`checkTree`, so the SUB-only no-row fixture (`requirements-tree.test.mjs:116`) keeps its problem set. (b) R-1161: `checkTree` reports every heading matching
+`/^#{1,3}\s*(CAP|FEAT|SUB)-\d+/` that the heading parser (`:16`) rejects, as `line <n>: heading looks like a tree heading but is not in the form "# CAP-nn ·
+Label"` (the form for its level); when there is any such heading, R-1159's no-tree problem is not reported. `main` takes `--root <dir>` as a third form. Then it prints problems to stderr with exit 1, or `requirements tree:
 0 problems; rows <n>; features <f>` with exit 0, never touching an outline. `--write` and `--check` keep nana-pi's behaviour; any other shape prints the usage line (now naming
 `--root <dir>`) with exit 2. No bin or PATH link: seats run `node "$HOME/nana-pi/…"` from the checkout (roster's form, `CHANGE.md:166-167`: PowerShell 5.1 expands `$HOME`, not
 `~/`). The main guard (`:407`) is unchanged (§6).
 
-**3.3 Product report.** No code change. `buildReport` refuses any `checkTree` problem before it reads HANDOFF.md or calls git (`:205-206`, R-1025), so a ledger with no tree
+**3.3 Product report.** One change: `buildReport` calls `ledgerReadProblem` first (R-1160). Otherwise it refuses any `checkTree` problem before it reads HANDOFF.md or calls git (`:205-206`, R-1025), so a ledger with no tree
 now refuses with the header line and R-1159's line, exit 1.
 
 **3.4 Skills (text only).** `requirements/SKILL.md:126` becomes generic: once the ledger has a tree, rows go into the table of the feature they serve, never a numbered section
@@ -118,8 +124,8 @@ Docs: `README.md` `:64` gains the checker's `--root`; `:243` gains "on any nana 
 **Overlap with lane `seat-guide`** (`feat/seat-guide`, `~/nana-pi-wt/seat-guide`, in flight at `7306142`; its `CHANGE.md:4,36-40,97-111`):
 - Shared: the SUB-019 table (seat-guide adds R-1142 after R-1127; this lane adds R-1150–R-1153 after R-738), `templates-render.test.mjs` (separate blocks), R-291's literal
   (`requirements-tree.test.mjs:38,52,53`), the outline, the code map, HANDOFF and the session file. Not shared: the working section, AGENTS.md, `packages/nana-setup/`.
-- R-291's literal: the build reads the base total at branch time and adds 10. Seat-guide not on main: 1,113 → 1,123. Seat-guide on main first, or merged in before the land:
-  1,116 → 1,126. After any merge of main, the outline and code map are regenerated.
+- R-291's literal: the build reads the base total at branch time and adds 12. Seat-guide not on main: 1,113 → 1,125. Seat-guide on main first, or merged in before the land:
+  1,116 → 1,128. After any merge of main, the outline and code map are regenerated.
 **Release.** New projects get the tree from the next CI tag after the land. Existing projects keep their REQUIREMENTS.md (`copier.yml:16`); on update their
 `REQUIREMENTS-general.md` gains the new headings (R-582 covers the rail). The Windows Claude Code seat's requirements skill is a byte copy (`steps.mjs:218-226`), stale until
 `nana-setup install` re-runs (doctor flags it); HANDOFF gets a line for Jake (§6).
@@ -145,16 +151,19 @@ phrase. Oracles import `checkTree` and `noTreeProblem` by name. R-1156's checker
 - **requirements-tree.test.mjs** (each spawns the checker CLI on temp dirs):
   - T8 · R-1157 `R-1157: --root checks another project's ledger, names its problems and writes no outline`. A tree ledger: exit 0, stdout `requirements tree: 0 problems; rows
     1; features 1`, no `docs/` created. With one row outside its feature: exit 1, stderr names `is not in a feature or subgroup table`. `--root <dir> --write`: exit 2.
-  - T9 · R-1157 `R-1157: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason`. T8's tree ledger saved as UTF-16LE with a BOM: exit 1, stderr names the
+  - T9 · R-1160 `R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason`. T8's tree ledger saved as UTF-16LE with a BOM: exit 1, stderr names the
     NUL byte and UTF-16. A tree with headings and no row: exit 1, stderr says no requirement rows. Neither prints `0 problems`.
   - T10 · R-1158 `R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` (a two-problem fixture, and the real ledger as CRLF giving 0 problems and 68
     headings). It normalises to LF before building the CRLF copy, so it never builds `\r\r\n`.
   - T11 · R-1159 `R-1159: a ledger with rows and no tree gets one line naming the row count and the next step`. 1,000 rows under plain `## 1. …` headings: exit 1; stderr, less
     Node's own `(node:` warning lines, is one line naming `1000 requirement rows`, `no requirements tree yet` and `requirements skill`; no per-row line.
-  - T12 · R-291 rename: `…leaf counts total 1,113` → the base + 10 (§4; title, `:52`, `:53`).
+  - T15 · R-1161 `R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger`. A tree ledger
+    whose CAP and FEAT headings use ` - `: exit 1; stderr names both headings' line numbers and `·`; no `no requirements tree yet`; no per-row line for its rows' table.
+  - T12 · R-291 rename: `…leaf counts total 1,113` → the base + 12 (§4; title, `:52`, `:53`).
 - **product-report.test.mjs.** T13 · R-1159 `a ledger with rows and no tree is refused with one problem line, not one per row`. It spawns `node scripts/product-report.mjs
   --root <tmp>` on T11's ledger, with no HANDOFF.md and no git: exit 1; R-1159's line once with T11's three phrases; no per-row line; no page. The spawn exercises the Windows
-  leg's main guard and `.ts` import.
+  leg's main guard and `.ts` import. T14 · R-1160 `a UTF-16 ledger and a ledger with no rows are refused by the report, naming the reason, and build no
+  page`: spawns the report on T9's two ledgers; exit 1, the reason named, no output file.
 
 **Wrong code first.** Each pair edits code or text, never an assertion, and must red exactly the named titles (N/N in `seat-mutate.mjs`).
 
@@ -170,7 +179,9 @@ phrase. Oracles import `checkTree` and `noTreeProblem` by name. R-1156's checker
 | 8 | adopt-structure keeps "add the standard `Part G` engineering block" / scaffold-ts drops "the table of the feature it serves" / adopt-py drops the carve-out | T6 (each) |
 | 9 | the skill writes `~/nana-pi/scripts/product-report.mjs` | T7 |
 | 10 | `--root` ignored (reads `REPO_ROOT`) / `--root` also compares the outline / `--root --write` accepted | T8 (each) |
-| 11 | the NUL check dropped / the no-row check dropped | T9 (each) |
+| 11 | the NUL check dropped / the no-row check dropped (in `ledgerReadProblem`) | T9, T14 (each) |
+| 11b | `buildReport` skips `ledgerReadProblem` | T14 |
+| 11c | the near-miss scan dropped / it matches CAP headings only | T15 (each) |
 | 12 | `parseLedger` splits on `"\n"` only | T10 |
 | 13 | `checkTree` keeps one problem per row with no tree / the no-tree rule fires only when the ledger has no heading at all | T11, T13 (each) |
 | 14 | the no-tree line drops its row count | T11, T13 |
@@ -196,7 +207,7 @@ clean change (INFERRED; R-582's update test decides).
 **Jake's ruling (2026-10-14) on what "sort" means for an existing project:** "Lift is the tool that enables better regroup, but this is a core feature for nana, understanding
 existing repo and turn into feature trees, then development really becomes feature oriented". No question for Jake stays open here. The queue it implies:
 1. Lane `tree` (this declaration): scope unchanged.
-2. Lane `tree-lift`: one apply-with-proof tool, `scripts/requirements-lift.mjs --root <dir>`. It applies a mapping (old ledger line → tree position, plus inserted headings and purposes) to REQUIREMENTS.md and proves every row kept byte-identical and the ID set equal; its default mapping is the mechanical one (sections → features, "Not yet sorted", Part G → §3.1's reserved shape). Plan and proof by default; `--write` after the owner's yes, only while the file matches HEAD. Draft rows R-1161–R-1169; class GATE.
+2. Lane `tree-lift`: one apply-with-proof tool, `scripts/requirements-lift.mjs --root <dir>`. It applies a mapping (old ledger line → tree position, plus inserted headings and purposes) to REQUIREMENTS.md and proves every row kept byte-identical and the ID set equal; its default mapping is the mechanical one (sections → features, "Not yet sorted", Part G → §3.1's reserved shape). Plan and proof by default; `--write` after the owner's yes, only while the file matches HEAD. Draft rows R-1162–R-1169; class GATE.
 3. Lane `regroup`, the core nana feature: a skill and workflow that reads an existing repo (code, docs, tests, the ledger), proposes capabilities → features → subgroups with purposes, maps every row, and lists features with no rows as `proposed`; the owner approves at a checkpoint; lane `tree-lift`'s tool then applies the mapping.
 4. Feature-oriented development: req-tree §8 item 2 (`req-tree-2026-10-09/CHANGE.md:284-287`): the brief declares its Feature, the review and session name it, and the land reports a structure diff.
 
@@ -207,7 +218,7 @@ existing repo and turn into feature trees, then development really becomes featu
   (`templates/_shared/HANDOFF.md:11`). An untagged "Open for Jake" item makes the report refuse (R-1030; `product-report.mjs:210-213`). Carry both.
 - S5 Commands run from the checkout's `scripts/` with `--root`; no bin, PATH link or nana-setup change. S6 No shared-section or AGENTS.md edit. S7 Rows stay EARS.
 - S8 Row homes: SUB-019, FEAT-032, FEAT-028; no new heading or share. S9 Projects say "the project owner" (Jake owns them); nana-pi keeps "Jake" (`REQUIREMENTS.md:34`).
-- S10 The adopt seed's feature is `proposed`; purposes start "DRAFT —". S11 CRLF is handled in `parseLedger` only. S12 Projects get no outline. S13 R-1159 sits in `checkTree`.
+- S10 The adopt seed's feature is `proposed`; purposes start "DRAFT —". S11 CRLF is handled in `parseLedger` only. S12 Projects get no outline. S13 R-1159 and R-1161 sit in `checkTree`; R-1160 sits beside it, shared by the CLI and the report.
 
 **Residuals and carries.**
 1. Until `tree-lift` lands, a flat ledger still cannot run the report; it now gets R-1159's line and the skill's next step. A hand sort has no proof.
@@ -216,7 +227,7 @@ existing repo and turn into feature trees, then development really becomes featu
 4. A second report run labels the tree dirty when its output, whose default name says nana-pi (`:22`), sits untracked in the project (`:218`). Workaround: pass `--out` outside the project root. Carry (cut from this lane).
 5. The report prints a `MODULE_TYPELESS_PACKAGE_JSON` warning on stderr every run (ran); the checker prints none, since `process.exit` (`:407`) runs first. Already deferred (product-report CHANGE §6).
 6. Through a symlinked or junctioned checkout, both main guards (`requirements-tree.mjs:407`, `product-report.mjs:318`) exit 0 silently on any argument (ran). Pre-existing; not fixed here.
-7. R-1157's NUL and no-row refusals cover the checker only; the report on a UTF-16 ledger would build an empty page (INFERRED). Carry.
+7. (Closed by plan r1: R-1160 covers the report.)
 8. A heading typed with `-` for `·` (`requirements-tree.mjs:16`) gives "not in a feature or subgroup table" for each of its rows, without naming the heading. Carry.
 9. nana-pi's `--check` and R-291's test compare the outline raw (`:397-398`; `requirements-tree.test.mjs:34`); a CRLF checkout of nana-pi fails them. Test-portability lane.
 10. The hand-built tree with 29 problems on this Mac needs a hand fix in its own lane: Part G under one feature, four features moved above it, two `Status:` lines added.
@@ -237,3 +248,11 @@ existing repo and turn into feature trees, then development really becomes featu
 8. J1–J4 are seat decisions with carries. Jake ruled on the sort question (2026-10-14); §6 records the ruling and its four-lane queue.
 9. R-1153 keeps "the project owner decides"; nana-pi keeps "Jake".
 10. Class FORMAT (two plan-review rounds); builder Sonnet 5.5.
+
+## Plan review r1 (2026-10-14)
+
+sol SEND-BACK with two MUSTs, both folded in above: (1) UTF-16 and no-row ledgers failed open through the report, since
+`buildReport` calls `checkTree` directly — R-1160 moves the refusal into a shared `ledgerReadProblem` that the checker
+command and the report both call (T9, T14; pairs 11, 11b); (2) a tree typed with `-` for `·` read as a flat ledger and
+got the wrong next step — R-1161 names each near-miss heading and suppresses R-1159 (T15; pair 11c). Rows R-1160 and
+R-1161 are new; tree-lift keeps R-1162 to R-1169. Leaf total base + 12.
