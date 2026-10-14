@@ -1,11 +1,11 @@
-seat-mutate: lane seat-guide, tip cac50d71abf4c4b62c085bbd51f055b1bb06be97, merge-base 484329ce93109472496ff4835d13d971866acb79, 20 pairs, darwin, node v22.22.2, 2026-10-14T17:37:52.988Z
+seat-mutate: lane seat-guide, tip 2b54997b69bc4b77d012523d247b5e7b3b33816a, merge-base 484329ce93109472496ff4835d13d971866acb79, 20 pairs, darwin, node v22.22.2, 2026-10-14T18:04:00.927Z
 BASELINE ok   packages/nana-setup/tests/seat-rule.test.mjs (exit 0, 10 PASS, 0 FAIL, 0.0s)
-BASELINE ok   packages/nana-setup/tests/install.test.mjs (exit 0, 98 PASS, 0 FAIL, 5.9s)
-BASELINE ok   packages/nana-setup/tests/win32-degrade.test.mjs (exit 0, 88 PASS, 0 FAIL, 4.7s)
+BASELINE ok   packages/nana-setup/tests/install.test.mjs (exit 0, 98 PASS, 0 FAIL, 5.8s)
+BASELINE ok   packages/nana-setup/tests/win32-degrade.test.mjs (exit 0, 88 PASS, 0 FAIL, 4.8s)
 BASELINE ok   packages/nana-setup/tests/state-manifest.test.mjs (exit 0, 20 PASS, 0 FAIL, 0.9s)
-BASELINE ok   packages/nana-setup/tests/uninstall.test.mjs (exit 0, 31 PASS, 0 FAIL, 2.0s)
+BASELINE ok   packages/nana-setup/tests/uninstall.test.mjs (exit 0, 31 PASS, 0 FAIL, 2.1s)
 BASELINE ok   packages/nana-setup/tests/restore.test.mjs (exit 0, 14 PASS, 0 FAIL, 1.5s)
-BASELINE ok   packages/nana-pack/tests/templates-render.test.mjs (exit 0, 135 PASS, 0 FAIL, 32.8s)
+BASELINE ok   packages/nana-pack/tests/templates-render.test.mjs (exit 0, 135 PASS, 0 FAIL, 32.1s)
 BASELINE ok   packages/nana-pack/tests/skill-claims.test.mjs (exit 0, 30 PASS, 0 FAIL, 0.1s)
 BASELINE ok   docs/reviews/seat-guide-2026-10-14/acceptance.mjs (exit 0, 52 PASS, 0 FAIL, 1.4s)
 RED M1 delete the no-reading bullet — seat guide carries: no reading or judging partial work mid-run | seat guide holds no bullet beyond its eight rules; 2 FAIL total (1 file changed, 1 deletion(-))
