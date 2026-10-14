@@ -7,13 +7,13 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { ID } from "../../../scripts/requirements-trace.mjs";
-import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants } from "../../../scripts/requirements-tree.mjs";
+import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants, ledgerReadProblem } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -251,14 +251,17 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const r = runTree(["--root", dir], cliScratch);
   // req: R-1157
   check("R-1157: --root checks another project's ledger, names its problems and writes no outline",
-    r.status === 0 && lines(r.stdout).join("\n") === "requirements tree: 0 problems; rows 1; features 1" && own(r.stderr).length === 0,
+    r.status === 0 && lines(r.stdout).join("\n") === "requirements tree: 0 problems; rows 1; features 1" && own(r.stderr).length === 0 &&
+    !existsSync(join(dir, "docs")) && !existsSync(join(dir, "requirements-tree.md")),
     `${r.status} ${r.stdout} ${r.stderr}`);
   const outsideDir = writeLedger("t8-outside", OUTSIDE);
   const broken = runTree(["--root", outsideDir], cliScratch);
+  // req: R-1157
   check("R-1157 fixture: a row outside its feature exits 1 naming it",
     broken.status === 1 && own(broken.stderr).some((l) => l.includes("is not in a feature or subgroup table")),
     broken.stderr);
   const bad = runTree(["--root", dir, "--write"], cliScratch);
+  // req: R-1157
   check("R-1157 fixture: --root <dir> --write exits 2 with usage",
     bad.status === 2 && /--root <dir>/.test(bad.stderr), bad.stderr);
 }
@@ -272,6 +275,18 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
     u1.status === 1 && /NUL/.test(u1Err) && /UTF-16/.test(u1Err) && !/\b0 problems\b/.test(u1.stdout + u1.stderr) &&
     norows.status === 1 && own(norows.stderr).some((l) => l.includes("no requirement rows")) && !/\b0 problems\b/.test(norows.stdout + norows.stderr),
     `${u1Err} / ${norows.stderr}`);
+}
+
+{
+  // A table padded by a markdown formatter — here, one trailing space on the header line —
+  // fails the byte-exact "| ID | Requirement | Status | Evidence |" match, so the table
+  // (and its one row) goes unrecognised. That must not read as a ledger with no rows.
+  const PADDED_HEADER = "# CAP-01 · Cap\nPurpose: capability\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence | \n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n";
+  const parsed = parseLedger(PADDED_HEADER);
+  // req: R-1160
+  check("R-1160: a tree ledger with a padded table header is not refused as having no rows",
+    ledgerReadProblem(PADDED_HEADER, parsed) === null,
+    String(ledgerReadProblem(PADDED_HEADER, parsed)));
 }
 
 {
@@ -297,13 +312,44 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
 }
 
 {
-  const NEAR = "# CAP-01 - Cap\nPurpose: capability\n\n## FEAT-001 - Feature\nPurpose: feature\nStatus: active\n\n### SUB-001 - Sub\nPurpose: subgroup\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n| R-002 | The other thing shall work. | untested | — |\n";
+  // Two tables: one with a padded header (never recognised, so its rows never land in
+  // readRequirementRows), the other properly headed but with a blank line partway through
+  // (which drops the rows after it from readRequirementRows too). The raw per-line count
+  // must still find every one of the 5 rows.
+  let flat = "# A flat ledger\n\n## 1. Padded\n\n| ID | Requirement | Status | Evidence | \n|---|---|---|---|\n";
+  flat += "| R-001 | One thing shall work. | untested | — |\n";
+  flat += "| R-002 | Two thing shall work. | untested | — |\n";
+  flat += "\n## 2. Interrupted\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
+  flat += "| R-003 | Three thing shall work. | untested | — |\n";
+  flat += "\n";
+  flat += "| R-004 | Four thing shall work. | untested | — |\n";
+  flat += "| R-005 | Five thing shall work. | untested | — |\n";
+  const r = checkTree(flat);
+  // req: R-1159
+  check("R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included",
+    r.problems.length === 1 && /\b5 requirement rows\b/.test(r.problems[0]) && /no requirements tree yet/.test(r.problems[0]) && /requirements skill/.test(r.problems[0]),
+    r.problems.join("; "));
+}
+
+{
+  // A lone subgroup heading has no capability or feature above it: the ledger has no tree
+  // yet, same as a plain numbered-section ledger, not a nesting problem for the stray SUB.
+  const SUB_ONLY = "### SUB-001 · Lonely\nPurpose: subgroup\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n| R-002 | The other thing shall work. | untested | — |\n";
+  const r = checkTree(SUB_ONLY);
+  // req: R-1159
+  check("R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line",
+    r.problems.length === 1 && /\b2 requirement rows\b/.test(r.problems[0]) && /no requirements tree yet/.test(r.problems[0]) && /requirements skill/.test(r.problems[0]),
+    r.problems.join("; "));
+}
+
+{
+  const NEAR = "# CAP-01 - Cap\nPurpose: capability\n\n## FEAT-001 - Feature\nPurpose: feature\nStatus: active\n\n### SUB-001 - Sub\nPurpose: subgroup\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n| R-002 | The other thing shall work. | untested | — |\n\n # CAP-02 - Indented\n\n#### SUB-002 - Deep\n";
   const r = runTree(["--root", writeLedger("t15-near", NEAR)], cliScratch);
   const nrLines = own(r.stderr);
   const named = (n, kind) => nrLines.some((l) => new RegExp(`\\bline ${n}\\b`).test(l) && l.includes(`${kind}-`) && l.includes("·"));
   // req: R-1161
   check('R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger',
-    r.status === 1 && named(1, "CAP") && named(4, "FEAT") && named(8, "SUB") && !nrLines.some((l) => l.includes("no requirements tree yet")) && !nrLines.some((l) => l.includes("not in a feature or subgroup table")),
+    r.status === 1 && named(1, "CAP") && named(4, "FEAT") && named(8, "SUB") && named(16, "CAP") && named(18, "SUB") && !nrLines.some((l) => l.includes("no requirements tree yet")) && !nrLines.some((l) => l.includes("not in a feature or subgroup table")),
     nrLines.join(" | "));
 }
 

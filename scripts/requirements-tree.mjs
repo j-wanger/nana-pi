@@ -380,27 +380,40 @@ export function checkOutlineFields(outline, parsed) {
   return problems;
 }
 // R-1161: a heading that looks like it is reaching for the tree form (a CAP/FEAT/SUB id at
-// the right ATX level) but that the heading parser above rejects — wrong separator, wrong
-// digit count, or anything else off the exact "# CAP-nn · Label" form for its level.
-const TREE_HEADING_LIKE = /^#{1,3}\s*(CAP|FEAT|SUB)-\d+/;
-const NEAR_MISS_FORM = { 1: "# CAP-nn · Label", 2: "## FEAT-nnn · Label", 3: "### SUB-nnn · Label" };
+// an ATX level, zero to three leading spaces and one to six #s, the same levels and leading
+// space the ATX parser above accepts) but that the heading parser above rejects — wrong
+// separator, wrong digit count, or anything else off the exact "# CAP-nn · Label" form.
+const TREE_HEADING_LIKE = /^\s{0,3}#{1,6}\s*(CAP|FEAT|SUB)-\d+/;
+const NEAR_MISS_FORM = { CAP: "# CAP-nn · Label", FEAT: "## FEAT-nnn · Label", SUB: "### SUB-nnn · Label" };
 function checkNearMissHeadings(parsed) {
   const problems = [];
   for (let i = 0; i < parsed.lines.length; i++) {
     if (parsed.opaque[i]) continue;
     const line = parsed.lines[i];
-    if (HEADING.test(line) || !TREE_HEADING_LIKE.test(line)) continue;
-    const atx = ATX.exec(line);
-    if (!atx) continue;
-    const level = atx[1].length;
-    problems.push(`line ${i + 1}: heading looks like a tree heading but is not in the form "${NEAR_MISS_FORM[level]}"`);
+    if (HEADING.test(line)) continue;
+    const nearMiss = TREE_HEADING_LIKE.exec(line);
+    if (!nearMiss) continue;
+    problems.push(`line ${i + 1}: heading looks like a tree heading but is not in the form "${NEAR_MISS_FORM[nearMiss[1]]}"`);
   }
   return problems;
 }
+// R-1159 / R-1160: a raw count of requirement row lines, by requirementRowId alone, outside
+// code fences — never through readRequirementRows, whose table detection needs a byte-exact
+// "| ID | Requirement | Status | Evidence |" header and breaks a table at a blank line. A
+// padded header (a markdown formatter, or one trailing space) or a blank line inside a table
+// must not undercount the rows a no-tree ledger holds, or make a ledger that has rows read as
+// having none.
+function countRequirementRowLines(parsed) {
+  let count = 0;
+  for (let i = 0; i < parsed.lines.length; i++) {
+    if (!parsed.opaque[i] && requirementRowId(parsed.lines[i])) count++;
+  }
+  return count;
+}
 // R-1159: the single line a ledger with rows and no capability or feature heading gets,
 // in place of one "not in a feature or subgroup table" problem per row.
-export function noTreeProblem(rows) {
-  return `REQUIREMENTS.md holds ${rows.length} requirement rows and no capability or feature heading: this ledger has no requirements tree yet. The requirements skill describes the next step.`;
+export function noTreeProblem(rowCount) {
+  return `REQUIREMENTS.md holds ${rowCount} requirement rows and no capability or feature heading: this ledger has no requirements tree yet. The requirements skill describes the next step.`;
 }
 // R-1160: a ledger a text reader cannot trust — a NUL byte (almost always a UTF-16 file saved
 // without converting it) or no requirement row at all. Shared by the tree checker CLI and the
@@ -408,18 +421,25 @@ export function noTreeProblem(rows) {
 // bytes that were never valid UTF-8 text to begin with.
 export function ledgerReadProblem(text, parsed) {
   if (text.includes("\u0000")) return "REQUIREMENTS.md: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8";
-  if (readRequirementRows(parsed).length === 0) return "REQUIREMENTS.md: no requirement rows";
+  if (countRequirementRowLines(parsed) === 0) return "REQUIREMENTS.md: no requirement rows";
   return null;
 }
 export function checkTree(text) {
   const parsed = parseLedger(text);
   const nearMiss = checkNearMissHeadings(parsed);
-  const rows = readRequirementRows(parsed);
-  // R-1159 / R-1161: with no real tree heading at all, a row-by-row "not in a feature or
-  // subgroup table" flood is replaced by ONE line — the near-miss headings when any are
-  // present (the ledger is reaching for a tree and typo'd it), else the plain no-tree line.
-  const problems = parsed.headings.length === 0 && rows.length > 0
-    ? [...(nearMiss.length ? nearMiss : [noTreeProblem(rows)]), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed)]
+  const rowCount = countRequirementRowLines(parsed);
+  // R-1159: a capability or feature heading is what makes a tree, not a bare SUB heading on
+  // its own (it still nests under nothing, but that is a nesting problem, never this one).
+  const hasCapOrFeat = parsed.headings.some((h) => h.id.startsWith("CAP-") || h.id.startsWith("FEAT-"));
+  // R-1159 / R-1161: with no capability or feature heading at all, a row-by-row "not in a
+  // feature or subgroup table" flood (or a stray SUB heading's own nesting problem) is
+  // replaced by ONE line — the near-miss headings when any are present (the ledger is
+  // reaching for a tree and typo'd it), else the plain no-tree line. The ledger has no real
+  // tree yet, so the other structural checks (purposes, unique IDs, nesting, lifecycle), which
+  // only ever look at real CAP/FEAT/SUB headings, stay silent here; they resume once there is
+  // a tree to check.
+  const problems = !hasCapOrFeat && rowCount > 0
+    ? [...(nearMiss.length ? nearMiss : [noTreeProblem(rowCount)])]
     : [...checkRowsUnderFeatures(parsed), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed), ...nearMiss];
   return { parsed, problems, outline: renderOutline(parsed) };
 }
