@@ -39,6 +39,8 @@ export const REQUIRED = {
 		[NR, "a project .pi/nana-pack.json roster is never read", ["R-1121"]],
 		[NR, "each invalid roster shape is refused naming the slot or field", ["R-1122"]],
 		[NR, "an unreadable or malformed user nana-pack.json is refused naming the file", ["R-1122"]],
+		// build 2 (seat amendment 2026-10-14): three titles from the seat's mutation runner gaps.
+		[NR, "a provider or model holding a C1 control character is refused naming the slot and field", ["R-1122"]],
 		[NR, "roster command prints one line per slot and the source", ["R-1123"]],
 		[NR, "roster command prints a refused roster on stderr and exits 1", ["R-1123"]],
 		// worker-lane.test.mjs: 1 refit (title kept, values by name) and 5 new.
@@ -60,6 +62,7 @@ export const REQUIRED = {
 		[W32, "win32 launch starts a pi.exe directly", ["R-1125"]],
 		[W32, "win32 launch refuses with a named reason when pi, its package, its bin or its entry is missing", ["R-1125"]],
 		[W32, "non-win32 launch is pi by name with the arguments unchanged", ["R-1125"]],
+		[W32, "win32 launch refuses with a named reason, without throwing, when pi's bin is not a string", ["R-1125"]],
 		// ... and six Windows-leg titles (printed SKIP elsewhere).
 		[W32, "Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv", ["R-1125", "R-1124"]],
 		[W32, "Windows: non-lane pi-worker hands pi line breaks, %, !, quotes and a trailing backslash unchanged", ["R-1125"]],
@@ -67,6 +70,7 @@ export const REQUIRED = {
 		[W32, "Windows: a busy pi is not stopped as stalled", ["R-1125"]],
 		[W32, "Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory", ["R-1125"]],
 		[W32, "Windows: lane pi-worker starts pi from a short or differently cased worktree path", ["R-1125"]],
+		[W32, "Windows: a refused launch writes its reason to --out", ["R-1125"]],
 	],
 };
 

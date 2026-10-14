@@ -7,15 +7,21 @@ installer; a POSIX machine whose `pi` is npm's symlink or a shell launcher); del
 (lane mode gains a refusal and a Windows launch). The review standard pi-review appends governs the bar and the verdict
 line.
 
+**Build 2.** The seat's mutation runner at `c7c7690` found five gaps; `build-brief-2.md` sent them back and Sonnet closed
+them in `4686b54` (a non-string pi bin refused, never thrown; C1 control characters refused; a refusal's reason written to
+`--out`; a stale comment; R-1128's check reads the bullets from the shared file). The seat then added the three new titles
+to R-1122's and R-1125's evidence. The runner at `4686b54`: 62/66 red, 0 survived, 4 Windows-leg only.
+
 Records in `docs/reviews/roster-2026-10-13/`: the plan `CHANGE.md` — planning workflow, fact-checks, a seat revision,
 sol plan r1 SEND-BACK 6/10 and r2, then the final "Seat amendment (2026-10-13): Node entry" section, which Jake ruled
 ("Yes switch, but go through plan review") after his work seat hit `spawn pi ENOENT`; sol plan r3 said LAND 9/10. Its §6
 lists every declared residual. Also: Sonnet 5.5's build brief 1, the shared-text proposal, the seat's acceptance
 script (122/122 at the tip; read `acceptance-output.txt` rather than re-running unless you want to), the title check
 (0 missing) and the seat's mutation runner (`seat-mutate.mjs`; read `seat-mutate-output.txt`, do not run it). Draft
-PR #8's CI run 38477850586 (at `34f43bc`; `c7c7690` after it changed only seat scripts and records): macOS suite and
-both install-check jobs green; on the non-blocking Windows leg `win32-launch` passes 11/11 and `nana-roster` 11 with 2
-skips, and the leg fails the same 68 files as main's run 38459506991 (206 failing checks here, 210 there). Also `HANDOFF.md` and the session entry.
+PR #8's CI run 38486971203 at `4686b54` (build 2; later commits change only records and seat scripts): macOS suite and
+both install-check jobs green; on the non-blocking Windows leg `win32-launch` passes 13/13 and `nana-roster` 12 with 2
+skips, and the leg fails the same 68 files as main's run 38459506991 (206 failing checks here, 210 there). The seat's
+`npm run test:locked` at `4686b54`: 142 files, 0 fail. Also `HANDOFF.md` and the session entry.
 
 Check: (1) the roster reader: defaults byte-identical to today's lane defaults, a bad roster refused before the lock or
 any spawn with the named refusal line, the stderr builder line, `nana-roster`'s output; (2) the win32 launch: npm global
