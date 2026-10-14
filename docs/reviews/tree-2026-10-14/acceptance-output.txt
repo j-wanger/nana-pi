@@ -159,7 +159,7 @@ ok   (e) the leaf totals agree with R-291's renamed title
 ok   (guard) nana-pi's tree headings are the base's (68)
 ok   (guard) R-1162 to R-1169 are unused: no REQUIREMENTS.md mention, no req: marker
 ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0
-ok   (guard) git diff --name-only 99a4103..HEAD lists only §4 In paths and this review folder
+MISS (guard) git diff --name-only 99a4103..HEAD lists only §4 In paths and this review folder → ["templates/_shared/requirements-organization.md"] (want [])
 ok   (guard) the merge-base diff touches no §3.5 file
 ok   (guard) both main guards are the base's lines, unchanged (§3.5)
 ok   (f) product-report.mjs changes only buildReport's one ledgerReadProblem call (and its import), ahead of the HANDOFF.md read (§3.3, §3.5)
@@ -178,5 +178,5 @@ ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0
 ok   (guard) packages/nana-pack/tests/product-report.test.mjs exits 0
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 180/180 (build cases red: 0/135; guard and harness red: 0/45)
-tree acceptance: 0 mismatch(es)
+cases: 179/180 (build cases red: 0/135; guard and harness red: 1/45)
+tree acceptance: 1 mismatch(es)
