@@ -184,3 +184,11 @@ Roster landed (main `484329c`), so the lane branches from it and §4's conflicts
 unused; the leaf total is 1,113 and moves to 1,116; roster's "Seat land review" bullet sits at the template's `:31` and
 `AGENTS.md:99`, and the pointer goes right after it; `CLAUDE_RULES` is still `steps.mjs:48` and the rule list
 `state-manifest.mjs:59`. Other line cites in this file are at `5b53ebc`; the build brief re-reads them.
+
+## Plan review r1 (2026-10-14)
+
+sol LAND (`sol-plan-r1.md`). Its two SHOULDs stay as residuals; no plan edit after LAND. (1) The runtime matrix's
+"Both Claude rules" sits in the nana-soul / nana-standards column, so it stays true; the pointer names the new rule.
+(2) Bullet 5 is conditional: it covers a one-line fix the seat makes under Jake's 2026-10-13 ruling, and bullet 6 still
+sends build findings back. Seat verify of the seat scripts added two cases: the build must be committed, and the five
+rows read `implemented`.

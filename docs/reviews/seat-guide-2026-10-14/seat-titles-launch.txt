@@ -1,0 +1,17 @@
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide scopes itself to the seat in one sentence before its first bullet
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide holds no bullet beyond its eight rules
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: launch in the background and end the turn
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: no reading or judging partial work mid-run
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: act on completion or a monitor's failure or stall
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: verify once at the end
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: re-run the mutation runner after the seat's own change
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: findings back in the next brief
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: at most two lanes in flight
+NO-FILE  packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: preamble and review standard named, not restated
+MISSING  packages/nana-setup/tests/install.test.mjs — rule nana-seat.md is a symlink into the repo
+MISSING  packages/nana-setup/tests/win32-degrade.test.mjs — win32: nana-seat.md is installed as a copy matching the repo file
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — shared working pattern carries one seat-guide bullet
+MISSING  packages/nana-pack/tests/templates-render.test.mjs — seat-guide bullet names a guide file present in this checkout
+MISSING  packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,116
+NOT-GONE packages/nana-pack/tests/requirements-tree.test.mjs — R-291: every real heading's committed IDs survive expansion and leaf counts total 1,113
+seat-titles 1: 16 missing
