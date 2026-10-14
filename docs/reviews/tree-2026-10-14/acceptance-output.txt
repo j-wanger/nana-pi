@@ -154,12 +154,12 @@ ok   (e) R-1161's evidence cites its 1 §5 title(s) as the rail reads them
 ok   (e) R-1150 to R-1161 and R-291 read implemented
 ok   (guard) R-291's evidence keeps every base citation other than the base leaf-total title
 ok   (guard) no base row changes its Requirement text or Status
-ok   (e) the row set is the base's plus R-1150 to R-1161, each once: leaf total 1113 → 1125
+ok   (e) the row set is the base's plus R-1150 to R-1161, each once: leaf total 1116 → 1128
 ok   (e) the leaf totals agree with R-291's renamed title
 ok   (guard) nana-pi's tree headings are the base's (68)
 ok   (guard) R-1162 to R-1169 are unused: no REQUIREMENTS.md mention, no req: marker
 ok   (guard) the trace rail is green: node scripts/requirements-trace.mjs exits 0
-ok   (guard) git diff --name-only 484329c..HEAD lists only §4 In paths and this review folder
+ok   (guard) git diff --name-only 99a4103..HEAD lists only §4 In paths and this review folder
 ok   (guard) the merge-base diff touches no §3.5 file
 ok   (guard) both main guards are the base's lines, unchanged (§3.5)
 ok   (f) product-report.mjs changes only buildReport's one ledgerReadProblem call (and its import), ahead of the HANDOFF.md read (§3.3, §3.5)
@@ -170,7 +170,7 @@ ok   (guard) node scripts/requirements-tree.mjs --check exits 0
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0
 MISS (f, seat item) HANDOFF drops the LF-only tree checker line and the "Now: the tree for every project" line → [true,true] (want [false,false])
-MISS (f, seat item) HANDOFF carries §6's queue (tree-lift, regroup) and residual 14's Windows `nana-setup install` line → [false,false,false] (want [true,true,true])
+MISS (f, seat item) HANDOFF carries §6's queue (tree-lift, regroup) and residual 14's Windows `nana-setup install` line → [false,true,false] (want [true,true,true])
 MISS (f, seat item) the session entry docs/sessions/2026-10.md is in the lane's diff → false (want true)
 ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder
 ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0
