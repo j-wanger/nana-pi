@@ -79,6 +79,11 @@ const soul = path.join(home, ".claude", "rules", "nana-soul.md");
 check("win32: nana-soul.md is installed as a copy", fs.lstatSync(soul).isFile() && !fs.lstatSync(soul).isSymbolicLink());
 // req: R-350
 check("win32: the copy matches the repo file", fs.readFileSync(soul, "utf8") === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-soul.md"), "utf8"));
+const seat = path.join(home, ".claude", "rules", "nana-seat.md");
+const seatLstat = (() => { try { return fs.lstatSync(seat); } catch { return null; } })();
+const seatMatches = (() => { try { return fs.readFileSync(seat, "utf8") === fs.readFileSync(path.join(pkg, "claude", "rules", "nana-seat.md"), "utf8"); } catch { return false; } })();
+// req: R-350
+check("win32: nana-seat.md is installed as a copy matching the repo file", Boolean(seatLstat?.isFile()) && !seatLstat?.isSymbolicLink() && seatMatches);
 check("win32: the private rule is still seeded", fs.existsSync(path.join(home, ".claude", "rules", "nana-personal.md")));
 check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
