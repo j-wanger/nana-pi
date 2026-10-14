@@ -380,6 +380,17 @@ function checkInstructionContracts() {
 	check("nana-soul carries the shared default-pattern and seat land review bullets",
 		Boolean(defaultPatternBullet) && Boolean(seatLandBullet) &&
 		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(seatLandBullet));
+	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule.";
+	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
+	// req: R-1142
+	check("shared working pattern carries one seat-guide bullet",
+		seatGuideBullets.length === 1 && seatGuideBullets[0] === SEAT_GUIDE_POINTER,
+		JSON.stringify(seatGuideBullets));
+	const seatGuideNamedPath = /`\$HOME\/nana-pi\/([^`]+)`/.exec(seatGuideBullets[0] ?? "")?.[1] ?? null;
+	// req: R-1142
+	check("seat-guide bullet names a guide file present in this checkout",
+		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
+		seatGuideNamedPath ?? "no bullet found");
 	// req: R-685
 	check("desk matrix states nana resources for every spawn class and the terminal trust step",
 		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, and notify are present only when their extensions are installed and loaded.") &&

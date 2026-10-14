@@ -108,6 +108,8 @@ check("rule nana-soul.md is a symlink into the repo", link(path.join(home, ".cla
 check("rule nana-standards.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-standards.md")) === path.join(pkg, "claude", "rules", "nana-standards.md"));
 // req: R-301
 check("rule nana-writing.md is a symlink into the repo (sourced from the pack, not nana-setup's own claude/rules)", link(path.join(home, ".claude", "rules", "nana-writing.md")) === ruleSource("nana-writing.md"));
+// req: R-301
+check("rule nana-seat.md is a symlink into the repo", link(path.join(home, ".claude", "rules", "nana-seat.md")) === path.join(pkg, "claude", "rules", "nana-seat.md"));
 // Amendment 1 acceptance #10: delivery to pi moved to a pack extension — install never
 // creates an agent-dir AGENTS.md (the agent-dir link step was removed).
 check("no AGENTS.md was created in the pi agent dir", !fs.existsSync(path.join(home, ".pi", "agent", "AGENTS.md")));

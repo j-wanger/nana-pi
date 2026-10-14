@@ -1,0 +1,54 @@
+ok   (harness) git merge-base main HEAD resolves
+ok   (harness) pointer.proposed.txt is CHANGE §3's pointer block: one line starting `- Seat guide:`
+ok   (harness) nana-seat.proposed.md is CHANGE §3's guide block, 8 bullets
+MISS (a) seat-titles 1 prints `seat-titles 1: 0 missing` and exits 0 → ["seat-titles 1: 16 missing",1] (want ["seat-titles 1: 0 missing",0]) [NO-FILE packages/nana-setup/tests/seat-rule.test.mjs — seat guide scopes itself to the seat in one sentence before its first bullet | NO-FILE packages/nana-setup/tests/seat-rule.test.mjs — seat guide holds no bullet beyond its eight rules | NO-FILE packages/nana-setup/tests/seat-rule.test.mjs — seat guide carries: launch in the background and end the turn | NO-FILE packages/nana-setup/tests/seat-r]
+MISS (b) packages/nana-setup/claude/rules/nana-seat.md is a regular file in the checkout → false (want true)
+MISS (b) the guide equals nana-seat.proposed.md with \r stripped → false (want true) [absent]
+MISS (b) the guide has 8 bullets → "absent" (want 8)
+MISS (b) nana-writing.mjs <guide> (no --report) reads the guide and prints over=0 passive=0 banned=0 → [true,false,"0","0","0"] (want [false,true,"0","0","0"]) [packages/nana-setup/claude/rules/nana-seat.md:0: error: ENOENT: no such file or directory, open 'packages/nana-setup/claude/rules/nana-seat.md' summary sentences=0 words=0 over=0 passive=0 banned=0 verdict=n/a identifiers=0 ]
+MISS (c) the template holds the pointer line once and no other `- Seat guide:` line → [0,0] (want [1,1])
+MISS (c) the AGENTS.md region holds the pointer line once and no other `- Seat guide:` line → [0,0] (want [1,1])
+ok   (harness) the base template and base AGENTS.md each have one Seat land review bullet
+MISS (c) the template is the base copy plus the pointer, right after the Seat land review bullet → false (want true) [now 6453 bytes, expected 6700]
+MISS (c) AGENTS.md is the base copy plus the pointer, right after its Seat land review bullet → false (want true) [now 14490 bytes, expected 14737]
+ok   (c) the AGENTS.md region equals the template (R-859, S5)
+ok   (harness) the pointer names the guide under $HOME/nana-pi/
+MISS (c) the file the pointer names exists in this checkout → false (want true)
+ok   (harness) the scratch folder is outside the checkout
+ok   (d) install --home <tmp> exits 0
+MISS (d) install links ~/.claude/rules/nana-seat.md to the checkout's guide → [false,false] (want [true,true]) [ + rule nana-soul.md created | + rule nana-standards.md created | + rule nana-writing.md created | + rule nana-personal.md (private) created ]
+MISS (d) doctor prints `✓ rule nana-seat.md` → false (want true) [ ✓ rule nana-soul.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-soul.md | ✓ rule nana-standards.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-standards.md | ✓ rule nana-writing.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-pack/rules/nana-writing.md | ✓ rule nana-personal.md private — never in the repo]
+MISS (d) uninstall --yes exits 0 and removes the nana-seat.md link install made → [false,0,true] (want [true,0,true]) [ + private rule updated removed unchanged seed | + rule link nana-soul.md updated unlinked /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-soul.md | + rule link nana-standards.md updated unlinked /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-standards.md | + rule link nana-writing.md updated unlinked /Users/jwang/nana-pi-wt/seat-guide/packages/na]
+ok   (d) win32: install --home <tmp> exits 0
+MISS (d) win32: ~/.claude/rules/nana-seat.md is a regular file byte-equal to the checkout's guide → [false,false,false] (want [true,false,true]) [ + rule nana-soul.md created copied (no symlink on this platform) | + rule nana-standards.md created copied (no symlink on this platform) | + rule nana-writing.md created copied (no symlink on this platform) | + rule nana-personal.md (private) created ]
+MISS (d) win32: doctor prints `✓ rule nana-seat.md` → false (want true) [ ✓ rule nana-soul.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-soul.md | ✓ rule nana-standards.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-setup/claude/rules/nana-standards.md | ✓ rule nana-writing.md -> /Users/jwang/nana-pi-wt/seat-guide/packages/nana-pack/rules/nana-writing.md | ✓ rule nana-personal.md private — never in the repo]
+ok   (harness) CHANGE §2 gives one-shall draft text for R-301 and R-1140–R-1142
+ok   (harness) R-301's draft is the base text with the rule list grown to four
+MISS (e) R-1140 is one row with exactly one "shall" → [0,0] (want [1,1])
+MISS (e) R-1140's text is CHANGE §2's → null (want "The seat guide `packages/nana-setup/claude/rules/nana-seat.md` shall state each of eight rules exactly once, each as its own bullet, and hold no other bullet: launch in the background and end the turn, one foreground command in pi; no reading or judging of partial work and no re-run of checks while)
+MISS (e) R-1141 is one row with exactly one "shall" → [0,0] (want [1,1])
+MISS (e) R-1141's text is CHANGE §2's → null (want "The seat guide shall open, before its first bullet, with one sentence that scopes it to the session that launches builders and reviewers and says a session started as a builder or reviewer skips it.")
+MISS (e) R-1142 is one row with exactly one "shall" → [0,0] (want [1,1])
+MISS (e) R-1142's text is CHANGE §2's → null (want "The shared working pattern shall carry exactly one seat-guide bullet, which states that while a builder or reviewer runs the seat does not read or judge its partial work and acts when the run completes, and names the guide at `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`, a file pre)
+MISS (e) R-301 names four rules including nana-seat.md, in CHANGE §2's text → [false,true,false] (want [true,false,true]) [WHERE the platform is not win32, the four Claude Code Node hooks and the three rules (nana-soul.md, nana-standards.md, nana-writing.md) shall be installed into ~/.claude/ as symlinks into their source copies.]
+MISS (e) each new row sits under the heading §2 names → ["R-1140","R-1141","R-1142"] (want [])
+MISS (e) R-1140 follows R-1110 and R-1142 follows R-1127, each on the next line → ["R-1140 after R-1110","R-1142 after R-1127"] (want [])
+MISS (e) R-1140's evidence cites its 9 §5 title(s) → ["packages/nana-setup/tests/seat-rule.test.mjs::seat guide holds no bullet beyond its eight rules","packages/nana-setup/tests/seat-rule.test.mjs::seat guide carries: launch in the background and end the turn","packages/nana-setup/tests/seat-rule.test.mjs::seat guide carries: no reading or judging pa (want [])
+MISS (e) R-1141's evidence cites its 1 §5 title(s) → ["packages/nana-setup/tests/seat-rule.test.mjs::seat guide scopes itself to the seat in one sentence before its first bullet"] (want [])
+MISS (e) R-1142's evidence cites its 2 §5 title(s) → ["packages/nana-pack/tests/templates-render.test.mjs::shared working pattern carries one seat-guide bullet","packages/nana-pack/tests/templates-render.test.mjs::seat-guide bullet names a guide file present in this checkout"] (want [])
+MISS (e) R-301's evidence cites its 1 §5 title(s) → ["packages/nana-setup/tests/install.test.mjs::rule nana-seat.md is a symlink into the repo"] (want [])
+MISS (e) R-350's evidence cites its 1 §5 title(s) → ["packages/nana-setup/tests/win32-degrade.test.mjs::win32: nana-seat.md is installed as a copy matching the repo file"] (want [])
+MISS (e) R-1140, R-1141, R-1142, R-301 and R-350 read implemented → ["R-1140","R-1141","R-1142"] (want [])
+ok   (e) R-301's evidence keeps every base citation (it gains, never loses)
+ok   (e) R-350's evidence keeps every base citation (it gains, never loses)
+ok   (e) R-350, R-954, R-903–R-907 and R-1128 keep their base text
+ok   (e) R-1143–R-1149 are unused: no REQUIREMENTS.md mention, no req: marker
+ok   (f) git diff --name-only 484329c..HEAD lists only §4 In paths and this review folder
+ok   (f) the build is committed: no uncommitted or untracked path outside this review folder
+MISS (f) the guide and its test file are added in the lane's commits → ["packages/nana-setup/claude/rules/nana-seat.md","packages/nana-setup/tests/seat-rule.test.mjs"] (want [])
+MISS (f) packages/nana-setup/lib/steps.mjs changes one code line: CLAUDE_RULES gains "nana-seat.md"; ruleSource and every other code line stay (S3) → {"removed":[],"added":[]} (want {"removed":["export const CLAUDE_RULES = [\"nana-soul.md\", \"nana-standards.md\", \"nana-writing.md\"];"],"added":["export const CLAUDE_RULES = [\"nana-soul.md\", \"nana-standards.md\", \"nana-writing.md\", \"nana-seat.md\"];"]})
+MISS (f) packages/nana-setup/lib/state-manifest.mjs changes one code line: the rule-link list gains "nana-seat.md"; every other code line stays → {"removed":[],"added":[]} (want {"removed":["  for (const name of [\"nana-soul.md\", \"nana-standards.md\", \"nana-writing.md\"]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));"],"added":["  for (const name of [\"nana-soul.md\", \"nana-standards.md\", \"nana-writing.md\", \"nana-seat.md\"]) rebuild(`rule link ${name}`, p()
+MISS (f) the setup README has one `claude/rules/nana-seat.md` row, right after the nana-standards row → [0,false] (want [1,true])
+ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
+cases: 18/52
+seat-guide acceptance: 34 mismatch(es)

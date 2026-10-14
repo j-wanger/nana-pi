@@ -45,7 +45,7 @@ export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-me
 const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md, sourced from the pack (see ruleSource below; Amendment 1, §A1). */
-export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md"];
+export const CLAUDE_RULES = ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md"];
 /** nana-writing.md ships with the pack, not with this package, because the pi half (the
  *  nana-writing.ts extension) reads the SAME file — one source for both runtimes, the way
  *  PACK_SKILLS_DIR already shares the requirements skill (design-ruling.md Amendment 1, §A1). */
