@@ -43,7 +43,7 @@ const sentenceEnders = (prose[0]?.match(/[.!?](?=\s|$)/g) ?? []).length;
 // req: R-1141
 check("seat guide scopes itself to the seat in one sentence before its first bullet", prose.length === 1 && prose[0] === SCOPE && sentenceEnders === 1, JSON.stringify(prose));
 
-const bullets = lines.filter((l) => l.startsWith("- "));
+const bullets = lines.filter((l) => /^\s*[-*+]\s/.test(l));
 // req: R-1140
 check("seat guide holds no bullet beyond its eight rules", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
 
