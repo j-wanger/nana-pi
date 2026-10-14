@@ -166,11 +166,14 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    navigation layer tells an agent where things are; it does not say what the
    project promises. Offer the `requirements` skill's audit mode: extract EARS
    rows from the design docs, `HANDOFF.md` and the test suite with read-only
-   workers, add the standard `Part G` engineering block, place the `req:`
-   markers, then do the conflicts + failing-now pass with each conflict carried
-   in `Open questions` naming whose call it is. This skill writes no
-   `REQUIREMENTS.md` itself — it is not one of the files the hard rule above
-   permits.
+   workers, place the `req:` markers, each row in the table of the feature it
+   serves once the ledger has a tree, then do the conflicts + failing-now pass
+   with each conflict carried in `Open questions` naming whose call it is. A
+   ledger without a requirements tree keeps its numbered sections; its next
+   step is a lift into the tree, with every row kept byte-identical, then a
+   regroup into capabilities and features that the owner approves. This skill
+   writes no `REQUIREMENTS.md` itself — it is not one of the files the hard
+   rule above permits.
 
 8. **Report** — list the `AGENTS.md` files written/refreshed, the seeds created
    vs. left alone (and, when you used the fallback render, that the seeds carry

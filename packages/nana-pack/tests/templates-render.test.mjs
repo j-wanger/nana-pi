@@ -13,6 +13,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 // The project templates render in BOTH modes, and the requirements-first rail they ship is
 // wired in both:
 //   * scaffold — REQUIREMENTS.md with the example row `implemented`, the trace rail, the
@@ -175,6 +176,46 @@ function partG(language, dest, mode) {
 	// req: R-737
 	check(`${language} ${mode}: no jinja survives into REQUIREMENTS.md`, !/\{[{%]/.test(reqs), "an unrendered tag is left");
 	return reqs;
+}
+
+const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .';
+const REPORT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/product-report.mjs" --root .';
+const collapse = (s) => (s ?? "").replace(/\s+/g, " ");
+
+/** R-1150 to R-1153: the rendered REQUIREMENTS.md starts life as a requirements tree. */
+function treeChecks(language, mode, reqs) {
+	const tree = checkTree(reqs);
+	const caps = tree.parsed.headings.filter((h) => h.id?.startsWith("CAP-"));
+	const feats = tree.parsed.headings.filter((h) => h.id?.startsWith("FEAT-"));
+	// req: R-1150
+	check(`${language} ${mode}: REQUIREMENTS.md passes the requirements tree checker`,
+		tree.problems.length === 0 && caps.some((h) => h.id !== "CAP-90") && feats.some((h) => h.id !== "FEAT-900"),
+		tree.problems.join("; "));
+
+	const feat900 = tree.parsed.headings.find((h) => h.id === "FEAT-900");
+	const under900 = (heading) => { for (let h = heading; h; h = h.parent) if (h === feat900) return true; return false; };
+	const rows = readRequirementRows(tree.parsed);
+	const gRows = rows.filter((r) => r.id.startsWith("G-"));
+	const rRows = rows.filter((r) => r.id.startsWith("R-"));
+	// req: R-1151
+	check(`${language} ${mode}: every G row is homed in FEAT-900 under CAP-90 with no R row`,
+		Boolean(feat900) && feat900.parent?.id === "CAP-90" && gRows.length === 22 && gRows.every((r) => under900(r.heading)) && !rRows.some((r) => under900(r.heading)),
+		`feat900=${feat900?.id} parent=${feat900?.parent?.id} gRows=${gRows.length} strayR=${rRows.filter((r) => under900(r.heading)).map((r) => r.id)}`);
+
+	if (mode === "adopt") {
+		const productFeat = feats.find((h) => h.id !== "FEAT-900");
+		const productRows = rows.filter((r) => { for (let h = r.heading; h; h = h.parent) if (h === productFeat) return true; return false; });
+		// req: R-1152
+		check(`${language} adopt: the product feature is proposed and holds no row`,
+			Boolean(productFeat) && productFeat.status === "proposed" && productRows.length === 0,
+			`${productFeat?.id}: status=${productFeat?.status} rows=${productRows.length}`);
+	}
+
+	const flat = collapse(reqs);
+	// req: R-1153
+	check(`${language} ${mode}: REQUIREMENTS.md says how rows are grouped, where a new row goes, who decides and how to check`,
+		["capability → feature → subgroup", "Add each new row to the table of the feature it serves", "The project owner decides every change to the tree", CHECKER_SKILL_CMD].every((p) => flat.includes(p)),
+		flat.slice(0, 200));
 }
 
 /**
@@ -386,6 +427,27 @@ function checkInstructionContracts() {
 }
 checkInstructionContracts();
 
+/** R-1154 to R-1156: the skills that author REQUIREMENTS.md point at the tree, not the flat sections. */
+function checkRequirementsSkillTreeText() {
+	const CARVE = "A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves.";
+	const reqSkill = collapse(fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8"));
+	// req: R-1154
+	check("requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner",
+		["The project owner decides every change to the tree", "the table of the feature it serves", CARVE].every((p) => reqSkill.includes(p)) &&
+		!["Jake decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].some((p) => reqSkill.includes(p)));
+	const FIVE = ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"];
+	// req: R-1155
+	check("scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G",
+		FIVE.every((name) => {
+			const t = collapse(fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", name, "SKILL.md"), "utf8"));
+			return t.includes("the table of the feature it serves") && t.includes(CARVE) && !t.includes("Part G");
+		}));
+	// req: R-1156
+	check("requirements skill names the tree check and the product report with a project root",
+		[CHECKER_SKILL_CMD, REPORT_SKILL_CMD].every((p) => reqSkill.includes(p)));
+}
+checkRequirementsSkillTreeText();
+
 const version = copierAvailable();
 if (!version) {
 	const required = process.env.NANA_TEST_REQUIRE_COPIER === "1";
@@ -486,6 +548,7 @@ if (!version) {
 			check(`${language}: the requirements-first files all land`, missing.length === 0, `missing: ${missing}`);
 
 			const reqs = partG(language, dest, "scaffold");
+			treeChecks(language, "scaffold", reqs);
 			check(`${language}: the example product row is implemented`, /^\|\s*R-001\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "R-001 is not implemented");
 			// req: R-630
 			check(`${language}: rendered policy config has the protected filename`, fs.existsSync(path.join(dest, ".pi", "nana-pack.json")));
@@ -670,6 +733,7 @@ if (!version) {
 			check(`${language} adopt: no scaffold starters are written`, present.length === 0, `present: ${present}`);
 
 			const reqs = partG(language, dir, "adopt");
+			treeChecks(language, "adopt", reqs);
 			check(`${language} adopt: no row claims implemented`, !/^\|\s*[RG]-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|.*\|\s*implemented\s*\|/m.test(reqs), "a row claims implemented");
 			const statuses = [...reqs.matchAll(/^\|\s*G-(?:[0-9]{3}|[1-9][0-9]{3})\s*\|.*\|\s*(\w+)\s*\|/gm)].map((m) => m[1]);
 			check(`${language} adopt: every Part G row starts untested`, statuses.length === 22 && statuses.every((s) => s === "untested"), `got ${statuses}`);

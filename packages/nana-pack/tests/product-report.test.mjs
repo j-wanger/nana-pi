@@ -485,5 +485,49 @@ try {
     // req: R-1027
     check("validateStore accepts the real repository without a store", (await validateStore()).length === 0);
   }
+  {
+    // T13/T14: spawn the report CLI (exercises the Windows leg's main guard and .ts import),
+    // on ledgers with no HANDOFF.md and no git — a refusal here is the ledger's, not a missing
+    // HANDOFF or git.
+    const REPORT_CLI = path.join(ROOT, "scripts/product-report.mjs");
+    const runReport = (args, cwd) => spawnSync(process.execPath, [REPORT_CLI, ...args], { cwd, encoding: "utf8" });
+    const NODE_WARNING = [/^\(node:\d+\) /, /^Reparsing as ES module because/, /^To eliminate this warning, add "type": "module"/, /^\(Use `node --trace-warnings/];
+    const noWarn = (s) => (s ?? "").split("\n").filter((l) => l && !NODE_WARNING.some((re) => re.test(l)));
+    const writeLedger = (name, content) => { const dir = path.join(temp, name); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "REQUIREMENTS.md"), content); return dir; };
+
+    let flat = "# A flat ledger\n\n## 1. Things\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
+    for (let i = 1; i <= 1000; i++) flat += `| R-${String(i).padStart(3, "0")} | The thing numbered ${i} shall work. | untested | — |\n`;
+    const flatDir = writeLedger("cli-flat1000", flat);
+    const flatOut = path.join(temp, "cli-flat1000.html");
+    const flatRun = runReport(["--root", flatDir, "--out", flatOut], temp);
+    const flatErr = noWarn(flatRun.stderr);
+    // req: R-1159
+    check("a ledger with rows and no tree is refused with one problem line, not one per row",
+      flatRun.status === 1 && flatErr.length >= 1 &&
+      flatErr.some((l) => /\b1000 requirement rows\b/.test(l) && /no requirements tree yet/.test(l) && /requirements skill/.test(l)) &&
+      !flatErr.some((l) => l.includes("not in a feature or subgroup table")) && !fs.existsSync(flatOut),
+      flatErr.join(" | "));
+
+    const TREE1 = "# CAP-01 · Cap\nPurpose: capability\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n";
+    const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "utf16le")]);
+    const utf16Dir = path.join(temp, "cli-utf16");
+    fs.mkdirSync(utf16Dir, { recursive: true });
+    fs.writeFileSync(path.join(utf16Dir, "REQUIREMENTS.md"), utf16(TREE1));
+    const utf16Out = path.join(temp, "cli-utf16.html");
+    const utf16Run = runReport(["--root", utf16Dir, "--out", utf16Out], temp);
+    const utf16Err = noWarn(utf16Run.stderr).join("\n");
+
+    const NOROWS = "# CAP-01 · Cap\nPurpose: capability\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n";
+    const norowsDir = writeLedger("cli-norows", NOROWS);
+    const norowsOut = path.join(temp, "cli-norows.html");
+    const norowsRun = runReport(["--root", norowsDir, "--out", norowsOut], temp);
+    const norowsErr = noWarn(norowsRun.stderr).join("\n");
+
+    // req: R-1160
+    check("a UTF-16 ledger and a ledger with no rows are refused by the report, naming the reason, and build no page",
+      utf16Run.status === 1 && /NUL/.test(utf16Err) && /UTF-16/.test(utf16Err) && !fs.existsSync(utf16Out) &&
+      norowsRun.status === 1 && /no requirement rows/.test(norowsErr) && !fs.existsSync(norowsOut),
+      `${utf16Err} / ${norowsErr}`);
+  }
 } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 if (fails) process.exitCode = 1;

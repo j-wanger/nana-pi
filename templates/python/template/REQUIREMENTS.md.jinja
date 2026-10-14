@@ -42,8 +42,8 @@ off-form row once the count exceeds the `requirements_ears_allowance` ini option
 The rail is the plugin in `tests/conftest.py`; it scans `tests/` recursively, fails a full run
 and only reports on a partial one.
 
-**ID blocks and grammar:** `R-001` onward are this project's rows; IDs use `R-` or `G-` followed by three ASCII digits or four ASCII digits that never start with zero (`R-1000` follows `R-999`). `G-001` onward are Part G, the
-general engineering requirements in `REQUIREMENTS-general.md`.
+**ID blocks and grammar:** `R-001` onward are this project's rows; IDs use `R-` or `G-` followed by three ASCII digits or four ASCII digits that never start with zero (`R-1000` follows `R-999`). `G-001` onward are
+the general-engineering feature's rows, in `REQUIREMENTS-general.md`.
 
 A requirement row has four cells and both opening and closing pipes. Lines split only at LF (`"\n"`); one byte-order mark at a file's start is ignored. Whitespace (tab, LF, VT, FF, CR, U+001C–U+001F, space, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF) around cells and after the closing pipe is ignored. Any other character after the closing pipe fails, naming the line. On every line, `| R-` or `| G-` followed by a non-whitespace character is reserved for a requirement row; indent an example that would use that prefix, for example:
 
@@ -59,7 +59,7 @@ self-tests (`tests/test_requirements_trace.py`, `tests/test_code_map.py`), the g
 `uv run python scripts/code_map.py` once (or `python3 scripts/code_map.py` — it needs no
 dependencies) to generate the real map; after that `--check` is green. If this project's
 tests do not live in `tests/`, move those three files into the real test directory and
-update the citations. Every Part G row below starts `untested`: promote one only when a
+update the citations. Every general-engineering feature row below starts `untested`: promote one only when a
 test in this repo pins it and the evidence cell names that test. The self-tests arrive carrying
 `req-candidate:` markers instead of `req:` for exactly that reason — rename one to `req:`
 when you promote its row. Until every mapped module carries a contract header, the
@@ -72,21 +72,68 @@ G-012 arrives the same way: `scripts/readme_check.py` checks that this project's
 nothing that does not exist — run it, fix what it reports (or the README), and promote the
 row when it is green.
 
-## 1. The product
+## How this file is organized
+
+Rows are grouped into a tree: capability → feature → subgroup. A capability heading reads
+`# CAP-nn · <label>`, a feature heading `## FEAT-nnn · <label>` and a subgroup heading
+`### SUB-nnn · <label>`. Each heading is followed by a `Purpose:` line saying why that part of
+the product exists; a capability also carries an `Outcome:` line, and a feature a `Status:`
+line. Every row lives in exactly one table, its home. Add each new row to the table of the
+feature it serves. A new feature goes under the capability it serves, never under CAP-90;
+product headings start at CAP-01, FEAT-001 and SUB-001. CAP-90, FEAT-900 and SUB-900 to
+SUB-904 are reserved for the general-engineering feature below. A new heading takes an
+unused ID and a `Purpose:` line. No row sits in a `proposed` or `retired` feature. The
+project owner decides every change to the tree. Check it with
+`node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`.
+
+# CAP-01 · What the product does
+
+Purpose: DRAFT — name what this product does and who it serves.
+Outcome: DRAFT — name the outcome this capability delivers.
+
+## FEAT-001 · First feature
+
+Purpose: DRAFT — name the first feature the audit finds.
+Status: proposed
 
 No product rows yet. Add one per promise this project already makes — the
-`requirements` skill's audit mode extracts them from the code — starting at `R-001`.
+`requirements` skill's audit mode extracts them from the code — starting at `R-001`, in this
+table.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 {% else %}
-## 1. The product
+## How this file is organized
+
+Rows are grouped into a tree: capability → feature → subgroup. A capability heading reads
+`# CAP-nn · <label>`, a feature heading `## FEAT-nnn · <label>` and a subgroup heading
+`### SUB-nnn · <label>`. Each heading is followed by a `Purpose:` line saying why that part of
+the product exists; a capability also carries an `Outcome:` line, and a feature a `Status:`
+line. Every row lives in exactly one table, its home. Add each new row to the table of the
+feature it serves. A new feature goes under the capability it serves, never under CAP-90;
+product headings start at CAP-01, FEAT-001 and SUB-001. CAP-90, FEAT-900 and SUB-900 to
+SUB-904 are reserved for the general-engineering feature below. A new heading takes an
+unused ID and a `Purpose:` line. No row sits in a `proposed` or `retired` feature. The
+project owner decides every change to the tree. Check it with
+`node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`.
+
+# CAP-01 · Use the package
+
+Purpose: DRAFT — name why this product exists and who it serves.
+Outcome: DRAFT — name the outcome this capability delivers.
+
+## FEAT-001 · Report the package version
+
+Purpose: DRAFT — name why reporting the version matters here.
+Status: active
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-001 | The package shall expose its version as `__version__`. | implemented | `tests/test_smoke.py::test_package_imports` |
 {% endif %}
 {% include "templates/_shared/requirements-general.md" %}
+
+# Open questions and deliberate omissions
 
 ## Open questions
 

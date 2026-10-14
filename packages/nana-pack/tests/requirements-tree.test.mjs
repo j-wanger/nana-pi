@@ -6,9 +6,11 @@
  * @effects disk (reads repository files and creates fixtures under the OS temp directory)
  * @errors A failed check prints its reason and exits non-zero.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { ID } from "../../../scripts/requirements-trace.mjs";
 import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants } from "../../../scripts/requirements-tree.mjs";
@@ -35,7 +37,7 @@ check("R-291: committed outline equals a fresh render", map === actual.outline, 
 // req: R-291
 check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,113", (() => {
+check("R-291: every real heading's committed IDs survive expansion and leaf counts total 1,125", (() => {
   const outlineLines = map.split("\n");
   let leafTotal = 0;
   for (const heading of actual.parsed.headings) {
@@ -49,8 +51,8 @@ check("R-291: every real heading's committed IDs survive expansion and leaf coun
     if (!children) leafTotal += heading.rows.length;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(",")) return false;
   }
-  return leafTotal === 1113;
-})(), "committed IDs differ or leaf total is not 1,113");
+  return leafTotal === 1125;
+})(), "committed IDs differ or leaf total is not 1,125");
 function isDescendant(candidate, ancestor) {
   let parent = candidate.parent;
   while (parent) { if (parent === ancestor) return true; parent = parent.parent; }
@@ -229,5 +231,81 @@ for (const [field, mutate] of [
   // req: R-291
   check(`R-291 fixture field check rejects altered ${field}`, problems.some((p) => p.includes(`field ${field}`)), problems.join("; "));
 }
+// ---------------------------------------------------------------- T8-T11, T15: the --root CLI
+const TREE_CLI = fileURLToPath(new URL("../../../scripts/requirements-tree.mjs", import.meta.url));
+const runTree = (args, cwd) => spawnSync(process.execPath, [TREE_CLI, ...args], { cwd, encoding: "utf8" });
+const lines = (s) => (s ?? "").split("\n").filter(Boolean);
+const NODE_WARNING = [/^\(node:\d+\) /, /^Reparsing as ES module because/, /^To eliminate this warning, add "type": "module"/, /^\(Use `node --trace-warnings/];
+const own = (stderr) => lines(stderr).filter((l) => !NODE_WARNING.some((re) => re.test(l)));
+const cliScratch = tmpDir(join(tmpdir(), "req-tree-cli-"));
+const writeLedger = (name, content) => { const dir = join(cliScratch, name); mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "REQUIREMENTS.md"), content); return dir; };
+const crlf = (s) => s.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n");
+
+const TREE1 = "# CAP-01 · Cap\nPurpose: capability\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n";
+const OUTSIDE = `${TREE1}\n| R-002 | Another thing shall work. | untested | — |\n`;
+const NOROWS = "# CAP-01 · Cap\nPurpose: capability\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n";
+const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "utf16le")]);
+
+{
+  const dir = writeLedger("t8-tree", TREE1);
+  const r = runTree(["--root", dir], cliScratch);
+  // req: R-1157
+  check("R-1157: --root checks another project's ledger, names its problems and writes no outline",
+    r.status === 0 && lines(r.stdout).join("\n") === "requirements tree: 0 problems; rows 1; features 1" && own(r.stderr).length === 0,
+    `${r.status} ${r.stdout} ${r.stderr}`);
+  const outsideDir = writeLedger("t8-outside", OUTSIDE);
+  const broken = runTree(["--root", outsideDir], cliScratch);
+  check("R-1157 fixture: a row outside its feature exits 1 naming it",
+    broken.status === 1 && own(broken.stderr).some((l) => l.includes("is not in a feature or subgroup table")),
+    broken.stderr);
+  const bad = runTree(["--root", dir, "--write"], cliScratch);
+  check("R-1157 fixture: --root <dir> --write exits 2 with usage",
+    bad.status === 2 && /--root <dir>/.test(bad.stderr), bad.stderr);
+}
+
+{
+  const u1 = runTree(["--root", writeLedger("t9-utf16", utf16(TREE1))], cliScratch);
+  const u1Err = own(u1.stderr).join("\n");
+  const norows = runTree(["--root", writeLedger("t9-norows", NOROWS)], cliScratch);
+  // req: R-1160
+  check("R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason",
+    u1.status === 1 && /NUL/.test(u1Err) && /UTF-16/.test(u1Err) && !/\b0 problems\b/.test(u1.stdout + u1.stderr) &&
+    norows.status === 1 && own(norows.stderr).some((l) => l.includes("no requirement rows")) && !/\b0 problems\b/.test(norows.stdout + norows.stderr),
+    `${u1Err} / ${norows.stderr}`);
+}
+
+{
+  const TWO = `${TREE1}\n## FEAT-002 · Second\nStatus: active\n\n| R-002 | Another thing shall work. | untested | — |\n`;
+  const lf = checkTree(TWO), cr = checkTree(crlf(TWO));
+  const selfLedgerCrlf = checkTree(crlf(ledger));
+  // req: R-1158
+  check("R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy",
+    JSON.stringify(lf.problems) === JSON.stringify(cr.problems) && lf.problems.length === 2 &&
+    selfLedgerCrlf.problems.length === 0 && selfLedgerCrlf.parsed.headings.length === 68,
+    `${JSON.stringify(lf.problems)} vs ${JSON.stringify(cr.problems)}`);
+}
+
+{
+  let flat = "# A flat ledger\n\n## 1. Things\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n";
+  for (let i = 1; i <= 1000; i++) flat += `| R-${String(i).padStart(3, "0")} | The thing numbered ${i} shall work. | untested | — |\n`;
+  const r = runTree(["--root", writeLedger("t11-flat", flat)], cliScratch);
+  const flatLines = own(r.stderr);
+  // req: R-1159
+  check("R-1159: a ledger with rows and no tree gets one line naming the row count and the next step",
+    r.status === 1 && flatLines.length === 1 && /\b1000 requirement rows\b/.test(flatLines[0]) && /no requirements tree yet/.test(flatLines[0]) && /requirements skill/.test(flatLines[0]) && !flatLines.some((l) => l.includes("not in a feature or subgroup table")),
+    `${flatLines.length} lines: ${flatLines.join(" | ")}`);
+}
+
+{
+  const NEAR = "# CAP-01 - Cap\nPurpose: capability\n\n## FEAT-001 - Feature\nPurpose: feature\nStatus: active\n\n### SUB-001 - Sub\nPurpose: subgroup\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The thing shall work. | untested | — |\n| R-002 | The other thing shall work. | untested | — |\n";
+  const r = runTree(["--root", writeLedger("t15-near", NEAR)], cliScratch);
+  const nrLines = own(r.stderr);
+  const named = (n, kind) => nrLines.some((l) => new RegExp(`\\bline ${n}\\b`).test(l) && l.includes(`${kind}-`) && l.includes("·"));
+  // req: R-1161
+  check('R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger',
+    r.status === 1 && named(1, "CAP") && named(4, "FEAT") && named(8, "SUB") && !nrLines.some((l) => l.includes("no requirements tree yet")) && !nrLines.some((l) => l.includes("not in a feature or subgroup table")),
+    nrLines.join(" | "));
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

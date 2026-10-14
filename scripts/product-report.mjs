@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkTree, descendants, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
+import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE } from "./requirements-trace.mjs";
 import { splitOpenForJake } from "../packages/nana-pack/lib/handoff-asks.mjs";
 
@@ -202,6 +202,8 @@ export function validateStore({ root = REPO_ROOT, storePath, gitRunner = (args, 
 
 export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options) => spawnSync("git", args, options) } = {}) {
   const ledgerText = normalise(await readFile(path.join(root, "REQUIREMENTS.md"), "utf8"));
+  const readProblem = ledgerReadProblem(ledgerText, parseLedger(ledgerText));
+  if (readProblem) throw new Error(readProblem);
   const { parsed, problems } = checkTree(ledgerText);
   if (problems.length) throw new Error(`requirements tree checker problems:\n${problems.join("\n")}`);
   const rows = readRequirementRows(parsed);

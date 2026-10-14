@@ -123,7 +123,11 @@ source, and every script the project ships is named somewhere in the README. It 
 suite and on every README edit. **When the README names a command that no longer exists, fix
 the README or fix the command — never the check.**
 
-In this ledger, add each new row to the table of the feature it serves and name its shares in the requirement diff. Features carry lifecycle `Status:` lines and cross-feature `Also applies:` links. Before changing a row, find it in the outline's shared-requirements index. Jake decides tree changes; declare them. A new capability, feature or subgroup takes an unused ID and a non-empty `Purpose:` line; the general-engineering (G) rows stay together in one feature. Keep the `## Open questions` heading for unresolved owner decisions.
+Once the ledger has a tree (capability → feature → subgroup headings), add each new row — including one the audit extracts — to the table of the feature it serves, and name its shares in the requirement diff. Features carry lifecycle `Status:` lines and cross-feature `Also applies:` links. Before changing a row, find it in the outline's shared-requirements index. The project owner decides every change to the tree; the seat proposes a change and declares it. A new capability, feature or subgroup takes an unused ID and a non-empty `Purpose:` line; CAP-90, FEAT-900 and SUB-900 to SUB-904 are reserved for the general-engineering feature. Keep the `## Open questions` heading for unresolved owner decisions.
+
+A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves. Until then, a ledger with rows and no tree yet is refused by the checker command and the product report with one line naming the row count, saying the ledger has no requirements tree yet, and pointing back here for the next step — in place of one problem per row.
+
+Check the tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`. The product report (`node "$HOME/nana-pi/scripts/product-report.mjs" --root .`) needs the tree, `HANDOFF.md` and git in the project root to build.
 
 ## 5. Audit mode — an existing project with no rows yet
 
@@ -132,8 +136,9 @@ Extract the standing set from what the project already knows, then find what can
 **Pass 1 — extraction (read-only workers).** One worker per repo or per area, read-only, each
 briefed with:
 
-- **Areas** — the numbered sections the worker must cover (read the design docs, `HANDOFF.md`,
-  phase plans and the test suite; nothing else is a source).
+- **Areas** — the capabilities and features the worker drafts rows under once the ledger has a
+  tree (read the design docs, `HANDOFF.md`, phase plans and the test suite; nothing else is a
+  source).
 - **Statuses** — the five above, with the rule that `untested` is the honest default when the
   code appears to hold a row and nothing checks, and `violated` is for code that contradicts a
   documented rule.
@@ -161,9 +166,9 @@ titles) and get the rail green.
   committed data contradicts. Correct the statuses the same day the audit lands.
 
 Rule the conflicts that block the work **before** any cleanup pass, or the pass rewrites rows
-it should not touch. Put a general-engineering block (G1 configuration and provenance, G2 module
-boundaries, G3 the code map, G4 documentation — the README contract, G-012) at the end as its own
-Part, so the engineering bar is rows too.
+it should not touch. The seed's general-engineering feature (configuration and provenance,
+module boundaries, the code map, documentation — the README contract, G-012 — and the
+requirement set itself) already holds the G rows; the audit does not add them again.
 
 ## 6. The review rule
 

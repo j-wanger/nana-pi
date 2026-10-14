@@ -58,7 +58,7 @@ function scanBlocks(lines) {
 }
 
 export function parseLedger(text) {
-  const lines = (text.startsWith("\ufeff") ? text.slice(1) : text).split("\n");
+  const lines = (text.startsWith("\ufeff") ? text.slice(1) : text).split(/\r?\n/);
   const { opaque, headingsByLine } = scanBlocks(lines);
   const headings = [...headingsByLine.values()].filter((h) => h.id);
   const allHeadings = [...headingsByLine.values()];
@@ -379,15 +379,74 @@ export function checkOutlineFields(outline, parsed) {
   if (indexStart < 0 || lines.slice(indexStart, indexStart + expectedIndex.length).join("\n") !== expectedIndex.join("\n") || lines.slice(indexStart + expectedIndex.length).some((line) => line.startsWith("| "))) problems.push("shared index is missing or altered");
   return problems;
 }
+// R-1161: a heading that looks like it is reaching for the tree form (a CAP/FEAT/SUB id at
+// the right ATX level) but that the heading parser above rejects — wrong separator, wrong
+// digit count, or anything else off the exact "# CAP-nn · Label" form for its level.
+const TREE_HEADING_LIKE = /^#{1,3}\s*(CAP|FEAT|SUB)-\d+/;
+const NEAR_MISS_FORM = { 1: "# CAP-nn · Label", 2: "## FEAT-nnn · Label", 3: "### SUB-nnn · Label" };
+function checkNearMissHeadings(parsed) {
+  const problems = [];
+  for (let i = 0; i < parsed.lines.length; i++) {
+    if (parsed.opaque[i]) continue;
+    const line = parsed.lines[i];
+    if (HEADING.test(line) || !TREE_HEADING_LIKE.test(line)) continue;
+    const atx = ATX.exec(line);
+    if (!atx) continue;
+    const level = atx[1].length;
+    problems.push(`line ${i + 1}: heading looks like a tree heading but is not in the form "${NEAR_MISS_FORM[level]}"`);
+  }
+  return problems;
+}
+// R-1159: the single line a ledger with rows and no capability or feature heading gets,
+// in place of one "not in a feature or subgroup table" problem per row.
+export function noTreeProblem(rows) {
+  return `REQUIREMENTS.md holds ${rows.length} requirement rows and no capability or feature heading: this ledger has no requirements tree yet. The requirements skill describes the next step.`;
+}
+// R-1160: a ledger a text reader cannot trust — a NUL byte (almost always a UTF-16 file saved
+// without converting it) or no requirement row at all. Shared by the tree checker CLI and the
+// product report, called ahead of checkTree so neither one runs its structural checks over
+// bytes that were never valid UTF-8 text to begin with.
+export function ledgerReadProblem(text, parsed) {
+  if (text.includes("\u0000")) return "REQUIREMENTS.md: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8";
+  if (readRequirementRows(parsed).length === 0) return "REQUIREMENTS.md: no requirement rows";
+  return null;
+}
 export function checkTree(text) {
   const parsed = parseLedger(text);
-  const problems = [...checkRowsUnderFeatures(parsed), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed)];
+  const nearMiss = checkNearMissHeadings(parsed);
+  const rows = readRequirementRows(parsed);
+  // R-1159 / R-1161: with no real tree heading at all, a row-by-row "not in a feature or
+  // subgroup table" flood is replaced by ONE line — the near-miss headings when any are
+  // present (the ledger is reaching for a tree and typo'd it), else the plain no-tree line.
+  const problems = parsed.headings.length === 0 && rows.length > 0
+    ? [...(nearMiss.length ? nearMiss : [noTreeProblem(rows)]), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed)]
+    : [...checkRowsUnderFeatures(parsed), ...checkPurposes(parsed), ...checkUniqueHeadingIds(parsed), ...checkNesting(parsed), ...checkLifecycleAndShares(parsed), ...nearMiss];
   return { parsed, problems, outline: renderOutline(parsed) };
 }
+function usage() {
+  console.error("Usage: requirements-tree.mjs [--write | --check] | requirements-tree.mjs --root <dir>");
+  return 2;
+}
 export function main(argv = process.argv.slice(2)) {
+  if (argv[0] === "--root") {
+    if (argv.length !== 2 || !argv[1]) return usage();
+    const ledgerPath = resolve(process.cwd(), argv[1], "REQUIREMENTS.md");
+    let text;
+    try { text = readFileSync(ledgerPath, "utf8"); } catch (error) { console.error(`${ledgerPath}: ${error.message}`); return 1; }
+    const parsed = parseLedger(text);
+    const readProblem = ledgerReadProblem(text, parsed);
+    if (readProblem) { console.error(readProblem); return 1; }
+    const { problems } = checkTree(text);
+    if (problems.length) { for (const p of problems) console.error(p); return 1; }
+    const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
+    console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
+    return 0;
+  }
   const mode = argv[0] ?? "--check";
-  if (argv.length > 1 || !["--write", "--check"].includes(mode)) { console.error("Usage: requirements-tree.mjs [--write | --check]"); return 2; }
+  if (argv.length > 1 || !["--write", "--check"].includes(mode)) return usage();
   const ledger = readFileSync(resolve(REPO_ROOT, "REQUIREMENTS.md"), "utf8");
+  const readProblem = ledgerReadProblem(ledger, parseLedger(ledger));
+  if (readProblem) { console.error(readProblem); return 1; }
   const result = checkTree(ledger);
   for (const p of result.problems) console.error(p);
   if (result.problems.length) return 1;

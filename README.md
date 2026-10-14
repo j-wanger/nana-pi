@@ -61,7 +61,7 @@ three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
 all three run inside `npm test` as well. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
-nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
+nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems or a `0 problems` line. `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
 `packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in `~/aml-desk`
 (2026-10-01/02) before it was promoted here.
@@ -240,7 +240,7 @@ Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm
 
 ## Product report
 
-The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not.
+The product report is a generated HTML ledger of capabilities, features, requirement rows, open asks, and the git revision behind the report. Run `npm run report`; `scripts/product-report.mjs` writes the ignored page under docs/product-report/out. The command accepts `--root <dir>`, `--out <file>` and `--packets <dir>` to generate refresh packets, and on any nana project with the tree: `node "$HOME/nana-pi/scripts/product-report.mjs" --root .`. See [the assessment refresh guide](docs/product-report/assess-brief.md). Claude Code seats republish the report to the same link; pi seats open the generated file. The report refuses malformed ledger or ask input. The suite's historical stamp check needs full git history; `npm run report` itself does not.
 
 ## Tests
 

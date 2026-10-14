@@ -50,7 +50,7 @@ reconciliation surface — nothing is lost because the tree starts clean.
 
    - configs: pyproject, pre-commit, CI, root AGENTS.md, `.pi/nana-pack.json`,
      `.copier-answers.yml`;
-   - `REQUIREMENTS.md` with the standard `Part G` block, every G row
+   - `REQUIREMENTS.md` with the standard general-engineering feature, every G row
      `untested` and no product rows — the project's own behaviour is step 7's
      work;
    - `code-map.config.json` and the generator `scripts/code_map.py`;
@@ -138,14 +138,18 @@ First two steps:
    honestly green until this is done: the rail's project-wide self-test fails
    while mapped modules have no contract header, and the first `--check` fails
    while `docs/code-map.md` is still the placeholder. The overlay brings the
-   toolchain and a `REQUIREMENTS.md` whose `Part G` rows exist, but the project's
+   toolchain and a `REQUIREMENTS.md` whose general-engineering feature rows exist, but the project's
    own behaviour is nowhere in it — and an adopted codebase is exactly where
    nobody knows what it promises. Use the `requirements` skill in audit mode:
    extract EARS rows from the design docs, `HANDOFF.md` and the test suite with
-   read-only workers, place the `# req:` markers, then do the conflicts +
-   failing-now pass and carry the conflicts in `Open questions` with whose call
-   each one is. Generate the real map once (`uv run python scripts/code_map.py`).
-   Expect `Part G` rows to land `violated` on a legacy codebase — that is the
+   read-only workers, place the `# req:` markers, each row in the table of the
+   feature it serves, then do the conflicts + failing-now pass and carry the
+   conflicts in `Open questions` with whose call each one is. A pre-existing
+   `REQUIREMENTS.md` follows the carve-out. A ledger without a requirements
+   tree keeps its numbered sections; its next step is a lift into the tree,
+   with every row kept byte-identical, then a regroup into capabilities and
+   features that the owner approves. Generate the real map once (`uv run python scripts/code_map.py`).
+   Expect general-engineering feature rows to land `violated` on a legacy codebase — that is the
    honest state and the ratchet list, same as the mypy overrides.
 8. **Validate**: `uv sync`, `uv run pre-commit install`, then all four gates —
    `ruff check .`, `ruff format --check .`, `mypy`, `pytest` — green.

@@ -10,7 +10,15 @@
 {%- set _g013 = 'tests/requirements-trace.test.ts::this project: every row carries exactly one shall' if _ts else 'tests/test_requirements_trace.py::test_this_project_every_row_carries_exactly_one_shall' -%}
 {%- set _g014 = 'tests/requirements-trace.test.ts::ears: a two-shall row and a no-shall row are counted, a retired one is not' if _ts else 'tests/test_requirements_trace.py::test_ears_counts_a_two_shall_row_and_a_no_shall_row_but_not_a_retired_one' -%}
 {%- set _g015 = 'tests/requirements-trace.test.ts::ears: over the allowance each off-form row is a problem, at the allowance none' if _ts else 'tests/test_requirements_trace.py::test_ears_over_the_allowance_each_off_form_row_is_a_problem_at_the_allowance_none' -%}
-# Part G. General engineering requirements (every nana project)
+# CAP-90 · Keep engineering promises checkable
+
+Purpose: every nana project carries the same baseline engineering promises, checkable the same way.
+Outcome: a rendered project's engineering promises are visible and checkable from day one.
+
+## FEAT-900 · Adopt the general engineering requirements
+
+Purpose: hold the general engineering rows every nana project ships, unedited per project.
+Status: active
 
 These rows are the same in every nana project and are **never renumbered or edited
 per project**. {{ _general_preamble }} Status and Evidence remain project-owned in
@@ -20,7 +28,9 @@ Where a row says *every module*, that is every module under the roots declared i
 `code-map.config.json` — which ships covering the package, `scripts/` and the test
 directory, so a dropped header outside `src/` fails the check too.
 
-## G1. Configuration and provenance
+### SUB-900 · Configuration and provenance
+
+Purpose: a tunable is defined once, with provenance, and a retune changes no code.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -30,7 +40,9 @@ directory, so a dropped header outside `src/` fails the check too.
 | G-003 | WHEN a tunable changes, no code shall change. | untested | — |
 | G-017 | WHEN a tunable changes, the suite shall pass against the new value or fail naming the row the value violates. | untested | split from G-003 2026-10-04 (EARS form batch 0): no test pins this clause |
 
-## G2. Module boundaries
+### SUB-901 · Module boundaries
+
+Purpose: a module has one purpose, named exports and injected resources, and the layer direction holds.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -43,7 +55,9 @@ directory, so a dropped header outside `src/` fails the check too.
 | G-008 | A module shall have one purpose statable in one sentence. | untested | — |
 | G-020 | WHEN a module's header needs more than one sentence of purpose, it shall be split. | untested | split from G-008 2026-10-04 (EARS form batch 0): no test pins this clause |
 
-## G3. The code map
+### SUB-902 · The code map
+
+Purpose: the code map and its blast-radius command stay generated and checkable.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -51,7 +65,9 @@ directory, so a dropped header outside `src/` fails the check too.
 | G-010 | WHEN a module exists without a map entry, a map entry names a module that no longer exists, or a header is missing or malformed, the suite shall fail. | {{ _status }} | {{ ('`' ~ _g010 ~ '`') if _ev else '—' }} |
 | G-011 | WHEN a change touches a module, its blast radius (transitive callers and callees) shall be derivable from the map by one command. | {{ _status }} | {{ ('`' ~ _g011 ~ '`') if _ev else '—' }} |
 
-## G4. Documentation
+### SUB-903 · Documentation
+
+Purpose: the README states and honours what the project is, and how to install, run and test it.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -59,7 +75,9 @@ directory, so a dropped header outside `src/` fails the check too.
 | G-021 | Every command, script name, path, flag and file the README names shall exist and run as written. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 | G-022 | A README claim the project no longer honours shall fail the suite. | untested | split from G-012 2026-10-04 (EARS form batch 0): no test pins this clause |
 
-## G5. The requirement set
+### SUB-904 · The requirement set
+
+Purpose: every row stays EARS form and the rail enforces the declared off-form allowance.
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|

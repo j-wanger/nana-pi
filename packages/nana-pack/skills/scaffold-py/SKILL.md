@@ -12,7 +12,7 @@ AGENTS.md files, and a `.pi/nana-pack.json` post-edit preset (format+lint on
 every edit, 500-line module cap, mypy).
 
 It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
-standard general-engineering block (`Part G` — sealed tunables
+standard general-engineering feature (sealed tunables
 with provenance, the six-tag module header, named exports, injected resources,
 layer direction, the code map, the README contract), the `# req: R-` trace (three or four ASCII digits; four-digit IDs never start with zero)
 check in the suite, and `scripts/code_map.py` with `--check` wired into post-edit checks on code edits (`uv run python scripts/code_map.py --check`) plus the README check on README edits. Run `--impact` yourself before touching a mapped module.
@@ -43,10 +43,15 @@ check in the suite, and `scripts/code_map.py` with `--check` wired into post-edi
    `uv sync`, `uv run pre-commit install`, `uv run pytest` — and confirm the
    smoke test passes before handing over.
 6. **The first real step after scaffolding is writing the project's first
-   requirement rows** — `Part G` arrives filled in, the product rows are empty.
-   Use the `requirements` skill: one EARS `shall` row per behaviour the project
-   promises, each `planned` until a test with a `req:` marker pins it. Do this
-   before the first feature, not after.
+   requirement rows** — the general-engineering feature arrives filled in, the
+   product capability and feature are DRAFT placeholders. Rename `CAP-01` and
+   `FEAT-001`'s labels and `Purpose:` lines first. Then use the `requirements`
+   skill: one EARS `shall` row per behaviour the project promises, each `planned`
+   until a test with a `req:` marker pins it, each in the table of the feature it
+   serves. Do this before the first feature, not after. A ledger without a
+   requirements tree keeps its numbered sections; its next step is a lift into
+   the tree, with every row kept byte-identical, then a regroup into capabilities
+   and features that the owner approves.
 
 ## Notes
 
