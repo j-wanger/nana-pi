@@ -169,14 +169,14 @@ ok   (f) README's report section says "on any nana project with the tree:" and g
 ok   (guard) node scripts/requirements-tree.mjs --check exits 0
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0
-MISS (f, seat item) HANDOFF drops the LF-only tree checker line and the "Now: the tree for every project" line → [true,true] (want [false,false])
-MISS (f, seat item) HANDOFF carries §6's queue (tree-lift, regroup) and residual 14's Windows `nana-setup install` line → [false,true,false] (want [true,true,true])
-MISS (f, seat item) the session entry docs/sessions/2026-10.md is in the lane's diff → false (want true)
+ok   (f, seat item) HANDOFF drops the LF-only tree checker line and the "Now: the tree for every project" line
+ok   (f, seat item) HANDOFF carries §6's queue (the lift, the regroup) and residual 14's Windows `nana-setup install` line
+ok   (f, seat item) the session entry docs/sessions/2026-10.md is in the lane's diff
 ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder
 ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0
 ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0
 ok   (guard) packages/nana-pack/tests/product-report.test.mjs exits 0
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 177/180 (build cases red: 3/135; guard and harness red: 0/45)
-tree acceptance: 3 mismatch(es)
+cases: 180/180 (build cases red: 0/135; guard and harness red: 0/45)
+tree acceptance: 0 mismatch(es)
