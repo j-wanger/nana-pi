@@ -31,6 +31,8 @@
 //                                                    checkTree on the renders)
 //   build-2 pairs (B1, B4, B5)                     → requirements-tree, product-report, templates-render (as above;
 //                                                    B1 also reaches ledgerReadProblem, whose files are a subset)
+//   build-3 pairs: F1                              → requirements-tree, product-report, templates-render (as B1)
+//                  O1                              → templates-render (a seed pair)
 //
 // Build-2 revision (lane tip 03223fb, build-brief-2.md): build 2 rewrote the checker's row count, no-tree rule and
 // near-miss pattern, so five anchors moved. Each re-anchored pair makes the SAME wrong behaviour its label names, on
@@ -39,6 +41,15 @@
 // checkRowsUnderFeatures in place of [noTreeProblem(rowCount)]; 13/2 swaps !hasCapOrFeat for allHeadings.length === 0;
 // 14 drops ${rowCount}. Three pairs pin build 2's fixes (code only): B1 brief item 1, B4 item 4, B5 item 5. These
 // anchors match 03223fb, not be19808: run with SEAT_MUTATE_TIP=03223fb.
+//
+// Build-3 revision (lane tip 921b288, build-brief-3.md): build 3 moved the "How this file is organized" block out of
+// both branches of both REQUIREMENTS.md.jinja seeds into templates/_shared/requirements-organization.md, pulled in by a
+// Jinja include. Pair 6's three variants edited that text in the seeds (×2 per seed); they now make the SAME wrong text
+// once in the shared file, which every render (both languages, both modes) still carries, so each still names T4 ×4;
+// test set unchanged (templates-render; templates-update reads only requirements-general.md). Two pairs pin build 3
+// (code or shipped text only): F1 brief item 1 (countRequirementRowLines skips fenced lines again) and O1 brief item 2
+// (the python seed inlines the organization block, byte-identical to the shared file, in place of both includes; the
+// mutated seed equals 03223fb's). These anchors match 921b288: run with SEAT_MUTATE_TIP=921b288.
 //
 // Seat corrections to §5 (declared before the run; each prints as "also (declared)", never hidden):
 // (a) K4: the frozen §5 at be19808 holds K1-K3 only. factcheck-repo.md's "K4 (R-599)" is today's K3 (renumbered when
@@ -101,6 +112,8 @@ const PY_SEED = "templates/python/template/REQUIREMENTS.md.jinja";
 const TS_SEED = "templates/typescript/template/REQUIREMENTS.md.jinja";
 const SEEDS = [TS_SEED, PY_SEED];
 const INCL = "templates/_shared/requirements-general.md";
+const ORG = "templates/_shared/requirements-organization.md";
+const ORG_INCLUDE = '{% include "templates/_shared/requirements-organization.md" %}\n';
 const SK = (name) => `packages/nana-pack/skills/${name}/SKILL.md`;
 const REQ_SKILL = SK("requirements");
 const TREE = "scripts/requirements-tree.mjs";
@@ -113,7 +126,9 @@ const ADOPT_TABLE = "table.\n\n| ID | Requirement | Status | Evidence |\n|---|--
 const FEAT900 = "## FEAT-900 · Adopt the general engineering requirements\n\nPurpose: hold the general engineering rows every nana project ships, unedited per project.\nStatus: active\n\n";
 const CHECKER_CMD = '`node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .`';
 const REPORT_CMD = '`node "$HOME/nana-pi/scripts/product-report.mjs" --root .`';
-const CARVE_REQ = "A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves. ";
+// templates/_shared/requirements-organization.md at 921b288, byte for byte (ends in one "\n").
+const ORG_BLOCK = "## How this file is organized\n\nRows are grouped into a tree: capability → feature → subgroup. A capability heading reads\n`# CAP-nn · <label>`, a feature heading `## FEAT-nnn · <label>` and a subgroup heading\n`### SUB-nnn · <label>`. Each heading is followed by a `Purpose:` line saying why that part of\nthe product exists; a capability also carries an `Outcome:` line, and a feature a `Status:`\nline. Every row lives in exactly one table, its home. Add each new row to the table of the\nfeature it serves. A new feature goes under the capability it serves, never under CAP-90;\nproduct headings start at CAP-01, FEAT-001 and SUB-001. CAP-90, FEAT-900 and SUB-900 to\nSUB-904 are reserved for the general-engineering feature below. A new heading takes an\nunused ID and a `Purpose:` line. No row sits in a `proposed` or `retired` feature. The\nproject owner decides every change to the tree. Check it with\n`node \"$HOME/nana-pi/scripts/requirements-tree.mjs\" --root .`.\n";
+const CARVE_REQ ="A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves. ";
 
 // ── titles (exact, as the suite prints them) ────────────────────────────────────────────────
 const LANGS = ["typescript", "python"];
@@ -144,6 +159,9 @@ const UNTESTED22 = (l) => `${l} adopt: every Part G row starts untested`;
 const NO_INVENT = (l) => `${l} adopt: no product row is invented`;
 const R598 = (l) => `${l} scaffold: all declared skill paths resolve independently`;
 const R581 = ["Python rendered Jinja includes the shared source", "TypeScript rendered Jinja includes the shared source"];
+// build-3 titles (build-brief-3.md items 1 and 2)
+const B_FENCED = "R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it";
+const ORG_ONE = (l, m) => `${l} ${m}: REQUIREMENTS.md's organization section comes from the one shared source`;
 
 // ── edits ───────────────────────────────────────────────────────────────────────────────────
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
@@ -175,9 +193,9 @@ const PAIRS = [
 	{ n: "3/2", name: "Part G numbered CAP-02, FEAT-002, SUB-001–SUB-005", edits: [one(INCL, "# CAP-90 · Keep", "# CAP-02 · Keep"), one(INCL, "## FEAT-900 · Adopt", "## FEAT-002 · Adopt"), regex(INCL, /^### SUB-90(\d) · /gm, (_m, d) => `### SUB-00${Number(d) + 1} · `, 5)], tests: INCL_T, expectRed: each(T2) },
 	{ n: "4", name: "adopt FEAT-001 reads `Status: active` (both seeds)", edits: SEEDS.map((f) => one(f, "Status: proposed\n", "Status: active\n")), tests: SEED_T, expectRed: LANGS.map(T3) },
 	{ n: "5", name: "SUB-903 loses its `Purpose:` line", edits: [one(INCL, "### SUB-903 · Documentation\n\nPurpose: the README states and honours what the project is, and how to install, run and test it.\n", "### SUB-903 · Documentation\n")], tests: INCL_T, expectRed: each(T1) },
-	{ n: "6/1", name: "the seed says \"Jake decides\" (both seeds, both branches)", edits: SEEDS.map((f) => times(f, "The\nproject owner decides every change to the tree.", "Jake\ndecides every change to the tree.", 2)), tests: SEED_T, expectRed: each(T4) },
-	{ n: "6/2", name: "the seed drops \"Add each new row to the table of the feature it serves.\" (both seeds, both branches)", edits: SEEDS.map((f) => times(f, "Add each new row to the table of the\nfeature it serves. ", "", 2)), tests: SEED_T, expectRed: each(T4) },
-	{ n: "6/3", name: "the seed writes `~/nana-pi/` (both seeds, both branches)", edits: SEEDS.map((f) => times(f, CHECKER_CMD, "`node ~/nana-pi/scripts/requirements-tree.mjs --root .`", 2)), tests: SEED_T, expectRed: each(T4) },
+	{ n: "6/1", name: "the seed says \"Jake decides\" (shared organization block, so both seeds, both branches)", edits: [one(ORG, "The\nproject owner decides every change to the tree.", "Jake\ndecides every change to the tree.")], tests: SEED_T, expectRed: each(T4) },
+	{ n: "6/2", name: "the seed drops \"Add each new row to the table of the feature it serves.\" (shared organization block, so both seeds, both branches)", edits: [one(ORG, "Add each new row to the table of the\nfeature it serves. ", "")], tests: SEED_T, expectRed: each(T4) },
+	{ n: "6/3", name: "the seed writes `~/nana-pi/` (shared organization block, so both seeds, both branches)", edits: [one(ORG, CHECKER_CMD, "`node ~/nana-pi/scripts/requirements-tree.mjs --root .`")], tests: SEED_T, expectRed: each(T4) },
 	// Skills (7-9)
 	{ n: "7/1", name: "requirements skill keeps \"Jake decides tree changes\"", edits: [one(REQ_SKILL, "The project owner decides every change to the tree; the seat proposes a change and declares it.", "Jake decides tree changes; declare them.")], tests: REQSKILL_T, expectRed: [T5] },
 	{ n: "7/2", name: "requirements skill drops the carve-out", edits: [one(REQ_SKILL, CARVE_REQ, "")], tests: REQSKILL_T, expectRed: [T5] },
@@ -207,6 +225,9 @@ const PAIRS = [
 	{ n: "B1", name: "row counting reverts to rows under the byte-exact `| ID | Requirement | Status | Evidence |` header (readRequirementRows, in ledgerReadProblem and checkTree)", edits: [one(TREE, '  if (countRequirementRowLines(parsed) === 0) return "REQUIREMENTS.md: no requirement rows";\n', '  if (readRequirementRows(parsed).length === 0) return "REQUIREMENTS.md: no requirement rows";\n'), one(TREE, "  const rowCount = countRequirementRowLines(parsed);\n", "  const rowCount = readRequirementRows(parsed).length;\n")], tests: TREE_T, expectRed: [B_PADDED, B_COUNT] },
 	{ n: "B4", name: "the no-tree rule counts SUB headings again", edits: [one(TREE, 'const hasCapOrFeat = parsed.headings.some((h) => h.id.startsWith("CAP-") || h.id.startsWith("FEAT-"));', 'const hasCapOrFeat = parsed.headings.some((h) => h.id.startsWith("CAP-") || h.id.startsWith("FEAT-") || h.id.startsWith("SUB-"));')], tests: TREE_T, expectRed: [B_SUBONLY] },
 	{ n: "B5", name: "the near-miss pattern back to /^#{1,3}\\s*(CAP|FEAT|SUB)-\\d+/", edits: [one(TREE, "const TREE_HEADING_LIKE = /^\\s{0,3}#{1,6}\\s*(CAP|FEAT|SUB)-\\d+/;", "const TREE_HEADING_LIKE = /^#{1,3}\\s*(CAP|FEAT|SUB)-\\d+/;")], tests: TREE_T, expectRed: [T15] },
+	// Build-3 fixes (F1, O1; build-brief-3.md items 1, 2)
+	{ n: "F1", name: "countRequirementRowLines skips fenced lines again", edits: [one(TREE, "    if (requirementRowId(parsed.lines[i])) count++;\n", "    if (!parsed.opaque[i] && requirementRowId(parsed.lines[i])) count++;\n")], tests: TREE_T, expectRed: [B_FENCED] },
+	{ n: "O1", name: "the python seed inlines the organization block in place of the include (both branches, text identical)", edits: [times(PY_SEED, ORG_INCLUDE, ORG_BLOCK + "\n", 2)], tests: SEED_T, expectRed: MODES.map((m) => ORG_ONE("python", m)) },
 ];
 
 // ── plumbing ────────────────────────────────────────────────────────────────────────────────
