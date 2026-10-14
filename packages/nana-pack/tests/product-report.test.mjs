@@ -501,10 +501,10 @@ try {
     const flatOut = path.join(temp, "cli-flat1000.html");
     const flatRun = runReport(["--root", flatDir, "--out", flatOut], temp);
     const flatErr = noWarn(flatRun.stderr);
+    const flatNoTreeLines = flatErr.filter((l) => /\b1000 requirement rows\b/.test(l) && /no requirements tree yet/.test(l) && /requirements skill/.test(l));
     // req: R-1159
     check("a ledger with rows and no tree is refused with one problem line, not one per row",
-      flatRun.status === 1 && flatErr.length >= 1 &&
-      flatErr.some((l) => /\b1000 requirement rows\b/.test(l) && /no requirements tree yet/.test(l) && /requirements skill/.test(l)) &&
+      flatRun.status === 1 && flatNoTreeLines.length === 1 &&
       !flatErr.some((l) => l.includes("not in a feature or subgroup table")) && !fs.existsSync(flatOut),
       flatErr.join(" | "));
 
