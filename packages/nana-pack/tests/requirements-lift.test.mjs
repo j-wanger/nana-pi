@@ -1628,6 +1628,24 @@ if (process.platform !== "win32") {
     rOpenRange.status === 1 && !crashed(rOpenRange) && own(rOpenRange.stderr).some((l) => /is not a requirement ID or a valid en-dash range/.test(l)) &&
     rReversedRange.status === 1 && !crashed(rReversedRange) && own(rReversedRange.stderr).some((l) => /is a reversed range/.test(l)),
     `tailKeepNull=${own(rTailKeepNull.stderr).join(" | ")} alsoAppliesString=${own(rAlsoAppliesString.stderr).join(" | ")} openRange=${own(rOpenRange.stderr).join(" | ")} reversedRange=${own(rReversedRange.stderr).join(" | ")}`);
+
+  // build brief 7 item 4 (sol r1 SHOULD; astra r1 SHOULD 3): a cross-prefix range such as
+  // "R-001-G-002" passes shapeProblems's checkRows (it compares only the numeric parts) and
+  // then throws uncaught in expandRowIds, whose own prefix guard never runs first.
+  const crossPrefix = { ...good, tree: good.tree.map((c) => ({ ...c, features: c.features.map((f) => ({ ...f, rows: ["R-001–G-002"] })) })) };
+  const crossPrefixPath = join(dir, "map-cross-prefix.json");
+  writeFileSync(crossPrefixPath, JSON.stringify(crossPrefix));
+  const rCrossPrefix = lift(["--root", dir, "--mapping", crossPrefixPath]);
+
+  // a terminal "--verify" with no revision leaves args.verify undefined; `.startsWith()` then
+  // throws on it instead of being treated as a usage error.
+  const rNoRevision = lift(["--root", dir, "--verify"]);
+
+  // req: R-1167
+  check("R-1167: a cross-prefix row range and a --verify with no revision are refused by name, never a crash",
+    rCrossPrefix.status === 1 && !crashed(rCrossPrefix) && own(rCrossPrefix.stderr).some((l) => /cross-prefix/.test(l)) &&
+    rNoRevision.status === 2 && !crashed(rNoRevision),
+    `crossPrefix=${own(rCrossPrefix.stderr).join(" | ")} noRevision=${rNoRevision.status} ${own(rNoRevision.stderr).join(" | ")}`);
 }
 
 {

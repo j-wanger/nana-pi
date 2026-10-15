@@ -431,7 +431,8 @@ function shapeProblems(mapping) {
       if (typeof r !== "string") { problems.push(`${where}: "rows" holds a non-string entry`); continue; }
       const m = ROW_OR_RANGE.exec(r);
       if (!m) { problems.push(`${where}: "${r}" is not a requirement ID or a valid en-dash range`); continue; }
-      if (m[3] && Number(m[3].slice(2)) < Number(m[1].slice(2))) problems.push(`${where}: "${r}" is a reversed range`);
+      if (m[3] && m[1].slice(0, 1) !== m[3].slice(0, 1)) problems.push(`${where}: "${r}" is a cross-prefix range`);
+      else if (m[3] && Number(m[3].slice(2)) < Number(m[1].slice(2))) problems.push(`${where}: "${r}" is a reversed range`);
     }
   };
   const checkAlsoApplies = (value, where) => {
@@ -872,7 +873,10 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
     else return usage();
   }
   if (!args.root) return usage();
-  if (args.verify !== null && args.verify.startsWith("-")) return usage();
+  // A terminal "--verify" with nothing after it leaves args.verify undefined (build brief 7
+  // item 4; sol r1 SHOULD): a usage error, like any other missing operand, never a crash on
+  // undefined.startsWith().
+  if (args.verify !== null && (args.verify === undefined || args.verify.startsWith("-"))) return usage();
   const modeCount = [args.write, args.verify !== null].filter(Boolean).length;
   if (modeCount > 1) return usage();
   if (args.emitMapping && (args.mapping || args.write || args.verify !== null)) return usage();
