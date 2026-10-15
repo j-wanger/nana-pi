@@ -331,10 +331,16 @@ export function buildDefaultMapping(text, seed) {
       const node = { id, label: h.label, purpose: `${UNSORTED_PREFIX} the rows of old section "${h.label}".`, status: "active", from: [{ line: h.line, heading: headingText(h.line) }], rows: rowsOf(i), subgroups: [] };
       cap.features.push(node); feat = node; i++; continue;
     }
+    // Build brief 6 item 3: a level-3 section with no level-2 feature above it (a lone "###"
+    // right after a "#", or at the very start) has nowhere to attach -- name it instead of
+    // crashing, and keep scanning so a ledger with both base problems and this shape names
+    // every problem in one run, never a partial list cut short by a TypeError.
+    if (!feat) { problems.push(`line ${h.line}: level 3 section "${h.label}" has no level 2 feature above it; the default cannot place it`); i++; continue; }
     subN++; const id = `SUB-${String(subN).padStart(3, "0")}`;
     const node = { id, label: h.label, purpose: `${UNSORTED_PREFIX} the rows of old section "${h.label}".`, from: [{ line: h.line, heading: headingText(h.line) }], rows: rowsOf(i) };
     feat.subgroups.push(node); i++;
   }
+  if (problems.length) return { mapping: null, problems };
 
   const headEnd = sections[0] ? sections[0].line - 1 : bareLines.length;
   const kept = scanHeadings(bareLines, fenced).filter((h) => h.level === 2 && KEPT_SECTIONS.includes(h.label));

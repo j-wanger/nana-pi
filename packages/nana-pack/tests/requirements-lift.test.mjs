@@ -1582,6 +1582,35 @@ if (process.platform !== "win32") {
     `status=${r.status} noHeadField=${noHeadField} noTailField=${noTailField} namesFence=${namesFence} namesNearTree=${namesNearTree} ` + lines_.join(" | "));
 }
 
+{
+  // Build brief 6 item 3 (verify-f6b34d4/combo2.md's shape): base problems (a repeated row ID)
+  // alongside a level-3 section with no level-2 feature above it ("# Part B" falling straight to
+  // "### Orphan"). The default mapping builder used to run unconditionally once the ledger was
+  // flat, crashing with a TypeError the instant it reached the parentless subgroup, instead of
+  // naming it alongside the ledger's other, ordinary base problems.
+  const text = [
+    "# Fixture requirements", "",
+    "## Alerts", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | thing shall work. | untested | — |",
+    "| R-001 | thing shall work. | untested | — |", "",
+    "# Part B", "",
+    "### Orphan", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-002 | another thing shall work. | untested | — |",
+  ].join("\n");
+  const dir = writeLedger(scratchDir("t-orphansub"), text);
+  const before = readLedger(dir);
+  const r = lift(["--root", dir]);
+  const after = readLedger(dir);
+  const namesDup = own(r.stderr).some((l) => /requirement row R-001 repeats line/.test(l));
+  const namesOrphan = own(r.stderr).some((l) => /level 3 section "Orphan" has no level 2 feature above it/.test(l));
+  // req: R-1167
+  check("R-1167: a ledger with base problems and a subgroup with no feature above it is refused naming its problems, never a crash",
+    r.status === 1 && !crashed(r) && namesDup && namesOrphan && before.equals(after),
+    `status=${r.status} namesDup=${namesDup} namesOrphan=${namesOrphan} ` + own(r.stderr).join(" | "));
+}
+
 // ==================================================================================================
 // R-1168
 // ==================================================================================================
