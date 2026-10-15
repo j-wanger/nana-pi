@@ -7,7 +7,7 @@
  * @errors A failed check prints its reason and exits non-zero.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -34,8 +34,7 @@ const crashed = (r) => /Cannot find module|\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m
 const PROOF_RE = /^lift proof: (\d+) rows kept byte-identical; (\d+) prose lines carried; (\d+) headings replaced; (\d+) lines inserted; tree check (\d+) problems$/;
 const proofOf = (stdout) => { const m = lines(stdout).map((l) => PROOF_RE.exec(l)).filter(Boolean); return m.length === 1 ? { rows: +m[0][1], prose: +m[0][2], headings: +m[0][3], inserted: +m[0][4], treeProblems: +m[0][5] } : null; };
 
-const scratchRoot = mkdtempSync(join(tmpdir(), "lift-test-"));
-process.on("exit", () => { try { rmSync(scratchRoot, { recursive: true, force: true }); } catch {} });
+const scratchRoot = tmpDir(join(tmpdir(), "lift-test-"));
 let n = 0;
 function scratchDir(prefix) { n++; const d = join(scratchRoot, `${prefix}-${n}`); mkdirSync(d, { recursive: true }); return d; }
 function writeLedger(dir, text) { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "REQUIREMENTS.md"), text); return dir; }
