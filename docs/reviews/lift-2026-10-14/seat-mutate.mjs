@@ -56,7 +56,7 @@ import { fileURLToPath } from "node:url";
 
 const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
-const TIP = process.env.SEAT_MUTATE_TIP || "9eadde0";
+const TIP = process.env.SEAT_MUTATE_TIP || "f6b34d4";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // os.tmpdir(), never beside this script: a scratch git worktree inside the lane folder breaks copier-based suite
 // tests run there ("No url found for submodule path …/wt"). The tree lane's runner ran from the session scratchpad.
@@ -78,6 +78,7 @@ const DECLARED = [
 	"(f) 6/4: row added after R-1169 and the outline regenerated, so only the 1,136 literal is stale",
 	"(g) 1/1 both emitters; 1/2 in-place prose (blanks included) emitted at the next node; 2/1 check 3 by ID; 2/2 check 6 as sets; 5/4 at seedNodeText",
 	"(h) build 3 re-anchors: 2/3 skips every stray-line check the proof now has (matchProse's non-blank refusal, interleaved and trailing, proof :380, :384, with the skipped lines marked consumed, and the whole-output stray scan, :450); 2/4, 2/5, 2/7 at matchProse (:405-406), 2/5 sorting the region's {seg, idx} entries by seg; 3/4 at writeLedgerAtomic's re-read (lift :673)",
+	"(j) build 5 (tip f6b34d4): 5/5 re-anchored to its original two default-mapping sites (`(h) => h.level === 2 && KEPT_SECTIONS.includes(h.label)`, lift :273, :340); build 5's structuralTailLines (lift :234) uses the same filter text and is left unmutated. New pairs: T1 isTableHeaderAt's row check dropped in lift and proof (T1/1 lift only, T1/2 proof only); T2 base refusals reported alone before the later stage again; T3 head/tail field-label exemption removed (T3/1 head only, T3/2 tail only); T4/1-T4/4 --verify's mapping-blob NUL, encoding, JSON and version refusals each dropped (lift :991, :993, :996, :998)",
 	"(i) build 4/4b re-anchors (tip 9eadde0): 4/17 at validateMapping's new last-emitted-line rule (`if (!nothingAfter) problems.push(`, lift :541), disabled whole as before; new pair M (build brief 4 §A \"Rule\"): the proof's input-derived multiset comparison (proof :591) disabled; judged on T6 and, inside T6's FAIL detail, the three tz labels the build added for it",
 ];
 
@@ -126,6 +127,9 @@ const T26 = "R-1167: a mapping missing 1,000 rows prints at most the problem-lin
 const T27 = "R-1167 fixture: a run without --root, or with --write and --emit-mapping together, exits 2 with usage";
 const T28 = "R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder";
 const T29 = "requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has";
+const T33 = "R-1163: a 4-column table that holds no requirement row keeps its header and delimiter lines, flat and tree-form";
+const T34 = "R-1167: one refusal names every base problem, and a field-labelled line in the head or tail is not one";
+const T35 = "R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte, an encoding mismatch, invalid JSON or another lift version in the mapping blob, exactly as --write would for the same bytes on disk";
 const T30 = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,136";
 void T1; void T14; void T19; void T23; void T27; // titles §5 names in no pair; kept for the record
 
@@ -143,6 +147,8 @@ const LEDGER_T = [RT];
 const IN_PLACE = "    const __inRows = [];\n    for (const f of node.from ?? []) { const hl = scanHeadings(inBare, inFenced).map((x) => x.line).filter((l) => l > f.line).sort((a, b) => a - b); const e = hl.length ? hl[0] - 1 : inBare.length; for (let k = f.line; k < e; k++) { const r = requirementRowId(inBare[k]); if (r) __inRows.push(r); } }\n    const __inPlace = JSON.stringify(__inRows) === JSON.stringify(nodeRows(node));\n";
 const PROSE_AT = "    const expected = expectedProseFor(node.from);\n    if (!matchProse(expected, prose)) problems.push(";
 const ROW_KEPT = "    if (o === seg) keptCount++;";
+const ROW_CHECK = "  return Boolean(requirementRowId(bareLines[j] ?? \"\"));"; // isTableHeaderAt's build-5 row check (lift :105, proof :84)
+const HEADTAIL = "    if (i < headEnd || tailLines.has(i)) continue; // head/tail prose: carried verbatim, never replaced\n";
 const CHECK8_ROWS = "    if (JSON.stringify(got) !== JSON.stringify(fromRows)) problems.push(";
 
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...opts });
@@ -213,8 +219,20 @@ const PAIRS = [
 	{ n: "5/2", name: "labels drop \"1. \"", edits: [times(LIFT, "label: h.label, purpose: `${UNSORTED_PREFIX}", "label: h.label.replace(/^\\d+[a-z]?\\.\\s*/, \"\"), purpose: `${UNSORTED_PREFIX}", 3)], tests: LIFT_T, expectRed: [T13] },
 	{ n: "5/3", name: "sections after the general run nest under CAP-90", edits: [one(LIFT, "    if (cap === null || cap.id === \"CAP-90\") {", "    if (cap === null) {")], tests: LIFT_T, expectRed: [T15] },
 	{ n: "5/4", name: "reserved nodes get the placeholder", edits: [one(LIFT, "  return { label: h?.label ?? \"\", purpose: h?.purpose ?? \"\", outcome: h?.outcome ?? \"\", status: h?.status ?? \"\" };", "  return { label: h?.label ?? \"\", purpose: UNSORTED_TEXT, outcome: UNSORTED_TEXT, status: h?.status ?? \"\" };")], tests: LIFT_T, expectRed: [T16] },
-	{ n: "5/5", name: "Open questions becomes a feature", edits: [times(LIFT, "h.level === 2 && KEPT_SECTIONS.includes(h.label)", "h.level === 2 && KEPT_SECTIONS.slice(1).includes(h.label)", 2)], tests: LIFT_T, expectRed: [T17] },
+	{ n: "5/5", name: "Open questions becomes a feature", edits: [times(LIFT, "(h) => h.level === 2 && KEPT_SECTIONS.includes(h.label)", "(h) => h.level === 2 && KEPT_SECTIONS.slice(1).includes(h.label)", 2)], tests: LIFT_T, expectRed: [T17] },
 	{ n: "5/6", name: "the closing heading is retyped differently", edits: [one(LIFT, "export const CLOSING_HEADING = \"# Open questions and deliberate omissions\";", "export const CLOSING_HEADING = \"# Open Questions and Deliberate Omissions\";")], tests: LIFT_T, expectRed: [T17] },
+	// Build brief 5 (tip f6b34d4)
+	{ n: "T1", name: "the requirement-table test back to any 4-cell header, no row check (lift and proof)", edits: [one(LIFT, ROW_CHECK, "  return true;"), one(PROOF, ROW_CHECK, "  return true;")], tests: LIFT_T, expectRed: [T33] },
+	{ n: "T1/1", name: "the requirement-table test back to any 4-cell header, no row check (lift only)", edits: [one(LIFT, ROW_CHECK, "  return true;")], tests: LIFT_T, expectRed: [T33] },
+	{ n: "T1/2", name: "the requirement-table test back to any 4-cell header, no row check (proof only)", edits: [one(PROOF, ROW_CHECK, "  return true;")], tests: LIFT_T, expectRed: [T33] },
+	{ n: "T2", name: "refusal stages stop at the first stage again (base refusals reported alone)", edits: [one(LIFT, "    const stageProblems = [...base];", "    if (base.length) { for (const p of capProblems(base)) console.error(p); return 1; }\n    const stageProblems = [];")], tests: LIFT_T, expectRed: [T34] },
+	{ n: "T3", name: "the head/tail field-label exemption removed", edits: [one(LIFT, HEADTAIL, "")], tests: LIFT_T, expectRed: [T34] },
+	{ n: "T3/1", name: "the head half of the field-label exemption removed", edits: [one(LIFT, HEADTAIL, "    if (tailLines.has(i)) continue; // head/tail prose: carried verbatim, never replaced\n")], tests: LIFT_T, expectRed: [T34] },
+	{ n: "T3/2", name: "the tail half of the field-label exemption removed", edits: [one(LIFT, HEADTAIL, "    if (i < headEnd) continue; // head/tail prose: carried verbatim, never replaced\n")], tests: LIFT_T, expectRed: [T34] },
+	{ n: "T4/1", name: "--verify's mapping-blob NUL refusal dropped", edits: [one(LIFT, "    if (buf.includes(0)) { console.error(`--verify refused: HEAD:./${relMap}: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8`); return 1; }\n", "")], tests: LIFT_T, expectRed: [T35] },
+	{ n: "T4/2", name: "--verify's mapping-blob encoding refusal dropped", edits: [one(LIFT, "    if (mapEncLine !== null) { console.error(", "    if (false) { console.error(")], tests: LIFT_T, expectRed: [T35] },
+	{ n: "T4/3", name: "--verify's mapping-blob invalid-JSON refusal dropped", edits: [one(LIFT, "    try { mapping = JSON.parse(raw); } catch (e) { console.error(`--verify refused: HEAD:./${relMap} is not valid JSON (${e.message})`); return 1; }", "    mapping = JSON.parse(raw);")], tests: LIFT_T, expectRed: [T35] },
+	{ n: "T4/4", name: "--verify's mapping-blob lift-version refusal dropped", edits: [one(LIFT, "    if (mapping.lift !== MAPPING_FORMAT) { console.error(", "    if (false) { console.error(")], tests: LIFT_T, expectRed: [T35] },
 	// Row 6: skill and ledger literal
 	{ n: "6/1", name: "skill drops \"only after the owner's yes\"", edits: [one(REQ_SKILL, "Run `--write` only after the owner's yes, and only while", "Run `--write` once the owner has seen the plan, and only while")], tests: SKILL_T, expectRed: [T29] },
 	{ n: "6/2", name: "skill drops \"in every worktree\"", edits: [one(REQ_SKILL, "matches HEAD in every worktree of the repository", "matches HEAD in this worktree")], tests: SKILL_T, expectRed: [T29] },
