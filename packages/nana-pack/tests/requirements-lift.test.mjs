@@ -1150,6 +1150,55 @@ if (process.platform !== "win32") {
     `r1=${r1.status} r2=${r2.status}`);
 }
 
+{
+  // E1: a mapping whose shape is wrong at a field apply()/validateMapping() would otherwise
+  // index into (rows a string, tree an object) refuses by name instead of throwing.
+  const dir = gitRepo("t35", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const good = JSON.parse(readFileSync(mapPath, "utf8"));
+
+  const rowsString = { ...good, tree: good.tree.map((c) => ({ ...c, features: c.features.map((f) => ({ ...f, rows: "R-001,R-002" })) })) };
+  const rowsStringPath = join(dir, "map-rows-string.json");
+  writeFileSync(rowsStringPath, JSON.stringify(rowsString));
+  const rRowsString = lift(["--root", dir, "--mapping", rowsStringPath]);
+
+  const treeObject = { ...good, tree: { oops: true } };
+  const treeObjectPath = join(dir, "map-tree-object.json");
+  writeFileSync(treeObjectPath, JSON.stringify(treeObject));
+  const rTreeObject = lift(["--root", dir, "--mapping", treeObjectPath]);
+
+  // req: R-1167
+  check('R-1167: a mapping whose "rows" is a string or whose "tree" is an object refuses by name, never a crash',
+    rRowsString.status === 1 && !crashed(rRowsString) && own(rRowsString.stderr).some((l) => /"rows" must be an array/.test(l)) &&
+    rTreeObject.status === 1 && !crashed(rTreeObject) && own(rTreeObject.stderr).some((l) => /"tree" must be an array/.test(l)),
+    `rowsString=${own(rRowsString.stderr).join(" | ")} treeObject=${own(rTreeObject.stderr).join(" | ")}`);
+}
+
+{
+  // E3: an unterminated last row after a mid-file "Open questions" section (so the tail the
+  // default would place after it is not just at the very end) refuses with the named fix,
+  // before building any output -- not the generic "row R-002 appears 0 time(s)" the proof used
+  // to emit once the tail text had already glued onto the unterminated row with no line break.
+  const text = [
+    "# fixture", "", "## 1. Before", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | before thing shall work. | untested | — |", "",
+    "## Open questions", "", "1. mid file question.", "",
+    "## 2. After", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-002 | after thing shall work. | untested | — |",
+  ].join("\n"); // no trailing newline: unterminated last row
+  const dir = writeLedger(scratchDir("t36"), text);
+  const before = readFileSync(join(dir, "REQUIREMENTS.md"));
+  const r = lift(["--root", dir]);
+  const after = readFileSync(join(dir, "REQUIREMENTS.md"));
+  // req: R-1163 R-1167
+  check('R-1163: an unterminated last row before a mid-file kept section refuses naming the fix, not the generic row-count mismatch, and writes nothing',
+    r.status === 1 && !crashed(r) && own(r.stderr).some((l) => /ends with an unterminated row R-002/.test(l) && /end the file with a line break/.test(l)) &&
+    !own(r.stderr).some((l) => /appears 0 time\(s\)/.test(l)) && before.equals(after),
+    own(r.stderr).join(" | "));
+}
+
 // ==================================================================================================
 // R-1168
 // ==================================================================================================
