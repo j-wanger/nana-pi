@@ -1681,11 +1681,32 @@ if (process.platform !== "win32") {
   const vVer = lift(["--root", verDir, "--mapping", verMapPath, "--verify", "HEAD"]);
   const verOk = vVer.status === 1 && !crashed(vVer) && own(vVer.stderr).some((l) => /lift version/.test(l));
 
-  const bad = [["ansi", ansiOk], ["repeated", repeatedOk], ["nul", nulOk], ["version", verOk]].filter(([, ok]) => !ok).map(([l]) => l);
+  // a committed mapping with an ANSI byte (not valid UTF-8), naming it exactly as readMapping() would for a file.
+  const encDir = gitRepo("t38-enc", base);
+  const encMapPath = join(encDir, "map.json");
+  lift(["--root", encDir, "--emit-mapping", encMapPath]);
+  const encMapText = readFileSync(encMapPath, "utf8");
+  const encCut = encMapText.indexOf("Not yet sorted");
+  writeFileSync(encMapPath, Buffer.concat([Buffer.from(encMapText.slice(0, encCut), "utf8"), Buffer.from([0xe9]), Buffer.from(encMapText.slice(encCut), "utf8")]));
+  gitC(encDir, "add", "-A"); gitC(encDir, "commit", "-qm", "ansi map");
+  const vEnc = lift(["--root", encDir, "--mapping", encMapPath, "--verify", "HEAD"]);
+  const encOk = vEnc.status === 1 && !crashed(vEnc) && own(vEnc.stderr).some((l) => /bytes are not valid UTF-8/.test(l));
+
+  // a committed mapping that is not valid JSON (truncated mid-object).
+  const jsonDir = gitRepo("t38-json", base);
+  const jsonMapPath = join(jsonDir, "map.json");
+  lift(["--root", jsonDir, "--emit-mapping", jsonMapPath]);
+  const jsonMapText = readFileSync(jsonMapPath, "utf8");
+  writeFileSync(jsonMapPath, jsonMapText.slice(0, jsonMapText.length - 10));
+  gitC(jsonDir, "add", "-A"); gitC(jsonDir, "commit", "-qm", "truncated map");
+  const vJson = lift(["--root", jsonDir, "--mapping", jsonMapPath, "--verify", "HEAD"]);
+  const jsonOk = vJson.status === 1 && !crashed(vJson) && own(vJson.stderr).some((l) => /is not valid JSON/.test(l));
+
+  const bad = [["ansi", ansiOk], ["repeated", repeatedOk], ["nul", nulOk], ["version", verOk], ["mapping-encoding", encOk], ["mapping-json", jsonOk]].filter(([, ok]) => !ok).map(([l]) => l);
   // req: R-1168
-  check("R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte or another lift version in the mapping blob, exactly as --write would for the same bytes on disk",
+  check("R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte, an encoding mismatch, invalid JSON or another lift version in the mapping blob, exactly as --write would for the same bytes on disk",
     bad.length === 0,
-    bad.join(", ") + " " + own(vAnsi.stderr).concat(own(vRepeated.stderr), own(vNul.stderr), own(vVer.stderr)).join(" | "));
+    bad.join(", ") + " " + own(vAnsi.stderr).concat(own(vRepeated.stderr), own(vNul.stderr), own(vVer.stderr), own(vEnc.stderr), own(vJson.stderr)).join(" | "));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

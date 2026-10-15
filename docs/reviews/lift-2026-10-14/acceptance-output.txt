@@ -43,7 +43,7 @@ ok   (d) trading-zone: every G row sits in the seed subgroup whose table holds i
 ok   (d) trading-zone: the emitted default mapping, committed and passed back with --mapping --write, writes the default lift's bytes (R-1162, R-1166)
 ok   (d) trading-zone: the tip's proveLift passes the true default lift with and without fromDefault, and refuses it tampered so sections 5–11 sit under CAP-90 (mapping and output), with fromDefault naming a placement problem the mapping mode does not (R-1163, §3.5 check 9)
 ok   (d) trading-zone: in mapping mode the tip's proveLift refuses an output whose FEAT-004 sits under CAP-02 while the mapping declares CAP-01 (R-1163)
-MISS (d) yokai-world: the dry run exits 1 naming its 42 tree headings, prints no proof line and writes nothing (§5, R-1167) → [1,false,false,null,true] (want [1,false,true,null,true]) [line 50: carried prose starts with a field label ("Purpose:")]
+ok   (d) yokai-world: the dry run exits 1 naming its 42 tree headings, prints no proof line and writes nothing (§5, R-1167)
 ok   (d) a prose-only ledger: the dry run exits 1 saying no requirement rows, with no proof line (§5, R-1167)
 ok   (harness) the mixed copy holds both LF and CRLF row lines
 ok   (v) basketball-geek CRLF: the dry run and --write exit 0, 171/171 rows keep their bytes and endings, the BOM is kept iff present, and the checker passes (§5, R-1163)
@@ -127,12 +127,12 @@ ok   (guard) node scripts/requirements-tree.mjs --check exits 0 (§5 Suite)
 ok   (guard) map:check (node scripts/code-map.mjs --check) exits 0 (§5 Suite)
 ok   (guard) readme:check (node scripts/readme-check.mjs) exits 0 (§5 Suite)
 MISS (f) HANDOFF.md and the session entry docs/sessions/2026-10.md are in the lane's diff (§4 In, the land checklist) → ["HANDOFF.md","docs/sessions/2026-10.md"] (want [])
-ok   (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4)
+MISS (guard) the build is committed: no uncommitted or untracked path outside this review folder (§4) → ["M  packages/nana-pack/tests/requirements-lift.test.mjs"] (want [])
 ok   (harness) uvx copier is available (templates-render.test.mjs runs with NANA_TEST_REQUIRE_COPIER=1)
 ok   (g) packages/nana-pack/tests/requirements-lift.test.mjs exits 0 (§5 Suite)
 ok   (guard) packages/nana-pack/tests/templates-render.test.mjs exits 0 (§5 Suite)
 ok   (guard) packages/nana-pack/tests/requirements-tree.test.mjs exits 0 (§5 Suite)
 ok   (g) every §5 title prints PASS exactly once and never FAIL or SKIP
 ok   (harness) the run wrote nothing inside the checkout (git status unchanged)
-cases: 134/136 (build cases red: 2/110; guard and harness red: 0/26)
+cases: 134/136 (build cases red: 1/110; guard and harness red: 1/26)
 lift acceptance: 2 mismatch(es)
