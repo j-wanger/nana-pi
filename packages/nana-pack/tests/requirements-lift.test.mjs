@@ -1101,6 +1101,50 @@ if (process.platform !== "win32") {
   check("R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder",
     vGood.status === 0 && vBad.status === 1 && !crashed(vBad) && own(vBad.stderr).some((l) => new RegExp(`\\b${firstRowLine + 1}\\b`).test(l)),
     `vGood=${vGood.status} vBad=${vBad.status} line=${firstRowLine + 1} ` + own(vBad.stderr).join(" | "));
+
+  // --verify's OWN ledger and mapping git checks (MUST 2; the byte compare against HEAD alone
+  // never exercises these): an uncommitted edit to either the ledger or the mapping must refuse
+  // by name, before any proof or byte comparison runs.
+  writeFileSync(liftedPath, `${readFileSync(liftedPath, "utf8")}\n`);
+  const vDirtyLedger = lift(["--root", join(dir, sub), "--mapping", mapPath, "--verify", base]);
+  gitC(dir, "checkout", "--", `${sub}/REQUIREMENTS.md`);
+  writeFileSync(mapPath, `${readFileSync(mapPath, "utf8")}\n`);
+  const vDirtyMapping = lift(["--root", join(dir, sub), "--mapping", mapPath, "--verify", base]);
+  gitC(dir, "checkout", "--", `${sub}/maps/map.json`);
+  // req: R-1168
+  check("R-1168: --verify refuses an uncommitted edit to the ledger or to the mapping, naming the file, before comparing any bytes",
+    vDirtyLedger.status === 1 && !crashed(vDirtyLedger) && own(vDirtyLedger.stderr).some((l) => l.includes("REQUIREMENTS.md")) &&
+    vDirtyMapping.status === 1 && !crashed(vDirtyMapping) && own(vDirtyMapping.stderr).some((l) => l.includes("map.json")),
+    `ledger=${own(vDirtyLedger.stderr).join(" | ")} mapping=${own(vDirtyMapping.stderr).join(" | ")}`);
+}
+
+{
+  // MUST 2: --verify must run the SAME mapping validation and proof --write runs, not just a
+  // byte compare of the applied output against HEAD — a mapping missing a row, committed with
+  // its matching (row-dropped) ledger, must still be refused (the reviewer's check must not
+  // pass a lost row).
+  const dir = scratchDir("t33");
+  const base = flatLedger();
+  writeLedger(dir, base);
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "base");
+  const baseRev = gitC(dir, "rev-parse", "HEAD").stdout.trim();
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  map.tree[0].features[1].rows = []; // drop R-003 from the mapping entirely
+  writeFileSync(mapPath, JSON.stringify(map));
+  // Forge a HEAD ledger consistent with the TAMPERED mapping, as --write would have produced
+  // had the gate allowed it, so a plain byte-compare against HEAD alone would not catch this.
+  const forged = LIFT_MODULE.applyMapping(base, map, { byId: new Map(), subOf: new Map() });
+  writeFileSync(join(dir, "REQUIREMENTS.md"), forged);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "forged lift (R-003 silently dropped)");
+  const v = lift(["--root", dir, "--mapping", mapPath, "--verify", baseRev]);
+  // req: R-1168
+  check("R-1168: --verify refuses a mapping missing a row even when the committed ledger already matches that mapping's output byte for byte",
+    v.status === 1 && !crashed(v) && own(v.stderr).some((l) => /R-003/.test(l) && /missing from the mapping/.test(l)),
+    own(v.stderr).join(" | "));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");
