@@ -575,6 +575,46 @@ if (process.platform !== "win32") {
     JSON.stringify(closingRetyped.problems));
 }
 
+{
+  // Build brief 5 item 1 (MUST 1) and item 5: a plain, non-requirement 4-column table (a
+  // glossary, a "Signal/Threshold/Source/Date" table) is never a requirement-table header -- its
+  // header and delimiter must stay, both when a Part becomes a capability (flat) and when the
+  // ledger is already tree-form (the identity-mapping path, no --mapping). A fenced EXAMPLE of
+  // the real table header, with no row ever following it inside the fence, must not be mistaken
+  // for one either (item 5); the real table right after it still lifts correctly.
+  const flatText = [
+    "# Desk requirements", "", "Intro line.", "", "# Part A. Desk", "",
+    "Glossary for the desk:", "",
+    "| Term | Meaning | Source | Since |", "|---|---|---|---|",
+    "| SAR | Suspicious activity report | FinCEN | 2001 |", "",
+    "## Alerts", "", "A row looks like this:", "",
+    "```markdown", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "```", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | The desk shall raise an alert. | implemented | t |", "",
+    "## Thresholds", "",
+    "| Signal | Threshold | Source | Date |", "|---|---|---|---|",
+    "| cash | 10000 | BSA | 2026-01-01 |", "",
+  ].join("\n");
+  const keeps = (out) => out.includes("| Term | Meaning | Source | Since |") && out.includes("| Signal | Threshold | Source | Date |")
+    && out.includes("```markdown\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n```");
+
+  const flatDir = gitRepo("t-tbl4-flat", flatText);
+  const flatW = lift(["--root", flatDir, "--write"]);
+  const flatOut = readLedger(flatDir).toString("utf8");
+  const flatProof = proofOf(flatW.stdout);
+
+  // the same shape, already lifted to tree form: --write again takes the identity-mapping path.
+  const treeDir = gitRepo("t-tbl4-tree", flatOut);
+  const treeW = lift(["--root", treeDir, "--write"]);
+  const treeOut = readLedger(treeDir).toString("utf8");
+  const treeProof = proofOf(treeW.stdout);
+  // req: R-1163
+  check("R-1163: a 4-column table that holds no requirement row keeps its header and delimiter lines, flat and tree-form",
+    flatW.status === 0 && keeps(flatOut) && flatProof?.treeProblems === 0
+    && treeW.status === 0 && keeps(treeOut) && treeOut === flatOut && treeProof?.treeProblems === 0,
+    `flat=${flatW.status} flatProof=${JSON.stringify(flatProof)} tree=${treeW.status} same=${treeOut === flatOut} treeProof=${JSON.stringify(treeProof)} ` + own(flatW.stderr).concat(own(treeW.stderr)).join(" | "));
+}
+
 // ==================================================================================================
 // R-1164
 // ==================================================================================================

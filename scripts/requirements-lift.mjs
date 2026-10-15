@@ -89,10 +89,20 @@ function scanHeadings(bareLines, fenced) {
   }
   return out;
 }
+/**
+ * A header/delimiter pair is a REQUIREMENT-table header only when the next non-blank line after
+ * the delimiter is itself a requirement row (build brief 5 item 1): a plain 4-column table, e.g.
+ * `| Term | Meaning | Source | Since |`, is never replaced or dropped -- its lines are ordinary
+ * carried prose, like any other table a leaf holds. This also stops a fenced table EXAMPLE (one
+ * no row ever follows) from being mistaken for one (item 5).
+ */
 function isTableHeaderAt(bareLines, i) {
   const cells = markdownTableCells(bareLines[i] ?? "");
   const next = markdownTableCells(bareLines[i + 1] ?? "");
-  return Boolean(cells && cells.length === 4 && next && next.length === 4 && next.every((c) => /^:?-+:?$/.test(c)));
+  if (!(cells && cells.length === 4 && next && next.length === 4 && next.every((c) => /^:?-+:?$/.test(c)))) return false;
+  let j = i + 2;
+  while (j < bareLines.length && bareLines[j] === "") j++;
+  return Boolean(requirementRowId(bareLines[j] ?? ""));
 }
 /** The line ending of a raw segment, defaulting to "\n". */
 const eolOf = (seg) => (/\r\n$/.test(seg) ? "\r\n" : /\n$/.test(seg) ? "\n" : "\n");

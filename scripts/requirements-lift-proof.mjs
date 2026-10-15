@@ -65,15 +65,23 @@ function scanHeadings(bareLines, fenced) {
   }
   return out;
 }
-/** A line recognised as a table header, with the following line as its delimiter. */
+/**
+ * A line recognised as a table header, with the following line as its delimiter, only when the
+ * next non-blank line after the delimiter is itself a requirement row (build brief 5 item 1): a
+ * plain 4-column table that never holds a requirement row is not a requirement-table header, and
+ * its lines are ordinary carried prose like any other table a leaf holds. This also stops a
+ * fenced table EXAMPLE (one no row ever follows) from being mistaken for one (item 5).
+ */
 function isTableHeaderAt(bareLines, i) {
-  return bareLines[i] === TABLE_HEADER_TEXT && DELIM.test(bareLines[i + 1] ?? "")
-    ? true
-    : (() => {
-        const cells = bareLines[i]?.includes("|") ? bareLines[i].trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()) : null;
-        const next = bareLines[i + 1]?.includes("|") ? bareLines[i + 1].trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()) : null;
-        return Boolean(cells && cells.length === 4 && next && next.length === 4 && next.every((c) => /^:?-+:?$/.test(c)));
-      })();
+  const exact = bareLines[i] === TABLE_HEADER_TEXT && DELIM.test(bareLines[i + 1] ?? "");
+  if (!exact) {
+    const cells = bareLines[i]?.includes("|") ? bareLines[i].trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()) : null;
+    const next = bareLines[i + 1]?.includes("|") ? bareLines[i + 1].trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()) : null;
+    if (!(cells && cells.length === 4 && next && next.length === 4 && next.every((c) => /^:?-+:?$/.test(c)))) return false;
+  }
+  let j = i + 2;
+  while (j < bareLines.length && bareLines[j] === "") j++;
+  return Boolean(requirementRowId(bareLines[j] ?? ""));
 }
 /**
  * The 0-based raw-line indices, within ONE heading's own span, that are its field-line block --
