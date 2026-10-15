@@ -888,6 +888,49 @@ if (process.platform !== "win32") {
     `emit=${emit.status} w=${w.status} v=${v.status} ` + own(emit.stderr).concat(own(w.stderr), own(v.stderr)).join(" | "));
 }
 
+{
+  // Build brief 5 item 2 (MUST 2, G4): a mapping validateMapping accepts (it checks no field's
+  // text) whose OUTPUT fails the proof -- an empty Purpose: fails the tree checker's
+  // checkPurposes -- must refuse the write through the proof gate itself and leave the ledger
+  // untouched, not merely fail some earlier, unrelated check.
+  const dir = gitRepo("t-g4", flatLedger());
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  map.tree[0].features[0].purpose = "";
+  writeFileSync(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  const before = readLedger(dir);
+  const w = lift(["--root", dir, "--mapping", mapPath, "--write"]);
+  const after = readLedger(dir);
+  // req: R-1164
+  check("R-1164: --write refuses a mapping whose output fails the proof, writing nothing",
+    w.status === 1 && !crashed(w) && after.equals(before) && own(w.stderr).some((l) => /tree check:/.test(l)),
+    `status=${w.status} unchanged=${after.equals(before)} ` + own(w.stderr).join(" | "));
+}
+
+{
+  // Build brief 5 item 2 (MUST 2, P6b): a mapping node with no `label` is not caught by
+  // validateMapping (it checks no field's text), so it reaches applyMapping, which writes the
+  // literal "undefined" as the heading's label -- the mapping-mode heading check (proof check 6,
+  // active only with --mapping) must be the one that catches it, comparing the output's actual
+  // heading sequence against what the mapping itself declares.
+  const dir = gitRepo("t-p6b", flatLedger());
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  delete map.tree[0].features[0].label;
+  writeFileSync(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  const before = readLedger(dir);
+  const w = lift(["--root", dir, "--mapping", mapPath, "--write"]);
+  const after = readLedger(dir);
+  // req: R-1163
+  check("R-1163: a mapping node with no label is refused by the mapping-mode heading check",
+    w.status === 1 && !crashed(w) && after.equals(before) && own(w.stderr).some((l) => /heading sequence differs/.test(l)),
+    `status=${w.status} unchanged=${after.equals(before)} ` + own(w.stderr).join(" | "));
+}
+
 // ==================================================================================================
 // R-1165
 // ==================================================================================================
