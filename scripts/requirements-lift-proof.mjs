@@ -75,6 +75,31 @@ function isTableHeaderAt(bareLines, i) {
         return Boolean(cells && cells.length === 4 && next && next.length === 4 && next.every((c) => /^:?-+:?$/.test(c)));
       })();
 }
+/**
+ * The 0-based raw-line indices, within ONE heading's own span, that are its field-line block --
+ * exactly as the tree parser defines it (requirements-tree.mjs's `parseLedger`): the first
+ * "Purpose:" line, and -- for a CAP- heading -- the first "Outcome:" line, or -- for a FEAT-
+ * heading -- the first "Status:" and first "Also applies:" line. A heading with no tree id
+ * carries no field block at all. Duplicated from the lift module's own copy (R-1163: the proof
+ * shares no code with the writer; build brief 4 §A, MUST 1(b)): only these lines are a replaced
+ * heading's own regenerated field lines; a field-labelled line anywhere else is ordinary
+ * carried prose and must be accounted for like any other input line.
+ */
+function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
+  const set = new Set();
+  if (!id) return set;
+  const after = allHeadingLines.filter((l) => l > headingLine);
+  const end = after.length ? Math.min(...after) - 1 : bareLines.length;
+  let purposeFound = false, outcomeFound = false, statusFound = false, alsoFound = false;
+  for (let i = headingLine; i < end; i++) {
+    const l = bareLines[i];
+    if (!purposeFound && /^Purpose:/.test(l)) { set.add(i); purposeFound = true; continue; }
+    if (id.startsWith("CAP-") && !outcomeFound && /^Outcome:/.test(l)) { set.add(i); outcomeFound = true; continue; }
+    if (id.startsWith("FEAT-") && !statusFound && /^Status:/.test(l)) { set.add(i); statusFound = true; continue; }
+    if (id.startsWith("FEAT-") && !alsoFound && /^Also applies:/.test(l)) { set.add(i); alsoFound = true; continue; }
+  }
+  return set;
+}
 
 // -------------------------------------------------------------- the seed, parsed independently
 
@@ -156,6 +181,7 @@ function deriveDefaultSequence(inputText, seed) {
   const boundaries = [...sections.map((h) => h.line), bareLines.length + 1];
   const rowsOf = (idx) => rowsAt(sections[idx].line, boundaries[idx + 1]);
   const unsortedPurpose = (label) => `${UNSORTED_PREFIX} the rows of old section "${label}".`;
+  const unsortedOutcome = (label) => `${UNSORTED_PREFIX} the rows of old section "${label}" sorted into the tree.`;
 
   const seq = [];
   let capN = 0, featN = 0, subN = 0, capId = null, featId = null;
@@ -181,13 +207,13 @@ function deriveDefaultSequence(inputText, seed) {
     }
     if (h.level === 1) {
       capN++; const id = `CAP-${String(capN).padStart(2, "0")}`;
-      seq.push({ id, level: 1, parent: null, __sectionIndex: i, label: h.label, purpose: unsortedPurpose(h.label), from: [{ line: h.line, heading: headingText(h.line) }] });
+      seq.push({ id, level: 1, parent: null, __sectionIndex: i, label: h.label, purpose: unsortedPurpose(h.label), outcome: unsortedOutcome(h.label), from: [{ line: h.line, heading: headingText(h.line) }] });
       capId = id; featId = null; i++; continue;
     }
     // level 2 or 3 with no product capability above yet
     if (capId === null || capId === "CAP-90") {
       capN++; const synth = `CAP-${String(capN).padStart(2, "0")}`;
-      seq.push({ id: synth, level: 1, parent: null, label: UNSORTED_LABEL, purpose: UNSORTED_TEXT, from: [] });
+      seq.push({ id: synth, level: 1, parent: null, label: UNSORTED_LABEL, purpose: UNSORTED_TEXT, outcome: UNSORTED_TEXT, from: [] });
       capId = synth; featId = null;
     }
     if (h.level === 2) { featN++; const id = `FEAT-${String(featN).padStart(3, "0")}`; seq.push({ id, level: 2, parent: capId, label: h.label, purpose: unsortedPurpose(h.label), from: [{ line: h.line, heading: headingText(h.line) }] }); featId = id; i++; continue; }
@@ -228,6 +254,26 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     for (const k of mapping.tail?.keep ?? []) if (k.line < earliest) earliest = k.line;
     const headThrough = mapping.head?.through ?? 0;
     if (earliest !== Infinity && headThrough !== earliest - 1) problems.push(`head.through (${headThrough}) does not end just before the earliest named old heading (line ${earliest}); input lines in between would be lost`);
+  }
+
+  // 0b. every OLD heading after head.through must be named by the mapping, exactly once (build
+  // brief 4 §A, MUST 1(a)): an owner's "## Notes" section the mapping never named must not
+  // silently vanish. Independent of validateMapping (which a direct proveLift call, as the
+  // test suite's own probes make, never runs) and of whatever region the mapping DID declare:
+  // this scans the WHOLE input for every heading of any kind, tree or not.
+  {
+    const headThrough = mapping.head?.through ?? 0;
+    const namedOnce = new Map();
+    const nameHeading = (f) => { if (!f) return; namedOnce.set(f.line, (namedOnce.get(f.line) ?? 0) + 1); };
+    for (const { node } of nodesForHead) for (const f of node.from ?? []) nameHeading(f);
+    for (const f of mapping.tail?.from ?? []) nameHeading(f);
+    for (const k of mapping.tail?.keep ?? []) nameHeading(k);
+    for (const h of scanHeadings(inBare, inFenced)) {
+      if (h.line <= headThrough) continue;
+      const n = namedOnce.get(h.line) ?? 0;
+      if (n === 0) problems.push(`line ${h.line}: old heading "${inBare[h.line - 1]}" is not named by the mapping`);
+      else if (n > 1) problems.push(`line ${h.line}: old heading "${inBare[h.line - 1]}" is named more than once`);
+    }
   }
 
   // 2. the ID multiset, fences included
@@ -272,19 +318,45 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     const got = outRows.filter((r) => (r.heading?.id === id)).map((r) => r.id);
     if (JSON.stringify(got) !== JSON.stringify(want)) problems.push(`${id}: output row order ${JSON.stringify(got)} differs from the mapping's ${JSON.stringify(want)}`);
   }
-  const outSeq = outParsed.headings.map((h) => [h.id, h.label, h.purpose, h.parent?.id ?? null]);
-  const mapSeq = nodes.map(({ id, level, parent, node }) => { const t = nodeText(id, node, seed); return [id, t.label, t.purpose, parent]; });
-  if (!fromDefault && JSON.stringify(outSeq) !== JSON.stringify(mapSeq)) problems.push(`heading sequence differs from the mapping's declared nodes, labels, purposes and parents`);
+  // Outcome is compared too (build brief 4 §A): meaningful only for a CAP- heading, where it is
+  // the capability's own second field line; FEAT-/SUB- entries carry no outcome on either side,
+  // so they compare trivially equal.
+  const outSeq = outParsed.headings.map((h) => [h.id, h.label, h.purpose, h.id.startsWith("CAP-") ? h.outcome : null, h.parent?.id ?? null]);
+  const mapSeq = nodes.map(({ id, level, parent, node }) => { const t = nodeText(id, node, seed); return [id, t.label, t.purpose, id.startsWith("CAP-") ? t.outcome : null, parent]; });
+  if (!fromDefault && JSON.stringify(outSeq) !== JSON.stringify(mapSeq)) problems.push(`heading sequence differs from the mapping's declared nodes, labels, purposes, outcomes and parents`);
+
+  // the regions appear in order: head, then the nodes in mapping order, then the tail (build
+  // brief 4 §A -- noted as passing undetected today: "the whole tail moved before CAP-01" and a
+  // node heading relocated ahead of an earlier one both pass the checks above alone, since
+  // neither one compares a region's POSITION against the others).
+  {
+    const headLinesForOrder = Math.max(0, mapping.head?.through ?? 0);
+    const outHeadingScanForOrder = scanHeadings(outBare, outFenced);
+    const nodeLines = nodes.map(({ id }) => outHeadingScanForOrder.find((h) => h.id === id)?.line).filter((l) => l !== undefined);
+    const increasing = nodeLines.every((l, i) => i === 0 || l > nodeLines[i - 1]);
+    const headOk = !nodeLines.length || nodeLines[0] > headLinesForOrder;
+    const tailHasContentForOrder = Boolean((mapping.tail?.keep ?? []).length || (mapping.tail?.from ?? []).length);
+    let tailOk = true;
+    if (tailHasContentForOrder) {
+      const closingForOrder = outHeadingScanForOrder.find((h) => bare(outSegs[h.line - 1] ?? "") === mapping.tail.heading);
+      if (closingForOrder) tailOk = !nodeLines.length || closingForOrder.line > nodeLines.at(-1);
+    }
+    if (!increasing || !headOk || !tailOk) problems.push(`the output's regions are out of order: expected head, then the nodes in mapping order, then the tail`);
+  }
 
   // 9 (fromDefault): derive the whole sequence from the input alone and require equality
   if (fromDefault) {
     const derived = deriveDefaultSequence(inputText, seed);
-    // Every field compared below — label and purpose included — comes from the INPUT (or, for
-    // a reserved id, the independently-parsed seed), never from `mapping`, so a mapping whose
-    // label or purpose diverges from what the input alone implies cannot pass by agreeing with
-    // itself (MUST 3: the prior version borrowed label/purpose from the mapping here).
-    const derivedSeq = derived.map((d) => { if (RESERVED.has(d.id)) { const s = seed.byId.get(d.id); return [d.id, s?.label ?? "", s?.purpose ?? "", d.parent]; } return [d.id, d.label, d.purpose, d.parent]; });
-    if (JSON.stringify(outSeq) !== JSON.stringify(derivedSeq)) problems.push(`the output's heading sequence does not equal the sequence derived from the input alone (no capability above a section, the G run, or a section's level, label, purpose or parent differ from the input)`);
+    // Every field compared below — label, purpose and outcome included — comes from the INPUT
+    // (or, for a reserved id, the independently-parsed seed), never from `mapping`, so a
+    // mapping whose label, purpose or outcome diverges from what the input alone implies cannot
+    // pass by agreeing with itself (MUST 3: the prior version borrowed label/purpose from the
+    // mapping here).
+    const derivedSeq = derived.map((d) => {
+      if (RESERVED.has(d.id)) { const s = seed.byId.get(d.id); return [d.id, s?.label ?? "", s?.purpose ?? "", d.id.startsWith("CAP-") ? (s?.outcome ?? "") : null, d.parent]; }
+      return [d.id, d.label, d.purpose, d.id.startsWith("CAP-") ? (d.outcome ?? "") : null, d.parent];
+    });
+    if (JSON.stringify(outSeq) !== JSON.stringify(derivedSeq)) problems.push(`the output's heading sequence does not equal the sequence derived from the input alone (no capability above a section, the G run, or a section's level, label, purpose, outcome or parent differ from the input)`);
     // The mapping's own declared source line(s) for each id must match what the input alone
     // implies too, so a tampered or mismatched `from` pointer (a heading-ID collision, say)
     // cannot hide behind an otherwise-correct label and purpose.
@@ -345,17 +417,24 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     const after = outHeadingScan.filter((h) => h.line > line).map((h) => h.line).sort((a, b) => a - b);
     return after.length ? after[0] - 1 : outBare.length;
   };
+  const inAllHeadingLines = scanHeadings(inBare, inFenced).map((h) => h.line);
   const expectedProseFor = (fromEntries) => {
     const out = [];
     for (const f of fromEntries ?? []) {
       const startIdx = f.line; // 0-based index right after the heading line
-      const headingLines = scanHeadings(inBare, inFenced).map((h) => h.line).filter((l) => l > f.line).sort((a, b) => a - b);
+      const headingLines = inAllHeadingLines.filter((l) => l > f.line).sort((a, b) => a - b);
       const endIdx = headingLines.length ? headingLines[0] - 1 : inBare.length;
+      // Only the OLD heading's own field-line block -- exactly as the tree parser defines it,
+      // and only when that old heading is itself tree-form -- is regenerated fresh, never
+      // carried; a field-labelled line anywhere else is ordinary prose, required like any other
+      // (build brief 4 §A, MUST 1(b)).
+      const treeId = TREE_HEADING.exec(f.heading)?.[2] ?? null;
+      const fieldBlock = fieldBlockAt(inBare, inAllHeadingLines, f.line, treeId);
       for (let i = startIdx; i < endIdx; i++) {
         if (inFenced[i]) { out.push(inSegs[i]); continue; }
         const id = requirementRowId(inBare[i]);
         if (id) continue; // rows: accounted by check 3
-        if (/^(Purpose|Outcome|Status|Also applies):/.test(inBare[i])) continue; // the old heading's own field line, regenerated fresh
+        if (fieldBlock.has(i)) continue; // the old heading's own field line, regenerated fresh
         if (isTableHeaderAt(inBare, i)) { i++; continue; } // old header+delimiter pair: structural, replaced
         out.push(inSegs[i]);
       }

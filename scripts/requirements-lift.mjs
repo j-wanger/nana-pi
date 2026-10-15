@@ -133,6 +133,40 @@ function firstEncodingMismatchLine(buf) {
   return rawLines.length || 1;
 }
 
+/**
+ * The 0-based raw-line indices, within ONE heading's own span (from its line to just before the
+ * next heading of any kind), that are its field-line block -- exactly as the tree parser
+ * (`requirements-tree.mjs`'s `parseLedger`) defines it: the first "Purpose:" line, and -- for a
+ * CAP- heading -- the first "Outcome:" line, or -- for a FEAT- heading -- the first "Status:"
+ * and first "Also applies:" line. A heading with no tree id (a plain, non-tree heading) carries
+ * no field block at all -- the tree parser never scans one for fields -- so `id` null returns
+ * empty. Build brief 4 §A, MUST 1(b): only these lines are a replaced heading's own regenerated
+ * field lines; a field-labelled line anywhere else (a second "Purpose:", or an "Outcome:" under
+ * a feature, which the tree parser never reads) is ordinary carried prose, never silently
+ * dropped by the writer nor exempted from the base refusal below.
+ */
+function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
+  const set = new Set();
+  if (!id) return set;
+  const after = allHeadingLines.filter((l) => l > headingLine);
+  const end = after.length ? Math.min(...after) - 1 : bareLines.length;
+  let purposeFound = false, outcomeFound = false, statusFound = false, alsoFound = false;
+  for (let i = headingLine; i < end; i++) {
+    const l = bareLines[i];
+    if (!purposeFound && /^Purpose:/.test(l)) { set.add(i); purposeFound = true; continue; }
+    if (id.startsWith("CAP-") && !outcomeFound && /^Outcome:/.test(l)) { set.add(i); outcomeFound = true; continue; }
+    if (id.startsWith("FEAT-") && !statusFound && /^Status:/.test(l)) { set.add(i); statusFound = true; continue; }
+    if (id.startsWith("FEAT-") && !alsoFound && /^Also applies:/.test(l)) { set.add(i); alsoFound = true; continue; }
+  }
+  return set;
+}
+/** `fieldBlockAt`, unioned over every tree heading in the ledger (base-refusal scope). */
+function fieldBlockLines(bareLines, allHeadingLines, treeHeadings) {
+  const set = new Set();
+  for (const h of treeHeadings) for (const i of fieldBlockAt(bareLines, allHeadingLines, h.line, h.id)) set.add(i);
+  return set;
+}
+
 /** Problems a flat OR tree ledger's own bytes raise before any mapping is considered. */
 function baseRefusals(buf, text, parsed) {
   const problems = [];
@@ -154,20 +188,23 @@ function baseRefusals(buf, text, parsed) {
     if (h.setext) { problems.push(`line ${h.line}: setext heading is not supported; use an ATX "#" heading`); continue; }
     if (h.level >= 4) problems.push(`line ${h.line}: level ${h.level} heading is not supported; sections must be level 1 to 3`);
   }
-  // Carried field-label prose only risks confusing a DEFAULT lift's flat sections (research-code.md
-  // §3 item 7); a ledger that already carries a real tree heading takes the identity or
-  // neither-flat-nor-tree path instead, where this scan would otherwise false-positive on an
-  // informal "Purpose:" paragraph under an ordinary, non-tree heading (yokai-world's "## The
-  // product").
-  if (parsed.headings.length === 0) {
-    const headingLineSet = new Set(headings.map((h) => h.line));
-    for (let i = 0; i < bareLines.length; i++) {
-      if (fenced[i] || requirementRowId(bareLines[i])) continue;
-      if (headingLineSet.has(i + 1)) continue;
-      if (bareLines[i].startsWith("|")) continue; // table structure or continuation
-      if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
-      problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
-    }
+  // A field-labelled line that is NOT the legitimate field block of a tree heading is refused
+  // everywhere, not only in a wholly flat ledger (build brief 4 §A: "R-1167's refusal of a
+  // carried field-labelled line applies to tree-form input too, not only to flat ledgers"). In a
+  // flat ledger (no tree headings at all) `fieldBlock` is empty, so every match is refused, as
+  // before (yokai-world's informal "Purpose:" paragraph under a PLAIN, non-tree heading is
+  // likewise never in `fieldBlock` and stays refused -- it was never a false positive to begin
+  // with, since a plain heading carries no field block for the tree parser to recognise).
+  const headingLineSet = new Set(headings.map((h) => h.line));
+  const treeHeadings = headings.filter((h) => h.id);
+  const fieldBlock = fieldBlockLines(bareLines, headings.map((h) => h.line), treeHeadings);
+  for (let i = 0; i < bareLines.length; i++) {
+    if (fenced[i] || requirementRowId(bareLines[i])) continue;
+    if (headingLineSet.has(i + 1)) continue;
+    if (fieldBlock.has(i)) continue; // a tree heading's own, legitimate field line
+    if (bareLines[i].startsWith("|")) continue; // table structure or continuation
+    if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
+    problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
   }
   return problems;
 }
@@ -583,7 +620,14 @@ function sectionBody(node, segs, bareLines, fenced, allHeadingLines, mode) {
     const start = f.line;
     const after = allHeadingLines.filter((l) => l > f.line);
     const end = after.length ? Math.min(...after) - 1 : bareLines.length;
-    const isOldFieldLine = (i) => /^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i]);
+    // Only the OLD heading's own field-line block (exactly as the tree parser defines it, and
+    // only when that old heading is itself tree-form) is regenerated fresh and never carried; a
+    // field-labelled line anywhere else is ordinary prose, kept (build brief 4 §A, MUST 1(b)).
+    // `baseRefusals` already refuses any such stray line up front, so this guard is defence in
+    // depth for a caller that reaches `applyMapping` without it (e.g. a direct test probe).
+    const treeId = TREE_HEADING.exec(f.heading)?.[2] ?? null;
+    const fieldBlock = fieldBlockAt(bareLines, allHeadingLines, f.line, treeId);
+    const isOldFieldLine = (i) => fieldBlock.has(i);
     if (mode === "prose") {
       for (let i = start; i < end; i++) {
         if (fenced[i]) { out.push(segs[i]); continue; }
@@ -796,8 +840,6 @@ export function main(argv = process.argv.slice(2)) {
     const read = readMapping(mappingPath, rootDir, text);
     if (read.problems.length) { for (const p of capProblems(read.problems)) console.error(p); return 1; }
     mapping = read.mapping;
-    const vprobs = validateMapping(mapping, text, seed);
-    if (vprobs.length) { for (const p of capProblems(vprobs)) console.error(p); return 1; }
   } else {
     const ct = checkTree(text);
     if (ct.problems.length === 0) {
@@ -818,6 +860,13 @@ export function main(argv = process.argv.slice(2)) {
       return 1;
     }
   }
+  // Build brief 4 §A, MUST 1(a)/(c): validateMapping runs on a mapping this process built
+  // itself (the identity or default mapping), not only on one supplied with --mapping -- an
+  // owner's "## Notes" section the identity mapping never named, or a kept section the default
+  // builder's own bug left out of tail.keep, is exactly the "old heading is not named by the
+  // mapping" check below, already written for the supplied-mapping path.
+  const vprobs = validateMapping(mapping, text, seed);
+  if (vprobs.length) { for (const p of capProblems(vprobs)) console.error(p); return 1; }
 
   if (args.emitMapping) {
     const dest = resolve(rootDir, args.emitMapping);

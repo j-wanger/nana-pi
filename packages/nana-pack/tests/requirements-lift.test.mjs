@@ -329,15 +329,27 @@ if (process.platform !== "win32") {
   lift(["--root", crlfDir, "--emit-mapping", crlfMapPath]);
   const crlfMap = JSON.parse(readFileSync(crlfMapPath, "utf8"));
   T.strippedCR = proveLift(crlfBase, crlfMap, crlfOut.replace("| R-001 | The first thing shall work. | untested | — |\r\n", "| R-001 | The first thing shall work. | untested | — |\n"), SEED_TEXT, { fromDefault: true });
-  // An unterminated last row given an ending: a ledger whose last line, a row, has no final newline.
+  // An unterminated last row given an ending: a ledger whose last line, a row, has no final
+  // newline. The mapping is emitted BEFORE --write (build brief 4 §C), so it describes the
+  // FLAT input itself, not the identity mapping of the already-lifted ledger -- the untampered
+  // output then proves clean, rather than showing four unrelated problems from a mismatched map.
   const untermBase = "# u fixture\n\n## 1. One\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | the last thing shall work. | untested | — |";
   const uDir = gitRepo("t6-unterm", untermBase);
-  lift(["--root", uDir, "--write"]);
-  const uOut = readLedger(uDir).toString("utf8");
   const uMapPath = join(uDir, "map.json");
   lift(["--root", uDir, "--emit-mapping", uMapPath]);
+  lift(["--root", uDir, "--write"]);
+  const uOut = readLedger(uDir).toString("utf8");
   const uMap = JSON.parse(readFileSync(uMapPath, "utf8"));
   T.unterminatedGivenEnding = proveLift(untermBase, uMap, uOut.endsWith("\n") ? uOut : `${uOut}\n`, SEED_TEXT, { fromDefault: true });
+  // 2/11's real gap: a gained ending followed by MORE unterminated output. No file-end
+  // heuristic fires here (the file's very last line, now a stray appended table, is itself
+  // unterminated) -- only the per-row byte check, which must still see R-001's own segment
+  // differ from the input, catches a mutation that tolerates a gained ending for that row alone.
+  T.unterminatedThenMore = proveLift(untermBase, uMap, `${uOut}\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|`, SEED_TEXT, { fromDefault: true });
+  // 2/4's real gap: a blank line dropped from WITHIN an in-place leaf's own body region (the
+  // blank between R-002's row and the next node's heading), distinct from T.droppedBlankLine
+  // above (which drops the head's blank line, not any leaf's).
+  T.blankDroppedInPlace = probe(goodOut.replace(/(\| R-002 \|[^\n]*\|\n)\n(## FEAT-002)/, "$1$2"));
   // Split capability: a synthetic second "Not yet sorted" capability inserted mid-run, so
   // FEAT-002 (one generated capability's worth) sits under a NEW CAP-02 instead of CAP-01 —
   // check 9's default-derived sequence expects exactly one capability over this whole run.
@@ -420,6 +432,8 @@ if (process.platform !== "win32") {
     ["a row moved into a fence", T.rowMovedIntoFence, /output row order \[\] differs from the mapping's/],
     ["a heading-ID collision", T.headingIdCollision, /duplicate heading ID/],
     ["an unterminated last row given an ending", T.unterminatedGivenEnding, /the input's last line has no line ending, but the output's last line does/],
+    ["an unterminated last row followed by more unterminated output", T.unterminatedThenMore, /row R-001: output bytes differ from the input/],
+    ["a blank line dropped from an in-place leaf's own body", T.blankDroppedInPlace, /FEAT-001: prose from its old section\(s\) is missing/],
     ["a split capability", T.splitCapability, /the output's heading sequence does not equal the sequence derived from the input alone/],
     ["CAP-90 nesting (reserved R-row rule)", T.cap90Nesting, /an R row sits under reserved capability CAP-90/],
     ["a blank line dropped from a re-laid leaf", T.blankDroppedRelaid, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
