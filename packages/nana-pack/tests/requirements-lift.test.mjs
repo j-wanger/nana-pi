@@ -1174,6 +1174,57 @@ if (process.platform !== "win32") {
     rRowsString.status === 1 && !crashed(rRowsString) && own(rRowsString.stderr).some((l) => /"rows" must be an array/.test(l)) &&
     rTreeObject.status === 1 && !crashed(rTreeObject) && own(rTreeObject.stderr).some((l) => /"tree" must be an array/.test(l)),
     `rowsString=${own(rRowsString.stderr).join(" | ")} treeObject=${own(rTreeObject.stderr).join(" | ")}`);
+
+  // E1 (brief 4, D1): the four shapes the independent check found still crashing at 0dc5d1d --
+  // tail.keep holding null, also_applies as a bare string, an open-ended range, and a reversed
+  // range -- each refuses by name instead of throwing a stack trace.
+  const tailKeepNull = { ...good, tail: { ...good.tail, keep: [null] } };
+  const tailKeepNullPath = join(dir, "map-tailkeep-null.json");
+  writeFileSync(tailKeepNullPath, JSON.stringify(tailKeepNull));
+  const rTailKeepNull = lift(["--root", dir, "--mapping", tailKeepNullPath]);
+
+  const alsoAppliesString = { ...good, tree: good.tree.map((c) => ({ ...c, features: c.features.map((f) => ({ ...f, also_applies: "FEAT-002" })) })) };
+  const alsoAppliesStringPath = join(dir, "map-also-string.json");
+  writeFileSync(alsoAppliesStringPath, JSON.stringify(alsoAppliesString));
+  const rAlsoAppliesString = lift(["--root", dir, "--mapping", alsoAppliesStringPath]);
+
+  const openRange = { ...good, tree: good.tree.map((c) => ({ ...c, features: c.features.map((f) => ({ ...f, rows: ["R-001–"] })) })) };
+  const openRangePath = join(dir, "map-open-range.json");
+  writeFileSync(openRangePath, JSON.stringify(openRange));
+  const rOpenRange = lift(["--root", dir, "--mapping", openRangePath]);
+
+  const reversedRange = { ...good, tree: good.tree.map((c) => ({ ...c, features: c.features.map((f) => ({ ...f, rows: ["R-002–R-001"] })) })) };
+  const reversedRangePath = join(dir, "map-reversed-range.json");
+  writeFileSync(reversedRangePath, JSON.stringify(reversedRange));
+  const rReversedRange = lift(["--root", dir, "--mapping", reversedRangePath]);
+
+  // req: R-1167
+  check('R-1167: a mapping whose "tail.keep" holds null, "also_applies" a string, an open-ended row range or a reversed range refuses by name, never a crash',
+    rTailKeepNull.status === 1 && !crashed(rTailKeepNull) && own(rTailKeepNull.stderr).some((l) => /"tail\.keep" holds an entry/.test(l)) &&
+    rAlsoAppliesString.status === 1 && !crashed(rAlsoAppliesString) && own(rAlsoAppliesString.stderr).some((l) => /"also_applies" must be an array/.test(l)) &&
+    rOpenRange.status === 1 && !crashed(rOpenRange) && own(rOpenRange.stderr).some((l) => /is not a requirement ID or a valid en-dash range/.test(l)) &&
+    rReversedRange.status === 1 && !crashed(rReversedRange) && own(rReversedRange.stderr).some((l) => /is a reversed range/.test(l)),
+    `tailKeepNull=${own(rTailKeepNull.stderr).join(" | ")} alsoAppliesString=${own(rAlsoAppliesString.stderr).join(" | ")} openRange=${own(rOpenRange.stderr).join(" | ")} reversedRange=${own(rReversedRange.stderr).join(" | ")}`);
+}
+
+{
+  // D2: the unterminated-last-row rule must check the LAST EMITTED LINE OVERALL, not just the
+  // last feature or subgroup -- a mapping that adds an EMPTY capability (no features at all)
+  // after the leaf holding the ledger's unterminated last row must still refuse, naming the fix,
+  // rather than let the writer glue that capability's own heading onto the unterminated row.
+  const untermBase = "# u fixture\n\n## 1. One\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | the last thing shall work. | untested | — |";
+  const dir = gitRepo("t37", untermBase);
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  map.tree.push({ id: "CAP-02", label: "Empty", purpose: "x", outcome: "x", from: [], features: [] });
+  writeFileSync(mapPath, JSON.stringify(map));
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "empty trailing cap");
+  const r = lift(["--root", dir, "--mapping", mapPath]);
+  // req: R-1167
+  check("R-1167: a mapping with an empty trailing capability after the last leaf of a ledger ending in an unterminated row refuses naming the fix",
+    r.status === 1 && !crashed(r) && own(r.stderr).some((l) => /ends with an unterminated row R-001/.test(l) && /end the file with a line break/.test(l)),
+    own(r.stderr).join(" | "));
 }
 
 {

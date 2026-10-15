@@ -344,10 +344,24 @@ function shapeProblems(mapping) {
     if (!Array.isArray(from)) { problems.push(`${where}: "from" must be an array`); return; }
     for (const f of from) if (!isPlainObject(f) || typeof f.line !== "number" || typeof f.heading !== "string") problems.push(`${where}: "from" holds an entry that is not {line, heading}`);
   };
+  // E1 ("never a crash"): a row entry's own shape must be checked here too, before
+  // expandRowIds() ever runs on it elsewhere — a bare range with no end ID ("R-001–") or a
+  // reversed/cross-prefix range ("R-010–R-001") throws inside expandRowIds with no catch
+  // anywhere on the way there (apply, validateMapping's row loop, the plan's subtree count).
+  const ROW_OR_RANGE = /^([RG]-(?:[0-9]{3}|[1-9][0-9]{3}))(–([RG]-(?:[0-9]{3}|[1-9][0-9]{3})))?$/;
   const checkRows = (rows, where) => {
     if (rows === undefined) return;
     if (!Array.isArray(rows)) { problems.push(`${where}: "rows" must be an array of row IDs`); return; }
-    for (const r of rows) if (typeof r !== "string") problems.push(`${where}: "rows" holds a non-string entry`);
+    for (const r of rows) {
+      if (typeof r !== "string") { problems.push(`${where}: "rows" holds a non-string entry`); continue; }
+      const m = ROW_OR_RANGE.exec(r);
+      if (!m) { problems.push(`${where}: "${r}" is not a requirement ID or a valid en-dash range`); continue; }
+      if (m[3] && Number(m[3].slice(2)) < Number(m[1].slice(2))) problems.push(`${where}: "${r}" is a reversed range`);
+    }
+  };
+  const checkAlsoApplies = (value, where) => {
+    if (value === undefined) return;
+    if (!Array.isArray(value) || value.some((v) => typeof v !== "string")) problems.push(`${where}: "also_applies" must be an array of strings`);
   };
   if (mapping.head !== undefined && !isPlainObject(mapping.head)) problems.push('mapping: "head" must be an object');
   if (isPlainObject(mapping.head) && mapping.head.through !== undefined && typeof mapping.head.through !== "number") problems.push('mapping: "head.through" must be a number');
@@ -360,6 +374,7 @@ function shapeProblems(mapping) {
       if (!isPlainObject(feat) || typeof feat.id !== "string") { problems.push(`${cap.id}: a feature is not an object with a string "id"`); continue; }
       checkFrom(feat.from, feat.id);
       checkRows(feat.rows, feat.id);
+      checkAlsoApplies(feat.also_applies, feat.id);
       if (feat.subgroups !== undefined && !Array.isArray(feat.subgroups)) { problems.push(`${feat.id}: "subgroups" must be an array`); continue; }
       for (const sub of feat.subgroups ?? []) {
         if (!isPlainObject(sub) || typeof sub.id !== "string") { problems.push(`${feat.id}: a subgroup is not an object with a string "id"`); continue; }
@@ -372,6 +387,7 @@ function shapeProblems(mapping) {
   if (isPlainObject(mapping.tail)) {
     checkFrom(mapping.tail.from, "tail");
     if (mapping.tail.keep !== undefined && !Array.isArray(mapping.tail.keep)) problems.push('mapping: "tail.keep" must be an array');
+    else for (const k of mapping.tail.keep ?? []) if (!isPlainObject(k) || typeof k.line !== "number" || typeof k.heading !== "string") problems.push('mapping: "tail.keep" holds an entry that is not {line, heading}');
   }
   return problems;
 }
@@ -476,10 +492,16 @@ function validateMapping(mapping, text, seed) {
     const lastLineNo = rawSegs.length;
     const lastId = requirementRowId(bare(rawSegs.at(-1)));
     if (lastId) {
-      const lastLeaf = nodes.filter((n) => n.level > 1).at(-1);
-      const lastLeafRows = lastLeaf ? expandRowIds((lastLeaf.node.rows ?? []).join(",")) : [];
+      // Checks the LAST EMITTED LINE OVERALL, not just the last feature or subgroup: `nodes`
+      // (flattenNodes) pushes a capability, then its features and their subgroups, immediately
+      // after it, so a capability is last in this flattened list only when it has no features at
+      // all -- exactly the case a rowless trailing capability (or feature) placed after the
+      // leaf holding the unterminated row would otherwise slip past a level>1-only filter: it
+      // emits its own heading line, glued onto that unterminated row with no line break.
+      const lastNodeOverall = nodes.at(-1);
       const hasTail = Boolean(mapping.tail?.keep?.length || mapping.tail?.from?.length);
-      if (hasTail || lastLeafRows.at(-1) !== lastId) problems.push(`line ${lastLineNo}: the ledger ends with an unterminated row ${lastId}; a mapping may place nothing after it (end the file with a line break first)`);
+      const nothingAfter = !hasTail && lastNodeOverall && lastNodeOverall.level > 1 && expandRowIds((lastNodeOverall.node.rows ?? []).join(",")).at(-1) === lastId;
+      if (!nothingAfter) problems.push(`line ${lastLineNo}: the ledger ends with an unterminated row ${lastId}; a mapping may place nothing after it (end the file with a line break first)`);
     }
   }
   return problems;
