@@ -1,0 +1,2 @@
+V6b val G subgroup (clean): 1 red
+    R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in

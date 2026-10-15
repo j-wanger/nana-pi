@@ -1,0 +1,127 @@
+P0 proof head.through: 0 red
+P6 proof row order: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a reordered lea
+P10 proof reserved R: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= CAP-90 nesting 
+P15 proof tail prose: 0 red
+P21 proof matchProse skip any: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= prose moved to 
+V6 val G subgroup: 0 red
+V12 val proposed holds rows: 0 red
+R7 map encoding: 1 red
+    R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted {"r16":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-z8jvms/t25-67/map-utf16.json: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8","rAnsi":"/p
+B5 base field label: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"line 27: bytes are not valid UTF-8 (an ANSI or other single-byte encoding); save the file as UTF-8",
+G3 write ledger clean: 1 red
+    R-1164: --write refuses an uncommitted, staged-only, untracked or git-less ledger, an unborn HEAD, git missing from PATH and an uncommitted ledger edit in a second worktree, naming that worktree, and leaves the ledger unchanged untracked, unborn-HEAD, staged-unborn-HEAD
+Vf5 verify proof: 0 red
+S1 shape rows: 1 red
+    R-1167: a mapping whose "rows" is a string or whose "tree" is an object refuses by name, never a crash rowsString=file:///private/tmp/claude-501/-Users-jwang-nana-pi/dea1c010-278e-4392-a90f-df947a3a8b71/scratchpad/lift-mutate3-verify/tree0/scripts/requirements-lift.mjs:433 |     const rows = expandRowIds((node.rows ?? []).j
+S7 shape tail object: 0 red
+P1 proof BOM: 0 red
+P6b proof mapping seq: 0 red
+P10b proof reserved direct only: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= CAP-90 nesting 
+P16 proof kept verbatim: 0 red
+V1 val head.through: 0 red
+V7 val reserved R: 1 red
+    R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature rInReserved
+R1 map NUL: 1 red
+    R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted {"r16":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-SdS4vr/t25-67/map-utf16.json:19: bytes are not valid UTF-8 (an ANSI or other single-byte encoding)","rAnsi":"/pr
+R8 map outside root: 2 red
+    R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one untracked=true changed=true outside=false accept=true --write refused: mapping proj/maps/map.json is untracked | --write refused: mapping proj/maps/map.
+    R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted {"r16":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-rsa9Jq/t25-67/map-utf16.json: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8","rAnsi":"/p
+B6 base encoding: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"row R-900 appears 2 time(s) in the output but 1 in the input","rNoRows":"REQUIREMENTS.md: no require
+G4 write proof gate: 0 red
+Vf6 verify shape: 0 red
+S2 shape tree: 1 red
+    R-1167: a mapping whose "rows" is a string or whose "tree" is an object refuses by name, never a crash rowsString=/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-CUfQgw/t35-70/map-rows-string.json: FEAT-001: "rows" must be an array of row IDs | /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift
+A1 apply rows sorted: 0 red
+P2 proof multiset: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= R-1163: proof n
+P9 proof derived seq: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a split capabil
+P11 proof G subgroup: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a G row in anot
+P17 proof kept missing: 0 red
+V2 val not named: 0 red
+V8 val dup node: 0 red
+R3 map version: 1 red
+    R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted {"r16":"/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-iN9eZl/t25-67/map-utf16.json: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8","rAnsi":"/p
+B1 base repeat id: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"line 27: bytes are not valid UTF-8 (an ANSI or other single-byte encoding); save the file as UTF-8",
+W1 write reread: 1 red
+    R-1164: --write refuses when the ledger changes between the proof and the rename {"ok":true}
+Vf1 verify ledger clean: 1 red
+    R-1168: --verify refuses an uncommitted edit to the ledger or to the mapping, naming the file, before comparing any bytes ledger=--verify refused: line 15 differs from HEAD mapping=--verify refused: proj/maps/map.json proj/maps/map.json differs from HEAD
+Vf7 verify bytes: 1 red
+    R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder vGood=0 vBad=0 line=15 
+S3 shape tail.keep: 0 red
+D1 default drops 2nd kept: 7 red
+    R-1163: CRLF, BOM-and-CRLF, mixed-ending and unterminated ledgers keep every row line byte-identical with its own ending [{"label":"LF","status":0,"rowsKept":true,"endsLikeInput":true},{"label":"CRLF","status":0,"rowsKept":true,"endsLikeInput":true},{"label":"BOM-and-CRLF","status":0,"rowsKept":true,"endsLikeInput":true},{"
+    R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one untracked=false changed=false outside=true accept=false line 24: old heading "## Deliberate omissions" is not named by the mapping | line 24: old headin
+    R-1164: --write and --verify relate the ledger and mapping to the repository when --root is spelled differently from git's top level emit=0 w=1 v=1 line 24: old heading "## Deliberate omissions" is not named by the mapping | --verify refused: line 24: old heading "## Deliberate omissions" is not named by the mapping
+    R-1165: Open questions and Deliberate omissions stay verbatim under the seed's closing heading close=711 open=753 omit=-1 CLOSING_HEADING="# Open questions and deliberate omissions"
+    R-1166: the mapping --emit-mapping writes, passed back with --mapping, gives the default lift's bytes wA=0 wB=1
+    R-1166: one mapping applies to a ledger's LF and CRLF copies lf=1 crlf=1 line 24: old heading "## Deliberate omissions" is not named by the mapping | line 24: old heading "## Deliberate omissions" is not named by the mapping
+    R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder vGood=1 vBad=1 line=11 --verify refused: line 24: old heading "## Deliberate omissions" is not named by the mapping
+P3 proof row bytes: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a changed byte:
+P9L proof derived label from mapping: 0 red
+P12 proof tree check: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a heading-ID co
+P18 proof closing missing: 0 red
+V3 val named twice: 1 red
+    R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature twice
+V9 val row twice: 0 red
+R4 map U+FFFD: 0 red
+B2 base fenced row: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"line 27: bytes are not valid UTF-8 (an ANSI or other single-byte encoding); save the file as UTF-8",
+W2 write tmp cleanup: 1 red
+    R-1164: a failed rename removes the temp file and refuses, naming the reason, and leaves the ledger unchanged {"result":{"ok":false,"reason":"could not replace the ledger (EPERM: simulated rename failure)"},"removedTmpPath":null}
+Vf2 verify mapping clean: 1 red
+    R-1168: --verify refuses an uncommitted edit to the ledger or to the mapping, naming the file, before comparing any bytes ledger=--verify refused: proj/REQUIREMENTS.md proj/REQUIREMENTS.md differs from HEAD mapping=--verify refused: line 15 differs from HEAD
+Vf8 verify fromDefault false: 0 red
+S4 shape from: 0 red
+P3b proof row twice: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a duplicated ro
+P9F proof from compare: 0 red
+P13 proof head verbatim: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= a lost prose li
+P19 proof stray scan: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= two swapped lin
+V4 val missing row: 1 red
+    R-1168: --verify refuses a mapping missing a row even when the committed ledger already matches that mapping's output byte for byte --verify refused: row R-003 appears 0 time(s) in the output but 1 in the input
+V10 val unknown row: 1 red
+    R-1167: a mapping missing 1,000 rows prints at most the problem-line cap and the count of the rest lines=2 cap=40 last=row R-002 is missing from the mapping
+R5 map line break: 0 red
+B3 base setext: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"line 27: bytes are not valid UTF-8 (an ANSI or other single-byte encoding); save the file as UTF-8",
+G1 write worktree scan: 1 red
+    R-1164: --write refuses an uncommitted, staged-only, untracked or git-less ledger, an unborn HEAD, git missing from PATH and an uncommitted ledger edit in a second worktree, naming that worktree, and leaves the ledger unchanged dirty-second-worktree
+Vf3 verify pin: 0 red
+E2 merge move line: 1 red
+    R-1162: a merge (an old heading folded into another node's from) prints its own move line, naming the retired heading and its new home dry=0 mergeLine=[] w=0 noMoreFeat2=true allRowsUnderF1=true
+S5 shape head.through: 0 red
+P4 proof unterminated: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= an unterminated
+P8 proof input order: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= rows out of inp
+P14 proof node prose: 1 red
+    R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order baseline= prose moved to 
+P20 proof matchProse trailing: 0 red
+V5 val unterminated: 1 red
+    R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature unterminatedAfter
+V11 val heading text: 0 red
+R6 map pin: 1 red
+    R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature pin
+B4 base level4: 1 red
+    R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line {"r16":1,"rA":"line 27: bytes are not valid UTF-8 (an ANSI or other single-byte encoding); save the file as UTF-8",
+G2 write mapping clean: 1 red
+    R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one untracked=false changed=true outside=true accept=false /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/lift-test-DDbnj3/t10-31/proj/maps/map.js
+Vf4 verify validate: 1 red
+    R-1168: --verify refuses a mapping missing a row even when the committed ledger already matches that mapping's output byte for byte --verify refused: row R-003 appears 0 time(s) in the output but 1 in the input
+E3 default unterminated: 1 red
+    R-1163: an unterminated last row before a mid-file kept section refuses naming the fix, not the generic row-count mismatch, and writes nothing row R-002 appears 0 time(s) in the output but 1 in the input | the input's last line has no line ending, but the output's last line does | FEAT-002: output row order [] differs from 
+S6 shape features: 0 red

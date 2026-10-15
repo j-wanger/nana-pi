@@ -44,20 +44,23 @@
 //     reads them (seedNodeText), since the default mapping carries no text for a reserved node (§3.2).
 //
 // Never touches the lane worktree or the main checkout: everything runs in one detached scratch worktree in a
-// mkdtemp folder beside this script (the session scratchpad, under /private/tmp), removed at the end
+// mkdtemp folder under os.tmpdir() (never inside the lane folder), removed at the end
 // (SEAT_MUTATE_KEEP=1 keeps it for inspection); git writes only its worktree metadata into the shared .git.
 // SEAT_MUTATE_DRY=1 applies and syntax-checks every pair's edits and runs no test (an anchor check).
 // Usage: SEAT_MUTATE_OUT=<file> [SEAT_MUTATE_TIP=<rev>] [SEAT_MUTATE_DRY=1] node seat-mutate.mjs [pair-id ...]
 import { spawnSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
-const TIP = process.env.SEAT_MUTATE_TIP || "202a660";
+const TIP = process.env.SEAT_MUTATE_TIP || "0dc5d1d";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SCRATCH = fs.mkdtempSync(path.join(HERE, "work-"));
+// os.tmpdir(), never beside this script: a scratch git worktree inside the lane folder breaks copier-based suite
+// tests run there ("No url found for submodule path …/wt"). The tree lane's runner ran from the session scratchpad.
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "lift-seat-mutate-"));
 const WT = path.join(SCRATCH, "wt");
 const RUNS = path.join(SCRATCH, "runs");
 const KEEP = process.env.SEAT_MUTATE_KEEP === "1";
@@ -66,12 +69,13 @@ const TIMEOUT_MS = 10 * 60 * 1000;
 
 const DECLARED = [
 	"(a) row 2: all eleven proof variants (2/1-2/11) name T6, not \"the first ten\"; 2/12 names T7",
-	"(b) 2/4, 2/5, 2/7: the proof has one prose rule for every node (proof :309-319, :336-337); the pairs compute in-placeness in the mutated proof and loosen the rule for that kind only",
+	"(b) 2/4, 2/5, 2/7: the proof has one prose rule for every node (matchProse, proof :377-386, applied at :405-406 at 0dc5d1d); the pairs compute in-placeness in the mutated proof and loosen the rule for that kind only",
 	"(c) 2/9: check 9 (input-derived heading sequence) applied to a --mapping run; check 8 stays default-only",
 	"(d) 3/6: null/128 read as clean in gitClean and worktreeScan (lift :579-604); repoRootFor (:621-624) left as is",
 	"(e) 3/7: dropping only \"./\" is a no-op (git runs at the repo top with a repo-relative path, lift :748, :765); the pair reads the expected ledger as HEAD:REQUIREMENTS.md",
 	"(f) 6/4: row added after R-1169 and the outline regenerated, so only the 1,136 literal is stale",
 	"(g) 1/1 both emitters; 1/2 in-place prose (blanks included) emitted at the next node; 2/1 check 3 by ID; 2/2 check 6 as sets; 5/4 at seedNodeText",
+	"(h) build 3 re-anchors: 2/3 skips every stray-line check the proof now has (matchProse's non-blank refusal, interleaved and trailing, proof :380, :384, with the skipped lines marked consumed, and the whole-output stray scan, :450); 2/4, 2/5, 2/7 at matchProse (:405-406), 2/5 sorting the region's {seg, idx} entries by seg; 3/4 at writeLedgerAtomic's re-read (lift :673)",
 ];
 
 // ── test files ──────────────────────────────────────────────────────────────────────────────
@@ -134,7 +138,7 @@ const LEDGER_T = [RT];
 
 // The lift's own in-place rule, written inside the mutated proof for 2/4, 2/5, 2/7 (correction (b)).
 const IN_PLACE = "    const __inRows = [];\n    for (const f of node.from ?? []) { const hl = scanHeadings(inBare, inFenced).map((x) => x.line).filter((l) => l > f.line).sort((a, b) => a - b); const e = hl.length ? hl[0] - 1 : inBare.length; for (let k = f.line; k < e; k++) { const r = requirementRowId(inBare[k]); if (r) __inRows.push(r); } }\n    const __inPlace = JSON.stringify(__inRows) === JSON.stringify(nodeRows(node));\n";
-const PROSE_AT = "    const expected = expectedProseFor(node.from);\n    if (!proseMatches(expected, prose)) problems.push(";
+const PROSE_AT = "    const expected = expectedProseFor(node.from);\n    if (!matchProse(expected, prose)) problems.push(";
 const ROW_KEPT = "    if (o === seg) keptCount++;";
 const CHECK8_ROWS = "    if (JSON.stringify(got) !== JSON.stringify(fromRows)) problems.push(";
 
@@ -158,11 +162,11 @@ const PAIRS = [
 	// Row 2: proof
 	{ n: "2/1", name: "proof compares IDs only (check 3 by ID, not bytes)", edits: [one(PROOF, ROW_KEPT, "    if (requirementRowId(bare(o)) === id) keptCount++;")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/2", name: "proof skips the order check (check 6 compares sets)", edits: [one(PROOF, "    if (JSON.stringify(got) !== JSON.stringify(want)) problems.push(", "    if (JSON.stringify([...got].sort()) !== JSON.stringify([...want].sort())) problems.push(")], tests: LIFT_T, expectRed: [T6] },
-	{ n: "2/3", name: "proof skips the stray-line check", edits: [one(PROOF, "      while (j < actual.length && actual[j] !== e && isBlankSeg(actual[j]) && !isBlankSeg(e)) j++;", "      while (j < actual.length && actual[j] !== e) j++;"), one(PROOF, "    while (j < actual.length) { if (!isBlankSeg(actual[j])) return false; j++; }", "    j = actual.length;")], tests: LIFT_T, expectRed: [T6] },
-	{ n: "2/4", name: "proof skips blank lines in an in-place leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from).filter((s) => !(__inPlace && isBlankSeg(s)));\n    if (!proseMatches(expected, prose)) problems.push(")], tests: LIFT_T, expectRed: [T6] },
-	{ n: "2/5", name: "proof ignores line order in an in-place leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from);\n    if (!(__inPlace ? proseMatches([...expected].sort(), [...prose].sort()) : proseMatches(expected, prose))) problems.push(")], tests: LIFT_T, expectRed: [T6] },
+	{ n: "2/3", name: "proof skips the stray-line check", edits: [one(PROOF, "      while (j < actual.length && actual[j].seg !== e && isBlankSeg(actual[j].seg) && !isBlankSeg(e)) { consumed[actual[j].idx] = true; j++; }", "      while (j < actual.length && actual[j].seg !== e) { consumed[actual[j].idx] = true; j++; }"), one(PROOF, "    while (j < actual.length) { if (!isBlankSeg(actual[j].seg)) return false; consumed[actual[j].idx] = true; j++; }", "    while (j < actual.length) { consumed[actual[j].idx] = true; j++; }"), one(PROOF, "  if (strayLines.length) problems.push(", "  if (false) problems.push(")], tests: LIFT_T, expectRed: [T6] },
+	{ n: "2/4", name: "proof skips blank lines in an in-place leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from).filter((s) => !(__inPlace && isBlankSeg(s)));\n    if (!matchProse(expected, prose)) problems.push(")], tests: LIFT_T, expectRed: [T6] },
+	{ n: "2/5", name: "proof ignores line order in an in-place leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from);\n    if (!(__inPlace ? matchProse([...expected].sort(), [...prose].sort((a, b) => (a.seg < b.seg ? -1 : a.seg > b.seg ? 1 : 0))) : matchProse(expected, prose))) problems.push(")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/6", name: "proof skips the default's input-order check (check 8)", edits: [one(PROOF, CHECK8_ROWS, "    if (false) problems.push(")], tests: LIFT_T, expectRed: [T6] },
-	{ n: "2/7", name: "proof skips blank lines in a re-laid leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from).filter((s) => !(!__inPlace && isBlankSeg(s)));\n    if (!proseMatches(expected, prose)) problems.push(")], tests: LIFT_T, expectRed: [T6] },
+	{ n: "2/7", name: "proof skips blank lines in a re-laid leaf", edits: [one(PROOF, PROSE_AT, IN_PLACE + "    const expected = expectedProseFor(node.from).filter((s) => !(!__inPlace && isBlankSeg(s)));\n    if (!matchProse(expected, prose)) problems.push(")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/8", name: "proof derives the default's headings from the mapping", edits: [one(PROOF, "    const derived = deriveDefaultSequence(inputText, seed);", "    const derived = mappingNodes(mapping).map(({ id, level, parent }) => ({ id, level, parent }));")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/9", name: "proof applies the default's input-derived placement to a --mapping run", edits: [one(PROOF, "  if (fromDefault) {\n    const derived = deriveDefaultSequence(inputText, seed);", "  {\n    const derived = deriveDefaultSequence(inputText, seed);"), one(PROOF, "      if (!(node.from ?? []).length) continue;\n      const fromRows = [];", "      if (!fromDefault || !(node.from ?? []).length) continue;\n      const fromRows = [];")], tests: LIFT_T, expectRed: [T6] },
 	{ n: "2/10", name: "proof skips the reserved-node row check", edits: [one(PROOF, "  for (const row of outRows) {", "  for (const row of []) {")], tests: LIFT_T, expectRed: [T6] },
@@ -172,7 +176,7 @@ const PAIRS = [
 	{ n: "3/1", name: "gate drops `ls-files`", edits: [one(LIFT, "  const lsErr = git(cwd, [\"ls-files\", \"--error-unmatch\", \"--\", relPath]);\n  if (lsErr.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (lsErr.status !== 0) return { ok: false, reason: `${relPath} is untracked` };\n", "")], tests: LIFT_T, expectRed: [T9] },
 	{ n: "3/2", name: "gate byte-compares with `git show`", edits: [one(LIFT, "  const diff = git(cwd, [\"diff\", \"--quiet\", \"HEAD\", \"--\", relPath]);", "  const diff = (() => { const s = spawnSync(\"git\", [\"show\", `HEAD:./${relPath}`], { cwd }); if (s.status !== 0) return { status: s.status }; let cur; try { cur = readFileSync(join(cwd, relPath)); } catch { return { status: 1 }; } return { status: s.stdout.equals(cur) ? 0 : 1 }; })();")], tests: LIFT_T, expectRed: [T11] },
 	{ n: "3/3", name: "gate skips the mapping", edits: [one(LIFT, "  if (mappingPath) {\n    const relMap", "  if (false && mappingPath) {\n    const relMap")], tests: LIFT_T, expectRed: [T10] },
-	{ n: "3/4", name: "gate skips the re-read", edits: [one(LIFT, "  if (!reread.equals(buf)) {", "  if (false && !reread.equals(buf)) {")], tests: LIFT_T, expectRed: [T12] },
+	{ n: "3/4", name: "gate skips the re-read", edits: [one(LIFT, "  if (!reread.equals(provedBuf)) return { ok: false, reason:", "  if (false && !reread.equals(provedBuf)) return { ok: false, reason:")], tests: LIFT_T, expectRed: [T12] },
 	{ n: "3/5", name: "gate skips the worktree scan", edits: [one(LIFT, "  const wtScan = worktreeScan(repoRoot, relLedger);", "  const wtScan = { ok: true };")], tests: LIFT_T, expectRed: [T9] },
 	{ n: "3/6", name: "gate reads a null or 128 git status as clean", edits: [one(LIFT, "  if (lsErr.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (lsErr.status !== 0) return", "  if (lsErr.status !== 0 && lsErr.status !== null && lsErr.status !== 128) return"), one(LIFT, "  if (diff.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (diff.status === 128) return { ok: false, reason: \"HEAD has no commit yet; commit the ledger first\" };\n  if (diff.status !== 0) return", "  if (diff.status !== 0 && diff.status !== null && diff.status !== 128) return"), one(LIFT, "  if (list.status !== 0) return", "  if (list.status !== 0 && list.status !== null && list.status !== 128) return"), one(LIFT, "    if (diff.status === 0) continue;", "    if (diff.status === 0 || diff.status === null || diff.status === 128) continue;")], tests: LIFT_T, expectRed: [T9] },
 	{ n: "3/7", name: "verify reads `HEAD:REQUIREMENTS.md` without `./`", edits: [one(LIFT, "  const expected = git(repoRoot, [\"show\", `HEAD:./${relLedger}`]);", "  const expected = git(repoRoot, [\"show\", \"HEAD:REQUIREMENTS.md\"]);")], tests: LIFT_T, expectRed: [T28] },
