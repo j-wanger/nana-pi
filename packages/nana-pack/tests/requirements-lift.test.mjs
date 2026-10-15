@@ -413,6 +413,11 @@ if (process.platform !== "win32") {
     const moved = gOut2.replace("| G-004 | fixture general row three shall hold. | untested | — |\n\n", "").replace("| G-001 | fixture general row one shall hold. | untested | — |\n", "| G-001 | fixture general row one shall hold. | untested | — |\n| G-004 | fixture general row three shall hold. | untested | — |\n");
     T.gRowWrongSubgroup = proveLift(gBase2, gMap2, moved, SEED_TEXT, { fromDefault: true });
   })();
+  // A kept TAIL section dropped entirely (heading and body), not just a line within it (build
+  // brief 4 §C: the seat's combined "whole tail accounting" mutation disables the tail prose
+  // match, the kept-span check, the kept-section-missing check and the closing-heading-missing
+  // check all at once; this tamper needs only the one still standing to red).
+  T.keptSectionDropped = probe(goodOut.replace(/\n## Deliberate omissions\n\n1\. A deliberate omission\.\n?$/, "\n"));
   // Each entry asserts BOTH that the probe is red AND that it names the SPECIFIC problem text
   // the check it targets emits (brief 3 §D) — a redundant check elsewhere catching the same
   // tamper under a DIFFERENT message would not, by itself, satisfy the pattern.
@@ -439,6 +444,7 @@ if (process.platform !== "win32") {
     ["a blank line dropped from a re-laid leaf", T.blankDroppedRelaid, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
     ["a section's lines out of order", T.sectionLinesOutOfOrder, /prose from its old section\(s\) is missing, reordered, stray, or duplicated/],
     ["a G row in another reserved subgroup", T.gRowWrongSubgroup, /not its seed subgroup/],
+    ["a kept tail section dropped entirely", T.keptSectionDropped, /tail: kept section ".*" is missing from the output/],
   ];
   const allRed = tz.every(([, r, pattern]) => r.problems.length > 0 && r.problems.some((p) => pattern.test(p)));
   const baselineClean = baseline.problems.length === 0;
@@ -458,6 +464,31 @@ if (process.platform !== "win32") {
   check("R-1163: the proof module imports nothing from the lift module",
     direct.every((s) => !s.includes("requirements-lift.mjs") || s.includes("requirements-lift-proof.mjs")) && ![...reach].some((f) => f.endsWith("requirements-lift.mjs")),
     direct.join(", "));
+}
+
+{
+  // Build brief 4 §C: the basketball-geek repro (head.through under-counted: 1 instead of the
+  // true 4) must be refused by BOTH the validator AND the proof independently -- the seat's
+  // "P0+V1 head.through (both)" mutation disables the SAME check text in both modules at once,
+  // and no existing test exercised a mapping whose head.through is simply wrong.
+  const dir = gitRepo("t37b", flatLedger());
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  const trueHeadThrough = map.head.through;
+  map.head.through = 1; // basketball-geek: true value 4, wrongly claimed as 1
+  writeFileSync(mapPath, JSON.stringify(map));
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "wrong head.through");
+  const r = lift(["--root", dir, "--mapping", mapPath]);
+  const validatorNamed = r.status === 1 && !crashed(r) && own(r.stderr).some((l) => /head\.through \(1\) must end just before the earliest named old heading/.test(l));
+  // Probe the proof directly too (bypassing validateMapping, as T6's own probes do), so a
+  // mutation disabling ONLY the validator's copy still reds here.
+  const proofProbe = proveLift(flatLedger(), map, LIFT_MODULE.applyMapping(flatLedger(), map, { byId: new Map(), subOf: new Map() }), SEED_TEXT, { fromDefault: true });
+  const proofNamed = proofProbe.problems.some((p) => /head\.through \(1\) does not end just before the earliest named old heading/.test(p));
+  // req: R-1163
+  check("R-1163: a mapping whose head.through under-counts the true boundary is refused by the validator and independently named by the proof",
+    trueHeadThrough === 4 && validatorNamed && proofNamed,
+    `trueHeadThrough=${trueHeadThrough} validator=${own(r.stderr).join(" | ")} proof=${JSON.stringify(proofProbe.problems)}`);
 }
 
 // ==================================================================================================
