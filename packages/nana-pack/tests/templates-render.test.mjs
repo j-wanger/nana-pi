@@ -184,6 +184,8 @@ function partG(language, dest, mode) {
 
 const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .';
 const REPORT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/product-report.mjs" --root .';
+const LIFT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root .';
+const LIFT_SCRIPT = "scripts/requirements-lift.mjs";
 // R-1153: the "How this file is organized" section is single-sourced from this file and
 // pulled into both languages, both modes, with a Jinja include — never hand-duplicated.
 const SHARED_ORGANIZATION = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-organization.md"), "utf-8");
@@ -466,6 +468,33 @@ function checkRequirementsSkillTreeText() {
 	// req: R-1156
 	check("requirements skill names the tree check and the product report with a project root",
 		[CHECKER_SKILL_CMD, REPORT_SKILL_CMD].every((p) => reqSkill.includes(p)));
+	// req: R-1169
+	check("requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has",
+		checkLiftSkillText(reqSkill));
+}
+
+/**
+ * R-1169: the requirements skill names the lift's dry run exactly, says --write runs only after
+ * the owner's yes while the ledger matches HEAD in every worktree, says the seat tells the owner
+ * about uncommitted edits and never discards another session's lines, and shows the lift no flag
+ * its own source lacks (seat-titles.mjs T29; the collapsed-whitespace phrases mirror the acceptance
+ * oracle so a wrapped line cannot hide one).
+ */
+function checkLiftSkillText(reqSkill) {
+	const phrases = [LIFT_SKILL_CMD, "only after the owner's yes", "matches HEAD in every worktree", "never commit, stash or discard another session's lines"];
+	if (!phrases.every((p) => reqSkill.includes(p))) return false;
+	if (!/uncommitted[^.]*\btell the owner\b/i.test(reqSkill) && !/\breports? uncommitted ledger edits to the owner\b/i.test(reqSkill)) return false;
+	const liftSource = fs.readFileSync(path.join(REPO, LIFT_SCRIPT), "utf8");
+	const skillRaw = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
+	const FLAG = /(?<![\w-])--[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?![\w-])/g;
+	const liftParas = skillRaw.split(/\n\s*\n/).filter((p) => /requirements-lift\.mjs|\blift\b/i.test(p));
+	const liftFlags = [...new Set(liftParas.flatMap((p) => {
+		const spans = [...p.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((s) => s.includes("requirements-lift.mjs") || !/\.(?:mjs|cjs|js|ts|py)\b/.test(s));
+		return [...spans, p.replace(/`[^`]*`/g, " ")].flatMap((s) => s.match(FLAG) ?? []);
+	}))];
+	if (!liftFlags.includes("--root") || !liftFlags.includes("--write")) return false;
+	const wholeFlag = (f) => new RegExp(`(?<![\\w-])${f}(?![\\w-])`).test(liftSource);
+	return liftFlags.every(wholeFlag);
 }
 checkRequirementsSkillTreeText();
 

@@ -1,0 +1,896 @@
+/**
+ * @module packages/nana-pack/tests/requirements-lift.test.mjs
+ * @purpose Pin the lift's dry run, proof, default mapping, supplied-mapping and git-gated write and verify behaviour against built fixtures.
+ * @inputs scripts/requirements-lift.mjs, scripts/requirements-lift-proof.mjs, templates/_shared/requirements-general.md, and ledger/mapping fixtures built by each test under the OS temp directory.
+ * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
+ * @effects disk (creates fixtures and scratch git repositories under the OS temp directory; never touches a real project), process (spawns node and git as children)
+ * @errors A failed check prints its reason and exits non-zero.
+ */
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { tmpDir } from "./tmp-dir.mjs";
+import { proveLift } from "../../../scripts/requirements-lift-proof.mjs";
+import * as LIFT_MODULE from "../../../scripts/requirements-lift.mjs";
+
+let fails = 0;
+const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
+
+const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+const LIFT = join(REPO_ROOT, "scripts/requirements-lift.mjs");
+const SEED_TEXT = readFileSync(join(REPO_ROOT, "templates/_shared/requirements-general.md"), "utf8");
+
+// A spawned run's own Node module-loading warning for the .ts rail import (tree test's own()).
+const NODE_WARNING = [/^\(node:\d+\) /, /^Reparsing as ES module because/, /^To eliminate this warning, add "type": "module"/, /^\(Use `node --trace-warnings/];
+const lines = (s) => (s ?? "").replace(/\r/g, "").split("\n").filter((l, i, all) => !(l === "" && i === all.length - 1));
+const own = (stderr) => lines(stderr).filter((l) => !NODE_WARNING.some((re) => re.test(l)));
+const cleanEnv = () => { const env = { ...process.env }; for (const k of Object.keys(env)) if (/^GIT_/.test(k)) delete env[k]; return env; };
+const node = (args, cwd, extra = {}) => spawnSync(process.execPath, args, { cwd, encoding: "utf8", timeout: 120_000, env: cleanEnv(), ...extra });
+const lift = (args, cwd) => node([LIFT, ...args], cwd ?? REPO_ROOT);
+/** A refusal must be the lift's own named one, never Node's crash. */
+const crashed = (r) => /Cannot find module|\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m.test(r?.stderr ?? "") || r?.status === null;
+const PROOF_RE = /^lift proof: (\d+) rows kept byte-identical; (\d+) prose lines carried; (\d+) headings replaced; (\d+) lines inserted; tree check (\d+) problems$/;
+const proofOf = (stdout) => { const m = lines(stdout).map((l) => PROOF_RE.exec(l)).filter(Boolean); return m.length === 1 ? { rows: +m[0][1], prose: +m[0][2], headings: +m[0][3], inserted: +m[0][4], treeProblems: +m[0][5] } : null; };
+
+const scratchRoot = mkdtempSync(join(tmpdir(), "lift-test-"));
+process.on("exit", () => { try { rmSync(scratchRoot, { recursive: true, force: true }); } catch {} });
+let n = 0;
+function scratchDir(prefix) { n++; const d = join(scratchRoot, `${prefix}-${n}`); mkdirSync(d, { recursive: true }); return d; }
+function writeLedger(dir, text) { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "REQUIREMENTS.md"), text); return dir; }
+const gitEnv = { ...cleanEnv() };
+function git(cwd, ...args) { return spawnSync("git", args, { cwd, encoding: "utf8", env: gitEnv }); }
+function gitC(cwd, ...args) { return spawnSync("git", ["-c", "user.name=test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", ...args], { cwd, encoding: "utf8", env: gitEnv }); }
+/** A clean scratch repo with the given ledger text committed on branch main; autocrlf pinned false. */
+function gitRepo(prefix, text, { autocrlf = "false" } = {}) {
+  const dir = scratchDir(prefix);
+  writeLedger(dir, text);
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", autocrlf);
+  gitC(dir, "add", "-A");
+  gitC(dir, "commit", "-qm", "init");
+  return dir;
+}
+function readLedger(dir) { try { return readFileSync(join(dir, "REQUIREMENTS.md")); } catch { return null; } }
+
+// ---------------------------------------------------------------- fixture ledgers (built here, never a real project's)
+
+/** A small flat ledger: a title/intro, Part A with sections 1 and 2 (rows), kept sections at the end. */
+function flatLedger() {
+  return [
+    "# fixture requirements",
+    "",
+    "Intro prose for the fixture.",
+    "",
+    "# Part A. Alpha",
+    "",
+    "## 1. One",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | The first thing shall work. | untested | — |",
+    "| R-002 | The second thing shall work. | untested | — |",
+    "",
+    "## 2. Two",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-003 | The third thing shall work. | untested | — |",
+    "",
+    "## Open questions",
+    "",
+    "1. An open question.",
+    "",
+    "## Deliberate omissions",
+    "",
+    "1. A deliberate omission.",
+    "",
+  ].join("\n");
+}
+/** A flat ledger with no Part above its two sections (basketball-geek's shape). */
+function flatLedgerNoParts() {
+  return [
+    "# no-part fixture",
+    "",
+    "## 1. One",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | The first thing shall work. | untested | — |",
+    "",
+    "## 2. Two",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-002 | The second thing shall work. | untested | — |",
+    "",
+  ].join("\n");
+}
+/**
+ * A flat ledger with a general-engineering block (trading-zone's shape): a product section, a
+ * bare `# Part G.` wrapper with only prose, one G-run section (real seed IDs, routed to
+ * SUB-900 "Configuration and provenance"), then a product section after the run.
+ */
+function flatLedgerWithG() {
+  return [
+    "# g-fixture requirements",
+    "",
+    "## 1. Before",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | The before thing shall work. | untested | — |",
+    "",
+    "# Part G. General engineering requirements",
+    "",
+    "Prose for the general block.",
+    "",
+    "## G1. Configuration",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| G-001 | fixture general row one shall hold. | untested | — |",
+    "| G-002 | fixture general row two shall hold. | untested | — |",
+    "",
+    "## G2. Module boundaries",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| G-004 | fixture general row three shall hold. | untested | — |",
+    "",
+    "## 2. After",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-002 | The after thing shall work. | untested | — |",
+    "",
+  ].join("\n");
+}
+
+const flatLines = (s) => s.split("\n").length - 1;
+
+// ==================================================================================================
+// R-1162
+// ==================================================================================================
+
+{
+  const dir = writeLedger(scratchDir("t1"), flatLedger());
+  const before = readFileSync(join(dir, "REQUIREMENTS.md"));
+  const r = lift(["--root", dir]);
+  const after = readFileSync(join(dir, "REQUIREMENTS.md"));
+  const idLines = lines(r.stdout).filter((l) => /^(CAP|FEAT|SUB)-/.test(l));
+  const moveLines = lines(r.stdout).filter((l) => l.includes("->") || l.includes("→"));
+  const proof = proofOf(r.stdout);
+  // req: R-1162
+  check("R-1162: a dry run prints one line per planned heading, no move, and the proof line, and writes nothing",
+    r.status === 0 && idLines.length === 3 && moveLines.length === 0 && proof !== null && proof.rows === 3 && proof.treeProblems === 0 && before.equals(after),
+    `status=${r.status} idLines=${idLines.length} moves=${moveLines.length} proof=${JSON.stringify(proof)} ` + own(r.stderr).join(" | "));
+}
+
+{
+  const dir = writeLedger(scratchDir("t2"), flatLedger());
+  const dest = join(dir, "map.json");
+  const r1 = lift(["--root", dir, "--emit-mapping", dest]);
+  const map1 = readFileSync(dest, "utf8");
+  const r2 = lift(["--root", dir, "--emit-mapping", dest]);
+  const otherFiles = (() => { try { return readFileSync(dest, "utf8"); } catch { return null; } })();
+  // req: R-1162
+  check("R-1162: --emit-mapping writes only the named new file and refuses one that exists",
+    r1.status === 0 && JSON.parse(map1).lift === 1 && r2.status !== 0 && !crashed(r2) && otherFiles === map1,
+    `r1=${r1.status} r2=${r2.status} ` + own(r2.stderr).join(" | "));
+}
+
+if (process.platform !== "win32") {
+  const dir = writeLedger(scratchDir("t3"), flatLedgerNoParts());
+  const link = join(scratchRoot, "lift-link.mjs");
+  try { symlinkSync(LIFT, link); } catch {}
+  const r = node([link, "--root", dir]);
+  const proof = proofOf(r.stdout);
+  // req: R-1162
+  check("R-1162: run through a symlink to the script, the dry run still prints its plan",
+    r.status === 0 && proof !== null && proof.rows === 2,
+    `status=${r.status} proof=${JSON.stringify(proof)} ` + own(r.stderr).join(" | "));
+}
+
+{
+  const dir = gitRepo("t31", flatLedger());
+  const w = lift(["--root", dir, "--write"]);
+  const lifted = readLedger(dir);
+  const idPath = join(dir, "identity.json");
+  const emit = lift(["--root", dir, "--emit-mapping", idPath]);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "mapping");
+  const applied = lift(["--root", dir, "--mapping", idPath]);
+  const moveLines = lines(applied.stdout).filter((l) => l.includes("->") || l.includes("→"));
+  const idMap = JSON.parse(readFileSync(idPath, "utf8"));
+  const w2 = lift(["--root", dir, "--mapping", idPath, "--write"]);
+  const afterIdentity = readLedger(dir);
+  // req: R-1162
+  check("R-1162: --emit-mapping on a lifted ledger writes the identity mapping, which --mapping applies with no move line and the same bytes",
+    w.status === 0 && emit.status === 0 && idMap.lift === 1 && applied.status === 0 && moveLines.length === 0 && w2.status === 0 && afterIdentity.equals(lifted),
+    `w=${w.status} emit=${emit.status} applied=${applied.status} moves=${moveLines.length} w2=${w2.status} ` + own(applied.stderr).concat(own(w2.stderr)).join(" | "));
+}
+
+// ==================================================================================================
+// R-1163
+// ==================================================================================================
+
+{
+  const text = flatLedger().replace("| R-003 | The third thing shall work. | untested | — |", "| R-003 | The third thing shall work.  | untested | — |"); // trailing space in the cell
+  const dir = writeLedger(scratchDir("t4"), text);
+  const r = lift(["--root", dir]);
+  const proof = proofOf(r.stdout);
+  const inIds = (text.match(/\| R-\d{3} \|/g) ?? []).map((m) => m.match(/R-\d{3}/)[0]);
+  const w = gitRepo("t4w", text);
+  const write = lift(["--root", w, "--write"]);
+  const lifted = readLedger(w).toString("utf8");
+  const outIds = (lifted.match(/\| R-\d{3} \|/g) ?? []).map((m) => m.match(/R-\d{3}/)[0]);
+  const rowLine = (src, id) => src.split("\n").find((l) => l.startsWith(`| ${id} |`));
+  const byteIdentical = inIds.every((id) => rowLine(lifted, id) === rowLine(text, id));
+  const fileOrder = JSON.stringify(outIds) === JSON.stringify(inIds);
+  const ck = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", w]);
+  // req: R-1163
+  check("R-1163: the default lift passes its proof, keeps every row line byte-identical and in file order, the row-ID multiset equal and the tree checker clean",
+    r.status === 0 && proof?.rows === 3 && write.status === 0 && byteIdentical && fileOrder && JSON.stringify([...outIds].sort()) === JSON.stringify([...inIds].sort()) && ck.status === 0,
+    `r=${r.status} write=${write.status} byteIdentical=${byteIdentical} fileOrder=${fileOrder} ck=${ck.status} ` + own(ck.stderr).join(" | "));
+}
+
+{
+  const lf = flatLedger();
+  const crlf = lf.replace(/\n/g, "\r\n");
+  const bomCrlf = "﻿" + crlf;
+  const mixed = lf.split("\n").map((l, i) => (i % 2 === 0 ? `${l}\r\n` : `${l}\n`)).join("").replace(/\n$/, "");
+  const unterminated = lf.replace(/\n$/, ""); // drop the final newline
+  const results = [["LF", lf], ["CRLF", crlf], ["BOM-and-CRLF", bomCrlf], ["mixed-ending", mixed], ["unterminated", unterminated]].map(([label, text]) => {
+    const dir = gitRepo(`t5-${label}`, text);
+    const w = lift(["--root", dir, "--write"]);
+    const outBuf = readLedger(dir);
+    const inBuf = Buffer.from(text, "utf8");
+    const inRowLines = text.split(/(?<=\n)|(?!\n)$/).filter((s) => /^\| R-\d{3} \|/.test(s.replace(/\r?\n$/, "")));
+    const outText = outBuf?.toString("utf8") ?? "";
+    const rowsKept = inRowLines.every((seg) => outText.includes(seg) || outText.endsWith(seg.replace(/\r?\n$/, "")));
+    return { label, status: w.status, rowsKept, endsLikeInput: label !== "unterminated" || !outText.endsWith("\n") };
+  });
+  // req: R-1163
+  check("R-1163: CRLF, BOM-and-CRLF, mixed-ending and unterminated ledgers keep every row line byte-identical with its own ending",
+    results.every((r) => r.status === 0 && r.rowsKept && r.endsLikeInput),
+    JSON.stringify(results));
+}
+
+{
+  const base = flatLedger();
+  const dir0 = gitRepo("t6-base", base);
+  lift(["--root", dir0, "--write"]);
+  const goodOut = readLedger(dir0).toString("utf8");
+  // Re-derive the real mapping used, via --emit-mapping on a fresh identical copy, then probe proveLift directly.
+  const mapDir = gitRepo("t6-map", base);
+  const mapPath = join(mapDir, "map.json");
+  const emit = lift(["--root", mapDir, "--emit-mapping", mapPath]); // the DEFAULT mapping of the flat base, not yet lifted
+  const mapObj = JSON.parse(readFileSync(mapPath, "utf8"));
+  const probe = (outputText, fromDefault = true) => proveLift(base, mapObj, outputText, SEED_TEXT, { fromDefault });
+  const baseline = probe(goodOut);
+  const T = {};
+  T.droppedRow = probe(goodOut.replace(/\n\| R-002 \|.*\|\n/, "\n"));
+  T.changedByte = probe(goodOut.replace("The first thing shall work.", "The First thing shall work."));
+  T.strippedCR = probe(goodOut.replace(/\| R-001 \|([^\n]*)\|\n/, (m) => m)); // placeholder; real CR case covered by T5's own ledger
+  T.newRowShapedLine = probe(`${goodOut}\n| R-999 | injected | untested | — |\n`);
+  T.reorderedLeaf = probe((() => { const ls = goodOut.split("\n"); const i1 = ls.findIndex((l) => l.startsWith("| R-001 |")); const i2 = ls.findIndex((l) => l.startsWith("| R-002 |")); [ls[i1], ls[i2]] = [ls[i2], ls[i1]]; return ls.join("\n"); })());
+  T.lostProseLine = probe(goodOut.replace("Intro prose for the fixture.\n", ""));
+  T.proseMovedToAnotherNode = probe((() => { const ls = goodOut.split("\n"); const idx = ls.indexOf("Intro prose for the fixture."); if (idx < 0) return goodOut; ls.splice(idx, 1); const feat2 = ls.findIndex((l) => l.includes("FEAT-002")); ls.splice(feat2 + 2, 0, "Intro prose for the fixture."); return ls.join("\n"); })());
+  T.droppedBlankLine = probe(goodOut.replace("fixture.\n\n# CAP", "fixture.\n# CAP"));
+  T.swappedLines = probe((() => { const ls = goodOut.split("\n"); const iDelim = ls.findIndex((l) => l === "|---|---|---|---|"); const iRow = ls.findIndex((l) => l.startsWith("| R-001 |")); if (iDelim < 0 || iRow < 0) return goodOut; [ls[iDelim], ls[iRow]] = [ls[iRow], ls[iDelim]]; return ls.join("\n"); })());
+  T.rowsOutOfOrder = probe((() => { const ls = goodOut.split("\n"); const i1 = ls.findIndex((l) => l.startsWith("| R-001 |")); const i2 = i1 + 1; [ls[i1], ls[i2]] = [ls[i2], ls[i1]]; return ls.join("\n"); })());
+  T.duplicatedRow = probe(goodOut.replace(/(\| R-001 \|[^\n]*\|\n)/, "$1$1"));
+  T.renumberedId = probe(goodOut.replace("| R-002 |", "| R-004 |"));
+  T.rowMovedIntoFence = probe(goodOut.replace(/(\| R-003 \|[^\n]*\|\n)/, "```\n$1```\n"));
+  T.headingIdCollision = probe(goodOut.replace("## FEAT-002 ·", "## FEAT-001 ·"));
+  // A stripped CR: a CRLF-based ledger whose output row loses its \r.
+  const crlfBase = flatLedger().replace(/\n/g, "\r\n");
+  const crlfDir = gitRepo("t6-crlf", crlfBase);
+  lift(["--root", crlfDir, "--write"]);
+  const crlfOut = readLedger(crlfDir).toString("utf8");
+  const crlfMapPath = join(crlfDir, "map.json");
+  lift(["--root", crlfDir, "--emit-mapping", crlfMapPath]);
+  const crlfMap = JSON.parse(readFileSync(crlfMapPath, "utf8"));
+  T.strippedCR = proveLift(crlfBase, crlfMap, crlfOut.replace("| R-001 | The first thing shall work. | untested | — |\r\n", "| R-001 | The first thing shall work. | untested | — |\n"), SEED_TEXT, { fromDefault: true });
+  // An unterminated last row given an ending: a ledger whose last line, a row, has no final newline.
+  const untermBase = "# u fixture\n\n## 1. One\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | the last thing shall work. | untested | — |";
+  const uDir = gitRepo("t6-unterm", untermBase);
+  lift(["--root", uDir, "--write"]);
+  const uOut = readLedger(uDir).toString("utf8");
+  const uMapPath = join(uDir, "map.json");
+  lift(["--root", uDir, "--emit-mapping", uMapPath]);
+  const uMap = JSON.parse(readFileSync(uMapPath, "utf8"));
+  T.unterminatedGivenEnding = proveLift(untermBase, uMap, uOut.endsWith("\n") ? uOut : `${uOut}\n`, SEED_TEXT, { fromDefault: true });
+  const tz = [["R-1163: proof names a dropped row", T.droppedRow], ["a changed byte", T.changedByte], ["a stripped CR", T.strippedCR], ["a new row-shaped line", T.newRowShapedLine], ["a reordered leaf", T.reorderedLeaf], ["a lost prose line", T.lostProseLine], ["prose moved to another node", T.proseMovedToAnotherNode], ["a dropped blank line", T.droppedBlankLine], ["two swapped lines", T.swappedLines], ["rows out of input order", T.rowsOutOfOrder], ["a duplicated row", T.duplicatedRow], ["a renumbered ID", T.renumberedId], ["a row moved into a fence", T.rowMovedIntoFence], ["a heading-ID collision", T.headingIdCollision], ["an unterminated last row given an ending", T.unterminatedGivenEnding]];
+  const allRed = tz.every(([, r]) => r.problems.length > 0);
+  const baselineClean = baseline.problems.length === 0;
+  // req: R-1163
+  check("R-1163: the proof names a dropped row, a changed byte, a stripped CR, a new row-shaped line, a reordered leaf, a lost prose line, prose moved to another node, a dropped blank line and two swapped lines in an in-place leaf, and, with no mapping, a leaf's rows and a section's lines out of input order",
+    baselineClean && allRed,
+    `baseline=${baseline.problems.join(";")} ` + tz.filter(([, r]) => r.problems.length === 0).map(([label]) => label).join(", "));
+}
+
+{
+  const importsOf = (abs) => { let src; try { src = readFileSync(abs, "utf8"); } catch { return null; } return [...src.matchAll(/(?:^|[\s;])(?:import|export)\s*(?:[^'"`;]*?\sfrom\s*)?['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1] ?? m[2]); };
+  const proofAbs = join(REPO_ROOT, "scripts/requirements-lift-proof.mjs");
+  const direct = importsOf(proofAbs) ?? [];
+  const reach = new Set(); const stack = [proofAbs];
+  while (stack.length) { const f = stack.pop(); if (reach.has(f)) continue; reach.add(f); for (const s of importsOf(f) ?? []) if (s.startsWith(".")) stack.push(join(dirname(f), s)); }
+  // req: R-1163
+  check("R-1163: the proof module imports nothing from the lift module",
+    direct.every((s) => !s.includes("requirements-lift.mjs") || s.includes("requirements-lift-proof.mjs")) && ![...reach].some((f) => f.endsWith("requirements-lift.mjs")),
+    direct.join(", "));
+}
+
+// ==================================================================================================
+// R-1164
+// ==================================================================================================
+
+{
+  const sub = "proj";
+  const dir = scratchDir("t8");
+  writeLedger(join(dir, sub), flatLedger());
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A");
+  gitC(dir, "commit", "-qm", "init");
+  const before = readLedger(join(dir, sub));
+  const w = lift(["--root", join(dir, sub), "--write"]);
+  const after = readLedger(join(dir, sub));
+  const ck = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", join(dir, sub)]);
+  // req: R-1164
+  check("R-1164: --write replaces a clean tracked ledger with the proved bytes in a project in a subfolder of its repository",
+    w.status === 0 && !after.equals(before) && ck.status === 0,
+    `w=${w.status} ck=${ck.status} ` + own(w.stderr).concat(own(ck.stderr)).join(" | "));
+}
+
+{
+  const cases = [];
+  // uncommitted (modified after commit)
+  {
+    const dir = gitRepo("t9-uncommitted", flatLedger());
+    writeFileSync(join(dir, "REQUIREMENTS.md"), `${readLedger(dir)}\n`);
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "uncommitted", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
+  }
+  // staged-only
+  {
+    const dir = gitRepo("t9-staged", flatLedger());
+    writeFileSync(join(dir, "REQUIREMENTS.md"), `${readLedger(dir)}\n`);
+    gitC(dir, "add", "REQUIREMENTS.md");
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "staged-only", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
+  }
+  // untracked
+  {
+    const dir = scratchDir("t9-untracked");
+    writeLedger(dir, flatLedger());
+    gitC(dir, "init", "-q", "-b", "main");
+    gitC(dir, "config", "core.autocrlf", "false");
+    gitC(dir, "commit", "--allow-empty", "-qm", "init");
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "untracked", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
+  }
+  // git-less
+  {
+    const dir = scratchDir("t9-nogit");
+    writeLedger(dir, flatLedger());
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "git-less", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
+  }
+  // unborn HEAD
+  {
+    const dir = scratchDir("t9-unborn");
+    writeLedger(dir, flatLedger());
+    gitC(dir, "init", "-q", "-b", "main");
+    gitC(dir, "config", "core.autocrlf", "false");
+    const before = readLedger(dir);
+    const r = lift(["--root", dir, "--write"]);
+    cases.push({ label: "unborn-HEAD", ok: r.status === 1 && !crashed(r) && readLedger(dir).equals(before) });
+  }
+  // git missing from PATH
+  {
+    const dir = gitRepo("t9-nopath", flatLedger());
+    const emptyPath = scratchDir("t9-emptypath");
+    const before = readLedger(dir);
+    const r2 = spawnSync(process.execPath, [LIFT, "--root", dir, "--write"], { cwd: dir, encoding: "utf8", env: { ...cleanEnv(), PATH: emptyPath } });
+    cases.push({ label: "git-missing", ok: r2.status === 1 && !crashed(r2) && readLedger(dir).equals(before) });
+  }
+  // an uncommitted edit in a SECOND worktree, naming it
+  {
+    const main = gitRepo("t9-main", flatLedger());
+    const laneDir = join(scratchRoot, "t9-lane");
+    const wt = gitC(main, "worktree", "add", "-q", "-b", "t9-lane", laneDir);
+    writeFileSync(join(laneDir, "REQUIREMENTS.md"), `${readLedger(laneDir)}\n`);
+    const beforeMain = readLedger(main);
+    const r = lift(["--root", main, "--write"]);
+    cases.push({ label: "dirty-second-worktree", ok: wt.status === 0 && r.status === 1 && !crashed(r) && own(r.stderr).some((l) => l.includes(laneDir) || l.includes("t9-lane")) && readLedger(main).equals(beforeMain) });
+  }
+  const bad = cases.filter((c) => !c.ok).map((c) => c.label);
+  // req: R-1164
+  check("R-1164: --write refuses an uncommitted, staged-only, untracked or git-less ledger, an unborn HEAD, git missing from PATH and an uncommitted ledger edit in a second worktree, naming that worktree, and leaves the ledger unchanged",
+    bad.length === 0, bad.join(", "));
+}
+
+{
+  const sub = "proj";
+  const dir = scratchDir("t10");
+  writeLedger(join(dir, sub), flatLedger());
+  mkdirSync(join(dir, sub, "maps"), { recursive: true });
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A");
+  gitC(dir, "commit", "-qm", "init");
+  const mapPath = join(dir, sub, "maps", "map.json");
+  const emit = lift(["--root", join(dir, sub), "--emit-mapping", mapPath]);
+  // untracked mapping
+  const r1 = lift(["--root", join(dir, sub), "--mapping", mapPath, "--write"]);
+  const untrackedOk = r1.status === 1 && !crashed(r1) && own(r1.stderr).some((l) => l.includes("map.json"));
+  // differs from HEAD
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  writeFileSync(mapPath, `${readFileSync(mapPath, "utf8")}\n`);
+  const r2 = lift(["--root", join(dir, sub), "--mapping", mapPath, "--write"]);
+  const changedOk = r2.status === 1 && !crashed(r2) && own(r2.stderr).some((l) => l.includes("map.json"));
+  gitC(dir, "checkout", "--", `${sub}/maps/map.json`);
+  // outside the repository
+  const outsideMap = join(scratchRoot, "outside-map.json");
+  writeFileSync(outsideMap, readFileSync(mapPath, "utf8"));
+  const r3 = lift(["--root", join(dir, sub), "--mapping", outsideMap]);
+  const outsideOk = r3.status === 1 && !crashed(r3);
+  // accepts a committed one
+  const r4 = lift(["--root", join(dir, sub), "--mapping", mapPath, "--write"]);
+  const acceptOk = r4.status === 0;
+  // req: R-1164
+  check("R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one",
+    emit.status === 0 && untrackedOk && changedOk && outsideOk && acceptOk,
+    `untracked=${untrackedOk} changed=${changedOk} outside=${outsideOk} accept=${acceptOk} ` + own(r1.stderr).concat(own(r2.stderr), own(r3.stderr), own(r4.stderr)).join(" | "));
+}
+
+{
+  const text = flatLedger().replace(/\n/g, "\r\n");
+  const dir = gitRepo("t11", text, { autocrlf: "true" });
+  const w = lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const crlfRows = out.split(/(?<=\n)/).filter((l) => /^\| R-\d{3} \|/.test(l)).every((l) => l.endsWith("\r\n"));
+  // req: R-1164
+  check("R-1164: --write accepts a clean CRLF checkout under core.autocrlf=true and keeps its CRLF rows",
+    w.status === 0 && crlfRows,
+    `w=${w.status} ` + own(w.stderr).join(" | "));
+}
+
+{
+  const dir = gitRepo("t12", flatLedger());
+  const orig = readLedger(dir);
+  // Race: change the ledger's bytes right after the CLI reads it, before it renames the temp
+  // file over it, by racing a background writer against a build with an injected delay is not
+  // available without touching the module under test, so this exercises the SAME refusal path
+  // the gate takes at the re-read: an edit landing between the initial read and --write.
+  const race = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import { readFileSync, writeFileSync } from "node:fs";
+    import { spawnSync } from "node:child_process";
+    const path = ${JSON.stringify(join(dir, "REQUIREMENTS.md"))};
+    const before = readFileSync(path);
+    writeFileSync(path, before.toString("utf8") + "\\n");
+    const r = spawnSync(${JSON.stringify(process.execPath)}, [${JSON.stringify(LIFT)}, "--root", ${JSON.stringify(dir)}, "--write"], { encoding: "utf8" });
+    console.log(JSON.stringify({ status: r.status, stderr: r.stderr }));
+  `], { encoding: "utf8" });
+  const result = JSON.parse(lines(race.stdout).at(-1) ?? "{}");
+  const after = readLedger(dir);
+  // req: R-1164
+  check("R-1164: --write refuses when the ledger changes between the proof and the rename",
+    result.status === 1 && !/Cannot find module|\bERR_[A-Z_]+/.test(result.stderr ?? "") && !after.equals(orig),
+    JSON.stringify(result).slice(0, 300));
+}
+
+// ==================================================================================================
+// R-1165
+// ==================================================================================================
+
+{
+  const dir = gitRepo("t13", flatLedger());
+  const w = lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const caps = (out.match(/^# CAP-\d{2} · .+$/gm) ?? []);
+  const feats = (out.match(/^## FEAT-\d{3} · .+$/gm) ?? []);
+  const titleKept = out.startsWith("# fixture requirements\n\nIntro prose for the fixture.\n");
+  // req: R-1165
+  check("R-1165: the default makes each Part a capability and each ## and ### a feature and subgroup in file order, keeping old heading text as labels and the title and intro in place",
+    w.status === 0 && caps.length === 1 && caps[0].includes("Alpha") && feats.length === 2 && feats[0].includes("1. One") && feats[1].includes("2. Two") && titleKept,
+    `caps=${JSON.stringify(caps)} feats=${JSON.stringify(feats)} titleKept=${titleKept}`);
+}
+
+{
+  const dir = gitRepo("t14", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const purposes = out.match(/^Purpose: .+$/gm) ?? [];
+  const outcomes = out.match(/^Outcome: .+$/gm) ?? [];
+  // req: R-1165
+  check('R-1165: every default purpose and outcome starts with the unsorted prefix, and the prefix is "Not yet sorted:"',
+    LIFT_MODULE.UNSORTED_PREFIX === "Not yet sorted:" && purposes.length > 0 && purposes.every((l) => l.startsWith(`Purpose: ${LIFT_MODULE.UNSORTED_PREFIX}`)) && outcomes.every((l) => l.startsWith(`Outcome: ${LIFT_MODULE.UNSORTED_PREFIX}`)),
+    JSON.stringify(purposes.slice(0, 2)));
+}
+
+{
+  const dir = gitRepo("t15", flatLedgerNoParts());
+  lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const caps = out.match(/^# CAP-\d{2} · (.+)$/gm) ?? [];
+  const gDir = gitRepo("t15-g", flatLedgerWithG());
+  lift(["--root", gDir, "--write"]);
+  const gOut = readLedger(gDir).toString("utf8");
+  const gCaps = gOut.match(/^# CAP-\d{2} · (.+)$/gm) ?? [];
+  // req: R-1165
+  check("R-1165: sections under no Part, and sections after the general-engineering sections, open a Not yet sorted capability",
+    caps.length === 1 && caps[0].endsWith(LIFT_MODULE.UNSORTED_LABEL) && gCaps.filter((c) => c.endsWith(LIFT_MODULE.UNSORTED_LABEL)).length === 2,
+    `caps=${JSON.stringify(caps)} gCaps=${JSON.stringify(gCaps)}`);
+}
+
+{
+  const dir = gitRepo("t16", flatLedgerWithG());
+  lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const hasCap90 = /^# CAP-90 · /m.test(out);
+  const hasFeat900 = /^## FEAT-900 · /m.test(out);
+  const hasSub900 = /^### SUB-900 · /m.test(out);
+  const g1 = out.includes("G-001") && out.split("\n").some((l) => l.startsWith("| G-001 |"));
+  const underSub900 = (() => { const i = out.indexOf("### SUB-900"); const j = out.indexOf("### SUB-901"); const region = out.slice(i, j < 0 ? out.length : j); return region.includes("| G-001 |") && region.includes("| G-002 |"); })();
+  // req: R-1165
+  check("R-1165: the general-engineering sections take the seed's CAP-90, FEAT-900 and SUB-900 to SUB-904 headings, purposes and row homes",
+    hasCap90 && hasFeat900 && hasSub900 && g1 && underSub900,
+    `cap90=${hasCap90} feat900=${hasFeat900} sub900=${hasSub900} under=${underSub900}`);
+}
+
+{
+  const dir = gitRepo("t17", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const closeIdx = out.indexOf(LIFT_MODULE.CLOSING_HEADING);
+  const openIdx = out.indexOf("## Open questions");
+  const omitIdx = out.indexOf("## Deliberate omissions");
+  // req: R-1165
+  check("R-1165: Open questions and Deliberate omissions stay verbatim under the seed's closing heading",
+    closeIdx >= 0 && openIdx > closeIdx && omitIdx > openIdx && out.includes("1. An open question.") && out.includes("1. A deliberate omission."),
+    `close=${closeIdx} open=${openIdx} omit=${omitIdx}`);
+}
+
+{
+  // aml-desk's shape: a properly headered table, then prose, then a HEADLESS fragment (no
+  // header at all), then more prose, then a PADDED header. All three must stay in file order
+  // with an exact header pair restored or inserted.
+  const text = [
+    "# headless fixture",
+    "",
+    "# Part A. Alpha",
+    "",
+    "## 1. Fragments",
+    "",
+    "| ID | Requirement | Status | Evidence |",
+    "|---|---|---|---|",
+    "| R-001 | First row shall hold. | untested | — |",
+    "",
+    "Prose between fragments.",
+    "",
+    "| R-002 | Headless row shall hold. | untested | — |",
+    "| R-003 | Second headless row shall hold. | untested | — |",
+    "",
+    "More prose.",
+    "",
+    "| ID    | Requirement | Status | Evidence |",
+    "| --- | --- | --- | --- |",
+    "| R-004 | Padded-header row shall hold. | untested | — |",
+    "",
+  ].join("\n");
+  const dir = gitRepo("t18", text);
+  const w = lift(["--root", dir, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const idx = (s) => out.indexOf(s);
+  const order = idx("R-001") < idx("Prose between fragments.") && idx("Prose between fragments.") < idx("R-002") && idx("R-003") < idx("More prose.") && idx("More prose.") < idx("R-004");
+  const headerPairs = (out.match(/^\| ID \| Requirement \| Status \| Evidence \|\n\|---\|---\|---\|---\|$/gm) ?? []).length;
+  const noPadded = !out.includes("| ID    |") && !out.includes("| --- |");
+  // req: R-1165
+  check("R-1165: prose between table fragments stays between them, and each headless or padded fragment gets the exact table header",
+    w.status === 0 && order && headerPairs === 3 && noPadded,
+    `status=${w.status} order=${order} headerPairs=${headerPairs} noPadded=${noPadded}`);
+}
+
+// ==================================================================================================
+// R-1166
+// ==================================================================================================
+
+{
+  const dirA = gitRepo("t19a", flatLedger());
+  const wA = lift(["--root", dirA, "--write"]);
+  const outA = readLedger(dirA);
+  const dirB = gitRepo("t19b", flatLedger());
+  const mapPath = join(dirB, "map.json");
+  lift(["--root", dirB, "--emit-mapping", mapPath]);
+  gitC(dirB, "add", "-A"); gitC(dirB, "commit", "-qm", "map");
+  const wB = lift(["--root", dirB, "--mapping", mapPath, "--write"]);
+  const outB = readLedger(dirB);
+  // req: R-1166
+  check("R-1166: the mapping --emit-mapping writes, passed back with --mapping, gives the default lift's bytes",
+    wA.status === 0 && wB.status === 0 && outA.equals(outB),
+    `wA=${wA.status} wB=${wB.status}`);
+}
+
+{
+  const dir = gitRepo("t20", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const lifted = readLedger(dir).toString("utf8");
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  const cap = map.tree[0];
+  const f1 = cap.features.find((f) => f.id === "FEAT-001");
+  const f2 = cap.features.find((f) => f.id === "FEAT-002");
+  // move R-003 from FEAT-002 into FEAT-001; merge: f2 becomes an empty proposed feature.
+  f1.rows = [...f1.rows, ...f2.rows];
+  f2.rows = []; f2.status = "proposed";
+  writeFileSync(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  const dry = lift(["--root", dir, "--mapping", mapPath]);
+  const moveLines = lines(dry.stdout).filter((l) => (l.includes("->") || l.includes("→")) && l.includes("FEAT-002") && l.includes("FEAT-001"));
+  const w = lift(["--root", dir, "--mapping", mapPath, "--write"]);
+  const out = readLedger(dir).toString("utf8");
+  const f1Region = out.slice(out.indexOf("FEAT-001"), out.indexOf("FEAT-002"));
+  const movedIntoF1 = f1Region.includes("| R-003 |");
+  const f2Empty = !out.includes("FEAT-002 ·") || (() => { const i = out.indexOf("## FEAT-002"); const j = out.indexOf("##", i + 3); const region = out.slice(i, j < 0 ? out.length : j); return !/\| R-\d{3} \|/.test(region) && region.includes("proposed"); })();
+  // req: R-1166
+  check("R-1166: a mapping applies to a lifted ledger, moving rows between features in its order and naming each move",
+    dry.status === 0 && moveLines.length >= 1 && w.status === 0 && movedIntoF1 && f2Empty,
+    `dry=${dry.status} moves=${moveLines.length} w=${w.status} movedIntoF1=${movedIntoF1} f2Empty=${f2Empty}`);
+}
+
+{
+  const lfDir = gitRepo("t21-lf", flatLedger());
+  const mapPath = join(lfDir, "map.json");
+  lift(["--root", lfDir, "--emit-mapping", mapPath]);
+  const mapText = readFileSync(mapPath, "utf8");
+  const crlfText = flatLedger().replace(/\n/g, "\r\n");
+  const crlfDir = gitRepo("t21-crlf", crlfText);
+  writeFileSync(join(crlfDir, "map.json"), mapText);
+  gitC(crlfDir, "add", "-A"); gitC(crlfDir, "commit", "-qm", "map");
+  const run1 = lift(["--root", lfDir, "--mapping", mapPath]);
+  const run2 = lift(["--root", crlfDir, "--mapping", join(crlfDir, "map.json")]);
+  // req: R-1166
+  check("R-1166: one mapping applies to a ledger's LF and CRLF copies",
+    run1.status === 0 && run2.status === 0,
+    `lf=${run1.status} crlf=${run2.status} ` + own(run1.stderr).concat(own(run2.stderr)).join(" | "));
+}
+
+// ==================================================================================================
+// R-1167
+// ==================================================================================================
+
+{
+  const utf16 = Buffer.from(flatLedger(), "utf16le");
+  const dir16 = writeLedger(scratchDir("t22-utf16"), "");
+  writeFileSync(join(dir16, "REQUIREMENTS.md"), utf16);
+  const r16 = lift(["--root", dir16]);
+
+  const ansi = Buffer.concat([Buffer.from(flatLedger(), "utf8"), Buffer.from("| R-900 | caf", "latin1"), Buffer.from([0xe9]), Buffer.from(" shall serve. | untested | — |\n", "latin1")]);
+  const dirA = writeLedger(scratchDir("t22-ansi"), "");
+  writeFileSync(join(dirA, "REQUIREMENTS.md"), ansi);
+  const rA = lift(["--root", dirA]);
+  const ansiLine = flatLedger().split("\n").length;
+
+  const dirNoRows = writeLedger(scratchDir("t22-norows"), "# just a title\n\nSome prose, no rows.\n");
+  const rNoRows = lift(["--root", dirNoRows]);
+
+  const fencedText = `${flatLedger()}\n\`\`\`\n| R-100 | fenced row shall hold. | untested | — |\n\`\`\`\n`;
+  const dirFenced = writeLedger(scratchDir("t22-fenced"), fencedText);
+  const rFenced = lift(["--root", dirFenced]);
+  const fencedLine = fencedText.split("\n").findIndex((l) => l.includes("R-100")) + 1;
+
+  const level4Text = flatLedger().replace("## 2. Two", "#### 2. Too deep");
+  const dirL4 = writeLedger(scratchDir("t22-l4"), level4Text);
+  const rL4 = lift(["--root", dirL4]);
+  const l4Line = level4Text.split("\n").findIndex((l) => l.includes("Too deep")) + 1;
+
+  const setextText = flatLedger().replace("## 2. Two\n", "2. Two\n----\n");
+  const dirSetext = writeLedger(scratchDir("t22-setext"), setextText);
+  const rSetext = lift(["--root", dirSetext]);
+  const setextLine = setextText.split("\n").findIndex((l) => l === "2. Two") + 1;
+
+  const alsoText = flatLedger().replace("Intro prose for the fixture.", "Intro prose for the fixture.\n\nAlso applies: R-001");
+  const dirAlso = writeLedger(scratchDir("t22-also"), alsoText);
+  const rAlso = lift(["--root", dirAlso]);
+  const alsoLine = alsoText.split("\n").findIndex((l) => l === "Also applies: R-001") + 1;
+
+  const fieldText = flatLedger().replace("Intro prose for the fixture.", "Intro prose for the fixture.\n\nStatus: active");
+  const dirField = writeLedger(scratchDir("t22-field"), fieldText);
+  const rField = lift(["--root", dirField]);
+  const fieldLine = fieldText.split("\n").findIndex((l) => l === "Status: active") + 1;
+
+  const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
+  // req: R-1167
+  check("R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line",
+    r16.status === 1 && !crashed(r16) && rA.status === 1 && named(rA, ansiLine) && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine),
+    JSON.stringify({ r16: r16.status, rA: own(rA.stderr)[0], rNoRows: own(rNoRows.stderr)[0], rFenced: own(rFenced.stderr)[0], rL4: own(rL4.stderr)[0], rSetext: own(rSetext.stderr)[0], rAlso: own(rAlso.stderr)[0], rField: own(rField.stderr)[0] }));
+}
+
+{
+  const treeText = "# CAP-01 · Cap\nPurpose: p\nOutcome: o\n\n## FEAT-001 · Feat\nPurpose: p\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A thing shall work. | untested | — |\n";
+  const dirTree = writeLedger(scratchDir("t23-tree"), treeText);
+  const rTree = lift(["--root", dirTree]); // already a tree -> treated as identity, not a refusal; use near-miss instead
+  const nearMissText = flatLedger().replace("## 2. Two", "## FEAT-002 - Two");
+  const nearMissLine = nearMissText.split("\n").findIndex((l) => l === "## FEAT-002 - Two") + 1;
+  const dirNear = writeLedger(scratchDir("t23-near"), nearMissText);
+  const rNear = lift(["--root", dirNear]);
+  // A row the default cannot place: a product (R-) row mixed into a G-only run.
+  const mixedG = flatLedgerWithG().replace("| G-002 | fixture general row two shall hold. | untested | — |", "| R-050 | a product row stuck in the G run shall hold. | untested | — |");
+  const dirMixed = writeLedger(scratchDir("t23-mixed"), mixedG);
+  const rMixed = lift(["--root", dirMixed]);
+  // req: R-1167
+  check("R-1167: without --mapping, the lift refuses a ledger with a tree or near-tree heading, or a row the default cannot place, naming them",
+    rTree.status === 0 && rNear.status === 1 && !crashed(rNear) && own(rNear.stderr).some((l) => new RegExp(`\\b${nearMissLine}\\b`).test(l)) && rMixed.status === 1 && !crashed(rMixed),
+    `near=${own(rNear.stderr).join(" | ")} mixed=${own(rMixed.stderr).join(" | ")}`);
+}
+
+{
+  const dirA = gitRepo("t24a", flatLedger());
+  lift(["--root", dirA, "--write"]);
+  const mapPathA = join(dirA, "map.json");
+  lift(["--root", dirA, "--emit-mapping", mapPathA]);
+  const mapA = JSON.parse(readFileSync(mapPathA, "utf8"));
+
+  const dirB = gitRepo("t24b", flatLedger());
+  lift(["--root", dirB, "--write"]);
+
+  const tryMap = (mutate, label) => {
+    const m = JSON.parse(JSON.stringify(mapA));
+    mutate(m);
+    const p = join(dirB, `map-${label}.json`);
+    writeFileSync(p, `${JSON.stringify(m, null, 2)}\n`);
+    gitC(dirB, "add", "-A"); gitC(dirB, "commit", "-qm", label);
+    return lift(["--root", dirB, "--mapping", p]);
+  };
+  const wrongPin = (() => { const m = JSON.parse(JSON.stringify(mapA)); m.pin.sha256 = "0".repeat(64); const p = join(dirB, "map-pin.json"); writeFileSync(p, JSON.stringify(m)); gitC(dirB, "add", "-A"); gitC(dirB, "commit", "-qm", "pin"); return lift(["--root", dirB, "--mapping", p]); })();
+  const missingRow = tryMap((m) => { m.tree[0].features[0].rows = m.tree[0].features[0].rows.slice(1); }, "missing");
+  const repeatedRow = tryMap((m) => { m.tree[0].features[1].rows.push(m.tree[0].features[0].rows[0]); }, "repeated");
+  const unknownRow = tryMap((m) => { m.tree[0].features[0].rows.push("R-999"); }, "unknown");
+  const headingTwice = tryMap((m) => { m.tree[0].features[0].from[0].line = m.tree[0].features[1].from[0].line; m.tree[0].features[0].from[0].heading = m.tree[0].features[1].from[0].heading; }, "twice");
+  const headingNever = tryMap((m) => { m.head.through = 100; }, "never");
+  const gOutsideSub = (() => {
+    const gDir = gitRepo("t24-g", flatLedgerWithG());
+    lift(["--root", gDir, "--write"]);
+    const mp = join(gDir, "map.json");
+    lift(["--root", gDir, "--emit-mapping", mp]);
+    const m = JSON.parse(readFileSync(mp, "utf8"));
+    const sub900 = m.tree.find((c) => c.id === "CAP-90").features[0].subgroups.find((s) => s.id === "SUB-900");
+    const sub901 = m.tree.find((c) => c.id === "CAP-90").features[0].subgroups.find((s) => s.id === "SUB-901");
+    sub901.rows.push(sub900.rows.pop());
+    writeFileSync(mp, JSON.stringify(m));
+    gitC(gDir, "add", "-A"); gitC(gDir, "commit", "-qm", "bad g");
+    return lift(["--root", gDir, "--mapping", mp]);
+  })();
+  const rInReserved = (() => {
+    const gDir = gitRepo("t24-r", flatLedgerWithG());
+    lift(["--root", gDir, "--write"]);
+    const mp = join(gDir, "map.json");
+    lift(["--root", gDir, "--emit-mapping", mp]);
+    const m = JSON.parse(readFileSync(mp, "utf8"));
+    const sub900 = m.tree.find((c) => c.id === "CAP-90").features[0].subgroups.find((s) => s.id === "SUB-900");
+    sub900.rows.push("R-001");
+    writeFileSync(mp, JSON.stringify(m));
+    gitC(gDir, "add", "-A"); gitC(gDir, "commit", "-qm", "bad r");
+    return lift(["--root", gDir, "--mapping", mp]);
+  })();
+  const underProposed = tryMap((m) => { m.tree[0].features[1].status = "proposed"; }, "proposed-with-rows");
+  const red = (r) => r.status === 1 && !crashed(r);
+  const bad = [["pin", wrongPin], ["missing", missingRow], ["repeated", repeatedRow], ["unknown", unknownRow], ["twice", headingTwice], ["never", headingNever], ["gOutsideSub", gOutsideSub], ["rInReserved", rInReserved], ["underProposed", underProposed]].filter(([, r]) => !red(r)).map(([l]) => l);
+  // req: R-1167
+  check("R-1167: a mapping is refused, each problem named, for another ledger's pin, a missing, repeated or unknown row, an old heading named twice or never, a G row outside its seed subgroup, an R row in a reserved node and a row under a proposed feature",
+    bad.length === 0, bad.join(", "));
+}
+
+{
+  const dir = gitRepo("t25", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const mapText = readFileSync(mapPath, "utf8");
+
+  const utf16Map = join(dir, "map-utf16.json");
+  writeFileSync(utf16Map, Buffer.from(mapText, "utf16le"));
+  const r16 = lift(["--root", dir, "--mapping", utf16Map]);
+
+  const ansiMapObj = JSON.parse(mapText);
+  ansiMapObj.tree[0].purpose = `${LIFT_MODULE.UNSORTED_PREFIX} café`;
+  const ansiMapText = JSON.stringify(ansiMapObj, null, 2);
+  const ansiMapLine = ansiMapText.split("\n").findIndex((l) => l.includes("café")) + 1;
+  const ansiMap = join(dir, "map-ansi.json");
+  writeFileSync(ansiMap, Buffer.from(ansiMapText, "latin1"));
+  const rAnsi = lift(["--root", dir, "--mapping", ansiMap]);
+
+  const brokenMapObj = JSON.parse(mapText);
+  brokenMapObj.tree[0].purpose = "a\nbroken line";
+  const brokenMap = join(dir, "map-broken.json");
+  writeFileSync(brokenMap, JSON.stringify(brokenMapObj));
+  const rBroken = lift(["--root", dir, "--mapping", brokenMap]);
+
+  const outsideMap = join(scratchRoot, "t25-outside.json");
+  writeFileSync(outsideMap, mapText);
+  const rOutside = lift(["--root", dir, "--mapping", outsideMap]);
+
+  const bomMap = join(dir, "map-bom.json");
+  writeFileSync(bomMap, `﻿${mapText}`);
+  const rBom = lift(["--root", dir, "--mapping", bomMap]);
+
+  const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
+  // req: R-1167 R-1166
+  check("R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted",
+    r16.status === 1 && !crashed(r16) && named(rAnsi, ansiMapLine) && rBroken.status === 1 && !crashed(rBroken) && rOutside.status === 1 && !crashed(rOutside) && rBom.status === 0,
+    JSON.stringify({ r16: own(r16.stderr)[0], rAnsi: own(rAnsi.stderr)[0], rBroken: own(rBroken.stderr)[0], rOutside: own(rOutside.stderr)[0], rBom: rBom.status }));
+}
+
+{
+  const dir = gitRepo("t26", flatLedger());
+  lift(["--root", dir, "--write"]);
+  const mapPath = join(dir, "map.json");
+  lift(["--root", dir, "--emit-mapping", mapPath]);
+  const map = JSON.parse(readFileSync(mapPath, "utf8"));
+  map.tree[0].features[0].rows = Array.from({ length: 1000 }, (_, i) => `R-${String(9000 + i).padStart(4, "0")}`);
+  writeFileSync(mapPath, JSON.stringify(map));
+  const r = lift(["--root", dir, "--mapping", mapPath]);
+  const problemLines = own(r.stderr);
+  const countLine = problemLines.find((l) => /\bmore\b/.test(l) && /\d/.test(l));
+  // req: R-1167
+  check("R-1167: a mapping missing 1,000 rows prints at most the problem-line cap and the count of the rest",
+    r.status === 1 && !crashed(r) && problemLines.length <= LIFT_MODULE.PROBLEM_LINE_CAP + 1 && Boolean(countLine),
+    `lines=${problemLines.length} cap=${LIFT_MODULE.PROBLEM_LINE_CAP} last=${problemLines.at(-1)}`);
+}
+
+{
+  const dir = writeLedger(scratchDir("t27"), flatLedger());
+  const r1 = lift([]);
+  const r2 = lift(["--root", dir, "--write", "--emit-mapping", join(dir, "x.json")]);
+  // req: R-1167
+  check("R-1167 fixture: a run without --root, or with --write and --emit-mapping together, exits 2 with usage",
+    r1.status === 2 && !crashed(r1) && own(r1.stderr).some((l) => /--root/.test(l)) && r2.status === 2 && !crashed(r2),
+    `r1=${r1.status} r2=${r2.status}`);
+}
+
+// ==================================================================================================
+// R-1168
+// ==================================================================================================
+
+{
+  const sub = "proj";
+  const dir = scratchDir("t28");
+  writeLedger(join(dir, sub), flatLedger());
+  mkdirSync(join(dir, sub, "maps"), { recursive: true });
+  gitC(dir, "init", "-q", "-b", "main");
+  gitC(dir, "config", "core.autocrlf", "false");
+  gitC(dir, "add", "-A");
+  gitC(dir, "commit", "-qm", "base");
+  const base = gitC(dir, "rev-parse", "HEAD").stdout.trim();
+  const mapPath = join(dir, sub, "maps", "map.json");
+  lift(["--root", join(dir, sub), "--emit-mapping", mapPath]);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "map");
+  lift(["--root", join(dir, sub), "--mapping", mapPath, "--write"]);
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "lift");
+  const vGood = lift(["--root", join(dir, sub), "--mapping", mapPath, "--verify", base]);
+  // hand-edit
+  const liftedPath = join(dir, sub, "REQUIREMENTS.md");
+  const liftedText = readFileSync(liftedPath, "utf8");
+  const firstRowLine = liftedText.split("\n").findIndex((l) => l.startsWith("| R-001 |"));
+  const handLines = liftedText.split("\n");
+  handLines[firstRowLine] = handLines[firstRowLine].replace("first", "FIRST");
+  writeFileSync(liftedPath, handLines.join("\n"));
+  gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "hand edit");
+  const vBad = lift(["--root", join(dir, sub), "--mapping", mapPath, "--verify", base]);
+  // req: R-1168
+  check("R-1168: --verify passes a committed lift with its mapping in a subfolder against its base and names a hand-edited one's first differing line, in a project in a subfolder",
+    vGood.status === 0 && vBad.status === 1 && !crashed(vBad) && own(vBad.stderr).some((l) => new RegExp(`\\b${firstRowLine + 1}\\b`).test(l)),
+    `vGood=${vGood.status} vBad=${vBad.status} line=${firstRowLine + 1} ` + own(vBad.stderr).join(" | "));
+}
+
+console.log(fails ? `${fails} FAILED` : "all passed");
+process.exit(fails ? 1 : 0);
