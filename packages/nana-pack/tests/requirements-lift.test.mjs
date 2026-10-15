@@ -517,6 +517,45 @@ if (process.platform !== "win32") {
     `trueHeadThrough=${trueHeadThrough} validator=${own(r.stderr).join(" | ")} proof=${JSON.stringify(proofProbe.problems)}`);
 }
 
+{
+  // Independent check verify-0dc5d1d/muts.mjs "P15 proof tail prose": no existing T6 tamper
+  // exercises `mapping.tail.from` with real content (the default builder never populates it;
+  // only a hand-built regroup mapping does, folding an old, rowless heading's own prose
+  // directly under the closing heading, not as a `tail.keep` subsection). Hand-built input and
+  // mapping, bypassing the CLI and applyMapping entirely, so this pins the proof's OWN check,
+  // not the writer's.
+  const input = ["# fixture requirements", "", "Intro prose for the fixture.", "", "# Part A. Alpha", "", "## 1. One", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | The first thing shall work. | untested | — |", "", "## Notes", "", "Some extra notes prose.", "", "## Open questions", "", "1. An open question.", "", "## Deliberate omissions", "", "1. A deliberate omission.", ""].join("\n");
+  const mapping = {
+    lift: 1,
+    head: { through: 4 },
+    tree: [{ id: "CAP-01", label: "Part A. Alpha", purpose: "P", outcome: "O", from: [{ line: 5, heading: "# Part A. Alpha" }], features: [
+      { id: "FEAT-001", label: "1. One", purpose: "P2", status: "active", from: [{ line: 7, heading: "## 1. One" }], rows: ["R-001"], subgroups: [] },
+    ] }],
+    tail: { heading: "# Open questions and deliberate omissions", from: [{ line: 13, heading: "## Notes" }], keep: [{ line: 17, heading: "## Open questions" }, { line: 21, heading: "## Deliberate omissions" }] },
+  };
+  const goodTailOut = ["# fixture requirements", "", "Intro prose for the fixture.", "", "# CAP-01 · Part A. Alpha", "Purpose: P", "Outcome: O", "", "## FEAT-001 · 1. One", "Purpose: P2", "Status: active", "", "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "| R-001 | The first thing shall work. | untested | — |", "", "# Open questions and deliberate omissions", "", "Some extra notes prose.", "", "## Open questions", "", "1. An open question.", "", "## Deliberate omissions", "", "1. A deliberate omission.", ""].join("\n");
+  const tailBaseline = proveLift(input, mapping, goodTailOut, SEED_TEXT, { fromDefault: false });
+  const tailTampered = proveLift(input, mapping, goodTailOut.replace("Some extra notes prose.\n\n", ""), SEED_TEXT, { fromDefault: false });
+  // req: R-1163
+  check("R-1163: a mapping that folds an old heading's prose directly under the closing heading (not a kept subsection) is proved, and dropping that prose is named",
+    tailBaseline.problems.length === 0 && tailTampered.problems.some((p) => /tail: prose from its old section\(s\) is missing, reordered, stray, or duplicated/.test(p)),
+    `baseline=${JSON.stringify(tailBaseline.problems)} tampered=${JSON.stringify(tailTampered.problems)}`);
+  // Independent check verify-0dc5d1d/muts.mjs "P16 proof kept verbatim": a kept section PRESENT
+  // but its body altered (not dropped entirely, which T.keptSectionDropped already pins).
+  const keptAltered = proveLift(input, mapping, goodTailOut.replace("1. An open question.", "1. A CHANGED open question."), SEED_TEXT, { fromDefault: false });
+  // req: R-1163
+  check("R-1163: a kept section present but altered in place is named, not just a kept section missing entirely",
+    keptAltered.problems.some((p) => /tail: kept section ".*" is not carried verbatim/.test(p)),
+    JSON.stringify(keptAltered.problems));
+  // "P18 proof closing missing": the closing heading retyped so no output heading matches the
+  // mapping's declared text anywhere, distinct from a kept section going missing (P17).
+  const closingRetyped = proveLift(input, mapping, goodTailOut.replace("# Open questions and deliberate omissions", "# Open questions (renamed)"), SEED_TEXT, { fromDefault: false });
+  // req: R-1163
+  check("R-1163: a closing heading retyped so nothing in the output matches the mapping's declared text is named as missing",
+    closingRetyped.problems.some((p) => /tail: the closing heading ".*" is missing from the output/.test(p)),
+    JSON.stringify(closingRetyped.problems));
+}
+
 // ==================================================================================================
 // R-1164
 // ==================================================================================================
