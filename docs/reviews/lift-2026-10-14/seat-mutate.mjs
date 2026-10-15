@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Seat mutation runner for lane lift (CHANGE.md §5 "Wrong code first": 58 pairs in six rows, as revised by the "Seat
-// revision", "Seat revision 2" and "Plan review r1-r2" sections appended at the end; plus build brief 2's pair P).
+// revision", "Seat revision 2" and "Plan review r1-r2" sections appended at the end; plus build brief 2's pair P;
+// seat copy for build 7 adds V1, W1, W2, S1, S2, C1, C2 -- declared in (l)).
 // Form copied from docs/reviews/tree-2026-10-14/seat-mutate.mjs.
 // For each pair: apply the wrong code or shipped text (never a test assertion) in a detached scratch worktree of the
 // lane tip, refuse when an anchor does not occur the stated number of times (ANCHOR-MISS = runner bug), syntax-check
@@ -56,7 +57,7 @@ import { fileURLToPath } from "node:url";
 
 const LANE_REPO = "/Users/jwang/nana-pi-wt/lift";
 const LANE_BRANCH = "feat/lift";
-const TIP = process.env.SEAT_MUTATE_TIP || "54fd34f";
+const TIP = process.env.SEAT_MUTATE_TIP || "1a12ebd";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // os.tmpdir(), never beside this script: a scratch git worktree inside the lane folder breaks copier-based suite
 // tests run there ("No url found for submodule path …/wt"). The tree lane's runner ran from the session scratchpad.
@@ -80,6 +81,7 @@ const DECLARED = [
 	"(h) build 3 re-anchors: 2/3 skips every stray-line check the proof now has (matchProse's non-blank refusal, interleaved and trailing, proof :380, :384, with the skipped lines marked consumed, and the whole-output stray scan, :450); 2/4, 2/5, 2/7 at matchProse (:405-406), 2/5 sorting the region's {seg, idx} entries by seg; 3/4 at writeLedgerAtomic's re-read (lift :673)",
 	"(j) build 5 (tip f6b34d4): 5/5 re-anchored to its original two default-mapping sites (`(h) => h.level === 2 && KEPT_SECTIONS.includes(h.label)`, lift :273, :340); build 5's structuralTailLines (lift :234) uses the same filter text and is left unmutated. New pairs: T1 isTableHeaderAt's row check dropped in lift and proof (T1/1 lift only, T1/2 proof only); T2 base refusals reported alone before the later stage again; T3 head/tail field-label exemption removed (T3/1 head only, T3/2 tail only); T4/1-T4/4 --verify's mapping-blob NUL, encoding, JSON and version refusals each dropped (lift :991, :993, :996, :998)",
 	"(k) build 6 (tip 54fd34f): no re-anchor needed (dry run 71/71 apply; T3/1 unchanged, its test now matches line 3's \"Purpose:\"). New pairs: E1 the proof's output-side header/delimiter matcher drops any exact pair again, no row check (proof :489, `&& isTableHeaderAt(regionBare, i)` removed); E2 the default builder's orphan-subgroup check removed (lift :336, the `if (!feat)` line)",
+	"(l) build 7 (tip 1a12ebd; seat copy): re-anchors 3/5 at `worktreeScan(repoRoot, wtEntries)` (lift :981, the scan now takes entries) and 3/7 at the HEAD read's new buffer form (`expectedBlob = gitBuf(...)`, lift :1038), the same wrong read HEAD:REQUIREMENTS.md; 3/6's `diff.status === 0` anchor now matches worktreeScan's inner-loop line by substring (indent 6), same mutant. New pairs: V1 HEAD read through the lossy utf8 decode (its checks then see the re-encoded text) and compared as decoded strings (lift :1038, :1090) -- the comparison alone is unchanged behaviour once HEAD's bytes are checked valid; W1 the grouping file's scan entry dropped (lift :979); W2 cat-file -e back to ls-files --error-unmatch (lift :829); S1/S2 fieldBlockAt's pre-build-7 Also-applies field line restored in the lift (:165-170) / the proof (:103-108); C1 the cross-prefix check removed (lift :434); C2 the undefined-operand guard removed (lift :879)",
 	"(i) build 4/4b re-anchors (tip 9eadde0): 4/17 at validateMapping's new last-emitted-line rule (`if (!nothingAfter) problems.push(`, lift :541), disabled whole as before; new pair M (build brief 4 §A \"Rule\"): the proof's input-derived multiset comparison (proof :591) disabled; judged on T6 and, inside T6's FAIL detail, the three tz labels the build added for it",
 ];
 
@@ -133,6 +135,10 @@ const T34 = "R-1167: one refusal names every base problem, and a field-labelled 
 const T35 = "R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte, an encoding mismatch, invalid JSON or another lift version in the mapping blob, exactly as --write would for the same bytes on disk";
 const T36 = "R-1163: an empty requirement table under a proposed feature is carried, header and delimiter included";
 const T37 = "R-1167: a ledger with base problems and a subgroup with no feature above it is refused naming its problems, never a crash";
+const T38 = "R-1168: --verify refuses a HEAD ledger whose bytes differ from the applied output's, including an invalid UTF-8 byte that decodes like the base";
+const T39 = "R-1164: --write refuses when another worktree has an uncommitted change to the grouping file, or has staged the ledger's removal, naming that worktree";
+const T40 = "R-1167: a tree-form ledger with an Also applies line in a feature's field block is refused, in every mode, never silently dropped";
+const T41 = "R-1167: a cross-prefix row range and a --verify with no revision are refused by name, never a crash";
 const T30 = "R-291: every real heading's committed IDs survive expansion and leaf counts total 1,136";
 void T1; void T14; void T19; void T23; void T27; // titles §5 names in no pair; kept for the record
 
@@ -152,6 +158,9 @@ const PROSE_AT = "    const expected = expectedProseFor(node.from);\n    if (!ma
 const ROW_KEPT = "    if (o === seg) keptCount++;";
 const ROW_CHECK = "  return Boolean(requirementRowId(bareLines[j] ?? \"\"));"; // isTableHeaderAt's build-5 row check (lift :105, proof :84)
 const HEADTAIL = "    if (i < headEnd || tailLines.has(i)) continue; // head/tail prose: carried verbatim, never replaced\n";
+const ALSO_LET = "  let purposeFound = false, outcomeFound = false, statusFound = false;"; // fieldBlockAt, lift :165 and proof :103 at 1a12ebd
+const ALSO_STATUS = "    if (id.startsWith(\"FEAT-\") && !statusFound && /^Status:/.test(l)) { set.add(i); statusFound = true; continue; }\n";
+const ALSO_BACK = [ALSO_LET.replace("statusFound = false;", "statusFound = false, alsoFound = false;"), ALSO_STATUS + "    if (id.startsWith(\"FEAT-\") && !alsoFound && /^Also applies:/.test(l)) { set.add(i); alsoFound = true; continue; }\n"];
 const CHECK8_ROWS = "    if (JSON.stringify(got) !== JSON.stringify(fromRows)) problems.push(";
 
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...opts });
@@ -190,9 +199,9 @@ const PAIRS = [
 	{ n: "3/2", name: "gate byte-compares with `git show`", edits: [one(LIFT, "  const diff = git(cwd, [\"diff\", \"--quiet\", \"HEAD\", \"--\", relPath]);", "  const diff = (() => { const s = spawnSync(\"git\", [\"show\", `HEAD:./${relPath}`], { cwd }); if (s.status !== 0) return { status: s.status }; let cur; try { cur = readFileSync(join(cwd, relPath)); } catch { return { status: 1 }; } return { status: s.stdout.equals(cur) ? 0 : 1 }; })();")], tests: LIFT_T, expectRed: [T11] },
 	{ n: "3/3", name: "gate skips the mapping", edits: [one(LIFT, "  if (mappingPath) {\n    const relMap", "  if (false && mappingPath) {\n    const relMap")], tests: LIFT_T, expectRed: [T10] },
 	{ n: "3/4", name: "gate skips the re-read", edits: [one(LIFT, "  if (!reread.equals(provedBuf)) return { ok: false, reason:", "  if (false && !reread.equals(provedBuf)) return { ok: false, reason:")], tests: LIFT_T, expectRed: [T12] },
-	{ n: "3/5", name: "gate skips the worktree scan", edits: [one(LIFT, "  const wtScan = worktreeScan(repoRoot, relLedger);", "  const wtScan = { ok: true };")], tests: LIFT_T, expectRed: [T9] },
+	{ n: "3/5", name: "gate skips the worktree scan", edits: [one(LIFT, "  const wtScan = worktreeScan(repoRoot, wtEntries);", "  const wtScan = { ok: true };")], tests: LIFT_T, expectRed: [T9] },
 	{ n: "3/6", name: "gate reads a null or 128 git status as clean", edits: [one(LIFT, "  if (lsErr.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (lsErr.status !== 0) return", "  if (lsErr.status !== 0 && lsErr.status !== null && lsErr.status !== 128) return"), one(LIFT, "  if (diff.status === null) return { ok: false, reason: \"git is not on PATH\" };\n  if (diff.status === 128) return { ok: false, reason: \"HEAD has no commit yet; commit the ledger first\" };\n  if (diff.status !== 0) return", "  if (diff.status !== 0 && diff.status !== null && diff.status !== 128) return"), one(LIFT, "  if (list.status !== 0) return", "  if (list.status !== 0 && list.status !== null && list.status !== 128) return"), one(LIFT, "    if (diff.status === 0) continue;", "    if (diff.status === 0 || diff.status === null || diff.status === 128) continue;")], tests: LIFT_T, expectRed: [T9] },
-	{ n: "3/7", name: "verify reads `HEAD:REQUIREMENTS.md` without `./`", edits: [one(LIFT, "  const expected = git(repoRoot, [\"show\", `HEAD:./${relLedger}`]);", "  const expected = git(repoRoot, [\"show\", \"HEAD:REQUIREMENTS.md\"]);")], tests: LIFT_T, expectRed: [T28] },
+	{ n: "3/7", name: "verify reads `HEAD:REQUIREMENTS.md` without `./`", edits: [one(LIFT, "  const expectedBlob = gitBuf(repoRoot, [\"show\", `HEAD:./${relLedger}`]);", "  const expectedBlob = gitBuf(repoRoot, [\"show\", \"HEAD:REQUIREMENTS.md\"]);")], tests: LIFT_T, expectRed: [T28] },
 	{ n: "3/8", name: "`--emit-mapping` overwrites", edits: [one(LIFT, "    if (existsSync(dest)) { console.error(`${dest}: already exists`); return 1; }\n", "")], tests: LIFT_T, expectRed: [T2] },
 	{ n: "3/9", name: "the guard uses the resolve form", edits: [one(LIFT, "if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exit(main());", "if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) process.exit(main());")], tests: LIFT_T, expectRed: [T3] },
 	{ n: "3/10", name: "`--emit-mapping` refuses a ledger the tree checker passes", edits: [one(LIFT, "    if (ct.problems.length === 0) {\n      mapping = buildIdentityMapping(text);", "    if (ct.problems.length === 0) {\n      if (args.emitMapping) { console.error(`${ledgerPath}: --emit-mapping refuses a ledger that already passes the tree checker`); return 1; }\n      mapping = buildIdentityMapping(text);")], tests: LIFT_T, expectRed: [T31] },
@@ -239,6 +248,14 @@ const PAIRS = [
 	// Build 6 (seat revision (k))
 	{ n: "E1", name: "the proof's output-side matcher drops any header/delimiter pair again (no row check)", edits: [one(PROOF, " && DELIM.test(regionBare[i + 1] ?? \"\") && isTableHeaderAt(regionBare, i)) { consumed[idx] = true;", " && DELIM.test(regionBare[i + 1] ?? \"\")) { consumed[idx] = true;")], tests: LIFT_T, expectRed: [T36] },
 	{ n: "E2", name: "the default builder's orphan-subgroup check removed", edits: [one(LIFT, "    if (!feat) { problems.push(`line ${h.line}: level 3 section \"${h.label}\" has no level 2 feature above it; the default cannot place it`); i++; continue; }\n", "")], tests: LIFT_T, expectRed: [T37] },
+	// Build 7 (seat revision (l))
+	{ n: "V1", name: "--verify reads HEAD through the lossy decode and compares decoded strings again", edits: [one(LIFT, "  const expectedBlob = gitBuf(repoRoot, [\"show\", `HEAD:./${relLedger}`]);", "  const __expected = git(repoRoot, [\"show\", `HEAD:./${relLedger}`]); const expectedBlob = { status: __expected.status, stdout: Buffer.from(__expected.stdout ?? \"\", \"utf8\") };"), one(LIFT, "  if (!Buffer.from(output, \"utf8\").equals(expectedBlob.stdout)) {", "  if (output !== expectedText) {")], tests: LIFT_T, expectRed: [T38] },
+	{ n: "W1", name: "the worktree scan covers only the ledger again (grouping file not scanned)", edits: [one(LIFT, "    wtEntries.push({ relPath: relMap, label: \"the grouping file\" });\n", "")], tests: LIFT_T, expectRed: [T39] },
+	{ n: "W2", name: "the worktree scan uses ls-files again (a staged removal skipped as untracked)", edits: [one(LIFT, "      const tracked = git(dir, [\"cat-file\", \"-e\", `HEAD:${candidate}`]);", "      const tracked = git(dir, [\"ls-files\", \"--error-unmatch\", \"--\", candidate]);")], tests: LIFT_T, expectRed: [T39] },
+	{ n: "S1", name: "fieldBlockAt in the lift module treats \"Also applies:\" as a field line again", edits: [one(LIFT, ALSO_LET, ALSO_BACK[0]), one(LIFT, ALSO_STATUS, ALSO_BACK[1])], tests: LIFT_T, expectRed: [T40] },
+	{ n: "S2", name: "fieldBlockAt in the proof module treats \"Also applies:\" as a field line again", edits: [one(PROOF, ALSO_LET, ALSO_BACK[0]), one(PROOF, ALSO_STATUS, ALSO_BACK[1])], tests: LIFT_T, expectRed: [T40] },
+	{ n: "C1", name: "the cross-prefix range check removed (the range reaches expandRowIds)", edits: [one(LIFT, "      if (m[3] && m[1].slice(0, 1) !== m[3].slice(0, 1)) problems.push(`${where}: \"${r}\" is a cross-prefix range`);\n      else if (m[3] && Number(", "      if (m[3] && Number(")], tests: LIFT_T, expectRed: [T41] },
+	{ n: "C2", name: "a missing --verify operand no longer a usage error", edits: [one(LIFT, "  if (args.verify !== null && (args.verify === undefined || args.verify.startsWith(\"-\"))) return usage();", "  if (args.verify !== null && args.verify.startsWith(\"-\")) return usage();")], tests: LIFT_T, expectRed: [T41] },
 	// Row 6: skill and ledger literal
 	{ n: "6/1", name: "skill drops \"only after the owner's yes\"", edits: [one(REQ_SKILL, "Run `--write` only after the owner's yes, and only while", "Run `--write` once the owner has seen the plan, and only while")], tests: SKILL_T, expectRed: [T29] },
 	{ n: "6/2", name: "skill drops \"in every worktree\"", edits: [one(REQ_SKILL, "matches HEAD in every worktree of the repository", "matches HEAD in this worktree")], tests: SKILL_T, expectRed: [T29] },
