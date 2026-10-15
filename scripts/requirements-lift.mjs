@@ -751,6 +751,11 @@ export function writeLedgerAtomic(ledgerPath, provedBuf, output, fns = { readFil
 // ---------------------------------------------------------------------- git gate (R-1164)
 
 function git(cwd, args) { return spawnSync("git", args, { cwd, encoding: "utf8" }); }
+/** Like `git`, but the blob's RAW bytes (a Buffer, not auto-decoded text) -- needed to run the
+ * same NUL/encoding checks `--write` runs on a file read from disk (build brief 4 §B): decoding
+ * through spawnSync's own "utf8" option would silently replace an invalid byte with U+FFFD
+ * before any check ever saw it. */
+function gitBuf(cwd, args) { return spawnSync("git", args, { cwd, maxBuffer: 64 * 1024 * 1024 }); }
 function gitClean(cwd, relPath) {
   const lsErr = git(cwd, ["ls-files", "--error-unmatch", "--", relPath]);
   if (lsErr.status === null) return { ok: false, reason: "git is not on PATH" };
@@ -933,19 +938,42 @@ function runVerify(rootDir, args, seed) {
     relMap = relative(repoRoot, mappingPath).split(sep).join("/");
     const mapClean = gitClean(repoRoot, relMap);
     if (!mapClean.ok) { console.error(`--verify refused: ${relMap} ${mapClean.reason}`); return 1; }
-    const blob = git(repoRoot, ["show", `HEAD:./${relMap}`]);
+    const blob = gitBuf(repoRoot, ["show", `HEAD:./${relMap}`]);
     if (blob.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relMap}`); return 1; }
-    let raw = blob.stdout;
+    const buf = blob.stdout;
+    // Every refusal readMapping() runs on a mapping file read from disk, run here on the SAME
+    // bytes read from the blob instead (build brief 4 §B): a NUL byte, an encoding mismatch,
+    // another lift version, and a U+FFFD or line break inside any string -- --write and
+    // --verify must not disagree on the same input.
+    if (buf.includes(0)) { console.error(`--verify refused: HEAD:./${relMap}: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8`); return 1; }
+    const mapEncLine = firstEncodingMismatchLine(buf);
+    if (mapEncLine !== null) { console.error(`--verify refused: HEAD:./${relMap}:${mapEncLine}: bytes are not valid UTF-8 (an ANSI or other single-byte encoding)`); return 1; }
+    let raw = buf.toString("utf8");
     if (raw.startsWith(BOM)) raw = raw.slice(1);
     try { mapping = JSON.parse(raw); } catch (e) { console.error(`--verify refused: HEAD:./${relMap} is not valid JSON (${e.message})`); return 1; }
+    if (!isPlainObject(mapping)) { console.error(`--verify refused: HEAD:./${relMap}: the top level must be an object`); return 1; }
+    if (mapping.lift !== MAPPING_FORMAT) { console.error(`--verify refused: HEAD:./${relMap}: mapping is lift version ${JSON.stringify(mapping.lift)}, not ${MAPPING_FORMAT}`); return 1; }
+    for (const s of stringsOf(mapping)) {
+      if (/�/.test(s)) { console.error(`--verify refused: HEAD:./${relMap}: a string holds U+FFFD (invalid text)`); return 1; }
+      if (/[\r\n]/.test(s)) { console.error(`--verify refused: HEAD:./${relMap}: a string holds a line break`); return 1; }
+    }
     const shape = shapeProblems(mapping);
     if (shape.length) { for (const p of capProblems(shape)) console.error(`--verify refused: HEAD:./${relMap}: ${p}`); return 1; }
   }
-  const input = git(repoRoot, ["show", `${args.verify}:./${relLedger}`]);
-  if (input.status !== 0) { console.error(`--verify refused: could not read ${args.verify}:./${relLedger}`); return 1; }
+  const inputBlob = gitBuf(repoRoot, ["show", `${args.verify}:./${relLedger}`]);
+  if (inputBlob.status !== 0) { console.error(`--verify refused: could not read ${args.verify}:./${relLedger}`); return 1; }
   const expected = git(repoRoot, ["show", `HEAD:./${relLedger}`]);
   if (expected.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relLedger}`); return 1; }
-  const inputText = input.stdout;
+  const inputBuf = inputBlob.stdout;
+  const inputText = inputBuf.toString("utf8");
+  // Every base-ledger refusal --write runs on bytes read from disk, run here on the SAME blob
+  // bytes (build brief 4 §B): NUL, no rows, an encoding mismatch, a fenced row, a repeated row
+  // ID, an unsupported heading, and a field-labelled line outside its heading's own field block.
+  const inputParsed = parseLedger(inputText);
+  const inputReadProblem = ledgerReadProblem(inputText, inputParsed);
+  if (inputReadProblem) { console.error(`--verify refused: ${args.verify}:./${relLedger}: ${inputReadProblem}`); return 1; }
+  const inputBase = baseRefusals(inputBuf, inputText, inputParsed);
+  if (inputBase.length) { for (const p of capProblems(inputBase)) console.error(`--verify refused: ${args.verify}:./${relLedger}: ${p}`); return 1; }
 
   if (mapping) {
     // the pin check --write also runs (via readMapping) for a supplied mapping: it must be

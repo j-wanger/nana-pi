@@ -1343,5 +1343,68 @@ if (process.platform !== "win32") {
     own(v.stderr).join(" | "));
 }
 
+{
+  // Build brief 4 §B: --verify runs every refusal --write runs, on the SAME bytes (a git blob,
+  // not a file) -- a base revision --write would have refused outright (an ANSI byte, a
+  // repeated row ID) must refuse --verify too, and a committed mapping with a NUL byte or a
+  // U+FFFD must refuse exactly as a mapping FILE with the same bytes would.
+  const base = flatLedger();
+
+  // the REVISION being verified (args.verify's own ledger bytes, read as a blob) is ANSI --
+  // never a file --write would read, but a blob --verify must still run baseRefusals against.
+  // HEAD (a later, unrelated commit) is what --verify compares the applied output against.
+  const ansiDir = scratchDir("t38-ansi");
+  const ansiBuf = Buffer.concat([Buffer.from(base, "utf8"), Buffer.from("| R-900 | caf", "latin1"), Buffer.from([0xe9]), Buffer.from(" shall serve. | untested | — |\n", "latin1")]);
+  writeFileSync(join(ansiDir, "REQUIREMENTS.md"), ansiBuf);
+  gitC(ansiDir, "init", "-q", "-b", "main");
+  gitC(ansiDir, "config", "core.autocrlf", "false");
+  gitC(ansiDir, "add", "-A"); gitC(ansiDir, "commit", "-qm", "ansi rev");
+  const ansiRev = gitC(ansiDir, "rev-parse", "HEAD").stdout.trim();
+  writeLedger(ansiDir, base);
+  gitC(ansiDir, "add", "-A"); gitC(ansiDir, "commit", "-qm", "clean HEAD");
+  const vAnsi = lift(["--root", ansiDir, "--verify", ansiRev]);
+  const ansiOk = vAnsi.status === 1 && !crashed(vAnsi) && own(vAnsi.stderr).some((l) => /bytes are not valid UTF-8/.test(l));
+
+  // a repeated row ID in the revision being verified.
+  const repDir = scratchDir("t38-repeated");
+  const repeatedText = base.replace("| R-002 | The second thing shall work. | untested | — |", "| R-002 | The second thing shall work. | untested | — |\n| R-002 | A repeat of the second thing. | untested | — |");
+  writeLedger(repDir, repeatedText);
+  gitC(repDir, "init", "-q", "-b", "main");
+  gitC(repDir, "config", "core.autocrlf", "false");
+  gitC(repDir, "add", "-A"); gitC(repDir, "commit", "-qm", "repeated rev");
+  const repRev = gitC(repDir, "rev-parse", "HEAD").stdout.trim();
+  writeLedger(repDir, base);
+  gitC(repDir, "add", "-A"); gitC(repDir, "commit", "-qm", "clean HEAD");
+  const vRepeated = lift(["--root", repDir, "--verify", repRev]);
+  const repeatedOk = vRepeated.status === 1 && !crashed(vRepeated) && own(vRepeated.stderr).some((l) => /repeats line/.test(l));
+
+  // a committed mapping holding a NUL byte, naming it exactly as readMapping() would for a file.
+  const nulDir = gitRepo("t38-nul", base);
+  const nulMapPath = join(nulDir, "map.json");
+  lift(["--root", nulDir, "--emit-mapping", nulMapPath]);
+  const nulMapText = readFileSync(nulMapPath, "utf8");
+  writeFileSync(nulMapPath, Buffer.concat([Buffer.from(nulMapText.slice(0, 10), "utf8"), Buffer.from([0]), Buffer.from(nulMapText.slice(10), "utf8")]));
+  gitC(nulDir, "add", "-A"); gitC(nulDir, "commit", "-qm", "nul map");
+  const vNul = lift(["--root", nulDir, "--mapping", nulMapPath, "--verify", "HEAD"]);
+  const nulOk = vNul.status === 1 && !crashed(vNul) && own(vNul.stderr).some((l) => /NUL byte/.test(l));
+
+  // a committed mapping of another lift version.
+  const verDir = gitRepo("t38-ver", base);
+  const verMapPath = join(verDir, "map.json");
+  lift(["--root", verDir, "--emit-mapping", verMapPath]);
+  const verMapObj = JSON.parse(readFileSync(verMapPath, "utf8"));
+  verMapObj.lift = 2;
+  writeFileSync(verMapPath, JSON.stringify(verMapObj));
+  gitC(verDir, "add", "-A"); gitC(verDir, "commit", "-qm", "version map");
+  const vVer = lift(["--root", verDir, "--mapping", verMapPath, "--verify", "HEAD"]);
+  const verOk = vVer.status === 1 && !crashed(vVer) && own(vVer.stderr).some((l) => /lift version/.test(l));
+
+  const bad = [["ansi", ansiOk], ["repeated", repeatedOk], ["nul", nulOk], ["version", verOk]].filter(([, ok]) => !ok).map(([l]) => l);
+  // req: R-1168
+  check("R-1168: --verify refuses an ANSI byte or a repeated row ID in the ledger blob, and a NUL byte or another lift version in the mapping blob, exactly as --write would for the same bytes on disk",
+    bad.length === 0,
+    bad.join(", ") + " " + own(vAnsi.stderr).concat(own(vRepeated.stderr), own(vNul.stderr), own(vVer.stderr)).join(" | "));
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
