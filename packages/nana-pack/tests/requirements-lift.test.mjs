@@ -971,9 +971,12 @@ if (process.platform !== "win32") {
   const repeatedOk = rRepeated.status === 1 && !crashed(rRepeated) && own(rRepeated.stderr).some((l) => /requirement row R-002 repeats line/.test(l));
 
   const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
+  // The ANSI case's own wording, the line number immediately followed by it -- not a number
+  // anywhere on the line, the same precision T25's mapping-file case needs (build brief 4 §C).
+  const ansiNamed = rA.status === 1 && !crashed(rA) && own(rA.stderr).some((l) => new RegExp(`^line ${ansiLine}: bytes are not valid UTF-8`).test(l));
   // req: R-1167
   check("R-1167: the lift refuses a UTF-16 ledger, an ANSI line that is not valid UTF-8, a ledger with no rows, a fenced row, a level-4 or setext heading, an Also applies line and a carried field line, naming each line",
-    r16.status === 1 && !crashed(r16) && rA.status === 1 && named(rA, ansiLine) && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine) && repeatedOk,
+    r16.status === 1 && !crashed(r16) && ansiNamed && rNoRows.status === 1 && !crashed(rNoRows) && named(rFenced, fencedLine) && named(rL4, l4Line) && named(rSetext, setextLine) && named(rAlso, alsoLine) && named(rField, fieldLine) && repeatedOk,
     JSON.stringify({ r16: r16.status, rA: own(rA.stderr)[0], rNoRows: own(rNoRows.stderr)[0], rFenced: own(rFenced.stderr)[0], rL4: own(rL4.stderr)[0], rSetext: own(rSetext.stderr)[0], rAlso: own(rAlso.stderr)[0], rField: own(rField.stderr)[0], repeated: own(rRepeated.stderr)[0] }));
 }
 
@@ -1095,6 +1098,24 @@ if (process.platform !== "win32") {
   writeFileSync(ansiMap, Buffer.from(ansiMapText, "latin1"));
   const rAnsi = lift(["--root", dir, "--mapping", ansiMap]);
 
+  // The same ANSI byte, but the ONLY bad byte in the WHOLE file sits in a JSON KEY, not a
+  // string value (brief 4 §C: the round-trip check must read object keys too). Injected
+  // SURGICALLY (one bad byte spliced into an otherwise valid UTF-8 buffer), unlike the value
+  // case above's whole-text latin1 re-encode, which would also corrupt the "·" every tree
+  // heading's `from[].heading` text already carries, landing the FIRST bad byte there instead
+  // of at this key (a new, appended property serialises after `features`, so an earlier "·"
+  // would otherwise win the "first mismatch" race).
+  const keyAnsiObj = JSON.parse(mapText);
+  keyAnsiObj.tree[0].CAFE_MARKER = "x";
+  const keyAnsiTextAscii = JSON.stringify(keyAnsiObj, null, 2);
+  const markerIdx = keyAnsiTextAscii.indexOf("CAFE_MARKER");
+  const keyAnsiBefore = keyAnsiTextAscii.slice(0, markerIdx);
+  const keyAnsiAfter = keyAnsiTextAscii.slice(markerIdx + "CAFE_MARKER".length);
+  const keyAnsiLine = keyAnsiBefore.split("\n").length;
+  const keyAnsiMap = join(dir, "map-key-ansi.json");
+  writeFileSync(keyAnsiMap, Buffer.concat([Buffer.from(keyAnsiBefore, "utf8"), Buffer.from("caf", "latin1"), Buffer.from([0xe9]), Buffer.from(keyAnsiAfter, "utf8")]));
+  const rKeyAnsi = lift(["--root", dir, "--mapping", keyAnsiMap]);
+
   const brokenMapObj = JSON.parse(mapText);
   brokenMapObj.tree[0].purpose = "a\nbroken line";
   const brokenMap = join(dir, "map-broken.json");
@@ -1130,11 +1151,16 @@ if (process.platform !== "win32") {
   const rVer = lift(["--root", dir, "--mapping", verMap]);
   const verOk = rVer.status === 1 && !crashed(rVer) && own(rVer.stderr).some((l) => /lift version/.test(l));
 
-  const named = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${n}\\b`).test(l));
+  // The check's own wording, the line number immediately followed by it -- not a number
+  // anywhere on the line (build brief 4 §C: the old scratch folder's path happened to contain
+  // "14", which `named()`'s "appears anywhere" match let through unnoticed).
+  const encWording = (r, n) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`:${n}: bytes are not valid UTF-8`).test(l));
+  const ansiOk = encWording(rAnsi, ansiMapLine);
+  const keyAnsiOk = encWording(rKeyAnsi, keyAnsiLine);
   // req: R-1167 R-1166
   check("R-1167: a UTF-16, ANSI or line-broken mapping file, or one outside the root, is refused naming the reason, and one with a BOM is accepted",
-    r16.status === 1 && !crashed(r16) && named(rAnsi, ansiMapLine) && rBroken.status === 1 && !crashed(rBroken) && rOutside.status === 1 && !crashed(rOutside) && rBom.status === 0 && nulOk && brokenJsonOk && verOk,
-    JSON.stringify({ r16: own(r16.stderr)[0], rAnsi: own(rAnsi.stderr)[0], rBroken: own(rBroken.stderr)[0], rOutside: own(rOutside.stderr)[0], rBom: rBom.status, nul: own(rNul.stderr)[0], brokenJson: own(rBrokenJson.stderr)[0], ver: own(rVer.stderr)[0] }));
+    r16.status === 1 && !crashed(r16) && ansiOk && keyAnsiOk && rBroken.status === 1 && !crashed(rBroken) && rOutside.status === 1 && !crashed(rOutside) && rBom.status === 0 && nulOk && brokenJsonOk && verOk,
+    JSON.stringify({ r16: own(r16.stderr)[0], rAnsi: own(rAnsi.stderr)[0], rKeyAnsi: own(rKeyAnsi.stderr)[0], rBroken: own(rBroken.stderr)[0], rOutside: own(rOutside.stderr)[0], rBom: rBom.status, nul: own(rNul.stderr)[0], brokenJson: own(rBrokenJson.stderr)[0], ver: own(rVer.stderr)[0] }));
 }
 
 {
