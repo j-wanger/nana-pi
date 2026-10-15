@@ -62,6 +62,7 @@
 - Desk residuals live in `apps/desk/README.md` Known limits.
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
 - Requirements tree: no row says the watchdog turns handoff off for every child, yet one share rests on it. Feature statuses miss partial freezes (the compaction store; desk rows in the notices feature). Brief fields and a land-time tree diff come next.
+- Lift: FEAT-028 and FEAT-032's product-report assessments may read out of date after this lane's eight new rows; refresh them at land. Each project's own lift waits for Jake's yes on its dry run.
 
 ## Where things stand
 
@@ -75,7 +76,7 @@
 4. **Attention-limit trial (ruling 2), 2026-10-06 to 2026-10-20.** At most three blocking asks may stand in "Open for Jake" at once. Optional and parked asks do not count.
 5. **Karpathy's other formats.** The code-drawn blast-radius diagram and the review-timeline diagram are both unblocked.
 6. **Queue for the new priority, in order (Jake, 2026-10-11; at most two lanes at once):**
-   - Now: the lift (Jake, 2026-10-14): one tool applies a grouping to a flat ledger and proves every row survives unchanged.
+   - Now: the lift (Jake, 2026-10-14): one tool applies a grouping to a flat ledger and proves every row survives unchanged. Built on `feat/lift`; a draft PR is open for CI. No review round has run.
    - Then the regroup, a core nana feature (Jake, 2026-10-14). An agent reads an existing repo and proposes its feature tree; Jake approves it, and the lift's tool applies it.
    - Then feature-oriented development: each brief names its feature, reviews read per feature, and each land shows how the tree moved.
    - Then the parallel test runner, split out of the process lane because it changes the suite's gate.
@@ -104,3 +105,4 @@
 - **[optional, since 2026-10-09] Draft pull requests as a CI trigger.** CI reports only after a land. Should the land helper open a draft per lane? The ledger stays the review record.
 - **[parked, since 2026-09-16] Changes-bar baseline.** The files-changed bar is git working tree versus HEAD, not attributed to the conversation. Switching is a design change.
 - **[parked, since 2026-09-16] Raw-only wikis.** `agent-memory` and `agentic-engineering` are scrape-only. The index skips their `raw/` folders. This rides with hardening D2(c).
+- **[optional, since 2026-10-14] Re-run `nana-setup install` on your Windows Claude Code seat.** The lift build changed the requirements skill's text. The Windows seat holds its own copy, so it stays stale until you re-run install there.

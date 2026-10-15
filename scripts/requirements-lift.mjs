@@ -154,16 +154,20 @@ function baseRefusals(buf, text, parsed) {
     if (h.setext) { problems.push(`line ${h.line}: setext heading is not supported; use an ATX "#" heading`); continue; }
     if (h.level >= 4) problems.push(`line ${h.line}: level ${h.level} heading is not supported; sections must be level 1 to 3`);
   }
-  const headingLineSet = new Set(headings.map((h) => h.line));
-  for (let i = 0; i < bareLines.length; i++) {
-    if (fenced[i] || requirementRowId(bareLines[i])) continue;
-    if (headingLineSet.has(i + 1)) continue;
-    if (bareLines[i].startsWith("|")) continue; // table structure or continuation
-    if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
-    // under an already tree-form heading this is a legitimate field line, not carried prose.
-    const nearest = headings.filter((h) => h.line <= i + 1).sort((a, b) => b.line - a.line)[0];
-    if (nearest?.id) continue;
-    problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
+  // Carried field-label prose only risks confusing a DEFAULT lift's flat sections (research-code.md
+  // §3 item 7); a ledger that already carries a real tree heading takes the identity or
+  // neither-flat-nor-tree path instead, where this scan would otherwise false-positive on an
+  // informal "Purpose:" paragraph under an ordinary, non-tree heading (yokai-world's "## The
+  // product").
+  if (parsed.headings.length === 0) {
+    const headingLineSet = new Set(headings.map((h) => h.line));
+    for (let i = 0; i < bareLines.length; i++) {
+      if (fenced[i] || requirementRowId(bareLines[i])) continue;
+      if (headingLineSet.has(i + 1)) continue;
+      if (bareLines[i].startsWith("|")) continue; // table structure or continuation
+      if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
+      problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
+    }
   }
   return problems;
 }
@@ -680,9 +684,15 @@ export function main(argv = process.argv.slice(2)) {
 
   const output = applyMapping(text, mapping, seed);
   const proof = proveLift(text, mapping, output, seed.text, { fromDefault });
-  for (const node of flattenNodes(mapping)) {
-    const rows = expandRowIds((node.node.rows ?? []).join(","));
-    console.log(`${node.id}: ${rows.length} row(s)`);
+  {
+    // R-1162: each plan line carries the heading's OWN subtree row count (its rows plus every
+    // descendant's), as the written ledger will hold them, not just its own leaf rows.
+    const planNodes = flattenNodes(mapping);
+    const ownRows = new Map(planNodes.map((n) => [n.id, expandRowIds((n.node.rows ?? []).join(",")).length]));
+    const children = new Map();
+    for (const n of planNodes) if (n.parent) { if (!children.has(n.parent)) children.set(n.parent, []); children.get(n.parent).push(n.id); }
+    const subtreeCount = (id) => (ownRows.get(id) ?? 0) + (children.get(id) ?? []).reduce((s, c) => s + subtreeCount(c), 0);
+    for (const n of planNodes) console.log(`${n.id}: ${subtreeCount(n.id)} row(s)`);
   }
   for (const [oldHeading, newId] of detectMoves(text, mapping)) console.log(`${oldHeading} -> ${newId}`);
   if (proof.problems.length) { for (const p of capProblems(proof.problems)) console.error(p); return 1; }

@@ -255,11 +255,14 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
     }
   }
 
-  // reserved-node row-placement rule, both modes
+  // reserved-node row-placement rule, both modes: a product (R-) row under CAP-90 at ANY depth,
+  // not only one whose own direct heading happens to be a reserved id (a tampered or regrouped
+  // product feature nested under CAP-90 still carries its own, non-reserved, feature id).
+  const underReservedCap = (h) => { let c = h; while (c) { if (c.id === "CAP-90") return true; c = c.parent; } return false; };
   for (const row of outRows) {
     const homeId = row.heading?.id;
     if (!homeId) continue;
-    if (row.id.startsWith("R-") && RESERVED.has(homeId)) problems.push(`${row.id}: an R row sits in reserved node ${homeId}`);
+    if (row.id.startsWith("R-") && (RESERVED.has(homeId) || underReservedCap(row.heading))) problems.push(`${row.id}: an R row sits under reserved capability CAP-90 (at ${homeId})`);
     if (row.id.startsWith("G-")) {
       const wantSub = seed.subOf.get(row.id);
       const actualSub = homeId.startsWith("SUB-") ? homeId : (outParsed.headings.find((h) => h.id === homeId)?.parent?.id ?? null);
