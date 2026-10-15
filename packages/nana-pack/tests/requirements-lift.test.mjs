@@ -1536,7 +1536,7 @@ if (process.platform !== "win32") {
   const dir = writeLedger(scratchDir("t-headtail"), text);
   const r = lift(["--root", dir]);
   const lines_ = own(r.stderr);
-  const noHeadField = !lines_.some((l) => /line 2: carried prose starts with a field label/.test(l));
+  const noHeadField = !lines_.some((l) => /carried prose starts with a field label \("Purpose:"\)/.test(l));
   const noTailField = !lines_.some((l) => /carried prose starts with a field label \("Status:"\)/.test(l));
   const namesFence = lines_.some((l) => /requirement row R-100 is inside a code fence/.test(l));
   const namesNearTree = lines_.some((l) => /neither flat nor a passing tree/.test(l) && /already holds 1 capability, feature or subgroup heading/.test(l));
