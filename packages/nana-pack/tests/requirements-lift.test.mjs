@@ -615,6 +615,42 @@ if (process.platform !== "win32") {
     `flat=${flatW.status} flatProof=${JSON.stringify(flatProof)} tree=${treeW.status} same=${treeOut === flatOut} treeProof=${JSON.stringify(treeProof)} ` + own(flatW.stderr).concat(own(treeW.stderr)).join(" | "));
 }
 
+{
+  // Build brief 6 item 2 (verify-f6b34d4/adopt.md's own shape): a `proposed` first feature whose
+  // requirement table holds no row yet. The proof's OUTPUT-side matcher dropped any exact header
+  // and delimiter pair as structural, whether or not a row followed it, while its own INPUT-side
+  // matcher (and the writer, build brief 5 item 1) already required a following row -- so this
+  // leaf's untouched header/delimiter had nothing left in `prose` to match against `expected`,
+  // and a write that was actually byte-identical was refused.
+  const text = [
+    "# Fixture requirements", "",
+    "# CAP-01 · What the product does",
+    "Purpose: name what this product does.",
+    "Outcome: name the outcome this capability delivers.", "",
+    "## FEAT-001 · First feature",
+    "Purpose: name the first feature the audit finds.",
+    "Status: proposed", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|", "",
+    "## FEAT-002 · Second feature",
+    "Purpose: name the second feature.",
+    "Status: active", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | The second feature shall work. | untested | — |", "",
+    "# Open questions and deliberate omissions", "",
+    "## Open questions", "", "1. (none yet)", "",
+    "## Deliberate omissions", "", "- (none yet)", "",
+  ].join("\n");
+  const dir = gitRepo("t-emptytbl", text);
+  const before = readLedger(dir);
+  const r = lift(["--root", dir, "--write"]);
+  const after = readLedger(dir);
+  const proof = proofOf(r.stdout);
+  // req: R-1163
+  check("R-1163: an empty requirement table under a proposed feature is carried, header and delimiter included",
+    r.status === 0 && !crashed(r) && proof?.treeProblems === 0 && Boolean(after) && after.equals(before),
+    `status=${r.status} proof=${JSON.stringify(proof)} same=${after ? after.equals(before) : null} ` + own(r.stderr).join(" | "));
+}
+
 // ==================================================================================================
 // R-1164
 // ==================================================================================================

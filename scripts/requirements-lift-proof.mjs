@@ -486,7 +486,7 @@ export function proveLift(inputText, mapping, outputText, seedText, { fromDefaul
       const line = regionBare[i];
       if (requirementRowId(line)) { consumed[idx] = true; continue; }
       if (/^(Purpose|Outcome|Status|Also applies):/.test(line)) { consumed[idx] = true; continue; }
-      if (line === TABLE_HEADER_TEXT && DELIM.test(regionBare[i + 1] ?? "")) { consumed[idx] = true; consumed[idx + 1] = true; i++; continue; }
+      if (line === TABLE_HEADER_TEXT && DELIM.test(regionBare[i + 1] ?? "") && isTableHeaderAt(regionBare, i)) { consumed[idx] = true; consumed[idx + 1] = true; i++; continue; }
       prose.push({ seg: outSegs[idx], idx });
     }
     const expected = expectedProseFor(node.from);
