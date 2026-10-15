@@ -1276,6 +1276,94 @@ if (process.platform !== "win32") {
 }
 
 {
+  // build brief 7 item 3 (astra r1 MUST), using astra's own repro: a PASSING two-feature tree
+  // whose second feature carries `Also applies: R-001`. In a tree-form ledger that line falls
+  // inside FEAT-002's own "replaceable field block" (regenerated fresh by the writer, like its
+  // Purpose/Status lines), so it was never a base-refusal problem and a grouping that simply
+  // omits `also_applies` silently drops the share. R-1167 and HANDOFF say a ledger holding
+  // shares is refused -- in every mode, flat or tree-form, never silently dropped.
+  const shareText = [
+    "# Fixture requirements", "",
+    "# CAP-01 · What the product does",
+    "Purpose: name what this product does.",
+    "Outcome: name the outcome this capability delivers.", "",
+    "## FEAT-001 · First feature",
+    "Purpose: name the first feature the audit finds.",
+    "Status: active", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | The first feature shall work. | untested | — |", "",
+    "## FEAT-002 · Second feature",
+    "Purpose: name the second feature.",
+    "Status: active",
+    "Also applies: R-001", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-002 | The second feature shall work. | untested | — |", "",
+    "# Open questions and deliberate omissions", "",
+    "## Open questions", "", "1. (none yet)", "",
+    "## Deliberate omissions", "", "- (none yet)", "",
+  ].join("\n");
+  const shareLine = shareText.split("\n").findIndex((l) => l === "Also applies: R-001") + 1;
+  const named3 = (r) => r.status === 1 && !crashed(r) && own(r.stderr).some((l) => new RegExp(`\\b${shareLine}\\b`).test(l) && /Also applies/.test(l));
+
+  // sanity: astra's own repro calls this ledger a PASSING tree under the tree checker.
+  const checked = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", writeLedger(scratchDir("t22b-sanity"), shareText)]);
+
+  const rDry = lift(["--root", writeLedger(scratchDir("t22b-dry"), shareText)]);
+  const dirEmit = writeLedger(scratchDir("t22b-emit"), shareText);
+  const rEmit = lift(["--root", dirEmit, "--emit-mapping", join(dirEmit, "map.json")]);
+  const dirWrite = gitRepo("t22b-write", shareText);
+  const beforeWrite = readLedger(dirWrite);
+  const rWrite = lift(["--root", dirWrite, "--write"]);
+  // --verify, the BASE blob (args.verify's own revision carries the share).
+  const dirVerifyBase = gitRepo("t22b-vbase", shareText);
+  const rVerifyBase = lift(["--root", dirVerifyBase, "--verify", "HEAD"]);
+  // --verify, the HEAD blob: a CLEAN base (no "Also applies:" anywhere), a mapping whose
+  // optional `also_applies` declares a NEW share -- the writer's own, otherwise-legitimate
+  // `fieldLines` call would materialise that as a literal "Also applies:" line in the output.
+  // The HEAD blob is forged directly (`LIFT_MODULE.applyMapping`, as t33 does for its own
+  // tampered-mapping case) and committed, standing in for a HEAD a once-permissive --write
+  // produced, or one hand-edited to add a share -- `--verify` must refuse it on its own, not
+  // only rely on `--write` having refused it first.
+  const dirVerifyHead = gitRepo("t22b-vhead", flatLedger());
+  const baseRevVH = gitC(dirVerifyHead, "rev-parse", "HEAD").stdout.trim();
+  const mapPathVH = join(dirVerifyHead, "map.json");
+  lift(["--root", dirVerifyHead, "--emit-mapping", mapPathVH]);
+  const mapVH = JSON.parse(readFileSync(mapPathVH, "utf8"));
+  mapVH.tree[0].features[1].also_applies = ["R-001"]; // FEAT-002 ("2. Two") now also applies to R-001
+  writeFileSync(mapPathVH, JSON.stringify(mapVH));
+  gitC(dirVerifyHead, "add", "-A"); gitC(dirVerifyHead, "commit", "-qm", "map (declares a share)");
+  const forgedHead = LIFT_MODULE.applyMapping(flatLedger(), mapVH, { byId: new Map(), subOf: new Map() });
+  writeFileSync(join(dirVerifyHead, "REQUIREMENTS.md"), forgedHead);
+  gitC(dirVerifyHead, "add", "-A"); gitC(dirVerifyHead, "commit", "-qm", "lift (forged: HEAD carries a new share)");
+  const rVerifyHead = lift(["--root", dirVerifyHead, "--mapping", mapPathVH, "--verify", baseRevVH]);
+  // --write, the SAME mapping, directly: the mapping-driven avenue into a share-carrying output
+  // must be refused at --write too, not only caught later by --verify.
+  const dirWriteAlso = gitRepo("t22b-write-also", flatLedger());
+  const mapPathWA = join(dirWriteAlso, "map.json");
+  lift(["--root", dirWriteAlso, "--emit-mapping", mapPathWA]);
+  const mapWA = JSON.parse(readFileSync(mapPathWA, "utf8"));
+  mapWA.tree[0].features[1].also_applies = ["R-001"]; // FEAT-002 ("2. Two") now also applies to R-001
+  writeFileSync(mapPathWA, JSON.stringify(mapWA));
+  gitC(dirWriteAlso, "add", "-A"); gitC(dirWriteAlso, "commit", "-qm", "map (declares a share)");
+  const beforeWriteAlso = readLedger(dirWriteAlso);
+  const rWriteAlso = lift(["--root", dirWriteAlso, "--mapping", mapPathWA, "--write"]);
+
+  const cases3 = [
+    { label: "dry-run", ok: checked.status === 0 && named3(rDry) },
+    { label: "emit-mapping", ok: rEmit.status === 1 && !crashed(rEmit) },
+    { label: "write", ok: rWrite.status === 1 && !crashed(rWrite) && readLedger(dirWrite).equals(beforeWrite) },
+    { label: "verify-base-blob", ok: rVerifyBase.status === 1 && !crashed(rVerifyBase) },
+    { label: "verify-head-blob", ok: rVerifyHead.status === 1 && !crashed(rVerifyHead) },
+    { label: "write-also-applies-mapping", ok: rWriteAlso.status === 1 && !crashed(rWriteAlso) && readLedger(dirWriteAlso).equals(beforeWriteAlso) },
+  ];
+  const bad3 = cases3.filter((c) => !c.ok).map((c) => c.label);
+  // req: R-1167
+  check("R-1167: a tree-form ledger with an Also applies line in a feature's field block is refused, in every mode, never silently dropped",
+    bad3.length === 0,
+    bad3.join(", ") + " " + JSON.stringify({ treeCheck: checked.status, dry: own(rDry.stderr)[0], emit: own(rEmit.stderr)[0], write: own(rWrite.stderr)[0], vbase: own(rVerifyBase.stderr)[0], vhead: own(rVerifyHead.stderr)[0] }));
+}
+
+{
   const treeText = "# CAP-01 · Cap\nPurpose: p\nOutcome: o\n\n## FEAT-001 · Feat\nPurpose: p\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A thing shall work. | untested | — |\n";
   const dirTree = writeLedger(scratchDir("t23-tree"), treeText);
   const rTree = lift(["--root", dirTree]); // already a tree -> treated as identity, not a refusal; use near-miss instead

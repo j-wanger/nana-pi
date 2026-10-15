@@ -148,25 +148,26 @@ function firstEncodingMismatchLine(buf) {
  * next heading of any kind), that are its field-line block -- exactly as the tree parser
  * (`requirements-tree.mjs`'s `parseLedger`) defines it: the first "Purpose:" line, and -- for a
  * CAP- heading -- the first "Outcome:" line, or -- for a FEAT- heading -- the first "Status:"
- * and first "Also applies:" line. A heading with no tree id (a plain, non-tree heading) carries
- * no field block at all -- the tree parser never scans one for fields -- so `id` null returns
- * empty. Build brief 4 §A, MUST 1(b): only these lines are a replaced heading's own regenerated
- * field lines; a field-labelled line anywhere else (a second "Purpose:", or an "Outcome:" under
- * a feature, which the tree parser never reads) is ordinary carried prose, never silently
- * dropped by the writer nor exempted from the base refusal below.
+ * line. A heading with no tree id (a plain, non-tree heading) carries no field block at all --
+ * the tree parser never scans one for fields -- so `id` null returns empty. Build brief 4 §A,
+ * MUST 1(b): only these lines are a replaced heading's own regenerated field lines; a
+ * field-labelled line anywhere else (a second "Purpose:", an "Outcome:" under a feature, which
+ * the tree parser never reads, or ANY "Also applies:" line -- build brief 7 item 3: shares are
+ * refused in every ledger form, so an "Also applies:" line is never treated as regeneratable
+ * field content, in a feature's own span or anywhere else) is ordinary carried prose, never
+ * silently dropped by the writer nor exempted from the base refusal below.
  */
 function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
   const set = new Set();
   if (!id) return set;
   const after = allHeadingLines.filter((l) => l > headingLine);
   const end = after.length ? Math.min(...after) - 1 : bareLines.length;
-  let purposeFound = false, outcomeFound = false, statusFound = false, alsoFound = false;
+  let purposeFound = false, outcomeFound = false, statusFound = false;
   for (let i = headingLine; i < end; i++) {
     const l = bareLines[i];
     if (!purposeFound && /^Purpose:/.test(l)) { set.add(i); purposeFound = true; continue; }
     if (id.startsWith("CAP-") && !outcomeFound && /^Outcome:/.test(l)) { set.add(i); outcomeFound = true; continue; }
     if (id.startsWith("FEAT-") && !statusFound && /^Status:/.test(l)) { set.add(i); statusFound = true; continue; }
-    if (id.startsWith("FEAT-") && !alsoFound && /^Also applies:/.test(l)) { set.add(i); alsoFound = true; continue; }
   }
   return set;
 }

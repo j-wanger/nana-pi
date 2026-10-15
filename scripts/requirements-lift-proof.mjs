@@ -87,24 +87,25 @@ function isTableHeaderAt(bareLines, i) {
  * The 0-based raw-line indices, within ONE heading's own span, that are its field-line block --
  * exactly as the tree parser defines it (requirements-tree.mjs's `parseLedger`): the first
  * "Purpose:" line, and -- for a CAP- heading -- the first "Outcome:" line, or -- for a FEAT-
- * heading -- the first "Status:" and first "Also applies:" line. A heading with no tree id
- * carries no field block at all. Duplicated from the lift module's own copy (R-1163: the proof
- * shares no code with the writer; build brief 4 §A, MUST 1(b)): only these lines are a replaced
- * heading's own regenerated field lines; a field-labelled line anywhere else is ordinary
- * carried prose and must be accounted for like any other input line.
+ * heading -- the first "Status:" line. A heading with no tree id carries no field block at all.
+ * Duplicated from the lift module's own copy (R-1163: the proof shares no code with the writer;
+ * build brief 4 §A, MUST 1(b)): only these lines are a replaced heading's own regenerated field
+ * lines; a field-labelled line anywhere else -- including ANY "Also applies:" line (build brief
+ * 7 item 3: shares are refused in every ledger form, so this is never treated as regeneratable
+ * field content) -- is ordinary carried prose and must be accounted for like any other input
+ * line.
  */
 function fieldBlockAt(bareLines, allHeadingLines, headingLine, id) {
   const set = new Set();
   if (!id) return set;
   const after = allHeadingLines.filter((l) => l > headingLine);
   const end = after.length ? Math.min(...after) - 1 : bareLines.length;
-  let purposeFound = false, outcomeFound = false, statusFound = false, alsoFound = false;
+  let purposeFound = false, outcomeFound = false, statusFound = false;
   for (let i = headingLine; i < end; i++) {
     const l = bareLines[i];
     if (!purposeFound && /^Purpose:/.test(l)) { set.add(i); purposeFound = true; continue; }
     if (id.startsWith("CAP-") && !outcomeFound && /^Outcome:/.test(l)) { set.add(i); outcomeFound = true; continue; }
     if (id.startsWith("FEAT-") && !statusFound && /^Status:/.test(l)) { set.add(i); statusFound = true; continue; }
-    if (id.startsWith("FEAT-") && !alsoFound && /^Also applies:/.test(l)) { set.add(i); alsoFound = true; continue; }
   }
   return set;
 }
