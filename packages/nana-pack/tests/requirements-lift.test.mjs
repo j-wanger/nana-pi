@@ -294,6 +294,25 @@ if (process.platform !== "win32") {
 }
 
 {
+  // Independent check verify-0dc5d1d/muts.mjs "P1 proof BOM": T5 above only checks a GOOD
+  // BOM-and-CRLF lift, never a probe that drops the BOM from an otherwise-good output -- and
+  // no other check (the multiset backstop strips the BOM before comparing lines) would notice.
+  const BOM = "﻿";
+  const plain = flatLedger();
+  const base = BOM + plain;
+  const seed = { byId: new Map(), subOf: new Map() };
+  const built = LIFT_MODULE.buildDefaultMapping(plain, seed);
+  const bomMapping = built.mapping;
+  const bomGoodOut = LIFT_MODULE.applyMapping(base, bomMapping, seed);
+  const bomBaseline = proveLift(base, bomMapping, bomGoodOut, SEED_TEXT, { fromDefault: true });
+  const bomStripped = proveLift(base, bomMapping, bomGoodOut.replace(BOM, ""), SEED_TEXT, { fromDefault: true });
+  // req: R-1163
+  check("R-1163: a BOM present in the input but dropped from the output is named",
+    bomGoodOut.startsWith(BOM) && bomBaseline.problems.length === 0 && bomStripped.problems.some((p) => /^BOM: input has a BOM but output has no one/.test(p)),
+    `baseline=${JSON.stringify(bomBaseline.problems)} stripped=${JSON.stringify(bomStripped.problems)}`);
+}
+
+{
   const base = flatLedger();
   const dir0 = gitRepo("t6-base", base);
   lift(["--root", dir0, "--write"]);
