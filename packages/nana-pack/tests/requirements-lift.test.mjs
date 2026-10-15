@@ -1513,6 +1513,39 @@ if (process.platform !== "win32") {
     own(r.stderr).join(" | "));
 }
 
+{
+  // Build brief 5 item 3: a field-labelled line in the document's structural head (its prose
+  // before the first tree heading -- nana-pi's own "## Purpose and outcomes" intro) or tail (a
+  // kept section) is carried verbatim and harmless, so it must not be named; and the run must
+  // still name a REAL base problem (a fenced row) alongside the ledger's near-tree shape, instead
+  // of stopping at whichever stage is found first and hiding the other (yokai-world line 50: the
+  // field-label refusal used to hide the more useful tree-heading-count refusal).
+  const text = [
+    "# fixture requirements", "",
+    "Purpose: this reads like a field line but it's just the intro, before any tree heading.", "",
+    "## FEAT-001 · Loose feature", "Purpose: p", "Status: active", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-001 | A thing shall work. | untested | — |", "",
+    "# Part B. Beta", "", "## 1. Sub", "", "```", "| R-100 | fenced row shall hold. | untested | — |", "```", "",
+    "| ID | Requirement | Status | Evidence |", "|---|---|---|---|",
+    "| R-002 | Another thing shall work. | untested | — |", "",
+    "## Open questions", "",
+    "Status: an open question that happens to start with a field label.", "",
+    "1. An open question.", "",
+  ].join("\n");
+  const dir = writeLedger(scratchDir("t-headtail"), text);
+  const r = lift(["--root", dir]);
+  const lines_ = own(r.stderr);
+  const noHeadField = !lines_.some((l) => /line 2: carried prose starts with a field label/.test(l));
+  const noTailField = !lines_.some((l) => /carried prose starts with a field label \("Status:"\)/.test(l));
+  const namesFence = lines_.some((l) => /requirement row R-100 is inside a code fence/.test(l));
+  const namesNearTree = lines_.some((l) => /neither flat nor a passing tree/.test(l) && /already holds 1 capability, feature or subgroup heading/.test(l));
+  // req: R-1167
+  check("R-1167: one refusal names every base problem, and a field-labelled line in the head or tail is not one",
+    r.status === 1 && !crashed(r) && noHeadField && noTailField && namesFence && namesNearTree,
+    `status=${r.status} noHeadField=${noHeadField} noTailField=${noTailField} namesFence=${namesFence} namesNearTree=${namesNearTree} ` + lines_.join(" | "));
+}
+
 // ==================================================================================================
 // R-1168
 // ==================================================================================================

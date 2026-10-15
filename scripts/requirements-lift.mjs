@@ -205,18 +205,39 @@ function baseRefusals(buf, text, parsed) {
   // before (yokai-world's informal "Purpose:" paragraph under a PLAIN, non-tree heading is
   // likewise never in `fieldBlock` and stays refused -- it was never a false positive to begin
   // with, since a plain heading carries no field block for the tree parser to recognise).
+  // Build brief 5 item 3: a field-labelled line that sits in the document's structural HEAD
+  // (every tree-form ledger's prose before its first tree heading -- nana-pi's own "## Purpose
+  // and outcomes" intro, line 64; yokai-world's line 50) or TAIL (a kept section or the closing
+  // heading's own span) is carried verbatim, never replaced, and so is not a problem either --
+  // only when at least one tree heading already exists; a wholly flat ledger has no such head
+  // (its own intro is still refused, as T22 pins) since nothing there is a tree-form prose block.
   const headingLineSet = new Set(headings.map((h) => h.line));
   const treeHeadings = headings.filter((h) => h.id);
   const fieldBlock = fieldBlockLines(bareLines, headings.map((h) => h.line), treeHeadings);
+  const headEnd = treeHeadings.length ? Math.min(...treeHeadings.map((h) => h.line)) - 1 : 0;
+  const tailLines = structuralTailLines(bareLines, headings);
   for (let i = 0; i < bareLines.length; i++) {
     if (fenced[i] || requirementRowId(bareLines[i])) continue;
     if (headingLineSet.has(i + 1)) continue;
     if (fieldBlock.has(i)) continue; // a tree heading's own, legitimate field line
+    if (i < headEnd || tailLines.has(i)) continue; // head/tail prose: carried verbatim, never replaced
     if (bareLines[i].startsWith("|")) continue; // table structure or continuation
     if (!/^(Purpose|Outcome|Status|Also applies):/.test(bareLines[i])) continue;
     problems.push(`line ${i + 1}: carried prose starts with a field label ("${bareLines[i].split(":")[0]}:")`);
   }
   return problems;
+}
+/** 0-based line indices under a kept section (Open questions / Deliberate omissions, by label)
+ * or the closing heading's own span: the structural TAIL, carried verbatim and never replaced. */
+function structuralTailLines(bareLines, headings) {
+  const set = new Set();
+  const starts = headings.filter((h) => (h.level === 2 && KEPT_SECTIONS.includes(h.label)) || bareLines[h.line - 1] === CLOSING_HEADING);
+  for (const h of starts) {
+    const after = headings.filter((x) => x.line > h.line).map((x) => x.line);
+    const end = after.length ? Math.min(...after) - 1 : bareLines.length;
+    for (let i = h.line - 1; i < end; i++) set.add(i);
+  }
+  return set;
 }
 
 // ---------------------------------------------------------------------- the default mapping (R-1165)
@@ -850,10 +871,10 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
   const readProblem = ledgerReadProblem(text, parsed);
   if (readProblem) { console.error(readProblem); return 1; }
   const base = baseRefusals(buf, text, parsed);
-  if (base.length) { for (const p of capProblems(base)) console.error(p); return 1; }
 
   let mapping, fromDefault = false, mappingPath = null;
   if (args.mapping) {
+    if (base.length) { for (const p of capProblems(base)) console.error(p); return 1; }
     mappingPath = resolve(rootDir, args.mapping);
     const realRoot = rootDir; // already canonical
     const realMap = canonical(mappingPath);
@@ -863,13 +884,18 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
     if (read.problems.length) { for (const p of capProblems(read.problems)) console.error(p); return 1; }
     mapping = read.mapping;
   } else {
+    // Build brief 5 item 3: every base-refusal stage runs before any is reported, so a ledger
+    // with both an ordinary structural problem and a near-tree shape names both in one run,
+    // instead of stopping at whichever is found first (a stray base problem no longer hides the
+    // tree-heading-count refusal below, and vice versa).
+    const stageProblems = [...base];
     const ct = checkTree(text);
     if (ct.problems.length === 0) {
       mapping = buildIdentityMapping(text);
     } else if (isFlatLedger(text)) {
       const built = buildDefaultMapping(text, seed);
-      if (built.problems.length) { for (const p of capProblems(built.problems)) console.error(p); return 1; }
-      mapping = built.mapping; fromDefault = true;
+      if (built.problems.length) stageProblems.push(...built.problems);
+      else { mapping = built.mapping; fromDefault = true; }
     } else {
       // R-1167, T23: name the tree (or near-tree) heading(s) found, not just the tree
       // checker's generic first problem — a hand-built partial tree (real CAP/FEAT/SUB
@@ -878,9 +904,9 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
       const detail = treeHeadingCount > 0
         ? `this ledger already holds ${treeHeadingCount} capability, feature or subgroup heading(s) and is not a passing tree (${ct.problems[0] ?? "see the tree checker"})`
         : (ct.problems[0] ?? "see the tree checker");
-      console.error(`${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${detail})`);
-      return 1;
+      stageProblems.push(`${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${detail})`);
     }
+    if (stageProblems.length) { for (const p of capProblems(stageProblems)) console.error(p); return 1; }
   }
   // Build brief 4 §A, MUST 1(a)/(c): validateMapping runs on a mapping this process built
   // itself (the identity or default mapping), not only on one supplied with --mapping -- an
